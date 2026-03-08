@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS } from '@/types/expert';
 import { QuestionInput } from '@/components/QuestionInput';
@@ -8,7 +8,7 @@ import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw } from 'lucide-react';
+import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
@@ -97,6 +97,7 @@ const Index = () => {
   const [copiedAll, setCopiedAll] = useState(false);
   const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('standard');
   const [stopRequested, setStopRequested] = useState(false);
+  const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -720,18 +721,53 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               )}
 
               {/* Messages */}
-              {messages.map(msg => {
+              {messages.map((msg, idx) => {
                 if (msg.expertId === '__round__') {
+                  const isCollapsed = collapsedRounds.has(msg.id);
+                  // Count messages in this round (until next round separator or end)
+                  let roundMsgCount = 0;
+                  for (let i = idx + 1; i < messages.length; i++) {
+                    if (messages[i].expertId === '__round__') break;
+                    if (messages[i].expertId !== '__user__') roundMsgCount++;
+                  }
                   return (
-                    <div key={msg.id} className="flex items-center gap-3 py-3">
+                    <button
+                      key={msg.id}
+                      type="button"
+                      onClick={() => setCollapsedRounds(prev => {
+                        const next = new Set(prev);
+                        if (next.has(msg.id)) next.delete(msg.id);
+                        else next.add(msg.id);
+                        return next;
+                      })}
+                      className="w-full flex items-center gap-3 py-3 group/round cursor-pointer"
+                    >
                       <div className="flex-1 h-px bg-border" />
-                      <span className="text-xs font-display font-semibold text-muted-foreground px-3 py-1.5 rounded-full bg-muted/80 shadow-sm">
+                      <span className="flex items-center gap-1.5 text-xs font-display font-semibold text-muted-foreground px-3 py-1.5 rounded-full bg-muted/80 shadow-sm transition-colors group-hover/round:bg-muted">
                         {msg.content}
+                        {roundMsgCount > 0 && (
+                          <span className="text-[10px] font-normal opacity-60">({roundMsgCount})</span>
+                        )}
+                        {isCollapsed
+                          ? <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                          : <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                        }
                       </span>
                       <div className="flex-1 h-px bg-border" />
-                    </div>
+                    </button>
                   );
                 }
+
+                // Check if this message belongs to a collapsed round
+                let belongsToCollapsedRound = false;
+                for (let i = idx - 1; i >= 0; i--) {
+                  if (messages[i].expertId === '__round__') {
+                    belongsToCollapsedRound = collapsedRounds.has(messages[i].id);
+                    break;
+                  }
+                }
+                if (belongsToCollapsedRound) return null;
+
                 if (msg.expertId === '__user__') {
                   return (
                     <div key={msg.id} className="bg-primary/5 border border-primary/20 rounded-2xl p-3.5 text-sm text-foreground/80" style={{ boxShadow: 'var(--shadow-card)' }}>
