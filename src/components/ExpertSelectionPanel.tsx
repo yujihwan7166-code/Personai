@@ -77,17 +77,36 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       {/* Suggested Questions */}
       {onSuggestedQuestion && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg mx-auto">
-          {SUGGESTED_QUESTIONS.map((q, i) => (
-            <button
-              key={i}
-              onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
-              className="flex items-start gap-2.5 p-3.5 rounded-xl border border-border bg-card text-left text-sm text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
-              style={{ boxShadow: 'var(--shadow-card)' }}
-            >
-              <span className={cn('mt-0.5 shrink-0 transition-colors', q.color, 'group-hover:scale-110 transition-transform')}>{q.icon}</span>
-              <span className="leading-snug">{q.text}</span>
-            </button>
-          ))}
+          {SUGGESTED_QUESTIONS.map((q, i) => {
+            const participants = q.expertIds
+              .map(id => experts.find(e => e.id === id))
+              .filter(Boolean) as Expert[];
+            return (
+              <button
+                key={i}
+                onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
+                className="flex flex-col gap-2 p-3.5 rounded-xl border border-border bg-card text-left text-sm text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
+                style={{ boxShadow: 'var(--shadow-card)' }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className={cn('mt-0.5 shrink-0 transition-colors', q.color, 'group-hover:scale-110 transition-transform')}>{q.icon}</span>
+                  <span className="leading-snug">{q.text}</span>
+                </div>
+                {participants.length > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap pl-6">
+                    <div className="flex -space-x-1.5">
+                      {participants.slice(0, 5).map(e => (
+                        <ExpertAvatar key={e.id} expert={e} size="sm" />
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground ml-1.5 truncate">
+                      {participants.map(e => e.nameKo).join(', ')}
+                    </span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
