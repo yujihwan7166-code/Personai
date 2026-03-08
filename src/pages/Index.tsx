@@ -6,11 +6,10 @@ import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
-
-import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
+/components/DiscussionHistory';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/cui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { toast } from '@/hooks/use-toast';
 
