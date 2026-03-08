@@ -910,6 +910,13 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           </div>
         </div>
       </div>
+      {/* Document Viewer */}
+      {generatedDocument && (
+        <DocumentViewer
+          document={generatedDocument}
+          onClose={() => setGeneratedDocument(null)}
+        />
+      )}
     </SidebarProvider>
   );
 };

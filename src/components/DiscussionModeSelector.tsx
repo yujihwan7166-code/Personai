@@ -7,7 +7,7 @@ interface Props {
   disabled?: boolean;
 }
 
-const modes: DiscussionMode[] = ['general', 'conclusion', 'standard', 'procon', 'endless'];
+const modes: DiscussionMode[] = ['general', 'conclusion', 'standard', 'procon', 'endless', 'document'];
 
 export function DiscussionModeSelector({ mode, onChange, disabled }: Props) {
   return (
