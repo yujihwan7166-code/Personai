@@ -4,11 +4,19 @@ import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
 import { ChevronDown, Search, Users, Sparkles, Brain, TrendingUp, HelpCircle } from 'lucide-react';
 
-const SUGGESTED_QUESTIONS = [
-  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-primary' },
-  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-accent' },
-  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-expert-emerald' },
-  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-expert-amber' },
+export interface SuggestedQuestion {
+  icon: React.ReactNode;
+  text: string;
+  color: string;
+  expertIds: string[];
+  mode: DiscussionMode;
+}
+
+export const SUGGESTED_QUESTIONS: SuggestedQuestion[] = [
+  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-primary', expertIds: ['gpt', 'claude', 'engineer', 'programmer', 'buffett'], mode: 'standard' },
+  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-accent', expertIds: ['buffett', 'dalio', 'finance', 'accountant'], mode: 'standard' },
+  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-expert-emerald', expertIds: ['gemini', 'psychology', 'teacher', 'artist', 'jobs'], mode: 'standard' },
+  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-expert-amber', expertIds: ['medical', 'doctor', 'nurse', 'chef'], mode: 'standard' },
 ];
 
 interface Props {
