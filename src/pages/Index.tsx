@@ -119,6 +119,10 @@ const Index = () => {
 
   const toggleExpert = (id: string) => {
     setSelectedExpertIds(prev => {
+      // General mode: single select only
+      if (getMainMode(discussionMode) === 'general') {
+        return [id];
+      }
       if (prev.includes(id)) {
         if (prev.length <= 1) return prev;
         return prev.filter(x => x !== id);
@@ -129,13 +133,14 @@ const Index = () => {
 
   const handleModeChange = (mode: DiscussionMode) => {
     setDiscussionMode(mode);
-    if (mode === 'general') {
+    const main = getMainMode(mode);
+    if (main === 'general') {
       setSelectedExpertIds(prev => {
         const aiOnly = prev.filter(id => {
           const expert = experts.find(e => e.id === id);
           return expert?.category === 'ai';
         });
-        return aiOnly.length > 0 ? aiOnly : ['gpt'];
+        return aiOnly.length > 0 ? [aiOnly[0]] : ['gpt'];
       });
     }
   };
