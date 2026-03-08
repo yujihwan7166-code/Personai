@@ -55,11 +55,11 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
   return (
     <div className="space-y-5">
       {/* Welcome - compact */}
-      <div className="text-center space-y-1.5 pt-2">
-        <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+      <div className="text-center space-y-1 pt-1">
+        <h2 className="font-display text-lg sm:text-xl font-bold text-foreground tracking-tight">
           {isGeneral ? '무엇이든 물어보세요' : '전문가와 토론하기'}
         </h2>
-        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+        <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
           {isGeneral
             ? 'AI를 선택하고 질문하면 바로 답변을 받을 수 있습니다'
             : '토론 모드를 선택하고, 전문가를 골라 질문하세요'
