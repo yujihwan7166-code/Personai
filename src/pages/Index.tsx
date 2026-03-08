@@ -480,17 +480,15 @@ const Index = () => {
                   <Users className="w-3 h-3" /> {activeExperts.length}명 참여 · <Zap className="w-3 h-3" /> 실시간
                 </p>
               </div>
-              {/* Active experts during discussion */}
-              {!selectable && (
-                <div className="hidden sm:flex items-center gap-1">
-                  {activeExperts.slice(0, 5).map(expert => (
-                    <ExpertAvatar key={expert.id} expert={expert} size="sm" active={activeExpertId === expert.id} />
-                  ))}
-                  {activeExperts.length > 5 && (
-                    <span className="text-[10px] text-muted-foreground ml-1">+{activeExperts.length - 5}</span>
-                  )}
-                </div>
-              )}
+              {/* Selected/Active experts - always visible */}
+              <div className="hidden sm:flex items-center gap-1">
+                {activeExperts.slice(0, 6).map(expert => (
+                  <ExpertAvatar key={expert.id} expert={expert} size="sm" active={activeExpertId === expert.id} />
+                ))}
+                {activeExperts.length > 6 && (
+                  <span className="text-[10px] text-muted-foreground ml-1">+{activeExperts.length - 6}</span>
+                )}
+              </div>
             </div>
           </header>
 
