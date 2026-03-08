@@ -25,8 +25,7 @@ export function DiscussionMessageCard({ message, expert }: Props) {
   const [expanded, setExpanded] = useState(false);
   const isSummary = message.isSummary;
 
-  // Summary is always expanded, others collapsed by default
-  const isOpen = isSummary || expanded;
+  const isOpen = expanded;
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,11 +45,11 @@ export function DiscussionMessageCard({ message, expert }: Props) {
       {/* Clickable Header */}
       <button
         type="button"
-        onClick={() => !isSummary && setExpanded(!expanded)}
+        onClick={() => setExpanded(!expanded)}
         className={cn(
           'w-full flex items-center gap-3 rounded-xl p-3 border-l-2 transition-all text-left',
           isSummary
-            ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-l-primary ring-1 ring-primary/20 cursor-default'
+            ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-l-primary ring-1 ring-primary/20 cursor-pointer'
             : cn('bg-card hover:bg-card/80 cursor-pointer', borderColors[expert.color]),
           isOpen && !isSummary && 'rounded-b-none'
         )}
@@ -92,11 +91,10 @@ export function DiscussionMessageCard({ message, expert }: Props) {
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
           )}
-          {!isSummary && (
-            isOpen
-              ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          )}
+          {isOpen
+            ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          }
         </div>
       </button>
 
