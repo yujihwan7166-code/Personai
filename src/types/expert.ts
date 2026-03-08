@@ -36,6 +36,15 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
   final: '3라운드 · 최종 입장',
 };
 
+export type DiscussionMode = 'standard' | 'procon' | 'freeform' | 'endless';
+
+export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string }> = {
+  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 토론' },
+  procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대 대립 구조' },
+  freeform: { label: '자유 대화', icon: '💬', description: '형식 없는 자유로운 대화' },
+  endless: { label: '끝장 토론', icon: '🔥', description: '합의에 도달할 때까지' },
+};
+
 export interface DiscussionMessage {
   id: string;
   expertId: string;
@@ -43,6 +52,8 @@ export interface DiscussionMessage {
   isStreaming?: boolean;
   isSummary?: boolean;
   round?: DiscussionRound;
+  likes?: number;
+  dislikes?: number;
 }
 
 export const DEFAULT_EXPERTS: Expert[] = [
