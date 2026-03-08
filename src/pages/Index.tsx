@@ -98,8 +98,6 @@ const Index = () => {
   const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('standard');
   const [stopRequested, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
-  const [generatedDocument, setGeneratedDocument] = useState<GeneratedDocument | null>(null);
-  const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
