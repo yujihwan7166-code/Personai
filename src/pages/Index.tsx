@@ -509,7 +509,7 @@ const Index = () => {
           </div>
 
           {/* Input */}
-          <div className="border-t border-border px-4 sm:px-6 py-3 bg-card/30 backdrop-blur-sm">
+          <div className="border-t border-border px-4 sm:px-6 py-3 bg-card/80 backdrop-blur-sm">
             <div className="max-w-3xl mx-auto">
               <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 2} />
             </div>
