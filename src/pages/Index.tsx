@@ -905,7 +905,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   )}
                 </div>
               )}
-              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 1} discussionMode={discussionMode} />
+              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || isGeneratingDoc || (discussionMode !== 'document' && activeExperts.length < 1)} discussionMode={discussionMode} />
             </div>
           </div>
         </div>
