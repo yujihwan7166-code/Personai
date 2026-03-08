@@ -6,13 +6,13 @@ import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
-ntexts/AuthContext';
-import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight, FileText } from 'lucide-react';
-import { Button } from '@/cui/button';
-import { SidebarProvider, SidebarTrigger } from 'ts/ui/sidebar';
-import { toast } from '@/hooks/use-toast';
+import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
+import { useAuth } from '@/contexts/AuthContext';
+import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
-const CHAT_URL = `${import.xpert-discuss`;
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/expert-discuss`;
 
 async function streamExpert({
   question, expert, previousResponses, round, onDelta, onDone, signal,
