@@ -23,6 +23,11 @@ const borderColors: Record<ExpertColor, string> = {
   purple: 'border-l-expert-purple', orange: 'border-l-expert-orange', teal: 'border-l-expert-teal', pink: 'border-l-expert-pink',
 };
 
+const streamingBorderColors: Record<ExpertColor, string> = {
+  blue: 'border-gradient-blue', emerald: 'border-gradient-emerald', red: 'border-gradient-red', amber: 'border-gradient-amber',
+  purple: 'border-gradient-purple', orange: 'border-gradient-orange', teal: 'border-gradient-teal', pink: 'border-gradient-pink',
+};
+
 export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onDislike }: Props) {
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
