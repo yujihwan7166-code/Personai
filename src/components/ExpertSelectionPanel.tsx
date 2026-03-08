@@ -62,7 +62,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           {isGeneral
             ? 'AI를 선택하고 질문하면 바로 답변을 받을 수 있습니다'
-            : '토론 모드를 선택하고, 전문가를 골라 질문하세요'
+            : '다양한 전문가들의 토론을 지켜보세요'
           }
         </p>
       </div>
