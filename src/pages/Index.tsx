@@ -217,37 +217,7 @@ const Index = () => {
     setCurrentQuestion('');
     setIsDiscussing(false);
     setActiveExpertId(undefined);
-    setGeneratedDocument(null);
   };
-
-  const generateDocument = useCallback(async (question: string, discussionContext?: string) => {
-    setIsGeneratingDoc(true);
-    const DOC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-document`;
-    try {
-      const resp = await fetch(DOC_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          question,
-          experts: activeExperts.map(e => ({ id: e.id, nameKo: e.nameKo, description: e.description })),
-          discussionContext,
-        }),
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || '문서 생성 실패');
-      }
-      const doc = await resp.json();
-      setGeneratedDocument(doc);
-    } catch (err) {
-      toast({ title: '문서 생성 오류', description: err instanceof Error ? err.message : '알 수 없는 오류', variant: 'destructive' });
-    } finally {
-      setIsGeneratingDoc(false);
-    }
-  }, [activeExperts]);
 
   const handleSuggestedQuestion = (question: string, expertIds: string[], mode: DiscussionMode) => {
     setSelectedExpertIds(expertIds);
