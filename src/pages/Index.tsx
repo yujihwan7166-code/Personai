@@ -423,7 +423,25 @@ const Index = () => {
       let summaryContent = '';
       try {
         await streamExpert({
-          question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: `You are a debate summarizer. Organize the discussion into a clear Korean summary:\n1. 📌 핵심 합의점\n2. ⚔️ 주요 논쟁점\n3. 🔄 입장 변화\nReference specific experts by name. Do NOT provide your own conclusion.` },
+          question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: `You are a debate summarizer. Organize the discussion into a clean, well-structured Korean summary using the following markdown format EXACTLY:
+
+## 📋 토론 정리
+
+### 📌 핵심 합의점
+- (bullet points of key agreements, referencing expert names)
+
+### ⚔️ 주요 논쟁점
+- (bullet points of key disagreements, referencing who disagreed with whom and why)
+
+### 🔄 입장 변화
+- (any notable shifts in position during the debate)
+
+### 👥 전문가별 핵심 주장
+| 전문가 | 핵심 주장 |
+|--------|----------|
+| (name) | (1-sentence summary) |
+
+Keep it concise and factual. Do NOT provide your own conclusion or opinion. Reference experts by name.` },
           previousResponses: allResponses, round: 'summary',
           onDelta: (chunk) => { summaryContent += chunk; setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent } : m)); },
           onDone: () => { setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, isStreaming: false } : m)); },
