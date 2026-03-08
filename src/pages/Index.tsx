@@ -382,7 +382,7 @@ const Index = () => {
           await new Promise(r => setTimeout(r, 500));
         }
       }
-    } else if (discussionMode === 'freeform') {
+    } else if (useMode === 'freeform') {
       setMessages(prev => [...prev, { id: `round-sep-free-${Date.now()}`, expertId: '__round__', content: '💬 자유 대화', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
