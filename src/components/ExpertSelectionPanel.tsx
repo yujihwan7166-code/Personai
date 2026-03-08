@@ -21,18 +21,22 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
   };
 
-  const grouped = EXPERT_CATEGORY_ORDER.map(cat => ({
-    cat,
-    label: EXPERT_CATEGORY_LABELS[cat],
-    items: experts.filter(e => {
-      if (e.category !== cat) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return e.nameKo.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q);
-      }
-      return true;
-    }),
-  })).filter(g => g.items.length > 0);
+  const isGeneral = discussionMode === 'general';
+
+  const grouped = EXPERT_CATEGORY_ORDER
+    .filter(cat => !isGeneral || cat === 'ai')
+    .map(cat => ({
+      cat,
+      label: EXPERT_CATEGORY_LABELS[cat],
+      items: experts.filter(e => {
+        if (e.category !== cat) return false;
+        if (search) {
+          const q = search.toLowerCase();
+          return e.nameKo.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q);
+        }
+        return true;
+      }),
+    })).filter(g => g.items.length > 0);
 
   const selectedCount = selectedIds.length;
 
