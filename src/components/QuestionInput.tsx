@@ -22,40 +22,42 @@ export function QuestionInput({ onSubmit, disabled, discussionMode }: Props) {
   const modeInfo = discussionMode ? DISCUSSION_MODE_LABELS[discussionMode] : null;
 
   return (
-    <div className="space-y-1.5">
-      <form onSubmit={handleSubmit} className="relative">
+    <form onSubmit={handleSubmit} className="relative">
+      <div className="flex items-end gap-2 bg-card border border-border rounded-2xl p-2 pr-2 transition-all focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary/30" style={{ boxShadow: 'var(--shadow-card)' }}>
+        {modeInfo && (
+          <span className="hidden sm:inline-flex items-center text-[9px] text-muted-foreground bg-muted px-2 py-1 rounded-full mb-0.5 shrink-0">
+            {modeInfo.icon} {modeInfo.label}
+          </span>
+        )}
         <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="전문가들에게 질문하세요..."
+          placeholder="질문을 입력하세요..."
           disabled={disabled}
-          className="w-full bg-card border border-border rounded-2xl p-4 pr-14 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30 transition-all min-h-[60px] max-h-[150px]"
-          style={{ boxShadow: 'var(--shadow-card)' }}
-          rows={2}
+          className="flex-1 bg-transparent border-none p-1 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none min-h-[36px] max-h-[120px]"
+          rows={1}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               handleSubmit(e);
             }
           }}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = 'auto';
+            target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+          }}
         />
         <Button
           type="submit"
           size="icon"
           disabled={!question.trim() || disabled}
-          className="absolute right-3 bottom-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/80 shadow-md transition-all"
+          className="rounded-xl w-8 h-8 bg-primary text-primary-foreground hover:bg-primary/80 shadow-sm transition-all shrink-0"
           style={!question.trim() || disabled ? {} : { background: 'var(--gradient-primary)' }}
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-3.5 h-3.5" />
         </Button>
-      </form>
-      {modeInfo && (
-        <div className="flex items-center justify-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-            {modeInfo.icon} {modeInfo.label}
-          </span>
-        </div>
-      )}
-    </div>
+      </div>
+    </form>
   );
 }
