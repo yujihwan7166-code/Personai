@@ -3,6 +3,8 @@ import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessag
 import { QuestionInput } from '@/components/QuestionInput';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
+import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
+import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { MessageSquare, Zap, Users, Copy, Check, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -386,7 +388,6 @@ const Index = () => {
   }, []);
 
   const allExperts = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
-  const sidebarExperts = isDiscussing || messages.length > 0 ? [...activeExperts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT] : experts;
   const isDone = messages.length > 0 && !isDiscussing;
   const selectable = !isDiscussing && messages.length === 0;
 
@@ -394,16 +395,12 @@ const Index = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar
-          experts={sidebarExperts}
-          selectedIds={selectedExpertIds}
-          onToggle={toggleExpert}
-          selectable={selectable}
-          discussionMode={discussionMode}
-          onModeChange={setDiscussionMode}
+          experts={experts}
           onLoadHistory={loadHistory}
           onUpdateExperts={setExperts}
+          discussionMode={discussionMode}
+          onModeChange={setDiscussionMode}
           isDiscussing={isDiscussing}
-          activeExpertId={activeExpertId}
         />
 
         <div className="flex-1 flex flex-col min-w-0">
@@ -420,34 +417,36 @@ const Index = () => {
                   <Users className="w-3 h-3" /> {activeExperts.length}명 참여 · <Zap className="w-3 h-3" /> 실시간
                 </p>
               </div>
+              {/* Active experts during discussion */}
+              {!selectable && (
+                <div className="hidden sm:flex items-center gap-1">
+                  {activeExperts.slice(0, 5).map(expert => (
+                    <ExpertAvatar key={expert.id} expert={expert} size="sm" active={activeExpertId === expert.id} />
+                  ))}
+                  {activeExperts.length > 5 && (
+                    <span className="text-[10px] text-muted-foreground ml-1">+{activeExperts.length - 5}</span>
+                  )}
+                </div>
+              )}
             </div>
           </header>
 
-          {/* Discussion Area */}
+          {/* Main Area */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 scrollbar-thin">
             <div className="max-w-3xl mx-auto space-y-4">
-              {messages.length === 0 && !isDiscussing && (
-                <div className="text-center py-20 sm:py-28">
-                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ background: 'var(--gradient-subtle)', boxShadow: 'var(--shadow-glow)' }}>
-                    <MessageSquare className="w-10 h-10 text-primary" />
-                  </div>
-                  <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-3 tracking-tight">
-                    무엇이든 물어보세요
-                  </h2>
-                  <p className="text-muted-foreground max-w-md mx-auto text-sm leading-relaxed">
-                    사이드바에서 전문가와 모드를 선택한 후 질문을 입력하세요.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-2 mt-8 max-w-md mx-auto">
-                    {['비트코인에 투자해도 될까?', 'AI가 일자리를 대체할까?', '건강하게 장수하려면?'].map(q => (
-                      <button key={q} onClick={() => startDiscussion(q)}
-                        className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all hover:shadow-[0_0_12px_hsl(230_80%_65%/0.2)]">
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Expert Selection - shown in center when selectable */}
+              {selectable && (
+                <ExpertSelectionPanel
+                  experts={experts}
+                  selectedIds={selectedExpertIds}
+                  onToggle={toggleExpert}
+                  discussionMode={discussionMode}
+                  onModeChange={setDiscussionMode}
+                  isDiscussing={isDiscussing}
+                />
               )}
 
+              {/* Question display */}
               {currentQuestion && messages.length > 0 && (
                 <div className="rounded-xl p-4 border border-border flex items-start justify-between gap-3" style={{ background: 'var(--gradient-subtle)' }}>
                   <div>
@@ -470,6 +469,7 @@ const Index = () => {
                 </div>
               )}
 
+              {/* Messages */}
               {messages.map(msg => {
                 if (msg.expertId === '__round__') {
                   return (

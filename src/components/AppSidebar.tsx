@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER, DiscussionMode, DISCUSSION_MODE_LABELS } from '@/types/expert';
-import { DiscussionHistory, DiscussionRecord, getDiscussionHistory, deleteDiscussionFromHistory } from '@/components/DiscussionHistory';
-import { DiscussionModeSelector } from '@/components/DiscussionModeSelector';
+import { Expert, DiscussionMode, DISCUSSION_MODE_LABELS } from '@/types/expert';
+import { DiscussionRecord, getDiscussionHistory, deleteDiscussionFromHistory } from '@/components/DiscussionHistory';
 import { ExpertManageDialog } from '@/components/ExpertManageDialog';
-import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { cn } from '@/lib/utils';
 import {
   Sidebar,
@@ -16,35 +14,26 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { ChevronDown, Clock, Trash2, Settings, Plus } from 'lucide-react';
+import { ChevronDown, Clock, Trash2, Plus, Settings2 } from 'lucide-react';
 
 interface Props {
   experts: Expert[];
-  selectedIds: string[];
-  onToggle: (id: string) => void;
-  selectable: boolean;
-  discussionMode: DiscussionMode;
-  onModeChange: (mode: DiscussionMode) => void;
   onLoadHistory: (record: DiscussionRecord) => void;
   onUpdateExperts: (experts: Expert[]) => void;
+  discussionMode: DiscussionMode;
+  onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
-  activeExpertId?: string;
 }
 
 export function AppSidebar({
-  experts, selectedIds, onToggle, selectable,
-  discussionMode, onModeChange, onLoadHistory, onUpdateExperts,
-  isDiscussing, activeExpertId,
+  experts, onLoadHistory, onUpdateExperts,
+  discussionMode, onModeChange, isDiscussing,
 }: Props) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyRecords, setHistoryRecords] = useState<DiscussionRecord[]>([]);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({ ai: true });
-
-  const toggleCategory = (cat: string) => {
-    setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
-  };
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyRecords, setHistoryRecords] = useState<DiscussionRecord[]>(() => getDiscussionHistory());
 
   const loadHistory = () => {
     setHistoryRecords(getDiscussionHistory());
@@ -64,14 +53,6 @@ export function AppSidebar({
     if (diffHr < 24) return `${diffHr}시간 전`;
     return `${Math.floor(diffHr / 24)}일 전`;
   };
-
-  const grouped = EXPERT_CATEGORY_ORDER.map(cat => ({
-    cat,
-    label: EXPERT_CATEGORY_LABELS[cat],
-    items: experts.filter(e => e.category === cat),
-  })).filter(g => g.items.length > 0);
-
-  const selectedCount = selectedIds.length;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -107,7 +88,7 @@ export function AppSidebar({
                 {historyRecords.length === 0 ? (
                   <p className="text-[10px] text-muted-foreground px-3 py-2">기록이 없습니다</p>
                 ) : (
-                  historyRecords.slice(0, 10).map(record => (
+                  historyRecords.slice(0, 15).map(record => (
                     <SidebarMenuItem key={record.id}>
                       <SidebarMenuButton
                         onClick={() => onLoadHistory(record)}
@@ -132,129 +113,59 @@ export function AppSidebar({
           )}
         </SidebarGroup>
 
-        {/* Mode Selector */}
-        {selectable && !collapsed && (
-          <SidebarGroup>
-            <SidebarGroupLabel>토론 모드</SidebarGroupLabel>
+        {/* Settings */}
+        <SidebarGroup>
+          <SidebarGroupLabel
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            className="cursor-pointer hover:text-foreground transition-colors flex items-center justify-between"
+          >
+            <span className="flex items-center gap-1.5">
+              <Settings2 className="w-3.5 h-3.5" />
+              {!collapsed && '설정'}
+            </span>
+            {!collapsed && <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', settingsOpen && 'rotate-180')} />}
+          </SidebarGroupLabel>
+          {settingsOpen && !collapsed && (
             <SidebarGroupContent>
-              <div className="px-2 space-y-1">
-                {(['standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
-                  const { label, icon, description } = DISCUSSION_MODE_LABELS[mode];
-                  return (
-                    <button
-                      key={mode}
-                      onClick={() => onModeChange(mode)}
-                      disabled={isDiscussing}
-                      className={cn(
-                        'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all text-xs',
-                        discussionMode === mode
-                          ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                      )}
-                    >
-                      <span>{icon}</span>
-                      <div>
-                        <div className="font-medium">{label}</div>
-                        <div className="text-[10px] opacity-60">{description}</div>
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="px-3 py-2 space-y-3">
+                {/* Mode Selector */}
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-display mb-1.5">토론 모드</p>
+                  <div className="space-y-1">
+                    {(['standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
+                      const { label, icon, description } = DISCUSSION_MODE_LABELS[mode];
+                      return (
+                        <button
+                          key={mode}
+                          onClick={() => onModeChange(mode)}
+                          disabled={isDiscussing}
+                          className={cn(
+                            'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all text-xs',
+                            discussionMode === mode
+                              ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                          )}
+                        >
+                          <span>{icon}</span>
+                          <div>
+                            <div className="font-medium">{label}</div>
+                            <div className="text-[10px] opacity-60">{description}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Expert Management */}
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-display mb-1.5">전문가 관리</p>
+                  <ExpertManageDialog experts={experts} onUpdate={onUpdateExperts} />
+                </div>
               </div>
             </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Expert Selection */}
-        {selectable && (
-          <>
-            {!collapsed && (
-              <div className="px-3 py-1 flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground font-display">{selectedCount}명 선택됨</span>
-                <ExpertManageDialog experts={experts} onUpdate={onUpdateExperts} />
-              </div>
-            )}
-            {grouped.map(({ cat, label, items }) => {
-              const isOpen = expandedCategories[cat] ?? false;
-              const catSelectedCount = items.filter(e => selectedIds.includes(e.id)).length;
-              return (
-                <SidebarGroup key={cat}>
-                  <SidebarGroupLabel
-                    onClick={() => toggleCategory(cat)}
-                    className="cursor-pointer hover:text-foreground transition-colors flex items-center justify-between"
-                  >
-                    <span>{collapsed ? label.charAt(0) : label}</span>
-                    {!collapsed && (
-                      <div className="flex items-center gap-1.5">
-                        {catSelectedCount > 0 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">{catSelectedCount}</span>
-                        )}
-                        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', isOpen && 'rotate-180')} />
-                      </div>
-                    )}
-                  </SidebarGroupLabel>
-                  {isOpen && !collapsed && (
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {items.map(expert => {
-                          const isSelected = selectedIds.includes(expert.id);
-                          const isActive = activeExpertId === expert.id;
-                          return (
-                            <SidebarMenuItem key={expert.id}>
-                              <SidebarMenuButton
-                                onClick={() => onToggle(expert.id)}
-                                className={cn(
-                                  'flex items-center gap-2.5 transition-all',
-                                  !isSelected && 'opacity-40',
-                                  isActive && 'ring-1 ring-primary/30 bg-primary/5'
-                                )}
-                              >
-                                <ExpertAvatar expert={expert} size="sm" active={isActive} />
-                                <div className="flex-1 min-w-0">
-                                  <span className="text-xs font-medium text-foreground">{expert.nameKo}</span>
-                                  <span className="block text-[10px] text-muted-foreground truncate">{expert.description}</span>
-                                </div>
-                                {isSelected && (
-                                  <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                                )}
-                              </SidebarMenuButton>
-                            </SidebarMenuItem>
-                          );
-                        })}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  )}
-                </SidebarGroup>
-              );
-            })}
-          </>
-        )}
-
-        {/* During discussion - show active experts */}
-        {!selectable && !collapsed && (
-          <SidebarGroup>
-            <SidebarGroupLabel>참여 전문가</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {experts.filter(e => selectedIds.includes(e.id) || e.id === 'summarizer' || e.id === 'conclusion').map(expert => {
-                  const isActive = activeExpertId === expert.id;
-                  return (
-                    <SidebarMenuItem key={expert.id}>
-                      <SidebarMenuButton className={cn(
-                        'flex items-center gap-2.5',
-                        isActive && 'ring-1 ring-primary/30 bg-primary/5',
-                        !isActive && activeExpertId && 'opacity-40'
-                      )}>
-                        <ExpertAvatar expert={expert} size="sm" active={isActive} />
-                        <span className="text-xs font-medium">{expert.nameKo}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+          )}
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
