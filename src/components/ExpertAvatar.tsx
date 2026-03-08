@@ -39,9 +39,9 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
   return (
     <div
       className={cn(
-        'rounded-full border-2 flex items-center justify-center bg-secondary shrink-0 transition-all duration-300',
+        'rounded-full border-2 flex items-center justify-center bg-secondary shrink-0 transition-all duration-500',
         sizeClasses[size],
-        colorClasses[expert.color],
+        active ? activeColorClasses[expert.color] : colorClasses[expert.color],
         active && 'scale-110 animate-pulse'
       )}
     >
