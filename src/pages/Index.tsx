@@ -315,7 +315,7 @@ const Index = () => {
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-      saveDiscussionToHistory({ question, expertIds: selectedExpertIds, mode: discussionMode, messages: [] });
+      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
       return;
     } else if (discussionMode === 'standard') {
       const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
