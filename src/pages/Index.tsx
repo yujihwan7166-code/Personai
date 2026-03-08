@@ -218,11 +218,13 @@ const Index = () => {
   const handleSuggestedQuestion = (question: string, expertIds: string[], mode: DiscussionMode) => {
     setSelectedExpertIds(expertIds);
     setDiscussionMode(mode);
-    setTimeout(() => startDiscussion(question), 50);
+    startDiscussion(question, expertIds, mode);
   };
 
-  const startDiscussion = useCallback(async (question: string) => {
-    const discussionExperts = experts.filter(e => selectedExpertIds.includes(e.id));
+  const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+    const useIds = overrideExpertIds || selectedExpertIds;
+    const useMode = overrideMode || discussionMode;
+    const discussionExperts = experts.filter(e => useIds.includes(e.id));
     if (discussionExperts.length < 1) return;
 
     const controller = new AbortController();
