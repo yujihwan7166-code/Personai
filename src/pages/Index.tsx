@@ -301,7 +301,24 @@ const Index = () => {
         try {
           await streamExpert({
             question,
-            expert: { ...CONCLUSION_EXPERT, systemPrompt: `You are an AI synthesizer. Multiple experts have shared brief opinions on the user's question. Review all their perspectives carefully, then provide a comprehensive, definitive answer to the original question in Korean. Do NOT just summarize—actually ANSWER the question by integrating the experts' insights. Be thorough but concise (2-3 paragraphs). Do NOT mention expert names.` },
+            expert: { ...CONCLUSION_EXPERT, systemPrompt: `You are an AI synthesizer. Multiple experts have shared brief opinions on the user's question. Provide a well-organized conclusion in Korean using this markdown format:
+
+## 🎯 종합 결론
+
+### 핵심 답변
+(2-3 sentences directly answering the original question)
+
+### 주요 근거
+1. **(근거 1 제목)** — 설명
+2. **(근거 2 제목)** — 설명
+
+### 실행 제안
+- (actionable recommendation 1)
+- (actionable recommendation 2)
+
+> 💡 **한 줄 요약:** (one-sentence takeaway)
+
+Do NOT mention expert names. Actually ANSWER the question by integrating all insights into ONE unified answer.` },
             previousResponses: allResponses, round: 'summary',
             onDelta: (chunk) => { conclusionContent += chunk; setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: conclusionContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, isStreaming: false } : m)); },
