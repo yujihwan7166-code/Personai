@@ -206,8 +206,8 @@ const Index = () => {
     const shouldStop = () => controller.signal.aborted;
 
     if (discussionMode === 'conclusion') {
-      // 결론 도출 모드: 각 전문가가 1문단씩 빠르게 의견 제시 후 즉시 결론
-      setMessages(prev => [...prev, { id: `round-sep-conclusion-${Date.now()}`, expertId: '__round__', content: '📋 빠른 의견 수집', round: 'initial' }]);
+      // 빠른 토론: 전문가들이 1문단씩 의견 → AI가 종합하여 최종 답변
+      setMessages(prev => [...prev, { id: `round-sep-conclusion-${Date.now()}`, expertId: '__round__', content: '⚡ 빠른 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
         if (shouldStop()) break;
@@ -218,7 +218,7 @@ const Index = () => {
         try {
           await streamExpert({
             question,
-            expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n결론 도출 모드입니다. 핵심만 1문단(3-4문장)으로 간결하게 답변해주세요.' },
+            expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n빠른 토론 모드입니다. 핵심만 1문단(3-4문장)으로 간결하게 답변해주세요.' },
             previousResponses: allResponses, round: 'initial',
             onDelta: (chunk) => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -232,6 +232,42 @@ const Index = () => {
         allResponses.push({ name: expert.nameKo, content: fullContent });
         await new Promise(r => setTimeout(r, 300));
       }
+
+      // 빠른 토론은 요약 건너뛰고 바로 AI 종합 답변
+      if (!shouldStop()) {
+        setActiveExpertId(CONCLUSION_EXPERT.id);
+        const conclusionId = `fast-conclusion-${Date.now()}`;
+        setMessages(prev => [...prev, { id: conclusionId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+        let conclusionContent = '';
+        try {
+          await streamExpert({
+            question,
+            expert: { ...CONCLUSION_EXPERT, systemPrompt: `You are an AI synthesizer. Multiple experts have shared brief opinions on the user's question. Review all their perspectives carefully, then provide a comprehensive, definitive answer to the original question in Korean. Do NOT just summarize—actually ANSWER the question by integrating the experts' insights. Be thorough but concise (2-3 paragraphs). Do NOT mention expert names.` },
+            previousResponses: allResponses, round: 'summary',
+            onDelta: (chunk) => { conclusionContent += chunk; setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: conclusionContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            conclusionContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+            setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: conclusionContent, isStreaming: false } : m));
+          }
+        }
+      }
+
+      // 빠른 토론은 여기서 바로 종료 (아래 공통 요약/결론 스킵)
+      setActiveExpertId(undefined);
+      setIsDiscussing(false);
+      setStopRequested(false);
+
+      saveDiscussionToHistory({
+        question,
+        expertIds: selectedExpertIds,
+        mode: discussionMode,
+        messages: [],
+      });
+      return;
     } else if (discussionMode === 'standard') {
       const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
       for (const round of rounds) {
