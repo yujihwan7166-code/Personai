@@ -8,7 +8,7 @@ import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw } from 'lucide-react';
+import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
