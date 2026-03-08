@@ -544,9 +544,9 @@ const Index = () => {
                   experts={experts}
                   selectedIds={selectedExpertIds}
                   onToggle={toggleExpert}
-                  discussionMode={discussionMode}
-                  onModeChange={setDiscussionMode}
-                  isDiscussing={isDiscussing}
+          discussionMode={discussionMode}
+          onModeChange={handleModeChange}
+          isDiscussing={isDiscussing}
                 />
               )}
 
