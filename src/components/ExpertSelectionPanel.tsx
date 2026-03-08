@@ -106,7 +106,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       {/* Mode selector - compact */}
       <div className="space-y-1.5">
         <div className="flex flex-wrap gap-1.5 justify-center">
-          {(['general', 'conclusion', 'standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
+          {(['general', 'conclusion', 'standard', 'procon', 'endless'] as DiscussionMode[]).map(mode => {
             const { label, icon } = DISCUSSION_MODE_LABELS[mode];
             return (
               <button

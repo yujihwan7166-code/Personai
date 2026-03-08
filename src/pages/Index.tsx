@@ -382,28 +382,6 @@ const Index = () => {
           await new Promise(r => setTimeout(r, 500));
         }
       }
-    } else if (useMode === 'freeform') {
-      setMessages(prev => [...prev, { id: `round-sep-free-${Date.now()}`, expertId: '__round__', content: '💬 자유 대화', round: 'initial' }]);
-      const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
-      for (const expert of shuffled) {
-        if (shouldStop()) break;
-        setActiveExpertId(expert.id);
-        const msgId = `${expert.id}-free-${Date.now()}`;
-        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round: 'initial' }]);
-        let fullContent = '';
-        try {
-          await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n자유로운 대화입니다. 편하게 1-2문단으로 답변해주세요.' }, previousResponses: allResponses, round: 'initial',
-            onDelta: (chunk) => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
-            signal: controller.signal });
-        } catch (err) {
-          if ((err as Error).name === 'AbortError') break;
-          fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
-          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
-        }
-        allResponses.push({ name: expert.nameKo, content: fullContent });
-        await new Promise(r => setTimeout(r, 500));
-      }
     } else if (useMode === 'endless') {
       const maxRounds = 5;
       for (let r = 1; r <= maxRounds; r++) {
