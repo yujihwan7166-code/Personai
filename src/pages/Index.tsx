@@ -343,7 +343,7 @@ const Index = () => {
           await new Promise(r => setTimeout(r, 500));
         }
       }
-    } else if (discussionMode === 'procon') {
+    } else if (useMode === 'procon') {
       const half = Math.ceil(discussionExperts.length / 2);
       const proExperts = discussionExperts.slice(0, half);
       const conExperts = discussionExperts.slice(half);
