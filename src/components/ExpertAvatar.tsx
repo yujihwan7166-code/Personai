@@ -1,4 +1,4 @@
-import { Expert } from '@/types/expert';
+import { Expert, ExpertColor } from '@/types/expert';
 import { cn } from '@/lib/utils';
 
 interface ExpertAvatarProps {
@@ -13,11 +13,15 @@ const sizeClasses = {
   lg: 'w-14 h-14 text-2xl',
 };
 
-const colorClasses = {
-  gpt: 'border-expert-gpt expert-glow-gpt',
-  gemini: 'border-expert-gemini expert-glow-gemini',
-  medical: 'border-expert-medical expert-glow-medical',
-  investment: 'border-expert-investment expert-glow-investment',
+const colorClasses: Record<ExpertColor, string> = {
+  blue: 'border-expert-blue expert-glow-blue',
+  emerald: 'border-expert-emerald expert-glow-emerald',
+  red: 'border-expert-red expert-glow-red',
+  amber: 'border-expert-amber expert-glow-amber',
+  purple: 'border-expert-purple expert-glow-purple',
+  orange: 'border-expert-orange expert-glow-orange',
+  teal: 'border-expert-teal expert-glow-teal',
+  pink: 'border-expert-pink expert-glow-pink',
 };
 
 export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps) {

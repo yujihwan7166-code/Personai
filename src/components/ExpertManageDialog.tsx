@@ -4,8 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Plus, Trash2, Pencil } from 'lucide-react';
+import { Settings, Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Props {
   experts: Expert[];
@@ -13,112 +16,126 @@ interface Props {
 }
 
 const colorDotClasses: Record<ExpertColor, string> = {
-  gpt: 'bg-expert-gpt',
-  gemini: 'bg-expert-gemini',
-  medical: 'bg-expert-medical',
-  investment: 'bg-expert-investment',
+  blue: 'bg-expert-blue', emerald: 'bg-expert-emerald', red: 'bg-expert-red', amber: 'bg-expert-amber',
+  purple: 'bg-expert-purple', orange: 'bg-expert-orange', teal: 'bg-expert-teal', pink: 'bg-expert-pink',
 };
+
+function SortableExpertItem({ expert, onEdit, onDelete, canDelete }: {
+  expert: Expert; onEdit: () => void; onDelete: () => void; canDelete: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: expert.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div ref={setNodeRef} style={style}
+      className={cn('flex items-center gap-2 p-3 rounded-xl bg-secondary/50 border border-border transition-all',
+        isDragging && 'opacity-50 ring-2 ring-primary/30'
+      )}>
+      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5 touch-none">
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <span className="text-lg">{expert.icon}</span>
+      <span className="flex-1 text-sm font-medium text-foreground">{expert.nameKo}</span>
+      <div className={cn('w-3 h-3 rounded-full', colorDotClasses[expert.color])} />
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+        <Pencil className="w-3 h-3" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onDelete} disabled={!canDelete}>
+        <Trash2 className="w-3 h-3" />
+      </Button>
+    </div>
+  );
+}
 
 export function ExpertManageDialog({ experts, onUpdate }: Props) {
   const [open, setOpen] = useState(false);
   const [editingExpert, setEditingExpert] = useState<Expert | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [form, setForm] = useState({ nameKo: '', icon: '', color: 'blue' as ExpertColor, systemPrompt: '' });
 
-  const [form, setForm] = useState({ nameKo: '', icon: '', color: 'gpt' as ExpertColor, systemPrompt: '' });
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
-  const resetForm = () => {
-    setForm({ nameKo: '', icon: '', color: 'gpt', systemPrompt: '' });
-    setEditingExpert(null);
-    setIsAdding(false);
-  };
-
-  const startAdd = () => {
-    resetForm();
-    setIsAdding(true);
-  };
-
+  const resetForm = () => { setForm({ nameKo: '', icon: '', color: 'blue', systemPrompt: '' }); setEditingExpert(null); setIsAdding(false); };
+  const startAdd = () => { resetForm(); setIsAdding(true); };
   const startEdit = (expert: Expert) => {
     setForm({ nameKo: expert.nameKo, icon: expert.icon, color: expert.color, systemPrompt: expert.systemPrompt });
-    setEditingExpert(expert);
-    setIsAdding(true);
+    setEditingExpert(expert); setIsAdding(true);
   };
 
   const handleSave = () => {
     if (!form.nameKo.trim() || !form.icon.trim()) return;
-
     if (editingExpert) {
-      onUpdate(experts.map(e => e.id === editingExpert.id ? {
-        ...e, nameKo: form.nameKo, icon: form.icon, color: form.color, systemPrompt: form.systemPrompt,
-        name: form.nameKo,
-      } : e));
+      onUpdate(experts.map(e => e.id === editingExpert.id ? { ...e, nameKo: form.nameKo, name: form.nameKo, icon: form.icon, color: form.color, systemPrompt: form.systemPrompt } : e));
     } else {
-      const newExpert: Expert = {
-        id: `custom-${Date.now()}`,
-        name: form.nameKo,
-        nameKo: form.nameKo,
-        icon: form.icon,
-        color: form.color,
+      onUpdate([...experts, {
+        id: `custom-${Date.now()}`, name: form.nameKo, nameKo: form.nameKo, icon: form.icon, color: form.color,
         systemPrompt: form.systemPrompt || `You are ${form.nameKo}. Provide expert analysis from your perspective. Respond in Korean. Engage with other experts' opinions.`,
-      };
-      onUpdate([...experts, newExpert]);
+      }]);
     }
     resetForm();
   };
 
-  const handleDelete = (id: string) => {
-    onUpdate(experts.filter(e => e.id !== id));
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = experts.findIndex(e => e.id === active.id);
+      const newIndex = experts.findIndex(e => e.id === over.id);
+      onUpdate(arrayMove(experts, oldIndex, newIndex));
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-          <Settings className="w-5 h-5" />
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1.5 text-xs">
+          <Settings className="w-4 h-4" /> 토론자 관리
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display">토론자 관리</DialogTitle>
+          <p className="text-xs text-muted-foreground">드래그하여 순서를 변경하세요</p>
         </DialogHeader>
 
         {!isAdding ? (
-          <div className="space-y-3">
-            {experts.map(expert => (
-              <div key={expert.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
-                <span className="text-xl">{expert.icon}</span>
-                <span className="flex-1 text-sm font-medium text-foreground">{expert.nameKo}</span>
-                <div className={cn('w-3 h-3 rounded-full', colorDotClasses[expert.color])} />
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(expert)}>
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(expert.id)} disabled={experts.length <= 2}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            ))}
-            <Button onClick={startAdd} variant="outline" className="w-full gap-2" disabled={experts.length >= 6}>
-              <Plus className="w-4 h-4" /> 전문가 추가
+          <div className="space-y-2">
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={experts.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                {experts.map(expert => (
+                  <SortableExpertItem key={expert.id} expert={expert}
+                    onEdit={() => startEdit(expert)}
+                    onDelete={() => onUpdate(experts.filter(e => e.id !== expert.id))}
+                    canDelete={experts.length > 2}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+            <Button onClick={startAdd} variant="outline" className="w-full gap-2 mt-3" disabled={experts.length >= 8}>
+              <Plus className="w-4 h-4" /> 전문가 추가 ({experts.length}/8)
             </Button>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>이름</Label>
-              <Input value={form.nameKo} onChange={e => setForm(f => ({ ...f, nameKo: e.target.value }))} placeholder="예: 법률 전문가" />
+              <Input value={form.nameKo} onChange={e => setForm(f => ({ ...f, nameKo: e.target.value }))} placeholder="예: 워렌 버핏, 법률 전문가" />
             </div>
             <div className="space-y-2">
               <Label>아이콘 (이모지)</Label>
-              <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="예: ⚖️" className="text-center text-xl" maxLength={4} />
+              <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="예: 🎩" className="text-center text-xl" maxLength={4} />
             </div>
             <div className="space-y-2">
               <Label>색상</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {EXPERT_COLORS.map(c => (
                   <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
-                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-all',
+                    className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-all',
                       form.color === c ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-muted-foreground'
                     )}>
-                    <div className={cn('w-2.5 h-2.5 rounded-full', colorDotClasses[c])} />
+                    <div className={cn('w-2 h-2 rounded-full', colorDotClasses[c])} />
                     {EXPERT_COLOR_LABELS[c]}
                   </button>
                 ))}
@@ -127,7 +144,7 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
             <div className="space-y-2">
               <Label>시스템 프롬프트 (선택)</Label>
               <textarea value={form.systemPrompt} onChange={e => setForm(f => ({ ...f, systemPrompt: e.target.value }))}
-                placeholder="전문가의 역할과 성격을 설명하세요..."
+                placeholder="전문가의 역할과 성격을 설명하세요... 비워두면 자동 생성됩니다."
                 className="w-full bg-card border border-border rounded-lg p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[80px]"
               />
             </div>
