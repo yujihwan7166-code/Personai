@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button';
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/expert-discuss`;
 
 async function streamExpert({
-  question, expert, previousResponses, onDelta, onDone,
+  question, expert, previousResponses, round, onDelta, onDone,
 }: {
   question: string; expert: Expert;
   previousResponses: { name: string; content: string }[];
+  round: DiscussionRound | 'summary';
   onDelta: (text: string) => void; onDone: () => void;
 }) {
   const resp = await fetch(CHAT_URL, {
@@ -22,7 +23,7 @@ async function streamExpert({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ question, expertSystemPrompt: expert.systemPrompt, previousResponses }),
+    body: JSON.stringify({ question, expertSystemPrompt: expert.systemPrompt, previousResponses, round }),
   });
 
   if (!resp.ok || !resp.body) {
