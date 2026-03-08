@@ -64,13 +64,18 @@ async function streamExpert({
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v3');
-      return saved ? JSON.parse(saved) : DEFAULT_EXPERTS;
+      const saved = localStorage.getItem('ai-debate-experts-v4');
+      if (saved) {
+        const parsed = JSON.parse(saved) as Expert[];
+        // Ensure all experts have category
+        return parsed.map(e => ({ ...e, category: e.category || 'ai' }));
+      }
+      return DEFAULT_EXPERTS;
     } catch { return DEFAULT_EXPERTS; }
   });
   const [selectedExpertIds, setSelectedExpertIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-selected-v3');
+      const saved = localStorage.getItem('ai-debate-selected-v4');
       return saved ? JSON.parse(saved) : DEFAULT_EXPERTS.map(e => e.id);
     } catch { return DEFAULT_EXPERTS.map(e => e.id); }
   });
@@ -82,7 +87,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v3', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v4', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
@@ -91,7 +96,7 @@ const Index = () => {
   }, [experts]);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-selected-v3', JSON.stringify(selectedExpertIds));
+    localStorage.setItem('ai-debate-selected-v4', JSON.stringify(selectedExpertIds));
   }, [selectedExpertIds]);
 
   useEffect(() => {
