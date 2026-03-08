@@ -236,7 +236,7 @@ const Index = () => {
     const allResponses: { name: string; content: string }[] = [];
     const shouldStop = () => controller.signal.aborted;
 
-    if (discussionMode === 'general') {
+    if (useMode === 'general') {
       for (const expert of discussionExperts) {
         if (shouldStop()) break;
         setActiveExpertId(expert.id);
