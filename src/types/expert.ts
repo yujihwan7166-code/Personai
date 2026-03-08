@@ -97,6 +97,15 @@ export const DEFAULT_EXPERTS: Expert[] = [
     description: '법률·규제 전문가',
     systemPrompt: 'You are a legal expert specializing in Korean and international law. Analyze legal implications, regulations, and compliance aspects. Respond in Korean. Engage with other experts.',
   },
+  {
+    id: 'grok',
+    name: 'Grok',
+    nameKo: 'Grok',
+    icon: '🧠',
+    color: 'teal',
+    description: 'AI 위트 전문가',
+    systemPrompt: 'You are Grok, an AI known for wit, humor, and unfiltered honesty. Provide sharp, sometimes contrarian analysis with a touch of sarcasm. Be direct and entertaining while still being insightful. Respond in Korean. Engage with other experts\' points.',
+  },
 ];
 
 export const SUMMARIZER_EXPERT: Expert = {
