@@ -215,8 +215,10 @@ const Index = () => {
     setActiveExpertId(undefined);
   };
 
-  const handleSuggestedQuestion = (question: string) => {
-    startDiscussion(question);
+  const handleSuggestedQuestion = (question: string, expertIds: string[], mode: DiscussionMode) => {
+    setSelectedExpertIds(expertIds);
+    setDiscussionMode(mode);
+    setTimeout(() => startDiscussion(question), 50);
   };
 
   const startDiscussion = useCallback(async (question: string) => {
