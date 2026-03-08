@@ -6,7 +6,7 @@ import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
-import { DocumentViewer } from '@/components/DocumentViewer';
+
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight, FileText } from 'lucide-react';
