@@ -114,11 +114,25 @@ const Index = () => {
   const toggleExpert = (id: string) => {
     setSelectedExpertIds(prev => {
       if (prev.includes(id)) {
-        if (prev.length <= 2) return prev;
+        if (prev.length <= 1) return prev;
         return prev.filter(x => x !== id);
       }
       return [...prev, id];
     });
+  };
+
+  const handleModeChange = (mode: DiscussionMode) => {
+    setDiscussionMode(mode);
+    if (mode === 'general') {
+      // In general mode, keep only AI category experts
+      setSelectedExpertIds(prev => {
+        const aiOnly = prev.filter(id => {
+          const expert = experts.find(e => e.id === id);
+          return expert?.category === 'ai';
+        });
+        return aiOnly.length > 0 ? aiOnly : ['gpt'];
+      });
+    }
   };
 
   const copyAllResults = () => {
