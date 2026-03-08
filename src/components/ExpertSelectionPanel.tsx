@@ -60,26 +60,31 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       </div>
 
       {/* Mode selector */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        {(['conclusion', 'standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
-          const { label, icon } = DISCUSSION_MODE_LABELS[mode];
-          return (
-            <button
-              key={mode}
-              onClick={() => onModeChange(mode)}
-              disabled={isDiscussing}
-              className={cn(
-                'flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium transition-all border',
-                discussionMode === mode
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20'
-              )}
-            >
-              <span>{icon}</span>
-              <span>{label}</span>
-            </button>
-          );
-        })}
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2 justify-center">
+          {(['conclusion', 'standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
+            const { label, icon } = DISCUSSION_MODE_LABELS[mode];
+            return (
+              <button
+                key={mode}
+                onClick={() => onModeChange(mode)}
+                disabled={isDiscussing}
+                className={cn(
+                  'flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium transition-all border',
+                  discussionMode === mode
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20'
+                )}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground text-center px-4 transition-all">
+          {DISCUSSION_MODE_LABELS[discussionMode].detail}
+        </p>
       </div>
 
       {/* Search */}
