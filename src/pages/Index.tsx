@@ -132,31 +132,46 @@ const Index = () => {
     setIsDiscussing(true);
     setCurrentQuestion(question);
     setMessages([]);
-    const completedResponses: { name: string; content: string }[] = [];
+    const allResponses: { name: string; content: string }[] = [];
 
-    for (const expert of discussionExperts) {
-      setActiveExpertId(expert.id);
-      const msgId = `${expert.id}-${Date.now()}`;
-      setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+    const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
 
-      let fullContent = '';
-      try {
-        await streamExpert({
-          question, expert, previousResponses: completedResponses,
-          onDelta: (chunk) => {
-            fullContent += chunk;
-            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m));
-          },
-          onDone: () => {
-            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
-          },
-        });
-      } catch (err) {
-        fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
-        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+    for (const round of rounds) {
+      // Shuffle order each round for variety
+      const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
+
+      // Add round separator
+      setMessages(prev => [...prev, {
+        id: `round-sep-${round}-${Date.now()}`,
+        expertId: '__round__',
+        content: ROUND_LABELS[round],
+        round,
+      }]);
+
+      for (const expert of roundExperts) {
+        setActiveExpertId(expert.id);
+        const msgId = `${expert.id}-${round}-${Date.now()}`;
+        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
+
+        let fullContent = '';
+        try {
+          await streamExpert({
+            question, expert, previousResponses: allResponses, round,
+            onDelta: (chunk) => {
+              fullContent += chunk;
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m));
+            },
+            onDone: () => {
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
+            },
+          });
+        } catch (err) {
+          fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+        }
+        allResponses.push({ name: `${expert.nameKo} (${ROUND_LABELS[round]})`, content: fullContent });
+        await new Promise(r => setTimeout(r, 500));
       }
-      completedResponses.push({ name: expert.nameKo, content: fullContent });
-      if (expert !== discussionExperts[discussionExperts.length - 1]) await new Promise(r => setTimeout(r, 800));
     }
 
     // Summarizer
@@ -165,16 +180,17 @@ const Index = () => {
     setMessages(prev => [...prev, { id: summaryId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
 
     let summaryContent = '';
-    const summaryPrompt = `You are the final discussion summarizer. Synthesize all expert opinions into an organized Korean summary:
-1. 📌 핵심 요약 - Key consensus points
-2. ⚔️ 의견 차이 - Major disagreements between experts  
-3. 💡 종합 결론 - Actionable conclusion and recommendation
-Be thorough but concise. Reference specific experts by name.`;
+    const summaryPrompt = `You are the final discussion summarizer. This was a multi-round debate. Synthesize all expert opinions across all rounds into an organized Korean summary:
+1. 📌 핵심 합의점 - Points where experts converged
+2. ⚔️ 주요 논쟁점 - Key disagreements and how they evolved across rounds
+3. 🔄 입장 변화 - Any notable shifts in positions during the debate
+4. 💡 종합 결론 - Final actionable recommendation
+Be thorough but concise. Reference specific experts by name and which round.`;
 
     try {
       await streamExpert({
         question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: summaryPrompt },
-        previousResponses: completedResponses,
+        previousResponses: allResponses, round: 'summary',
         onDelta: (chunk) => {
           summaryContent += chunk;
           setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent } : m));
