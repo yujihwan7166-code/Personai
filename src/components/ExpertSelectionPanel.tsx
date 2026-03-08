@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER, DiscussionMode, DISCUSSION_MODE_LABELS } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
-import { ChevronDown, Search, Users, Sparkles, Brain, TrendingUp, HelpCircle } from 'lucide-react';
+import { Search, Users, Sparkles, Brain, TrendingUp, HelpCircle } from 'lucide-react';
 
 export interface SuggestedQuestion {
   icon: React.ReactNode;
