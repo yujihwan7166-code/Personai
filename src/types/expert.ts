@@ -39,7 +39,7 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 export type DiscussionMode = 'conclusion' | 'standard' | 'procon' | 'freeform' | 'endless';
 
 export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string; detail: string }> = {
-  conclusion: { label: '빠른 토론', icon: '⚡', description: '1문단 빠른 요약 결론', detail: '각 전문가가 핵심만 1문단으로 간결하게 의견을 제시한 뒤, 바로 결론을 도출합니다. 빠르게 답을 얻고 싶을 때 적합합니다.' },
+  conclusion: { label: '빠른 토론', icon: '⚡', description: '의견 수집 후 종합 답변', detail: '각 전문가가 핵심 의견을 1문단으로 빠르게 제시한 뒤, AI가 모든 의견을 종합하여 질문에 대한 최종 답변을 도출합니다.' },
   standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 토론', detail: '초기 의견 → 반론/토론 → 최종 입장까지 3라운드에 걸쳐 깊이 있는 토론을 진행합니다. 복잡한 주제를 다각도로 분석할 때 적합합니다.' },
   procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대 대립 구조', detail: '전문가들이 찬성과 반대 팀으로 나뉘어 각 입장을 공격·방어합니다. 논쟁적인 주제에서 양측 논거를 비교할 때 유용합니다.' },
   freeform: { label: '자유 대화', icon: '💬', description: '형식 없는 자유로운 대화', detail: '라운드 구분 없이 전문가들이 자유롭게 의견을 나눕니다. 가벼운 질문이나 브레인스토밍에 적합합니다.' },
