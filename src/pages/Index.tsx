@@ -64,9 +64,15 @@ async function streamExpert({
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v2');
+      const saved = localStorage.getItem('ai-debate-experts-v3');
       return saved ? JSON.parse(saved) : DEFAULT_EXPERTS;
     } catch { return DEFAULT_EXPERTS; }
+  });
+  const [selectedExpertIds, setSelectedExpertIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('ai-debate-selected-v3');
+      return saved ? JSON.parse(saved) : DEFAULT_EXPERTS.map(e => e.id);
+    } catch { return DEFAULT_EXPERTS.map(e => e.id); }
   });
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
@@ -76,12 +82,31 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v2', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v3', JSON.stringify(experts));
   }, [experts]);
+
+  useEffect(() => {
+    // Sync selected ids when experts change
+    setSelectedExpertIds(prev => prev.filter(id => experts.some(e => e.id === id)));
+  }, [experts]);
+
+  useEffect(() => {
+    localStorage.setItem('ai-debate-selected-v3', JSON.stringify(selectedExpertIds));
+  }, [selectedExpertIds]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
+
+  const toggleExpert = (id: string) => {
+    setSelectedExpertIds(prev => {
+      if (prev.includes(id)) {
+        if (prev.length <= 2) return prev; // minimum 2
+        return prev.filter(x => x !== id);
+      }
+      return [...prev, id];
+    });
+  };
 
   const copyAllResults = () => {
     const text = messages.map(msg => {
@@ -93,13 +118,18 @@ const Index = () => {
     setTimeout(() => setCopiedAll(false), 2000);
   };
 
+  const activeExperts = experts.filter(e => selectedExpertIds.includes(e.id));
+
   const startDiscussion = useCallback(async (question: string) => {
+    const discussionExperts = experts.filter(e => selectedExpertIds.includes(e.id));
+    if (discussionExperts.length < 2) return;
+
     setIsDiscussing(true);
     setCurrentQuestion(question);
     setMessages([]);
     const completedResponses: { name: string; content: string }[] = [];
 
-    for (const expert of experts) {
+    for (const expert of discussionExperts) {
       setActiveExpertId(expert.id);
       const msgId = `${expert.id}-${Date.now()}`;
       setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
@@ -121,7 +151,7 @@ const Index = () => {
         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
       }
       completedResponses.push({ name: expert.nameKo, content: fullContent });
-      if (expert !== experts[experts.length - 1]) await new Promise(r => setTimeout(r, 800));
+      if (expert !== discussionExperts[discussionExperts.length - 1]) await new Promise(r => setTimeout(r, 800));
     }
 
     // Summarizer
@@ -155,9 +185,10 @@ Be thorough but concise. Reference specific experts by name.`;
 
     setActiveExpertId(undefined);
     setIsDiscussing(false);
-  }, [experts]);
+  }, [experts, selectedExpertIds]);
 
   const allExperts = [...experts, SUMMARIZER_EXPERT];
+  const panelExperts = isDiscussing || messages.length > 0 ? [...activeExperts, SUMMARIZER_EXPERT] : experts;
   const isDone = messages.length > 0 && !isDiscussing;
 
   return (
@@ -171,7 +202,7 @@ Be thorough but concise. Reference specific experts by name.`;
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-lg font-bold text-foreground tracking-tight">AI 전문가 토론</h1>
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Users className="w-3 h-3" /> {experts.length}명의 전문가 · <Zap className="w-3 h-3" /> 실시간 토론
+              <Users className="w-3 h-3" /> {activeExperts.length}명 참여 · <Zap className="w-3 h-3" /> 실시간 토론
             </p>
           </div>
           <ExpertManageDialog experts={experts} onUpdate={setExperts} />
@@ -181,7 +212,16 @@ Be thorough but concise. Reference specific experts by name.`;
       {/* Expert Panel */}
       <div className="border-b border-border bg-card/30">
         <div className="max-w-4xl mx-auto">
-          <ExpertPanel experts={allExperts} activeExpertId={activeExpertId} />
+          {!isDiscussing && messages.length === 0 && (
+            <p className="text-[10px] text-muted-foreground text-center pt-3">클릭하여 토론 참여자를 선택하세요 (최소 2명)</p>
+          )}
+          <ExpertPanel
+            experts={panelExperts}
+            activeExpertId={activeExpertId}
+            selectedIds={selectedExpertIds}
+            onToggle={toggleExpert}
+            selectable={!isDiscussing && messages.length === 0}
+          />
         </div>
       </div>
 
@@ -197,8 +237,7 @@ Be thorough but concise. Reference specific experts by name.`;
                 무엇이든 물어보세요
               </h2>
               <p className="text-muted-foreground max-w-lg mx-auto text-sm leading-relaxed">
-                {experts.map(e => e.icon).join(' ')} {experts.map(e => e.nameKo).join(', ')}가
-                당신의 질문에 대해 토론하고, 종합 정리자가 최종 결론을 도출합니다.
+                위 패널에서 토론에 참여할 전문가를 선택하고 질문을 입력하세요.
               </p>
               <div className="flex flex-wrap justify-center gap-2 mt-8 max-w-md mx-auto">
                 {['비트코인에 투자해도 될까?', 'AI가 일자리를 대체할까?', '건강하게 장수하려면?'].map(q => (
@@ -243,7 +282,7 @@ Be thorough but concise. Reference specific experts by name.`;
       {/* Input */}
       <div className="border-t border-border px-4 sm:px-6 py-3 bg-card/50">
         <div className="max-w-4xl mx-auto">
-          <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing} />
+          <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 2} />
         </div>
       </div>
     </div>
