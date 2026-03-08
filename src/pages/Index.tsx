@@ -7,7 +7,8 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
-import { MessageSquare, Zap, Users, Copy, Check, Square } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
@@ -69,6 +70,7 @@ async function streamExpert({
 }
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
       const saved = localStorage.getItem('ai-debate-experts-v5');
@@ -124,7 +126,6 @@ const Index = () => {
   const handleModeChange = (mode: DiscussionMode) => {
     setDiscussionMode(mode);
     if (mode === 'general') {
-      // In general mode, keep only AI category experts
       setSelectedExpertIds(prev => {
         const aiOnly = prev.filter(id => {
           const expert = experts.find(e => e.id === id);
@@ -207,6 +208,17 @@ const Index = () => {
     abortControllerRef.current?.abort();
   };
 
+  const handleNewDiscussion = () => {
+    setMessages([]);
+    setCurrentQuestion('');
+    setIsDiscussing(false);
+    setActiveExpertId(undefined);
+  };
+
+  const handleSuggestedQuestion = (question: string) => {
+    startDiscussion(question);
+  };
+
   const startDiscussion = useCallback(async (question: string) => {
     const discussionExperts = experts.filter(e => selectedExpertIds.includes(e.id));
     if (discussionExperts.length < 1) return;
@@ -221,7 +233,6 @@ const Index = () => {
     const shouldStop = () => controller.signal.aborted;
 
     if (discussionMode === 'general') {
-      // General mode: each AI answers independently, no debate
       for (const expert of discussionExperts) {
         if (shouldStop()) break;
         setActiveExpertId(expert.id);
@@ -249,7 +260,6 @@ const Index = () => {
       saveDiscussionToHistory({ question, expertIds: selectedExpertIds, mode: discussionMode, messages: [] });
       return;
     } else if (discussionMode === 'conclusion') {
-      // 빠른 토론: 전문가들이 1문단씩 의견 → AI가 종합하여 최종 답변
       setMessages(prev => [...prev, { id: `round-sep-conclusion-${Date.now()}`, expertId: '__round__', content: '⚡ 빠른 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
@@ -276,7 +286,6 @@ const Index = () => {
         await new Promise(r => setTimeout(r, 300));
       }
 
-      // 빠른 토론은 요약 건너뛰고 바로 AI 종합 답변
       if (!shouldStop()) {
         setActiveExpertId(CONCLUSION_EXPERT.id);
         const conclusionId = `fast-conclusion-${Date.now()}`;
@@ -299,17 +308,10 @@ const Index = () => {
         }
       }
 
-      // 빠른 토론은 여기서 바로 종료 (아래 공통 요약/결론 스킵)
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-
-      saveDiscussionToHistory({
-        question,
-        expertIds: selectedExpertIds,
-        mode: discussionMode,
-        messages: [],
-      });
+      saveDiscussionToHistory({ question, expertIds: selectedExpertIds, mode: discussionMode, messages: [] });
       return;
     } else if (discussionMode === 'standard') {
       const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
@@ -497,6 +499,9 @@ const Index = () => {
   const isDone = messages.length > 0 && !isDiscussing;
   const selectable = !isDiscussing && messages.length === 0;
 
+  const userInitial = user?.email?.[0]?.toUpperCase() || user?.user_metadata?.full_name?.[0] || '?';
+  const userAvatar = user?.user_metadata?.avatar_url;
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -511,11 +516,11 @@ const Index = () => {
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <header className="border-b border-border px-4 sm:px-6 py-3 bg-card/80 backdrop-blur-sm">
+          <header className="border-b border-border px-4 sm:px-6 py-3 bg-card/90 backdrop-blur-md" style={{ boxShadow: '0 1px 3px hsl(220 20% 14% / 0.03)' }}>
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-primary)' }}>
-                <MessageSquare className="w-4 h-4 text-primary-foreground" />
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-md" style={{ background: 'var(--gradient-primary)' }}>
+                <MessageSquare className="w-4.5 h-4.5 text-primary-foreground" />
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="font-display text-base font-bold text-foreground tracking-tight">AI 전문가 토론</h1>
@@ -523,7 +528,7 @@ const Index = () => {
                   <Users className="w-3 h-3" /> {activeExperts.length}명 참여 · <Zap className="w-3 h-3" /> 실시간
                 </p>
               </div>
-              {/* Selected/Active experts - always visible */}
+              {/* Selected/Active experts */}
               <div className="hidden sm:flex items-center gap-1">
                 {activeExperts.slice(0, 6).map(expert => (
                   <ExpertAvatar key={expert.id} expert={expert} size="sm" active={activeExpertId === expert.id} />
@@ -532,39 +537,53 @@ const Index = () => {
                   <span className="text-[10px] text-muted-foreground ml-1">+{activeExperts.length - 6}</span>
                 )}
               </div>
+              {/* User avatar */}
+              <div className="flex items-center gap-2 ml-2">
+                {userAvatar ? (
+                  <img src={userAvatar} alt="" className="w-8 h-8 rounded-full border border-border" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground border border-border">
+                    {userInitial}
+                  </div>
+                )}
+                <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-secondary" title="로그아웃">
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </header>
 
           {/* Main Area */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 scrollbar-thin">
             <div className="max-w-3xl mx-auto space-y-4">
-              {/* Expert Selection - shown in center when selectable */}
+              {/* Expert Selection */}
               {selectable && (
                 <ExpertSelectionPanel
                   experts={experts}
                   selectedIds={selectedExpertIds}
                   onToggle={toggleExpert}
-          discussionMode={discussionMode}
-          onModeChange={handleModeChange}
-          isDiscussing={isDiscussing}
+                  discussionMode={discussionMode}
+                  onModeChange={handleModeChange}
+                  isDiscussing={isDiscussing}
+                  onSuggestedQuestion={handleSuggestedQuestion}
                 />
               )}
 
               {/* Question display */}
               {currentQuestion && messages.length > 0 && (
-                <div className="rounded-xl p-4 border border-border flex items-start justify-between gap-3" style={{ background: 'var(--gradient-subtle)' }}>
+                <div className="rounded-2xl p-4 border border-border flex items-start justify-between gap-3" style={{ background: 'var(--gradient-subtle)', boxShadow: 'var(--shadow-card)' }}>
                   <div>
                     <span className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">Question</span>
                     <p className="text-foreground font-medium mt-0.5">{currentQuestion}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {isDiscussing && (
-                      <Button variant="destructive" size="sm" onClick={stopDiscussion} className="text-xs gap-1">
+                      <Button variant="destructive" size="sm" onClick={stopDiscussion} className="text-xs gap-1 rounded-xl">
                         <Square className="w-3 h-3" /> 중단
                       </Button>
                     )}
                     {isDone && (
-                      <Button variant="ghost" size="sm" onClick={copyAllResults} className="text-xs gap-1 text-muted-foreground">
+                      <Button variant="ghost" size="sm" onClick={copyAllResults} className="text-xs gap-1 text-muted-foreground rounded-xl">
                         {copiedAll ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                         {copiedAll ? '복사됨' : '전체 복사'}
                       </Button>
@@ -579,7 +598,7 @@ const Index = () => {
                   return (
                     <div key={msg.id} className="flex items-center gap-3 py-3">
                       <div className="flex-1 h-px bg-border" />
-                      <span className="text-xs font-display font-semibold text-muted-foreground px-3 py-1 rounded-full bg-muted">
+                      <span className="text-xs font-display font-semibold text-muted-foreground px-3 py-1.5 rounded-full bg-muted/80 shadow-sm">
                         {msg.content}
                       </span>
                       <div className="flex-1 h-px bg-border" />
@@ -588,7 +607,7 @@ const Index = () => {
                 }
                 if (msg.expertId === '__user__') {
                   return (
-                    <div key={msg.id} className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-sm text-foreground/80">
+                    <div key={msg.id} className="bg-primary/5 border border-primary/20 rounded-2xl p-3.5 text-sm text-foreground/80" style={{ boxShadow: 'var(--shadow-card)' }}>
                       <ReactMarkdownInline content={msg.content} />
                     </div>
                   );
@@ -605,15 +624,23 @@ const Index = () => {
               })}
 
               {isDone && (
-                <div className="text-center pt-6 pb-2">
-                  <p className="text-xs text-muted-foreground">토론이 완료되었습니다. 새로운 질문을 입력하거나 발언에 반박해보세요.</p>
+                <div className="text-center pt-8 pb-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">토론이 완료되었습니다</p>
+                  <Button
+                    onClick={handleNewDiscussion}
+                    className="rounded-xl gap-2 px-6 shadow-md"
+                    style={{ background: 'var(--gradient-primary)' }}
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    새 토론 시작
+                  </Button>
                 </div>
               )}
             </div>
           </div>
 
           {/* Input */}
-          <div className="border-t border-border px-4 sm:px-6 py-3 bg-card/80 backdrop-blur-sm">
+          <div className="border-t border-border px-4 sm:px-6 py-3 bg-card/90 backdrop-blur-md">
             <div className="max-w-3xl mx-auto space-y-2">
               {/* Selected expert chips */}
               {activeExperts.length > 0 && (
@@ -637,7 +664,7 @@ const Index = () => {
                   ))}
                 </div>
               )}
-              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 1} />
+              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 1} discussionMode={discussionMode} />
             </div>
           </div>
         </div>

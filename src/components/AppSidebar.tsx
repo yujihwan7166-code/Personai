@@ -62,7 +62,8 @@ export function AppSidebar({
           <div className="px-3 pb-2">
             <button
               onClick={() => window.location.reload()}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-display font-semibold transition-all bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-display font-semibold transition-all text-primary-foreground hover:opacity-90 shadow-md"
+              style={{ background: 'var(--gradient-primary)' }}
             >
               <Plus className="w-4 h-4" />
               새 토론
