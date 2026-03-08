@@ -4,22 +4,17 @@ import { QuestionInput } from '@/components/QuestionInput';
 import { ExpertPanel } from '@/components/ExpertPanel';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { ExpertManageDialog } from '@/components/ExpertManageDialog';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Zap, Users, Copy, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/expert-discuss`;
 
 async function streamExpert({
-  question,
-  expert,
-  previousResponses,
-  onDelta,
-  onDone,
+  question, expert, previousResponses, onDelta, onDone,
 }: {
-  question: string;
-  expert: Expert;
+  question: string; expert: Expert;
   previousResponses: { name: string; content: string }[];
-  onDelta: (text: string) => void;
-  onDone: () => void;
+  onDelta: (text: string) => void; onDone: () => void;
 }) {
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
@@ -27,11 +22,7 @@ async function streamExpert({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({
-      question,
-      expertSystemPrompt: expert.systemPrompt,
-      previousResponses,
-    }),
+    body: JSON.stringify({ question, expertSystemPrompt: expert.systemPrompt, previousResponses }),
   });
 
   if (!resp.ok || !resp.body) {
@@ -48,7 +39,6 @@ async function streamExpert({
     const { done, value } = await reader.read();
     if (done) break;
     textBuffer += decoder.decode(value, { stream: true });
-
     let newlineIndex: number;
     while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
       let line = textBuffer.slice(0, newlineIndex);
@@ -73,110 +63,94 @@ async function streamExpert({
 
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
-    const saved = localStorage.getItem('ai-debate-experts');
-    return saved ? JSON.parse(saved) : DEFAULT_EXPERTS;
+    try {
+      const saved = localStorage.getItem('ai-debate-experts-v2');
+      return saved ? JSON.parse(saved) : DEFAULT_EXPERTS;
+    } catch { return DEFAULT_EXPERTS; }
   });
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState('');
+  const [copiedAll, setCopiedAll] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v2', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
+  const copyAllResults = () => {
+    const text = messages.map(msg => {
+      const expert = [...experts, SUMMARIZER_EXPERT].find(e => e.id === msg.expertId);
+      return `[${expert?.nameKo || ''}]\n${msg.content}`;
+    }).join('\n\n---\n\n');
+    navigator.clipboard.writeText(`질문: ${currentQuestion}\n\n${text}`);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
+  };
+
   const startDiscussion = useCallback(async (question: string) => {
     setIsDiscussing(true);
     setCurrentQuestion(question);
     setMessages([]);
-
     const completedResponses: { name: string; content: string }[] = [];
 
-    // Each expert responds in turn
     for (const expert of experts) {
       setActiveExpertId(expert.id);
       const msgId = `${expert.id}-${Date.now()}`;
-
-      setMessages((prev) => [
-        ...prev,
-        { id: msgId, expertId: expert.id, content: '', isStreaming: true },
-      ]);
+      setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
 
       let fullContent = '';
       try {
         await streamExpert({
-          question,
-          expert,
-          previousResponses: completedResponses,
+          question, expert, previousResponses: completedResponses,
           onDelta: (chunk) => {
             fullContent += chunk;
-            setMessages((prev) =>
-              prev.map((m) => (m.id === msgId ? { ...m, content: fullContent } : m))
-            );
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m));
           },
           onDone: () => {
-            setMessages((prev) =>
-              prev.map((m) => (m.id === msgId ? { ...m, isStreaming: false } : m))
-            );
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
           },
         });
       } catch (err) {
-        console.error(`Error from ${expert.name}:`, err);
-        fullContent = `⚠️ 응답을 가져오는 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
-        setMessages((prev) =>
-          prev.map((m) => (m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m))
-        );
+        fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
       }
-
       completedResponses.push({ name: expert.nameKo, content: fullContent });
-
-      if (expert !== experts[experts.length - 1]) {
-        await new Promise((r) => setTimeout(r, 800));
-      }
+      if (expert !== experts[experts.length - 1]) await new Promise(r => setTimeout(r, 800));
     }
 
-    // Summarizer at the end
+    // Summarizer
     setActiveExpertId(SUMMARIZER_EXPERT.id);
     const summaryId = `summary-${Date.now()}`;
-    setMessages((prev) => [
-      ...prev,
-      { id: summaryId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true },
-    ]);
+    setMessages(prev => [...prev, { id: summaryId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
 
     let summaryContent = '';
-    const summaryPrompt = `You are the discussion summarizer. All experts have finished speaking. Synthesize their opinions into a clear, organized Korean summary with these sections:
-1. 📌 핵심 요약 - Main points agreed upon
-2. ⚔️ 의견 차이 - Key disagreements
-3. 💡 종합 결론 - Actionable conclusion
-Be concise but thorough.`;
+    const summaryPrompt = `You are the final discussion summarizer. Synthesize all expert opinions into an organized Korean summary:
+1. 📌 핵심 요약 - Key consensus points
+2. ⚔️ 의견 차이 - Major disagreements between experts  
+3. 💡 종합 결론 - Actionable conclusion and recommendation
+Be thorough but concise. Reference specific experts by name.`;
 
     try {
       await streamExpert({
-        question,
-        expert: { ...SUMMARIZER_EXPERT, systemPrompt: summaryPrompt },
+        question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: summaryPrompt },
         previousResponses: completedResponses,
         onDelta: (chunk) => {
           summaryContent += chunk;
-          setMessages((prev) =>
-            prev.map((m) => (m.id === summaryId ? { ...m, content: summaryContent } : m))
-          );
+          setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent } : m));
         },
         onDone: () => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === summaryId ? { ...m, isStreaming: false } : m))
-          );
+          setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, isStreaming: false } : m));
         },
       });
     } catch (err) {
-      summaryContent = `⚠️ 요약 생성 중 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
-      setMessages((prev) =>
-        prev.map((m) => (m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false } : m))
-      );
+      summaryContent = `⚠️ 요약 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+      setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false } : m));
     }
 
     setActiveExpertId(undefined);
@@ -184,63 +158,91 @@ Be concise but thorough.`;
   }, [experts]);
 
   const allExperts = [...experts, SUMMARIZER_EXPERT];
+  const isDone = messages.length > 0 && !isDiscussing;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b border-border px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <MessageSquare className="w-5 h-5 text-primary-foreground" />
+      <header className="border-b border-border px-4 sm:px-6 py-3">
+        <div className="max-w-4xl mx-auto flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+            <MessageSquare className="w-4 h-4 text-primary-foreground" />
           </div>
-          <div className="flex-1">
-            <h1 className="font-display text-xl font-bold text-foreground">AI 전문가 토론</h1>
-            <p className="text-xs text-muted-foreground">여러 AI 전문가가 당신의 질문에 대해 토론합니다</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display text-lg font-bold text-foreground tracking-tight">AI 전문가 토론</h1>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Users className="w-3 h-3" /> {experts.length}명의 전문가 · <Zap className="w-3 h-3" /> 실시간 토론
+            </p>
           </div>
           <ExpertManageDialog experts={experts} onUpdate={setExperts} />
         </div>
       </header>
 
       {/* Expert Panel */}
-      <div className="border-b border-border">
-        <div className="max-w-3xl mx-auto">
+      <div className="border-b border-border bg-card/30">
+        <div className="max-w-4xl mx-auto">
           <ExpertPanel experts={allExperts} activeExpertId={activeExpertId} />
         </div>
       </div>
 
       {/* Discussion Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="max-w-3xl mx-auto space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 scrollbar-thin">
+        <div className="max-w-4xl mx-auto space-y-4">
           {messages.length === 0 && !isDiscussing && (
-            <div className="text-center py-20">
-              <div className="text-5xl mb-4">💬</div>
-              <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-                질문을 입력하세요
+            <div className="text-center py-16 sm:py-24">
+              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+                <MessageSquare className="w-10 h-10 text-primary" />
+              </div>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-3 tracking-tight">
+                무엇이든 물어보세요
               </h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                {experts.map(e => e.nameKo).join(', ')}가 함께 토론하며 다양한 관점의 답변을 제공합니다.
+              <p className="text-muted-foreground max-w-lg mx-auto text-sm leading-relaxed">
+                {experts.map(e => e.icon).join(' ')} {experts.map(e => e.nameKo).join(', ')}가
+                당신의 질문에 대해 토론하고, 종합 정리자가 최종 결론을 도출합니다.
               </p>
+              <div className="flex flex-wrap justify-center gap-2 mt-8 max-w-md mx-auto">
+                {['비트코인에 투자해도 될까?', 'AI가 일자리를 대체할까?', '건강하게 장수하려면?'].map(q => (
+                  <button key={q} onClick={() => startDiscussion(q)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all">
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
           {currentQuestion && messages.length > 0 && (
-            <div className="bg-secondary/50 rounded-xl p-4 mb-6 border border-border">
-              <span className="text-xs text-muted-foreground font-display">질문</span>
-              <p className="text-foreground font-medium mt-1">{currentQuestion}</p>
+            <div className="bg-secondary/50 rounded-xl p-4 border border-border flex items-start justify-between gap-3">
+              <div>
+                <span className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">Question</span>
+                <p className="text-foreground font-medium mt-0.5">{currentQuestion}</p>
+              </div>
+              {isDone && (
+                <Button variant="ghost" size="sm" onClick={copyAllResults} className="shrink-0 text-xs gap-1 text-muted-foreground">
+                  {copiedAll ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {copiedAll ? '복사됨' : '전체 복사'}
+                </Button>
+              )}
             </div>
           )}
 
-          {messages.map((msg) => {
-            const expert = allExperts.find((e) => e.id === msg.expertId);
+          {messages.map(msg => {
+            const expert = allExperts.find(e => e.id === msg.expertId);
             if (!expert) return null;
             return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} />;
           })}
+
+          {isDone && (
+            <div className="text-center pt-6 pb-2">
+              <p className="text-xs text-muted-foreground">토론이 완료되었습니다. 새로운 질문을 입력하세요.</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Input */}
-      <div className="border-t border-border px-6 py-4">
-        <div className="max-w-3xl mx-auto">
+      <div className="border-t border-border px-4 sm:px-6 py-3 bg-card/50">
+        <div className="max-w-4xl mx-auto">
           <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing} />
         </div>
       </div>

@@ -6,50 +6,54 @@
 
 @layer base {
   :root {
-    --background: 220 20% 7%;
-    --foreground: 40 10% 90%;
+    --background: 225 15% 6%;
+    --foreground: 40 10% 92%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 40 10% 90%;
+    --card: 225 14% 9%;
+    --card-foreground: 40 10% 92%;
 
-    --popover: 220 18% 12%;
-    --popover-foreground: 40 10% 90%;
+    --popover: 225 14% 11%;
+    --popover-foreground: 40 10% 92%;
 
-    --primary: 42 80% 55%;
-    --primary-foreground: 220 20% 7%;
+    --primary: 42 85% 56%;
+    --primary-foreground: 225 15% 6%;
 
-    --secondary: 220 15% 15%;
+    --secondary: 225 12% 13%;
     --secondary-foreground: 40 10% 80%;
 
-    --muted: 220 15% 13%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 225 12% 12%;
+    --muted-foreground: 225 8% 48%;
 
-    --accent: 42 80% 55%;
-    --accent-foreground: 220 20% 7%;
+    --accent: 42 85% 56%;
+    --accent-foreground: 225 15% 6%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 15% 18%;
-    --input: 220 15% 18%;
-    --ring: 42 80% 55%;
+    --border: 225 12% 16%;
+    --input: 225 12% 16%;
+    --ring: 42 85% 56%;
 
     --radius: 0.75rem;
 
-    /* Expert colors */
-    --expert-gpt: 210 90% 55%;
-    --expert-gemini: 160 70% 45%;
-    --expert-medical: 0 70% 55%;
-    --expert-investment: 42 80% 55%;
+    /* Expert colors - expanded */
+    --expert-blue: 210 90% 55%;
+    --expert-emerald: 160 70% 45%;
+    --expert-red: 0 70% 55%;
+    --expert-amber: 42 80% 55%;
+    --expert-purple: 270 70% 60%;
+    --expert-orange: 25 90% 55%;
+    --expert-teal: 185 70% 45%;
+    --expert-pink: 330 70% 55%;
 
-    --sidebar-background: 220 18% 10%;
-    --sidebar-foreground: 40 10% 90%;
-    --sidebar-primary: 42 80% 55%;
-    --sidebar-primary-foreground: 220 20% 7%;
-    --sidebar-accent: 220 15% 15%;
-    --sidebar-accent-foreground: 40 10% 90%;
-    --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 42 80% 55%;
+    --sidebar-background: 225 14% 9%;
+    --sidebar-foreground: 40 10% 92%;
+    --sidebar-primary: 42 85% 56%;
+    --sidebar-primary-foreground: 225 15% 6%;
+    --sidebar-accent: 225 12% 13%;
+    --sidebar-accent-foreground: 40 10% 92%;
+    --sidebar-border: 225 12% 16%;
+    --sidebar-ring: 42 85% 56%;
   }
 }
 
@@ -69,16 +73,16 @@
 }
 
 @layer utilities {
-  .expert-glow-gpt {
-    box-shadow: 0 0 20px hsl(210 90% 55% / 0.2);
-  }
-  .expert-glow-gemini {
-    box-shadow: 0 0 20px hsl(160 70% 45% / 0.2);
-  }
-  .expert-glow-medical {
-    box-shadow: 0 0 20px hsl(0 70% 55% / 0.2);
-  }
-  .expert-glow-investment {
-    box-shadow: 0 0 20px hsl(42 80% 55% / 0.2);
-  }
+  .expert-glow-blue { box-shadow: 0 0 24px hsl(210 90% 55% / 0.25); }
+  .expert-glow-emerald { box-shadow: 0 0 24px hsl(160 70% 45% / 0.25); }
+  .expert-glow-red { box-shadow: 0 0 24px hsl(0 70% 55% / 0.25); }
+  .expert-glow-amber { box-shadow: 0 0 24px hsl(42 80% 55% / 0.25); }
+  .expert-glow-purple { box-shadow: 0 0 24px hsl(270 70% 60% / 0.25); }
+  .expert-glow-orange { box-shadow: 0 0 24px hsl(25 90% 55% / 0.25); }
+  .expert-glow-teal { box-shadow: 0 0 24px hsl(185 70% 45% / 0.25); }
+  .expert-glow-pink { box-shadow: 0 0 24px hsl(330 70% 55% / 0.25); }
+
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(225 12% 20%); border-radius: 999px; }
 }
