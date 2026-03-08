@@ -75,7 +75,7 @@ const Index = () => {
   });
   const [selectedExpertIds, setSelectedExpertIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-selected-v3');
+      const saved = localStorage.getItem('ai-debate-selected-v4');
       return saved ? JSON.parse(saved) : DEFAULT_EXPERTS.map(e => e.id);
     } catch { return DEFAULT_EXPERTS.map(e => e.id); }
   });
