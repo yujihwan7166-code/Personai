@@ -641,28 +641,31 @@ const Index = () => {
           </div>
 
           {/* Input */}
-          <div className="border-t border-border px-4 sm:px-6 py-3 bg-card/90 backdrop-blur-md">
-            <div className="max-w-3xl mx-auto space-y-2">
-              {/* Selected expert chips */}
+          <div className="border-t border-border px-4 sm:px-6 py-2.5 bg-card/90 backdrop-blur-md">
+            <div className="max-w-2xl mx-auto space-y-1.5">
+              {/* Selected expert chips - compact */}
               {activeExperts.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-muted-foreground font-medium shrink-0">참여 전문가:</span>
-                  {activeExperts.map(expert => (
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="text-[9px] text-muted-foreground font-medium shrink-0">참여:</span>
+                  {activeExperts.slice(0, 8).map(expert => (
                     <button
                       key={expert.id}
                       onClick={() => !isDiscussing && messages.length === 0 && toggleExpert(expert.id)}
                       className={cn(
-                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all',
+                        'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium border transition-all',
                         activeExpertId === expert.id
                           ? 'bg-primary/10 border-primary/30 text-primary'
                           : 'bg-secondary border-border text-foreground/70 hover:bg-muted',
                         isDiscussing || messages.length > 0 ? 'cursor-default' : 'cursor-pointer'
                       )}
                     >
-                      <ExpertAvatar expert={expert} size="sm" active={activeExpertId === expert.id} />
+                      <span>{expert.icon}</span>
                       <span className="hidden sm:inline">{expert.nameKo}</span>
                     </button>
                   ))}
+                  {activeExperts.length > 8 && (
+                    <span className="text-[9px] text-muted-foreground">+{activeExperts.length - 8}</span>
+                  )}
                 </div>
               )}
               <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 1} discussionMode={discussionMode} />
