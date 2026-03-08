@@ -789,46 +789,14 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               {isDone && (
                 <div className="text-center pt-8 pb-4 space-y-3">
                   <p className="text-sm text-muted-foreground">토론이 완료되었습니다</p>
-                  <div className="flex items-center justify-center gap-3 flex-wrap">
-                    <Button
-                      onClick={handleNewDiscussion}
-                      className="rounded-xl gap-2 px-6 shadow-md"
-                      style={{ background: 'var(--gradient-primary)' }}
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      새 토론 시작
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const context = messages
-                          .filter(m => m.expertId !== '__round__' && m.expertId !== '__user__' && m.content)
-                          .map(m => {
-                            const expert = allExperts.find(e => e.id === m.expertId);
-                            return `[${expert?.nameKo || ''}]: ${m.content}`;
-                          }).join('\n\n');
-                        generateDocument(currentQuestion, context);
-                      }}
-                      disabled={isGeneratingDoc}
-                      className="rounded-xl gap-2 px-6"
-                    >
-                      <FileText className="w-4 h-4" />
-                      {isGeneratingDoc ? '문서 생성 중...' : '📄 문서로 만들기'}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Document generation loading for document mode */}
-              {isGeneratingDoc && messages.length === 0 && (
-                <div className="text-center py-20 space-y-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto animate-pulse">
-                    <FileText className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-display font-semibold text-foreground">문서를 생성하고 있습니다</p>
-                    <p className="text-sm text-muted-foreground mt-1">전문가 관점을 반영한 프레젠테이션을 만들고 있어요...</p>
-                  </div>
+                  <Button
+                    onClick={handleNewDiscussion}
+                    className="rounded-xl gap-2 px-6 shadow-md"
+                    style={{ background: 'var(--gradient-primary)' }}
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    새 토론 시작
+                  </Button>
                 </div>
               )}
             </div>
