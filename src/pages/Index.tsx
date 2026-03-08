@@ -114,8 +114,8 @@ const Index = () => {
   };
 
   const copyAllResults = () => {
-    const text = messages.map(msg => {
-      const expert = [...experts, SUMMARIZER_EXPERT].find(e => e.id === msg.expertId);
+    const text = messages.filter(m => m.expertId !== '__round__').map(msg => {
+      const expert = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT].find(e => e.id === msg.expertId);
       return `[${expert?.nameKo || ''}]\n${msg.content}`;
     }).join('\n\n---\n\n');
     navigator.clipboard.writeText(`질문: ${currentQuestion}\n\n${text}`);
