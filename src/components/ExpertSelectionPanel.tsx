@@ -57,7 +57,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       {/* Welcome */}
       <div className="text-center space-y-2 pt-4 pb-1">
         <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          {isGeneral ? '무엇이든 물어보세요' : '전문가와 토론하기'}
+          {isGeneral ? '무엇이든 물어보세요' : '전문가 토론'}
         </h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           {isGeneral
