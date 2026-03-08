@@ -1,6 +1,8 @@
-import { Expert, ExpertColor, ExpertCategory, EXPERT_CATEGORY_LABELS } from '@/types/expert';
+import { useState } from 'react';
+import { Expert, ExpertColor, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
+import { ChevronDown } from 'lucide-react';
 
 interface Props {
   experts: Expert[];
@@ -42,8 +44,55 @@ function ExpertItem({ expert, isSelected, isActive, hasActive, selectable, onTog
   );
 }
 
+function CategorySection({ cat, label, items, selectedIds, activeExpertId, selectable, onToggle, defaultOpen }: {
+  cat: string; label: string; items: Expert[];
+  selectedIds?: string[]; activeExpertId?: string;
+  selectable: boolean; onToggle?: (id: string) => void;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  const selectedCount = items.filter(e => selectedIds?.includes(e.id)).length;
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 w-full px-1 py-1.5 group"
+      >
+        <span className="text-[11px] font-display text-muted-foreground">{label}</span>
+        {selectable && (
+          <span className="text-[10px] text-muted-foreground/60">{selectedCount}/{items.length}</span>
+        )}
+        <ChevronDown className={cn(
+          'w-3 h-3 text-muted-foreground/50 transition-transform ml-auto',
+          open && 'rotate-180'
+        )} />
+      </button>
+      {open && (
+        <div className="flex flex-wrap gap-3 justify-center pb-2 pt-1">
+          {items.map(expert => {
+            const isSelected = selectedIds?.includes(expert.id) ?? true;
+            return (
+              <ExpertItem
+                key={expert.id}
+                expert={expert}
+                isSelected={isSelected}
+                isActive={activeExpertId === expert.id}
+                hasActive={!!activeExpertId}
+                selectable={selectable}
+                onToggle={onToggle}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ExpertPanel({ experts, activeExpertId, selectedIds, onToggle, selectable }: Props) {
-  // During discussion (activeExpertId set or not selectable with messages), show flat list
+  // During discussion: flat list
   if (!selectable) {
     return (
       <div className="flex gap-3 justify-center py-4 px-4 overflow-x-auto scrollbar-thin">
@@ -60,36 +109,27 @@ export function ExpertPanel({ experts, activeExpertId, selectedIds, onToggle, se
     );
   }
 
-  // Selectable mode: group by category
-  const categories: ExpertCategory[] = ['ai', 'specialist', 'celebrity'];
-  const grouped = categories.map(cat => ({
+  // Selectable mode: group by category, collapsible
+  const grouped = EXPERT_CATEGORY_ORDER.map(cat => ({
     cat,
     label: EXPERT_CATEGORY_LABELS[cat],
     items: experts.filter(e => e.category === cat),
   })).filter(g => g.items.length > 0);
 
   return (
-    <div className="py-3 px-4 space-y-3">
+    <div className="py-2 px-4 space-y-1">
       {grouped.map(({ cat, label, items }) => (
-        <div key={cat}>
-          <p className="text-[10px] font-display text-muted-foreground mb-2 pl-1">{label}</p>
-          <div className="flex gap-3 overflow-x-auto scrollbar-thin pb-1">
-            {items.map(expert => {
-              const isSelected = selectedIds?.includes(expert.id) ?? true;
-              return (
-                <ExpertItem
-                  key={expert.id}
-                  expert={expert}
-                  isSelected={isSelected}
-                  isActive={activeExpertId === expert.id}
-                  hasActive={!!activeExpertId}
-                  selectable={true}
-                  onToggle={onToggle}
-                />
-              );
-            })}
-          </div>
-        </div>
+        <CategorySection
+          key={cat}
+          cat={cat}
+          label={label}
+          items={items}
+          selectedIds={selectedIds}
+          activeExpertId={activeExpertId}
+          selectable={true}
+          onToggle={onToggle}
+          defaultOpen={cat === 'ai'}
+        />
       ))}
     </div>
   );

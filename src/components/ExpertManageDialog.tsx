@@ -118,8 +118,8 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
                 ))}
               </SortableContext>
             </DndContext>
-            <Button onClick={startAdd} variant="outline" className="w-full gap-2 mt-3" disabled={experts.length >= 12}>
-              <Plus className="w-4 h-4" /> 전문가 추가 ({experts.length}/12)
+            <Button onClick={startAdd} variant="outline" className="w-full gap-2 mt-3" disabled={experts.length >= 50}>
+              <Plus className="w-4 h-4" /> 전문가 추가 ({experts.length}/50)
             </Button>
           </div>
         ) : (
@@ -139,7 +139,7 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
             <div className="space-y-2">
               <Label>카테고리</Label>
               <div className="flex gap-1.5">
-                {(['ai', 'specialist', 'celebrity'] as ExpertCategory[]).map(cat => (
+                {(['ai', 'specialist', 'occupation', 'celebrity'] as ExpertCategory[]).map(cat => (
                   <button key={cat} onClick={() => setForm(f => ({ ...f, category: cat }))}
                     className={cn('px-3 py-1 rounded-lg border text-xs transition-all',
                       form.category === cat ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-muted-foreground'
