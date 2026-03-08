@@ -229,8 +229,8 @@ IMPORTANT RULES:
     setIsDiscussing(false);
   }, [experts, selectedExpertIds]);
 
-  const allExperts = [...experts, SUMMARIZER_EXPERT];
-  const panelExperts = isDiscussing || messages.length > 0 ? [...activeExperts, SUMMARIZER_EXPERT] : experts;
+  const allExperts = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
+  const panelExperts = isDiscussing || messages.length > 0 ? [...activeExperts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT] : experts;
   const isDone = messages.length > 0 && !isDiscussing;
 
   return (
