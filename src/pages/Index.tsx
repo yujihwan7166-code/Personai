@@ -405,7 +405,7 @@ const Index = () => {
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <header className="border-b border-border px-4 sm:px-6 py-3 bg-card/30 backdrop-blur-sm">
+          <header className="border-b border-border px-4 sm:px-6 py-3 bg-card/80 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-primary)' }}>
