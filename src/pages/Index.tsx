@@ -218,7 +218,7 @@ Be thorough but concise. Reference specific experts by name.`;
       <div className="border-b border-border bg-card/30">
         <div className="max-w-4xl mx-auto">
           {!isDiscussing && messages.length === 0 && (
-            <p className="text-[10px] text-muted-foreground text-center pt-3">클릭하여 토론 참여자를 선택하세요 (최소 2명)</p>
+            <p className="text-[10px] text-muted-foreground text-center pt-3">카테고리를 클릭하여 펼치고 토론 참여자를 선택하세요 (최소 2명)</p>
           )}
           <ExpertPanel
             experts={panelExperts}
