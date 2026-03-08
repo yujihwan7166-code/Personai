@@ -263,7 +263,7 @@ const Index = () => {
       setStopRequested(false);
       saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
       return;
-    } else if (discussionMode === 'conclusion') {
+    } else if (useMode === 'conclusion') {
       setMessages(prev => [...prev, { id: `round-sep-conclusion-${Date.now()}`, expertId: '__round__', content: '⚡ 빠른 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
