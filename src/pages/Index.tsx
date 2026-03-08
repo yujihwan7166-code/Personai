@@ -5,6 +5,7 @@ import { ExpertPanel } from '@/components/ExpertPanel';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { ExpertManageDialog } from '@/components/ExpertManageDialog';
 import { DiscussionModeSelector } from '@/components/DiscussionModeSelector';
+import { DiscussionHistory, saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { MessageSquare, Zap, Users, Copy, Check, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -414,6 +415,26 @@ IMPORTANT RULES:
     setStopRequested(false);
   }, [experts, selectedExpertIds, discussionMode]);
 
+  // Save to history when discussion completes
+  useEffect(() => {
+    if (!isDiscussing && messages.length > 0 && currentQuestion) {
+      saveDiscussionToHistory({
+        question: currentQuestion,
+        mode: discussionMode,
+        messages: messages.map(m => ({ ...m, isStreaming: false })),
+        expertIds: selectedExpertIds,
+      });
+    }
+  }, [isDiscussing]);
+
+  const loadHistory = useCallback((record: DiscussionRecord) => {
+    setCurrentQuestion(record.question);
+    setMessages(record.messages);
+    setDiscussionMode(record.mode);
+    setIsDiscussing(false);
+    setActiveExpertId(undefined);
+  }, []);
+
   const allExperts = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
   // User rebuttal pseudo-expert
   const userPseudoExpert: Expert = {
@@ -437,7 +458,10 @@ IMPORTANT RULES:
               <Users className="w-3 h-3" /> {activeExperts.length}명 참여 · <Zap className="w-3 h-3" /> 실시간 토론
             </p>
           </div>
-          <ExpertManageDialog experts={experts} onUpdate={setExperts} />
+          <div className="flex items-center gap-1">
+            <DiscussionHistory onLoad={loadHistory} />
+            <ExpertManageDialog experts={experts} onUpdate={setExperts} />
+          </div>
         </div>
       </header>
 

@@ -23,6 +23,11 @@ const borderColors: Record<ExpertColor, string> = {
   purple: 'border-l-expert-purple', orange: 'border-l-expert-orange', teal: 'border-l-expert-teal', pink: 'border-l-expert-pink',
 };
 
+const streamingBorderColors: Record<ExpertColor, string> = {
+  blue: 'border-gradient-blue', emerald: 'border-gradient-emerald', red: 'border-gradient-red', amber: 'border-gradient-amber',
+  purple: 'border-gradient-purple', orange: 'border-gradient-orange', teal: 'border-gradient-teal', pink: 'border-gradient-pink',
+};
+
 export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onDislike }: Props) {
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -59,10 +64,14 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
         type="button"
         onClick={() => setExpanded(!expanded)}
         className={cn(
-          'w-full flex items-center gap-3 rounded-xl p-3 border-l-2 transition-all text-left',
+          'w-full flex items-center gap-3 rounded-xl p-3 border-l-2 transition-all duration-500 text-left',
           isSummary
             ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-l-primary ring-1 ring-primary/20 cursor-pointer'
-            : cn('bg-card hover:bg-card/80 cursor-pointer', borderColors[expert.color]),
+            : cn(
+                'bg-card hover:bg-card/80 cursor-pointer',
+                message.isStreaming ? streamingBorderColors[expert.color] : borderColors[expert.color],
+                message.isStreaming && 'ring-1 ring-expert-' + expert.color + '/20'
+              ),
           isOpen && !isSummary && 'rounded-b-none'
         )}
       >
