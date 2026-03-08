@@ -118,8 +118,8 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
                 ))}
               </SortableContext>
             </DndContext>
-            <Button onClick={startAdd} variant="outline" className="w-full gap-2 mt-3" disabled={experts.length >= 8}>
-              <Plus className="w-4 h-4" /> 전문가 추가 ({experts.length}/8)
+            <Button onClick={startAdd} variant="outline" className="w-full gap-2 mt-3" disabled={experts.length >= 12}>
+              <Plus className="w-4 h-4" /> 전문가 추가 ({experts.length}/12)
             </Button>
           </div>
         ) : (
