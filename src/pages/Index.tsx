@@ -404,7 +404,7 @@ const Index = () => {
         allResponses.push({ name: expert.nameKo, content: fullContent });
         await new Promise(r => setTimeout(r, 500));
       }
-    } else if (discussionMode === 'endless') {
+    } else if (useMode === 'endless') {
       const maxRounds = 5;
       for (let r = 1; r <= maxRounds; r++) {
         if (shouldStop()) break;
