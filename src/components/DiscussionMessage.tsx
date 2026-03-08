@@ -91,11 +91,10 @@ export function DiscussionMessageCard({ message, expert }: Props) {
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
           )}
-          {!isSummary && (
-            isOpen
-              ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          )}
+          {isOpen
+            ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          }
         </div>
       </button>
 
