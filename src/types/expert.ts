@@ -36,13 +36,39 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
   final: '3라운드 · 최종 입장',
 };
 
-export type DiscussionMode = 'standard' | 'procon' | 'freeform' | 'endless';
+export type DiscussionMode = 'conclusion' | 'standard' | 'procon' | 'freeform' | 'endless';
 
-export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string }> = {
-  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 토론' },
-  procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대 대립 구조' },
-  freeform: { label: '자유 대화', icon: '💬', description: '형식 없는 자유로운 대화' },
-  endless: { label: '끝장 토론', icon: '🔥', description: '합의에 도달할 때까지' },
+export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string; detail: string }> = {
+  conclusion: {
+    label: '결론 도출',
+    icon: '💡',
+    description: '빠른 결론 요약',
+    detail: '전문가들이 각자 의견을 제시한 후, 핵심 결론을 빠르게 도출합니다. 간단한 질문이나 빠른 답변이 필요할 때 적합합니다.',
+  },
+  standard: {
+    label: '심층 토론',
+    icon: '🎯',
+    description: '3라운드 구조화 토론',
+    detail: '초기 의견 → 상호 반론 → 최종 정리의 3단계로 진행됩니다. 복잡한 주제를 다각도로 깊이 분석할 때 적합합니다.',
+  },
+  procon: {
+    label: '찬반 토론',
+    icon: '⚔️',
+    description: '찬성 vs 반대 대립',
+    detail: '전문가를 찬성/반대 팀으로 나눠 구조화된 대립 토론을 진행합니다. 논쟁적인 주제에서 양측 논리를 비교할 때 적합합니다.',
+  },
+  freeform: {
+    label: '자유 대화',
+    icon: '💬',
+    description: '형식 없는 자유 대화',
+    detail: '라운드 구분 없이 전문가들이 자유롭게 의견을 나눕니다. 가벼운 주제나 브레인스토밍에 적합합니다.',
+  },
+  endless: {
+    label: '끝장 토론',
+    icon: '🔥',
+    description: '최대 5라운드 열띤 토론',
+    detail: '합의에 도달할 때까지 최대 5라운드까지 치열하게 토론합니다. 강한 입장 대립이 예상되는 주제에 적합합니다.',
+  },
 };
 
 export interface DiscussionMessage {

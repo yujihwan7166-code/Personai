@@ -205,7 +205,30 @@ const Index = () => {
     const allResponses: { name: string; content: string }[] = [];
     const shouldStop = () => controller.signal.aborted;
 
-    if (discussionMode === 'standard') {
+    if (discussionMode === 'conclusion') {
+      // Quick conclusion mode: each expert gives one short opinion, then summary+conclusion
+      setMessages(prev => [...prev, { id: `round-sep-conclusion-${Date.now()}`, expertId: '__round__', content: '💡 전문가 의견 수렴', round: 'initial' }]);
+      const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
+      for (const expert of shuffled) {
+        if (shouldStop()) break;
+        setActiveExpertId(expert.id);
+        const msgId = `${expert.id}-conclusion-${Date.now()}`;
+        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round: 'initial' }]);
+        let fullContent = '';
+        try {
+          await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n결론 도출 모드입니다. 핵심만 간결하게 1문단으로 답변해주세요. 가장 중요한 포인트만 제시해주세요.' }, previousResponses: allResponses, round: 'initial',
+            onDelta: (chunk) => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') break;
+          fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+        }
+        allResponses.push({ name: expert.nameKo, content: fullContent });
+        await new Promise(r => setTimeout(r, 300));
+      }
+    } else if (discussionMode === 'standard') {
       const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
       for (const round of rounds) {
         if (shouldStop()) break;
