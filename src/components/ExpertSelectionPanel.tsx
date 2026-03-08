@@ -30,12 +30,8 @@ interface Props {
 }
 
 export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing, onSuggestedQuestion }: Props) {
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({ ai: true });
+  const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [search, setSearch] = useState('');
-
-  const toggleCategory = (cat: string) => {
-    setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
-  };
 
   const isGeneral = discussionMode === 'general';
 
