@@ -86,7 +86,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v4', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v5', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
