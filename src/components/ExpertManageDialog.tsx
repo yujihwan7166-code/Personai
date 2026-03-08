@@ -54,7 +54,7 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
   const [open, setOpen] = useState(false);
   const [editingExpert, setEditingExpert] = useState<Expert | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [form, setForm] = useState({ nameKo: '', icon: '', color: 'blue' as ExpertColor, description: '' });
+  const [form, setForm] = useState({ nameKo: '', icon: '', color: 'blue' as ExpertColor, description: '', category: 'ai' as ExpertCategory });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
