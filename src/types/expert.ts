@@ -135,5 +135,9 @@ export const DEFAULT_EXPERTS: Expert[] = [
 ];
 
 export const SUMMARIZER_EXPERT: Expert = {
-  id: 'summarizer', name: 'Summarizer', nameKo: '종합 정리자', icon: '📋', color: 'amber', category: 'specialist', description: '토론 종합 정리', systemPrompt: '',
+  id: 'summarizer', name: 'Summarizer', nameKo: '토론 정리', icon: '📋', color: 'amber', category: 'specialist', description: '토론 내용 정리', systemPrompt: '',
+};
+
+export const CONCLUSION_EXPERT: Expert = {
+  id: 'conclusion', name: 'Conclusion', nameKo: '최종 결론', icon: '🎯', color: 'purple', category: 'specialist', description: '최종 결론 도출', systemPrompt: '',
 };

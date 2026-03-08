@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, DiscussionMessage, DiscussionRound, Expert, ROUND_LABELS } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, Expert, ROUND_LABELS } from '@/types/expert';
 import { QuestionInput } from '@/components/QuestionInput';
 import { ExpertPanel } from '@/components/ExpertPanel';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
@@ -114,8 +114,8 @@ const Index = () => {
   };
 
   const copyAllResults = () => {
-    const text = messages.map(msg => {
-      const expert = [...experts, SUMMARIZER_EXPERT].find(e => e.id === msg.expertId);
+    const text = messages.filter(m => m.expertId !== '__round__').map(msg => {
+      const expert = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT].find(e => e.id === msg.expertId);
       return `[${expert?.nameKo || ''}]\n${msg.content}`;
     }).join('\n\n---\n\n');
     navigator.clipboard.writeText(`질문: ${currentQuestion}\n\n${text}`);
@@ -174,42 +174,63 @@ const Index = () => {
       }
     }
 
-    // Summarizer
+    // 1) 토론 정리
     setActiveExpertId(SUMMARIZER_EXPERT.id);
     const summaryId = `summary-${Date.now()}`;
     setMessages(prev => [...prev, { id: summaryId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
 
     let summaryContent = '';
-    const summaryPrompt = `You are the final discussion summarizer. This was a multi-round debate. Synthesize all expert opinions across all rounds into an organized Korean summary:
-1. 📌 핵심 합의점 - Points where experts converged
+    const summaryPrompt = `You are a debate summarizer. This was a multi-round debate. Organize the discussion into a clear Korean summary:
+1. 📌 핵심 합의점 - Points where experts agreed
 2. ⚔️ 주요 논쟁점 - Key disagreements and how they evolved across rounds
-3. 🔄 입장 변화 - Any notable shifts in positions during the debate
-4. 💡 종합 결론 - Final actionable recommendation
-Be thorough but concise. Reference specific experts by name and which round.`;
+3. 🔄 입장 변화 - Notable shifts in positions during the debate
+Reference specific experts by name. Do NOT provide your own conclusion or recommendation - just organize what was discussed.`;
 
     try {
       await streamExpert({
         question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: summaryPrompt },
         previousResponses: allResponses, round: 'summary',
-        onDelta: (chunk) => {
-          summaryContent += chunk;
-          setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent } : m));
-        },
-        onDone: () => {
-          setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, isStreaming: false } : m));
-        },
+        onDelta: (chunk) => { summaryContent += chunk; setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent } : m)); },
+        onDone: () => { setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, isStreaming: false } : m)); },
       });
     } catch (err) {
-      summaryContent = `⚠️ 요약 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+      summaryContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
       setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false } : m));
+    }
+
+    // 2) 최종 결론
+    setActiveExpertId(CONCLUSION_EXPERT.id);
+    const conclusionId = `conclusion-${Date.now()}`;
+    setMessages(prev => [...prev, { id: conclusionId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+
+    let conclusionContent = '';
+    const conclusionPrompt = `You are a final conclusion synthesizer. Based on the entire multi-round debate, provide a definitive conclusion in Korean.
+
+IMPORTANT RULES:
+- Do NOT mention any expert by name. Do NOT reference "누구의 의견" or any participant.
+- Instead, synthesize all viewpoints into ONE unified, actionable answer as if you are giving your own expert advice.
+- Structure: Start with a clear direct answer to the question, then provide 2-3 key supporting points, and end with a practical recommendation.
+- Write as a confident advisor giving a final verdict, not as someone summarizing others' opinions.
+- Be concise and decisive. 2-3 paragraphs maximum.`;
+
+    try {
+      await streamExpert({
+        question, expert: { ...CONCLUSION_EXPERT, systemPrompt: conclusionPrompt },
+        previousResponses: allResponses, round: 'summary',
+        onDelta: (chunk) => { conclusionContent += chunk; setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: conclusionContent } : m)); },
+        onDone: () => { setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, isStreaming: false } : m)); },
+      });
+    } catch (err) {
+      conclusionContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+      setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: conclusionContent, isStreaming: false } : m));
     }
 
     setActiveExpertId(undefined);
     setIsDiscussing(false);
   }, [experts, selectedExpertIds]);
 
-  const allExperts = [...experts, SUMMARIZER_EXPERT];
-  const panelExperts = isDiscussing || messages.length > 0 ? [...activeExperts, SUMMARIZER_EXPERT] : experts;
+  const allExperts = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
+  const panelExperts = isDiscussing || messages.length > 0 ? [...activeExperts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT] : experts;
   const isDone = messages.length > 0 && !isDiscussing;
 
   return (
