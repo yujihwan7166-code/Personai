@@ -261,7 +261,7 @@ const Index = () => {
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-      saveDiscussionToHistory({ question, expertIds: selectedExpertIds, mode: discussionMode, messages: [] });
+      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
       return;
     } else if (discussionMode === 'conclusion') {
       setMessages(prev => [...prev, { id: `round-sep-conclusion-${Date.now()}`, expertId: '__round__', content: '⚡ 빠른 의견 수집', round: 'initial' }]);
