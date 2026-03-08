@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Expert, EXPERT_COLORS, EXPERT_COLOR_LABELS, ExpertColor } from '@/types/expert';
+import { Expert, EXPERT_COLORS, EXPERT_COLOR_LABELS, ExpertColor, ExpertCategory, EXPERT_CATEGORY_LABELS } from '@/types/expert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,29 +54,29 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
   const [open, setOpen] = useState(false);
   const [editingExpert, setEditingExpert] = useState<Expert | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [form, setForm] = useState({ nameKo: '', icon: '', color: 'blue' as ExpertColor, description: '' });
+  const [form, setForm] = useState({ nameKo: '', icon: '', color: 'blue' as ExpertColor, description: '', category: 'ai' as ExpertCategory });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const resetForm = () => { setForm({ nameKo: '', icon: '', color: 'blue', description: '' }); setEditingExpert(null); setIsAdding(false); };
+  const resetForm = () => { setForm({ nameKo: '', icon: '', color: 'blue', description: '', category: 'ai' }); setEditingExpert(null); setIsAdding(false); };
   const startAdd = () => { resetForm(); setIsAdding(true); };
   const startEdit = (expert: Expert) => {
-    setForm({ nameKo: expert.nameKo, icon: expert.icon, color: expert.color, description: expert.description });
+    setForm({ nameKo: expert.nameKo, icon: expert.icon, color: expert.color, description: expert.description, category: expert.category });
     setEditingExpert(expert); setIsAdding(true);
   };
 
   const handleSave = () => {
     if (!form.nameKo.trim() || !form.icon.trim()) return;
     if (editingExpert) {
-      onUpdate(experts.map(e => e.id === editingExpert.id ? { ...e, nameKo: form.nameKo, name: form.nameKo, icon: form.icon, color: form.color, description: form.description } : e));
+      onUpdate(experts.map(e => e.id === editingExpert.id ? { ...e, nameKo: form.nameKo, name: form.nameKo, icon: form.icon, color: form.color, description: form.description, category: form.category } : e));
     } else {
       const desc = form.description.trim() || `${form.nameKo} 전문가`;
       onUpdate([...experts, {
         id: `custom-${Date.now()}`, name: form.nameKo, nameKo: form.nameKo, icon: form.icon, color: form.color,
-        description: desc,
+        description: desc, category: form.category,
         systemPrompt: `You are ${form.nameKo}. ${desc}. Provide expert analysis from your perspective. Respond in Korean. Engage with other experts' opinions.`,
       }]);
     }
@@ -135,6 +135,19 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
             <div className="space-y-2">
               <Label>전문 분야</Label>
               <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="예: 가치투자 전문가, 거시경제 전문가" />
+            </div>
+            <div className="space-y-2">
+              <Label>카테고리</Label>
+              <div className="flex gap-1.5">
+                {(['ai', 'specialist', 'celebrity'] as ExpertCategory[]).map(cat => (
+                  <button key={cat} onClick={() => setForm(f => ({ ...f, category: cat }))}
+                    className={cn('px-3 py-1 rounded-lg border text-xs transition-all',
+                      form.category === cat ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-muted-foreground'
+                    )}>
+                    {EXPERT_CATEGORY_LABELS[cat]}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>색상</Label>
