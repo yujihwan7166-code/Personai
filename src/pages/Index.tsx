@@ -605,7 +605,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
     setActiveExpertId(undefined);
     setIsDiscussing(false);
     setStopRequested(false);
-  }, [experts, selectedExpertIds, discussionMode, generateDocument]);
+  }, [experts, selectedExpertIds, discussionMode]);
 
   // Save to history when discussion completes
   useEffect(() => {
