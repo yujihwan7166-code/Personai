@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Expert, EXPERT_COLORS, EXPERT_COLOR_LABELS, ExpertColor } from '@/types/expert';
+import { Expert, EXPERT_COLORS, EXPERT_COLOR_LABELS, ExpertColor, ExpertCategory, EXPERT_CATEGORY_LABELS } from '@/types/expert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
