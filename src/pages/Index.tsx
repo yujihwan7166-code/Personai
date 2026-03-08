@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, DiscussionMessage, DiscussionRound, Expert, ROUND_LABELS } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, Expert, ROUND_LABELS } from '@/types/expert';
 import { QuestionInput } from '@/components/QuestionInput';
 import { ExpertPanel } from '@/components/ExpertPanel';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
