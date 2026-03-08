@@ -54,23 +54,31 @@ function CategorySection({ cat, label, items, selectedIds, activeExpertId, selec
   const selectedCount = items.filter(e => selectedIds?.includes(e.id)).length;
 
   return (
-    <div>
+    <div className="border border-border/50 rounded-xl overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 w-full px-1 py-1.5 group"
+        className={cn(
+          'flex items-center gap-2.5 w-full px-4 py-2.5 transition-colors',
+          open ? 'bg-secondary/60' : 'hover:bg-secondary/30'
+        )}
       >
-        <span className="text-[11px] font-display text-muted-foreground">{label}</span>
+        <span className="text-sm font-display font-medium text-foreground">{label}</span>
         {selectable && (
-          <span className="text-[10px] text-muted-foreground/60">{selectedCount}/{items.length}</span>
+          <span className={cn(
+            'text-xs px-2 py-0.5 rounded-full',
+            selectedCount > 0 ? 'bg-primary/15 text-primary font-medium' : 'bg-muted text-muted-foreground'
+          )}>
+            {selectedCount}명 선택
+          </span>
         )}
         <ChevronDown className={cn(
-          'w-3 h-3 text-muted-foreground/50 transition-transform ml-auto',
+          'w-4 h-4 text-muted-foreground transition-transform ml-auto',
           open && 'rotate-180'
         )} />
       </button>
       {open && (
-        <div className="flex flex-wrap gap-3 justify-center pb-2 pt-1">
+        <div className="flex flex-wrap gap-3 justify-center px-4 py-3 bg-background/50">
           {items.map(expert => {
             const isSelected = selectedIds?.includes(expert.id) ?? true;
             return (
