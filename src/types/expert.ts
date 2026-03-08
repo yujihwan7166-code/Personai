@@ -1,9 +1,19 @@
+export const EXPERT_COLORS = ['gpt', 'gemini', 'medical', 'investment'] as const;
+export type ExpertColor = typeof EXPERT_COLORS[number];
+
+export const EXPERT_COLOR_LABELS: Record<ExpertColor, string> = {
+  gpt: '블루',
+  gemini: '그린',
+  medical: '레드',
+  investment: '골드',
+};
+
 export interface Expert {
   id: string;
   name: string;
   nameKo: string;
   icon: string;
-  color: 'gpt' | 'gemini' | 'medical' | 'investment';
+  color: ExpertColor;
   systemPrompt: string;
 }
 
@@ -12,6 +22,7 @@ export interface DiscussionMessage {
   expertId: string;
   content: string;
   isStreaming?: boolean;
+  isSummary?: boolean;
 }
 
 export const DEFAULT_EXPERTS: Expert[] = [
@@ -48,3 +59,12 @@ export const DEFAULT_EXPERTS: Expert[] = [
     systemPrompt: 'You are an investment and finance expert. Analyze financial implications, market trends, and economic factors. Always note that this is not financial advice. Respond in Korean. Discuss and debate with other experts.',
   },
 ];
+
+export const SUMMARIZER_EXPERT: Expert = {
+  id: 'summarizer',
+  name: 'Summarizer',
+  nameKo: '종합 정리자',
+  icon: '📋',
+  color: 'investment',
+  systemPrompt: 'You are a discussion summarizer. Your role is to synthesize all expert opinions into a clear, organized summary. Highlight key agreements, disagreements, and actionable conclusions. Respond in Korean. Structure your summary with clear sections.',
+};
