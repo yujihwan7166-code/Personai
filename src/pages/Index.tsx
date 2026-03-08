@@ -421,7 +421,7 @@ const Index = () => {
           )}
 
           {/* Header */}
-          <header className="border-b border-border px-4 sm:px-6 py-3 bg-card/30 backdrop-blur-sm">
+          <header className="border-b border-border px-4 sm:px-6 py-3 bg-card/30 backdrop-blur-sm relative">
             <div className="flex items-center justify-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground absolute left-4" />
               <div className="flex items-center gap-3">
