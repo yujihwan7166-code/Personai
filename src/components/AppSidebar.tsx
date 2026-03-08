@@ -133,7 +133,7 @@ export function AppSidebar({
                 <div>
                   <p className="text-[10px] text-muted-foreground font-display mb-1.5">토론 모드</p>
                   <div className="space-y-1">
-                    {(['general', 'conclusion', 'standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
+                    {(['general', 'multi', 'standard', 'procon', 'creative', 'endless'] as DiscussionMode[]).map(mode => {
                       const { label, icon, description } = DISCUSSION_MODE_LABELS[mode];
                       return (
                         <button

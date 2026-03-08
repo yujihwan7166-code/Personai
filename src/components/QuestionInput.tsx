@@ -54,7 +54,7 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar 
       };
       return placeholders[activeTool!] || '질문을 입력하세요...';
     }
-    return '전문가에게 질문하세요...';
+    return discussionMode === 'general' ? 'AI에게 질문하세요...' : '전문가에게 질문하세요...';
   };
 
   return (

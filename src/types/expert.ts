@@ -37,14 +37,42 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
   final: '3라운드 · 최종 입장',
 };
 
-export type DiscussionMode = 'general' | 'conclusion' | 'standard' | 'procon' | 'endless';
+// Main mode: 3 categories
+export type MainMode = 'general' | 'multi' | 'debate';
 
+export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
+  general: { label: '일반', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
+  multi: { label: '다중 AI', icon: '🔀', description: '여러 AI의 답변을 종합합니다' },
+  debate: { label: '전문가 토론', icon: '🎙️', description: '전문가들이 토론 후 결론을 냅니다' },
+};
+
+// Sub-modes for debate
+export type DebateSubMode = 'standard' | 'procon' | 'creative' | 'endless';
+
+export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon: string; description: string }> = {
+  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 깊이 있는 토론' },
+  procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대로 나눠 격돌' },
+  creative: { label: '창의적 토론', icon: '🎨', description: '자유로운 아이디어 브레인스토밍' },
+  endless: { label: '끝장 토론', icon: '🔥', description: '최대 5라운드, 합의까지' },
+};
+
+// Flat DiscussionMode for backward compat in logic
+export type DiscussionMode = 'general' | 'multi' | 'standard' | 'procon' | 'creative' | 'endless';
+
+export function getMainMode(mode: DiscussionMode): MainMode {
+  if (mode === 'general') return 'general';
+  if (mode === 'multi') return 'multi';
+  return 'debate';
+}
+
+// Legacy compat label map
 export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string; detail: string }> = {
-  general: { label: '일반 질문', icon: '💡', description: 'AI에게 직접 질문', detail: '하나의 AI로 빠르게 답변받거나, 여러 AI를 선택해 교차검증도 가능합니다.' },
-  conclusion: { label: '빠른 토론', icon: '⚡', description: '의견 수집 후 종합 답변', detail: '각 전문가가 핵심 의견을 1문단으로 빠르게 제시한 뒤, AI가 모든 의견을 종합하여 질문에 대한 최종 답변을 도출합니다.' },
-  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 토론', detail: '초기 의견 → 반론/토론 → 최종 입장까지 3라운드에 걸쳐 깊이 있는 토론을 진행합니다. 복잡한 주제를 다각도로 분석할 때 적합합니다.' },
-  procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대 대립 구조', detail: '전문가들이 찬성과 반대 팀으로 나뉘어 각 입장을 공격·방어합니다. 논쟁적인 주제에서 양측 논거를 비교할 때 유용합니다.' },
-  endless: { label: '끝장 토론', icon: '🔥', description: '합의에 도달할 때까지', detail: '최대 5라운드까지 반복하며 합의점을 찾을 때까지 토론합니다. 결론이 나기 어려운 주제를 끝까지 파고들 때 사용하세요.' },
+  general: { label: '일반', icon: '💬', description: 'AI 1개 선택', detail: 'AI 하나를 골라 자유롭게 대화하세요.' },
+  multi: { label: '다중 AI', icon: '🔀', description: '여러 AI 종합', detail: '여러 AI/전문가의 답변을 모은 뒤 하나의 종합 결론을 만들어 드립니다.' },
+  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 토론', detail: '초기 의견 → 반론 → 최종 입장, 3라운드 깊이 있는 토론을 진행합니다.' },
+  procon: { label: '찬반 토론', icon: '⚔️', description: '찬반 대립', detail: '전문가들이 찬성·반대로 나뉘어 논쟁합니다.' },
+  creative: { label: '창의적 토론', icon: '🎨', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
+  endless: { label: '끝장 토론', icon: '🔥', description: '합의까지', detail: '최대 5라운드, 합의에 도달할 때까지 토론합니다.' },
 };
 
 export interface DiscussionMessage {
