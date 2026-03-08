@@ -5,6 +5,7 @@ import { ExpertPanel } from '@/components/ExpertPanel';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { ExpertManageDialog } from '@/components/ExpertManageDialog';
 import { DiscussionModeSelector } from '@/components/DiscussionModeSelector';
+import { DiscussionHistory, saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { MessageSquare, Zap, Users, Copy, Check, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
