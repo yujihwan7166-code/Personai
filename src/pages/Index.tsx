@@ -505,7 +505,7 @@ const Index = () => {
           onLoadHistory={loadHistory}
           onUpdateExperts={setExperts}
           discussionMode={discussionMode}
-          onModeChange={setDiscussionMode}
+          onModeChange={handleModeChange}
           isDiscussing={isDiscussing}
         />
 
