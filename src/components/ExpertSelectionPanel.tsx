@@ -53,13 +53,13 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
   const selectedCount = selectedIds.length;
 
   return (
-    <div className="space-y-5">
-      {/* Welcome - compact */}
-      <div className="text-center space-y-1 pt-1">
-        <h2 className="font-display text-lg sm:text-xl font-bold text-foreground tracking-tight">
+    <div className="space-y-6">
+      {/* Welcome */}
+      <div className="text-center space-y-2 pt-4 pb-1">
+        <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
           {isGeneral ? '무엇이든 물어보세요' : '전문가와 토론하기'}
         </h2>
-        <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
           {isGeneral
             ? 'AI를 선택하고 질문하면 바로 답변을 받을 수 있습니다'
             : '토론 모드를 선택하고, 전문가를 골라 질문하세요'
@@ -68,8 +68,8 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       </div>
 
       {/* Mode selector */}
-      <div className="space-y-1.5">
-        <div className="flex flex-wrap gap-1.5 justify-center">
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2 justify-center">
           {(['general', 'conclusion', 'standard', 'procon', 'endless'] as DiscussionMode[]).map(mode => {
             const { label, icon } = DISCUSSION_MODE_LABELS[mode];
             return (
@@ -78,19 +78,19 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                 onClick={() => onModeChange(mode)}
                 disabled={isDiscussing}
                 className={cn(
-                  'flex items-center gap-1 px-3 py-2 rounded-full text-[11px] font-medium transition-all border',
+                  'flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-medium transition-all border',
                   discussionMode === mode
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md scale-105'
+                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20 hover:shadow-sm'
                 )}
               >
-                <span className="text-xs">{icon}</span>
+                <span>{icon}</span>
                 <span>{label}</span>
               </button>
             );
           })}
         </div>
-        <p className="text-[10px] text-muted-foreground text-center px-4">
+        <p className="text-xs text-muted-foreground text-center px-4 max-w-lg mx-auto leading-relaxed">
           {DISCUSSION_MODE_LABELS[discussionMode].detail}
         </p>
       </div>
