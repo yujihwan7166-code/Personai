@@ -287,6 +287,18 @@ Be thorough but concise. Reference specific experts by name and which round.`;
           )}
 
           {messages.map(msg => {
+            // Round separator
+            if (msg.expertId === '__round__') {
+              return (
+                <div key={msg.id} className="flex items-center gap-3 py-3">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs font-display font-semibold text-muted-foreground px-3 py-1 rounded-full bg-muted">
+                    {msg.content}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              );
+            }
             const expert = allExperts.find(e => e.id === msg.expertId);
             if (!expert) return null;
             return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} />;
