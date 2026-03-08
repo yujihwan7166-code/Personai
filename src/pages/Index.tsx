@@ -3,6 +3,8 @@ import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessag
 import { QuestionInput } from '@/components/QuestionInput';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
+import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
+import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { MessageSquare, Zap, Users, Copy, Check, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
