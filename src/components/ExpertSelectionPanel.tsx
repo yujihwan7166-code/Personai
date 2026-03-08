@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER, DiscussionMode, DISCUSSION_MODE_LABELS } from '@/types/expert';
+import { Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER, DiscussionMode, MainMode, DebateSubMode, MAIN_MODE_LABELS, DEBATE_SUB_MODE_LABELS, getMainMode } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
-import { Search, Users, Sparkles, Brain, TrendingUp, HelpCircle } from 'lucide-react';
+import { Search, Users, Brain, TrendingUp, Sparkles, HelpCircle } from 'lucide-react';
 
 export interface SuggestedQuestion {
   icon: React.ReactNode;
@@ -14,9 +14,9 @@ export interface SuggestedQuestion {
 
 export const SUGGESTED_QUESTIONS: SuggestedQuestion[] = [
   { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-primary', expertIds: ['gpt', 'claude', 'engineer', 'programmer', 'buffett'], mode: 'standard' },
-  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-accent', expertIds: ['buffett', 'dalio', 'finance', 'accountant'], mode: 'standard' },
-  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-expert-emerald', expertIds: ['gemini', 'psychology', 'teacher', 'artist', 'jobs'], mode: 'standard' },
-  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-expert-amber', expertIds: ['medical', 'doctor', 'nurse', 'chef'], mode: 'standard' },
+  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-accent', expertIds: ['buffett', 'dalio', 'finance', 'accountant'], mode: 'multi' },
+  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-expert-emerald', expertIds: ['gemini', 'psychology', 'teacher', 'artist', 'jobs'], mode: 'creative' },
+  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-expert-amber', expertIds: ['medical', 'doctor', 'nurse', 'chef'], mode: 'multi' },
 ];
 
 interface Props {
@@ -29,17 +29,23 @@ interface Props {
   onSuggestedQuestion?: (question: string, expertIds: string[], mode: DiscussionMode) => void;
 }
 
+const mainModes: MainMode[] = ['general', 'multi', 'debate'];
+const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'creative', 'endless'];
+
 export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing, onSuggestedQuestion }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [search, setSearch] = useState('');
 
-  const isGeneral = discussionMode === 'general';
+  const mainMode = getMainMode(discussionMode);
+  const isGeneral = mainMode === 'general';
 
-  const grouped = EXPERT_CATEGORY_ORDER
-    .filter(cat => !isGeneral || cat === 'ai')
+  // For general mode, only show AI category
+  const visibleCategories = isGeneral ? ['ai'] : EXPERT_CATEGORY_ORDER;
+
+  const grouped = visibleCategories
     .map(cat => ({
-      cat,
-      label: EXPERT_CATEGORY_LABELS[cat],
+      cat: cat as ExpertCategory,
+      label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
       items: experts.filter(e => {
         if (e.category !== cat) return false;
         if (search) {
@@ -50,54 +56,92 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       }),
     })).filter(g => g.items.length > 0);
 
+  // Auto-switch to first available category
+  const validCats = grouped.map(g => g.cat);
+  const effectiveCategory = validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai';
+
   const selectedCount = selectedIds.length;
 
+  const handleMainModeChange = (m: MainMode) => {
+    if (m === 'general') onModeChange('general');
+    else if (m === 'multi') onModeChange('multi');
+    else onModeChange('standard'); // default debate sub-mode
+  };
+
+  const handleDebateSubChange = (sub: DebateSubMode) => {
+    onModeChange(sub);
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Welcome */}
-      <div className="text-center space-y-2 pt-4 pb-1">
+    <div className="space-y-5">
+      {/* Title */}
+      <div className="text-center space-y-1.5 pt-3">
         <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          {isGeneral ? '무엇이든 물어보세요' : '전문가 토론'}
+          {mainMode === 'general' ? '무엇이든 물어보세요' : mainMode === 'multi' ? '다중 AI 종합' : '전문가 토론'}
         </h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          {isGeneral
-            ? 'AI를 선택하고 질문하면 바로 답변을 받을 수 있습니다'
-            : '다양한 전문가들의 토론을 지켜보세요'
-          }
+          {mainMode === 'general' && 'AI를 하나 선택하고 자유롭게 대화하세요'}
+          {mainMode === 'multi' && '여러 AI·전문가의 답변을 종합해 최종 답변을 만듭니다'}
+          {mainMode === 'debate' && '전문가들이 3라운드 토론 후 결론을 도출합니다'}
         </p>
       </div>
 
-      {/* Mode selector */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-2 justify-center">
-          {(['general', 'conclusion', 'standard', 'procon', 'endless'] as DiscussionMode[]).map(mode => {
-            const { label, icon } = DISCUSSION_MODE_LABELS[mode];
+      {/* 3 Main Mode Tabs */}
+      <div className="flex gap-2 justify-center">
+        {mainModes.map(m => {
+          const info = MAIN_MODE_LABELS[m];
+          const isActive = mainMode === m;
+          return (
+            <button
+              key={m}
+              onClick={() => handleMainModeChange(m)}
+              disabled={isDiscussing}
+              className={cn(
+                'flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-display font-semibold transition-all border',
+                isActive
+                  ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-[1.02]'
+                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20 hover:shadow-sm'
+              )}
+            >
+              <span className="text-lg">{info.icon}</span>
+              <span>{info.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Debate Sub-Mode Selector (only visible for debate) */}
+      {mainMode === 'debate' && (
+        <div className="flex flex-wrap gap-1.5 justify-center">
+          {debateSubModes.map(sub => {
+            const info = DEBATE_SUB_MODE_LABELS[sub];
+            const isActive = discussionMode === sub;
             return (
               <button
-                key={mode}
-                onClick={() => onModeChange(mode)}
+                key={sub}
+                onClick={() => handleDebateSubChange(sub)}
                 disabled={isDiscussing}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-medium transition-all border',
-                  discussionMode === mode
-                    ? 'bg-primary text-primary-foreground border-primary shadow-md scale-105'
-                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20 hover:shadow-sm'
+                  'flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all border',
+                  isActive
+                    ? 'bg-primary/10 text-primary border-primary/30 ring-1 ring-primary/20'
+                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/15'
                 )}
               >
-                <span>{icon}</span>
-                <span>{label}</span>
+                <span>{info.icon}</span>
+                <div className="text-left">
+                  <div className="font-semibold">{info.label}</div>
+                  <div className="text-[9px] opacity-60 hidden sm:block">{info.description}</div>
+                </div>
               </button>
             );
           })}
         </div>
-        <p className="text-xs text-muted-foreground text-center px-4 max-w-lg mx-auto leading-relaxed">
-          {DISCUSSION_MODE_LABELS[discussionMode].detail}
-        </p>
-      </div>
+      )}
 
       {/* Expert Selection Card */}
       <div className="border border-border rounded-2xl overflow-hidden bg-card" style={{ boxShadow: 'var(--shadow-card)' }}>
-        {/* Top bar: tabs + count */}
+        {/* Category tabs + count */}
         <div className="flex items-center border-b border-border">
           <div className="flex flex-1 min-w-0">
             {grouped.map(({ cat, label, items }) => {
@@ -109,7 +153,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                   onClick={() => setActiveCategory(cat)}
                   className={cn(
                     'flex-1 flex items-center justify-center gap-1 px-2 py-2.5 text-xs font-display font-semibold transition-colors relative',
-                    activeCategory === cat
+                    effectiveCategory === cat
                       ? 'text-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
@@ -120,7 +164,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                       {catSelectedCount}
                     </span>
                   )}
-                  {activeCategory === cat && (
+                  {effectiveCategory === cat && (
                     <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
                   )}
                 </button>
@@ -153,7 +197,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
 
         {/* Expert grid */}
         {grouped
-          .filter(({ cat }) => cat === activeCategory)
+          .filter(({ cat }) => cat === effectiveCategory)
           .map(({ cat, items }) => (
             <div key={cat} className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-1 px-2 py-2">
               {items.map(expert => {
@@ -182,9 +226,16 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
               })}
             </div>
           ))}
+
+        {/* Helper text for general mode */}
+        {isGeneral && (
+          <div className="px-3 pb-2">
+            <p className="text-[10px] text-muted-foreground text-center">💡 일반 모드에서는 AI 1개만 선택됩니다</p>
+          </div>
+        )}
       </div>
 
-      {/* Suggested Questions - at the bottom */}
+      {/* Suggested Questions */}
       {onSuggestedQuestion && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-full mx-auto">
           {SUGGESTED_QUESTIONS.map((q, i) => {
