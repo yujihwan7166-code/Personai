@@ -262,11 +262,10 @@ const Index = () => {
       setStopRequested(false);
 
       saveDiscussionToHistory({
-        id: Date.now().toString(),
         question,
         expertIds: selectedExpertIds,
         mode: discussionMode,
-        timestamp: Date.now(),
+        messages: [],
       });
       return;
     } else if (discussionMode === 'standard') {
