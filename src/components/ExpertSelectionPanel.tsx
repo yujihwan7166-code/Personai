@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER, DiscussionMode, DISCUSSION_MODE_LABELS } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
-import { ChevronDown, Search, Users } from 'lucide-react';
+import { ChevronDown, Search, Users, Sparkles, Brain, TrendingUp, HelpCircle } from 'lucide-react';
+
+const SUGGESTED_QUESTIONS = [
+  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-primary' },
+  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-accent' },
+  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-expert-emerald' },
+  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-expert-amber' },
+];
 
 interface Props {
   experts: Expert[];
@@ -11,9 +18,10 @@ interface Props {
   discussionMode: DiscussionMode;
   onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
+  onSuggestedQuestion?: (question: string) => void;
 }
 
-export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing }: Props) {
+export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing, onSuggestedQuestion }: Props) {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({ ai: true });
   const [search, setSearch] = useState('');
 
@@ -41,33 +49,42 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
   const selectedCount = selectedIds.length;
 
   return (
-    <div className="space-y-6">
-      {/* Header with count badge inline */}
-      <div className="text-center space-y-2">
-        <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-          {isGeneral ? 'AI 선택' : '토론 전문가 선택'}
-        </h2>
-        <div className="flex items-center justify-center gap-2">
-          <p className="text-sm text-muted-foreground">
-            {isGeneral
-              ? <>질문할 AI를 <span className="text-primary font-medium">1명 이상</span> 선택하세요</>
-              : <>토론에 참여할 전문가를 <span className="text-primary font-medium">1명 이상</span> 선택하세요</>
-            }
-          </p>
-          <span className={cn(
-            'inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors',
-            selectedCount >= 1
-              ? 'bg-primary/10 text-primary'
-              : 'bg-destructive/10 text-destructive'
-          )}>
-            <Users className="w-3 h-3" />
-            {selectedCount}명 {selectedCount < 1 && '(최소 1명)'}
-          </span>
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <div className="text-center space-y-3 pt-4">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-2" style={{ background: 'var(--gradient-primary)', boxShadow: 'var(--shadow-glow)' }}>
+          <Sparkles className="w-7 h-7 text-primary-foreground" />
         </div>
+        <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+          {isGeneral ? '무엇이든 물어보세요' : '전문가와 토론하기'}
+        </h2>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          {isGeneral
+            ? 'AI를 선택하고 질문하면 바로 답변을 받을 수 있습니다'
+            : '다양한 관점의 전문가들이 깊이 있는 토론을 펼칩니다'
+          }
+        </p>
       </div>
 
+      {/* Suggested Questions */}
+      {onSuggestedQuestion && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg mx-auto">
+          {SUGGESTED_QUESTIONS.map((q, i) => (
+            <button
+              key={i}
+              onClick={() => onSuggestedQuestion(q.text)}
+              className="flex items-start gap-2.5 p-3.5 rounded-xl border border-border bg-card text-left text-sm text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
+              style={{ boxShadow: 'var(--shadow-card)' }}
+            >
+              <span className={cn('mt-0.5 shrink-0 transition-colors', q.color, 'group-hover:scale-110 transition-transform')}>{q.icon}</span>
+              <span className="leading-snug">{q.text}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Mode selector */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <div className="flex flex-wrap gap-2 justify-center">
           {(['general', 'conclusion', 'standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
             const { label, icon } = DISCUSSION_MODE_LABELS[mode];
@@ -77,10 +94,10 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                 onClick={() => onModeChange(mode)}
                 disabled={isDiscussing}
                 className={cn(
-                  'flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium transition-all border',
+                  'flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-medium transition-all border',
                   discussionMode === mode
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20 hover:shadow-sm'
                 )}
               >
                 <span>{icon}</span>
@@ -94,16 +111,27 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
         </p>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm mx-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="전문가 검색..."
-          className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
-        />
+      {/* Selection count + Search */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 max-w-md mx-auto">
+        <span className={cn(
+          'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors shrink-0',
+          selectedCount >= 1
+            ? 'bg-primary/10 text-primary'
+            : 'bg-destructive/10 text-destructive'
+        )}>
+          <Users className="w-3.5 h-3.5" />
+          {selectedCount}명 선택{selectedCount < 1 && ' (최소 1명)'}
+        </span>
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="전문가 검색..."
+            className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
+          />
+        </div>
       </div>
 
       {/* Expert Categories */}
@@ -112,12 +140,12 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
           const isOpen = expandedCategories[cat] ?? false;
           const catSelectedCount = items.filter(e => selectedIds.includes(e.id)).length;
           return (
-            <div key={cat} className="border border-border rounded-2xl overflow-hidden bg-card shadow-sm">
+            <div key={cat} className="border border-border rounded-2xl overflow-hidden bg-card" style={{ boxShadow: 'var(--shadow-card)' }}>
               <button
                 type="button"
                 onClick={() => toggleCategory(cat)}
                 className={cn(
-                  'flex items-center gap-2.5 w-full px-4 py-3 transition-colors',
+                  'flex items-center justify-center gap-2.5 w-full px-4 py-3.5 transition-colors',
                   isOpen ? 'bg-muted/50' : 'hover:bg-muted/30'
                 )}
               >
@@ -128,7 +156,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                   </span>
                 )}
                 <ChevronDown className={cn(
-                  'w-4 h-4 text-muted-foreground transition-transform ml-auto',
+                  'w-4 h-4 text-muted-foreground transition-transform',
                   isOpen && 'rotate-180'
                 )} />
               </button>
