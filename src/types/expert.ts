@@ -37,7 +37,7 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
   final: '3라운드 · 최종 입장',
 };
 
-export type DiscussionMode = 'general' | 'conclusion' | 'standard' | 'procon' | 'endless';
+export type DiscussionMode = 'general' | 'conclusion' | 'standard' | 'procon' | 'endless' | 'document';
 
 export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string; detail: string }> = {
   general: { label: '일반 질문', icon: '💡', description: 'AI에게 직접 질문', detail: '하나의 AI로 빠르게 답변받거나, 여러 AI를 선택해 교차검증도 가능합니다.' },
@@ -45,7 +45,23 @@ export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; ico
   standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 토론', detail: '초기 의견 → 반론/토론 → 최종 입장까지 3라운드에 걸쳐 깊이 있는 토론을 진행합니다. 복잡한 주제를 다각도로 분석할 때 적합합니다.' },
   procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대 대립 구조', detail: '전문가들이 찬성과 반대 팀으로 나뉘어 각 입장을 공격·방어합니다. 논쟁적인 주제에서 양측 논거를 비교할 때 유용합니다.' },
   endless: { label: '끝장 토론', icon: '🔥', description: '합의에 도달할 때까지', detail: '최대 5라운드까지 반복하며 합의점을 찾을 때까지 토론합니다. 결론이 나기 어려운 주제를 끝까지 파고들 때 사용하세요.' },
+  document: { label: '문서 생성', icon: '📄', description: 'PPT·보고서·브리핑', detail: '주제를 입력하면 다양한 전문가 관점을 반영한 프레젠테이션, 보고서, 브리핑 문서를 자동으로 생성합니다. 토론 없이도 바로 사용 가능합니다.' },
 };
+
+export interface DocumentSlide {
+  title: string;
+  content: string[];
+  type: 'title' | 'content' | 'comparison' | 'summary' | 'quote';
+  icon?: string;
+  notes?: string;
+}
+
+export interface GeneratedDocument {
+  title: string;
+  subtitle: string;
+  slides: DocumentSlide[];
+  expertInsights?: { expertName: string; insight: string }[];
+}
 
 export interface DiscussionMessage {
   id: string;

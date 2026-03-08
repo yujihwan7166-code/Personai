@@ -32,7 +32,7 @@ export function QuestionInput({ onSubmit, disabled, discussionMode }: Props) {
         <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="질문을 입력하세요..."
+          placeholder={discussionMode === 'document' ? '문서로 만들 주제를 입력하세요...' : '질문을 입력하세요...'}
           disabled={disabled}
           className="flex-1 bg-transparent border-none p-1 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none min-h-[36px] max-h-[120px]"
           rows={1}

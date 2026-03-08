@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, GeneratedDocument } from '@/types/expert';
 import { QuestionInput } from '@/components/QuestionInput';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
+import { DocumentViewer } from '@/components/DocumentViewer';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { toast } from '@/hooks/use-toast';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/expert-discuss`;
 
@@ -98,6 +100,8 @@ const Index = () => {
   const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('standard');
   const [stopRequested, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
+  const [generatedDocument, setGeneratedDocument] = useState<GeneratedDocument | null>(null);
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -217,7 +221,37 @@ const Index = () => {
     setCurrentQuestion('');
     setIsDiscussing(false);
     setActiveExpertId(undefined);
+    setGeneratedDocument(null);
   };
+
+  const generateDocument = useCallback(async (question: string, discussionContext?: string) => {
+    setIsGeneratingDoc(true);
+    const DOC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-document`;
+    try {
+      const resp = await fetch(DOC_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          question,
+          experts: activeExperts.map(e => ({ id: e.id, nameKo: e.nameKo, description: e.description })),
+          discussionContext,
+        }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || '문서 생성 실패');
+      }
+      const doc = await resp.json();
+      setGeneratedDocument(doc);
+    } catch (err) {
+      toast({ title: '문서 생성 오류', description: err instanceof Error ? err.message : '알 수 없는 오류', variant: 'destructive' });
+    } finally {
+      setIsGeneratingDoc(false);
+    }
+  }, [activeExperts]);
 
   const handleSuggestedQuestion = (question: string, expertIds: string[], mode: DiscussionMode) => {
     setSelectedExpertIds(expertIds);
@@ -239,6 +273,15 @@ const Index = () => {
     setMessages([]);
     const allResponses: { name: string; content: string }[] = [];
     const shouldStop = () => controller.signal.aborted;
+
+    if (useMode === 'document') {
+      // Document generation mode - no discussion, directly generate document
+      setCurrentQuestion(question);
+      setIsDiscussing(false);
+      setStopRequested(false);
+      await generateDocument(question);
+      return;
+    }
 
     if (useMode === 'general') {
       for (const expert of discussionExperts) {
@@ -605,7 +648,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
     setActiveExpertId(undefined);
     setIsDiscussing(false);
     setStopRequested(false);
-  }, [experts, selectedExpertIds, discussionMode]);
+  }, [experts, selectedExpertIds, discussionMode, generateDocument]);
 
   // Save to history when discussion completes
   useEffect(() => {
@@ -789,14 +832,46 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               {isDone && (
                 <div className="text-center pt-8 pb-4 space-y-3">
                   <p className="text-sm text-muted-foreground">토론이 완료되었습니다</p>
-                  <Button
-                    onClick={handleNewDiscussion}
-                    className="rounded-xl gap-2 px-6 shadow-md"
-                    style={{ background: 'var(--gradient-primary)' }}
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    새 토론 시작
-                  </Button>
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <Button
+                      onClick={handleNewDiscussion}
+                      className="rounded-xl gap-2 px-6 shadow-md"
+                      style={{ background: 'var(--gradient-primary)' }}
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      새 토론 시작
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const context = messages
+                          .filter(m => m.expertId !== '__round__' && m.expertId !== '__user__' && m.content)
+                          .map(m => {
+                            const expert = allExperts.find(e => e.id === m.expertId);
+                            return `[${expert?.nameKo || ''}]: ${m.content}`;
+                          }).join('\n\n');
+                        generateDocument(currentQuestion, context);
+                      }}
+                      disabled={isGeneratingDoc}
+                      className="rounded-xl gap-2 px-6"
+                    >
+                      <FileText className="w-4 h-4" />
+                      {isGeneratingDoc ? '문서 생성 중...' : '📄 문서로 만들기'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Document generation loading for document mode */}
+              {isGeneratingDoc && messages.length === 0 && (
+                <div className="text-center py-20 space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto animate-pulse">
+                    <FileText className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-display font-semibold text-foreground">문서를 생성하고 있습니다</p>
+                    <p className="text-sm text-muted-foreground mt-1">전문가 관점을 반영한 프레젠테이션을 만들고 있어요...</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -830,11 +905,18 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   )}
                 </div>
               )}
-              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 1} discussionMode={discussionMode} />
+              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || isGeneratingDoc || (discussionMode !== 'document' && activeExperts.length < 1)} discussionMode={discussionMode} />
             </div>
           </div>
         </div>
       </div>
+      {/* Document Viewer */}
+      {generatedDocument && (
+        <DocumentViewer
+          document={generatedDocument}
+          onClose={() => setGeneratedDocument(null)}
+        />
+      )}
     </SidebarProvider>
   );
 };

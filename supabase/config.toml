@@ -2,3 +2,6 @@ project_id = "lvbrbheioqchtqjkywwv"
 
 [functions.expert-discuss]
 verify_jwt = false
+
+[functions.generate-document]
+verify_jwt = false

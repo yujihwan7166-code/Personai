@@ -57,11 +57,13 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       {/* Welcome */}
       <div className="text-center space-y-2 pt-4 pb-1">
         <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          {isGeneral ? '무엇이든 물어보세요' : '전문가 토론'}
+          {isGeneral ? '무엇이든 물어보세요' : discussionMode === 'document' ? '문서를 만들어보세요' : '전문가 토론'}
         </h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           {isGeneral
             ? 'AI를 선택하고 질문하면 바로 답변을 받을 수 있습니다'
+            : discussionMode === 'document'
+            ? '주제를 입력하면 전문가 관점이 반영된 문서를 자동 생성합니다'
             : '다양한 전문가들의 토론을 지켜보세요'
           }
         </p>
@@ -70,7 +72,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       {/* Mode selector */}
       <div className="space-y-2">
         <div className="flex flex-wrap gap-2 justify-center">
-          {(['general', 'conclusion', 'standard', 'procon', 'endless'] as DiscussionMode[]).map(mode => {
+          {(['general', 'conclusion', 'standard', 'procon', 'endless', 'document'] as DiscussionMode[]).map(mode => {
             const { label, icon } = DISCUSSION_MODE_LABELS[mode];
             return (
               <button
