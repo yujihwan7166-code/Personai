@@ -22,13 +22,17 @@ const borderLeftColors = {
 };
 
 export function DiscussionMessageCard({ message, expert }: Props) {
+  const isSummary = message.isSummary;
   return (
-    <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className={cn(
+      'flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500',
+      isSummary && 'mt-6'
+    )}>
       <ExpertAvatar expert={expert} active={message.isStreaming} />
       <div
         className={cn(
-          'flex-1 bg-card rounded-lg p-4 border-l-2',
-          borderLeftColors[expert.color]
+          'flex-1 rounded-lg p-4 border-l-2',
+          isSummary ? 'bg-primary/10 border-l-primary' : cn('bg-card', borderLeftColors[expert.color])
         )}
       >
         <div className={cn('font-display font-semibold text-sm mb-1', nameBorderColors[expert.color])}>
