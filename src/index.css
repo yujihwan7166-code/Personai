@@ -73,14 +73,32 @@
 }
 
 @layer utilities {
-  .expert-glow-blue { box-shadow: 0 0 24px hsl(210 90% 55% / 0.25); }
-  .expert-glow-emerald { box-shadow: 0 0 24px hsl(160 70% 45% / 0.25); }
-  .expert-glow-red { box-shadow: 0 0 24px hsl(0 70% 55% / 0.25); }
-  .expert-glow-amber { box-shadow: 0 0 24px hsl(42 80% 55% / 0.25); }
-  .expert-glow-purple { box-shadow: 0 0 24px hsl(270 70% 60% / 0.25); }
-  .expert-glow-orange { box-shadow: 0 0 24px hsl(25 90% 55% / 0.25); }
-  .expert-glow-teal { box-shadow: 0 0 24px hsl(185 70% 45% / 0.25); }
-  .expert-glow-pink { box-shadow: 0 0 24px hsl(330 70% 55% / 0.25); }
+  .expert-glow-blue { box-shadow: 0 0 24px hsl(210 90% 55% / 0.25), 0 0 48px hsl(210 90% 55% / 0.1); }
+  .expert-glow-emerald { box-shadow: 0 0 24px hsl(160 70% 45% / 0.25), 0 0 48px hsl(160 70% 45% / 0.1); }
+  .expert-glow-red { box-shadow: 0 0 24px hsl(0 70% 55% / 0.25), 0 0 48px hsl(0 70% 55% / 0.1); }
+  .expert-glow-amber { box-shadow: 0 0 24px hsl(42 80% 55% / 0.25), 0 0 48px hsl(42 80% 55% / 0.1); }
+  .expert-glow-purple { box-shadow: 0 0 24px hsl(270 70% 60% / 0.25), 0 0 48px hsl(270 70% 60% / 0.1); }
+  .expert-glow-orange { box-shadow: 0 0 24px hsl(25 90% 55% / 0.25), 0 0 48px hsl(25 90% 55% / 0.1); }
+  .expert-glow-teal { box-shadow: 0 0 24px hsl(185 70% 45% / 0.25), 0 0 48px hsl(185 70% 45% / 0.1); }
+  .expert-glow-pink { box-shadow: 0 0 24px hsl(330 70% 55% / 0.25), 0 0 48px hsl(330 70% 55% / 0.1); }
+
+  .expert-glow-active-blue { box-shadow: 0 0 30px hsl(210 90% 55% / 0.4), 0 0 60px hsl(210 90% 55% / 0.2), inset 0 0 20px hsl(210 90% 55% / 0.1); }
+  .expert-glow-active-emerald { box-shadow: 0 0 30px hsl(160 70% 45% / 0.4), 0 0 60px hsl(160 70% 45% / 0.2), inset 0 0 20px hsl(160 70% 45% / 0.1); }
+  .expert-glow-active-red { box-shadow: 0 0 30px hsl(0 70% 55% / 0.4), 0 0 60px hsl(0 70% 55% / 0.2), inset 0 0 20px hsl(0 70% 55% / 0.1); }
+  .expert-glow-active-amber { box-shadow: 0 0 30px hsl(42 80% 55% / 0.4), 0 0 60px hsl(42 80% 55% / 0.2), inset 0 0 20px hsl(42 80% 55% / 0.1); }
+  .expert-glow-active-purple { box-shadow: 0 0 30px hsl(270 70% 60% / 0.4), 0 0 60px hsl(270 70% 60% / 0.2), inset 0 0 20px hsl(270 70% 60% / 0.1); }
+  .expert-glow-active-orange { box-shadow: 0 0 30px hsl(25 90% 55% / 0.4), 0 0 60px hsl(25 90% 55% / 0.2), inset 0 0 20px hsl(25 90% 55% / 0.1); }
+  .expert-glow-active-teal { box-shadow: 0 0 30px hsl(185 70% 45% / 0.4), 0 0 60px hsl(185 70% 45% / 0.2), inset 0 0 20px hsl(185 70% 45% / 0.1); }
+  .expert-glow-active-pink { box-shadow: 0 0 30px hsl(330 70% 55% / 0.4), 0 0 60px hsl(330 70% 55% / 0.2), inset 0 0 20px hsl(330 70% 55% / 0.1); }
+
+  .border-gradient-blue { border-image: linear-gradient(to bottom, hsl(210 90% 55%), hsl(210 90% 55% / 0.3)) 1; }
+  .border-gradient-emerald { border-image: linear-gradient(to bottom, hsl(160 70% 45%), hsl(160 70% 45% / 0.3)) 1; }
+  .border-gradient-red { border-image: linear-gradient(to bottom, hsl(0 70% 55%), hsl(0 70% 55% / 0.3)) 1; }
+  .border-gradient-amber { border-image: linear-gradient(to bottom, hsl(42 80% 55%), hsl(42 80% 55% / 0.3)) 1; }
+  .border-gradient-purple { border-image: linear-gradient(to bottom, hsl(270 70% 60%), hsl(270 70% 60% / 0.3)) 1; }
+  .border-gradient-orange { border-image: linear-gradient(to bottom, hsl(25 90% 55%), hsl(25 90% 55% / 0.3)) 1; }
+  .border-gradient-teal { border-image: linear-gradient(to bottom, hsl(185 70% 45%), hsl(185 70% 45% / 0.3)) 1; }
+  .border-gradient-pink { border-image: linear-gradient(to bottom, hsl(330 70% 55%), hsl(330 70% 55% / 0.3)) 1; }
 
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
