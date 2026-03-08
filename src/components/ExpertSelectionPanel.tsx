@@ -55,11 +55,11 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
   return (
     <div className="space-y-5">
       {/* Welcome - compact */}
-      <div className="text-center space-y-1.5 pt-2">
-        <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+      <div className="text-center space-y-1 pt-1">
+        <h2 className="font-display text-lg sm:text-xl font-bold text-foreground tracking-tight">
           {isGeneral ? '무엇이든 물어보세요' : '전문가와 토론하기'}
         </h2>
-        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+        <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
           {isGeneral
             ? 'AI를 선택하고 질문하면 바로 답변을 받을 수 있습니다'
             : '토론 모드를 선택하고, 전문가를 골라 질문하세요'
@@ -186,7 +186,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
 
       {/* Suggested Questions - at the bottom */}
       {onSuggestedQuestion && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-full mx-auto">
           {SUGGESTED_QUESTIONS.map((q, i) => {
             const participants = q.expertIds
               .map(id => experts.find(e => e.id === id))
@@ -195,7 +195,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
               <button
                 key={i}
                 onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
-                className="flex flex-col gap-1.5 p-3 rounded-xl border border-border bg-card text-left text-xs text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
+                className="flex flex-col gap-1.5 p-2.5 rounded-xl border border-border bg-card text-left text-[11px] text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
                 style={{ boxShadow: 'var(--shadow-card)' }}
               >
                 <div className="flex items-start gap-2">
@@ -204,7 +204,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                 </div>
                 {participants.length > 0 && (
                   <div className="flex items-center gap-1 pl-6">
-                    <div className="flex -space-x-1">
+                    <div className="flex -space-x-1.5">
                       {participants.slice(0, 4).map(e => (
                         <ExpertAvatar key={e.id} expert={e} size="sm" />
                       ))}
