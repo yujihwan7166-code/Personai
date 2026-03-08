@@ -80,7 +80,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
           {SUGGESTED_QUESTIONS.map((q, i) => (
             <button
               key={i}
-              onClick={() => onSuggestedQuestion(q.text)}
+              onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
               className="flex items-start gap-2.5 p-3.5 rounded-xl border border-border bg-card text-left text-sm text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
               style={{ boxShadow: 'var(--shadow-card)' }}
             >
