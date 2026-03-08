@@ -209,7 +209,7 @@ const Index = () => {
 
   const startDiscussion = useCallback(async (question: string) => {
     const discussionExperts = experts.filter(e => selectedExpertIds.includes(e.id));
-    if (discussionExperts.length < 2) return;
+    if (discussionExperts.length < 1) return;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
