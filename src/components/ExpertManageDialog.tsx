@@ -137,6 +137,18 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
               <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="예: 가치투자 전문가, 거시경제 전문가" />
             </div>
             <div className="space-y-2">
+              <Label>카테고리</Label>
+              <div className="flex gap-1.5">
+                {(['ai', 'specialist', 'celebrity'] as ExpertCategory[]).map(cat => (
+                  <button key={cat} onClick={() => setForm(f => ({ ...f, category: cat }))}
+                    className={cn('px-3 py-1 rounded-lg border text-xs transition-all',
+                      form.category === cat ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-muted-foreground'
+                    )}>
+                    {EXPERT_CATEGORY_LABELS[cat]}
+                  </button>
+                ))}
+              </div>
+            <div className="space-y-2">
               <Label>색상</Label>
               <div className="flex flex-wrap gap-1.5">
                 {EXPERT_COLORS.map(c => (
