@@ -37,7 +37,7 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
   final: '3라운드 · 최종 입장',
 };
 
-export type DiscussionMode = 'general' | 'conclusion' | 'standard' | 'procon' | 'freeform' | 'endless';
+export type DiscussionMode = 'general' | 'conclusion' | 'standard' | 'procon' | 'endless';
 
 export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string; detail: string }> = {
   general: { label: '일반 질문', icon: '💡', description: 'AI에게 직접 질문', detail: '하나의 AI로 빠르게 답변받거나, 여러 AI를 선택해 교차검증도 가능합니다.' },
