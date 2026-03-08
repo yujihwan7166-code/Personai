@@ -274,6 +274,15 @@ const Index = () => {
     const allResponses: { name: string; content: string }[] = [];
     const shouldStop = () => controller.signal.aborted;
 
+    if (useMode === 'document') {
+      // Document generation mode - no discussion, directly generate document
+      setCurrentQuestion(question);
+      setIsDiscussing(false);
+      setStopRequested(false);
+      await generateDocument(question);
+      return;
+    }
+
     if (useMode === 'general') {
       for (const expert of discussionExperts) {
         if (shouldStop()) break;
