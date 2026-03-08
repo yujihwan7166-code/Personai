@@ -415,6 +415,26 @@ IMPORTANT RULES:
     setStopRequested(false);
   }, [experts, selectedExpertIds, discussionMode]);
 
+  // Save to history when discussion completes
+  useEffect(() => {
+    if (!isDiscussing && messages.length > 0 && currentQuestion) {
+      saveDiscussionToHistory({
+        question: currentQuestion,
+        mode: discussionMode,
+        messages: messages.map(m => ({ ...m, isStreaming: false })),
+        expertIds: selectedExpertIds,
+      });
+    }
+  }, [isDiscussing]);
+
+  const loadHistory = useCallback((record: DiscussionRecord) => {
+    setCurrentQuestion(record.question);
+    setMessages(record.messages);
+    setDiscussionMode(record.mode);
+    setIsDiscussing(false);
+    setActiveExpertId(undefined);
+  }, []);
+
   const allExperts = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
   // User rebuttal pseudo-expert
   const userPseudoExpert: Expert = {
