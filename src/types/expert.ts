@@ -28,12 +28,21 @@ export interface Expert {
   systemPrompt: string;
 }
 
+export type DiscussionRound = 'initial' | 'rebuttal' | 'final';
+
+export const ROUND_LABELS: Record<DiscussionRound, string> = {
+  initial: '1라운드 · 초기 의견',
+  rebuttal: '2라운드 · 반론/토론',
+  final: '3라운드 · 최종 입장',
+};
+
 export interface DiscussionMessage {
   id: string;
   expertId: string;
   content: string;
   isStreaming?: boolean;
   isSummary?: boolean;
+  round?: DiscussionRound;
 }
 
 export const DEFAULT_EXPERTS: Expert[] = [
