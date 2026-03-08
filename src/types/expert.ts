@@ -36,9 +36,10 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
   final: '3라운드 · 최종 입장',
 };
 
-export type DiscussionMode = 'conclusion' | 'standard' | 'procon' | 'freeform' | 'endless';
+export type DiscussionMode = 'general' | 'conclusion' | 'standard' | 'procon' | 'freeform' | 'endless';
 
 export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string; detail: string }> = {
+  general: { label: '일반 질문', icon: '💡', description: 'AI에게 직접 질문', detail: '선택한 AI에게 직접 질문합니다. 토론 없이 빠르게 답변을 받을 수 있습니다.' },
   conclusion: { label: '빠른 토론', icon: '⚡', description: '의견 수집 후 종합 답변', detail: '각 전문가가 핵심 의견을 1문단으로 빠르게 제시한 뒤, AI가 모든 의견을 종합하여 질문에 대한 최종 답변을 도출합니다.' },
   standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 토론', detail: '초기 의견 → 반론/토론 → 최종 입장까지 3라운드에 걸쳐 깊이 있는 토론을 진행합니다. 복잡한 주제를 다각도로 분석할 때 적합합니다.' },
   procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대 대립 구조', detail: '전문가들이 찬성과 반대 팀으로 나뉘어 각 입장을 공격·방어합니다. 논쟁적인 주제에서 양측 논거를 비교할 때 유용합니다.' },

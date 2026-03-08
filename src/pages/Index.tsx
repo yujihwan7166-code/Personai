@@ -637,7 +637,7 @@ const Index = () => {
                   ))}
                 </div>
               )}
-              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 2} />
+              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 1} />
             </div>
           </div>
         </div>
