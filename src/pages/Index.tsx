@@ -215,12 +215,16 @@ const Index = () => {
     setActiveExpertId(undefined);
   };
 
-  const handleSuggestedQuestion = (question: string) => {
-    startDiscussion(question);
+  const handleSuggestedQuestion = (question: string, expertIds: string[], mode: DiscussionMode) => {
+    setSelectedExpertIds(expertIds);
+    setDiscussionMode(mode);
+    startDiscussion(question, expertIds, mode);
   };
 
-  const startDiscussion = useCallback(async (question: string) => {
-    const discussionExperts = experts.filter(e => selectedExpertIds.includes(e.id));
+  const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+    const useIds = overrideExpertIds || selectedExpertIds;
+    const useMode = overrideMode || discussionMode;
+    const discussionExperts = experts.filter(e => useIds.includes(e.id));
     if (discussionExperts.length < 1) return;
 
     const controller = new AbortController();
@@ -232,7 +236,7 @@ const Index = () => {
     const allResponses: { name: string; content: string }[] = [];
     const shouldStop = () => controller.signal.aborted;
 
-    if (discussionMode === 'general') {
+    if (useMode === 'general') {
       for (const expert of discussionExperts) {
         if (shouldStop()) break;
         setActiveExpertId(expert.id);
@@ -257,9 +261,9 @@ const Index = () => {
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-      saveDiscussionToHistory({ question, expertIds: selectedExpertIds, mode: discussionMode, messages: [] });
+      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
       return;
-    } else if (discussionMode === 'conclusion') {
+    } else if (useMode === 'conclusion') {
       setMessages(prev => [...prev, { id: `round-sep-conclusion-${Date.now()}`, expertId: '__round__', content: '⚡ 빠른 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
@@ -311,9 +315,9 @@ const Index = () => {
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-      saveDiscussionToHistory({ question, expertIds: selectedExpertIds, mode: discussionMode, messages: [] });
+      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
       return;
-    } else if (discussionMode === 'standard') {
+    } else if (useMode === 'standard') {
       const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
       for (const round of rounds) {
         if (shouldStop()) break;
@@ -339,7 +343,7 @@ const Index = () => {
           await new Promise(r => setTimeout(r, 500));
         }
       }
-    } else if (discussionMode === 'procon') {
+    } else if (useMode === 'procon') {
       const half = Math.ceil(discussionExperts.length / 2);
       const proExperts = discussionExperts.slice(0, half);
       const conExperts = discussionExperts.slice(half);
@@ -378,7 +382,7 @@ const Index = () => {
           await new Promise(r => setTimeout(r, 500));
         }
       }
-    } else if (discussionMode === 'freeform') {
+    } else if (useMode === 'freeform') {
       setMessages(prev => [...prev, { id: `round-sep-free-${Date.now()}`, expertId: '__round__', content: '💬 자유 대화', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
@@ -400,7 +404,7 @@ const Index = () => {
         allResponses.push({ name: expert.nameKo, content: fullContent });
         await new Promise(r => setTimeout(r, 500));
       }
-    } else if (discussionMode === 'endless') {
+    } else if (useMode === 'endless') {
       const maxRounds = 5;
       for (let r = 1; r <= maxRounds; r++) {
         if (shouldStop()) break;

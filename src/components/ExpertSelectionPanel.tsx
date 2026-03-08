@@ -4,11 +4,19 @@ import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
 import { ChevronDown, Search, Users, Sparkles, Brain, TrendingUp, HelpCircle } from 'lucide-react';
 
-const SUGGESTED_QUESTIONS = [
-  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-primary' },
-  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-accent' },
-  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-expert-emerald' },
-  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-expert-amber' },
+export interface SuggestedQuestion {
+  icon: React.ReactNode;
+  text: string;
+  color: string;
+  expertIds: string[];
+  mode: DiscussionMode;
+}
+
+export const SUGGESTED_QUESTIONS: SuggestedQuestion[] = [
+  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-primary', expertIds: ['gpt', 'claude', 'engineer', 'programmer', 'buffett'], mode: 'standard' },
+  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-accent', expertIds: ['buffett', 'dalio', 'finance', 'accountant'], mode: 'standard' },
+  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-expert-emerald', expertIds: ['gemini', 'psychology', 'teacher', 'artist', 'jobs'], mode: 'standard' },
+  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-expert-amber', expertIds: ['medical', 'doctor', 'nurse', 'chef'], mode: 'standard' },
 ];
 
 interface Props {
@@ -18,7 +26,7 @@ interface Props {
   discussionMode: DiscussionMode;
   onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
-  onSuggestedQuestion?: (question: string) => void;
+  onSuggestedQuestion?: (question: string, expertIds: string[], mode: DiscussionMode) => void;
 }
 
 export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing, onSuggestedQuestion }: Props) {
@@ -72,7 +80,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
           {SUGGESTED_QUESTIONS.map((q, i) => (
             <button
               key={i}
-              onClick={() => onSuggestedQuestion(q.text)}
+              onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
               className="flex items-start gap-2.5 p-3.5 rounded-xl border border-border bg-card text-left text-sm text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
               style={{ boxShadow: 'var(--shadow-card)' }}
             >
