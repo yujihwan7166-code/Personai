@@ -555,8 +555,8 @@ const Index = () => {
           </header>
 
           {/* Main Area */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 scrollbar-thin">
-            <div className="max-w-3xl mx-auto space-y-4">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 scrollbar-thin">
+            <div className="max-w-2xl mx-auto space-y-3">
               {/* Expert Selection */}
               {selectable && (
                 <ExpertSelectionPanel
