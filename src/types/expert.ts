@@ -38,12 +38,12 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 
 export type DiscussionMode = 'conclusion' | 'standard' | 'procon' | 'freeform' | 'endless';
 
-export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string }> = {
-  conclusion: { label: '결론 도출', icon: '📋', description: '1문단 빠른 요약 결론' },
-  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 토론' },
-  procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대 대립 구조' },
-  freeform: { label: '자유 대화', icon: '💬', description: '형식 없는 자유로운 대화' },
-  endless: { label: '끝장 토론', icon: '🔥', description: '합의에 도달할 때까지' },
+export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string; detail: string }> = {
+  conclusion: { label: '빠른 토론', icon: '⚡', description: '1문단 빠른 요약 결론', detail: '각 전문가가 핵심만 1문단으로 간결하게 의견을 제시한 뒤, 바로 결론을 도출합니다. 빠르게 답을 얻고 싶을 때 적합합니다.' },
+  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 토론', detail: '초기 의견 → 반론/토론 → 최종 입장까지 3라운드에 걸쳐 깊이 있는 토론을 진행합니다. 복잡한 주제를 다각도로 분석할 때 적합합니다.' },
+  procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대 대립 구조', detail: '전문가들이 찬성과 반대 팀으로 나뉘어 각 입장을 공격·방어합니다. 논쟁적인 주제에서 양측 논거를 비교할 때 유용합니다.' },
+  freeform: { label: '자유 대화', icon: '💬', description: '형식 없는 자유로운 대화', detail: '라운드 구분 없이 전문가들이 자유롭게 의견을 나눕니다. 가벼운 질문이나 브레인스토밍에 적합합니다.' },
+  endless: { label: '끝장 토론', icon: '🔥', description: '합의에 도달할 때까지', detail: '최대 5라운드까지 반복하며 합의점을 찾을 때까지 토론합니다. 결론이 나기 어려운 주제를 끝까지 파고들 때 사용하세요.' },
 };
 
 export interface DiscussionMessage {
