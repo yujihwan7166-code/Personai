@@ -125,7 +125,7 @@ export function ExpertPanel({ experts, activeExpertId, selectedIds, onToggle, se
   })).filter(g => g.items.length > 0);
 
   return (
-    <div className="py-2 px-4 space-y-1">
+    <div className="py-3 px-4 space-y-2 max-w-2xl mx-auto">
       {grouped.map(({ cat, label, items }) => (
         <CategorySection
           key={cat}
