@@ -1,1 +1,4 @@
 project_id = "lvbrbheioqchtqjkywwv"
+
+[functions.expert-discuss]
+verify_jwt = false
