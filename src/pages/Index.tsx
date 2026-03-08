@@ -500,6 +500,40 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
           await new Promise(r => setTimeout(r, 500));
         }
       }
+    } else if (useMode === 'creative') {
+      // Creative debate: 3 rounds with brainstorming focus
+      const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
+      const roundLabels = ['🎨 1라운드 · 아이디어 제시', '🔄 2라운드 · 아이디어 발전', '✨ 3라운드 · 최종 창의적 제안'];
+      for (let ri = 0; ri < rounds.length; ri++) {
+        if (shouldStop()) break;
+        const round = rounds[ri];
+        const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
+        setMessages(prev => [...prev, { id: `round-sep-creative-${ri}-${Date.now()}`, expertId: '__round__', content: roundLabels[ri], round }]);
+        for (const expert of roundExperts) {
+          if (shouldStop()) break;
+          setActiveExpertId(expert.id);
+          const extras = [
+            '\n\n창의적 토론입니다. 기존의 틀을 깨는 독창적이고 파격적인 아이디어를 자유롭게 제시해주세요. 실현 가능성보다 창의성을 우선하세요.',
+            '\n\n2라운드입니다. 다른 참여자들의 아이디어를 조합하거나 발전시켜 더 혁신적인 제안을 만들어주세요. "만약 ~라면?" 식의 사고실험도 좋습니다.',
+            '\n\n마지막 라운드입니다. 지금까지 나온 아이디어 중 가장 흥미로운 것을 선택하여 구체화하거나, 완전히 새로운 통합 아이디어를 제안해주세요.',
+          ];
+          const msgId = `${expert.id}-creative-${ri}-${Date.now()}`;
+          setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
+          let fullContent = '';
+          try {
+            await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extras[ri] }, previousResponses: allResponses, round,
+              onDelta: (chunk) => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
+              onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+              signal: controller.signal });
+          } catch (err) {
+            if ((err as Error).name === 'AbortError') break;
+            fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+          }
+          allResponses.push({ name: `${expert.nameKo} (${roundLabels[ri]})`, content: fullContent });
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
     } else if (useMode === 'endless') {
       const maxRounds = 5;
       for (let r = 1; r <= maxRounds; r++) {
