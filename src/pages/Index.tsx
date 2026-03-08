@@ -317,7 +317,7 @@ const Index = () => {
       setStopRequested(false);
       saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
       return;
-    } else if (discussionMode === 'standard') {
+    } else if (useMode === 'standard') {
       const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
       for (const round of rounds) {
         if (shouldStop()) break;
