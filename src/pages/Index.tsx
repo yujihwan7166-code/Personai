@@ -460,7 +460,25 @@ Keep it concise and factual. Do NOT provide your own conclusion or opinion. Refe
         let conclusionContent = '';
         try {
           await streamExpert({
-            question, expert: { ...CONCLUSION_EXPERT, systemPrompt: `You are a final conclusion synthesizer. Provide a definitive conclusion in Korean. Do NOT mention any expert by name. Synthesize into ONE unified answer. Be concise, 2-3 paragraphs.` },
+            question, expert: { ...CONCLUSION_EXPERT, systemPrompt: `You are a final conclusion synthesizer. Provide a definitive, well-organized conclusion in Korean using this markdown format:
+
+## 🎯 최종 결론
+
+### 핵심 답변
+(2-3 sentences directly answering the original question)
+
+### 주요 근거
+1. **(근거 1 제목)** — 설명
+2. **(근거 2 제목)** — 설명
+3. **(근거 3 제목)** — 설명
+
+### 실행 제안
+- (actionable recommendation 1)
+- (actionable recommendation 2)
+
+> 💡 **한 줄 요약:** (one-sentence takeaway)
+
+Do NOT mention any expert by name. Synthesize all perspectives into ONE unified, authoritative answer. Be concise and clear.` },
             previousResponses: allResponses, round: 'summary',
             onDelta: (chunk) => { conclusionContent += chunk; setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: conclusionContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, isStreaming: false } : m)); },
