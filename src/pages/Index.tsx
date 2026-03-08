@@ -364,27 +364,82 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
         }
       }
     } else if (useMode === 'procon') {
-      const half = Math.ceil(discussionExperts.length / 2);
-      const proExperts = discussionExperts.slice(0, half);
-      const conExperts = discussionExperts.slice(half);
-      const rounds = [
-        { label: '1라운드 · 찬성 입장', round: 'initial' as DiscussionRound, side: 'pro' },
-        { label: '1라운드 · 반대 입장', round: 'initial' as DiscussionRound, side: 'con' },
-        { label: '2라운드 · 찬성 반론', round: 'rebuttal' as DiscussionRound, side: 'pro' },
-        { label: '2라운드 · 반대 반론', round: 'rebuttal' as DiscussionRound, side: 'con' },
-        { label: '3라운드 · 최종 입장', round: 'final' as DiscussionRound, side: 'all' },
-      ];
-      for (const { label, round, side } of rounds) {
+      // Phase 0: Each expert analyzes the topic and picks their stance
+      setMessages(prev => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '🤔 입장 선택 · 각 전문가가 찬반을 결정합니다', round: 'initial' }]);
+      const stanceMap: Record<string, 'pro' | 'con'> = {};
+      
+      for (const expert of discussionExperts) {
         if (shouldStop()) break;
-        const sideExperts = side === 'pro' ? proExperts : side === 'con' ? conExperts : discussionExperts;
+        setActiveExpertId(expert.id);
+        const stanceMsgId = `${expert.id}-stance-${Date.now()}`;
+        setMessages(prev => [...prev, { id: stanceMsgId, expertId: expert.id, content: '', isStreaming: true, round: 'initial' }]);
+        let stanceContent = '';
+        try {
+          await streamExpert({
+            question,
+            expert: {
+              ...expert,
+              systemPrompt: expert.systemPrompt + `\n\n찬반 토론이 시작되기 전입니다. 이 주제에 대해 당신의 전문적 관점에서 분석한 뒤, 찬성 또는 반대 중 어떤 입장을 취할지 결정해주세요.\n\n다음 형식으로 답변해주세요:\n1. 주제를 간단히 분석 (2-3문장)\n2. 당신의 입장 선택과 이유 (1-2문장)\n\n마지막 줄에 반드시 "[찬성]" 또는 "[반대]"를 명시해주세요.`
+            },
+            previousResponses: allResponses,
+            round: 'initial',
+            onDelta: (chunk) => { stanceContent += chunk; setMessages(prev => prev.map(m => m.id === stanceMsgId ? { ...m, content: stanceContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === stanceMsgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') break;
+          stanceContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+          setMessages(prev => prev.map(m => m.id === stanceMsgId ? { ...m, content: stanceContent, isStreaming: false } : m));
+        }
+        // Determine stance from content
+        const lowerContent = stanceContent.toLowerCase();
+        if (lowerContent.includes('[반대]')) {
+          stanceMap[expert.id] = 'con';
+        } else if (lowerContent.includes('[찬성]')) {
+          stanceMap[expert.id] = 'pro';
+        } else {
+          // Fallback: alternate assignment
+          const proCount = Object.values(stanceMap).filter(s => s === 'pro').length;
+          const conCount = Object.values(stanceMap).filter(s => s === 'con').length;
+          stanceMap[expert.id] = proCount <= conCount ? 'pro' : 'con';
+        }
+        allResponses.push({ name: `${expert.nameKo} (입장 선택)`, content: stanceContent });
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      const proExperts = discussionExperts.filter(e => stanceMap[e.id] === 'pro');
+      const conExperts = discussionExperts.filter(e => stanceMap[e.id] === 'con');
+      
+      // Ensure at least one on each side
+      if (proExperts.length === 0 && conExperts.length > 1) {
+        const moved = conExperts.pop()!;
+        proExperts.push(moved);
+        stanceMap[moved.id] = 'pro';
+      } else if (conExperts.length === 0 && proExperts.length > 1) {
+        const moved = proExperts.pop()!;
+        conExperts.push(moved);
+        stanceMap[moved.id] = 'con';
+      }
+
+      // Phase 1-3: Actual debate rounds
+      const rounds = [
+        { label: '1라운드 · 찬성 주장', round: 'initial' as DiscussionRound, experts: proExperts, side: 'pro' as const },
+        { label: '1라운드 · 반대 주장', round: 'initial' as DiscussionRound, experts: conExperts, side: 'con' as const },
+        { label: '2라운드 · 찬성 반론', round: 'rebuttal' as DiscussionRound, experts: proExperts, side: 'pro' as const },
+        { label: '2라운드 · 반대 반론', round: 'rebuttal' as DiscussionRound, experts: conExperts, side: 'con' as const },
+        { label: '3라운드 · 최종 입장', round: 'final' as DiscussionRound, experts: discussionExperts, side: 'all' as const },
+      ];
+      for (const { label, round, experts: sideExperts, side } of rounds) {
+        if (shouldStop()) break;
         setMessages(prev => [...prev, { id: `round-sep-${label}-${Date.now()}`, expertId: '__round__', content: label, round }]);
         for (const expert of sideExperts) {
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
-          const sideLabel = proExperts.includes(expert) ? '찬성' : '반대';
+          const sideLabel = stanceMap[expert.id] === 'pro' ? '찬성' : '반대';
           const extra = round !== 'final'
-            ? `\n\n당신은 "${sideLabel}" 측입니다. ${sideLabel === '찬성' ? '찬성하는 입장에서' : '반대하는 입장에서'} 주장해주세요.`
-            : '\n\n최종 라운드입니다. 최종 입장을 정리해주세요.';
+            ? `\n\n당신은 이 주제에 대해 스스로 "${sideLabel}" 입장을 선택했습니다. ${sideLabel === '찬성' ? '찬성하는 입장에서' : '반대하는 입장에서'} 강하게 주장해주세요.`
+            : `\n\n최종 라운드입니다. 당신은 "${sideLabel}" 입장이었습니다. 토론을 통해 입장이 변했다면 그 이유를 설명하고, 최종 입장을 정리해주세요.`;
           const msgId = `${expert.id}-${round}-${side}-${Date.now()}`;
           setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
