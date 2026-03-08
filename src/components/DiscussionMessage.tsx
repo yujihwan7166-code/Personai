@@ -67,6 +67,11 @@ export function DiscussionMessageCard({ message, expert }: Props) {
                 최종 정리
               </span>
             )}
+            {message.round && !isSummary && (
+              <span className="text-[10px] font-normal bg-muted text-muted-foreground px-2 py-0.5 rounded-full ml-1">
+                {ROUND_LABELS[message.round]}
+              </span>
+            )}
             {message.isStreaming && (
               <span className="text-[10px] font-normal text-muted-foreground ml-1 animate-pulse">답변 중...</span>
             )}
