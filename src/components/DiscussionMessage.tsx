@@ -49,7 +49,7 @@ export function DiscussionMessageCard({ message, expert }: Props) {
         className={cn(
           'w-full flex items-center gap-3 rounded-xl p-3 border-l-2 transition-all text-left',
           isSummary
-            ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-l-primary ring-1 ring-primary/20 cursor-default'
+            ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-l-primary ring-1 ring-primary/20 cursor-pointer'
             : cn('bg-card hover:bg-card/80 cursor-pointer', borderColors[expert.color]),
           isOpen && !isSummary && 'rounded-b-none'
         )}
