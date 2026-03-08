@@ -35,7 +35,10 @@ function SortableExpertItem({ expert, onEdit, onDelete, canDelete }: {
         <GripVertical className="w-4 h-4" />
       </button>
       <span className="text-lg">{expert.icon}</span>
-      <span className="flex-1 text-sm font-medium text-foreground">{expert.nameKo}</span>
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium text-foreground block">{expert.nameKo}</span>
+        <span className="text-[10px] text-muted-foreground">{expert.description}</span>
+      </div>
       <div className={cn('w-3 h-3 rounded-full', colorDotClasses[expert.color])} />
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
         <Pencil className="w-3 h-3" />
@@ -51,28 +54,30 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
   const [open, setOpen] = useState(false);
   const [editingExpert, setEditingExpert] = useState<Expert | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [form, setForm] = useState({ nameKo: '', icon: '', color: 'blue' as ExpertColor, systemPrompt: '' });
+  const [form, setForm] = useState({ nameKo: '', icon: '', color: 'blue' as ExpertColor, description: '' });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const resetForm = () => { setForm({ nameKo: '', icon: '', color: 'blue', systemPrompt: '' }); setEditingExpert(null); setIsAdding(false); };
+  const resetForm = () => { setForm({ nameKo: '', icon: '', color: 'blue', description: '' }); setEditingExpert(null); setIsAdding(false); };
   const startAdd = () => { resetForm(); setIsAdding(true); };
   const startEdit = (expert: Expert) => {
-    setForm({ nameKo: expert.nameKo, icon: expert.icon, color: expert.color, systemPrompt: expert.systemPrompt });
+    setForm({ nameKo: expert.nameKo, icon: expert.icon, color: expert.color, description: expert.description });
     setEditingExpert(expert); setIsAdding(true);
   };
 
   const handleSave = () => {
     if (!form.nameKo.trim() || !form.icon.trim()) return;
     if (editingExpert) {
-      onUpdate(experts.map(e => e.id === editingExpert.id ? { ...e, nameKo: form.nameKo, name: form.nameKo, icon: form.icon, color: form.color, systemPrompt: form.systemPrompt } : e));
+      onUpdate(experts.map(e => e.id === editingExpert.id ? { ...e, nameKo: form.nameKo, name: form.nameKo, icon: form.icon, color: form.color, description: form.description } : e));
     } else {
+      const desc = form.description.trim() || `${form.nameKo} 전문가`;
       onUpdate([...experts, {
         id: `custom-${Date.now()}`, name: form.nameKo, nameKo: form.nameKo, icon: form.icon, color: form.color,
-        systemPrompt: form.systemPrompt || `You are ${form.nameKo}. Provide expert analysis from your perspective. Respond in Korean. Engage with other experts' opinions.`,
+        description: desc,
+        systemPrompt: `You are ${form.nameKo}. ${desc}. Provide expert analysis from your perspective. Respond in Korean. Engage with other experts' opinions.`,
       }]);
     }
     resetForm();
@@ -121,11 +126,15 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>이름</Label>
-              <Input value={form.nameKo} onChange={e => setForm(f => ({ ...f, nameKo: e.target.value }))} placeholder="예: 워렌 버핏, 법률 전문가" />
+              <Input value={form.nameKo} onChange={e => setForm(f => ({ ...f, nameKo: e.target.value }))} placeholder="예: 워렌 버핏, 찰리 멍거" />
             </div>
             <div className="space-y-2">
               <Label>아이콘 (이모지)</Label>
               <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="예: 🎩" className="text-center text-xl" maxLength={4} />
+            </div>
+            <div className="space-y-2">
+              <Label>전문 분야</Label>
+              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="예: 가치투자 전문가, 거시경제 전문가" />
             </div>
             <div className="space-y-2">
               <Label>색상</Label>
@@ -140,13 +149,6 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>시스템 프롬프트 (선택)</Label>
-              <textarea value={form.systemPrompt} onChange={e => setForm(f => ({ ...f, systemPrompt: e.target.value }))}
-                placeholder="전문가의 역할과 성격을 설명하세요... 비워두면 자동 생성됩니다."
-                className="w-full bg-card border border-border rounded-lg p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[80px]"
-              />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={resetForm} className="flex-1">취소</Button>
