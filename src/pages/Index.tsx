@@ -364,50 +364,87 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
         }
       }
     } else if (useMode === 'procon') {
-      // Phase 0: Each expert analyzes the topic and picks their stance
-      setMessages(prev => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '🤔 입장 선택 · 각 전문가가 찬반을 결정합니다', round: 'initial' }]);
-      const stanceMap: Record<string, 'pro' | 'con'> = {};
+      // Phase 0: AI analyzes the topic and assigns stances based on expert perspectives
+      setMessages(prev => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '🤔 주제 분석 · AI가 전문가별 입장을 배정합니다', round: 'initial' }]);
       
-      for (const expert of discussionExperts) {
-        if (shouldStop()) break;
-        setActiveExpertId(expert.id);
-        const stanceMsgId = `${expert.id}-stance-${Date.now()}`;
-        setMessages(prev => [...prev, { id: stanceMsgId, expertId: expert.id, content: '', isStreaming: true, round: 'initial' }]);
-        let stanceContent = '';
-        try {
-          await streamExpert({
+      const STANCE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/procon-stance`;
+      let stanceMap: Record<string, 'pro' | 'con'> = {};
+      
+      // Show a loading message from the summarizer
+      const analysisId = `stance-analysis-${Date.now()}`;
+      setMessages(prev => [...prev, { id: analysisId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, round: 'initial' }]);
+      setActiveExpertId(SUMMARIZER_EXPERT.id);
+      
+      try {
+        const stanceResp = await fetch(STANCE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
             question,
-            expert: {
-              ...expert,
-              systemPrompt: expert.systemPrompt + `\n\n찬반 토론이 시작되기 전입니다. 이 주제에 대해 당신의 전문적 관점에서 분석한 뒤, 찬성 또는 반대 중 어떤 입장을 취할지 결정해주세요.\n\n다음 형식으로 답변해주세요:\n1. 주제를 간단히 분석 (2-3문장)\n2. 당신의 입장 선택과 이유 (1-2문장)\n\n마지막 줄에 반드시 "[찬성]" 또는 "[반대]"를 명시해주세요.`
-            },
-            previousResponses: allResponses,
-            round: 'initial',
-            onDelta: (chunk) => { stanceContent += chunk; setMessages(prev => prev.map(m => m.id === stanceMsgId ? { ...m, content: stanceContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === stanceMsgId ? { ...m, isStreaming: false } : m)); },
-            signal: controller.signal,
-          });
-        } catch (err) {
-          if ((err as Error).name === 'AbortError') break;
-          stanceContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
-          setMessages(prev => prev.map(m => m.id === stanceMsgId ? { ...m, content: stanceContent, isStreaming: false } : m));
-        }
-        // Determine stance from content
-        const lowerContent = stanceContent.toLowerCase();
-        if (lowerContent.includes('[반대]')) {
-          stanceMap[expert.id] = 'con';
-        } else if (lowerContent.includes('[찬성]')) {
-          stanceMap[expert.id] = 'pro';
-        } else {
-          // Fallback: alternate assignment
-          const proCount = Object.values(stanceMap).filter(s => s === 'pro').length;
-          const conCount = Object.values(stanceMap).filter(s => s === 'con').length;
-          stanceMap[expert.id] = proCount <= conCount ? 'pro' : 'con';
-        }
-        allResponses.push({ name: `${expert.nameKo} (입장 선택)`, content: stanceContent });
-        await new Promise(r => setTimeout(r, 300));
-      }
+            experts: discussionExperts.map(e => ({ id: e.id, nameKo: e.nameKo, description: e.description })),
+          }),
+          signal: controller.signal,
+        });
 
+        if (!stanceResp.ok) {
+          const errorData = await stanceResp.json().catch(() => ({}));
+          throw new Error(errorData.error || '입장 배정 실패');
+        }
+
+        const stanceResult = await stanceResp.json();
+        
+        // Build stance map from AI assignments
+        for (const assignment of stanceResult.assignments || []) {
+          if (discussionExperts.some(e => e.id === assignment.expertId)) {
+            stanceMap[assignment.expertId] = assignment.stance;
+          }
+        }
+        
+        // Ensure all experts have a stance
+        for (const expert of discussionExperts) {
+          if (!stanceMap[expert.id]) {
+            const proCount = Object.values(stanceMap).filter(s => s === 'pro').length;
+            const conCount = Object.values(stanceMap).filter(s => s === 'con').length;
+            stanceMap[expert.id] = proCount <= conCount ? 'pro' : 'con';
+          }
+        }
+        
+        // Build the analysis message content
+        const proNames = discussionExperts.filter(e => stanceMap[e.id] === 'pro').map(e => e.nameKo);
+        const conNames = discussionExperts.filter(e => stanceMap[e.id] === 'con').map(e => e.nameKo);
+        const reasonLines = (stanceResult.assignments || [])
+          .filter((a: any) => discussionExperts.some(e => e.id === a.expertId))
+          .map((a: any) => {
+            const expert = discussionExperts.find(e => e.id === a.expertId);
+            const side = a.stance === 'pro' ? '찬성' : '반대';
+            return `- **${expert?.nameKo}** (${side}): ${a.reason}`;
+          }).join('\n');
+        
+        const analysisContent = `## ⚔️ 찬반 배정 결과\n\n${stanceResult.analysis || ''}\n\n### 👍 찬성 팀\n${proNames.join(', ')}\n\n### 👎 반대 팀\n${conNames.join(', ')}\n\n### 배정 이유\n${reasonLines}`;
+        
+        setMessages(prev => prev.map(m => m.id === analysisId ? { ...m, content: analysisContent, isStreaming: false } : m));
+        allResponses.push({ name: '사회자 (입장 배정)', content: analysisContent });
+        
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') {
+          setMessages(prev => prev.map(m => m.id === analysisId ? { ...m, content: '⚠️ 중단됨', isStreaming: false } : m));
+          setActiveExpertId(undefined);
+          setIsDiscussing(false);
+          setStopRequested(false);
+          return;
+        }
+        // Fallback: split evenly
+        const half = Math.ceil(discussionExperts.length / 2);
+        discussionExperts.forEach((e, i) => { stanceMap[e.id] = i < half ? 'pro' : 'con'; });
+        const fallbackContent = `⚠️ AI 배정 실패, 순서대로 배정합니다.\n\n👍 찬성: ${discussionExperts.filter(e => stanceMap[e.id] === 'pro').map(e => e.nameKo).join(', ')}\n👎 반대: ${discussionExperts.filter(e => stanceMap[e.id] === 'con').map(e => e.nameKo).join(', ')}`;
+        setMessages(prev => prev.map(m => m.id === analysisId ? { ...m, content: fallbackContent, isStreaming: false } : m));
+      }
+      
+      await new Promise(r => setTimeout(r, 500));
+      
       const proExperts = discussionExperts.filter(e => stanceMap[e.id] === 'pro');
       const conExperts = discussionExperts.filter(e => stanceMap[e.id] === 'con');
       
