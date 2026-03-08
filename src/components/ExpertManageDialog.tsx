@@ -148,6 +148,7 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
                   </button>
                 ))}
               </div>
+            </div>
             <div className="space-y-2">
               <Label>색상</Label>
               <div className="flex flex-wrap gap-1.5">
