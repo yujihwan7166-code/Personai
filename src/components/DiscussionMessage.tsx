@@ -64,10 +64,14 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
         type="button"
         onClick={() => setExpanded(!expanded)}
         className={cn(
-          'w-full flex items-center gap-3 rounded-xl p-3 border-l-2 transition-all text-left',
+          'w-full flex items-center gap-3 rounded-xl p-3 border-l-2 transition-all duration-500 text-left',
           isSummary
             ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-l-primary ring-1 ring-primary/20 cursor-pointer'
-            : cn('bg-card hover:bg-card/80 cursor-pointer', borderColors[expert.color]),
+            : cn(
+                'bg-card hover:bg-card/80 cursor-pointer',
+                message.isStreaming ? streamingBorderColors[expert.color] : borderColors[expert.color],
+                message.isStreaming && 'ring-1 ring-expert-' + expert.color + '/20'
+              ),
           isOpen && !isSummary && 'rounded-b-none'
         )}
       >
