@@ -458,7 +458,10 @@ IMPORTANT RULES:
               <Users className="w-3 h-3" /> {activeExperts.length}명 참여 · <Zap className="w-3 h-3" /> 실시간 토론
             </p>
           </div>
-          <ExpertManageDialog experts={experts} onUpdate={setExperts} />
+          <div className="flex items-center gap-1">
+            <DiscussionHistory onLoad={loadHistory} />
+            <ExpertManageDialog experts={experts} onUpdate={setExperts} />
+          </div>
         </div>
       </header>
 
