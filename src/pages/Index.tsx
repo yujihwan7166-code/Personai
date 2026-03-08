@@ -114,11 +114,25 @@ const Index = () => {
   const toggleExpert = (id: string) => {
     setSelectedExpertIds(prev => {
       if (prev.includes(id)) {
-        if (prev.length <= 2) return prev;
+        if (prev.length <= 1) return prev;
         return prev.filter(x => x !== id);
       }
       return [...prev, id];
     });
+  };
+
+  const handleModeChange = (mode: DiscussionMode) => {
+    setDiscussionMode(mode);
+    if (mode === 'general') {
+      // In general mode, keep only AI category experts
+      setSelectedExpertIds(prev => {
+        const aiOnly = prev.filter(id => {
+          const expert = experts.find(e => e.id === id);
+          return expert?.category === 'ai';
+        });
+        return aiOnly.length > 0 ? aiOnly : ['gpt'];
+      });
+    }
   };
 
   const copyAllResults = () => {
@@ -195,7 +209,7 @@ const Index = () => {
 
   const startDiscussion = useCallback(async (question: string) => {
     const discussionExperts = experts.filter(e => selectedExpertIds.includes(e.id));
-    if (discussionExperts.length < 2) return;
+    if (discussionExperts.length < 1) return;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -206,7 +220,35 @@ const Index = () => {
     const allResponses: { name: string; content: string }[] = [];
     const shouldStop = () => controller.signal.aborted;
 
-    if (discussionMode === 'conclusion') {
+    if (discussionMode === 'general') {
+      // General mode: each AI answers independently, no debate
+      for (const expert of discussionExperts) {
+        if (shouldStop()) break;
+        setActiveExpertId(expert.id);
+        const msgId = `${expert.id}-general-${Date.now()}`;
+        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+        let fullContent = '';
+        try {
+          await streamExpert({
+            question, expert,
+            previousResponses: [], round: 'initial',
+            onDelta: (chunk) => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') break;
+          fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+        }
+        await new Promise(r => setTimeout(r, 300));
+      }
+      setActiveExpertId(undefined);
+      setIsDiscussing(false);
+      setStopRequested(false);
+      saveDiscussionToHistory({ question, expertIds: selectedExpertIds, mode: discussionMode, messages: [] });
+      return;
+    } else if (discussionMode === 'conclusion') {
       // 빠른 토론: 전문가들이 1문단씩 의견 → AI가 종합하여 최종 답변
       setMessages(prev => [...prev, { id: `round-sep-conclusion-${Date.now()}`, expertId: '__round__', content: '⚡ 빠른 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
@@ -463,7 +505,7 @@ const Index = () => {
           onLoadHistory={loadHistory}
           onUpdateExperts={setExperts}
           discussionMode={discussionMode}
-          onModeChange={setDiscussionMode}
+          onModeChange={handleModeChange}
           isDiscussing={isDiscussing}
         />
 
@@ -502,9 +544,9 @@ const Index = () => {
                   experts={experts}
                   selectedIds={selectedExpertIds}
                   onToggle={toggleExpert}
-                  discussionMode={discussionMode}
-                  onModeChange={setDiscussionMode}
-                  isDiscussing={isDiscussing}
+          discussionMode={discussionMode}
+          onModeChange={handleModeChange}
+          isDiscussing={isDiscussing}
                 />
               )}
 
@@ -595,7 +637,7 @@ const Index = () => {
                   ))}
                 </div>
               )}
-              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 2} />
+              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 1} />
             </div>
           </div>
         </div>

@@ -21,18 +21,22 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
   };
 
-  const grouped = EXPERT_CATEGORY_ORDER.map(cat => ({
-    cat,
-    label: EXPERT_CATEGORY_LABELS[cat],
-    items: experts.filter(e => {
-      if (e.category !== cat) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return e.nameKo.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q);
-      }
-      return true;
-    }),
-  })).filter(g => g.items.length > 0);
+  const isGeneral = discussionMode === 'general';
+
+  const grouped = EXPERT_CATEGORY_ORDER
+    .filter(cat => !isGeneral || cat === 'ai')
+    .map(cat => ({
+      cat,
+      label: EXPERT_CATEGORY_LABELS[cat],
+      items: experts.filter(e => {
+        if (e.category !== cat) return false;
+        if (search) {
+          const q = search.toLowerCase();
+          return e.nameKo.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q);
+        }
+        return true;
+      }),
+    })).filter(g => g.items.length > 0);
 
   const selectedCount = selectedIds.length;
 
@@ -41,20 +45,23 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       {/* Header with count badge inline */}
       <div className="text-center space-y-2">
         <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-          토론 전문가 선택
+          {isGeneral ? 'AI 선택' : '토론 전문가 선택'}
         </h2>
         <div className="flex items-center justify-center gap-2">
           <p className="text-sm text-muted-foreground">
-            토론에 참여할 전문가를 <span className="text-primary font-medium">2명 이상</span> 선택하세요
+            {isGeneral
+              ? <>질문할 AI를 <span className="text-primary font-medium">1명 이상</span> 선택하세요</>
+              : <>토론에 참여할 전문가를 <span className="text-primary font-medium">1명 이상</span> 선택하세요</>
+            }
           </p>
           <span className={cn(
             'inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors',
-            selectedCount >= 2
+            selectedCount >= 1
               ? 'bg-primary/10 text-primary'
               : 'bg-destructive/10 text-destructive'
           )}>
             <Users className="w-3 h-3" />
-            {selectedCount}명 {selectedCount < 2 && '(최소 2명)'}
+            {selectedCount}명 {selectedCount < 1 && '(최소 1명)'}
           </span>
         </div>
       </div>
@@ -62,7 +69,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       {/* Mode selector */}
       <div className="space-y-2">
         <div className="flex flex-wrap gap-2 justify-center">
-          {(['conclusion', 'standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
+          {(['general', 'conclusion', 'standard', 'procon', 'freeform', 'endless'] as DiscussionMode[]).map(mode => {
             const { label, icon } = DISCUSSION_MODE_LABELS[mode];
             return (
               <button
