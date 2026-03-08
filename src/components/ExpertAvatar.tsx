@@ -24,6 +24,17 @@ const colorClasses: Record<ExpertColor, string> = {
   pink: 'border-expert-pink expert-glow-pink',
 };
 
+const activeColorClasses: Record<ExpertColor, string> = {
+  blue: 'border-expert-blue expert-glow-active-blue',
+  emerald: 'border-expert-emerald expert-glow-active-emerald',
+  red: 'border-expert-red expert-glow-active-red',
+  amber: 'border-expert-amber expert-glow-active-amber',
+  purple: 'border-expert-purple expert-glow-active-purple',
+  orange: 'border-expert-orange expert-glow-active-orange',
+  teal: 'border-expert-teal expert-glow-active-teal',
+  pink: 'border-expert-pink expert-glow-active-pink',
+};
+
 export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps) {
   return (
     <div
