@@ -404,40 +404,22 @@ const Index = () => {
         />
 
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Expert Selection Panel - top area */}
-          {selectable && (
-            <div className="border-b border-border bg-card/30 backdrop-blur-sm px-4 sm:px-6 py-4 overflow-y-auto max-h-[55vh]">
-              <div className="max-w-4xl mx-auto">
-                <ExpertSelectionPanel
-                  experts={experts}
-                  selectedIds={selectedExpertIds}
-                  onToggle={toggleExpert}
-                  discussionMode={discussionMode}
-                  onModeChange={setDiscussionMode}
-                  isDiscussing={isDiscussing}
-                />
-              </div>
-            </div>
-          )}
-
           {/* Header */}
-          <header className="border-b border-border px-4 sm:px-6 py-3 bg-card/30 backdrop-blur-sm relative">
-            <div className="flex items-center justify-center gap-3">
-              <SidebarTrigger className="text-muted-foreground hover:text-foreground absolute left-4" />
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-primary)' }}>
-                  <MessageSquare className="w-4 h-4 text-primary-foreground" />
-                </div>
-                <div className="text-center">
-                  <h1 className="font-display text-base font-bold text-foreground tracking-tight">AI 전문가 토론</h1>
-                  <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-                    <Users className="w-3 h-3" /> {activeExperts.length}명 참여 · <Zap className="w-3 h-3" /> 실시간
-                  </p>
-                </div>
+          <header className="border-b border-border px-4 sm:px-6 py-3 bg-card/30 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-primary)' }}>
+                <MessageSquare className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="font-display text-base font-bold text-foreground tracking-tight">AI 전문가 토론</h1>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Users className="w-3 h-3" /> {activeExperts.length}명 참여 · <Zap className="w-3 h-3" /> 실시간
+                </p>
               </div>
               {/* Active experts during discussion */}
               {!selectable && (
-                <div className="hidden sm:flex items-center gap-1 absolute right-4">
+                <div className="hidden sm:flex items-center gap-1">
                   {activeExperts.slice(0, 5).map(expert => (
                     <ExpertAvatar key={expert.id} expert={expert} size="sm" active={activeExpertId === expert.id} />
                   ))}
@@ -452,6 +434,17 @@ const Index = () => {
           {/* Main Area */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 scrollbar-thin">
             <div className="max-w-3xl mx-auto space-y-4">
+              {/* Expert Selection - shown in center when selectable */}
+              {selectable && (
+                <ExpertSelectionPanel
+                  experts={experts}
+                  selectedIds={selectedExpertIds}
+                  onToggle={toggleExpert}
+                  discussionMode={discussionMode}
+                  onModeChange={setDiscussionMode}
+                  isDiscussing={isDiscussing}
+                />
+              )}
 
               {/* Question display */}
               {currentQuestion && messages.length > 0 && (
