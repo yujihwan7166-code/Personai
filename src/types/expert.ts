@@ -6,13 +6,16 @@ export const EXPERT_COLOR_LABELS: Record<ExpertColor, string> = {
   purple: '퍼플', orange: '오렌지', teal: '틸', pink: '핑크',
 };
 
-export type ExpertCategory = 'ai' | 'specialist' | 'celebrity';
+export type ExpertCategory = 'ai' | 'specialist' | 'occupation' | 'celebrity';
 
 export const EXPERT_CATEGORY_LABELS: Record<ExpertCategory, string> = {
   ai: '🤖 AI',
   specialist: '🎓 전문가',
+  occupation: '💼 직업',
   celebrity: '⭐ 유명인',
 };
+
+export const EXPERT_CATEGORY_ORDER: ExpertCategory[] = ['ai', 'specialist', 'occupation', 'celebrity'];
 
 export interface Expert {
   id: string;
