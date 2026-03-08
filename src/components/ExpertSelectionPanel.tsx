@@ -26,7 +26,7 @@ interface Props {
   discussionMode: DiscussionMode;
   onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
-  onSuggestedQuestion?: (question: string) => void;
+  onSuggestedQuestion?: (question: string, expertIds: string[], mode: DiscussionMode) => void;
 }
 
 export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing, onSuggestedQuestion }: Props) {
