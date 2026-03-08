@@ -67,43 +67,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
         </p>
       </div>
 
-      {/* Suggested Questions - horizontal scroll on mobile */}
-      {onSuggestedQuestion && (
-        <div className="flex gap-2 overflow-x-auto pb-1 px-1 snap-x snap-mandatory scrollbar-thin sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 sm:px-0 max-w-lg mx-auto">
-          {SUGGESTED_QUESTIONS.map((q, i) => {
-            const participants = q.expertIds
-              .map(id => experts.find(e => e.id === id))
-              .filter(Boolean) as Expert[];
-            return (
-              <button
-                key={i}
-                onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
-                className="flex flex-col gap-1.5 p-3 rounded-xl border border-border bg-card text-left text-xs text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group snap-start min-w-[200px] sm:min-w-0"
-                style={{ boxShadow: 'var(--shadow-card)' }}
-              >
-                <div className="flex items-start gap-2">
-                  <span className={cn('mt-0.5 shrink-0', q.color)}>{q.icon}</span>
-                  <span className="leading-snug line-clamp-2">{q.text}</span>
-                </div>
-                {participants.length > 0 && (
-                  <div className="flex items-center gap-1 pl-6">
-                    <div className="flex -space-x-1">
-                      {participants.slice(0, 4).map(e => (
-                        <ExpertAvatar key={e.id} expert={e} size="sm" />
-                      ))}
-                    </div>
-                    <span className="text-[9px] text-muted-foreground ml-1 truncate">
-                      {participants.slice(0, 3).map(e => e.nameKo).join(', ')}{participants.length > 3 ? ` 외 ${participants.length - 3}명` : ''}
-                    </span>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Mode selector - compact */}
+      {/* Mode selector */}
       <div className="space-y-1.5">
         <div className="flex flex-wrap gap-1.5 justify-center">
           {(['general', 'conclusion', 'standard', 'procon', 'endless'] as DiscussionMode[]).map(mode => {
@@ -133,9 +97,8 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
 
       {/* Expert Selection Card */}
       <div className="border border-border rounded-2xl overflow-hidden bg-card" style={{ boxShadow: 'var(--shadow-card)' }}>
-        {/* Top bar: tabs + search + count */}
+        {/* Top bar: tabs + count */}
         <div className="flex items-center border-b border-border">
-          {/* Category tabs */}
           <div className="flex flex-1 min-w-0">
             {grouped.map(({ cat, label, items }) => {
               const catSelectedCount = items.filter(e => selectedIds.includes(e.id)).length;
@@ -164,7 +127,6 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
               );
             })}
           </div>
-          {/* Search + count */}
           <div className="flex items-center gap-2 px-3 border-l border-border">
             <span className={cn(
               'text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0',
@@ -175,7 +137,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
           </div>
         </div>
 
-        {/* Search bar inside card */}
+        {/* Search bar */}
         <div className="px-3 pt-2 pb-1">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -221,6 +183,42 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
             </div>
           ))}
       </div>
+
+      {/* Suggested Questions - at the bottom */}
+      {onSuggestedQuestion && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg mx-auto">
+          {SUGGESTED_QUESTIONS.map((q, i) => {
+            const participants = q.expertIds
+              .map(id => experts.find(e => e.id === id))
+              .filter(Boolean) as Expert[];
+            return (
+              <button
+                key={i}
+                onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
+                className="flex flex-col gap-1.5 p-3 rounded-xl border border-border bg-card text-left text-xs text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
+                style={{ boxShadow: 'var(--shadow-card)' }}
+              >
+                <div className="flex items-start gap-2">
+                  <span className={cn('mt-0.5 shrink-0', q.color)}>{q.icon}</span>
+                  <span className="leading-snug line-clamp-2">{q.text}</span>
+                </div>
+                {participants.length > 0 && (
+                  <div className="flex items-center gap-1 pl-6">
+                    <div className="flex -space-x-1">
+                      {participants.slice(0, 4).map(e => (
+                        <ExpertAvatar key={e.id} expert={e} size="sm" />
+                      ))}
+                    </div>
+                    <span className="text-[9px] text-muted-foreground ml-1 truncate">
+                      {participants.slice(0, 3).map(e => e.nameKo).join(', ')}{participants.length > 3 ? ` 외 ${participants.length - 3}명` : ''}
+                    </span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
