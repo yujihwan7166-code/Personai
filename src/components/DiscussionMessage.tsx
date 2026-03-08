@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DiscussionMessage as DiscussionMessageType, Expert, ExpertColor } from '@/types/expert';
+import { DiscussionMessage as DiscussionMessageType, Expert, ExpertColor, ROUND_LABELS } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
