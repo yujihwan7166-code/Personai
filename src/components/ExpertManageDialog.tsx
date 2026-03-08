@@ -61,10 +61,10 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const resetForm = () => { setForm({ nameKo: '', icon: '', color: 'blue', description: '' }); setEditingExpert(null); setIsAdding(false); };
+  const resetForm = () => { setForm({ nameKo: '', icon: '', color: 'blue', description: '', category: 'ai' }); setEditingExpert(null); setIsAdding(false); };
   const startAdd = () => { resetForm(); setIsAdding(true); };
   const startEdit = (expert: Expert) => {
-    setForm({ nameKo: expert.nameKo, icon: expert.icon, color: expert.color, description: expert.description });
+    setForm({ nameKo: expert.nameKo, icon: expert.icon, color: expert.color, description: expert.description, category: expert.category });
     setEditingExpert(expert); setIsAdding(true);
   };
 
