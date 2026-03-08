@@ -803,8 +803,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           </div>
 
           {/* Input */}
-          <div className="border-t border-border px-4 sm:px-6 py-2.5 bg-card/90 backdrop-blur-md">
-            <div className="max-w-2xl mx-auto space-y-1.5">
+          <div className="border-t border-border px-4 sm:px-6 py-3 bg-card/90 backdrop-blur-md">
+            <div className="max-w-2xl mx-auto space-y-2">
               {/* Selected expert chips - compact */}
               {activeExperts.length > 0 && (
                 <div className="flex items-center gap-1 flex-wrap">
@@ -830,7 +830,12 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   )}
                 </div>
               )}
-              <QuestionInput onSubmit={startDiscussion} disabled={isDiscussing || activeExperts.length < 1} discussionMode={discussionMode} />
+              <QuestionInput
+                onSubmit={startDiscussion}
+                disabled={isDiscussing || activeExperts.length < 1}
+                discussionMode={discussionMode}
+                showToolbar={!isDiscussing && messages.length === 0}
+              />
             </div>
           </div>
         </div>
