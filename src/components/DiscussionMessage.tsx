@@ -45,7 +45,7 @@ export function DiscussionMessageCard({ message, expert }: Props) {
       {/* Clickable Header */}
       <button
         type="button"
-        onClick={() => !isSummary && setExpanded(!expanded)}
+        onClick={() => setExpanded(!expanded)}
         className={cn(
           'w-full flex items-center gap-3 rounded-xl p-3 border-l-2 transition-all text-left',
           isSummary
