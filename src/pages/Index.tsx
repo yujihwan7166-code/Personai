@@ -95,7 +95,7 @@ const Index = () => {
   }, [experts]);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-selected-v4', JSON.stringify(selectedExpertIds));
+    localStorage.setItem('ai-debate-selected-v5', JSON.stringify(selectedExpertIds));
   }, [selectedExpertIds]);
 
   useEffect(() => {
