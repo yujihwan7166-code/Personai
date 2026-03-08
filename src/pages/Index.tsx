@@ -64,8 +64,13 @@ async function streamExpert({
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v3');
-      return saved ? JSON.parse(saved) : DEFAULT_EXPERTS;
+      const saved = localStorage.getItem('ai-debate-experts-v4');
+      if (saved) {
+        const parsed = JSON.parse(saved) as Expert[];
+        // Ensure all experts have category
+        return parsed.map(e => ({ ...e, category: e.category || 'ai' }));
+      }
+      return DEFAULT_EXPERTS;
     } catch { return DEFAULT_EXPERTS; }
   });
   const [selectedExpertIds, setSelectedExpertIds] = useState<string[]>(() => {
