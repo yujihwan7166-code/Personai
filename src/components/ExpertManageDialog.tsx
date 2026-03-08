@@ -71,12 +71,12 @@ export function ExpertManageDialog({ experts, onUpdate }: Props) {
   const handleSave = () => {
     if (!form.nameKo.trim() || !form.icon.trim()) return;
     if (editingExpert) {
-      onUpdate(experts.map(e => e.id === editingExpert.id ? { ...e, nameKo: form.nameKo, name: form.nameKo, icon: form.icon, color: form.color, description: form.description } : e));
+      onUpdate(experts.map(e => e.id === editingExpert.id ? { ...e, nameKo: form.nameKo, name: form.nameKo, icon: form.icon, color: form.color, description: form.description, category: form.category } : e));
     } else {
       const desc = form.description.trim() || `${form.nameKo} 전문가`;
       onUpdate([...experts, {
         id: `custom-${Date.now()}`, name: form.nameKo, nameKo: form.nameKo, icon: form.icon, color: form.color,
-        description: desc,
+        description: desc, category: form.category,
         systemPrompt: `You are ${form.nameKo}. ${desc}. Provide expert analysis from your perspective. Respond in Korean. Engage with other experts' opinions.`,
       }]);
     }
