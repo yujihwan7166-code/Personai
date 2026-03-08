@@ -25,8 +25,7 @@ export function DiscussionMessageCard({ message, expert }: Props) {
   const [expanded, setExpanded] = useState(false);
   const isSummary = message.isSummary;
 
-  // Summary is always expanded, others collapsed by default
-  const isOpen = isSummary || expanded;
+  const isOpen = expanded;
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
