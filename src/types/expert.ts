@@ -22,6 +22,7 @@ export interface Expert {
   name: string;
   nameKo: string;
   icon: string;
+  avatarUrl?: string;
   color: ExpertColor;
   description: string;
   category: ExpertCategory;
