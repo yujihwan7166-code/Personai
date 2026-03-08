@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, GeneratedDocument } from '@/types/expert';
 import { QuestionInput } from '@/components/QuestionInput';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
+import { DocumentViewer } from '@/components/DocumentViewer';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { toast } from '@/hooks/use-toast';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/expert-discuss`;
 
