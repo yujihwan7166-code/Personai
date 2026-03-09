@@ -59,17 +59,6 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar 
 
   return (
     <div className="space-y-3">
-      {/* Toolbar */}
-      {showToolbar && showTools && (
-        <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
-          <ToolbarPanel
-            activeTool={activeTool}
-            onSelectTool={handleToolSelect}
-            disabled={disabled}
-          />
-        </div>
-      )}
-
       {/* Input Area */}
       <form onSubmit={handleSubmit} className="relative">
         <div
@@ -102,22 +91,6 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar 
           )}
 
           <div className="flex items-end gap-2 p-2">
-            {/* Tools toggle button */}
-            {showToolbar && (
-              <button
-                type="button"
-                onClick={() => setShowTools(!showTools)}
-                className={cn(
-                  'shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200',
-                  showTools
-                    ? 'bg-primary/10 text-primary rotate-45'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            )}
-
             {/* Mode badge */}
             {modeInfo && !activeToolInfo && (
               <span className="hidden sm:inline-flex items-center text-[9px] text-muted-foreground bg-muted px-2 py-1 rounded-full mb-0.5 shrink-0">
@@ -166,6 +139,15 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar 
           </div>
         </div>
       </form>
+
+      {/* Toolbar always visible below input */}
+      {showToolbar && (
+        <ToolbarPanel
+          activeTool={activeTool}
+          onSelectTool={handleToolSelect}
+          disabled={disabled}
+        />
+      )}
     </div>
   );
 }
