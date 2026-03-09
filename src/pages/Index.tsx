@@ -721,7 +721,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           </header>
 
           {/* Main Area */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 pt-4 pb-10 scrollbar-thin">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 pt-4 pb-48 scrollbar-thin">
             <div className="max-w-2xl mx-auto space-y-3">
               {/* Expert Selection */}
               {selectable &&
@@ -841,9 +841,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
             </div>
           </div>
 
-          {/* Input */}
-          <div className="border-t border-border px-4 sm:px-6 bg-card/90 backdrop-blur-md py-[22px]">
-            <div className="max-w-2xl mx-auto space-y-2">
+          {/* Floating Input */}
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-full max-w-2xl z-50 px-2 sm:px-0">
+            <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-4 space-y-2">
               {/* Selected expert chips - compact */}
               {activeExperts.length > 0 &&
               <div className="flex items-center gap-1 flex-wrap">
@@ -874,7 +874,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 disabled={isDiscussing || activeExperts.length < 1}
                 discussionMode={discussionMode}
                 showToolbar={!isDiscussing && messages.length === 0} />
-              
             </div>
           </div>
         </div>
