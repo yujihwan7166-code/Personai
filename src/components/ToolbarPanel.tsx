@@ -122,13 +122,10 @@ interface Props {
 }
 
 export function ToolbarPanel({ activeTool, onSelectTool, disabled }: Props) {
-  const [expanded, setExpanded] = useState(false);
-  const visibleTools = expanded ? TOOLS : TOOLS.slice(0, 5);
-
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3 flex-wrap justify-center">
-        {visibleTools.map(tool => {
+        {TOOLS.map(tool => {
           const isActive = activeTool === tool.id;
           return (
             <button
@@ -175,22 +172,6 @@ export function ToolbarPanel({ activeTool, onSelectTool, disabled }: Props) {
             </button>
           );
         })}
-
-        {/* Expand/Collapse button */}
-        {TOOLS.length > 5 && (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="flex flex-col items-center gap-1.5 group cursor-pointer"
-          >
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-muted/80 border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-all hover:scale-105">
-              {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-            </div>
-            <span className="text-[10px] font-display font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-              {expanded ? '접기' : '더보기'}
-            </span>
-          </button>
-        )}
       </div>
 
       {/* Active tool indicator */}
