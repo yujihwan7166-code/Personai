@@ -87,7 +87,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       </div>
 
       {/* 3 Main Mode Tabs */}
-      <div className="flex gap-2 justify-center">
+      <div className="flex gap-1 justify-center bg-muted/60 rounded-xl p-1 max-w-fit mx-auto">
         {mainModes.map(m => {
           const info = MAIN_MODE_LABELS[m];
           const isActive = mainMode === m;
@@ -97,13 +97,13 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
               onClick={() => handleMainModeChange(m)}
               disabled={isDiscussing}
               className={cn(
-                'flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-display font-semibold transition-all border',
+                'flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-display font-semibold transition-all',
                 isActive
-                  ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-[1.02]'
-                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20 hover:shadow-sm'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <span className="text-lg">{info.icon}</span>
+              <span className="text-sm">{info.icon}</span>
               <span>{info.label}</span>
             </button>
           );
