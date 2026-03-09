@@ -721,7 +721,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           </header>
 
           {/* Main Area */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 pt-4 pb-10 scrollbar-thin">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 pt-4 pb-48 scrollbar-thin">
             <div className="max-w-2xl mx-auto space-y-3">
               {/* Expert Selection */}
               {selectable &&
