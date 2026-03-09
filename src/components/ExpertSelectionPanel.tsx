@@ -141,97 +141,119 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
 
       {/* Expert Selection Card */}
       <div className="border border-border rounded-2xl overflow-hidden bg-card" style={{ boxShadow: 'var(--shadow-card)' }}>
-        {/* Category tabs + count */}
-        <div className="flex items-center border-b border-border">
-          <div className="flex flex-1 min-w-0">
-            {grouped.map(({ cat, label, items }) => {
-              const catSelectedCount = items.filter(e => selectedIds.includes(e.id)).length;
+        {isGeneral ? (
+          /* General mode: simple AI grid only */
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 p-3">
+            {experts.filter(e => e.category === 'ai').map(expert => {
+              const isSelected = selectedIds.includes(expert.id);
               return (
                 <button
-                  key={cat}
+                  key={expert.id}
                   type="button"
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => onToggle(expert.id)}
                   className={cn(
-                    'flex-1 flex items-center justify-center gap-1 px-2 py-2.5 text-xs font-display font-semibold transition-colors relative',
-                    effectiveCategory === cat
-                      ? 'text-primary'
-                      : 'text-muted-foreground hover:text-foreground'
+                    'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200',
+                    isSelected
+                      ? 'bg-primary/8 ring-1 ring-primary/25 shadow-sm'
+                      : 'opacity-50 hover:opacity-80 hover:bg-muted/50'
                   )}
                 >
-                  <span className="truncate">{label}</span>
-                  {catSelectedCount > 0 && (
-                    <span className="text-[9px] w-4 h-4 flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold shrink-0">
-                      {catSelectedCount}
-                    </span>
-                  )}
-                  {effectiveCategory === cat && (
-                    <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
-                  )}
+                  <ExpertAvatar expert={expert} size="md" />
+                  <span className="text-[10px] font-display font-medium text-foreground whitespace-nowrap truncate max-w-full leading-tight">
+                    {expert.nameKo}
+                  </span>
                 </button>
               );
             })}
           </div>
-          <div className="flex items-center gap-2 px-3 border-l border-border">
-            <span className={cn(
-              'text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0',
-              selectedCount >= 1 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
-            )}>
-              <Users className="w-3 h-3 inline mr-0.5" />{selectedCount}
-            </span>
-          </div>
-        </div>
-
-        {/* Search bar */}
-        <div className="px-3 pt-2 pb-1">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="이름으로 검색..."
-              className="w-full bg-muted/50 border-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
-            />
-          </div>
-        </div>
-
-        {/* Expert grid */}
-        {grouped
-          .filter(({ cat }) => cat === effectiveCategory)
-          .map(({ cat, items }) => (
-            <div key={cat} className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-1 px-2 py-2">
-              {items.map(expert => {
-                const isSelected = selectedIds.includes(expert.id);
-                return (
-                  <button
-                    key={expert.id}
-                    type="button"
-                    onClick={() => onToggle(expert.id)}
-                    className={cn(
-                      'flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200',
-                      isSelected
-                        ? 'bg-primary/8 ring-1 ring-primary/25 shadow-sm'
-                        : 'opacity-45 hover:opacity-80 hover:bg-muted/50'
-                    )}
-                  >
-                    <ExpertAvatar expert={expert} size="md" />
-                    <span className="text-[9px] font-display font-medium text-foreground whitespace-nowrap truncate max-w-full leading-tight">
-                      {expert.nameKo}
-                    </span>
-                    {isSelected && (
-                      <div className="w-1 h-1 rounded-full bg-primary" />
-                    )}
-                  </button>
-                );
-              })}
+        ) : (
+          <>
+            {/* Category tabs + count */}
+            <div className="flex items-center border-b border-border">
+              <div className="flex flex-1 min-w-0">
+                {grouped.map(({ cat, label, items }) => {
+                  const catSelectedCount = items.filter(e => selectedIds.includes(e.id)).length;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setActiveCategory(cat)}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-1 px-2 py-2.5 text-xs font-display font-semibold transition-colors relative',
+                        effectiveCategory === cat
+                          ? 'text-primary'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <span className="truncate">{label}</span>
+                      {catSelectedCount > 0 && (
+                        <span className="text-[9px] w-4 h-4 flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold shrink-0">
+                          {catSelectedCount}
+                        </span>
+                      )}
+                      {effectiveCategory === cat && (
+                        <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2 px-3 border-l border-border">
+                <span className={cn(
+                  'text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0',
+                  selectedCount >= 1 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
+                )}>
+                  <Users className="w-3 h-3 inline mr-0.5" />{selectedCount}
+                </span>
+              </div>
             </div>
-          ))}
 
-        {/* Helper text for general mode */}
-        {isGeneral && (
-          <div className="px-3 pb-2">
-            <p className="text-[10px] text-muted-foreground text-center">💡 일반 모드에서는 AI 1개만 선택됩니다</p>
-          </div>
+            {/* Search bar */}
+            <div className="px-3 pt-2 pb-1">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="이름으로 검색..."
+                  className="w-full bg-muted/50 border-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Expert grid */}
+            {grouped
+              .filter(({ cat }) => cat === effectiveCategory)
+              .map(({ cat, items }) => (
+                <div key={cat} className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-1 px-2 py-2">
+                  {items.map(expert => {
+                    const isSelected = selectedIds.includes(expert.id);
+                    return (
+                      <button
+                        key={expert.id}
+                        type="button"
+                        onClick={() => onToggle(expert.id)}
+                        className={cn(
+                          'flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200',
+                          isSelected
+                            ? 'bg-primary/8 ring-1 ring-primary/25 shadow-sm'
+                            : 'opacity-45 hover:opacity-80 hover:bg-muted/50'
+                        )}
+                      >
+                        <ExpertAvatar expert={expert} size="md" />
+                        <span className="text-[9px] font-display font-medium text-foreground whitespace-nowrap truncate max-w-full leading-tight">
+                          {expert.nameKo}
+                        </span>
+                        {isSelected && (
+                          <div className="w-1 h-1 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+          </>
         )}
       </div>
 
