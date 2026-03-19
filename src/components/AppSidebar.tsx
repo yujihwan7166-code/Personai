@@ -14,7 +14,7 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { ChevronDown, Clock, Trash2, Plus, Settings2 } from 'lucide-react';
+import { ChevronDown, Clock, Trash2, Plus, Settings2, MessageSquare } from 'lucide-react';
 
 interface Props {
   experts: Expert[];
@@ -56,51 +56,66 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
-      <SidebarContent className="py-3">
-        {/* New Discussion */}
+      <SidebarContent className="py-4">
+        {/* Logo */}
         {!collapsed && (
-          <div className="px-3 pb-2">
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-foreground text-background hover:bg-foreground/90"
-            >
-              <Plus className="w-4 h-4" />
-              새 토론
-            </button>
+          <div className="px-4 pb-3 flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <MessageSquare className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-semibold text-sm text-foreground tracking-tight">AI 전문가 토론</span>
           </div>
         )}
+
+        {/* New Discussion */}
+        <div className={cn('px-3 pb-3', collapsed && 'flex justify-center')}>
+          <button
+            onClick={() => window.location.reload()}
+            className={cn(
+              'flex items-center gap-2 rounded-xl text-sm font-medium transition-all',
+              'bg-primary text-white hover:bg-primary/90 shadow-sm',
+              collapsed ? 'w-9 h-9 justify-center' : 'w-full px-3 py-2.5'
+            )}
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            {!collapsed && '새 토론'}
+          </button>
+        </div>
 
         {/* History */}
         <SidebarGroup>
           <SidebarGroupLabel
             onClick={loadHistory}
-            className="cursor-pointer hover:text-foreground transition-colors flex items-center justify-between"
+            className="cursor-pointer hover:text-foreground transition-colors flex items-center justify-between px-3 py-2"
           >
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              {!collapsed && '토론 기록'}
+              {!collapsed && <span>토론 기록</span>}
             </span>
-            {!collapsed && <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', historyOpen && 'rotate-180')} />}
+            {!collapsed && (
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform text-muted-foreground', historyOpen && 'rotate-180')} />
+            )}
           </SidebarGroupLabel>
+
           {historyOpen && !collapsed && (
             <SidebarGroupContent>
               <SidebarMenu>
                 {historyRecords.length === 0 ? (
-                  <p className="text-[10px] text-muted-foreground px-3 py-2">기록이 없습니다</p>
+                  <p className="text-[11px] text-muted-foreground px-4 py-3">기록이 없습니다</p>
                 ) : (
                   historyRecords.slice(0, 15).map(record => (
                     <SidebarMenuItem key={record.id}>
                       <SidebarMenuButton
                         onClick={() => onLoadHistory(record)}
-                        className="flex items-start gap-2 h-auto py-2 group/hist"
+                        className="flex items-start gap-2 h-auto py-2 px-3 rounded-xl group/hist hover:bg-sidebar-accent"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-foreground truncate">{record.question}</p>
-                          <p className="text-[10px] text-muted-foreground">{formatTime(record.timestamp)}</p>
+                          <p className="text-[12px] text-foreground truncate leading-snug">{record.question}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{formatTime(record.timestamp)}</p>
                         </div>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteHistory(record.id); }}
-                          className="opacity-0 group-hover/hist:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
+                          onClick={e => { e.stopPropagation(); handleDeleteHistory(record.id); }}
+                          className="opacity-0 group-hover/hist:opacity-100 text-muted-foreground hover:text-destructive shrink-0 p-0.5 transition-all"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -117,36 +132,39 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupLabel
             onClick={() => setSettingsOpen(!settingsOpen)}
-            className="cursor-pointer hover:text-foreground transition-colors flex items-center justify-between"
+            className="cursor-pointer hover:text-foreground transition-colors flex items-center justify-between px-3 py-2"
           >
             <span className="flex items-center gap-1.5">
               <Settings2 className="w-3.5 h-3.5" />
-              {!collapsed && '설정'}
+              {!collapsed && <span>설정</span>}
             </span>
-            {!collapsed && <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', settingsOpen && 'rotate-180')} />}
+            {!collapsed && (
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform text-muted-foreground', settingsOpen && 'rotate-180')} />
+            )}
           </SidebarGroupLabel>
+
           {settingsOpen && !collapsed && (
             <SidebarGroupContent>
-              <div className="px-3 py-2 space-y-3">
+              <div className="px-3 py-2 space-y-4">
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-medium mb-1.5">토론 모드</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-2 px-1">토론 모드</p>
                   <div className="space-y-0.5">
                     {(['general', 'multi', 'standard', 'procon', 'creative', 'endless'] as DiscussionMode[]).map(mode => {
-                      const { label, icon } = DISCUSSION_MODE_LABELS[mode];
+                      const { label } = DISCUSSION_MODE_LABELS[mode];
+                      const isActive = discussionMode === mode;
                       return (
                         <button
                           key={mode}
                           onClick={() => onModeChange(mode)}
                           disabled={isDiscussing}
                           className={cn(
-                            'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all text-xs',
-                            discussionMode === mode
-                              ? 'bg-foreground/10 text-foreground'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                            'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all text-[12px]',
+                            isActive
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-sidebar-accent'
                           )}
                         >
-                          <span>{icon}</span>
-                          <span className="font-medium">{label}</span>
+                          <span>{label}</span>
                         </button>
                       );
                     })}
@@ -154,7 +172,7 @@ export function AppSidebar({
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-medium mb-1.5">전문가 관리</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-2 px-1">전문가 관리</p>
                   <ExpertManageDialog experts={experts} onUpdate={onUpdateExperts} />
                 </div>
               </div>

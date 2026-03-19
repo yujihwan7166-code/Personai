@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER, DiscussionMode, MainMode, DebateSubMode, MAIN_MODE_LABELS, DEBATE_SUB_MODE_LABELS, getMainMode } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
+import { QuestionInput } from './QuestionInput';
 import { cn } from '@/lib/utils';
-import { Search, Users, Brain, TrendingUp, Sparkles, HelpCircle } from 'lucide-react';
+import { Users, Brain, TrendingUp, Sparkles, HelpCircle, Target, Scale, Lightbulb, Flame } from 'lucide-react';
 
 export interface SuggestedQuestion {
   icon: React.ReactNode;
@@ -27,37 +28,69 @@ interface Props {
   onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
   onSuggestedQuestion?: (question: string, expertIds: string[], mode: DiscussionMode) => void;
+  onSubmit: (question: string) => void;
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'debate'];
 const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'creative', 'endless'];
 
-export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing, onSuggestedQuestion }: Props) {
+const mainModeLabels: Record<MainMode, string> = {
+  general: '단일 AI',
+  multi: '다중 AI',
+  debate: '토론 모드',
+};
+
+const debateSubIcons: Record<DebateSubMode, React.ReactNode> = {
+  standard: <Target className="w-3 h-3" />,
+  procon: <Scale className="w-3 h-3" />,
+  creative: <Lightbulb className="w-3 h-3" />,
+  endless: <Flame className="w-3 h-3" />,
+};
+
+function useTypewriter(text: string, speed = 40) {
+  const [displayed, setDisplayed] = useState('');
+  const prevText = useRef('');
+
+  useEffect(() => {
+    if (text === prevText.current) return;
+    prevText.current = text;
+    setDisplayed('');
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) clearInterval(interval);
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return displayed;
+}
+
+export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing, onSuggestedQuestion, onSubmit }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai');
-  const [search, setSearch] = useState('');
 
   const mainMode = getMainMode(discussionMode);
+
+  const subtitleText = mainMode === 'general'
+    ? 'GPT, Claude, Gemini 등 원하는 AI를 선택하고 자유롭게 대화하세요'
+    : mainMode === 'multi'
+    ? '여러 챗봇을 선택하면 각자 답변한 뒤 하나의 종합 결론으로 정리해드립니다'
+    : '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다';
+  const typedSubtitle = useTypewriter(subtitleText, 20);
   const isGeneral = mainMode === 'general';
 
-  const visibleCategories = isGeneral ? ['ai'] : EXPERT_CATEGORY_ORDER;
+  const visibleCategories = EXPERT_CATEGORY_ORDER;
 
   const grouped = visibleCategories
     .map(cat => ({
       cat: cat as ExpertCategory,
       label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
-      items: experts.filter(e => {
-        if (e.category !== cat) return false;
-        if (search) {
-          const q = search.toLowerCase();
-          return e.nameKo.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q);
-        }
-        return true;
-      }),
+      items: experts.filter(e => e.category === cat),
     })).filter(g => g.items.length > 0);
 
   const validCats = grouped.map(g => g.cat);
   const effectiveCategory = validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai';
-
   const selectedCount = selectedIds.length;
 
   const handleMainModeChange = (m: MainMode) => {
@@ -66,163 +99,143 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
     else onModeChange('standard');
   };
 
-  const handleDebateSubChange = (sub: DebateSubMode) => {
-    onModeChange(sub);
-  };
-
   return (
-    <div className="space-y-8 py-8">
-      {/* Title */}
+    <div className="space-y-3 py-4">
+      {/* Hero */}
       <div className="text-center space-y-2">
-        <h2 className="text-3xl sm:text-4xl font-semibold text-foreground tracking-tight">
-          {mainMode === 'general' ? '무엇이든 물어보세요' : mainMode === 'multi' ? '다중 AI 종합' : '전문가 토론'}
+        <h2
+          key={mainMode}
+          className="text-2xl sm:text-[26px] font-bold text-foreground tracking-tight animate-in fade-in duration-700"
+        >
+          {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
+            : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
+            : '전문가 챗봇들의 토론으로 더 넓은 시야를 얻으세요'}
         </h2>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-          {mainMode === 'general' && 'AI를 하나 선택하고 자유롭게 대화하세요'}
-          {mainMode === 'multi' && '여러 AI·전문가의 답변을 종합해 최종 답변을 만듭니다'}
-          {mainMode === 'debate' && '전문가들이 3라운드 토론 후 결론을 도출합니다'}
-        </p>
+        <div className="relative flex justify-center">
+          {/* 전체 텍스트로 공간 고정 */}
+          <span className="invisible text-[12px] leading-relaxed">{subtitleText}</span>
+          {/* 타이핑 텍스트를 같은 자리에 absolute 오버레이 */}
+          <span className="absolute inset-0 flex items-center justify-center text-[12px] text-muted-foreground leading-relaxed">
+            {typedSubtitle}
+            {typedSubtitle.length < subtitleText.length && (
+              <span className="animate-pulse text-muted-foreground/40">|</span>
+            )}
+          </span>
+        </div>
       </div>
 
-      {/* 3 Main Mode Tabs */}
-      <div className="flex gap-2 justify-center">
-        {mainModes.map(m => {
-          const info = MAIN_MODE_LABELS[m];
-          const isActive = mainMode === m;
-          return (
-            <button
-              key={m}
-              onClick={() => handleMainModeChange(m)}
-              disabled={isDiscussing}
-              className={cn(
-                'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all border',
-                isActive
-                  ? 'bg-foreground text-background border-foreground'
-                  : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground/30'
-              )}
-            >
-              <span>{info.icon}</span>
-              <span>{info.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Debate Sub-Mode Selector */}
-      {mainMode === 'debate' && (
-        <div className="flex flex-wrap gap-1.5 justify-center">
-          {debateSubModes.map(sub => {
-            const info = DEBATE_SUB_MODE_LABELS[sub];
-            const isActive = discussionMode === sub;
+      {/* Main Mode Tabs */}
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="flex items-center gap-0 p-0.5 bg-muted/40 rounded-full border border-border/50">
+          {mainModes.map(m => {
+            const isActive = mainMode === m;
             return (
               <button
-                key={sub}
-                onClick={() => handleDebateSubChange(sub)}
+                key={m}
+                onClick={() => handleMainModeChange(m)}
                 disabled={isDiscussing}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all border',
+                  'flex items-center gap-1 px-4 py-1 rounded-full text-[11px] font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-foreground/10 text-foreground border-foreground/20'
-                    : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground/20'
+                    ? 'bg-white text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground/70'
                 )}
               >
-                <span>{info.icon}</span>
-                <div className="text-left">
-                  <div>{info.label}</div>
-                </div>
+                {mainModeLabels[m]}
+                {m === 'debate' && isActive && (
+                  <svg className="w-2.5 h-2.5 text-foreground/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                )}
               </button>
             );
           })}
         </div>
-      )}
 
-      {/* Expert Selection Card */}
-      <div className="border border-border rounded-2xl overflow-hidden bg-background">
-        {isGeneral ? (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1 p-3">
-            {experts.filter(e => e.category === 'ai').map(expert => {
-              const isSelected = selectedIds.includes(expert.id);
-              return (
-                <button
-                  key={expert.id}
-                  type="button"
-                  onClick={() => onToggle(expert.id)}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-150',
-                    isSelected
-                      ? 'bg-foreground/5 ring-1 ring-foreground/15'
-                      : 'opacity-50 hover:opacity-80 hover:bg-muted/50'
-                  )}
-                >
-                  <ExpertAvatar expert={expert} size="md" />
-                  <span className="text-[11px] font-medium text-foreground whitespace-nowrap truncate max-w-full">
-                    {expert.nameKo}
-                  </span>
-                </button>
-              );
-            })}
+        {/* Sub-modes — nested below 토론 모드, connected visually */}
+        {mainMode === 'debate' && (
+          <div className="flex items-center animate-in slide-in-from-top-1 fade-in duration-200">
+            {/* connecting line */}
+            <div className="flex items-center gap-1 p-0.5 bg-white border border-border/60 rounded-full shadow-sm">
+              {debateSubModes.map((sub, i) => {
+                const info = DEBATE_SUB_MODE_LABELS[sub];
+                const isActive = discussionMode === sub;
+                return (
+                  <button
+                    key={sub}
+                    onClick={() => onModeChange(sub)}
+                    disabled={isDiscussing}
+                    style={{ animationDelay: `${i * 30}ms` }}
+                    className={cn(
+                      'flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-medium transition-all duration-150 animate-in fade-in',
+                      isActive
+                        ? 'bg-foreground text-white shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    {debateSubIcons[sub]}
+                    <span>{info.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        ) : (
-          <>
-            {/* Category tabs */}
-            <div className="flex items-center border-b border-border">
-              <div className="flex flex-1 min-w-0">
+        )}
+      </div>
+
+      {/* Expert Selection */}
+      <div className="border border-border rounded-xl bg-white overflow-hidden card-shadow">
+        <>
+            {/* Category tabs + debate sub-modes */}
+            <div className="flex flex-col border-b border-border/60 bg-muted/10">
+              {/* Row 1: category tabs + selected tags */}
+              <div className="flex items-center px-2 pt-1.5">
+              <div className="flex flex-1 min-w-0 gap-0.5">
                 {grouped.map(({ cat, label, items }) => {
-                  const catSelectedCount = items.filter(e => selectedIds.includes(e.id)).length;
+                  const catSelected = items.filter(e => selectedIds.includes(e.id)).length;
+                  const isActive = effectiveCategory === cat;
                   return (
                     <button
                       key={cat}
                       type="button"
                       onClick={() => setActiveCategory(cat)}
                       className={cn(
-                        'flex-1 flex items-center justify-center gap-1 px-2 py-2.5 text-xs font-medium transition-colors relative',
-                        effectiveCategory === cat
-                          ? 'text-foreground'
+                        'flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium transition-all relative whitespace-nowrap rounded-t-lg',
+                        isActive
+                          ? 'text-foreground bg-white border border-b-0 border-border/60'
                           : 'text-muted-foreground hover:text-foreground'
                       )}
                     >
-                      <span className="truncate">{label}</span>
-                      {catSelectedCount > 0 && (
-                        <span className="text-[9px] w-4 h-4 flex items-center justify-center rounded-full bg-foreground/10 text-foreground font-semibold shrink-0">
-                          {catSelectedCount}
-                        </span>
-                      )}
-                      {effectiveCategory === cat && (
-                        <div className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground rounded-full" />
-                      )}
+                      {label}
                     </button>
                   );
                 })}
               </div>
-              <div className="flex items-center gap-2 px-3 border-l border-border">
-                <span className={cn(
-                  'text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0',
-                  selectedCount >= 1 ? 'bg-foreground/10 text-foreground' : 'bg-destructive/10 text-destructive'
-                )}>
-                  <Users className="w-3 h-3 inline mr-0.5" />{selectedCount}
-                </span>
+              {selectedCount > 0 && !isGeneral && (
+                <div className="flex items-center gap-1 px-2 pb-1 overflow-x-auto shrink-0 max-w-[320px] scrollbar-none">
+                  {experts
+                    .filter(e => selectedIds.includes(e.id))
+                    .map(e => (
+                      <button
+                        key={e.id}
+                        type="button"
+                        onClick={() => onToggle(e.id)}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[10px] text-blue-600 font-medium whitespace-nowrap shrink-0 hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors"
+                      >
+                        {e.nameKo}
+                      </button>
+                    ))}
+                </div>
+              )}
               </div>
-            </div>
 
-            {/* Search */}
-            <div className="px-3 pt-2 pb-1">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="이름으로 검색..."
-                  className="w-full bg-muted/50 border-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/10 transition-all"
-                />
-              </div>
             </div>
 
             {/* Expert grid */}
             {grouped
               .filter(({ cat }) => cat === effectiveCategory)
               .map(({ cat, items }) => (
-                <div key={cat} className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-1 px-2 py-2">
+                <div key={cat} className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-1.5 px-3 pt-2 pb-2">
                   {items.map(expert => {
                     const isSelected = selectedIds.includes(expert.id);
                     return (
@@ -231,60 +244,70 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                         type="button"
                         onClick={() => onToggle(expert.id)}
                         className={cn(
-                          'flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-150',
+                          'group relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-150',
                           isSelected
-                            ? 'bg-foreground/5 ring-1 ring-foreground/15'
-                            : 'opacity-45 hover:opacity-80 hover:bg-muted/50'
+                            ? 'bg-blue-50 scale-105'
+                            : 'opacity-45 hover:opacity-80 hover:bg-muted/30 hover:scale-105'
                         )}
                       >
+                        {/* 선택 체크 뱃지 */}
+                        {isSelected && (
+                          <span className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                        )}
                         <ExpertAvatar expert={expert} size="md" />
-                        <span className="text-[9px] font-medium text-foreground whitespace-nowrap truncate max-w-full leading-tight">
+                        <span className={cn(
+                          'text-[10px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
+                          isSelected ? 'text-blue-600 font-semibold' : 'text-muted-foreground group-hover:text-foreground'
+                        )}>
                           {expert.nameKo}
                         </span>
-                        {isSelected && (
-                          <div className="w-1 h-1 rounded-full bg-foreground" />
-                        )}
                       </button>
                     );
                   })}
                 </div>
               ))}
-          </>
-        )}
+        </>
       </div>
 
+      {/* Chat Input — above suggested questions */}
+      <QuestionInput
+        onSubmit={onSubmit}
+        disabled={isDiscussing || selectedIds.length < 1}
+        discussionMode={discussionMode}
+      />
+
       {/* Suggested Questions */}
-      {onSuggestedQuestion && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-full mx-auto">
-          {SUGGESTED_QUESTIONS.map((q, i) => {
-            const participants = q.expertIds
-              .map(id => experts.find(e => e.id === id))
-              .filter(Boolean) as Expert[];
-            return (
-              <button
-                key={i}
-                onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
-                className="flex flex-col gap-2 p-3 rounded-xl border border-border bg-background text-left text-[12px] text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-all duration-150 group"
-              >
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 shrink-0 opacity-40 group-hover:opacity-70">{q.icon}</span>
-                  <span className="leading-relaxed">{q.text}</span>
-                </div>
-                {participants.length > 0 && (
-                  <div className="flex items-center gap-1 pl-6">
-                    <div className="flex -space-x-1.5">
-                      {participants.slice(0, 4).map(e => (
+      {onSuggestedQuestion && !isGeneral && (
+        <div>
+          <p className="text-[10px] text-muted-foreground font-medium mb-2 px-0.5 tracking-wide">추천 질문</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {SUGGESTED_QUESTIONS.map((q, i) => {
+              const participants = q.expertIds
+                .map(id => experts.find(e => e.id === id))
+                .filter(Boolean) as Expert[];
+              return (
+                <button
+                  key={i}
+                  onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-white text-left hover:border-foreground/15 hover:bg-muted/20 transition-all duration-150 group"
+                >
+                  <span className="shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">{q.icon}</span>
+                  <span className="text-[12px] text-foreground/75 leading-snug flex-1">{q.text}</span>
+                  {participants.length > 0 && (
+                    <div className="flex -space-x-1.5 shrink-0">
+                      {participants.slice(0, 3).map(e => (
                         <ExpertAvatar key={e.id} expert={e} size="sm" />
                       ))}
                     </div>
-                    <span className="text-[9px] text-muted-foreground ml-1 truncate">
-                      {participants.slice(0, 3).map(e => e.nameKo).join(', ')}{participants.length > 3 ? ` 외 ${participants.length - 3}명` : ''}
-                    </span>
-                  </div>
-                )}
-              </button>
-            );
-          })}
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

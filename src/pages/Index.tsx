@@ -73,7 +73,7 @@ const Index = () => {
   const { user, signOut } = useAuth();
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v5');
+      const saved = localStorage.getItem('ai-debate-experts-v6');
       if (saved) {
         const parsed = JSON.parse(saved) as Expert[];
         // Merge: keep saved customizations but add any new default experts
@@ -95,14 +95,14 @@ const Index = () => {
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [copiedAll, setCopiedAll] = useState(false);
-  const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('standard');
+  const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('general');
   const [stopRequested, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v5', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v6', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
@@ -127,6 +127,8 @@ const Index = () => {
         if (prev.length <= 1) return prev;
         return prev.filter((x) => x !== id);
       }
+      // Multi mode: max 5
+      if (getMainMode(discussionMode) === 'multi' && prev.length >= 5) return prev;
       return [...prev, id];
     });
   };
@@ -273,7 +275,7 @@ const Index = () => {
       saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
       return;
     } else if (useMode === 'multi') {
-      setMessages((prev) => [...prev, { id: `round-sep-multi-${Date.now()}`, expertId: '__round__', content: '🔀 다중 AI 의견 수집', round: 'initial' }]);
+      setMessages((prev) => [...prev, { id: `round-sep-multi-${Date.now()}`, expertId: '__round__', content: '다중 AI 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
         if (shouldStop()) break;
@@ -371,7 +373,7 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
       }
     } else if (useMode === 'procon') {
       // Phase 0: AI analyzes the topic and assigns stances based on expert perspectives
-      setMessages((prev) => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '🤔 주제 분석 · AI가 전문가별 입장을 배정합니다', round: 'initial' }]);
+      setMessages((prev) => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '주제 분석', round: 'initial' }]);
 
       const STANCE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/procon-stance`;
       let stanceMap: Record<string, 'pro' | 'con'> = {};
@@ -503,7 +505,7 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
     } else if (useMode === 'creative') {
       // Creative debate: 3 rounds with brainstorming focus
       const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
-      const roundLabels = ['🎨 1라운드 · 아이디어 제시', '🔄 2라운드 · 아이디어 발전', '✨ 3라운드 · 최종 창의적 제안'];
+      const roundLabels = ['1라운드 · 아이디어 제시', '2라운드 · 아이디어 발전', '3라운드 · 최종 창의적 제안'];
       for (let ri = 0; ri < rounds.length; ri++) {
         if (shouldStop()) break;
         const round = rounds[ri];
@@ -539,7 +541,7 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
       for (let r = 1; r <= maxRounds; r++) {
         if (shouldStop()) break;
         const round: DiscussionRound = r === 1 ? 'initial' : r === maxRounds ? 'final' : 'rebuttal';
-        setMessages((prev) => [...prev, { id: `round-sep-${r}-${Date.now()}`, expertId: '__round__', content: `🔥 ${r}라운드`, round }]);
+        setMessages((prev) => [...prev, { id: `round-sep-${r}-${Date.now()}`, expertId: '__round__', content: `${r}라운드`, round }]);
         const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
         for (const expert of shuffled) {
           if (shouldStop()) break;
@@ -673,8 +675,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const userAvatar = user?.user_metadata?.avatar_url;
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+    <SidebarProvider defaultOpen={false}>
+      <div className="h-screen flex w-full bg-[#f7f8fa]">
         <AppSidebar
           experts={experts}
           onLoadHistory={loadHistory}
@@ -682,82 +684,61 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           discussionMode={discussionMode}
           onModeChange={handleModeChange}
           isDiscussing={isDiscussing} />
-        
 
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <header className="border-b border-border px-4 sm:px-6 py-3 bg-background">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-              <div className="flex-1 min-w-0">
-                <h1 className="text-sm font-semibold text-foreground">AI 전문가 토론</h1>
-              </div>
-              <div className="hidden sm:flex items-center gap-1">
-                {activeExperts.slice(0, 5).map((expert) =>
-                <ExpertAvatar key={expert.id} expert={expert} size="sm" active={activeExpertId === expert.id} />
-                )}
-                {activeExperts.length > 5 &&
-                <span className="text-[10px] text-muted-foreground ml-1">+{activeExperts.length - 5}</span>
-                }
-              </div>
-              <div className="flex items-center gap-1.5">
-                {userAvatar ?
-                <img src={userAvatar} alt="" className="w-7 h-7 rounded-full" /> :
-                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-foreground">
-                    {userInitial}
+        {/* Sidebar trigger — fixed top-left corner */}
+        <div className="fixed top-3 left-3 z-50">
+          <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted/80 bg-white/80 backdrop-blur-sm border border-border/50 rounded-lg p-1.5 transition-colors shadow-sm" />
+        </div>
+
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          {/* Top spacing */}
+          <div className="h-28 shrink-0" />
+
+          {/* Main scroll area */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin">
+            <div className={cn(
+              'mx-auto px-4 sm:px-6 pt-2 pb-6 space-y-3',
+              selectable ? 'max-w-3xl' : 'max-w-2xl'
+            )}>
+
+              {selectable && (
+                <ExpertSelectionPanel
+                  experts={experts}
+                  selectedIds={selectedExpertIds}
+                  onToggle={toggleExpert}
+                  discussionMode={discussionMode}
+                  onModeChange={handleModeChange}
+                  isDiscussing={isDiscussing}
+                  onSuggestedQuestion={handleSuggestedQuestion}
+                  onSubmit={startDiscussion}
+                />
+              )}
+
+              {currentQuestion && messages.length > 0 && (
+                <div className="rounded-2xl px-4 py-3.5 border border-border bg-white card-shadow flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">질문</span>
+                    <p className="text-foreground font-medium text-[14px] mt-0.5 leading-snug">{currentQuestion}</p>
                   </div>
-                }
-                <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted" title="로그아웃">
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </header>
-
-          {/* Main Area */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 pt-4 pb-48 scrollbar-thin">
-            <div className="max-w-2xl mx-auto space-y-3">
-              {/* Expert Selection */}
-              {selectable &&
-              <ExpertSelectionPanel
-                experts={experts}
-                selectedIds={selectedExpertIds}
-                onToggle={toggleExpert}
-                discussionMode={discussionMode}
-                onModeChange={handleModeChange}
-                isDiscussing={isDiscussing}
-                onSuggestedQuestion={handleSuggestedQuestion} />
-
-              }
-
-              {/* Question display */}
-              {currentQuestion && messages.length > 0 &&
-              <div className="rounded-xl p-4 border border-border flex items-start justify-between gap-3 bg-muted/50">
-                  <div>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Question</span>
-                    <p className="text-foreground font-medium mt-0.5">{currentQuestion}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {isDiscussing &&
-                  <Button variant="destructive" size="sm" onClick={stopDiscussion} className="text-xs gap-1 rounded-xl">
+                  <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                    {isDiscussing && (
+                      <Button variant="destructive" size="sm" onClick={stopDiscussion} className="text-[12px] gap-1.5 rounded-xl h-8">
                         <Square className="w-3 h-3" /> 중단
                       </Button>
-                  }
-                    {isDone &&
-                  <Button variant="ghost" size="sm" onClick={copyAllResults} className="text-xs gap-1 text-muted-foreground rounded-xl">
-                        {copiedAll ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    )}
+                    {isDone && (
+                      <Button variant="ghost" size="sm" onClick={copyAllResults} className="text-[12px] gap-1.5 text-muted-foreground hover:text-foreground rounded-xl h-8">
+                        {copiedAll ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
                         {copiedAll ? '복사됨' : '전체 복사'}
                       </Button>
-                  }
+                    )}
                   </div>
                 </div>
-              }
+              )}
 
-              {/* Messages */}
               {messages.map((msg, idx) => {
                 if (msg.expertId === '__round__') {
                   const isCollapsed = collapsedRounds.has(msg.id);
-                  // Count messages in this round (until next round separator or end)
                   let roundMsgCount = 0;
                   for (let i = idx + 1; i < messages.length; i++) {
                     if (messages[i].expertId === '__round__') break;
@@ -767,31 +748,24 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     <button
                       key={msg.id}
                       type="button"
-                      onClick={() => setCollapsedRounds((prev) => {
+                      onClick={() => setCollapsedRounds(prev => {
                         const next = new Set(prev);
-                        if (next.has(msg.id)) next.delete(msg.id);else
-                        next.add(msg.id);
+                        if (next.has(msg.id)) next.delete(msg.id); else next.add(msg.id);
                         return next;
                       })}
-                      className="w-full flex items-center gap-3 py-3 group/round cursor-pointer">
-                      
+                      className="w-full flex items-center gap-3 py-2 group/round cursor-pointer"
+                    >
                       <div className="flex-1 h-px bg-border" />
-                      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground px-3 py-1.5 rounded-full bg-muted transition-colors group-hover/round:bg-muted/80">
+                      <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground px-3 py-1.5 rounded-full bg-white border border-border card-shadow transition-all group-hover/round:border-primary/20 group-hover/round:text-primary">
                         {msg.content}
-                        {roundMsgCount > 0 &&
-                        <span className="text-[10px] font-normal opacity-60">({roundMsgCount})</span>
-                        }
-                        {isCollapsed ?
-                        <ChevronRight className="w-3 h-3 text-muted-foreground" /> :
-                        <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                        }
+                        {roundMsgCount > 0 && <span className="opacity-50">({roundMsgCount})</span>}
+                        {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       </span>
                       <div className="flex-1 h-px bg-border" />
-                    </button>);
-
+                    </button>
+                  );
                 }
 
-                // Check if this message belongs to a collapsed round
                 let belongsToCollapsedRound = false;
                 for (let i = idx - 1; i >= 0; i--) {
                   if (messages[i].expertId === '__round__') {
@@ -803,69 +777,70 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                 if (msg.expertId === '__user__') {
                   return (
-                    <div key={msg.id} className="bg-muted/50 border border-border rounded-xl p-3.5 text-sm text-foreground/80">
+                    <div key={msg.id} className="bg-white border border-border rounded-2xl px-4 py-3 text-[13px] text-foreground/80 card-shadow">
                       <ReactMarkdownInline content={msg.content} />
-                    </div>);
-
+                    </div>
+                  );
                 }
-                const expert = allExperts.find((e) => e.id === msg.expertId);
+                const expert = allExperts.find(e => e.id === msg.expertId);
                 if (!expert) return null;
                 return (
                   <DiscussionMessageCard
                     key={msg.id} message={msg} expert={expert}
                     onLike={handleLike} onDislike={handleDislike}
-                    onRebuttal={isDone ? handleRebuttal : undefined} />);
-
-
+                    onRebuttal={isDone ? handleRebuttal : undefined}
+                  />
+                );
               })}
 
-              {isDone &&
-              <div className="text-center pt-8 pb-4 space-y-3">
-                  <p className="text-sm text-muted-foreground">토론이 완료되었습니다</p>
+              {isDone && (
+                <div className="text-center pt-10 pb-4 space-y-3">
+                  <p className="text-[13px] text-muted-foreground">토론이 완료되었습니다</p>
                   <Button
-                  onClick={handleNewDiscussion}
-                  className="rounded-full gap-2 px-6 bg-foreground text-background hover:bg-foreground/90">
+                    onClick={handleNewDiscussion}
+                    className="rounded-full gap-2 px-6 h-10 bg-primary text-white hover:bg-primary/90 shadow-sm"
+                  >
                     <RefreshCw className="w-4 h-4" />
                     새 토론 시작
                   </Button>
                 </div>
-              }
+              )}
             </div>
           </div>
 
-          {/* Floating Input */}
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-full max-w-2xl z-50 px-2 sm:px-0">
-            <div className="bg-background border border-border rounded-2xl shadow-lg p-3 space-y-2">
-              {activeExperts.length > 0 &&
-              <div className="flex items-center gap-1 flex-wrap">
-                  <span className="text-[9px] text-muted-foreground font-medium shrink-0">참여:</span>
-                  {activeExperts.slice(0, 8).map((expert) =>
-                <button
-                  key={expert.id}
-                  onClick={() => !isDiscussing && messages.length === 0 && toggleExpert(expert.id)}
-                  className={cn(
-                    'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium border transition-all',
-                    activeExpertId === expert.id ?
-                    'bg-foreground/10 border-foreground/20 text-foreground' :
-                    'bg-muted border-border text-muted-foreground hover:text-foreground',
-                    isDiscussing || messages.length > 0 ? 'cursor-default' : 'cursor-pointer'
-                  )}>
-                      <span>{expert.icon}</span>
-                      <span className="hidden sm:inline">{expert.nameKo}</span>
-                    </button>
+          {/* Bottom Input – only when conversation is active */}
+          {(messages.length > 0 || isDiscussing) && (
+            <div className="shrink-0 border-t border-border bg-white">
+              <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 space-y-2">
+                {activeExperts.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-muted-foreground font-medium shrink-0">참여 전문가</span>
+                    {activeExperts.slice(0, 8).map(expert => (
+                      <span
+                        key={expert.id}
+                        className={cn(
+                          'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border',
+                          activeExpertId === expert.id
+                            ? 'bg-primary/10 border-primary/20 text-primary'
+                            : 'bg-muted/40 border-border text-muted-foreground'
+                        )}
+                      >
+                        {expert.nameKo}
+                      </span>
+                    ))}
+                    {activeExperts.length > 8 && (
+                      <span className="text-[10px] text-muted-foreground">+{activeExperts.length - 8}</span>
+                    )}
+                  </div>
                 )}
-                  {activeExperts.length > 8 &&
-                <span className="text-[9px] text-muted-foreground">+{activeExperts.length - 8}</span>
-                }
-                </div>
-              }
-              <QuestionInput
-                onSubmit={startDiscussion}
-                disabled={isDiscussing || activeExperts.length < 1}
-                discussionMode={discussionMode}
-                showToolbar={!isDiscussing && messages.length === 0} />
+                <QuestionInput
+                  onSubmit={startDiscussion}
+                  disabled={isDiscussing || activeExperts.length < 1}
+                  discussionMode={discussionMode}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </SidebarProvider>);

@@ -9,10 +9,10 @@ export const EXPERT_COLOR_LABELS: Record<ExpertColor, string> = {
 export type ExpertCategory = 'ai' | 'specialist' | 'occupation' | 'celebrity';
 
 export const EXPERT_CATEGORY_LABELS: Record<ExpertCategory, string> = {
-  ai: '🤖 AI',
-  specialist: '🎓 전문가',
-  occupation: '💼 직업',
-  celebrity: '⭐ 유명인',
+  ai: 'AI 모델',
+  specialist: '전문가',
+  occupation: '직업군',
+  celebrity: '유명인',
 };
 
 export const EXPERT_CATEGORY_ORDER: ExpertCategory[] = ['ai', 'specialist', 'occupation', 'celebrity'];
@@ -41,19 +41,19 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 export type MainMode = 'general' | 'multi' | 'debate';
 
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
-  general: { label: '일반', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
-  multi: { label: '다중 AI', icon: '🔀', description: '여러 AI의 답변을 종합합니다' },
-  debate: { label: '전문가 토론', icon: '🎙️', description: '전문가들이 토론 후 결론을 냅니다' },
+  general: { label: '일반', icon: '', description: 'AI 하나를 골라 대화하세요' },
+  multi: { label: '다중 AI', icon: '', description: '여러 AI의 답변을 종합합니다' },
+  debate: { label: '전문가 토론', icon: '', description: '전문가들이 토론 후 결론을 냅니다' },
 };
 
 // Sub-modes for debate
 export type DebateSubMode = 'standard' | 'procon' | 'creative' | 'endless';
 
 export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon: string; description: string }> = {
-  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 깊이 있는 토론' },
-  procon: { label: '찬반 토론', icon: '⚔️', description: '찬성 vs 반대로 나눠 격돌' },
-  creative: { label: '창의적 토론', icon: '🎨', description: '자유로운 아이디어 브레인스토밍' },
-  endless: { label: '끝장 토론', icon: '🔥', description: '최대 5라운드, 합의까지' },
+  standard: { label: '심층 토론', icon: '', description: '3라운드 구조화된 깊이 있는 토론' },
+  procon: { label: '찬반 토론', icon: '', description: '찬성 vs 반대로 나눠 격돌' },
+  creative: { label: '창의적 토론', icon: '', description: '자유로운 아이디어 브레인스토밍' },
+  endless: { label: '끝장 토론', icon: '', description: '최대 5라운드, 합의까지' },
 };
 
 // Flat DiscussionMode for backward compat in logic
@@ -67,12 +67,12 @@ export function getMainMode(mode: DiscussionMode): MainMode {
 
 // Legacy compat label map
 export const DISCUSSION_MODE_LABELS: Record<DiscussionMode, { label: string; icon: string; description: string; detail: string }> = {
-  general: { label: '일반', icon: '💬', description: 'AI 1개 선택', detail: 'AI 하나를 골라 자유롭게 대화하세요.' },
-  multi: { label: '다중 AI', icon: '🔀', description: '여러 AI 종합', detail: '여러 AI/전문가의 답변을 모은 뒤 하나의 종합 결론을 만들어 드립니다.' },
-  standard: { label: '심층 토론', icon: '🎯', description: '3라운드 토론', detail: '초기 의견 → 반론 → 최종 입장, 3라운드 깊이 있는 토론을 진행합니다.' },
-  procon: { label: '찬반 토론', icon: '⚔️', description: '찬반 대립', detail: '전문가들이 찬성·반대로 나뉘어 논쟁합니다.' },
-  creative: { label: '창의적 토론', icon: '🎨', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
-  endless: { label: '끝장 토론', icon: '🔥', description: '합의까지', detail: '최대 5라운드, 합의에 도달할 때까지 토론합니다.' },
+  general: { label: '일반', icon: '', description: 'AI 1개 선택', detail: 'AI 하나를 골라 자유롭게 대화하세요.' },
+  multi: { label: '다중 AI', icon: '', description: '여러 AI 종합', detail: '여러 AI/전문가의 답변을 모은 뒤 하나의 종합 결론을 만들어 드립니다.' },
+  standard: { label: '심층 토론', icon: '', description: '3라운드 토론', detail: '초기 의견 → 반론 → 최종 입장, 3라운드 깊이 있는 토론을 진행합니다.' },
+  procon: { label: '찬반 토론', icon: '', description: '찬반 대립', detail: '전문가들이 찬성·반대로 나뉘어 논쟁합니다.' },
+  creative: { label: '창의적 토론', icon: '', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
+  endless: { label: '끝장 토론', icon: '', description: '합의까지', detail: '최대 5라운드, 합의에 도달할 때까지 토론합니다.' },
 };
 
 export interface DiscussionMessage {
@@ -88,18 +88,18 @@ export interface DiscussionMessage {
 
 export const DEFAULT_EXPERTS: Expert[] = [
   // AI
-  { id: 'gpt', name: 'GPT', nameKo: 'GPT', icon: '🤖', avatarUrl: '/logos/openai.png', color: 'blue', category: 'ai', description: 'AI 분석 전문가',
+  { id: 'gpt', name: 'GPT', nameKo: 'GPT', icon: '', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', description: 'AI 분석 전문가',
     systemPrompt: 'You are GPT, a logical and analytical AI. Provide clear, well-structured analysis. Respond in Korean. When other experts have spoken, reference their points to create a discussion.' },
-  { id: 'gemini', name: 'Gemini', nameKo: 'Gemini', icon: '✨', avatarUrl: '/logos/gemini.png', color: 'emerald', category: 'ai', description: 'AI 탐색 전문가',
+  { id: 'gemini', name: 'Gemini', nameKo: 'Gemini', icon: '', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', description: 'AI 탐색 전문가',
     systemPrompt: 'You are Gemini, a creative and explorative AI. Offer unique perspectives and think outside the box. Respond in Korean. When other experts have spoken, engage with their ideas.' },
-  { id: 'grok', name: 'Grok', nameKo: 'Grok', icon: '🧠', avatarUrl: '/logos/grok.png', color: 'teal', category: 'ai', description: 'AI 위트 전문가',
-    systemPrompt: 'You are Grok, an AI created by xAI, known for wit, humor, and unfiltered honesty. Provide sharp, sometimes contrarian analysis with a touch of sarcasm. Be direct and entertaining while still being insightful. Respond in Korean. Engage with other experts\' points.' },
-  { id: 'deepseek', name: 'DeepSeek', nameKo: 'DeepSeek', icon: '🔍', avatarUrl: '/logos/deepseek.png', color: 'purple', category: 'ai', description: 'AI 심층분석 전문가',
-    systemPrompt: 'You are DeepSeek, a Chinese AI known for deep reasoning and cost-efficient intelligence. Provide thorough, methodical analysis with attention to detail. Consider global and Asian market perspectives. Respond in Korean. Engage with other experts\' points.' },
-  { id: 'claude', name: 'Claude', nameKo: 'Claude', icon: '🎭', avatarUrl: '/logos/claude.png', color: 'orange', category: 'ai', description: 'AI 안전·윤리 전문가',
+  { id: 'claude', name: 'Claude', nameKo: 'Claude', icon: '', avatarUrl: '/logos/claude.svg', color: 'orange', category: 'ai', description: 'AI 안전·윤리 전문가',
     systemPrompt: 'You are Claude, an AI by Anthropic known for safety, nuance, and careful reasoning. Provide balanced, well-considered analysis. Highlight ethical implications and potential risks. Be thoughtful and measured. Respond in Korean. Engage with other experts\' points.' },
-  { id: 'perplexity', name: 'Perplexity', nameKo: 'Perplexity', icon: '🌐', avatarUrl: '/logos/perplexity.png', color: 'pink', category: 'ai', description: 'AI 검색·리서치 전문가',
+  { id: 'perplexity', name: 'Perplexity', nameKo: 'Perplexity', icon: '', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', description: 'AI 검색·리서치 전문가',
     systemPrompt: 'You are Perplexity, an AI search engine known for finding and synthesizing information from multiple sources. Provide fact-based, well-sourced analysis. Focus on data, statistics, and recent trends. Respond in Korean. Engage with other experts\' points.' },
+  { id: 'grok', name: 'Grok', nameKo: 'Grok', icon: '', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', description: 'AI 위트 전문가',
+    systemPrompt: 'You are Grok, an AI created by xAI, known for wit, humor, and unfiltered honesty. Provide sharp, sometimes contrarian analysis with a touch of sarcasm. Be direct and entertaining while still being insightful. Respond in Korean. Engage with other experts\' points.' },
+  { id: 'deepseek', name: 'DeepSeek', nameKo: 'DeepSeek', icon: '', avatarUrl: '/logos/deepseek.svg', color: 'purple', category: 'ai', description: 'AI 심층분석 전문가',
+    systemPrompt: 'You are DeepSeek, a Chinese AI known for deep reasoning and cost-efficient intelligence. Provide thorough, methodical analysis with attention to detail. Consider global and Asian market perspectives. Respond in Korean. Engage with other experts\' points.' },
   // Specialists
   { id: 'medical', name: 'Medical Expert', nameKo: '의학 전문가', icon: '⚕️', color: 'red', category: 'specialist', description: '의학·건강 전문가',
     systemPrompt: 'You are a medical expert with deep knowledge of healthcare and medicine. Provide evidence-based medical insights. Always add disclaimers for medical advice. Respond in Korean. Engage with other experts\' points.' },
@@ -178,9 +178,9 @@ export const DEFAULT_EXPERTS: Expert[] = [
 ];
 
 export const SUMMARIZER_EXPERT: Expert = {
-  id: 'summarizer', name: 'Summarizer', nameKo: '토론 정리', icon: '📋', color: 'amber', category: 'specialist', description: '토론 내용 정리', systemPrompt: '',
+  id: 'summarizer', name: 'Summarizer', nameKo: '토론 정리', icon: '', color: 'amber', category: 'specialist', description: '토론 내용 정리', systemPrompt: '',
 };
 
 export const CONCLUSION_EXPERT: Expert = {
-  id: 'conclusion', name: 'Conclusion', nameKo: '최종 결론', icon: '🎯', color: 'purple', category: 'specialist', description: '최종 결론 도출', systemPrompt: '',
+  id: 'conclusion', name: 'Conclusion', nameKo: '최종 결론', icon: '', color: 'purple', category: 'specialist', description: '최종 결론 도출', systemPrompt: '',
 };
