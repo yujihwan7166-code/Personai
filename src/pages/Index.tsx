@@ -732,9 +732,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
               {/* Question display */}
               {currentQuestion && messages.length > 0 &&
-              <div className="rounded-2xl p-4 border border-border flex items-start justify-between gap-3" style={{ background: 'var(--gradient-subtle)', boxShadow: 'var(--shadow-card)' }}>
+              <div className="rounded-xl p-4 border border-border flex items-start justify-between gap-3 bg-muted/50">
                   <div>
-                    <span className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">Question</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Question</span>
                     <p className="text-foreground font-medium mt-0.5">{currentQuestion}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
