@@ -824,9 +824,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   <p className="text-sm text-muted-foreground">토론이 완료되었습니다</p>
                   <Button
                   onClick={handleNewDiscussion}
-                  className="rounded-xl gap-2 px-6 shadow-md"
-                  style={{ background: 'var(--gradient-primary)' }}>
-                  
+                  className="rounded-full gap-2 px-6 bg-foreground text-background hover:bg-foreground/90">
                     <RefreshCw className="w-4 h-4" />
                     새 토론 시작
                   </Button>
