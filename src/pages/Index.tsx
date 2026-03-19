@@ -837,8 +837,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
           {/* Floating Input */}
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-full max-w-2xl z-50 px-2 sm:px-0">
-            <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-4 space-y-2">
-              {/* Selected expert chips - compact */}
+            <div className="bg-background border border-border rounded-2xl shadow-lg p-3 space-y-2">
               {activeExperts.length > 0 &&
               <div className="flex items-center gap-1 flex-wrap">
                   <span className="text-[9px] text-muted-foreground font-medium shrink-0">참여:</span>
@@ -849,11 +848,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   className={cn(
                     'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium border transition-all',
                     activeExpertId === expert.id ?
-                    'bg-primary/10 border-primary/30 text-primary' :
-                    'bg-secondary border-border text-foreground/70 hover:bg-muted',
+                    'bg-foreground/10 border-foreground/20 text-foreground' :
+                    'bg-muted border-border text-muted-foreground hover:text-foreground',
                     isDiscussing || messages.length > 0 ? 'cursor-default' : 'cursor-pointer'
                   )}>
-                  
                       <span>{expert.icon}</span>
                       <span className="hidden sm:inline">{expert.nameKo}</span>
                     </button>
