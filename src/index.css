@@ -2,65 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 220 14% 96%;
-    --foreground: 220 20% 14%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 14%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 14%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 222 80% 55%;
+    --primary: 0 0% 9%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 92%;
-    --secondary-foreground: 220 15% 35%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 32%;
 
-    --muted: 220 12% 94%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 55%;
 
-    --accent: 262 55% 58%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
-    --ring: 222 80% 55%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 0 0% 9%;
 
     --radius: 0.75rem;
 
     /* Gradient tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(222 80% 55%), hsl(262 55% 58%));
-    --gradient-subtle: linear-gradient(135deg, hsl(222 80% 55% / 0.06), hsl(262 55% 58% / 0.04));
-    --shadow-glow: 0 0 30px hsl(222 80% 55% / 0.1), 0 0 60px hsl(262 55% 58% / 0.05);
-    --shadow-card: 0 1px 3px hsl(220 20% 14% / 0.04), 0 4px 12px hsl(220 20% 14% / 0.03);
-    --shadow-card-hover: 0 2px 8px hsl(220 20% 14% / 0.06), 0 8px 24px hsl(220 20% 14% / 0.05);
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 9%), hsl(0 0% 25%));
+    --gradient-subtle: linear-gradient(135deg, hsl(0 0% 96%), hsl(0 0% 98%));
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.04);
+    --shadow-card-hover: 0 2px 8px hsl(0 0% 0% / 0.08);
 
     /* Expert colors */
-    --expert-blue: 210 90% 50%;
-    --expert-emerald: 160 70% 42%;
-    --expert-red: 0 70% 52%;
-    --expert-amber: 42 80% 50%;
-    --expert-purple: 270 65% 55%;
-    --expert-orange: 25 90% 52%;
-    --expert-teal: 185 70% 42%;
-    --expert-pink: 330 70% 52%;
+    --expert-blue: 220 70% 50%;
+    --expert-emerald: 160 60% 40%;
+    --expert-red: 0 65% 50%;
+    --expert-amber: 38 75% 50%;
+    --expert-purple: 262 55% 52%;
+    --expert-orange: 25 85% 52%;
+    --expert-teal: 185 60% 40%;
+    --expert-pink: 330 65% 52%;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 20% 14%;
-    --sidebar-primary: 222 80% 55%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 94%;
-    --sidebar-accent-foreground: 220 20% 14%;
-    --sidebar-border: 220 13% 90%;
-    --sidebar-ring: 222 80% 55%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 0 0% 9%;
   }
 }
 
@@ -70,37 +69,38 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 600;
   }
 }
 
 @layer utilities {
-  .expert-glow-blue { box-shadow: 0 0 16px hsl(210 90% 50% / 0.2); }
-  .expert-glow-emerald { box-shadow: 0 0 16px hsl(160 70% 42% / 0.2); }
-  .expert-glow-red { box-shadow: 0 0 16px hsl(0 70% 52% / 0.2); }
-  .expert-glow-amber { box-shadow: 0 0 16px hsl(42 80% 50% / 0.2); }
-  .expert-glow-purple { box-shadow: 0 0 16px hsl(270 65% 55% / 0.2); }
-  .expert-glow-orange { box-shadow: 0 0 16px hsl(25 90% 52% / 0.2); }
-  .expert-glow-teal { box-shadow: 0 0 16px hsl(185 70% 42% / 0.2); }
-  .expert-glow-pink { box-shadow: 0 0 16px hsl(330 70% 52% / 0.2); }
+  .expert-glow-blue { box-shadow: none; }
+  .expert-glow-emerald { box-shadow: none; }
+  .expert-glow-red { box-shadow: none; }
+  .expert-glow-amber { box-shadow: none; }
+  .expert-glow-purple { box-shadow: none; }
+  .expert-glow-orange { box-shadow: none; }
+  .expert-glow-teal { box-shadow: none; }
+  .expert-glow-pink { box-shadow: none; }
 
-  .expert-glow-active-blue { box-shadow: 0 0 20px hsl(210 90% 50% / 0.35), 0 0 40px hsl(210 90% 50% / 0.15); }
-  .expert-glow-active-emerald { box-shadow: 0 0 20px hsl(160 70% 42% / 0.35), 0 0 40px hsl(160 70% 42% / 0.15); }
-  .expert-glow-active-red { box-shadow: 0 0 20px hsl(0 70% 52% / 0.35), 0 0 40px hsl(0 70% 52% / 0.15); }
-  .expert-glow-active-amber { box-shadow: 0 0 20px hsl(42 80% 50% / 0.35), 0 0 40px hsl(42 80% 50% / 0.15); }
-  .expert-glow-active-purple { box-shadow: 0 0 20px hsl(270 65% 55% / 0.35), 0 0 40px hsl(270 65% 55% / 0.15); }
-  .expert-glow-active-orange { box-shadow: 0 0 20px hsl(25 90% 52% / 0.35), 0 0 40px hsl(25 90% 52% / 0.15); }
-  .expert-glow-active-teal { box-shadow: 0 0 20px hsl(185 70% 42% / 0.35), 0 0 40px hsl(185 70% 42% / 0.15); }
-  .expert-glow-active-pink { box-shadow: 0 0 20px hsl(330 70% 52% / 0.35), 0 0 40px hsl(330 70% 52% / 0.15); }
+  .expert-glow-active-blue { box-shadow: 0 0 0 2px hsl(220 70% 50% / 0.2); }
+  .expert-glow-active-emerald { box-shadow: 0 0 0 2px hsl(160 60% 40% / 0.2); }
+  .expert-glow-active-red { box-shadow: 0 0 0 2px hsl(0 65% 50% / 0.2); }
+  .expert-glow-active-amber { box-shadow: 0 0 0 2px hsl(38 75% 50% / 0.2); }
+  .expert-glow-active-purple { box-shadow: 0 0 0 2px hsl(262 55% 52% / 0.2); }
+  .expert-glow-active-orange { box-shadow: 0 0 0 2px hsl(25 85% 52% / 0.2); }
+  .expert-glow-active-teal { box-shadow: 0 0 0 2px hsl(185 60% 40% / 0.2); }
+  .expert-glow-active-pink { box-shadow: 0 0 0 2px hsl(330 65% 52% / 0.2); }
 
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(220 13% 82%); border-radius: 999px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(0 0% 85%); border-radius: 999px; }
 
   /* Typing dots animation */
   .typing-dot {

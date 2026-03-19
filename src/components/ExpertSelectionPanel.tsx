@@ -13,10 +13,10 @@ export interface SuggestedQuestion {
 }
 
 export const SUGGESTED_QUESTIONS: SuggestedQuestion[] = [
-  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-primary', expertIds: ['gpt', 'claude', 'engineer', 'programmer', 'buffett'], mode: 'standard' },
-  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-accent', expertIds: ['buffett', 'dalio', 'finance', 'accountant'], mode: 'multi' },
-  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-expert-emerald', expertIds: ['gemini', 'psychology', 'teacher', 'artist', 'jobs'], mode: 'creative' },
-  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-expert-amber', expertIds: ['medical', 'doctor', 'nurse', 'chef'], mode: 'multi' },
+  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-foreground', expertIds: ['gpt', 'claude', 'engineer', 'programmer', 'buffett'], mode: 'standard' },
+  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-foreground', expertIds: ['buffett', 'dalio', 'finance', 'accountant'], mode: 'multi' },
+  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-foreground', expertIds: ['gemini', 'psychology', 'teacher', 'artist', 'jobs'], mode: 'creative' },
+  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-foreground', expertIds: ['medical', 'doctor', 'nurse', 'chef'], mode: 'multi' },
 ];
 
 interface Props {
@@ -39,7 +39,6 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
   const mainMode = getMainMode(discussionMode);
   const isGeneral = mainMode === 'general';
 
-  // For general mode, only show AI category
   const visibleCategories = isGeneral ? ['ai'] : EXPERT_CATEGORY_ORDER;
 
   const grouped = visibleCategories
@@ -56,7 +55,6 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       }),
     })).filter(g => g.items.length > 0);
 
-  // Auto-switch to first available category
   const validCats = grouped.map(g => g.cat);
   const effectiveCategory = validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai';
 
@@ -65,7 +63,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
   const handleMainModeChange = (m: MainMode) => {
     if (m === 'general') onModeChange('general');
     else if (m === 'multi') onModeChange('multi');
-    else onModeChange('standard'); // default debate sub-mode
+    else onModeChange('standard');
   };
 
   const handleDebateSubChange = (sub: DebateSubMode) => {
@@ -73,13 +71,13 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8 py-8">
       {/* Title */}
-      <div className="text-center space-y-1.5 pt-3">
-        <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl sm:text-4xl font-semibold text-foreground tracking-tight">
           {mainMode === 'general' ? '무엇이든 물어보세요' : mainMode === 'multi' ? '다중 AI 종합' : '전문가 토론'}
         </h2>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+        <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
           {mainMode === 'general' && 'AI를 하나 선택하고 자유롭게 대화하세요'}
           {mainMode === 'multi' && '여러 AI·전문가의 답변을 종합해 최종 답변을 만듭니다'}
           {mainMode === 'debate' && '전문가들이 3라운드 토론 후 결론을 도출합니다'}
@@ -97,20 +95,20 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
               onClick={() => handleMainModeChange(m)}
               disabled={isDiscussing}
               className={cn(
-                'flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-display font-semibold transition-all border',
+                'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all border',
                 isActive
-                  ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-[1.02]'
-                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20 hover:shadow-sm'
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground/30'
               )}
             >
-              <span className="text-lg">{info.icon}</span>
+              <span>{info.icon}</span>
               <span>{info.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Debate Sub-Mode Selector (only visible for debate) */}
+      {/* Debate Sub-Mode Selector */}
       {mainMode === 'debate' && (
         <div className="flex flex-wrap gap-1.5 justify-center">
           {debateSubModes.map(sub => {
@@ -122,16 +120,15 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                 onClick={() => handleDebateSubChange(sub)}
                 disabled={isDiscussing}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all border',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all border',
                   isActive
-                    ? 'bg-primary/10 text-primary border-primary/30 ring-1 ring-primary/20'
-                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/15'
+                    ? 'bg-foreground/10 text-foreground border-foreground/20'
+                    : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground/20'
                 )}
               >
                 <span>{info.icon}</span>
                 <div className="text-left">
-                  <div className="font-semibold">{info.label}</div>
-                  <div className="text-[9px] opacity-60 hidden sm:block">{info.description}</div>
+                  <div>{info.label}</div>
                 </div>
               </button>
             );
@@ -140,10 +137,9 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
       )}
 
       {/* Expert Selection Card */}
-      <div className="border border-border rounded-2xl overflow-hidden bg-card" style={{ boxShadow: 'var(--shadow-card)' }}>
+      <div className="border border-border rounded-2xl overflow-hidden bg-background">
         {isGeneral ? (
-          /* General mode: simple AI grid only */
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 p-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1 p-3">
             {experts.filter(e => e.category === 'ai').map(expert => {
               const isSelected = selectedIds.includes(expert.id);
               return (
@@ -152,14 +148,14 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                   type="button"
                   onClick={() => onToggle(expert.id)}
                   className={cn(
-                    'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200',
+                    'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-150',
                     isSelected
-                      ? 'bg-primary/8 ring-1 ring-primary/25 shadow-sm'
+                      ? 'bg-foreground/5 ring-1 ring-foreground/15'
                       : 'opacity-50 hover:opacity-80 hover:bg-muted/50'
                   )}
                 >
                   <ExpertAvatar expert={expert} size="md" />
-                  <span className="text-[10px] font-display font-medium text-foreground whitespace-nowrap truncate max-w-full leading-tight">
+                  <span className="text-[11px] font-medium text-foreground whitespace-nowrap truncate max-w-full">
                     {expert.nameKo}
                   </span>
                 </button>
@@ -168,7 +164,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
           </div>
         ) : (
           <>
-            {/* Category tabs + count */}
+            {/* Category tabs */}
             <div className="flex items-center border-b border-border">
               <div className="flex flex-1 min-w-0">
                 {grouped.map(({ cat, label, items }) => {
@@ -179,20 +175,20 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                       type="button"
                       onClick={() => setActiveCategory(cat)}
                       className={cn(
-                        'flex-1 flex items-center justify-center gap-1 px-2 py-2.5 text-xs font-display font-semibold transition-colors relative',
+                        'flex-1 flex items-center justify-center gap-1 px-2 py-2.5 text-xs font-medium transition-colors relative',
                         effectiveCategory === cat
-                          ? 'text-primary'
+                          ? 'text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
                       )}
                     >
                       <span className="truncate">{label}</span>
                       {catSelectedCount > 0 && (
-                        <span className="text-[9px] w-4 h-4 flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold shrink-0">
+                        <span className="text-[9px] w-4 h-4 flex items-center justify-center rounded-full bg-foreground/10 text-foreground font-semibold shrink-0">
                           {catSelectedCount}
                         </span>
                       )}
                       {effectiveCategory === cat && (
-                        <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
+                        <div className="absolute bottom-0 left-3 right-3 h-0.5 bg-foreground rounded-full" />
                       )}
                     </button>
                   );
@@ -200,15 +196,15 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
               </div>
               <div className="flex items-center gap-2 px-3 border-l border-border">
                 <span className={cn(
-                  'text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0',
-                  selectedCount >= 1 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
+                  'text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0',
+                  selectedCount >= 1 ? 'bg-foreground/10 text-foreground' : 'bg-destructive/10 text-destructive'
                 )}>
                   <Users className="w-3 h-3 inline mr-0.5" />{selectedCount}
                 </span>
               </div>
             </div>
 
-            {/* Search bar */}
+            {/* Search */}
             <div className="px-3 pt-2 pb-1">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -217,7 +213,7 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="이름으로 검색..."
-                  className="w-full bg-muted/50 border-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="w-full bg-muted/50 border-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/10 transition-all"
                 />
               </div>
             </div>
@@ -235,18 +231,18 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
                         type="button"
                         onClick={() => onToggle(expert.id)}
                         className={cn(
-                          'flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200',
+                          'flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-150',
                           isSelected
-                            ? 'bg-primary/8 ring-1 ring-primary/25 shadow-sm'
+                            ? 'bg-foreground/5 ring-1 ring-foreground/15'
                             : 'opacity-45 hover:opacity-80 hover:bg-muted/50'
                         )}
                       >
                         <ExpertAvatar expert={expert} size="md" />
-                        <span className="text-[9px] font-display font-medium text-foreground whitespace-nowrap truncate max-w-full leading-tight">
+                        <span className="text-[9px] font-medium text-foreground whitespace-nowrap truncate max-w-full leading-tight">
                           {expert.nameKo}
                         </span>
                         {isSelected && (
-                          <div className="w-1 h-1 rounded-full bg-primary" />
+                          <div className="w-1 h-1 rounded-full bg-foreground" />
                         )}
                       </button>
                     );
@@ -268,12 +264,11 @@ export function ExpertSelectionPanel({ experts, selectedIds, onToggle, discussio
               <button
                 key={i}
                 onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
-                className="flex flex-col gap-1.5 p-2.5 rounded-xl border border-border bg-card text-left text-[11px] text-foreground/80 hover:text-foreground hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
-                style={{ boxShadow: 'var(--shadow-card)' }}
+                className="flex flex-col gap-2 p-3 rounded-xl border border-border bg-background text-left text-[12px] text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-all duration-150 group"
               >
                 <div className="flex items-start gap-2">
-                  <span className={cn('mt-0.5 shrink-0', q.color)}>{q.icon}</span>
-                  <span className="leading-snug line-clamp-2">{q.text}</span>
+                  <span className="mt-0.5 shrink-0 opacity-40 group-hover:opacity-70">{q.icon}</span>
+                  <span className="leading-relaxed">{q.text}</span>
                 </div>
                 {participants.length > 0 && (
                   <div className="flex items-center gap-1 pl-6">
