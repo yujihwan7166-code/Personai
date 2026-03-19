@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Plus, Sparkles } from 'lucide-react';
+import { Send, Sparkles } from 'lucide-react';
 import { DiscussionMode, DISCUSSION_MODE_LABELS } from '@/types/expert';
 import { ToolbarPanel, ToolType, TOOLS } from './ToolbarPanel';
 import { cn } from '@/lib/utils';
@@ -15,13 +15,11 @@ interface Props {
 export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar = true }: Props) {
   const [question, setQuestion] = useState('');
   const [activeTool, setActiveTool] = useState<ToolType | null>(null);
-  const [showTools, setShowTools] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || disabled) return;
-    // Prepend tool prefix if a tool is active
     const tool = activeTool ? TOOLS.find(t => t.id === activeTool) : null;
     const finalQuestion = tool ? `${tool.prefix}${question.trim()}` : question.trim();
     onSubmit(finalQuestion);
@@ -34,10 +32,8 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar 
     textareaRef.current?.focus();
   };
 
-  const modeInfo = discussionMode ? DISCUSSION_MODE_LABELS[discussionMode] : null;
   const activeToolInfo = activeTool ? TOOLS.find(t => t.id === activeTool) : null;
 
-  // Placeholder changes based on active tool
   const getPlaceholder = () => {
     if (activeToolInfo) {
       const placeholders: Record<ToolType, string> = {
@@ -54,51 +50,28 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar 
       };
       return placeholders[activeTool!] || '질문을 입력하세요...';
     }
-    return discussionMode === 'general' ? 'AI에게 질문하세요...' : '전문가에게 질문하세요...';
+    return discussionMode === 'general' ? '무엇이든 물어보세요...' : '전문가에게 질문하세요...';
   };
 
   return (
     <div className="space-y-3">
-      {/* Input Area */}
       <form onSubmit={handleSubmit} className="relative">
         <div
           className={cn(
-            'flex flex-col bg-card border rounded-2xl transition-all duration-200',
-            activeToolInfo
-              ? 'ring-2 ring-offset-1 ring-offset-background'
-              : 'focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary/30',
+            'flex flex-col bg-background border border-border rounded-2xl transition-all duration-150',
+            'focus-within:border-foreground/20 focus-within:shadow-[0_0_0_1px_hsl(0_0%_0%/0.05)]',
           )}
-          style={{
-            boxShadow: activeToolInfo
-              ? `0 2px 12px ${activeToolInfo.color}15`
-              : 'var(--shadow-card)',
-            ...(activeToolInfo
-              ? { borderColor: activeToolInfo.color + '40', '--tw-ring-color': activeToolInfo.color + '50' } as any
-              : { borderColor: undefined }),
-          }}
         >
-          {/* Active tool badge inside input */}
           {activeToolInfo && (
-            <div className="px-3 pt-2 pb-0">
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium text-white"
-                style={{ background: activeToolInfo.color }}
-              >
+            <div className="px-3 pt-2.5 pb-0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-foreground text-background">
                 <Sparkles className="w-2.5 h-2.5" />
                 {activeToolInfo.label}
               </span>
             </div>
           )}
 
-          <div className="flex items-end gap-2 p-2">
-            {/* Mode badge */}
-            {modeInfo && !activeToolInfo && (
-              <span className="hidden sm:inline-flex items-center text-[9px] text-muted-foreground bg-muted px-2 py-1 rounded-full mb-0.5 shrink-0">
-                {modeInfo.icon} {modeInfo.label}
-              </span>
-            )}
-
-            {/* Textarea */}
+          <div className="flex items-end gap-2 p-2.5">
             <textarea
               ref={textareaRef}
               value={question}
@@ -120,19 +93,11 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar 
               }}
             />
 
-            {/* Send button */}
             <Button
               type="submit"
               size="icon"
               disabled={!question.trim() || disabled}
-              className="rounded-xl w-8 h-8 shadow-sm transition-all shrink-0"
-              style={
-                !question.trim() || disabled
-                  ? {}
-                  : activeToolInfo
-                  ? { background: activeToolInfo.color }
-                  : { background: 'var(--gradient-primary)' }
-              }
+              className="rounded-xl w-8 h-8 shrink-0 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30"
             >
               <Send className="w-3.5 h-3.5" />
             </Button>
@@ -140,7 +105,6 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, showToolbar 
         </div>
       </form>
 
-      {/* Toolbar always visible below input */}
       {showToolbar && (
         <ToolbarPanel
           activeTool={activeTool}
