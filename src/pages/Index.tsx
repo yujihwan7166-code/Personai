@@ -776,7 +776,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       className="w-full flex items-center gap-3 py-3 group/round cursor-pointer">
                       
                       <div className="flex-1 h-px bg-border" />
-                      <span className="flex items-center gap-1.5 text-xs font-display font-semibold text-muted-foreground px-3 py-1.5 rounded-full bg-muted/80 shadow-sm transition-colors group-hover/round:bg-muted">
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground px-3 py-1.5 rounded-full bg-muted transition-colors group-hover/round:bg-muted/80">
                         {msg.content}
                         {roundMsgCount > 0 &&
                         <span className="text-[10px] font-normal opacity-60">({roundMsgCount})</span>
