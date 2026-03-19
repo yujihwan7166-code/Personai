@@ -686,17 +686,13 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <header className="border-b border-border px-4 sm:px-6 py-2 bg-card/90 backdrop-blur-md" style={{ boxShadow: '0 1px 3px hsl(220 20% 14% / 0.03)' }}>
-            <div className="flex items-center gap-2.5">
+          <header className="border-b border-border px-4 sm:px-6 py-3 bg-background">
+            <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-primary)' }}>
-                <MessageSquare className="w-3.5 h-3.5 text-primary-foreground" />
-              </div>
               <div className="flex-1 min-w-0">
-                <h1 className="font-display text-sm font-bold text-foreground tracking-tight">AI 전문가 토론</h1>
+                <h1 className="text-sm font-semibold text-foreground">AI 전문가 토론</h1>
               </div>
-              {/* Selected/Active experts - inline */}
-              <div className="hidden sm:flex items-center gap-0.5">
+              <div className="hidden sm:flex items-center gap-1">
                 {activeExperts.slice(0, 5).map((expert) =>
                 <ExpertAvatar key={expert.id} expert={expert} size="sm" active={activeExpertId === expert.id} />
                 )}
@@ -704,16 +700,14 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 <span className="text-[10px] text-muted-foreground ml-1">+{activeExperts.length - 5}</span>
                 }
               </div>
-              {/* User avatar */}
-              <div className="flex items-center gap-1.5 ml-1">
+              <div className="flex items-center gap-1.5">
                 {userAvatar ?
-                <img src={userAvatar} alt="" className="w-7 h-7 rounded-full border border-border" /> :
-
-                <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-[10px] font-semibold text-foreground border border-border">
+                <img src={userAvatar} alt="" className="w-7 h-7 rounded-full" /> :
+                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-foreground">
                     {userInitial}
                   </div>
                 }
-                <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-secondary" title="로그아웃">
+                <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted" title="로그아웃">
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
