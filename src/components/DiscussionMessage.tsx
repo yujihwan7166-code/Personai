@@ -13,21 +13,6 @@ interface Props {
   onDislike?: (messageId: string) => void;
 }
 
-const nameColors: Record<ExpertColor, string> = {
-  blue: 'text-expert-blue', emerald: 'text-expert-emerald', red: 'text-expert-red', amber: 'text-expert-amber',
-  purple: 'text-expert-purple', orange: 'text-expert-orange', teal: 'text-expert-teal', pink: 'text-expert-pink',
-};
-
-const borderColors: Record<ExpertColor, string> = {
-  blue: 'border-l-expert-blue', emerald: 'border-l-expert-emerald', red: 'border-l-expert-red', amber: 'border-l-expert-amber',
-  purple: 'border-l-expert-purple', orange: 'border-l-expert-orange', teal: 'border-l-expert-teal', pink: 'border-l-expert-pink',
-};
-
-const streamingBorderColors: Record<ExpertColor, string> = {
-  blue: 'border-gradient-blue', emerald: 'border-gradient-emerald', red: 'border-gradient-red', amber: 'border-gradient-amber',
-  purple: 'border-gradient-purple', orange: 'border-gradient-orange', teal: 'border-gradient-teal', pink: 'border-gradient-pink',
-};
-
 export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onDislike }: Props) {
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -52,40 +37,31 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
     }
   };
 
-  const preview = message.content.slice(0, 60).replace(/\n/g, ' ');
+  const preview = message.content.slice(0, 80).replace(/\n/g, ' ');
 
   return (
     <div className={cn(
-      'group animate-in fade-in slide-in-from-bottom-2 duration-500',
-      isSummary && 'mt-8'
+      'group animate-in fade-in slide-in-from-bottom-1 duration-300',
+      isSummary && 'mt-6'
     )}>
-      {/* Clickable Header */}
+      {/* Header */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
         className={cn(
-          'w-full flex items-center gap-3 rounded-xl p-3.5 border-l-[3px] transition-all duration-300 text-left',
+          'w-full flex items-center gap-3 rounded-xl p-3 border transition-all duration-150 text-left',
           isSummary
-            ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-l-primary ring-1 ring-primary/20 cursor-pointer shadow-md'
-            : cn(
-                'bg-card hover:bg-card/80 cursor-pointer',
-                message.isStreaming ? streamingBorderColors[expert.color] : borderColors[expert.color],
-                message.isStreaming && 'ring-1 ring-expert-' + expert.color + '/20'
-              ),
-          !isSummary && 'hover:shadow-md',
-          isOpen && !isSummary && 'rounded-b-none'
+            ? 'bg-muted/50 border-border cursor-pointer'
+            : 'bg-background border-border hover:border-foreground/15 cursor-pointer',
+          isOpen && 'rounded-b-none border-b-0'
         )}
-        style={!isSummary ? { boxShadow: 'var(--shadow-card)' } : undefined}
       >
         <ExpertAvatar expert={expert} active={message.isStreaming} />
         <div className="flex-1 min-w-0">
-          <div className={cn(
-            'font-display font-semibold text-sm flex items-center gap-1.5',
-            isSummary ? 'text-primary' : nameColors[expert.color]
-          )}>
-            {expert.icon} {expert.nameKo}
+          <div className="font-medium text-sm flex items-center gap-1.5 text-foreground">
+            {expert.nameKo}
             {isSummary && (
-              <span className="text-[10px] font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full ml-1">
+              <span className="text-[10px] font-normal bg-foreground/10 text-foreground/70 px-2 py-0.5 rounded-full ml-1">
                 최종 정리
               </span>
             )}
@@ -96,9 +72,9 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
             )}
             {message.isStreaming && (
               <span className="flex items-center gap-1 ml-1.5">
-                <span className="typing-dot w-1 h-1 rounded-full bg-primary" />
-                <span className="typing-dot w-1 h-1 rounded-full bg-primary" />
-                <span className="typing-dot w-1 h-1 rounded-full bg-primary" />
+                <span className="typing-dot w-1 h-1 rounded-full bg-foreground/50" />
+                <span className="typing-dot w-1 h-1 rounded-full bg-foreground/50" />
+                <span className="typing-dot w-1 h-1 rounded-full bg-foreground/50" />
               </span>
             )}
           </div>
@@ -110,18 +86,12 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
           )}
         </div>
         <div className="flex items-center gap-1">
-          {!message.isStreaming && message.content && !isSummary && (message.likes || message.dislikes) && (
-            <div className="flex items-center gap-1.5 mr-1 text-[10px] text-muted-foreground">
-              {(message.likes ?? 0) > 0 && <span className="flex items-center gap-0.5"><ThumbsUp className="w-3 h-3 text-expert-emerald" />{message.likes}</span>}
-              {(message.dislikes ?? 0) > 0 && <span className="flex items-center gap-0.5"><ThumbsDown className="w-3 h-3 text-expert-red" />{message.dislikes}</span>}
-            </div>
-          )}
           {!message.isStreaming && message.content && !isSummary && (
             <button
               onClick={handleCopy}
               className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-1 rounded"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-expert-emerald" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
           )}
           {isOpen
@@ -131,64 +101,62 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
         </div>
       </button>
 
-      {/* Expandable Content */}
+      {/* Content */}
       {isOpen && (
         <div className={cn(
-          'border-l-[3px] rounded-b-xl p-4 pt-2',
-          isSummary
-            ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-l-primary'
-            : cn('bg-card', borderColors[expert.color])
-        )} style={!isSummary ? { boxShadow: 'var(--shadow-card)' } : undefined}>
+          'border border-t-0 rounded-b-xl p-4 pt-2',
+          isSummary ? 'bg-muted/30 border-border' : 'bg-background border-border'
+        )}>
           {isSummary && !message.isStreaming && message.content && (
             <div className="flex justify-end mb-1">
               <button
                 onClick={handleCopy}
                 className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-1 rounded"
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-expert-emerald" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
           )}
-          <div className="text-sm leading-relaxed text-foreground/85 prose prose-sm max-w-none prose-p:my-1.5 prose-headings:text-foreground prose-headings:font-display prose-strong:text-foreground">
+          <div className="text-sm leading-relaxed text-foreground/80 prose prose-sm max-w-none prose-p:my-1.5 prose-headings:text-foreground prose-headings:font-semibold prose-strong:text-foreground">
             <ReactMarkdown>{message.content}</ReactMarkdown>
             {message.isStreaming && (
-              <span className="inline-block w-1.5 h-4 bg-primary ml-0.5 animate-pulse rounded-sm" />
+              <span className="inline-block w-1.5 h-4 bg-foreground/30 ml-0.5 animate-pulse rounded-sm" />
             )}
           </div>
 
-          {/* Interactive buttons */}
+          {/* Actions */}
           {!message.isStreaming && message.content && !isSummary && (
-            <div className="flex items-center gap-2 mt-3 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border">
               <button
                 onClick={(e) => { e.stopPropagation(); onLike?.(message.id); }}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-expert-emerald transition-colors px-2 py-1 rounded-md hover:bg-secondary/50"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted"
               >
                 <ThumbsUp className="w-3.5 h-3.5" />
-                <span>좋아요{(message.likes ?? 0) > 0 && ` ${message.likes}`}</span>
+                {(message.likes ?? 0) > 0 && <span>{message.likes}</span>}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onDislike?.(message.id); }}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-expert-red transition-colors px-2 py-1 rounded-md hover:bg-secondary/50"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted"
               >
                 <ThumbsDown className="w-3.5 h-3.5" />
-                <span>별로에요{(message.dislikes ?? 0) > 0 && ` ${message.dislikes}`}</span>
+                {(message.dislikes ?? 0) > 0 && <span>{message.dislikes}</span>}
               </button>
               {onRebuttal && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowRebuttal(!showRebuttal); }}
                   className={cn(
                     "flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-md",
-                    showRebuttal ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-secondary/50"
+                    showRebuttal ? "text-foreground bg-muted" : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
                   <MessageSquareReply className="w-3.5 h-3.5" />
-                  <span>반박하기</span>
+                  <span>반박</span>
                 </button>
               )}
             </div>
           )}
 
-          {/* Rebuttal input */}
+          {/* Rebuttal */}
           {showRebuttal && (
             <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
               <input
@@ -196,7 +164,7 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
                 value={rebuttalText}
                 onChange={(e) => setRebuttalText(e.target.value)}
                 placeholder={`${expert.nameKo}에게 반박...`}
-                className="flex-1 bg-secondary border border-border rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/10"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && rebuttalText.trim()) {
                     handleRebuttalSubmit(e as unknown as React.MouseEvent);
@@ -206,7 +174,7 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
               <button
                 onClick={handleRebuttalSubmit}
                 disabled={!rebuttalText.trim()}
-                className="px-3 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-primary/80 transition-colors"
+                className="px-3 py-2 bg-foreground text-background rounded-lg text-sm font-medium disabled:opacity-30 hover:bg-foreground/90 transition-colors"
               >
                 전송
               </button>

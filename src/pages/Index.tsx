@@ -686,17 +686,13 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <header className="border-b border-border px-4 sm:px-6 py-2 bg-card/90 backdrop-blur-md" style={{ boxShadow: '0 1px 3px hsl(220 20% 14% / 0.03)' }}>
-            <div className="flex items-center gap-2.5">
+          <header className="border-b border-border px-4 sm:px-6 py-3 bg-background">
+            <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-primary)' }}>
-                <MessageSquare className="w-3.5 h-3.5 text-primary-foreground" />
-              </div>
               <div className="flex-1 min-w-0">
-                <h1 className="font-display text-sm font-bold text-foreground tracking-tight">AI 전문가 토론</h1>
+                <h1 className="text-sm font-semibold text-foreground">AI 전문가 토론</h1>
               </div>
-              {/* Selected/Active experts - inline */}
-              <div className="hidden sm:flex items-center gap-0.5">
+              <div className="hidden sm:flex items-center gap-1">
                 {activeExperts.slice(0, 5).map((expert) =>
                 <ExpertAvatar key={expert.id} expert={expert} size="sm" active={activeExpertId === expert.id} />
                 )}
@@ -704,16 +700,14 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 <span className="text-[10px] text-muted-foreground ml-1">+{activeExperts.length - 5}</span>
                 }
               </div>
-              {/* User avatar */}
-              <div className="flex items-center gap-1.5 ml-1">
+              <div className="flex items-center gap-1.5">
                 {userAvatar ?
-                <img src={userAvatar} alt="" className="w-7 h-7 rounded-full border border-border" /> :
-
-                <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-[10px] font-semibold text-foreground border border-border">
+                <img src={userAvatar} alt="" className="w-7 h-7 rounded-full" /> :
+                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-foreground">
                     {userInitial}
                   </div>
                 }
-                <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-secondary" title="로그아웃">
+                <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted" title="로그아웃">
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -738,9 +732,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
               {/* Question display */}
               {currentQuestion && messages.length > 0 &&
-              <div className="rounded-2xl p-4 border border-border flex items-start justify-between gap-3" style={{ background: 'var(--gradient-subtle)', boxShadow: 'var(--shadow-card)' }}>
+              <div className="rounded-xl p-4 border border-border flex items-start justify-between gap-3 bg-muted/50">
                   <div>
-                    <span className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">Question</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Question</span>
                     <p className="text-foreground font-medium mt-0.5">{currentQuestion}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -782,7 +776,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       className="w-full flex items-center gap-3 py-3 group/round cursor-pointer">
                       
                       <div className="flex-1 h-px bg-border" />
-                      <span className="flex items-center gap-1.5 text-xs font-display font-semibold text-muted-foreground px-3 py-1.5 rounded-full bg-muted/80 shadow-sm transition-colors group-hover/round:bg-muted">
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground px-3 py-1.5 rounded-full bg-muted transition-colors group-hover/round:bg-muted/80">
                         {msg.content}
                         {roundMsgCount > 0 &&
                         <span className="text-[10px] font-normal opacity-60">({roundMsgCount})</span>
@@ -809,7 +803,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                 if (msg.expertId === '__user__') {
                   return (
-                    <div key={msg.id} className="bg-primary/5 border border-primary/20 rounded-2xl p-3.5 text-sm text-foreground/80" style={{ boxShadow: 'var(--shadow-card)' }}>
+                    <div key={msg.id} className="bg-muted/50 border border-border rounded-xl p-3.5 text-sm text-foreground/80">
                       <ReactMarkdownInline content={msg.content} />
                     </div>);
 
@@ -830,9 +824,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   <p className="text-sm text-muted-foreground">토론이 완료되었습니다</p>
                   <Button
                   onClick={handleNewDiscussion}
-                  className="rounded-xl gap-2 px-6 shadow-md"
-                  style={{ background: 'var(--gradient-primary)' }}>
-                  
+                  className="rounded-full gap-2 px-6 bg-foreground text-background hover:bg-foreground/90">
                     <RefreshCw className="w-4 h-4" />
                     새 토론 시작
                   </Button>
@@ -843,8 +835,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
           {/* Floating Input */}
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-full max-w-2xl z-50 px-2 sm:px-0">
-            <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-4 space-y-2">
-              {/* Selected expert chips - compact */}
+            <div className="bg-background border border-border rounded-2xl shadow-lg p-3 space-y-2">
               {activeExperts.length > 0 &&
               <div className="flex items-center gap-1 flex-wrap">
                   <span className="text-[9px] text-muted-foreground font-medium shrink-0">참여:</span>
@@ -855,11 +846,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   className={cn(
                     'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium border transition-all',
                     activeExpertId === expert.id ?
-                    'bg-primary/10 border-primary/30 text-primary' :
-                    'bg-secondary border-border text-foreground/70 hover:bg-muted',
+                    'bg-foreground/10 border-foreground/20 text-foreground' :
+                    'bg-muted border-border text-muted-foreground hover:text-foreground',
                     isDiscussing || messages.length > 0 ? 'cursor-default' : 'cursor-pointer'
                   )}>
-                  
                       <span>{expert.icon}</span>
                       <span className="hidden sm:inline">{expert.nameKo}</span>
                     </button>

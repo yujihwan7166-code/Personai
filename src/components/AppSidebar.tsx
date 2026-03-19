@@ -55,15 +55,14 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarContent className="py-2">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
+      <SidebarContent className="py-3">
         {/* New Discussion */}
         {!collapsed && (
           <div className="px-3 pb-2">
             <button
               onClick={() => window.location.reload()}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-display font-semibold transition-all text-primary-foreground hover:opacity-90 shadow-md"
-              style={{ background: 'var(--gradient-primary)' }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-foreground text-background hover:bg-foreground/90"
             >
               <Plus className="w-4 h-4" />
               새 토론
@@ -129,12 +128,11 @@ export function AppSidebar({
           {settingsOpen && !collapsed && (
             <SidebarGroupContent>
               <div className="px-3 py-2 space-y-3">
-                {/* Mode Selector */}
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-display mb-1.5">토론 모드</p>
-                  <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground font-medium mb-1.5">토론 모드</p>
+                  <div className="space-y-0.5">
                     {(['general', 'multi', 'standard', 'procon', 'creative', 'endless'] as DiscussionMode[]).map(mode => {
-                      const { label, icon, description } = DISCUSSION_MODE_LABELS[mode];
+                      const { label, icon } = DISCUSSION_MODE_LABELS[mode];
                       return (
                         <button
                           key={mode}
@@ -143,24 +141,20 @@ export function AppSidebar({
                           className={cn(
                             'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all text-xs',
                             discussionMode === mode
-                              ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                              ? 'bg-foreground/10 text-foreground'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                           )}
                         >
                           <span>{icon}</span>
-                          <div>
-                            <div className="font-medium">{label}</div>
-                            <div className="text-[10px] opacity-60">{description}</div>
-                          </div>
+                          <span className="font-medium">{label}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Expert Management */}
                 <div>
-                  <p className="text-[10px] text-muted-foreground font-display mb-1.5">전문가 관리</p>
+                  <p className="text-[10px] text-muted-foreground font-medium mb-1.5">전문가 관리</p>
                   <ExpertManageDialog experts={experts} onUpdate={onUpdateExperts} />
                 </div>
               </div>
