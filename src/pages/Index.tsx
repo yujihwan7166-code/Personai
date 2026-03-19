@@ -803,7 +803,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                 if (msg.expertId === '__user__') {
                   return (
-                    <div key={msg.id} className="bg-primary/5 border border-primary/20 rounded-2xl p-3.5 text-sm text-foreground/80" style={{ boxShadow: 'var(--shadow-card)' }}>
+                    <div key={msg.id} className="bg-muted/50 border border-border rounded-xl p-3.5 text-sm text-foreground/80">
                       <ReactMarkdownInline content={msg.content} />
                     </div>);
 
