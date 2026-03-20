@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Plus, Wrench, Mic } from 'lucide-react';
 import { DiscussionMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
 
@@ -7,10 +7,15 @@ interface Props {
   onSubmit: (question: string) => void;
   disabled?: boolean;
   discussionMode?: DiscussionMode;
+  selectedExperts?: { id: string; nameKo: string }[];
+  onRemoveExpert?: (id: string) => void;
+  onToggleSettings?: () => void;
+  showSettings?: boolean;
 }
 
-export function QuestionInput({ onSubmit, disabled, discussionMode }: Props) {
+export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExperts, onRemoveExpert, onToggleSettings, showSettings }: Props) {
   const [question, setQuestion] = useState('');
+  const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -22,27 +27,64 @@ export function QuestionInput({ onSubmit, disabled, discussionMode }: Props) {
   };
 
   const placeholder = discussionMode === 'general'
-    ? '무엇이든 물어보세요...'
-    : '전문가에게 질문하세요...';
+    ? '무엇이든 물어보고 만들어보세요'
+    : discussionMode === 'multi'
+    ? '최대 3개 AI에게 동시에 질문해보세요'
+    : '전문가들에게 토론 주제를 던져보세요';
 
   const canSubmit = !!question.trim() && !disabled;
 
   return (
     <form onSubmit={handleSubmit}>
+      {/* Gradient border wrapper */}
       <div className={cn(
-        'group relative rounded-2xl border bg-white transition-all duration-200',
-        disabled
-          ? 'border-border/50 opacity-60'
-          : 'border-border card-shadow hover:border-foreground/15 focus-within:border-primary/30 focus-within:shadow-[0_0_0_4px_hsl(221_83%_50%/0.06)]'
+        disabled ? 'input-gradient-border-disabled opacity-60' : 'input-gradient-border',
+        focused ? 'shadow-[0_4px_24px_rgba(196,181,253,0.35)]' : 'shadow-[0_2px_12px_rgba(0,0,0,0.07)]'
       )}>
+      <div className="rounded-[calc(1rem-1.5px)] bg-white transition-all duration-200">
+        {/* Selected AI chips / participant label */}
+        {selectedExperts && selectedExperts.length > 0 && (
+          (discussionMode === 'standard' || discussionMode === 'brainstorm') ? (
+            <div className="flex items-center gap-2.5 px-5 pt-3 pb-1">
+              <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
+                {discussionMode === 'standard' ? '토론자' : '참여자'}
+              </span>
+              <div className="flex items-center gap-1.5">
+                {selectedExperts.map((e, i) => (
+                  <span key={e.id} className="inline-flex items-center gap-1.5">
+                    <span className="text-[13px] font-semibold text-slate-800">{e.nameKo}</span>
+                    {i < selectedExperts.length - 1 && <span className="text-slate-300">·</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 px-4 pt-3 pb-1 flex-wrap">
+              {selectedExperts.map(e => (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => onRemoveExpert?.(e.id)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] text-indigo-600 font-medium hover:bg-red-50 hover:border-red-100 hover:text-red-400 transition-colors"
+                >
+                  {e.nameKo}
+                  <span className="text-[9px] opacity-60">✕</span>
+                </button>
+              ))}
+            </div>
+          )
+        )}
+
         {/* Textarea */}
         <textarea
           ref={textareaRef}
           value={question}
           onChange={e => setQuestion(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-transparent resize-none text-[14px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none leading-6 px-5 pt-4 pb-12 min-h-[56px] max-h-[200px] block"
+          className="w-full bg-transparent resize-none text-[14px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none leading-6 px-5 pt-3 pb-1 min-h-[40px] max-h-[160px] block"
           rows={1}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); }
@@ -54,24 +96,56 @@ export function QuestionInput({ onSubmit, disabled, discussionMode }: Props) {
           }}
         />
 
-        {/* Bottom bar */}
-        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5">
-          <span className="text-[11px] text-muted-foreground/40 select-none">
-            Enter 전송 · Shift+Enter 줄바꿈
-          </span>
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className={cn(
-              'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150',
-              canSubmit
-                ? 'bg-primary text-white hover:bg-primary/90 shadow-sm hover:shadow-md scale-100'
-                : 'bg-muted/60 text-muted-foreground/40 scale-95'
-            )}
-          >
-            <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
-          </button>
+        {/* Bottom toolbar */}
+        <div className="flex items-center justify-between px-3 py-1.5">
+          {/* Left tools */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={disabled}
+              className="w-8 h-8 rounded-full border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={onToggleSettings}
+              className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center transition-all',
+                showSettings
+                  ? 'text-foreground bg-slate-100'
+                  : 'text-muted-foreground/60 hover:text-foreground'
+              )}
+            >
+              <Wrench className="w-3.5 h-3.5" strokeWidth={1.8} />
+            </button>
+          </div>
+
+          {/* Right tools */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={disabled}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-all"
+            >
+              <Mic className="w-3.5 h-3.5" strokeWidth={1.8} />
+            </button>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-150',
+                canSubmit
+                  ? 'bg-foreground text-white hover:bg-foreground/85 shadow-sm'
+                  : 'bg-muted/60 text-muted-foreground/30'
+              )}
+            >
+              <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />
+            </button>
+          </div>
         </div>
+      </div>
       </div>
     </form>
   );

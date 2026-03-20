@@ -1,18 +1,102 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, CollaborationTeam, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, COLLABORATION_TEAMS } from '@/types/expert';
 import { QuestionInput } from '@/components/QuestionInput';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
-import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageSquare, Zap, Users, Copy, Check, Square, LogOut, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/expert-discuss`;
+
+function mockRoute(question: string, candidates: Expert[]): { expert: Expert; reason: string } {
+  const q = question.toLowerCase();
+  const find = (id: string) => candidates.find(e => e.id === id);
+
+  if (/주식|투자|금융|경제|펀드|etf|코인|환율/.test(q))
+    return { expert: find('gpt') ?? candidates[0], reason: '금융·투자 분석 특화' };
+  if (/코드|코딩|개발|프로그래밍|javascript|python|typescript|버그|에러/.test(q))
+    return { expert: find('claude') ?? candidates[0], reason: '코딩·논리 추론 특화' };
+  if (/검색|최신|뉴스|오늘|날씨|요즘|트렌드|실시간/.test(q))
+    return { expert: find('perplexity') ?? candidates[0], reason: '검색·최신 정보 특화' };
+  if (/창작|아이디어|글쓰기|소설|시나리오|브레인스토밍|창의/.test(q))
+    return { expert: find('gemini') ?? candidates[0], reason: '창의·탐색 특화' };
+  if (/철학|윤리|사회|정치|역사|문화/.test(q))
+    return { expert: find('claude') ?? candidates[0], reason: '윤리·균형 분석 특화' };
+  if (/기술|ai|로봇|미래|혁신|스타트업/.test(q))
+    return { expert: find('grok') ?? candidates[0], reason: '기술·혁신 직설 분석 특화' };
+
+  return { expert: find('gpt') ?? candidates[0], reason: '범용 분석 및 구조적 답변' };
+}
+
+function buildCollaborationPrompt(p: {
+  role: string; mission: string; phaseLabel: string; phaseIndex: number; totalPhases: number;
+  roleInstruction: string; previousPhaseContext: string; deliverableTarget: string; teamName: string;
+}): string {
+  return `당신은 ${p.teamName}의 "${p.role}" 역할을 맡은 전문가입니다.
+
+=== 절대 규칙 ===
+- 오직 "${p.role}"의 관점에서만 발언하세요.
+- 다른 역할의 영역에 대해서는 의견을 내지 마세요.
+- 구체적인 수치, 예시, 근거를 포함하세요.
+${p.mission ? `\n=== 프로젝트 목표 ===\n${p.mission}\n` : ''}
+=== 현재 단계 (${p.phaseIndex + 1}/${p.totalPhases}) ===
+${p.phaseLabel}${p.deliverableTarget ? ` → 산출물: ${p.deliverableTarget}` : ''}
+${p.previousPhaseContext}
+=== 당신의 임무 ===
+${p.roleInstruction}
+
+마크다운 형식으로 답변하세요. 한국어로 답변하세요.`;
+}
+
+function buildDeliverablePrompt(p: {
+  mission: string; phaseLabel: string; deliverableName: string;
+  previousPhaseContext: string; teamName: string; roles: string[];
+}): string {
+  return `당신은 ${p.teamName}의 프로젝트 매니저입니다. 팀원들(${p.roles.join(', ')})의 의견을 종합하여 "${p.deliverableName}"을 작성합니다.
+${p.mission ? `\n프로젝트 목표: ${p.mission}\n` : ''}${p.previousPhaseContext}
+=== 작성 규칙 ===
+1. 각 역할의 핵심 기여를 빠짐없이 반영하되 하나의 통합 문서로 작성하세요.
+2. 역할 간 충돌이 있으면 양쪽 의견을 병기하고 권고안을 제시하세요.
+3. 다음 단계에서 활용할 수 있는 구체적 결론/합의사항을 명시하세요.
+4. 마크다운 형식으로 구조화하고 표/목록을 적극 활용하세요.
+5. 한국어로 작성하세요.
+
+# 📄 ${p.deliverableName}`;
+}
+
+function buildFinalReportPrompt(p: { mission: string; teamName: string; roles: string[] }): string {
+  return `당신은 ${p.teamName}의 총괄 책임자입니다. 모든 단계의 산출물과 팀원들의 기여를 종합 보고서로 통합합니다.
+${p.mission ? `\n프로젝트 목표: ${p.mission}\n` : ''}
+다음 형식으로 작성하세요:
+
+# 📋 프로젝트 종합 보고서
+
+## 프로젝트 개요
+(목표, 팀 구성, 진행 과정 요약)
+
+## 단계별 핵심 결과
+(각 단계 산출물의 핵심 내용 요약)
+
+## 역할별 기여
+| 역할 | 핵심 기여 | 담당 영역 |
+|------|----------|----------|
+${p.roles.map(r => `| ${r} | | |`).join('\n')}
+
+## 최종 결론 및 제안
+(모든 관점을 통합한 결론)
+
+## 다음 단계 (Next Steps)
+(구체적 실행 항목)
+
+> 💡 **한 줄 요약:** (핵심 결론)
+
+한국어로 작성하세요.`;
+}
 
 async function streamExpert({
   question, expert, previousResponses, round, onDelta, onDone, signal
@@ -70,10 +154,10 @@ async function streamExpert({
 }
 
 const Index = () => {
-  const { user, signOut } = useAuth();
+  useAuth();
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v6');
+      const saved = localStorage.getItem('ai-debate-experts-v16');
       if (saved) {
         const parsed = JSON.parse(saved) as Expert[];
         // Merge: keep saved customizations but add any new default experts
@@ -96,13 +180,22 @@ const Index = () => {
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [copiedAll, setCopiedAll] = useState(false);
   const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('general');
-  const [stopRequested, setStopRequested] = useState(false);
+  const [proconStances, setProconStances] = useState<Record<string, 'pro' | 'con'>>({});
+  const [debateSettings, setDebateSettings] = useState<DebateSettings>(DEFAULT_DEBATE_SETTINGS);
+  const [showDebateSettings, setShowDebateSettings] = useState(false);
+  const [selectedCollaborationTeam, setSelectedCollaborationTeam] = useState<CollaborationTeam | null>(null);
+  const [collaborationRoles, setCollaborationRoles] = useState<Record<string, string>>({});
+  const [collaborationMission, setCollaborationMission] = useState('');
+  const [selectedFramework, setSelectedFramework] = useState<ThinkingFramework | null>(null);
+  const [discussionIssues, setDiscussionIssues] = useState<DiscussionIssue[]>([]);
+  const [debateIntensity, setDebateIntensity] = useState('moderate');
+  const [, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v6', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v16', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
@@ -124,27 +217,29 @@ const Index = () => {
         return [id];
       }
       if (prev.includes(id)) {
-        if (prev.length <= 1) return prev;
+        if (prev.length <= 1 && discussionMode !== 'procon') return prev;
         return prev.filter((x) => x !== id);
       }
-      // Multi mode: max 5
-      if (getMainMode(discussionMode) === 'multi' && prev.length >= 5) return prev;
+      // Multi mode: max 3
+      if (getMainMode(discussionMode) === 'multi' && prev.length >= 3) return prev;
       return [...prev, id];
     });
   };
 
   const handleModeChange = (mode: DiscussionMode) => {
+    const prevMain = getMainMode(discussionMode);
+    const nextMain = getMainMode(mode);
     setDiscussionMode(mode);
-    const main = getMainMode(mode);
-    if (main === 'general') {
-      setSelectedExpertIds((prev) => {
-        const aiOnly = prev.filter((id) => {
-          const expert = experts.find((e) => e.id === id);
-          return expert?.category === 'ai';
-        });
-        return aiOnly.length > 0 ? [aiOnly[0]] : ['gpt'];
-      });
-    }
+    setSelectedExpertIds(nextMain === 'general' ? ['gpt'] : nextMain === 'multi' ? ['gpt'] : []);
+    setProconStances({});
+    setShowDebateSettings(false);
+    setSelectedCollaborationTeam(mode === 'collaboration' ? COLLABORATION_TEAMS[0] : null);
+    setCollaborationRoles({});
+    setCollaborationMission('');
+    setSelectedFramework(null);
+    setDiscussionIssues([]);
+    // suppress unused warning — prevMain used for future extension
+    void prevMain;
   };
 
   const copyAllResults = () => {
@@ -165,7 +260,7 @@ const Index = () => {
     setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, dislikes: (m.dislikes ?? 0) + 1 } : m));
   };
 
-  const handleRebuttal = useCallback(async (expertId: string, expertContent: string, userRebuttal: string) => {
+  const handleRebuttal = useCallback(async (expertId: string, _expertContent: string, userRebuttal: string) => {
     if (isDiscussing) return;
     const expert = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT].find((e) => e.id === expertId);
     if (!expert) return;
@@ -246,9 +341,31 @@ const Index = () => {
     setMessages([]);
     const allResponses: {name: string;content: string;}[] = [];
     const shouldStop = () => controller.signal.aborted;
+    const lengthExtra = debateSettings.responseLength === 'short'
+      ? '\n답변은 반드시 3-4문장으로 간결하게 작성하세요.'
+      : debateSettings.responseLength === 'long'
+      ? '\n답변은 풍부한 근거와 예시를 들어 충분히 상세하게 작성하세요.'
+      : '';
 
     if (useMode === 'general') {
-      for (const expert of discussionExperts) {
+      // Smart router: auto-select best AI
+      let expertsToRun = discussionExperts;
+      if (useIds.includes('router')) {
+        const routingId = `routing-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: routingId, expertId: 'router', content: '🔍 질문 분석 중...', isStreaming: true }]);
+        setActiveExpertId('router');
+        await new Promise(r => setTimeout(r, 1200));
+        if (shouldStop()) { setActiveExpertId(undefined); setIsDiscussing(false); setStopRequested(false); return; }
+        const candidates = experts.filter(e => e.id !== 'router' && e.category === 'ai');
+        const { expert: picked, reason } = mockRoute(question, candidates);
+        setMessages((prev) => prev.map(m => m.id === routingId
+          ? { ...m, content: `🎯 **${picked.nameKo}** 선택 — ${reason}`, isStreaming: false } : m));
+        expertsToRun = [picked];
+        setActiveExpertId(undefined);
+        await new Promise(r => setTimeout(r, 400));
+      }
+
+      for (const expert of expertsToRun) {
         if (shouldStop()) break;
         setActiveExpertId(expert.id);
         const msgId = `${expert.id}-general-${Date.now()}`;
@@ -346,11 +463,26 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
       saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
       return;
     } else if (useMode === 'standard') {
-      const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
-      for (const round of rounds) {
+      // Build issue & purpose context for system prompt
+      const purposeMap: Record<string, string> = {
+        explore: '\n다양한 관점과 가능성을 넓게 탐색하세요. 한 가지 결론에 급하게 도달하지 말고 여러 시각을 제시해주세요.',
+        analyze: '\n논리적 근거를 들어 깊이 분석하세요. 주장의 전제, 근거, 반론을 체계적으로 검토해주세요.',
+        consensus: '\n공통점을 찾고 합의 가능한 결론을 도출하는 데 집중하세요. 다른 전문가 의견의 장점을 인정하고 통합하세요.',
+      };
+      const intensityExtra = purposeMap[debateIntensity] || '';
+      const issueContext = (discussionIssues.length > 0
+        ? `\n\n이 토론의 핵심 논점은 다음과 같습니다:\n${discussionIssues.map((iss, i) => `${i+1}. ${iss.title}`).join('\n')}\n각 논점에 대해 명확한 입장을 밝히고 근거를 제시해주세요.`
+        : '') + intensityExtra;
+
+      const roundConfig = debateSettings.rounds === 2
+        ? [{ round: 'initial' as DiscussionRound, label: '1라운드 · 주장' }, { round: 'final' as DiscussionRound, label: '2라운드 · 최종 입장' }]
+        : debateSettings.rounds === 4
+        ? [{ round: 'initial' as DiscussionRound, label: '1라운드 · 초기 의견' }, { round: 'rebuttal' as DiscussionRound, label: '2라운드 · 반론' }, { round: 'rebuttal' as DiscussionRound, label: '3라운드 · 심층 반론' }, { round: 'final' as DiscussionRound, label: '4라운드 · 최종 입장' }]
+        : [{ round: 'initial' as DiscussionRound, label: ROUND_LABELS.initial }, { round: 'rebuttal' as DiscussionRound, label: ROUND_LABELS.rebuttal }, { round: 'final' as DiscussionRound, label: ROUND_LABELS.final }];
+      for (const { round, label } of roundConfig) {
         if (shouldStop()) break;
         const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
-        setMessages((prev) => [...prev, { id: `round-sep-${round}-${Date.now()}`, expertId: '__round__', content: ROUND_LABELS[round], round }]);
+        setMessages((prev) => [...prev, { id: `round-sep-${round}-${Date.now()}`, expertId: '__round__', content: label, round }]);
         for (const expert of roundExperts) {
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
@@ -358,7 +490,7 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert, previousResponses: allResponses, round,
+            await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + issueContext + lengthExtra }, previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal });
@@ -367,7 +499,7 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
             fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
-          allResponses.push({ name: `${expert.nameKo} (${ROUND_LABELS[round]})`, content: fullContent });
+          allResponses.push({ name: `${expert.nameKo} (${label})`, content: fullContent });
           await new Promise((r) => setTimeout(r, 500));
         }
       }
@@ -502,28 +634,27 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
           await new Promise((r) => setTimeout(r, 500));
         }
       }
-    } else if (useMode === 'creative') {
-      // Creative debate: 3 rounds with brainstorming focus
-      const rounds: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
-      const roundLabels = ['1라운드 · 아이디어 제시', '2라운드 · 아이디어 발전', '3라운드 · 최종 창의적 제안'];
-      for (let ri = 0; ri < rounds.length; ri++) {
+    } else if (useMode === 'brainstorm') {
+      // Use selected framework or default to 'free'
+      const fw = selectedFramework || THINKING_FRAMEWORKS.find(f => f.id === 'free')!;
+      const fwRounds = fw.rounds;
+      const roundMap: DiscussionRound[] = ['initial', 'rebuttal', 'final', 'rebuttal', 'final', 'rebuttal'];
+
+      for (let ri = 0; ri < fwRounds.length; ri++) {
         if (shouldStop()) break;
-        const round = rounds[ri];
+        const fwRound = fwRounds[ri];
+        const round = roundMap[ri] || 'rebuttal';
         const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
-        setMessages((prev) => [...prev, { id: `round-sep-creative-${ri}-${Date.now()}`, expertId: '__round__', content: roundLabels[ri], round }]);
+        setMessages((prev) => [...prev, { id: `round-sep-brainstorm-${ri}-${Date.now()}`, expertId: '__round__', content: fwRound.label, round }]);
         for (const expert of roundExperts) {
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
-          const extras = [
-          '\n\n창의적 토론입니다. 기존의 틀을 깨는 독창적이고 파격적인 아이디어를 자유롭게 제시해주세요. 실현 가능성보다 창의성을 우선하세요.',
-          '\n\n2라운드입니다. 다른 참여자들의 아이디어를 조합하거나 발전시켜 더 혁신적인 제안을 만들어주세요. "만약 ~라면?" 식의 사고실험도 좋습니다.',
-          '\n\n마지막 라운드입니다. 지금까지 나온 아이디어 중 가장 흥미로운 것을 선택하여 구체화하거나, 완전히 새로운 통합 아이디어를 제안해주세요.'];
-
-          const msgId = `${expert.id}-creative-${ri}-${Date.now()}`;
+          const extra = `\n\n[${fw.nameKo}] ${fwRound.label}\n${fwRound.instruction}`;
+          const msgId = `${expert.id}-brainstorm-${ri}-${Date.now()}`;
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extras[ri] }, previousResponses: allResponses, round,
+            await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra + lengthExtra }, previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal });
@@ -532,26 +663,53 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
             fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
-          allResponses.push({ name: `${expert.nameKo} (${roundLabels[ri]})`, content: fullContent });
+          allResponses.push({ name: `${expert.nameKo} (${fwRound.label})`, content: fullContent });
           await new Promise((r) => setTimeout(r, 500));
         }
       }
-    } else if (useMode === 'endless') {
-      const maxRounds = 5;
-      for (let r = 1; r <= maxRounds; r++) {
+    } else if (useMode === 'collaboration') {
+      const team = selectedCollaborationTeam;
+      const roles = collaborationRoles;
+      const mission = collaborationMission;
+      const phases = team?.phases || [
+        { id: 'r1', label: '각 역할별 의견', instruction: '각자의 역할 관점에서 의견을 제시해주세요.', deliverable: '', description: '' },
+        { id: 'r2', label: '상호 피드백', instruction: '다른 역할의 의견에 대해 피드백을 제시해주세요.', deliverable: '', description: '' },
+        { id: 'r3', label: '종합 결론', instruction: '모든 의견을 종합하여 최종 결론을 도출해주세요.', deliverable: '', description: '' },
+      ];
+      const roundMap: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
+      const phaseDeliverables: { phaseLabel: string; deliverable: string; content: string }[] = [];
+
+      for (let pi = 0; pi < phases.length; pi++) {
         if (shouldStop()) break;
-        const round: DiscussionRound = r === 1 ? 'initial' : r === maxRounds ? 'final' : 'rebuttal';
-        setMessages((prev) => [...prev, { id: `round-sep-${r}-${Date.now()}`, expertId: '__round__', content: `${r}라운드`, round }]);
-        const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
-        for (const expert of shuffled) {
+        const phase = phases[pi];
+        const round = roundMap[pi] || 'final';
+
+        // Build previous phase context from deliverables
+        const previousPhaseContext = phaseDeliverables.length > 0
+          ? '\n\n=== 이전 단계 산출물 ===\n' + phaseDeliverables.map(d => `[${d.phaseLabel} - ${d.deliverable}]:\n${d.content}`).join('\n---\n') + '\n=== 끝 ===\n'
+          : '';
+
+        const phaseLabel = phase.deliverable
+          ? `${pi + 1}단계 · ${phase.label} → 📄 ${phase.deliverable}`
+          : `${pi + 1}단계 · ${phase.label}`;
+        setMessages((prev) => [...prev, { id: `round-sep-collab-${pi}-${Date.now()}`, expertId: '__round__', content: phaseLabel, round }]);
+
+        for (const expert of discussionExperts) {
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
-          const extra = r === 1 ? '\n\n끝장 토론입니다. 강한 입장을 취해주세요.' : `\n\n끝장 토론 ${r}라운드입니다. 합의점을 찾거나 강하게 주장해주세요.`;
-          const msgId = `${expert.id}-endless-${r}-${Date.now()}`;
+          const role = roles[expert.id] || '협력팀원';
+          const roleInstruction = phase.roleInstructions?.[role] || phase.instruction;
+
+          const collabPrompt = buildCollaborationPrompt({
+            role, mission, phaseLabel: phase.label, phaseIndex: pi, totalPhases: phases.length,
+            roleInstruction, previousPhaseContext, deliverableTarget: phase.deliverable, teamName: team?.name || '협업팀',
+          });
+
+          const msgId = `${expert.id}-collab-${pi}-${Date.now()}`;
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra }, previousResponses: allResponses, round,
+            await streamExpert({ question, expert: { ...expert, systemPrompt: collabPrompt + lengthExtra }, previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal });
@@ -560,13 +718,92 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
             fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
-          allResponses.push({ name: `${expert.nameKo} (${r}라운드)`, content: fullContent });
+          allResponses.push({ name: `${expert.nameKo} (${role}, ${phase.label})`, content: fullContent });
+          await new Promise((r) => setTimeout(r, 500));
+        }
+
+        // Generate deliverable with enhanced prompt
+        if (phase.deliverable && !shouldStop()) {
+          const delivPrompt = buildDeliverablePrompt({
+            mission, phaseLabel: phase.label, deliverableName: phase.deliverable,
+            previousPhaseContext, teamName: team?.name || '협업팀', roles: Object.values(roles),
+          });
+          const delivId = `deliverable-${pi}-${Date.now()}`;
+          setMessages((prev) => [...prev, { id: delivId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, round }]);
+          setActiveExpertId(SUMMARIZER_EXPERT.id);
+          let delivContent = '';
+          try {
+            await streamExpert({
+              question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: delivPrompt },
+              previousResponses: allResponses, round: 'summary' as DiscussionRound,
+              onDelta: (chunk) => { delivContent += chunk; setMessages((prev) => prev.map((m) => m.id === delivId ? { ...m, content: delivContent } : m)); },
+              onDone: () => { setMessages((prev) => prev.map((m) => m.id === delivId ? { ...m, isStreaming: false, isSummary: true } : m)); },
+              signal: controller.signal
+            });
+          } catch (err) {
+            if ((err as Error).name !== 'AbortError') {
+              delivContent = `⚠️ 산출물 생성 실패`;
+              setMessages((prev) => prev.map((m) => m.id === delivId ? { ...m, content: delivContent, isStreaming: false } : m));
+            }
+          }
+          phaseDeliverables.push({ phaseLabel: phase.label, deliverable: phase.deliverable, content: delivContent });
+          allResponses.push({ name: `📄 ${phase.deliverable}`, content: delivContent });
           await new Promise((r) => setTimeout(r, 500));
         }
       }
+
+      // Final comprehensive report
+      if (!shouldStop() && debateSettings.includeConclusion) {
+        const finalId = `final-report-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: `round-sep-final-${Date.now()}`, expertId: '__round__', content: '📋 종합 보고서', round: 'final' }]);
+        setMessages((prev) => [...prev, { id: finalId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, round: 'final' }]);
+        setActiveExpertId(CONCLUSION_EXPERT.id);
+        let finalContent = '';
+        try {
+          await streamExpert({
+            question, expert: { ...CONCLUSION_EXPERT, systemPrompt: buildFinalReportPrompt({ mission, teamName: team?.name || '협업팀', roles: Object.values(roles) }) },
+            previousResponses: allResponses, round: 'summary' as DiscussionRound,
+            onDelta: (chunk) => { finalContent += chunk; setMessages((prev) => prev.map((m) => m.id === finalId ? { ...m, content: finalContent } : m)); },
+            onDone: () => { setMessages((prev) => prev.map((m) => m.id === finalId ? { ...m, isStreaming: false, isSummary: true } : m)); },
+            signal: controller.signal
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            setMessages((prev) => prev.map((m) => m.id === finalId ? { ...m, content: '⚠️ 종합 보고서 생성 실패', isStreaming: false } : m));
+          }
+        }
+      }
+    } else if (useMode === 'assistant') {
+      // Assistant mode: single expert answers directly (same as general but for assistant category)
+      const expert = discussionExperts[0];
+      if (expert) {
+        setActiveExpertId(expert.id);
+        const msgId = `${expert.id}-assistant-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+        let fullContent = '';
+        try {
+          await streamExpert({
+            question, expert,
+            previousResponses: [],
+            round: 'initial',
+            onDelta: (chunk) => { fullContent += chunk; setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m)); },
+            onDone: () => { setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`, isStreaming: false } : m));
+          }
+        }
+      }
+      setActiveExpertId(undefined);
+      setIsDiscussing(false);
+      setStopRequested(false);
+      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
+      return;
     }
 
-    if (!shouldStop()) {
+    if (!shouldStop() && debateSettings.includeConclusion) {
       // Summary
       setActiveExpertId(SUMMARIZER_EXPERT.id);
       const summaryId = `summary-${Date.now()}`;
@@ -646,7 +883,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
     setActiveExpertId(undefined);
     setIsDiscussing(false);
     setStopRequested(false);
-  }, [experts, selectedExpertIds, discussionMode]);
+  }, [experts, selectedExpertIds, discussionMode, debateSettings]);
 
   // Save to history when discussion completes
   useEffect(() => {
@@ -671,9 +908,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const isDone = messages.length > 0 && !isDiscussing;
   const selectable = !isDiscussing && messages.length === 0;
 
-  const userInitial = user?.email?.[0]?.toUpperCase() || user?.user_metadata?.full_name?.[0] || '?';
-  const userAvatar = user?.user_metadata?.avatar_url;
-
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="h-screen flex w-full bg-[#f7f8fa]">
@@ -685,20 +919,13 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           onModeChange={handleModeChange}
           isDiscussing={isDiscussing} />
 
-        {/* Sidebar trigger — fixed top-left corner */}
-        <div className="fixed top-3 left-3 z-50">
-          <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted/80 bg-white/80 backdrop-blur-sm border border-border/50 rounded-lg p-1.5 transition-colors shadow-sm" />
-        </div>
 
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-          {/* Top spacing */}
-          <div className="h-28 shrink-0" />
-
           {/* Main scroll area */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className={cn(
-              'mx-auto px-4 sm:px-6 pt-2 pb-6 space-y-3',
-              selectable ? 'max-w-3xl' : 'max-w-2xl'
+              'mx-auto px-4 sm:px-6 pt-24 pb-6 space-y-3',
+              selectable ? 'max-w-2xl' : 'max-w-xl'
             )}>
 
               {selectable && (
@@ -711,6 +938,23 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   isDiscussing={isDiscussing}
                   onSuggestedQuestion={handleSuggestedQuestion}
                   onSubmit={startDiscussion}
+                  proconStances={proconStances}
+                  onProconStancesChange={setProconStances}
+                  debateSettings={debateSettings}
+                  onDebateSettingsChange={setDebateSettings}
+                  showDebateSettings={showDebateSettings}
+                  selectedCollaborationTeam={selectedCollaborationTeam}
+                  onCollaborationTeamChange={setSelectedCollaborationTeam}
+                  collaborationRoles={collaborationRoles}
+                  onCollaborationRolesChange={setCollaborationRoles}
+                  selectedFramework={selectedFramework}
+                  onFrameworkChange={setSelectedFramework}
+                  discussionIssues={discussionIssues}
+                  onDiscussionIssuesChange={setDiscussionIssues}
+                  debateIntensity={debateIntensity}
+                  onDebateIntensityChange={setDebateIntensity}
+                  collaborationMission={collaborationMission}
+                  onCollaborationMissionChange={setCollaborationMission}
                 />
               )}
 
@@ -732,6 +976,32 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         {copiedAll ? '복사됨' : '전체 복사'}
                       </Button>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Participants display for debate modes */}
+              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
+                <div className="rounded-2xl px-4 py-2.5 border border-border bg-slate-50 card-shadow">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                    {discussionMode === 'standard' && '토론자'}
+                    {discussionMode === 'procon' && '토론자'}
+                    {discussionMode === 'brainstorm' && '참여자'}
+                    {discussionMode === 'collaboration' && '협업팀'}
+                  </span>
+                  <div className="flex flex-wrap gap-2 mt-1.5">
+                    {activeExperts.map((expert) => {
+                      const role =
+                        discussionMode === 'collaboration' ? collaborationRoles[expert.id] :
+                        discussionMode === 'procon' ? (proconStances[expert.id] === 'pro' ? '찬성' : '반대') :
+                        undefined;
+                      return (
+                        <div key={expert.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-border text-[11px] font-medium text-slate-700">
+                          <span>{expert.nameKo}</span>
+                          {role && <span className="text-muted-foreground">({role})</span>}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -813,30 +1083,48 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
             <div className="shrink-0 border-t border-border bg-white">
               <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 space-y-2">
                 {activeExperts.length > 0 && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] text-muted-foreground font-medium shrink-0">참여 전문가</span>
-                    {activeExperts.slice(0, 8).map(expert => (
-                      <span
-                        key={expert.id}
-                        className={cn(
-                          'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border',
-                          activeExpertId === expert.id
-                            ? 'bg-primary/10 border-primary/20 text-primary'
-                            : 'bg-muted/40 border-border text-muted-foreground'
-                        )}
-                      >
-                        {expert.nameKo}
+                  (discussionMode === 'standard' || discussionMode === 'brainstorm') ? (
+                    <div className="flex items-center gap-2.5">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
+                        {discussionMode === 'standard' ? '토론자' : '참여자'}
                       </span>
-                    ))}
-                    {activeExperts.length > 8 && (
-                      <span className="text-[10px] text-muted-foreground">+{activeExperts.length - 8}</span>
-                    )}
-                  </div>
+                      <div className="flex items-center gap-1.5">
+                        {activeExperts.map((e, i) => (
+                          <span key={e.id} className="inline-flex items-center gap-1.5">
+                            <span className="text-[13px] font-semibold text-slate-800">{e.nameKo}</span>
+                            {i < activeExperts.length - 1 && <span className="text-slate-300">·</span>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground font-medium shrink-0">참여 전문가</span>
+                      {activeExperts.slice(0, 8).map(expert => (
+                        <span
+                          key={expert.id}
+                          className={cn(
+                            'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border',
+                            activeExpertId === expert.id
+                              ? 'bg-primary/10 border-primary/20 text-primary'
+                              : 'bg-muted/40 border-border text-muted-foreground'
+                          )}
+                        >
+                          {expert.nameKo}
+                        </span>
+                      ))}
+                      {activeExperts.length > 8 && (
+                        <span className="text-[10px] text-muted-foreground">+{activeExperts.length - 8}</span>
+                      )}
+                    </div>
+                  )
                 )}
                 <QuestionInput
                   onSubmit={startDiscussion}
                   disabled={isDiscussing || activeExperts.length < 1}
                   discussionMode={discussionMode}
+                  onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
+                  showSettings={showDebateSettings}
                 />
               </div>
             </div>
