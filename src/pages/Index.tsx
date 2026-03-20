@@ -979,7 +979,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className={cn(
               'mx-auto px-4 sm:px-6 pt-24 pb-6 space-y-3',
-              selectable ? 'max-w-3xl' : 'max-w-xl'
+              !selectable ? 'max-w-xl'
+                : (discussionMode === 'assistant' || discussionMode === 'expert') ? 'max-w-4xl'
+                : 'max-w-2xl'
             )}>
 
               {selectable && (
