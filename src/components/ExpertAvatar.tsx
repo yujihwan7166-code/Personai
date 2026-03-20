@@ -62,7 +62,28 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
     );
   }
 
-  // Fallback: colored circle with initials
+  // Emoji icon mode: if expert has an icon emoji, show it on a subtle colored bg
+  if (expert.icon) {
+    const emojiSizeClasses = {
+      sm: 'w-7 h-7 text-[14px]',
+      md: 'w-10 h-10 text-[18px]',
+      lg: 'w-12 h-12 text-[22px]',
+      xl: 'w-14 h-14 text-[26px]',
+    };
+    const colorClass = active ? activeSolidBg[expert.color] : solidBg[expert.color];
+    return (
+      <div className={cn(
+        'rounded-full flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+        emojiSizeClasses[size],
+        colorClass,
+        active && 'scale-105'
+      )}>
+        {expert.icon}
+      </div>
+    );
+  }
+
+  // Last fallback: colored circle with initials
   const words = expert.nameKo.trim().split(/\s+/);
   const initials = words.length >= 2
     ? (words[0][0] + words[1][0]).toUpperCase()
