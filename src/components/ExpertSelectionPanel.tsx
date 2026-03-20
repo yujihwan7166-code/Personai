@@ -627,10 +627,10 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
   ];
 
   return (
-    <div className="border border-slate-300 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center gap-2">
+    <div className="border border-emerald-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
+      <div className="px-4 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2">
         <span className="text-sm">🏛️</span>
-        <div className="text-[13px] font-bold text-slate-800">청문회</div>
+        <div className="text-[13px] font-bold text-emerald-800">청문회</div>
       </div>
 
       <div className="p-4 space-y-4">
