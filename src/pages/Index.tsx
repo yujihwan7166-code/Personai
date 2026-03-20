@@ -1015,6 +1015,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   onDebateIntensityChange={setDebateIntensity}
                   collaborationMission={collaborationMission}
                   onCollaborationMissionChange={setCollaborationMission}
+                  onBulkSelect={setSelectedExpertIds}
                 />
               )}
 
