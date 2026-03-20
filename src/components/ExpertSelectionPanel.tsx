@@ -286,10 +286,10 @@ function ProconSettingsPanel({ experts, proconStances, dragOver, draggedId, setD
   const roundsEnabled = ds.debateFormat === 'alternating';
 
   return (
-    <div className="border border-rose-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-rose-50 border-b border-rose-100 flex items-center gap-2">
+    <div className="border border-violet-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
+      <div className="px-4 py-2.5 bg-violet-50 border-b border-violet-100 flex items-center gap-2">
         <span className="text-sm">⚖️</span>
-        <div className="text-[13px] font-bold text-rose-800">찬반 토론</div>
+        <div className="text-[13px] font-bold text-violet-800">찬반 토론</div>
       </div>
       <div className="p-4 space-y-4">
         {/* Drag zones */}
