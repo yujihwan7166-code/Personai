@@ -127,4 +127,55 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
   }
+
+  /* Static gradient border */
+  .static-gradient-border {
+    background: linear-gradient(135deg, #fda4af, #c4b5fd, #93c5fd, #6ee7b7);
+    padding: 1.5px;
+  }
+
+  /* Animated gradient border */
+  @property --gradient-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  @keyframes gradient-spin {
+    to { --gradient-angle: 360deg; }
+  }
+
+  .input-gradient-border {
+    background: conic-gradient(
+      from var(--gradient-angle),
+      #fda4af,
+      #c4b5fd,
+      #93c5fd,
+      #6ee7b7,
+      #fda4af
+    );
+    animation: gradient-spin 8s linear infinite;
+    border-radius: 1rem;
+    padding: 1.5px;
+    transition: opacity 0.2s;
+  }
+
+  .input-gradient-border-disabled {
+    background: #e2e8f0;
+    border-radius: 1rem;
+    padding: 1.5px;
+  }
+
+  @keyframes drag-hint {
+    0%   { transform: translateX(0); }
+    20%  { transform: translateX(-4px) rotate(-3deg); }
+    40%  { transform: translateX(4px) rotate(3deg); }
+    60%  { transform: translateX(-3px) rotate(-2deg); }
+    80%  { transform: translateX(3px) rotate(2deg); }
+    100% { transform: translateX(0); }
+  }
+
+  .animate-drag-hint {
+    animation: drag-hint 0.45s ease;
+  }
 }
