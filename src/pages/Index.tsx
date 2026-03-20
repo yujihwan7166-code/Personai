@@ -233,7 +233,7 @@ const Index = () => {
     setSelectedExpertIds(nextMain === 'general' ? ['gpt'] : nextMain === 'multi' ? ['gpt'] : []);
     setProconStances({});
     setShowDebateSettings(false);
-    setSelectedCollaborationTeam(mode === 'collaboration' ? COLLABORATION_TEAMS[0] : null);
+    setSelectedCollaborationTeam(null);
     setCollaborationRoles({});
     setCollaborationMission('');
     setSelectedFramework(null);
@@ -667,6 +667,57 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
           await new Promise((r) => setTimeout(r, 500));
         }
       }
+    } else if (useMode === 'socratic') {
+      // Socratic dialogue: 4 phases of deep questioning and exploration
+      const styleInstructions: Record<string, string> = {
+        inquiry: '깊이 있는 탐구 질문을 통해 본질을 파고드세요. "왜?", "어떻게?", "정말 그런가?" 형식의 질문을 중심으로 접근하세요.',
+        challenge: '기존 전제와 통념에 도전하는 질문을 제시하세요. "이것이 당연한가?", "반대 경우는?" 형식으로 사고를 확장하세요.',
+        clarification: '핵심 개념을 정밀하게 정의하고 논리적 엄밀함을 추구하세요. "이 개념은 정확히 무엇을 의미하는가?" 형식으로 접근하세요.',
+      };
+      const depthExtra: Record<string, string> = {
+        surface: '입문자도 이해할 수 있는 수준으로, 핵심 개념만 간결하게 다루세요.',
+        moderate: '중급 수준으로 다양한 관점을 탐구하되 접근하기 쉽게 설명하세요.',
+        deep: '철학적·근본적 수준으로 깊이 파고들어 숨겨진 전제까지 탐구하세요.',
+      };
+      const socStyle = debateSettings.socraticStyle || 'inquiry';
+      const socDepth = debateSettings.socraticDepth || 'moderate';
+      const styleExtra = `\n\n[탐구 방식: ${styleInstructions[socStyle]}]\n[탐구 깊이: ${depthExtra[socDepth]}]`;
+
+      const socraticPhases = [
+        { label: '핵심 질문 제기', round: 'initial' as const, instruction: `이 주제와 관련하여 당신이 가장 중요하다고 생각하는 근본적인 질문 하나를 제시하세요. 바로 답하지 말고, 그 질문이 왜 중요한지 설명하고 독자가 스스로 생각하게 유도하세요.${styleExtra}` },
+        { label: '가정 검토', round: 'rebuttal' as const, instruction: `이전 참여자들의 질문에 담긴 숨겨진 가정과 전제를 분석하세요. "이 질문은 ~를 당연하게 여기는데, 과연 그런가?" 형식으로 접근하고 맹점을 지적하세요.${styleExtra}` },
+        { label: '개념 명확화', round: 'rebuttal' as const, instruction: `지금까지 사용된 핵심 개념들을 더 정밀하게 재정의하세요. 모호함을 제거하고 개념의 경계를 명확히 설정하세요. 필요하다면 구분이 필요한 유사 개념들을 나열하세요.${styleExtra}` },
+        { label: '통찰 도출', round: 'final' as const, instruction: `지금까지의 질문, 가정 검토, 개념 명확화 과정을 종합하여 이 주제에 대한 깊은 통찰을 도출하세요. 단순한 정답이 아니라 더 명확하게 이해된 진실을 제시하세요.${styleExtra}` },
+      ];
+
+      for (const phase of socraticPhases) {
+        if (shouldStop()) break;
+        const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
+        setMessages(prev => [...prev, { id: `round-sep-socratic-${phase.label}-${Date.now()}`, expertId: '__round__', content: phase.label, round: phase.round }]);
+        for (const expert of roundExperts) {
+          if (shouldStop()) break;
+          setActiveExpertId(expert.id);
+          const msgId = `${expert.id}-socratic-${phase.label}-${Date.now()}`;
+          setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round: phase.round }]);
+          let fullContent = '';
+          try {
+            await streamExpert({
+              question,
+              expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n' + phase.instruction + lengthExtra },
+              previousResponses: allResponses, round: phase.round,
+              onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
+              onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+              signal: controller.signal,
+            });
+          } catch (err) {
+            if ((err as Error).name === 'AbortError') break;
+            fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+          }
+          allResponses.push({ name: `${expert.nameKo} (${phase.label})`, content: fullContent });
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
     } else if (useMode === 'collaboration') {
       const team = selectedCollaborationTeam;
       const roles = collaborationRoles;
@@ -981,12 +1032,13 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               )}
 
               {/* Participants display for debate modes */}
-              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
+              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'socratic', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
                 <div className="rounded-2xl px-4 py-2.5 border border-border bg-slate-50 card-shadow">
                   <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
                     {discussionMode === 'standard' && '토론자'}
                     {discussionMode === 'procon' && '토론자'}
                     {discussionMode === 'brainstorm' && '참여자'}
+                    {discussionMode === 'socratic' && '탐구자'}
                     {discussionMode === 'collaboration' && '협업팀'}
                   </span>
                   <div className="flex flex-wrap gap-2 mt-1.5">
@@ -1083,10 +1135,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
             <div className="shrink-0 border-t border-border bg-white">
               <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 space-y-2">
                 {activeExperts.length > 0 && (
-                  (discussionMode === 'standard' || discussionMode === 'brainstorm') ? (
+                  (discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'socratic') ? (
                     <div className="flex items-center gap-2.5">
                       <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
-                        {discussionMode === 'standard' ? '토론자' : '참여자'}
+                        {discussionMode === 'standard' ? '토론자' : discussionMode === 'socratic' ? '탐구자' : '참여자'}
                       </span>
                       <div className="flex items-center gap-1.5">
                         {activeExperts.map((e, i) => (
