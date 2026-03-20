@@ -605,6 +605,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
 }) {
+  const [showDetail, setShowDetail] = useState(false);
   const ds = debateSettings!;
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
   const selected = experts.filter(e => selectedIds.includes(e.id));
@@ -622,40 +623,13 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
     { id: 'ethics' as const, label: '윤리', icon: '⚖️', desc: '윤리·도덕적 타당성' },
   ];
 
-  const phases = [
-    { icon: '📋', label: '모두발언', color: 'bg-slate-50 border-slate-200', desc: '주제의 핵심을 발표하고 입장 정리' },
-    { icon: '🎤', label: '전문가 질의', color: 'bg-amber-50 border-amber-100', desc: '전문가들이 각 분야에서 날카롭게 질문' },
-    { icon: '🔥', label: '추가 심문', color: 'bg-red-50 border-red-100', desc: '약점이 드러난 부분 집중 추궁' },
-    { icon: '⚖️', label: '최종 평가', color: 'bg-emerald-50 border-emerald-100', desc: '전문가들의 판정과 결론' },
-  ];
-
   return (
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center gap-2.5">
-        <span className="text-lg">🏛️</span>
-        <div>
-          <div className="text-[13px] font-bold text-white">청문회</div>
-          <div className="text-[10px] text-slate-300">전문가들이 날카로운 질문으로 검증</div>
-        </div>
+      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+        <div className="text-[13px] font-bold text-slate-700">청문회 설정</div>
       </div>
 
-      <div className="p-4 space-y-5">
-        {/* Phase preview */}
-        <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2.5">청문회 진행</div>
-          <div className="grid grid-cols-2 gap-2">
-            {phases.map((p, i) => (
-              <div key={i} className={cn('flex items-start gap-2 p-2.5 rounded-lg border', p.color)}>
-                <span className="text-base shrink-0">{p.icon}</span>
-                <div>
-                  <div className="text-[10px] font-bold text-slate-700">{i + 1}. {p.label}</div>
-                  <div className="text-[9px] text-slate-400 mt-0.5 leading-snug">{p.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      <div className="p-4 space-y-4">
         {/* Questioners */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -686,11 +660,10 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
           <div className="flex gap-2">
             {pressureOptions.map(opt => (
               <button key={opt.id} onClick={() => update({ hearingPressure: opt.id })}
-                className={cn('flex-1 py-2.5 rounded-lg border text-center transition-all',
-                  ds.hearingPressure === opt.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
-                <div className="text-[14px] mb-0.5">{opt.icon}</div>
-                <div className="text-[11px] font-bold">{opt.label}</div>
-                <div className={cn('text-[9px] mt-0.5', ds.hearingPressure === opt.id ? 'text-slate-400' : 'text-slate-400')}>{opt.desc}</div>
+                className={cn('flex-1 px-3 py-2.5 rounded-lg text-center transition-all border',
+                  ds.hearingPressure === opt.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
+                <div className="text-[12px] font-bold">{opt.label}</div>
+                <div className="text-[9px] opacity-70 mt-0.5">{opt.desc}</div>
               </button>
             ))}
           </div>
@@ -699,39 +672,44 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
         {/* Focus area */}
         <div>
           <div className="text-[11px] font-bold text-slate-600 mb-2">검증 초점</div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {focusOptions.map(opt => (
               <button key={opt.id} onClick={() => update({ hearingFocus: opt.id })}
-                className={cn('p-2.5 rounded-lg border text-left transition-all flex items-start gap-2',
-                  ds.hearingFocus === opt.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
-                <span className="text-[16px] shrink-0">{opt.icon}</span>
-                <div>
-                  <div className="text-[11px] font-bold">{opt.label}</div>
-                  <div className={cn('text-[9px] mt-0.5', ds.hearingFocus === opt.id ? 'text-slate-400' : 'text-slate-400')}>{opt.desc}</div>
-                </div>
+                className={cn('px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all border flex items-center gap-1.5',
+                  ds.hearingFocus === opt.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400')}>
+                {ds.hearingFocus === opt.id && <Check className="w-3 h-3" />}{opt.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Settings */}
-        <div className="pt-1 border-t border-slate-100 space-y-2.5">
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0">답변 길이</span>
-            <div className="flex gap-1 flex-1">
-              {(['short', 'medium', 'long'] as const).map(v => (
-                <button key={v} onClick={() => update({ responseLength: v })}
-                  className={cn('flex-1 py-1.5 rounded-md text-[10px] font-medium text-center transition-all', ds.responseLength === v ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
-                  {v === 'short' ? '짧게' : v === 'medium' ? '보통' : '길게'}
-                </button>
-              ))}
+        {/* Settings toggle */}
+        <button onClick={() => setShowDetail(!showDetail)}
+          className="flex items-center gap-1.5 py-1.5 px-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 transition-all">
+          세부 설정 {showDetail ? '접기 ▲' : '펼치기 ▼'}
+        </button>
+        {showDetail && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0">답변 길이</span>
+              <div className="flex gap-1 flex-1">
+                {(['short', 'medium', 'long'] as const).map(v => (
+                  <button key={v} onClick={() => update({ responseLength: v })}
+                    className={cn('flex-1 py-1.5 rounded-md text-[10px] font-medium text-center transition-all', ds.responseLength === v ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
+                    {v === 'short' ? '짧게' : v === 'medium' ? '보통' : '길게'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold text-slate-700">최종 판정 포함</p>
+                <p className="text-[9px] text-slate-400">청문 종료 후 종합 평가 생성</p>
+              </div>
+              <Toggle checked={ds.includeConclusion} onChange={v => update({ includeConclusion: v })} />
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500">최종 판정 포함</span>
-            <Toggle checked={ds.includeConclusion} onChange={v => update({ includeConclusion: v })} />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
