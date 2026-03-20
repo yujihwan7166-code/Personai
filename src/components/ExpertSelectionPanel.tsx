@@ -150,9 +150,10 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
   };
 
   return (
-    <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-        <div className="text-[13px] font-bold text-slate-700">심층 토론 설정</div>
+    <div className="border border-indigo-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
+      <div className="px-4 py-2.5 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+        <span className="text-sm">🎯</span>
+        <div className="text-[13px] font-bold text-indigo-800">심층 토론</div>
       </div>
       <div className="p-4 space-y-4">
         {/* Debaters */}
@@ -285,9 +286,10 @@ function ProconSettingsPanel({ experts, proconStances, dragOver, draggedId, setD
   const roundsEnabled = ds.debateFormat === 'alternating';
 
   return (
-    <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-        <div className="text-[13px] font-bold text-slate-700">찬반 토론 설정</div>
+    <div className="border border-rose-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
+      <div className="px-4 py-2.5 bg-rose-50 border-b border-rose-100 flex items-center gap-2">
+        <span className="text-sm">⚖️</span>
+        <div className="text-[13px] font-bold text-rose-800">찬반 토론</div>
       </div>
       <div className="p-4 space-y-4">
         {/* Drag zones */}
@@ -471,9 +473,10 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
 
   return (
-    <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-        <div className="text-[13px] font-bold text-slate-700">브레인스토밍 설정</div>
+    <div className="border border-amber-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
+      <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+        <span className="text-sm">💡</span>
+        <div className="text-[13px] font-bold text-amber-800">브레인스토밍</div>
       </div>
       <div className="p-4 space-y-4">
         {/* Participants */}
@@ -624,9 +627,10 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
   ];
 
   return (
-    <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-        <div className="text-[13px] font-bold text-slate-700">청문회 설정</div>
+    <div className="border border-slate-300 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
+      <div className="px-4 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center gap-2">
+        <span className="text-sm">🏛️</span>
+        <div className="text-[13px] font-bold text-slate-800">청문회</div>
       </div>
 
       <div className="p-4 space-y-4">
