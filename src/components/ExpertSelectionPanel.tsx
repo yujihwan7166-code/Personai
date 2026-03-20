@@ -62,7 +62,7 @@ interface Props {
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'expert', 'debate', 'assistant'];
-const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'socratic'];
+const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'roleplay'];
 
 const mainModeLabels: Record<MainMode, string> = {
   general: '단일 AI',
@@ -76,7 +76,7 @@ const debateSubIcons: Record<DebateSubMode, React.ReactNode> = {
   standard: <Target className="w-3 h-3" />,
   procon: <Scale className="w-3 h-3" />,
   brainstorm: <Lightbulb className="w-3 h-3" />,
-  socratic: <Search className="w-3 h-3" />,
+  roleplay: <Users className="w-3 h-3" />,
 };
 
 function useTypewriter(text: string, speed = 40) {
@@ -427,65 +427,27 @@ function ProconSettingsPanel({ experts, proconStances, dragOver, draggedId, setD
                     ))}
                   </div>
                 </div>
-                {/* 논거 수 */}
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-semibold text-slate-600 w-12 shrink-0">논거 수</span>
-                  <input type="range" min={1} max={5} value={ds.evidenceCount}
-                    onChange={e => update({ evidenceCount: Number(e.target.value) })}
-                    className="flex-1 h-1.5 rounded-full accent-slate-800" />
-                  <span className="text-[10px] font-bold text-slate-600 w-5 text-right shrink-0">{ds.evidenceCount}개</span>
-                </div>
               </div>
             </div>
 
             {/* Section 3: 추가 옵션 */}
-            <div className="px-4 py-3 border-b border-slate-100">
+            <div className="px-4 py-3">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">추가 옵션</p>
               <div className="space-y-2.5">
                 {[
                   { key: 'includeRebuttal' as const, label: '반론 포함', desc: '상대 주장에 직접 반박하는 라운드 추가' },
                   { key: 'showSources' as const, label: '근거 출처 표시', desc: '주장마다 참고 근거나 예시 명시' },
                   { key: 'allowEmotional' as const, label: '감정적 호소 허용', desc: '논리 외 감성적 언어 사용 허용' },
+                  { key: 'includeConclusion' as const, label: '승패 판정', desc: 'AI가 토론 종료 후 승패를 판정' },
                 ].map(opt => (
                   <div key={opt.key} className="flex items-center justify-between gap-3">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-[11px] font-semibold text-slate-700">{opt.label}</p>
                       <p className="text-[9px] text-slate-400">{opt.desc}</p>
                     </div>
                     <Toggle checked={ds[opt.key] as boolean} onChange={v => update({ [opt.key]: v })} />
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Section 4: 판정 및 결과 */}
-            <div className="px-4 py-3 bg-slate-50/50">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">판정 및 결과</p>
-              <div className="space-y-2.5">
-                {/* 판정 */}
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-semibold text-slate-600 w-12 shrink-0">판정</span>
-                  <div className="flex gap-1 flex-1">
-                    {[{ id: 'ai' as const, label: 'AI 판정' }, { id: 'summary' as const, label: '종합 정리' }, { id: 'none' as const, label: '승패 없음' }].map(opt => (
-                      <button key={opt.id} onClick={() => update({ verdictType: opt.id })}
-                        className={cn('flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center transition-all', ds.verdictType === opt.id ? 'bg-slate-800 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {/* 결과 형식 */}
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-semibold text-slate-600 w-12 shrink-0">결과 형식</span>
-                  <div className="flex gap-1 flex-1">
-                    {[{ id: 'summary' as const, label: '요약문' }, { id: 'balanced' as const, label: '균형 리포트' }, { id: 'table' as const, label: '표 정리' }].map(opt => (
-                      <button key={opt.id} onClick={() => update({ resultFormat: opt.id })}
-                        className={cn('flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center transition-all', ds.resultFormat === opt.id ? 'bg-slate-800 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -636,8 +598,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   );
 }
 
-// ── Socratic Discussion Settings ──
-function SocraticSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange }: {
+// ── Roleplay Discussion Settings ──
+function RoleplaySettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange }: {
   experts: Expert[];
   selectedIds: string[];
   debateSettings?: DebateSettings;
@@ -647,32 +609,33 @@ function SocraticSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
   const selected = experts.filter(e => selectedIds.includes(e.id));
 
-  const styleOptions = [
-    { id: 'inquiry' as const, label: '탐구형', icon: '🔍', desc: '깊이 있는 질문으로 본질 탐구' },
-    { id: 'challenge' as const, label: '도전형', icon: '⚡', desc: '전제와 가정에 도전하며 사고 확장' },
-    { id: 'clarification' as const, label: '명확화형', icon: '🎯', desc: '개념을 정밀하게 정의하며 논리 구축' },
+  const scenarioOptions = [
+    { id: 'business' as const, label: '비즈니스', icon: '💼', desc: '이사회, 투자심사, 전략회의' },
+    { id: 'politics' as const, label: '정치·사회', icon: '🏛️', desc: '의회, 정책토론, 시민회의' },
+    { id: 'history' as const, label: '역사·가상', icon: '📜', desc: '역사적 결정, 가상 시나리오' },
+    { id: 'custom' as const, label: '자유 설정', icon: '✏️', desc: '시나리오 직접 작성' },
   ];
 
-  const depthOptions = [
-    { id: 'surface' as const, label: '기초', desc: '기본 개념 파악' },
-    { id: 'moderate' as const, label: '중급', desc: '다면적 탐구' },
-    { id: 'deep' as const, label: '심화', desc: '철학적 근본 탐구' },
+  const tensionOptions = [
+    { id: 'low' as const, label: '평화적', desc: '협력적 분위기' },
+    { id: 'medium' as const, label: '긴장감', desc: '적절한 갈등' },
+    { id: 'high' as const, label: '고조', desc: '격렬한 대립' },
   ];
 
   const phases = [
-    { icon: '❓', label: '핵심 질문 제기', desc: '각 전문가가 근본 질문 한 가지를 던집니다' },
-    { icon: '🔎', label: '가정 검토', desc: '질문에 담긴 전제와 맹점을 분석합니다' },
-    { icon: '💬', label: '개념 명확화', desc: '핵심 개념을 정밀하게 재정의합니다' },
-    { icon: '🏛️', label: '진리 도출', desc: '탐구를 통해 깊은 통찰로 수렴합니다' },
+    { icon: '🎬', label: '상황 설정', desc: '시나리오와 각 역할 소개' },
+    { icon: '🎤', label: '입장 발표', desc: '각자 역할에서 주장 전개' },
+    { icon: '⚡', label: '갈등 & 협상', desc: '이해관계 충돌과 타협 시도' },
+    { icon: '📋', label: '결론 도출', desc: '합의 또는 최종 결정 정리' },
   ];
 
   return (
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center gap-2.5">
-        <span className="text-lg">🏛️</span>
+      <div className="px-4 py-2.5 bg-gradient-to-r from-amber-700 to-amber-600 flex items-center gap-2.5">
+        <span className="text-lg">🎭</span>
         <div>
-          <div className="text-[13px] font-bold text-white">소크라테스 토론</div>
-          <div className="text-[10px] text-slate-300">질문을 통해 진리를 탐구하는 깊은 대화</div>
+          <div className="text-[13px] font-bold text-white">역할극 토론</div>
+          <div className="text-[10px] text-amber-100">시나리오 속 역할을 맡아 실전처럼 토론</div>
         </div>
       </div>
 
@@ -682,7 +645,7 @@ function SocraticSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           <div className="text-[11px] font-bold text-slate-600 mb-2.5">진행 단계</div>
           <div className="grid grid-cols-2 gap-2">
             {phases.map((p, i) => (
-              <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+              <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/60 border border-amber-100">
                 <span className="text-base shrink-0">{p.icon}</span>
                 <div>
                   <div className="text-[10px] font-bold text-slate-700">{i + 1}. {p.label}</div>
@@ -717,32 +680,34 @@ function SocraticSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           )}
         </div>
 
-        {/* Inquiry style */}
+        {/* Scenario type */}
         <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">탐구 방식</div>
-          <div className="grid grid-cols-3 gap-2">
-            {styleOptions.map(opt => (
-              <button key={opt.id} onClick={() => update({ socraticStyle: opt.id })}
-                className={cn('p-2.5 rounded-xl border text-center transition-all',
-                  ds.socraticStyle === opt.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
-                <div className="text-[18px] mb-1">{opt.icon}</div>
-                <div className="text-[11px] font-bold">{opt.label}</div>
-                <div className={cn('text-[9px] mt-0.5 leading-snug', ds.socraticStyle === opt.id ? 'text-slate-300' : 'text-slate-400')}>{opt.desc}</div>
+          <div className="text-[11px] font-bold text-slate-600 mb-2">시나리오 유형</div>
+          <div className="grid grid-cols-2 gap-2">
+            {scenarioOptions.map(opt => (
+              <button key={opt.id} onClick={() => update({ roleplayScenario: opt.id })}
+                className={cn('p-2.5 rounded-xl border text-left transition-all flex items-start gap-2.5',
+                  ds.roleplayScenario === opt.id ? 'bg-amber-700 text-white border-amber-700 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300')}>
+                <span className="text-[18px] shrink-0">{opt.icon}</span>
+                <div>
+                  <div className="text-[11px] font-bold">{opt.label}</div>
+                  <div className={cn('text-[9px] mt-0.5 leading-snug', ds.roleplayScenario === opt.id ? 'text-amber-200' : 'text-slate-400')}>{opt.desc}</div>
+                </div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Depth */}
+        {/* Tension */}
         <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">탐구 깊이</div>
+          <div className="text-[11px] font-bold text-slate-600 mb-2">긴장감 수준</div>
           <div className="flex gap-2">
-            {depthOptions.map(opt => (
-              <button key={opt.id} onClick={() => update({ socraticDepth: opt.id })}
+            {tensionOptions.map(opt => (
+              <button key={opt.id} onClick={() => update({ roleplayTension: opt.id })}
                 className={cn('flex-1 py-2 rounded-lg border text-center transition-all',
-                  ds.socraticDepth === opt.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400')}>
+                  ds.roleplayTension === opt.id ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-slate-500 border-slate-200 hover:border-amber-300')}>
                 <div className="text-[12px] font-bold">{opt.label}</div>
-                <div className={cn('text-[9px] mt-0.5', ds.socraticDepth === opt.id ? 'text-slate-300' : 'text-slate-400')}>{opt.desc}</div>
+                <div className={cn('text-[9px] mt-0.5', ds.roleplayTension === opt.id ? 'text-amber-200' : 'text-slate-400')}>{opt.desc}</div>
               </button>
             ))}
           </div>
@@ -926,8 +891,8 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
         <p className="text-[12px] text-slate-500">분야를 선택하면 전문가들이 단계별로 상담을 진행합니다</p>
       </div>
 
-      {/* Mode cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* Mode cards grid — 3 per row, refined professional style */}
+      <div className="grid grid-cols-3 gap-3">
         {EXPERT_MODE_TEMPLATES.map(template => {
           const isSelected = selectedTemplate?.id === template.id;
           return (
@@ -935,50 +900,45 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               key={template.id}
               onClick={() => onSelectTemplate(isSelected ? null : template)}
               className={cn(
-                'relative text-left p-4 rounded-2xl border-2 transition-all duration-200 group',
+                'relative text-left rounded-2xl border transition-all duration-200 group overflow-hidden',
                 isSelected
-                  ? 'border-slate-800 bg-slate-900 shadow-lg scale-[1.01]'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                  ? 'border-slate-700 bg-slate-900 shadow-xl ring-1 ring-slate-600'
+                  : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-lg'
               )}
             >
-              {/* Badges */}
-              <div className="absolute top-3 right-3 flex gap-1">
-                {template.isPopular && (
-                  <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full', isSelected ? 'bg-amber-400 text-amber-900' : 'bg-amber-100 text-amber-600')}>인기</span>
-                )}
-                {template.isNew && (
-                  <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full', isSelected ? 'bg-emerald-400 text-emerald-900' : 'bg-emerald-100 text-emerald-600')}>NEW</span>
-                )}
-              </div>
+              {/* Top gradient accent bar */}
+              <div className={cn('h-1', isSelected ? 'bg-gradient-to-r from-amber-400 to-orange-400' : `bg-gradient-to-r ${template.gradient}`)} />
 
-              {/* Icon + Title */}
-              <div className="flex items-start gap-3 mb-3">
-                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0', isSelected ? 'bg-white/10' : `bg-gradient-to-br ${template.gradient}`)}>
+              <div className="p-4">
+                {/* Badges */}
+                <div className="absolute top-3 right-3 flex gap-1">
+                  {template.isPopular && (
+                    <span className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded-full', isSelected ? 'bg-amber-400/20 text-amber-300' : 'bg-amber-50 text-amber-600 border border-amber-200')}>인기</span>
+                  )}
+                  {template.isNew && (
+                    <span className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded-full', isSelected ? 'bg-emerald-400/20 text-emerald-300' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')}>NEW</span>
+                  )}
+                </div>
+
+                {/* Icon */}
+                <div className={cn('w-11 h-11 rounded-2xl flex items-center justify-center text-2xl mb-3 shadow-sm', isSelected ? 'bg-white/10' : `bg-gradient-to-br ${template.gradient}`)}>
                   {template.icon}
                 </div>
-                <div>
-                  <h3 className={cn('text-[13px] font-bold leading-tight', isSelected ? 'text-white' : 'text-slate-800')}>{template.name}</h3>
-                  <p className={cn('text-[10px] mt-0.5 leading-snug', isSelected ? 'text-slate-300' : 'text-slate-500')}>{template.description}</p>
-                </div>
-              </div>
 
-              {/* Phase timeline preview */}
-              <div className="flex items-center gap-0.5 flex-wrap">
-                {template.phases.filter(p => p.id !== 'synthesis' && p.id !== 'report' && p.id !== 'plan' && p.id !== 'plan_su' && p.id !== 'plan_su').slice(0, 4).map((phase, i) => (
-                  <div key={phase.id} className="flex items-center gap-0.5">
-                    <span className={cn('text-[9px] px-1.5 py-0.5 rounded-full font-medium', isSelected ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-500')}>
-                      {phase.expertIcon} {phase.expertRole}
-                    </span>
-                    {i < 3 && <ChevronRight className={cn('w-2.5 h-2.5 shrink-0', isSelected ? 'text-slate-400' : 'text-slate-300')} />}
+                {/* Title & description */}
+                <h3 className={cn('text-[13px] font-bold leading-tight', isSelected ? 'text-white' : 'text-slate-800')}>{template.name}</h3>
+                <p className={cn('text-[10px] mt-1 leading-snug line-clamp-2', isSelected ? 'text-slate-400' : 'text-slate-500')}>{template.description}</p>
+
+                {/* Phase count & output */}
+                <div className={cn('mt-3 pt-3 border-t flex items-center justify-between', isSelected ? 'border-slate-700' : 'border-slate-100')}>
+                  <span className={cn('text-[9px] font-semibold', isSelected ? 'text-slate-400' : 'text-slate-400')}>
+                    {template.phases.length}단계 상담
+                  </span>
+                  <div className={cn('text-[9px] font-medium flex items-center gap-1', isSelected ? 'text-slate-500' : 'text-slate-400')}>
+                    <FileText className="w-2.5 h-2.5" />
+                    <span className="truncate max-w-[80px]">{template.outputFormat}</span>
                   </div>
-                ))}
-                <span className={cn('text-[9px] font-medium ml-0.5', isSelected ? 'text-amber-400' : 'text-amber-500')}>→ 종합</span>
-              </div>
-
-              {/* Output format */}
-              <div className={cn('mt-2.5 text-[9px] font-medium flex items-center gap-1', isSelected ? 'text-slate-400' : 'text-slate-400')}>
-                <FileText className="w-3 h-3" />
-                <span className="truncate">{template.outputFormat}</span>
+                </div>
               </div>
             </button>
           );
@@ -1088,11 +1048,11 @@ function AssistantCardsPanel({ onSubmit, isDiscussing }: {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <p className="text-[12px] text-slate-500 text-center">목적에 맞는 어시스턴트를 선택하세요</p>
 
-      {/* Cards grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      {/* Cards grid — 4 per row, clean compact design */}
+      <div className="grid grid-cols-4 gap-2.5">
         {ASSISTANT_CARDS.map(card => {
           const isSelected = selectedCard?.id === card.id;
           return (
@@ -1100,33 +1060,29 @@ function AssistantCardsPanel({ onSubmit, isDiscussing }: {
               key={card.id}
               onClick={() => { setSelectedCard(isSelected ? null : card); setQuestion(''); }}
               className={cn(
-                'relative text-left p-3.5 rounded-2xl border-2 transition-all duration-200',
+                'relative text-left rounded-xl border transition-all duration-200 overflow-hidden group',
                 isSelected
-                  ? 'border-slate-800 bg-slate-900 shadow-lg'
+                  ? 'border-slate-700 bg-slate-900 shadow-lg ring-1 ring-slate-600'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
               )}
             >
-              {/* Category tag */}
-              <div className={cn('inline-flex text-[8px] font-bold px-1.5 py-0.5 rounded-full mb-2', isSelected ? 'bg-white/10 text-slate-300' : categoryColors[card.category])}>
-                {categoryLabels[card.category]}
-              </div>
+              {/* Top accent */}
+              <div className={cn('h-0.5', isSelected ? 'bg-gradient-to-r from-blue-400 to-purple-400' : `bg-gradient-to-r ${card.gradient}`)} />
 
-              {/* Icon */}
-              <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center text-lg mb-2 shrink-0', isSelected ? 'bg-white/10' : `bg-gradient-to-br ${card.gradient}`)}>
-                {card.icon}
-              </div>
+              <div className="p-3">
+                {/* Category */}
+                <div className={cn('inline-flex text-[7px] font-bold px-1.5 py-0.5 rounded-full mb-2', isSelected ? 'bg-white/10 text-slate-400' : categoryColors[card.category])}>
+                  {categoryLabels[card.category]}
+                </div>
 
-              {/* Title */}
-              <h3 className={cn('text-[12px] font-bold leading-tight', isSelected ? 'text-white' : 'text-slate-800')}>{card.name}</h3>
-              <p className={cn('text-[9px] mt-1 leading-snug', isSelected ? 'text-slate-400' : 'text-slate-500')}>{card.description}</p>
+                {/* Icon */}
+                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-base mb-2', isSelected ? 'bg-white/10' : `bg-gradient-to-br ${card.gradient}`)}>
+                  {card.icon}
+                </div>
 
-              {/* Feature chips */}
-              <div className="mt-2 flex flex-wrap gap-1">
-                {card.features.slice(0, 2).map((f, i) => (
-                  <span key={i} className={cn('text-[8px] px-1.5 py-0.5 rounded-full', isSelected ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-500')}>
-                    {f}
-                  </span>
-                ))}
+                {/* Title */}
+                <h3 className={cn('text-[11px] font-bold leading-tight', isSelected ? 'text-white' : 'text-slate-800')}>{card.name}</h3>
+                <p className={cn('text-[9px] mt-0.5 leading-snug line-clamp-2', isSelected ? 'text-slate-400' : 'text-slate-500')}>{card.description}</p>
               </div>
             </button>
           );
@@ -1135,34 +1091,38 @@ function AssistantCardsPanel({ onSubmit, isDiscussing }: {
 
       {/* Input area */}
       {selectedCard && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{selectedCard.icon}</span>
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className={cn('px-4 py-3 border-b border-slate-100 flex items-center gap-3 bg-gradient-to-r', selectedCard.gradient, 'bg-opacity-30')}>
+            <div className="w-9 h-9 rounded-lg bg-white/80 flex items-center justify-center text-lg shadow-sm">
+              {selectedCard.icon}
+            </div>
             <div>
               <p className="text-[12px] font-bold text-slate-800">{selectedCard.name}</p>
               <div className="flex gap-1 mt-0.5">
                 {selectedCard.features.map((f, i) => (
-                  <span key={i} className="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{f}</span>
+                  <span key={i} className="text-[8px] bg-white/60 text-slate-600 px-1.5 py-0.5 rounded-full border border-slate-200/50">{f}</span>
                 ))}
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <input
-              value={question}
-              onChange={e => setQuestion(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && question.trim()) onSubmit(question); }}
-              placeholder={selectedCard.placeholder}
-              disabled={isDiscussing}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-[12px] outline-none focus:border-slate-400 transition-all"
-            />
-            <button
-              onClick={() => question.trim() && onSubmit(question)}
-              disabled={!question.trim() || isDiscussing}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-[12px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5"
-            >
-              시작 <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+          <div className="p-4">
+            <div className="flex gap-2">
+              <input
+                value={question}
+                onChange={e => setQuestion(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && question.trim()) onSubmit(question); }}
+                placeholder={selectedCard.placeholder}
+                disabled={isDiscussing}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-[12px] outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-all bg-slate-50/50"
+              />
+              <button
+                onClick={() => question.trim() && onSubmit(question)}
+                disabled={!question.trim() || isDiscussing}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[12px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                시작 <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1239,7 +1199,7 @@ export function ExpertSelectionPanel({
   const isDebateMode = mainMode === 'debate';
   const isStandardOrProcon = discussionMode === 'standard' || discussionMode === 'procon';
   const isBrainstorm = discussionMode === 'brainstorm';
-  const isSocratic = discussionMode === 'socratic';
+  const isRoleplay = discussionMode === 'roleplay';
 
   const visibleCategories = EXPERT_CATEGORY_ORDER;
 
@@ -1524,8 +1484,8 @@ export function ExpertSelectionPanel({
         />
       )}
 
-      {isSocratic && (
-        <SocraticSettingsPanel
+      {isRoleplay && (
+        <RoleplaySettingsPanel
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
         />

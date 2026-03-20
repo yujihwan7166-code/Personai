@@ -72,17 +72,17 @@ export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; d
 };
 
 // Sub-modes for debate
-export type DebateSubMode = 'standard' | 'procon' | 'brainstorm' | 'socratic';
+export type DebateSubMode = 'standard' | 'procon' | 'brainstorm' | 'roleplay';
 
 export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon: string; description: string }> = {
   standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 깊이 있는 토론' },
   procon: { label: '찬반 토론', icon: '⚖️', description: '찬성 vs 반대로 나눠 격돌' },
   brainstorm: { label: '브레인스토밍', icon: '💡', description: '자유롭게 아이디어를 쏟아내고 발전' },
-  socratic: { label: '소크라테스 토론', icon: '🏛️', description: '질문으로 진리를 탐구하는 깊은 대화' },
+  roleplay: { label: '역할극 토론', icon: '🎭', description: '시나리오 속 역할을 맡아 실전 토론' },
 };
 
 // Flat DiscussionMode for backward compat in logic
-export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'collaboration' | 'socratic' | 'assistant';
+export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'collaboration' | 'roleplay' | 'assistant';
 
 export function getMainMode(mode: DiscussionMode): MainMode {
   if (mode === 'general') return 'general';
@@ -100,7 +100,7 @@ export const DISCUSSION_MODE_LABELS: Record<string, { label: string; icon: strin
   procon: { label: '찬반 토론', icon: '⚖️', description: '찬반 대립', detail: '전문가들이 찬성·반대로 나뉘어 논쟁합니다.' },
   brainstorm: { label: '브레인스토밍', icon: '💡', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
   collaboration: { label: '협업 모드', icon: '🤝', description: '역할 분담 협업', detail: '전문가들이 역할을 나눠 단계별로 프로젝트를 수행합니다.' },
-  socratic: { label: '소크라테스 토론', icon: '🏛️', description: '질문 중심 탐구', detail: '전문가들이 질문을 던지며 핵심 진리를 함께 탐구합니다.' },
+  roleplay: { label: '역할극 토론', icon: '🎭', description: '역할 몰입 토론', detail: '시나리오 속 역할을 맡아 실전처럼 토론합니다.' },
   creative: { label: '창의적 토론', icon: '🎨', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
   endless: { label: '끝장 토론', icon: '♾️', description: '합의까지', detail: '최대 5라운드, 합의에 도달할 때까지 토론합니다.' },
 };
@@ -125,9 +125,9 @@ export interface DebateSettings {
   deduplication: boolean;
   creativityLevel: 'realistic' | 'balanced' | 'radical';
   ideaCount: number;
-  // 소크라테스 토론 전용
-  socraticStyle: 'inquiry' | 'challenge' | 'clarification';
-  socraticDepth: 'surface' | 'moderate' | 'deep';
+  // 역할극 토론 전용
+  roleplayScenario: 'business' | 'politics' | 'history' | 'custom';
+  roleplayTension: 'low' | 'medium' | 'high';
 }
 
 export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
@@ -147,8 +147,8 @@ export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
   deduplication: true,
   creativityLevel: 'balanced',
   ideaCount: 10,
-  socraticStyle: 'inquiry',
-  socraticDepth: 'moderate',
+  roleplayScenario: 'business',
+  roleplayTension: 'medium',
 };
 
 // ── Collaboration ──

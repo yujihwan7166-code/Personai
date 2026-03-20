@@ -667,43 +667,46 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
           await new Promise((r) => setTimeout(r, 500));
         }
       }
-    } else if (useMode === 'socratic') {
-      // Socratic dialogue: 4 phases of deep questioning and exploration
-      const styleInstructions: Record<string, string> = {
-        inquiry: '깊이 있는 탐구 질문을 통해 본질을 파고드세요. "왜?", "어떻게?", "정말 그런가?" 형식의 질문을 중심으로 접근하세요.',
-        challenge: '기존 전제와 통념에 도전하는 질문을 제시하세요. "이것이 당연한가?", "반대 경우는?" 형식으로 사고를 확장하세요.',
-        clarification: '핵심 개념을 정밀하게 정의하고 논리적 엄밀함을 추구하세요. "이 개념은 정확히 무엇을 의미하는가?" 형식으로 접근하세요.',
+    } else if (useMode === 'roleplay') {
+      // Roleplay: experts take on scenario roles and debate from those perspectives
+      const tensionExtra: Record<string, string> = {
+        low: '\n분위기는 협력적이고 건설적입니다. 상대 의견을 존중하며 대화하세요.',
+        medium: '\n적절한 긴장감을 유지하세요. 이해관계 충돌이 있지만 합리적으로 논의합니다.',
+        high: '\n격렬한 대립 상황입니다. 자신의 입장을 강하게 주장하되 논리적으로 접근하세요.',
       };
-      const depthExtra: Record<string, string> = {
-        surface: '입문자도 이해할 수 있는 수준으로, 핵심 개념만 간결하게 다루세요.',
-        moderate: '중급 수준으로 다양한 관점을 탐구하되 접근하기 쉽게 설명하세요.',
-        deep: '철학적·근본적 수준으로 깊이 파고들어 숨겨진 전제까지 탐구하세요.',
+      const scenarioLabels: Record<string, string> = {
+        business: '비즈니스 회의',
+        politics: '정책 토론회',
+        history: '역사적 재현',
+        custom: '자유 시나리오',
       };
-      const socStyle = debateSettings.socraticStyle || 'inquiry';
-      const socDepth = debateSettings.socraticDepth || 'moderate';
-      const styleExtra = `\n\n[탐구 방식: ${styleInstructions[socStyle]}]\n[탐구 깊이: ${depthExtra[socDepth]}]`;
+      const rpScenario = debateSettings.roleplayScenario || 'business';
+      const rpTension = debateSettings.roleplayTension || 'medium';
+      const scenarioLabel = scenarioLabels[rpScenario];
+      const tensionInst = tensionExtra[rpTension];
 
-      const socraticPhases = [
-        { label: '핵심 질문 제기', round: 'initial' as const, instruction: `이 주제와 관련하여 당신이 가장 중요하다고 생각하는 근본적인 질문 하나를 제시하세요. 바로 답하지 말고, 그 질문이 왜 중요한지 설명하고 독자가 스스로 생각하게 유도하세요.${styleExtra}` },
-        { label: '가정 검토', round: 'rebuttal' as const, instruction: `이전 참여자들의 질문에 담긴 숨겨진 가정과 전제를 분석하세요. "이 질문은 ~를 당연하게 여기는데, 과연 그런가?" 형식으로 접근하고 맹점을 지적하세요.${styleExtra}` },
-        { label: '개념 명확화', round: 'rebuttal' as const, instruction: `지금까지 사용된 핵심 개념들을 더 정밀하게 재정의하세요. 모호함을 제거하고 개념의 경계를 명확히 설정하세요. 필요하다면 구분이 필요한 유사 개념들을 나열하세요.${styleExtra}` },
-        { label: '통찰 도출', round: 'final' as const, instruction: `지금까지의 질문, 가정 검토, 개념 명확화 과정을 종합하여 이 주제에 대한 깊은 통찰을 도출하세요. 단순한 정답이 아니라 더 명확하게 이해된 진실을 제시하세요.${styleExtra}` },
+      const roleplayPhases = [
+        { label: `🎬 상황 설정 · ${scenarioLabel}`, round: 'initial' as const, instruction: `[역할극 — ${scenarioLabel}]\n당신은 "${expert?.nameKo || '참여자'}"의 역할을 맡았습니다. 이 시나리오에서 당신의 역할, 입장, 이해관계를 먼저 소개하세요. 그리고 이 주제에 대한 초기 입장을 밝히세요.${tensionInst}` },
+        { label: '🎤 입장 발표', round: 'rebuttal' as const, instruction: `[역할극 — 입장 발표]\n당신의 역할 관점에서 이 주제에 대한 구체적 주장과 근거를 제시하세요. 실제 그 역할의 인물이라면 어떻게 말할지 몰입하여 발언하세요.${tensionInst}` },
+        { label: '⚡ 갈등 & 협상', round: 'rebuttal' as const, instruction: `[역할극 — 갈등과 협상]\n다른 참여자들의 주장에 반응하세요. 동의하는 부분, 반대하는 부분을 명확히 하고 타협안이 있다면 제시하세요. 당신의 역할 입장을 유지하면서 대화하세요.${tensionInst}` },
+        { label: '📋 결론 도출', round: 'final' as const, instruction: `[역할극 — 결론]\n토론을 종합하여 당신의 최종 입장을 정리하세요. 타협한 부분, 양보할 수 없는 부분을 명확히 하고 합의 가능한 결론을 제시하세요.${tensionInst}` },
       ];
 
-      for (const phase of socraticPhases) {
+      for (const phase of roleplayPhases) {
         if (shouldStop()) break;
         const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
-        setMessages(prev => [...prev, { id: `round-sep-socratic-${phase.label}-${Date.now()}`, expertId: '__round__', content: phase.label, round: phase.round }]);
+        setMessages(prev => [...prev, { id: `round-sep-roleplay-${phase.label}-${Date.now()}`, expertId: '__round__', content: phase.label, round: phase.round }]);
         for (const expert of roundExperts) {
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
-          const msgId = `${expert.id}-socratic-${phase.label}-${Date.now()}`;
+          const instruction = phase.instruction.replace('"참여자"', `"${expert.nameKo}"`);
+          const msgId = `${expert.id}-roleplay-${phase.label}-${Date.now()}`;
           setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round: phase.round }]);
           let fullContent = '';
           try {
             await streamExpert({
               question,
-              expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n' + phase.instruction + lengthExtra },
+              expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n' + instruction + lengthExtra },
               previousResponses: allResponses, round: phase.round,
               onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
               onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -976,7 +979,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className={cn(
               'mx-auto px-4 sm:px-6 pt-24 pb-6 space-y-3',
-              selectable ? 'max-w-2xl' : 'max-w-xl'
+              selectable ? 'max-w-3xl' : 'max-w-xl'
             )}>
 
               {selectable && (
@@ -1032,13 +1035,13 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               )}
 
               {/* Participants display for debate modes */}
-              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'socratic', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
+              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'roleplay', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
                 <div className="rounded-2xl px-4 py-2.5 border border-border bg-slate-50 card-shadow">
                   <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
                     {discussionMode === 'standard' && '토론자'}
                     {discussionMode === 'procon' && '토론자'}
                     {discussionMode === 'brainstorm' && '참여자'}
-                    {discussionMode === 'socratic' && '탐구자'}
+                    {discussionMode === 'roleplay' && '배역'}
                     {discussionMode === 'collaboration' && '협업팀'}
                   </span>
                   <div className="flex flex-wrap gap-2 mt-1.5">
@@ -1135,10 +1138,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
             <div className="shrink-0 border-t border-border bg-white">
               <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 space-y-2">
                 {activeExperts.length > 0 && (
-                  (discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'socratic') ? (
+                  (discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'roleplay') ? (
                     <div className="flex items-center gap-2.5">
                       <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
-                        {discussionMode === 'standard' ? '토론자' : discussionMode === 'socratic' ? '탐구자' : '참여자'}
+                        {discussionMode === 'standard' ? '토론자' : discussionMode === 'roleplay' ? '배역' : '참여자'}
                       </span>
                       <div className="flex items-center gap-1.5">
                         {activeExperts.map((e, i) => (
