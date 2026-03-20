@@ -62,7 +62,7 @@ interface Props {
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'expert', 'debate', 'assistant'];
-const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'redteam'];
+const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'hearing'];
 
 const mainModeLabels: Record<MainMode, string> = {
   general: '단일 AI',
@@ -76,7 +76,7 @@ const debateSubIcons: Record<DebateSubMode, React.ReactNode> = {
   standard: <Target className="w-3 h-3" />,
   procon: <Scale className="w-3 h-3" />,
   brainstorm: <Lightbulb className="w-3 h-3" />,
-  redteam: <Target className="w-3 h-3" />,
+  hearing: <Scale className="w-3 h-3" />,
 };
 
 function useTypewriter(text: string, speed = 40) {
@@ -598,8 +598,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   );
 }
 
-// ── Red Team Challenge Settings ──
-function RedteamSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange }: {
+// ── Hearing (청문회) Settings ──
+function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange }: {
   experts: Expert[];
   selectedIds: string[];
   debateSettings?: DebateSettings;
@@ -609,40 +609,40 @@ function RedteamSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
   const selected = experts.filter(e => selectedIds.includes(e.id));
 
-  const intensityOptions = [
-    { id: 'gentle' as const, label: '보통', icon: '🟢', desc: '건설적 비판 위주' },
-    { id: 'standard' as const, label: '강도 있게', icon: '🟡', desc: '약점 집중 공격' },
-    { id: 'ruthless' as const, label: '무자비', icon: '🔴', desc: '모든 허점 파괴' },
+  const pressureOptions = [
+    { id: 'mild' as const, label: '온건', icon: '🟢', desc: '정중한 질의' },
+    { id: 'moderate' as const, label: '보통', icon: '🟡', desc: '날카로운 질문' },
+    { id: 'intense' as const, label: '압박', icon: '🔴', desc: '거친 추궁' },
   ];
 
   const focusOptions = [
-    { id: 'all' as const, label: '종합', icon: '🎯', desc: '모든 관점에서 검증' },
-    { id: 'logic' as const, label: '논리', icon: '🧠', desc: '논리적 오류/모순 탐색' },
+    { id: 'overall' as const, label: '종합', icon: '🎯', desc: '모든 측면 검증' },
+    { id: 'logic' as const, label: '논리', icon: '🧠', desc: '논리적 허점 추궁' },
     { id: 'feasibility' as const, label: '실현성', icon: '⚙️', desc: '실행 가능성 검증' },
-    { id: 'risk' as const, label: '리스크', icon: '⚠️', desc: '숨은 위험 요소 발굴' },
+    { id: 'ethics' as const, label: '윤리', icon: '⚖️', desc: '윤리·도덕적 타당성' },
   ];
 
   const phases = [
-    { icon: '📋', label: '제안 발표', color: 'bg-blue-50 border-blue-100', desc: '아이디어/계획을 발표하고 핵심을 정리' },
-    { icon: '🔴', label: '공격 (Red Team)', color: 'bg-red-50 border-red-100', desc: '취약점·맹점·리스크를 집중 공격' },
-    { icon: '🔵', label: '방어 (Blue Team)', color: 'bg-blue-50 border-blue-100', desc: '비판에 대응하고 보강 방안 제시' },
-    { icon: '⚖️', label: '최종 판정', color: 'bg-amber-50 border-amber-100', desc: '생존한 논점 정리, 개선안 도출' },
+    { icon: '📋', label: '모두발언', color: 'bg-slate-50 border-slate-200', desc: '주제의 핵심을 발표하고 입장 정리' },
+    { icon: '🎤', label: '전문가 질의', color: 'bg-amber-50 border-amber-100', desc: '전문가들이 각 분야에서 날카롭게 질문' },
+    { icon: '🔥', label: '추가 심문', color: 'bg-red-50 border-red-100', desc: '약점이 드러난 부분 집중 추궁' },
+    { icon: '⚖️', label: '최종 평가', color: 'bg-emerald-50 border-emerald-100', desc: '전문가들의 판정과 결론' },
   ];
 
   return (
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-gradient-to-r from-red-700 to-slate-800 flex items-center gap-2.5">
-        <span className="text-lg">🛡️</span>
+      <div className="px-4 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center gap-2.5">
+        <span className="text-lg">🏛️</span>
         <div>
-          <div className="text-[13px] font-bold text-white">레드팀 검증</div>
-          <div className="text-[10px] text-red-200">아이디어를 스트레스 테스트하여 검증</div>
+          <div className="text-[13px] font-bold text-white">청문회</div>
+          <div className="text-[10px] text-slate-300">전문가들이 날카로운 질문으로 검증</div>
         </div>
       </div>
 
       <div className="p-4 space-y-5">
         {/* Phase preview */}
         <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2.5">검증 단계</div>
+          <div className="text-[11px] font-bold text-slate-600 mb-2.5">청문회 진행</div>
           <div className="grid grid-cols-2 gap-2">
             {phases.map((p, i) => (
               <div key={i} className={cn('flex items-start gap-2 p-2.5 rounded-lg border', p.color)}>
@@ -656,13 +656,13 @@ function RedteamSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
           </div>
         </div>
 
-        {/* Participants */}
+        {/* Questioners */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-600">참여자</span>
+            <span className="text-[11px] font-bold text-slate-600">질의 위원</span>
             {selected.length < 2
               ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
-              : <span className="text-[10px] text-slate-400">{selected.length}명 참여</span>}
+              : <span className="text-[10px] text-slate-400">{selected.length}명 위원</span>}
           </div>
           {selected.length > 0 ? (
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -675,22 +675,22 @@ function RedteamSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
             </div>
           ) : (
             <div className="py-3 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
-              <p className="text-[11px] text-slate-400">위에서 참여할 전문가를 선택하세요</p>
+              <p className="text-[11px] text-slate-400">위에서 질의할 전문가를 선택하세요</p>
             </div>
           )}
         </div>
 
-        {/* Intensity */}
+        {/* Pressure level */}
         <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">공격 강도</div>
+          <div className="text-[11px] font-bold text-slate-600 mb-2">질의 압박 수준</div>
           <div className="flex gap-2">
-            {intensityOptions.map(opt => (
-              <button key={opt.id} onClick={() => update({ redteamIntensity: opt.id })}
+            {pressureOptions.map(opt => (
+              <button key={opt.id} onClick={() => update({ hearingPressure: opt.id })}
                 className={cn('flex-1 py-2.5 rounded-lg border text-center transition-all',
-                  ds.redteamIntensity === opt.id ? 'bg-red-700 text-white border-red-700 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-red-300')}>
+                  ds.hearingPressure === opt.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
                 <div className="text-[14px] mb-0.5">{opt.icon}</div>
                 <div className="text-[11px] font-bold">{opt.label}</div>
-                <div className={cn('text-[9px] mt-0.5', ds.redteamIntensity === opt.id ? 'text-red-200' : 'text-slate-400')}>{opt.desc}</div>
+                <div className={cn('text-[9px] mt-0.5', ds.hearingPressure === opt.id ? 'text-slate-400' : 'text-slate-400')}>{opt.desc}</div>
               </button>
             ))}
           </div>
@@ -701,20 +701,20 @@ function RedteamSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
           <div className="text-[11px] font-bold text-slate-600 mb-2">검증 초점</div>
           <div className="grid grid-cols-2 gap-2">
             {focusOptions.map(opt => (
-              <button key={opt.id} onClick={() => update({ redteamFocus: opt.id })}
+              <button key={opt.id} onClick={() => update({ hearingFocus: opt.id })}
                 className={cn('p-2.5 rounded-lg border text-left transition-all flex items-start gap-2',
-                  ds.redteamFocus === opt.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
+                  ds.hearingFocus === opt.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
                 <span className="text-[16px] shrink-0">{opt.icon}</span>
                 <div>
                   <div className="text-[11px] font-bold">{opt.label}</div>
-                  <div className={cn('text-[9px] mt-0.5', ds.redteamFocus === opt.id ? 'text-slate-400' : 'text-slate-400')}>{opt.desc}</div>
+                  <div className={cn('text-[9px] mt-0.5', ds.hearingFocus === opt.id ? 'text-slate-400' : 'text-slate-400')}>{opt.desc}</div>
                 </div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Response length & conclusion */}
+        {/* Settings */}
         <div className="pt-1 border-t border-slate-100 space-y-2.5">
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0">답변 길이</span>
@@ -728,7 +728,7 @@ function RedteamSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500">종합 판정 포함</span>
+            <span className="text-[10px] font-bold text-slate-500">최종 판정 포함</span>
             <Toggle checked={ds.includeConclusion} onChange={v => update({ includeConclusion: v })} />
           </div>
         </div>
@@ -1221,7 +1221,7 @@ export function ExpertSelectionPanel({
   const isDebateMode = mainMode === 'debate';
   const isStandardOrProcon = discussionMode === 'standard' || discussionMode === 'procon';
   const isBrainstorm = discussionMode === 'brainstorm';
-  const isRedteam = discussionMode === 'redteam';
+  const isHearing = discussionMode === 'hearing';
 
   const visibleCategories = EXPERT_CATEGORY_ORDER;
 
@@ -1506,8 +1506,8 @@ export function ExpertSelectionPanel({
         />
       )}
 
-      {isRedteam && (
-        <RedteamSettingsPanel
+      {isHearing && (
+        <HearingSettingsPanel
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
         />
