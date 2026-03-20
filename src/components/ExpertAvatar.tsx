@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Expert, ExpertColor } from '@/types/expert';
 import { cn } from '@/lib/utils';
 
@@ -13,13 +12,6 @@ const logoSizeClasses = {
   md: 'w-9 h-9',
   lg: 'w-11 h-11',
   xl: 'w-13 h-13',
-};
-
-const avatarSizeClasses = {
-  sm: 'w-7 h-7',
-  md: 'w-10 h-10',
-  lg: 'w-12 h-12',
-  xl: 'w-14 h-14',
 };
 
 const emojiSizeClasses = {
@@ -51,19 +43,8 @@ const activeGradientBg: Record<ExpertColor, string> = {
   pink:    'bg-gradient-to-br from-pink-500 to-pink-700 ring-2 ring-pink-200',
 };
 
-const bgHexMap: Record<ExpertColor, string> = {
-  blue: '3b82f6', emerald: '10b981', red: 'ef4444', amber: 'f59e0b',
-  purple: 'a855f7', orange: 'f97316', teal: '14b8a6', pink: 'ec4899',
-};
-
-function getDiceBearUrl(seed: string, bg: string) {
-  return `https://api.dicebear.com/9.x/notionists-neutral/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}&radius=50`;
-}
-
 export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps) {
-  const [imgError, setImgError] = useState(false);
-
-  // AI models: use their local SVG logos
+  // AI models: use their local SVG/PNG logos
   if (expert.avatarUrl) {
     return (
       <div className={cn(
@@ -81,28 +62,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
     );
   }
 
-  // Non-AI experts: DiceBear avatar illustration
-  if (expert.category !== 'ai' && !imgError) {
-    const diceBearUrl = getDiceBearUrl(expert.id, bgHexMap[expert.color]);
-    return (
-      <div className={cn(
-        'rounded-full overflow-hidden shrink-0 transition-all duration-200 shadow-sm',
-        avatarSizeClasses[size],
-        active && 'scale-105 ring-2 ring-offset-1',
-        active && `ring-${expert.color}-300`
-      )}>
-        <img
-          src={diceBearUrl}
-          alt={expert.nameKo}
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={() => setImgError(true)}
-        />
-      </div>
-    );
-  }
-
-  // Fallback: emoji icon on gradient circle
+  // Non-AI experts: emoji icon on gradient circle
   if (expert.icon) {
     const colorClass = active ? activeGradientBg[expert.color] : gradientBg[expert.color];
     return (
@@ -127,7 +87,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
   return (
     <div className={cn(
       'rounded-full flex items-center justify-center shrink-0 transition-all duration-200 font-bold select-none text-white shadow-sm',
-      avatarSizeClasses[size],
+      emojiSizeClasses[size],
       colorClass,
       active && 'scale-105'
     )}>
