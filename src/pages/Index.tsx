@@ -667,46 +667,55 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
           await new Promise((r) => setTimeout(r, 500));
         }
       }
-    } else if (useMode === 'roleplay') {
-      // Roleplay: experts take on scenario roles and debate from those perspectives
-      const tensionExtra: Record<string, string> = {
-        low: '\n분위기는 협력적이고 건설적입니다. 상대 의견을 존중하며 대화하세요.',
-        medium: '\n적절한 긴장감을 유지하세요. 이해관계 충돌이 있지만 합리적으로 논의합니다.',
-        high: '\n격렬한 대립 상황입니다. 자신의 입장을 강하게 주장하되 논리적으로 접근하세요.',
+    } else if (useMode === 'redteam') {
+      // Red Team: stress-test ideas with attack/defense cycle
+      const intensityMap: Record<string, string> = {
+        gentle: '\n건설적으로 비판하세요. 개선 제안을 함께 제시하세요.',
+        standard: '\n약점에 집중하여 공격하세요. 타당한 근거를 들어 반박하세요.',
+        ruthless: '\n모든 허점을 무자비하게 파헤치세요. 논리적으로 완전히 파괴하세요.',
       };
-      const scenarioLabels: Record<string, string> = {
-        business: '비즈니스 회의',
-        politics: '정책 토론회',
-        history: '역사적 재현',
-        custom: '자유 시나리오',
+      const focusMap: Record<string, string> = {
+        all: '논리, 실현 가능성, 리스크 등 모든 관점에서 검증하세요.',
+        logic: '논리적 오류, 모순, 비약, 순환논증을 집중적으로 찾으세요.',
+        feasibility: '실행 가능성, 자원, 기술적 한계, 시간 제약을 검증하세요.',
+        risk: '숨은 위험 요소, 부작용, 최악의 시나리오를 발굴하세요.',
       };
-      const rpScenario = debateSettings.roleplayScenario || 'business';
-      const rpTension = debateSettings.roleplayTension || 'medium';
-      const scenarioLabel = scenarioLabels[rpScenario];
-      const tensionInst = tensionExtra[rpTension];
+      const rtIntensity = debateSettings.redteamIntensity || 'standard';
+      const rtFocus = debateSettings.redteamFocus || 'all';
 
-      const roleplayPhases = [
-        { label: `🎬 상황 설정 · ${scenarioLabel}`, round: 'initial' as const, instruction: `[역할극 — ${scenarioLabel}]\n당신은 "${expert?.nameKo || '참여자'}"의 역할을 맡았습니다. 이 시나리오에서 당신의 역할, 입장, 이해관계를 먼저 소개하세요. 그리고 이 주제에 대한 초기 입장을 밝히세요.${tensionInst}` },
-        { label: '🎤 입장 발표', round: 'rebuttal' as const, instruction: `[역할극 — 입장 발표]\n당신의 역할 관점에서 이 주제에 대한 구체적 주장과 근거를 제시하세요. 실제 그 역할의 인물이라면 어떻게 말할지 몰입하여 발언하세요.${tensionInst}` },
-        { label: '⚡ 갈등 & 협상', round: 'rebuttal' as const, instruction: `[역할극 — 갈등과 협상]\n다른 참여자들의 주장에 반응하세요. 동의하는 부분, 반대하는 부분을 명확히 하고 타협안이 있다면 제시하세요. 당신의 역할 입장을 유지하면서 대화하세요.${tensionInst}` },
-        { label: '📋 결론 도출', round: 'final' as const, instruction: `[역할극 — 결론]\n토론을 종합하여 당신의 최종 입장을 정리하세요. 타협한 부분, 양보할 수 없는 부분을 명확히 하고 합의 가능한 결론을 제시하세요.${tensionInst}` },
+      // Split experts: first half = blue team (defenders), second half = red team (attackers)
+      const half = Math.ceil(discussionExperts.length / 2);
+      const blueTeam = discussionExperts.slice(0, half);
+      const redTeam = discussionExperts.slice(half);
+      // If only 2 experts, one attacks one defends
+      if (redTeam.length === 0 && blueTeam.length > 1) {
+        redTeam.push(blueTeam.pop()!);
+      }
+
+      const redteamPhases = [
+        { label: '📋 제안 발표 (Blue Team)', round: 'initial' as const, experts: blueTeam,
+          instruction: `[레드팀 검증 — 제안 발표]\n이 아이디어/계획의 핵심을 발표하세요. 장점, 기대 효과, 근거를 구체적으로 제시하세요. 이것이 왜 좋은 아이디어인지 강하게 어필하세요.` },
+        { label: '🔴 공격 (Red Team)', round: 'rebuttal' as const, experts: redTeam,
+          instruction: `[레드팀 검증 — 공격]\n발표된 아이디어의 취약점, 맹점, 논리적 결함을 집중 공격하세요. ${focusMap[rtFocus]}${intensityMap[rtIntensity]}` },
+        { label: '🔵 방어 (Blue Team)', round: 'rebuttal' as const, experts: blueTeam,
+          instruction: `[레드팀 검증 — 방어]\nRed Team의 공격에 하나하나 대응하세요. 반박할 수 있는 부분은 근거를 들어 반박하고, 인정할 부분은 인정하되 보강 방안을 제시하세요.` },
+        { label: '⚖️ 최종 판정', round: 'final' as const, experts: discussionExperts,
+          instruction: `[레드팀 검증 — 최종 판정]\n공격과 방어를 종합하여 최종 평가를 내리세요. 생존한 강점, 보완이 필요한 약점, 구체적 개선안을 정리하세요. 결론: 이 아이디어의 실행 가치가 있는지 판정하세요.` },
       ];
 
-      for (const phase of roleplayPhases) {
+      for (const phase of redteamPhases) {
         if (shouldStop()) break;
-        const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
-        setMessages(prev => [...prev, { id: `round-sep-roleplay-${phase.label}-${Date.now()}`, expertId: '__round__', content: phase.label, round: phase.round }]);
-        for (const expert of roundExperts) {
+        setMessages(prev => [...prev, { id: `round-sep-redteam-${phase.label}-${Date.now()}`, expertId: '__round__', content: phase.label, round: phase.round }]);
+        for (const expert of phase.experts) {
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
-          const instruction = phase.instruction.replace('"참여자"', `"${expert.nameKo}"`);
-          const msgId = `${expert.id}-roleplay-${phase.label}-${Date.now()}`;
+          const msgId = `${expert.id}-redteam-${phase.label}-${Date.now()}`;
           setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round: phase.round }]);
           let fullContent = '';
           try {
             await streamExpert({
               question,
-              expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n' + instruction + lengthExtra },
+              expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n' + phase.instruction + lengthExtra },
               previousResponses: allResponses, round: phase.round,
               onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
               onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -1037,13 +1046,13 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               )}
 
               {/* Participants display for debate modes */}
-              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'roleplay', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
+              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'redteam', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
                 <div className="rounded-2xl px-4 py-2.5 border border-border bg-slate-50 card-shadow">
                   <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
                     {discussionMode === 'standard' && '토론자'}
                     {discussionMode === 'procon' && '토론자'}
                     {discussionMode === 'brainstorm' && '참여자'}
-                    {discussionMode === 'roleplay' && '배역'}
+                    {discussionMode === 'redteam' && '검증팀'}
                     {discussionMode === 'collaboration' && '협업팀'}
                   </span>
                   <div className="flex flex-wrap gap-2 mt-1.5">
@@ -1140,10 +1149,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
             <div className="shrink-0 border-t border-border bg-white">
               <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 space-y-2">
                 {activeExperts.length > 0 && (
-                  (discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'roleplay') ? (
+                  (discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'redteam') ? (
                     <div className="flex items-center gap-2.5">
                       <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
-                        {discussionMode === 'standard' ? '토론자' : discussionMode === 'roleplay' ? '배역' : '참여자'}
+                        {discussionMode === 'standard' ? '토론자' : discussionMode === 'redteam' ? '검증팀' : '참여자'}
                       </span>
                       <div className="flex items-center gap-1.5">
                         {activeExperts.map((e, i) => (

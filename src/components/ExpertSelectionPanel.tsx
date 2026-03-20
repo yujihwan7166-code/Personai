@@ -62,7 +62,7 @@ interface Props {
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'expert', 'debate', 'assistant'];
-const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'roleplay'];
+const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'redteam'];
 
 const mainModeLabels: Record<MainMode, string> = {
   general: '단일 AI',
@@ -76,7 +76,7 @@ const debateSubIcons: Record<DebateSubMode, React.ReactNode> = {
   standard: <Target className="w-3 h-3" />,
   procon: <Scale className="w-3 h-3" />,
   brainstorm: <Lightbulb className="w-3 h-3" />,
-  roleplay: <Users className="w-3 h-3" />,
+  redteam: <Target className="w-3 h-3" />,
 };
 
 function useTypewriter(text: string, speed = 40) {
@@ -598,8 +598,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   );
 }
 
-// ── Roleplay Discussion Settings ──
-function RoleplaySettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange }: {
+// ── Red Team Challenge Settings ──
+function RedteamSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange }: {
   experts: Expert[];
   selectedIds: string[];
   debateSettings?: DebateSettings;
@@ -609,43 +609,43 @@ function RoleplaySettingsPanel({ experts, selectedIds, debateSettings, onDebateS
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
   const selected = experts.filter(e => selectedIds.includes(e.id));
 
-  const scenarioOptions = [
-    { id: 'business' as const, label: '비즈니스', icon: '💼', desc: '이사회, 투자심사, 전략회의' },
-    { id: 'politics' as const, label: '정치·사회', icon: '🏛️', desc: '의회, 정책토론, 시민회의' },
-    { id: 'history' as const, label: '역사·가상', icon: '📜', desc: '역사적 결정, 가상 시나리오' },
-    { id: 'custom' as const, label: '자유 설정', icon: '✏️', desc: '시나리오 직접 작성' },
+  const intensityOptions = [
+    { id: 'gentle' as const, label: '보통', icon: '🟢', desc: '건설적 비판 위주' },
+    { id: 'standard' as const, label: '강도 있게', icon: '🟡', desc: '약점 집중 공격' },
+    { id: 'ruthless' as const, label: '무자비', icon: '🔴', desc: '모든 허점 파괴' },
   ];
 
-  const tensionOptions = [
-    { id: 'low' as const, label: '평화적', desc: '협력적 분위기' },
-    { id: 'medium' as const, label: '긴장감', desc: '적절한 갈등' },
-    { id: 'high' as const, label: '고조', desc: '격렬한 대립' },
+  const focusOptions = [
+    { id: 'all' as const, label: '종합', icon: '🎯', desc: '모든 관점에서 검증' },
+    { id: 'logic' as const, label: '논리', icon: '🧠', desc: '논리적 오류/모순 탐색' },
+    { id: 'feasibility' as const, label: '실현성', icon: '⚙️', desc: '실행 가능성 검증' },
+    { id: 'risk' as const, label: '리스크', icon: '⚠️', desc: '숨은 위험 요소 발굴' },
   ];
 
   const phases = [
-    { icon: '🎬', label: '상황 설정', desc: '시나리오와 각 역할 소개' },
-    { icon: '🎤', label: '입장 발표', desc: '각자 역할에서 주장 전개' },
-    { icon: '⚡', label: '갈등 & 협상', desc: '이해관계 충돌과 타협 시도' },
-    { icon: '📋', label: '결론 도출', desc: '합의 또는 최종 결정 정리' },
+    { icon: '📋', label: '제안 발표', color: 'bg-blue-50 border-blue-100', desc: '아이디어/계획을 발표하고 핵심을 정리' },
+    { icon: '🔴', label: '공격 (Red Team)', color: 'bg-red-50 border-red-100', desc: '취약점·맹점·리스크를 집중 공격' },
+    { icon: '🔵', label: '방어 (Blue Team)', color: 'bg-blue-50 border-blue-100', desc: '비판에 대응하고 보강 방안 제시' },
+    { icon: '⚖️', label: '최종 판정', color: 'bg-amber-50 border-amber-100', desc: '생존한 논점 정리, 개선안 도출' },
   ];
 
   return (
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-gradient-to-r from-amber-700 to-amber-600 flex items-center gap-2.5">
-        <span className="text-lg">🎭</span>
+      <div className="px-4 py-2.5 bg-gradient-to-r from-red-700 to-slate-800 flex items-center gap-2.5">
+        <span className="text-lg">🛡️</span>
         <div>
-          <div className="text-[13px] font-bold text-white">역할극 토론</div>
-          <div className="text-[10px] text-amber-100">시나리오 속 역할을 맡아 실전처럼 토론</div>
+          <div className="text-[13px] font-bold text-white">레드팀 검증</div>
+          <div className="text-[10px] text-red-200">아이디어를 스트레스 테스트하여 검증</div>
         </div>
       </div>
 
       <div className="p-4 space-y-5">
         {/* Phase preview */}
         <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2.5">진행 단계</div>
+          <div className="text-[11px] font-bold text-slate-600 mb-2.5">검증 단계</div>
           <div className="grid grid-cols-2 gap-2">
             {phases.map((p, i) => (
-              <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/60 border border-amber-100">
+              <div key={i} className={cn('flex items-start gap-2 p-2.5 rounded-lg border', p.color)}>
                 <span className="text-base shrink-0">{p.icon}</span>
                 <div>
                   <div className="text-[10px] font-bold text-slate-700">{i + 1}. {p.label}</div>
@@ -680,34 +680,35 @@ function RoleplaySettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           )}
         </div>
 
-        {/* Scenario type */}
+        {/* Intensity */}
         <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">시나리오 유형</div>
-          <div className="grid grid-cols-2 gap-2">
-            {scenarioOptions.map(opt => (
-              <button key={opt.id} onClick={() => update({ roleplayScenario: opt.id })}
-                className={cn('p-2.5 rounded-xl border text-left transition-all flex items-start gap-2.5',
-                  ds.roleplayScenario === opt.id ? 'bg-amber-700 text-white border-amber-700 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300')}>
-                <span className="text-[18px] shrink-0">{opt.icon}</span>
-                <div>
-                  <div className="text-[11px] font-bold">{opt.label}</div>
-                  <div className={cn('text-[9px] mt-0.5 leading-snug', ds.roleplayScenario === opt.id ? 'text-amber-200' : 'text-slate-400')}>{opt.desc}</div>
-                </div>
+          <div className="text-[11px] font-bold text-slate-600 mb-2">공격 강도</div>
+          <div className="flex gap-2">
+            {intensityOptions.map(opt => (
+              <button key={opt.id} onClick={() => update({ redteamIntensity: opt.id })}
+                className={cn('flex-1 py-2.5 rounded-lg border text-center transition-all',
+                  ds.redteamIntensity === opt.id ? 'bg-red-700 text-white border-red-700 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-red-300')}>
+                <div className="text-[14px] mb-0.5">{opt.icon}</div>
+                <div className="text-[11px] font-bold">{opt.label}</div>
+                <div className={cn('text-[9px] mt-0.5', ds.redteamIntensity === opt.id ? 'text-red-200' : 'text-slate-400')}>{opt.desc}</div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Tension */}
+        {/* Focus area */}
         <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">긴장감 수준</div>
-          <div className="flex gap-2">
-            {tensionOptions.map(opt => (
-              <button key={opt.id} onClick={() => update({ roleplayTension: opt.id })}
-                className={cn('flex-1 py-2 rounded-lg border text-center transition-all',
-                  ds.roleplayTension === opt.id ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-slate-500 border-slate-200 hover:border-amber-300')}>
-                <div className="text-[12px] font-bold">{opt.label}</div>
-                <div className={cn('text-[9px] mt-0.5', ds.roleplayTension === opt.id ? 'text-amber-200' : 'text-slate-400')}>{opt.desc}</div>
+          <div className="text-[11px] font-bold text-slate-600 mb-2">검증 초점</div>
+          <div className="grid grid-cols-2 gap-2">
+            {focusOptions.map(opt => (
+              <button key={opt.id} onClick={() => update({ redteamFocus: opt.id })}
+                className={cn('p-2.5 rounded-lg border text-left transition-all flex items-start gap-2',
+                  ds.redteamFocus === opt.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
+                <span className="text-[16px] shrink-0">{opt.icon}</span>
+                <div>
+                  <div className="text-[11px] font-bold">{opt.label}</div>
+                  <div className={cn('text-[9px] mt-0.5', ds.redteamFocus === opt.id ? 'text-slate-400' : 'text-slate-400')}>{opt.desc}</div>
+                </div>
               </button>
             ))}
           </div>
@@ -727,7 +728,7 @@ function RoleplaySettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500">종합 결론 포함</span>
+            <span className="text-[10px] font-bold text-slate-500">종합 판정 포함</span>
             <Toggle checked={ds.includeConclusion} onChange={v => update({ includeConclusion: v })} />
           </div>
         </div>
@@ -1220,7 +1221,7 @@ export function ExpertSelectionPanel({
   const isDebateMode = mainMode === 'debate';
   const isStandardOrProcon = discussionMode === 'standard' || discussionMode === 'procon';
   const isBrainstorm = discussionMode === 'brainstorm';
-  const isRoleplay = discussionMode === 'roleplay';
+  const isRedteam = discussionMode === 'redteam';
 
   const visibleCategories = EXPERT_CATEGORY_ORDER;
 
@@ -1505,8 +1506,8 @@ export function ExpertSelectionPanel({
         />
       )}
 
-      {isRoleplay && (
-        <RoleplaySettingsPanel
+      {isRedteam && (
+        <RedteamSettingsPanel
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
         />
