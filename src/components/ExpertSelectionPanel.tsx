@@ -972,58 +972,64 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
         })}
       </div>
 
-      {/* Selected template — floating modal */}
+      {/* ── Floating Modal ── */}
       {selectedTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
-          {/* Modal */}
-          <div ref={modalRef} className="relative w-full max-w-2xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            {/* Header — compact, centered */}
-            <div className={cn('px-6 pt-5 pb-4 relative text-center', `bg-gradient-to-r ${selectedTemplate.gradient}`)}>
+          <div ref={modalRef} className="relative w-full max-w-[640px] max-h-[88vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+
+            {/* ── Header: gradient bg, icon left, info right ── */}
+            <div className={cn('relative px-7 py-5', `bg-gradient-to-br ${selectedTemplate.gradient}`)}>
               <button onClick={() => onSelectTemplate(null)}
-                className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-white/70 hover:bg-white flex items-center justify-center transition-colors shadow-sm">
-                <X className="w-3.5 h-3.5 text-slate-500" />
+                className="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/60 hover:bg-white flex items-center justify-center transition-colors">
+                <X className="w-3.5 h-3.5 text-slate-600" />
               </button>
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-xl shadow-sm shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white shadow flex items-center justify-center text-2xl shrink-0">
                   {selectedTemplate.icon}
                 </div>
-                <div className="text-left">
-                  <h3 className="text-[16px] font-bold text-slate-900 tracking-tight">{selectedTemplate.name}</h3>
-                  <p className="text-[11px] text-slate-600">{selectedTemplate.description}</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[17px] font-bold text-slate-900">{selectedTemplate.name}</h3>
+                  <p className="text-[11px] text-slate-700 mt-0.5 leading-snug">{selectedTemplate.description}</p>
+                  <div className="flex items-center gap-2.5 mt-2">
+                    <span className="text-[9px] font-bold text-slate-700 bg-white/70 px-2 py-0.5 rounded shadow-sm">{selectedTemplate.phases.length}단계 순차 상담</span>
+                    <span className="text-[9px] text-slate-600 flex items-center gap-1"><FileText className="w-2.5 h-2.5" />{selectedTemplate.outputFormat}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-center gap-2 mt-2.5">
-                <span className="text-[9px] font-semibold text-slate-600 bg-white/80 px-2 py-0.5 rounded shadow-sm">{selectedTemplate.phases.length}단계</span>
-                <span className="text-[9px] text-slate-500 flex items-center gap-1"><FileText className="w-2.5 h-2.5" />{selectedTemplate.outputFormat}</span>
               </div>
             </div>
 
-            {/* Phase timeline — card style, centered */}
-            <div className="px-6 py-6">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 text-center">상담 프로세스</p>
-              <div className="space-y-2">
+            {/* ── Process: full-width card rows ── */}
+            <div className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-2">상담 프로세스</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+              <div className="space-y-1.5">
                 {selectedTemplate.phases.map((phase, i) => {
                   const isLast = i === selectedTemplate.phases.length - 1;
                   return (
-                    <div key={phase.id} className={cn('flex items-start gap-3 px-4 py-3 rounded-xl border transition-all',
-                      isLast ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200')}>
-                      <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5',
-                        isLast ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600')}>
-                        {isLast ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                    <div key={phase.id} className={cn(
+                      'flex items-start gap-3 px-4 py-2.5 rounded-lg border',
+                      isLast ? 'bg-slate-800 border-slate-700' : 'bg-slate-50/80 border-slate-100 hover:bg-slate-50'
+                    )}>
+                      <div className={cn('w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5',
+                        isLast ? 'bg-white/20 text-white' : 'bg-white text-slate-600 shadow-sm border border-slate-200')}>
+                        {isLast ? <Check className="w-3 h-3" /> : i + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[13px]">{phase.expertIcon}</span>
-                          <span className={cn('text-[12px] font-bold', isLast ? 'text-white' : 'text-slate-800')}>{phase.expertRole}</span>
+                          <span className="text-[12px]">{phase.expertIcon}</span>
+                          <span className={cn('text-[11px] font-bold', isLast ? 'text-white' : 'text-slate-800')}>{phase.expertRole}</span>
+                          <span className={cn('text-[9px]', isLast ? 'text-slate-400' : 'text-slate-400')}>— {phase.description}</span>
                         </div>
-                        <p className={cn('text-[10px] mt-0.5', isLast ? 'text-slate-400' : 'text-slate-500')}>{phase.description}</p>
                         {phase.sampleQuestions.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
+                          <div className="mt-1.5 flex flex-wrap gap-1">
                             {phase.sampleQuestions.map((q, qi) => (
-                              <span key={qi} className="text-[9px] text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">{q}</span>
+                              <span key={qi} className={cn('text-[9px] px-2 py-0.5 rounded',
+                                isLast ? 'text-slate-400 bg-white/10' : 'text-slate-500 bg-white border border-slate-200')}>{q}</span>
                             ))}
                           </div>
                         )}
@@ -1034,9 +1040,8 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               </div>
             </div>
 
-            {/* Input */}
-            <div className="px-8 pb-6 pt-4 border-t border-slate-100 bg-slate-50/30">
-              <p className="text-[11px] font-semibold text-slate-500 mb-2.5">상담 내용을 간단히 설명해주세요</p>
+            {/* ── Input ── */}
+            <div className="px-5 pb-5 pt-3">
               <div className="flex gap-2">
                 <input
                   value={question}
@@ -1045,14 +1050,14 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                   placeholder={`${selectedTemplate.name} 관련 상황을 설명해주세요...`}
                   disabled={isDiscussing}
                   autoFocus
-                  className="flex-1 px-5 py-3.5 rounded-xl border border-slate-200 bg-white text-[13px] outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-white text-[12px] outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all placeholder:text-slate-400"
                 />
                 <button
                   onClick={() => question.trim() && onSubmit(question)}
                   disabled={!question.trim() || isDiscussing}
-                  className="px-6 py-3.5 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-2 shadow-sm"
+                  className="px-5 py-3 rounded-xl bg-slate-900 text-white text-[12px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm"
                 >
-                  상담 시작 <ArrowRight className="w-4 h-4" />
+                  상담 시작 <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
