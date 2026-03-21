@@ -8,10 +8,10 @@ interface ExpertAvatarProps {
 }
 
 const logoSizeClasses = {
-  sm: 'w-6 h-6',
-  md: 'w-9 h-9',
-  lg: 'w-11 h-11',
-  xl: 'w-13 h-13',
+  sm: 'w-5 h-5',
+  md: 'w-7 h-7',
+  lg: 'w-9 h-9',
+  xl: 'w-11 h-11',
 };
 
 const containerClasses = {
