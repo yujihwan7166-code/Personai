@@ -972,9 +972,9 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
           {/* Modal */}
-          <div className="relative w-full max-w-3xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-2xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className={cn('px-6 py-5 bg-gradient-to-r relative', selectedTemplate.gradient)}>
+            <div className={cn('px-8 py-5 bg-gradient-to-r relative', selectedTemplate.gradient)}>
               <button onClick={() => onSelectTemplate(null)}
                 className="absolute top-4 right-4 w-7 h-7 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors">
                 <X className="w-4 h-4 text-slate-700" />
@@ -995,7 +995,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
             </div>
 
             {/* Phase timeline */}
-            <div className="px-6 py-5">
+            <div className="px-8 py-5">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">상담 진행 순서</p>
               <div className="grid grid-cols-1 gap-3">
                 {selectedTemplate.phases.map((phase, i) => {
@@ -1027,7 +1027,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
             </div>
 
             {/* Input */}
-            <div className="px-6 pb-5 pt-1 border-t border-slate-100">
+            <div className="px-8 pb-5 pt-1 border-t border-slate-100">
               <p className="text-[11px] font-semibold text-slate-600 mb-2.5 mt-3">상담 내용을 간단히 설명해주세요</p>
               <div className="flex gap-2">
                 <input
