@@ -220,7 +220,6 @@ const Index = () => {
         return [id];
       }
       if (prev.includes(id)) {
-        if (prev.length <= 1 && discussionMode !== 'procon') return prev;
         return prev.filter((x) => x !== id);
       }
       // Multi mode: max 3

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER,
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
@@ -120,7 +121,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 // ── Issue Editor (심층토론) ──
 const ISSUE_TEMPLATES = ['경제적 영향', '윤리적 쟁점', '기술적 타당성', '사회적 합의', '법률적 문제', '환경적 영향', '실현 가능성', '장기적 영향'];
 
-function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign, onAutoAssignChange }: {
+function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign, onAutoAssignChange, onToggle }: {
   issues: DiscussionIssue[];
   onIssuesChange?: (issues: DiscussionIssue[]) => void;
   debateSettings?: DebateSettings;
@@ -128,6 +129,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
   selectedExperts: Expert[];
   autoAssign?: boolean;
   onAutoAssignChange?: (v: boolean) => void;
+  onToggle?: (id: string) => void;
 }) {
   const [newIssue, setNewIssue] = useState('');
   const [customIssues, setCustomIssues] = useState<string[]>([]);
@@ -182,10 +184,12 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           ) : selectedExperts.length > 0 ? (
             <div className="flex items-center gap-1.5 flex-wrap">
               {selectedExperts.map(e => (
-                <div key={e.id} className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200">
-                  <div className="w-5 h-5 scale-[0.6] origin-center"><ExpertAvatar expert={e} size="sm" /></div>
-                  <span className="text-[11px] font-medium text-slate-700">{e.nameKo}</span>
-                </div>
+                <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                  className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
+                  <ExpertAvatar expert={e} size="sm" />
+                  <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500">{e.nameKo}</span>
+                  <X className="w-3 h-3 text-slate-300 group-hover:text-red-400" />
+                </button>
               ))}
             </div>
           ) : (
@@ -475,12 +479,13 @@ function ProconSettingsPanel({ experts, proconStances, dragOver, draggedId, setD
 }
 
 // ── Brainstorm Settings Panel — 재설계 ──
-function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFrameworkChange, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange }: {
+function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFrameworkChange, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange, onToggle }: {
   selectedIds: string[];
   experts: Expert[];
   selectedFramework?: ThinkingFramework | null;
   autoAssign?: boolean;
   onAutoAssignChange?: (v: boolean) => void;
+  onToggle?: (id: string) => void;
   onFrameworkChange?: (fw: ThinkingFramework | null) => void;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
@@ -521,10 +526,12 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
               {selectedIds.map(id => {
                 const e = experts.find(x => x.id === id);
                 return e ? (
-                  <div key={id} className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200">
-                    <div className="w-5 h-5 scale-[0.6] origin-center"><ExpertAvatar expert={e} size="sm" /></div>
-                    <span className="text-[11px] font-medium text-slate-700">{e.nameKo}</span>
-                  </div>
+                  <button key={id} type="button" onClick={() => onToggle(id)}
+                    className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
+                    <ExpertAvatar expert={e} size="sm" />
+                    <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500">{e.nameKo}</span>
+                    <X className="w-3 h-3 text-slate-300 group-hover:text-red-400" />
+                  </button>
                 ) : null;
               })}
             </div>
@@ -631,13 +638,14 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
 }
 
 // ── Hearing (청문회) Settings ──
-function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange }: {
+function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange, onToggle }: {
   experts: Expert[];
   selectedIds: string[];
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
   autoAssign?: boolean;
   onAutoAssignChange?: (v: boolean) => void;
+  onToggle?: (id: string) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const ds = debateSettings!;
@@ -688,10 +696,12 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
           ) : selected.length > 0 ? (
             <div className="flex items-center gap-1.5 flex-wrap">
               {selected.map(e => (
-                <div key={e.id} className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200">
-                  <div className="w-5 h-5 scale-[0.6] origin-center"><ExpertAvatar expert={e} size="sm" /></div>
-                  <span className="text-[11px] font-medium text-slate-700">{e.nameKo}</span>
-                </div>
+                <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                  className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
+                  <ExpertAvatar expert={e} size="sm" />
+                  <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500">{e.nameKo}</span>
+                  <X className="w-3 h-3 text-slate-300 group-hover:text-red-400" />
+                </button>
               ))}
             </div>
           ) : (
@@ -912,18 +922,17 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (selectedTemplate && modalRef.current) {
-      modalRef.current.scrollTop = 0;
+    if (selectedTemplate) {
+      document.body.style.overflow = 'hidden';
+      if (modalRef.current) modalRef.current.scrollTop = 0;
+    } else {
+      document.body.style.overflow = '';
     }
+    return () => { document.body.style.overflow = ''; };
   }, [selectedTemplate]);
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="text-center space-y-1">
-        <p className="text-[12px] text-slate-500">분야를 선택하면 전문가들이 단계별로 상담을 진행합니다</p>
-      </div>
-
       {/* Mode cards grid — 3 per row, information-rich */}
       <div className="grid grid-cols-3 gap-3">
         {EXPERT_MODE_TEMPLATES.map(template => {
@@ -999,12 +1008,12 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
         })}
       </div>
 
-      {/* ── Floating Modal ── */}
-      {selectedTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      {/* ── Floating Modal (portal to body) ── */}
+      {selectedTemplate && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-16 pb-6 px-6 overflow-y-auto animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
+          <div className="fixed inset-0 bg-black/50" />
 
-          <div ref={modalRef} className="relative w-full max-w-[640px] max-h-[88vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div ref={modalRef} className="relative w-full max-w-[640px] bg-white rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
             {/* ── Header ── */}
             <div className={cn('relative px-6 py-2.5', `bg-gradient-to-br ${selectedTemplate.gradient}`)}>
@@ -1248,7 +1257,8 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -1516,7 +1526,7 @@ export function ExpertSelectionPanel({
   return (
     <div className="space-y-3 py-4">
       {/* Hero */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-2 relative z-0">
         <h2 key={mainMode} className="text-2xl sm:text-[26px] font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
@@ -1769,6 +1779,7 @@ export function ExpertSelectionPanel({
           selectedFramework={selectedFramework} onFrameworkChange={onFrameworkChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
+          onToggle={onToggle}
         />
       )}
 
@@ -1778,6 +1789,7 @@ export function ExpertSelectionPanel({
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           selectedExperts={experts.filter(e => selectedIds.includes(e.id))}
           autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
+          onToggle={onToggle}
         />
       )}
 
@@ -1786,6 +1798,7 @@ export function ExpertSelectionPanel({
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
+          onToggle={onToggle}
         />
       )}
 
