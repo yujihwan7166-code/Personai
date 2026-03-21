@@ -1060,19 +1060,34 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                     </div>
                   );
                 })}
-                {/* Final step — separate summary bar */}
+                {/* Final step — deliverable card */}
                 {(() => {
                   const lastPhase = selectedTemplate.phases[selectedTemplate.phases.length - 1];
+                  const deliverables: Record<string, string[]> = {
+                    medical: ['감별진단 목록', '권장 검사 항목', '생활습관 교정 안내', 'SOAP Note 형식 보고서'],
+                    legal: ['법률 쟁점 정리', '관련 판례/법조문', '승소 가능성 분석', '소송 전략 권고안'],
+                    finance: ['재무 건강 점수', '자산 배분 포트폴리오', '절세 전략', '90일 액션플랜'],
+                    realestate: ['시세 분석 리포트', '세금 시뮬레이션', '리스크 체크리스트', '매수/매도 판정'],
+                    startup: ['Lean Canvas', '시장 규모 분석', '재무 모델링', '90일 로드맵'],
+                  };
+                  const items = deliverables[selectedTemplate.id] || [lastPhase.description];
                   return (
-                    <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-800 mt-1">
-                      <div className="w-6 h-6 rounded bg-white/20 flex items-center justify-center shrink-0">
-                        <Check className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+                      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-800 rounded-t-xl">
+                        <div className="w-5 h-5 rounded bg-white/20 flex items-center justify-center shrink-0">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
                         <span className="text-[11px] font-bold text-white">{lastPhase.expertRole}</span>
-                        <span className="text-[9px] text-slate-400 ml-2">{lastPhase.description}</span>
+                        <span className="text-[9px] text-slate-400 ml-auto">{selectedTemplate.outputFormat}</span>
                       </div>
-                      <span className="text-[9px] text-slate-400 shrink-0">{selectedTemplate.outputFormat}</span>
+                      <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                        {items.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <div className="w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+                            <span className="text-[10px] text-slate-600">{item}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   );
                 })()}
