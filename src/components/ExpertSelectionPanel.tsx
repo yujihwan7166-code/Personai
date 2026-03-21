@@ -1021,7 +1021,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
       {selectedTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/15" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
           {/* Modal */}
           <div ref={modalRef} className="relative w-full max-w-lg max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
