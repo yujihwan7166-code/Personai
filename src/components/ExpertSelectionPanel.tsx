@@ -1479,13 +1479,12 @@ export function ExpertSelectionPanel({
               ? items : items.filter(e => e.subCategory === activeSubCategory);
             return (
               <div key={cat} className="relative bg-white">
-                <div className="px-4 pt-3 pb-3 max-h-[200px] overflow-y-auto scrollbar-none grid grid-cols-6 gap-x-2 gap-y-3">
+                <div className="px-4 pt-3 pb-3 max-h-[180px] overflow-y-auto scrollbar-none grid grid-cols-8 gap-x-1 gap-y-2">
                   {filtered.map(expert => {
                     const isSelected = selectedIds.includes(expert.id);
                     const stance = proconStances[expert.id];
                     const isPro = stance === 'pro';
                     const isCon = stance === 'con';
-                    // AI models are disabled in standard/procon mode but shown
                     const isAiModel = expert.category === 'ai';
                     const isDisabled = isStandardOrProcon && isAiModel;
                     return (
@@ -1494,14 +1493,11 @@ export function ExpertSelectionPanel({
                         onDragStart={() => !isDisabled && setDraggedId(expert.id)}
                         onDragEnd={() => setDraggedId(null)}
                         className={cn(
-                          'group relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-150',
+                          'group relative flex flex-col items-center gap-0.5 p-1 rounded-lg transition-all duration-150',
                           isDisabled ? 'opacity-25 cursor-not-allowed' : '',
                           isProcon && !isDisabled ? 'cursor-grab active:cursor-grabbing' : '',
                           hintId === expert.id ? 'animate-drag-hint' : '',
-                          !isDisabled && isProcon && isPro ? 'bg-blue-50 ring-1 ring-blue-200 scale-[1.03]'
-                            : !isDisabled && isProcon && isCon ? 'bg-red-50 ring-1 ring-red-200 scale-[1.03]'
-                            : !isDisabled && !isProcon && isSelected ? 'bg-indigo-50/70 ring-1 ring-indigo-200 scale-[1.03]'
-                            : !isDisabled ? 'hover:bg-slate-50 hover:scale-[1.03]' : ''
+                          !isDisabled ? 'hover:bg-slate-50' : ''
                         )}>
                         <button type="button"
                           disabled={isDisabled}
@@ -1527,8 +1523,8 @@ export function ExpertSelectionPanel({
                               </svg>
                             </span>
                           )}
-                          <ExpertAvatar expert={expert} size="md" />
-                          <span className={cn('text-[10px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors mt-0.5',
+                          <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
+                          <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
                             isDisabled ? 'text-slate-300'
                               : isProcon && isPro ? 'text-blue-600 font-semibold'
                               : isProcon && isCon ? 'text-red-500 font-semibold'
