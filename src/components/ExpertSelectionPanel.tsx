@@ -1017,7 +1017,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
           {/* Modal */}
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-lg max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className={cn('px-6 py-5 bg-gradient-to-r relative', selectedTemplate.gradient)}>
               <button onClick={() => onSelectTemplate(null)}
