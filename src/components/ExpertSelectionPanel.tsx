@@ -1080,7 +1080,13 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
             </div>
 
             {/* ── Scenario cards + Input ── */}
-            <div className="px-5 pb-5 pt-3 border-t border-slate-100">
+            <div className="px-5 pb-5 pt-4">
+              {/* Section label */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-2">예시 질문</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
               {/* Scenario example cards — 2x2 grid */}
               {(() => {
                 const scenarios: Record<string, { title: string; preview: string }[]> = {
@@ -1685,7 +1691,7 @@ export function ExpertSelectionPanel({
           selectedIds={selectedIds} experts={experts}
           selectedFramework={selectedFramework} onFrameworkChange={onFrameworkChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
+          autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
         />
       )}
 
@@ -1694,7 +1700,7 @@ export function ExpertSelectionPanel({
           issues={discussionIssues} onIssuesChange={onDiscussionIssuesChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           selectedExperts={experts.filter(e => selectedIds.includes(e.id))}
-          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
+          autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
         />
       )}
 
@@ -1702,7 +1708,7 @@ export function ExpertSelectionPanel({
         <HearingSettingsPanel
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
+          autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
         />
       )}
 
