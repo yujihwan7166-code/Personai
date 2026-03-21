@@ -1063,30 +1063,66 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                 {/* Final step — deliverable card */}
                 {(() => {
                   const lastPhase = selectedTemplate.phases[selectedTemplate.phases.length - 1];
-                  const deliverables: Record<string, string[]> = {
-                    medical: ['감별진단 목록', '권장 검사 항목', '생활습관 교정 안내', 'SOAP Note 형식 보고서'],
-                    legal: ['법률 쟁점 정리', '관련 판례/법조문', '승소 가능성 분석', '소송 전략 권고안'],
-                    finance: ['재무 건강 점수', '자산 배분 포트폴리오', '절세 전략', '90일 액션플랜'],
-                    realestate: ['시세 분석 리포트', '세금 시뮬레이션', '리스크 체크리스트', '매수/매도 판정'],
-                    startup: ['Lean Canvas', '시장 규모 분석', '재무 모델링', '90일 로드맵'],
+                  const deliverables: Record<string, { category: string; items: string[] }[]> = {
+                    medical: [
+                      { category: '진단', items: ['감별진단 목록 (가능성 높은 순)', '추가 필요 검사 항목 및 이유'] },
+                      { category: '처방', items: ['생활습관 교정 가이드', '식이·운동·수면 개선안'] },
+                      { category: '보고서', items: ['SOAP Note 형식 종합 소견서', '추적 관찰 일정 권고'] },
+                    ],
+                    legal: [
+                      { category: '분석', items: ['법률 쟁점 요약', '적용 법조문 및 관련 판례'] },
+                      { category: '전략', items: ['소송/조정/합의 시나리오 비교', '예상 비용 및 소요 기간'] },
+                      { category: '보고서', items: ['법률의견서 (Legal Memo)', '즉시 조치 사항 체크리스트'] },
+                    ],
+                    finance: [
+                      { category: '진단', items: ['재무 건강 점수 (100점 만점)', '소득/지출/부채 구조 분석'] },
+                      { category: '설계', items: ['맞춤 자산 배분 포트폴리오', '절세 전략 시뮬레이션'] },
+                      { category: '보고서', items: ['개인재무보고서', '90일 실행 액션플랜'] },
+                    ],
+                    realestate: [
+                      { category: '분석', items: ['시세 동향 및 전망 리포트', '입지/인프라 평가'] },
+                      { category: '시뮬레이션', items: ['취득세·양도세·보유세 계산', '투자 수익률 시나리오'] },
+                      { category: '보고서', items: ['매수/매도/보류 판정', '리스크 체크리스트'] },
+                    ],
+                    startup: [
+                      { category: '검증', items: ['Lean Canvas 완성본', 'TAM/SAM/SOM 시장 규모'] },
+                      { category: '설계', items: ['수익 모델 및 단가 구조', '번레이트 · 손익분기점 분석'] },
+                      { category: '보고서', items: ['IR Pitch Deck 구조', '90일 실행 로드맵'] },
+                    ],
                   };
-                  const items = deliverables[selectedTemplate.id] || [lastPhase.description];
+                  const groups = deliverables[selectedTemplate.id] || [{ category: '결과', items: [lastPhase.description] }];
                   return (
-                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
-                      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-800 rounded-t-xl">
-                        <div className="w-5 h-5 rounded bg-white/20 flex items-center justify-center shrink-0">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                        <span className="text-[11px] font-bold text-white">{lastPhase.expertRole}</span>
-                        <span className="text-[9px] text-slate-400 ml-auto">{selectedTemplate.outputFormat}</span>
+                    <div className="mt-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-px flex-1 bg-slate-200" />
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-2">최종 산출물</span>
+                        <div className="h-px flex-1 bg-slate-200" />
                       </div>
-                      <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
-                        {items.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-1.5">
-                            <div className="w-1 h-1 rounded-full bg-slate-400 shrink-0" />
-                            <span className="text-[10px] text-slate-600">{item}</span>
+                      <div className="rounded-xl border border-slate-200 overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-800">
+                          <div className="w-5 h-5 rounded bg-white/20 flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3 text-white" />
                           </div>
-                        ))}
+                          <span className="text-[11px] font-bold text-white">{lastPhase.expertRole}</span>
+                          <span className="text-[9px] text-slate-400 ml-auto flex items-center gap-1"><FileText className="w-2.5 h-2.5" />{selectedTemplate.outputFormat}</span>
+                        </div>
+                        {/* Deliverable groups */}
+                        <div className="grid grid-cols-3 divide-x divide-slate-100">
+                          {groups.map((group, gi) => (
+                            <div key={gi} className="px-3.5 py-3">
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">{group.category}</p>
+                              <div className="space-y-1.5">
+                                {group.items.map((item, ii) => (
+                                  <div key={ii} className="flex items-start gap-1.5">
+                                    <Check className="w-3 h-3 text-emerald-500 shrink-0 mt-px" />
+                                    <span className="text-[10px] text-slate-700 leading-snug">{item}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );
