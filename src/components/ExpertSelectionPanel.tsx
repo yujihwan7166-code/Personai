@@ -1092,37 +1092,27 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                   };
                   const groups = deliverables[selectedTemplate.id] || [{ category: '결과', items: [lastPhase.description] }];
                   return (
-                    <div className="mt-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="h-px flex-1 bg-slate-200" />
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-2">최종 산출물</span>
-                        <div className="h-px flex-1 bg-slate-200" />
+                    <div className="mt-3 mx-6 rounded-lg border border-slate-200 overflow-hidden">
+                      <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-800">
+                        <div className="w-5 h-5 rounded bg-white/20 flex items-center justify-center shrink-0">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                        <span className="text-[11px] font-bold text-white">{selectedTemplate.outputFormat}</span>
                       </div>
-                      <div className="rounded-xl border border-slate-200 overflow-hidden">
-                        {/* Header */}
-                        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-800">
-                          <div className="w-5 h-5 rounded bg-white/20 flex items-center justify-center shrink-0">
-                            <Check className="w-3 h-3 text-white" />
-                          </div>
-                          <span className="text-[11px] font-bold text-white">{lastPhase.expertRole}</span>
-                          <span className="text-[9px] text-slate-400 ml-auto flex items-center gap-1"><FileText className="w-2.5 h-2.5" />{selectedTemplate.outputFormat}</span>
-                        </div>
-                        {/* Deliverable groups */}
-                        <div className="grid grid-cols-3 divide-x divide-slate-100">
-                          {groups.map((group, gi) => (
-                            <div key={gi} className="px-3.5 py-3">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">{group.category}</p>
-                              <div className="space-y-1.5">
-                                {group.items.map((item, ii) => (
-                                  <div key={ii} className="flex items-start gap-1.5">
-                                    <Check className="w-3 h-3 text-emerald-500 shrink-0 mt-px" />
-                                    <span className="text-[10px] text-slate-700 leading-snug">{item}</span>
-                                  </div>
-                                ))}
-                              </div>
+                      <div className="grid grid-cols-3 divide-x divide-slate-100">
+                        {groups.map((group, gi) => (
+                          <div key={gi} className="px-3 py-2.5">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{group.category}</p>
+                            <div className="space-y-1">
+                              {group.items.map((item, ii) => (
+                                <div key={ii} className="flex items-start gap-1.5">
+                                  <Check className="w-3 h-3 text-emerald-500 shrink-0 mt-px" />
+                                  <span className="text-[10px] text-slate-600 leading-snug">{item}</span>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
