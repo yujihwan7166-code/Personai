@@ -1479,7 +1479,7 @@ export function ExpertSelectionPanel({
               ? items : items.filter(e => e.subCategory === activeSubCategory);
             return (
               <div key={cat} className="relative bg-white">
-                <div className="px-4 pt-3 pb-3 max-h-[160px] overflow-y-auto scrollbar-none grid grid-cols-8 gap-x-1 gap-y-2.5">
+                <div className="px-4 pt-3 pb-3 max-h-[200px] overflow-y-auto scrollbar-none grid grid-cols-6 gap-x-2 gap-y-3">
                   {filtered.map(expert => {
                     const isSelected = selectedIds.includes(expert.id);
                     const stance = proconStances[expert.id];
@@ -1527,8 +1527,8 @@ export function ExpertSelectionPanel({
                               </svg>
                             </span>
                           )}
-                          <ExpertAvatar expert={expert} size="sm" />
-                          <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
+                          <ExpertAvatar expert={expert} size="md" />
+                          <span className={cn('text-[10px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors mt-0.5',
                             isDisabled ? 'text-slate-300'
                               : isProcon && isPro ? 'text-blue-600 font-semibold'
                               : isProcon && isCon ? 'text-red-500 font-semibold'
