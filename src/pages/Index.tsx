@@ -163,7 +163,10 @@ const Index = () => {
         // Merge: keep saved customizations but add any new default experts
         const savedIds = new Set(parsed.map((e) => e.id));
         const newExperts = DEFAULT_EXPERTS.filter((e) => !savedIds.has(e.id));
-        return [...parsed.map((e) => ({ ...e, category: e.category || 'ai' })), ...newExperts];
+        return [...parsed.map((e) => {
+          const def = DEFAULT_EXPERTS.find(d => d.id === e.id);
+          return { ...e, category: e.category || 'ai', icon: e.icon || def?.icon || '' };
+        }), ...newExperts];
       }
       return DEFAULT_EXPERTS;
     } catch {return DEFAULT_EXPERTS;}
