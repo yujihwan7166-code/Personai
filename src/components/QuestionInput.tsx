@@ -1,13 +1,14 @@
 import { useState, useRef } from 'react';
 import { ArrowUp, Plus, Wrench, Mic } from 'lucide-react';
-import { DiscussionMode } from '@/types/expert';
+import { DiscussionMode, Expert } from '@/types/expert';
+import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
 
 interface Props {
   onSubmit: (question: string) => void;
   disabled?: boolean;
   discussionMode?: DiscussionMode;
-  selectedExperts?: { id: string; nameKo: string }[];
+  selectedExperts?: Expert[];
   onRemoveExpert?: (id: string) => void;
   onToggleSettings?: () => void;
   showSettings?: boolean;
@@ -61,15 +62,27 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
           ) : (
             <div className="flex items-center gap-1 px-4 pt-3 pb-1 flex-wrap">
               {selectedExperts.map(e => (
-                <button
-                  key={e.id}
-                  type="button"
-                  onClick={() => onRemoveExpert?.(e.id)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] text-indigo-600 font-medium hover:bg-red-50 hover:border-red-100 hover:text-red-400 transition-colors"
-                >
-                  {e.nameKo}
-                  <span className="text-[9px] opacity-60">✕</span>
-                </button>
+                onRemoveExpert ? (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => onRemoveExpert(e.id)}
+                    className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] text-indigo-600 font-medium hover:bg-red-50 hover:border-red-100 hover:text-red-400 transition-colors"
+                  >
+                    {e.avatarUrl
+                      ? <img src={e.avatarUrl} alt="" className="w-3.5 h-3.5 object-contain pointer-events-none" />
+                      : e.icon && <span className="text-[12px] pointer-events-none">{e.icon}</span>}
+                    {e.nameKo}
+                    <span className="text-[9px] opacity-60">✕</span>
+                  </button>
+                ) : (
+                  <span key={e.id} className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] text-indigo-600 font-medium">
+                    {e.avatarUrl
+                      ? <img src={e.avatarUrl} alt="" className="w-3.5 h-3.5 object-contain" />
+                      : e.icon && <span className="text-[12px]">{e.icon}</span>}
+                    {e.nameKo}
+                  </span>
+                )
               ))}
             </div>
           )

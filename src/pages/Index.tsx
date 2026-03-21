@@ -224,6 +224,8 @@ const Index = () => {
       }
       // Multi mode: max 3
       if (getMainMode(discussionMode) === 'multi' && prev.length >= 3) return prev;
+      // Debate mode (standard/brainstorm/hearing): max 4
+      if (getMainMode(discussionMode) === 'debate' && discussionMode !== 'procon' && prev.length >= 4) return prev;
       return [...prev, id];
     });
   };
@@ -689,13 +691,13 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
 
       const hearingPhases = [
         { label: '📋 모두발언', round: 'initial' as const,
-          instruction: `[청문회 — 모두발언]\n이 주제에 대해 당신의 전문 분야 관점에서 핵심 요약과 초기 평가를 제시하세요. 이후 청문 질의에서 깊이 파고들 부분을 예고하세요.` },
+          instruction: `[아이디어 검증 — 모두발언]\n이 주제에 대해 당신의 전문 분야 관점에서 핵심 요약과 초기 평가를 제시하세요. 이후 청문 질의에서 깊이 파고들 부분을 예고하세요.` },
         { label: '🎤 전문가 질의', round: 'rebuttal' as const,
-          instruction: `[청문회 — 전문가 질의]\n당신은 "${'{expertName}'}" 위원입니다. 당신의 전문 분야에서 이 주제의 약점, 모호한 점, 검증이 필요한 부분을 날카롭게 질문하세요. ${focusInst}${pressureInst}\n\n반드시 구체적인 질문 형태로 제시하고, 왜 그 질문이 중요한지 간략히 설명하세요. 질문은 최소 2개 이상 제시하세요.` },
+          instruction: `[아이디어 검증 — 전문가 질의]\n당신은 "${'{expertName}'}" 위원입니다. 당신의 전문 분야에서 이 주제의 약점, 모호한 점, 검증이 필요한 부분을 날카롭게 질문하세요. ${focusInst}${pressureInst}\n\n반드시 구체적인 질문 형태로 제시하고, 왜 그 질문이 중요한지 간략히 설명하세요. 질문은 최소 2개 이상 제시하세요.` },
         { label: '🔥 추가 심문', round: 'rebuttal' as const,
-          instruction: `[청문회 — 추가 심문]\n이전 질의에서 드러난 약점과 회피한 부분을 집중 추궁하세요. 다른 위원들의 질의도 참고하여 아직 해결되지 않은 핵심 쟁점을 파고드세요.${pressureInst}\n\n"앞서 ~라고 했는데, 그렇다면 ~은 어떻게 설명하시겠습니까?" 형식으로 추궁하세요.` },
+          instruction: `[아이디어 검증 — 추가 심문]\n이전 질의에서 드러난 약점과 회피한 부분을 집중 추궁하세요. 다른 위원들의 질의도 참고하여 아직 해결되지 않은 핵심 쟁점을 파고드세요.${pressureInst}\n\n"앞서 ~라고 했는데, 그렇다면 ~은 어떻게 설명하시겠습니까?" 형식으로 추궁하세요.` },
         { label: '⚖️ 최종 평가', round: 'final' as const,
-          instruction: `[청문회 — 최종 평가]\n청문을 종합하여 당신의 최종 평가를 내리세요.\n\n1. 검증 결과 (통과/조건부 통과/부적격)\n2. 확인된 강점\n3. 드러난 약점\n4. 보완 필요 사항\n5. 종합 의견 (1-2문장)\n\n전문가로서 엄격하지만 공정하게 판정하세요.` },
+          instruction: `[아이디어 검증 — 최종 평가]\n검증을 종합하여 당신의 최종 평가를 내리세요.\n\n1. 검증 결과 (통과/조건부 통과/부적격)\n2. 확인된 강점\n3. 드러난 약점\n4. 보완 필요 사항\n5. 종합 의견 (1-2문장)\n\n전문가로서 엄격하지만 공정하게 판정하세요.` },
       ];
 
       for (const phase of hearingPhases) {
@@ -1050,7 +1052,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     {discussionMode === 'standard' && '토론자'}
                     {discussionMode === 'procon' && '토론자'}
                     {discussionMode === 'brainstorm' && '참여자'}
-                    {discussionMode === 'hearing' && '질의 위원'}
+                    {discussionMode === 'hearing' && '검증 위원'}
                     {discussionMode === 'collaboration' && '협업팀'}
                   </span>
                   <div className="flex flex-wrap gap-2 mt-1.5">
@@ -1150,7 +1152,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   (discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'hearing') ? (
                     <div className="flex items-center gap-2.5">
                       <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
-                        {discussionMode === 'standard' ? '토론자' : discussionMode === 'hearing' ? '질의 위원' : '참여자'}
+                        {discussionMode === 'standard' ? '토론자' : discussionMode === 'hearing' ? '검증 위원' : '참여자'}
                       </span>
                       <div className="flex items-center gap-1.5">
                         {activeExperts.map((e, i) => (
