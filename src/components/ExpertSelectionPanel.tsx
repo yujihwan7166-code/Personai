@@ -1066,19 +1066,58 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               </div>
             </div>
 
-            {/* ── Suggested + Input ── */}
+            {/* ── Scenario cards + Input ── */}
             <div className="px-5 pb-5 pt-3 border-t border-slate-100">
-              {/* Quick example prompts */}
-              {selectedTemplate.phases[0]?.sampleQuestions.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {selectedTemplate.phases.flatMap(p => p.sampleQuestions).slice(0, 3).map((q, qi) => (
-                    <button key={qi} type="button" onClick={() => setQuestion(q)}
-                      className="text-[10px] text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors text-left leading-snug">
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Scenario example cards — 2x2 grid */}
+              {(() => {
+                const scenarios: Record<string, { title: string; preview: string }[]> = {
+                  medical: [
+                    { title: '만성 두통', preview: '3개월째 오후만 되면 편두통이 반복됩니다. 진통제를 먹어도 일시적이고...' },
+                    { title: '건강검진 해석', preview: '종합검진에서 간수치(AST/ALT)가 정상범위를 초과했다는 결과를 받았습니다...' },
+                    { title: '수면 장애', preview: '최근 한 달간 잠들기 어렵고 새벽에 자주 깨서 일상에 지장이 생기고 있습니다...' },
+                    { title: '허리 통증', preview: '앉아서 일하는 직업인데 최근 허리와 골반 쪽 통증이 점점 심해지고 있어요...' },
+                  ],
+                  legal: [
+                    { title: '전세보증금 반환', preview: '2년 전세 계약이 만료되어 3개월 전부터 집주인에게 이사 가겠다고 통보했습니다...' },
+                    { title: '중고거래 사기', preview: '어제 중고거래 앱에서 노트북을 90만 원에 구매하기로 하고 판매자에게 돈을 입금했습니다...' },
+                    { title: '학교폭력', preview: '중학교 2학년인 제 아들이 같은 반 학생들로부터 지속적인 괴롭힘을 당해왔다는 사실을...' },
+                    { title: '층간소음', preview: '윗집의 층간소음 때문에 1년 넘게 고통받고 있습니다. 단순한 발망치 소리를 넘어...' },
+                  ],
+                  finance: [
+                    { title: '사회초년생 재테크', preview: '월급 280만 원을 받는 사회초년생입니다. 저축과 투자를 어떻게 분배해야...' },
+                    { title: '은퇴 자금 설계', preview: '현재 45세이고 55세에 조기은퇴를 계획하고 있습니다. 현재 자산은...' },
+                    { title: '주식 vs 부동산', preview: '여유자금 5000만 원이 생겼는데 주식 투자와 부동산 투자 중 어디에...' },
+                    { title: '대출 상환 전략', preview: '주택담보대출 2억, 신용대출 3천만 원이 있습니다. 어떤 순서로 갚아야...' },
+                  ],
+                  realestate: [
+                    { title: '아파트 매수 타이밍', preview: '서울 외곽 신축 아파트를 매수하려고 합니다. 현재 시세 대비 적절한 시기인지...' },
+                    { title: '전세 사기 예방', preview: '신혼부부인데 전세로 들어갈 집을 구하고 있습니다. 전세사기가 걱정되어...' },
+                    { title: '재건축 투자', preview: '30년 된 강남 아파트 재건축 투자를 고민하고 있습니다. 현재 시세와 향후...' },
+                    { title: '임대사업 시작', preview: '소형 원룸 건물을 매입해서 임대사업을 시작하려 합니다. 수익률 계산과...' },
+                  ],
+                  startup: [
+                    { title: 'SaaS 사업 검증', preview: 'AI 기반 고객 분석 SaaS를 구상 중입니다. 현재 프로토타입은 완성되었고...' },
+                    { title: '투자 유치 전략', preview: '시드 라운드 투자를 준비 중입니다. MAU 3,000명이고 월 매출 500만 원...' },
+                    { title: '공동창업 계약', preview: '친구와 함께 창업을 준비하고 있는데 지분 배분과 역할 분담 계약서를...' },
+                    { title: '피봇 결정', preview: '6개월간 운영한 서비스의 성장이 정체되어 피봇을 고려하고 있습니다...' },
+                  ],
+                };
+                const items = scenarios[selectedTemplate.id];
+                return items ? (
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {items.map((ex, i) => (
+                      <button key={i} type="button" onClick={() => setQuestion(ex.preview)}
+                        className="text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all group">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Zap className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
+                          <span className="text-[11px] font-bold text-slate-700">{ex.title}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">{ex.preview}</p>
+                      </button>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
               {/* Input — matching QuestionInput style */}
               <div className={cn(
                 'rounded-2xl border-2 transition-all duration-200',
