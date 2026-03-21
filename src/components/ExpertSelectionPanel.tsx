@@ -964,13 +964,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
       {/* Hero — 분야 선택 전 */}
       {!selectedTemplate && (
         <>
-          <div className="text-center pt-4 pb-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <BookOpen className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-[22px] font-bold text-slate-900 tracking-tight">전문가 상담을 시작하세요</h2>
-            <p className="text-[13px] text-slate-400 mt-1.5">분야를 선택하면 전문가들이 단계별로 상담합니다</p>
-          </div>
+          <div className="pt-1 pb-1" />
 
           {/* Template cards — 큰 카드, 시원한 레이아웃 */}
           <div className="grid grid-cols-2 gap-3">
