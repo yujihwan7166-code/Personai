@@ -120,13 +120,14 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 // ── Issue Editor (심층토론) ──
 const ISSUE_TEMPLATES = ['경제적 영향', '윤리적 쟁점', '기술적 타당성', '사회적 합의', '법률적 문제', '환경적 영향', '실현 가능성', '장기적 영향'];
 
-function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign }: {
+function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign, onAutoAssignChange }: {
   issues: DiscussionIssue[];
   onIssuesChange?: (issues: DiscussionIssue[]) => void;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
   selectedExperts: Expert[];
   autoAssign?: boolean;
+  onAutoAssignChange?: (v: boolean) => void;
 }) {
   const [newIssue, setNewIssue] = useState('');
   const [customIssues, setCustomIssues] = useState<string[]>([]);
@@ -161,7 +162,15 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
         {/* Debaters */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-600">토론자</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-600">토론자</span>
+              {onAutoAssignChange && (
+                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
+                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접 선택</button>
+                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
+                </div>
+              )}
+            </div>
             {!autoAssign && (selectedExperts.length < 2
               ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
               : <span className="text-[10px] text-slate-400">{selectedExperts.length}명 참여</span>)}
@@ -466,11 +475,12 @@ function ProconSettingsPanel({ experts, proconStances, dragOver, draggedId, setD
 }
 
 // ── Brainstorm Settings Panel — 재설계 ──
-function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFrameworkChange, debateSettings, onDebateSettingsChange, autoAssign }: {
+function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFrameworkChange, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange }: {
   selectedIds: string[];
   experts: Expert[];
   selectedFramework?: ThinkingFramework | null;
   autoAssign?: boolean;
+  onAutoAssignChange?: (v: boolean) => void;
   onFrameworkChange?: (fw: ThinkingFramework | null) => void;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
@@ -489,7 +499,15 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
         {/* Participants */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-600">참여자</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-600">참여자</span>
+              {onAutoAssignChange && (
+                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
+                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접 선택</button>
+                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
+                </div>
+              )}
+            </div>
             {!autoAssign && (selectedIds.length < 2
               ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
               : <span className="text-[10px] text-slate-400">{selectedIds.length}명 참여</span>)}
@@ -613,12 +631,13 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
 }
 
 // ── Hearing (청문회) Settings ──
-function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, autoAssign }: {
+function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange }: {
   experts: Expert[];
   selectedIds: string[];
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
   autoAssign?: boolean;
+  onAutoAssignChange?: (v: boolean) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const ds = debateSettings!;
@@ -649,7 +668,15 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
         {/* Questioners */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-600">질의 위원</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-600">질의 위원</span>
+              {onAutoAssignChange && (
+                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
+                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접 선택</button>
+                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
+                </div>
+              )}
+            </div>
             {!autoAssign && (selected.length < 2
               ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
               : <span className="text-[10px] text-slate-400">{selected.length}명 위원</span>)}
@@ -1313,9 +1340,13 @@ export function ExpertSelectionPanel({
   })).filter(g => g.items.length > 0);
 
   const validCats = grouped.map(g => g.cat);
-  const effectiveCategory = validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai';
+  const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
+  const effectiveCategory = aiBlocked
+    ? (validCats.find(c => c === 'specialist') || validCats.find(c => c !== 'ai') || validCats[0] || 'ai')
+    : (validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai');
 
   const handleMainModeChange = (m: MainMode) => {
+    setAutoAssign(false);
     if (m === 'general') onModeChange('general');
     else if (m === 'multi') onModeChange('multi');
     else if (m === 'expert') onModeChange('expert');
@@ -1370,7 +1401,7 @@ export function ExpertSelectionPanel({
                 const info = DEBATE_SUB_MODE_LABELS[sub];
                 const isActive = discussionMode === sub;
                 return (
-                  <button key={sub} onClick={() => onModeChange(sub)} disabled={isDiscussing}
+                  <button key={sub} onClick={() => { setAutoAssign(false); onModeChange(sub); }} disabled={isDiscussing}
                     style={{ animationDelay: `${i * 20}ms` }}
                     className={cn(
                       'flex items-center gap-1 px-3.5 py-[3px] rounded-full text-[10.5px] font-medium transition-all duration-150 animate-in fade-in',
@@ -1436,35 +1467,25 @@ export function ExpertSelectionPanel({
         <AssistantCardsPanel onSubmit={onSubmit} isDiscussing={isDiscussing} />
       )}
 
-      {/* ── Auto/Manual Toggle (심층/브레인/청문회) ── */}
-      {showExpertGrid && supportsAutoAssign && (
-        <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 w-fit">
-          <button onClick={() => setAutoAssign(false)}
-            className={cn('px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all',
-              !autoAssign ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
-            직접 선택
-          </button>
-          <button onClick={() => setAutoAssign(true)}
-            className={cn('px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1',
-              autoAssign ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
-            <Zap className="w-3 h-3" /> 자동 배정
-          </button>
-        </div>
-      )}
-
       {/* ── Expert Selection Grid (general / multi / debate) ── */}
-      {showExpertGrid && !autoAssign && (
-        <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
+      {showExpertGrid && (
+        <div className={cn('border border-slate-200 rounded-xl bg-white overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.07)] transition-all duration-200',
+          autoAssign && 'opacity-50'
+        )} onClick={() => { if (autoAssign) setAutoAssign(false); }}>
           {/* Category tabs */}
           <div className="flex flex-col bg-slate-50 border-b-2 border-slate-200">
             <div className="flex items-center px-2 pt-1 pb-1 overflow-x-auto scrollbar-none">
               <div className="flex flex-1 min-w-0 gap-0.5">
                 {grouped.map(({ cat, label }) => {
                   const isActive = effectiveCategory === cat;
+                  const isAiTab = cat === 'ai';
+                  const isAiDisabled = isAiTab && isStandardOrProcon;
                   return (
                     <button key={cat} type="button"
-                      onClick={() => { setActiveCategory(cat); setActiveSubCategory('전체'); }}
+                      disabled={isAiDisabled || autoAssign}
+                      onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
                       className={cn('flex items-center gap-1 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
+                        isAiDisabled ? 'text-slate-300 cursor-not-allowed' :
                         isActive ? 'bg-slate-800 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
                       {label}
                     </button>
@@ -1588,7 +1609,7 @@ export function ExpertSelectionPanel({
           selectedIds={selectedIds} experts={experts}
           selectedFramework={selectedFramework} onFrameworkChange={onFrameworkChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign}
+          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
         />
       )}
 
@@ -1597,7 +1618,7 @@ export function ExpertSelectionPanel({
           issues={discussionIssues} onIssuesChange={onDiscussionIssuesChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           selectedExperts={experts.filter(e => selectedIds.includes(e.id))}
-          autoAssign={autoAssign}
+          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
         />
       )}
 
@@ -1605,7 +1626,7 @@ export function ExpertSelectionPanel({
         <HearingSettingsPanel
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign}
+          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
         />
       )}
 
