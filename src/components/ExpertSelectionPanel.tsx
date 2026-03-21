@@ -927,6 +927,13 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
   isDiscussing: boolean;
 }) {
   const [question, setQuestion] = useState('');
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedTemplate && modalRef.current) {
+      modalRef.current.scrollTop = 0;
+    }
+  }, [selectedTemplate]);
 
   return (
     <div className="space-y-4">
@@ -947,7 +954,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               className={cn(
                 'relative text-left rounded-2xl border transition-all duration-200 group overflow-hidden',
                 isSelected
-                  ? 'border-slate-700 bg-slate-900 shadow-xl ring-1 ring-slate-600'
+                  ? 'border-indigo-300 bg-indigo-50 shadow-lg ring-1 ring-indigo-200'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-lg'
               )}
             >
@@ -967,40 +974,40 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
 
                 {/* Header: Icon + Title */}
                 <div className="flex items-start gap-2.5 mb-2.5">
-                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm', isSelected ? 'bg-white/10' : `bg-gradient-to-br ${template.gradient}`)}>
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm', `bg-gradient-to-br ${template.gradient}`)}>
                     {template.icon}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className={cn('text-[13px] font-bold leading-tight', isSelected ? 'text-white' : 'text-slate-800')}>{template.name}</h3>
-                    <p className={cn('text-[9px] mt-0.5 leading-snug', isSelected ? 'text-slate-400' : 'text-slate-500')}>{template.description}</p>
+                    <h3 className={cn('text-[13px] font-bold leading-tight', isSelected ? 'text-indigo-900' : 'text-slate-800')}>{template.name}</h3>
+                    <p className={cn('text-[9px] mt-0.5 leading-snug', isSelected ? 'text-indigo-500' : 'text-slate-500')}>{template.description}</p>
                   </div>
                 </div>
 
                 {/* Phase flow: expert roles */}
-                <div className={cn('rounded-lg p-2 mb-2.5', isSelected ? 'bg-white/5' : 'bg-slate-50')}>
+                <div className={cn('rounded-lg p-2 mb-2.5', isSelected ? 'bg-indigo-100/50' : 'bg-slate-50')}>
                   <div className="flex items-center gap-0.5 flex-wrap">
                     {corePhases.map((phase, i) => (
                       <div key={phase.id} className="flex items-center gap-0.5">
                         <span className={cn('text-[9px] px-1.5 py-0.5 rounded-md font-medium inline-flex items-center gap-0.5',
-                          isSelected ? 'bg-white/10 text-slate-300' : 'bg-white text-slate-600 border border-slate-200')}>
+                          isSelected ? 'bg-white text-indigo-700 border border-indigo-200' : 'bg-white text-slate-600 border border-slate-200')}>
                           <span>{phase.expertIcon}</span>
                           <span>{phase.expertRole}</span>
                         </span>
-                        {i < corePhases.length - 1 && <ChevronRight className={cn('w-2.5 h-2.5 shrink-0', isSelected ? 'text-slate-500' : 'text-slate-300')} />}
+                        {i < corePhases.length - 1 && <ChevronRight className={cn('w-2.5 h-2.5 shrink-0', isSelected ? 'text-indigo-300' : 'text-slate-300')} />}
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Output format */}
-                <div className={cn('flex items-center gap-1.5 text-[9px] font-medium', isSelected ? 'text-slate-500' : 'text-slate-400')}>
+                <div className={cn('flex items-center gap-1.5 text-[9px] font-medium', isSelected ? 'text-indigo-400' : 'text-slate-400')}>
                   <FileText className="w-3 h-3 shrink-0" />
                   <span>{template.outputFormat}</span>
                 </div>
 
                 {/* Phase count badge */}
-                <div className={cn('mt-2 pt-2 border-t', isSelected ? 'border-slate-700' : 'border-slate-100')}>
-                  <span className={cn('text-[9px] font-bold', isSelected ? 'text-amber-400' : 'text-slate-500')}>
+                <div className={cn('mt-2 pt-2 border-t', isSelected ? 'border-indigo-200' : 'border-slate-100')}>
+                  <span className={cn('text-[9px] font-bold', isSelected ? 'text-indigo-600' : 'text-slate-500')}>
                     {template.phases.length}단계 전문가 순차 상담
                   </span>
                 </div>
@@ -1014,10 +1021,10 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
       {selectedTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/15" />
 
           {/* Modal */}
-          <div className="relative w-full max-w-lg max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div ref={modalRef} className="relative w-full max-w-lg max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className={cn('px-6 py-5 bg-gradient-to-r relative', selectedTemplate.gradient)}>
               <button onClick={() => onSelectTemplate(null)}
