@@ -120,14 +120,13 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 // ── Issue Editor (심층토론) ──
 const ISSUE_TEMPLATES = ['경제적 영향', '윤리적 쟁점', '기술적 타당성', '사회적 합의', '법률적 문제', '환경적 영향', '실현 가능성', '장기적 영향'];
 
-function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign, onAutoAssignChange }: {
+function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign }: {
   issues: DiscussionIssue[];
   onIssuesChange?: (issues: DiscussionIssue[]) => void;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
   selectedExperts: Expert[];
   autoAssign?: boolean;
-  onAutoAssignChange?: (v: boolean) => void;
 }) {
   const [newIssue, setNewIssue] = useState('');
   const [customIssues, setCustomIssues] = useState<string[]>([]);
@@ -162,21 +161,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
         {/* Debaters */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-600">토론자</span>
-              {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
-                  <button onClick={() => onAutoAssignChange(false)}
-                    className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>
-                    직접 선택
-                  </button>
-                  <button onClick={() => onAutoAssignChange(true)}
-                    className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>
-                    <Zap className="w-2.5 h-2.5" />자동
-                  </button>
-                </div>
-              )}
-            </div>
+            <span className="text-[11px] font-bold text-slate-600">토론자</span>
             {!autoAssign && (selectedExperts.length < 2
               ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
               : <span className="text-[10px] text-slate-400">{selectedExperts.length}명 참여</span>)}
@@ -481,12 +466,11 @@ function ProconSettingsPanel({ experts, proconStances, dragOver, draggedId, setD
 }
 
 // ── Brainstorm Settings Panel — 재설계 ──
-function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFrameworkChange, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange }: {
+function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFrameworkChange, debateSettings, onDebateSettingsChange, autoAssign }: {
   selectedIds: string[];
   experts: Expert[];
   selectedFramework?: ThinkingFramework | null;
   autoAssign?: boolean;
-  onAutoAssignChange?: (v: boolean) => void;
   onFrameworkChange?: (fw: ThinkingFramework | null) => void;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
@@ -505,21 +489,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
         {/* Participants */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-600">참여자</span>
-              {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
-                  <button onClick={() => onAutoAssignChange(false)}
-                    className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>
-                    직접 선택
-                  </button>
-                  <button onClick={() => onAutoAssignChange(true)}
-                    className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>
-                    <Zap className="w-2.5 h-2.5" />자동
-                  </button>
-                </div>
-              )}
-            </div>
+            <span className="text-[11px] font-bold text-slate-600">참여자</span>
             {!autoAssign && (selectedIds.length < 2
               ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
               : <span className="text-[10px] text-slate-400">{selectedIds.length}명 참여</span>)}
@@ -643,13 +613,12 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
 }
 
 // ── Hearing (청문회) Settings ──
-function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange }: {
+function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, autoAssign }: {
   experts: Expert[];
   selectedIds: string[];
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
   autoAssign?: boolean;
-  onAutoAssignChange?: (v: boolean) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const ds = debateSettings!;
@@ -680,21 +649,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
         {/* Questioners */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-600">질의 위원</span>
-              {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
-                  <button onClick={() => onAutoAssignChange(false)}
-                    className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>
-                    직접 선택
-                  </button>
-                  <button onClick={() => onAutoAssignChange(true)}
-                    className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>
-                    <Zap className="w-2.5 h-2.5" />자동
-                  </button>
-                </div>
-              )}
-            </div>
+            <span className="text-[11px] font-bold text-slate-600">질의 위원</span>
             {!autoAssign && (selected.length < 2
               ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
               : <span className="text-[10px] text-slate-400">{selected.length}명 위원</span>)}
@@ -927,36 +882,6 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
   isDiscussing: boolean;
 }) {
   const [question, setQuestion] = useState('');
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (selectedTemplate && modalRef.current) {
-      modalRef.current.scrollTop = 0;
-    }
-  }, [selectedTemplate]);
-
-  const scenarioExamples: Record<string, { title: string; preview: string }[]> = {
-    medical: [
-      { title: '만성 두통', preview: '3개월째 오후만 되면 편두통이 반복됩니다. 진통제를 먹어도 일시적이고...' },
-      { title: '건강검진 해석', preview: '종합검진에서 간수치(AST/ALT)가 정상범위를 초과했다는 결과를 받았습니다...' },
-    ],
-    legal: [
-      { title: '전세보증금 반환', preview: '2년 전세 계약이 만료되어 3개월 전부터 집주인에게 이사 가겠다고 통보했습니다...' },
-      { title: '중고거래 사기', preview: '어제 중고거래 앱에서 노트북을 90만 원에 구매하기로 하고 판매자에게 돈을 입금했습니다...' },
-    ],
-    finance: [
-      { title: '사회초년생 재테크', preview: '월급 280만 원을 받는 사회초년생입니다. 저축과 투자를 어떻게 분배해야...' },
-      { title: '은퇴 자금 설계', preview: '현재 45세이고 55세에 조기은퇴를 계획하고 있습니다. 현재 자산은...' },
-    ],
-    realestate: [
-      { title: '아파트 매수 타이밍', preview: '서울 외곽 신축 아파트를 매수하려고 합니다. 현재 시세 대비 적절한 시기인지...' },
-      { title: '전세 사기 예방', preview: '신혼부부인데 전세로 들어갈 집을 구하고 있습니다. 전세사기가 걱정되어...' },
-    ],
-    startup: [
-      { title: 'SaaS 사업 검증', preview: 'AI 기반 고객 분석 SaaS를 구상 중입니다. 현재 프로토타입은 완성되었고...' },
-      { title: '투자 유치 전략', preview: '시드 라운드 투자를 준비 중입니다. MAU 3,000명이고 월 매출 500만 원...' },
-    ],
-  };
 
   return (
     <div className="space-y-4">
@@ -965,7 +890,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
         <p className="text-[12px] text-slate-500">분야를 선택하면 전문가들이 단계별로 상담을 진행합니다</p>
       </div>
 
-      {/* Mode cards grid — 3 per row */}
+      {/* Mode cards grid — 3 per row, information-rich */}
       <div className="grid grid-cols-3 gap-3">
         {EXPERT_MODE_TEMPLATES.map(template => {
           const isSelected = selectedTemplate?.id === template.id;
@@ -975,37 +900,64 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               key={template.id}
               onClick={() => onSelectTemplate(isSelected ? null : template)}
               className={cn(
-                'relative text-left rounded-xl border transition-all duration-200 group overflow-hidden',
+                'relative text-left rounded-2xl border transition-all duration-200 group overflow-hidden',
                 isSelected
-                  ? 'border-slate-400 bg-slate-50 shadow-md'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                  ? 'border-slate-700 bg-slate-900 shadow-xl ring-1 ring-slate-600'
+                  : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-lg'
               )}
             >
-              <div className={cn('absolute left-0 top-0 bottom-0 w-1 rounded-l-xl', `bg-gradient-to-b ${template.gradient}`)} />
-              <div className="pl-5 pr-4 py-3.5">
+              {/* Top gradient accent bar */}
+              <div className={cn('h-1', isSelected ? 'bg-gradient-to-r from-amber-400 to-orange-400' : `bg-gradient-to-r ${template.gradient}`)} />
+
+              <div className="px-4 pt-3.5 pb-3">
+                {/* Badges */}
                 <div className="absolute top-3 right-3 flex gap-1">
-                  {template.isPopular && <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">인기</span>}
-                  {template.isNew && <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600">NEW</span>}
+                  {template.isPopular && (
+                    <span className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded-full', isSelected ? 'bg-amber-400/20 text-amber-300' : 'bg-amber-50 text-amber-600 border border-amber-200')}>인기</span>
+                  )}
+                  {template.isNew && (
+                    <span className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded-full', isSelected ? 'bg-emerald-400/20 text-emerald-300' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')}>NEW</span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-[16px]">{template.icon}</span>
-                  <h3 className="text-[13px] font-bold text-slate-800">{template.name}</h3>
+
+                {/* Header: Icon + Title */}
+                <div className="flex items-start gap-2.5 mb-2.5">
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm', isSelected ? 'bg-white/10' : `bg-gradient-to-br ${template.gradient}`)}>
+                    {template.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className={cn('text-[13px] font-bold leading-tight', isSelected ? 'text-white' : 'text-slate-800')}>{template.name}</h3>
+                    <p className={cn('text-[9px] mt-0.5 leading-snug', isSelected ? 'text-slate-400' : 'text-slate-500')}>{template.description}</p>
+                  </div>
                 </div>
-                <p className="text-[10px] text-slate-500 leading-snug mb-3">{template.description}</p>
-                <div className="flex items-center gap-1 flex-wrap mb-3">
-                  {corePhases.map((phase, i) => (
-                    <div key={phase.id} className="flex items-center gap-1">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium flex items-center gap-1">
-                        <span className="w-3 h-3 rounded-full bg-slate-300 text-white text-[7px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                        {phase.expertRole}
-                      </span>
-                      {i < corePhases.length - 1 && <ChevronRight className="w-2.5 h-2.5 text-slate-300 shrink-0" />}
-                    </div>
-                  ))}
+
+                {/* Phase flow: expert roles */}
+                <div className={cn('rounded-lg p-2 mb-2.5', isSelected ? 'bg-white/5' : 'bg-slate-50')}>
+                  <div className="flex items-center gap-0.5 flex-wrap">
+                    {corePhases.map((phase, i) => (
+                      <div key={phase.id} className="flex items-center gap-0.5">
+                        <span className={cn('text-[9px] px-1.5 py-0.5 rounded-md font-medium inline-flex items-center gap-0.5',
+                          isSelected ? 'bg-white/10 text-slate-300' : 'bg-white text-slate-600 border border-slate-200')}>
+                          <span>{phase.expertIcon}</span>
+                          <span>{phase.expertRole}</span>
+                        </span>
+                        {i < corePhases.length - 1 && <ChevronRight className={cn('w-2.5 h-2.5 shrink-0', isSelected ? 'text-slate-500' : 'text-slate-300')} />}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <span className="text-[9px] font-semibold text-slate-400">{template.phases.length}단계 순차 상담</span>
-                  <span className="text-[9px] text-slate-400 flex items-center gap-1"><FileText className="w-2.5 h-2.5" />{template.outputFormat}</span>
+
+                {/* Output format */}
+                <div className={cn('flex items-center gap-1.5 text-[9px] font-medium', isSelected ? 'text-slate-500' : 'text-slate-400')}>
+                  <FileText className="w-3 h-3 shrink-0" />
+                  <span>{template.outputFormat}</span>
+                </div>
+
+                {/* Phase count badge */}
+                <div className={cn('mt-2 pt-2 border-t', isSelected ? 'border-slate-700' : 'border-slate-100')}>
+                  <span className={cn('text-[9px] font-bold', isSelected ? 'text-amber-400' : 'text-slate-500')}>
+                    {template.phases.length}단계 전문가 순차 상담
+                  </span>
                 </div>
               </div>
             </button>
@@ -1013,69 +965,61 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
         })}
       </div>
 
-      {/* Floating modal — hero + scenarios + process + input */}
+      {/* Selected template — floating modal */}
       {selectedTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
+          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div ref={modalRef} className="relative w-full max-w-2xl max-h-[88vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
-            {/* Hero header */}
-            <div className="px-8 pt-8 pb-6 relative border-b border-slate-100">
+          {/* Modal */}
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className={cn('px-6 py-5 bg-gradient-to-r relative', selectedTemplate.gradient)}>
               <button onClick={() => onSelectTemplate(null)}
-                className="absolute top-5 right-5 w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                <X className="w-4 h-4 text-slate-400" />
+                className="absolute top-4 right-4 w-7 h-7 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors">
+                <X className="w-4 h-4 text-slate-700" />
               </button>
-              <div className="flex items-start gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center shadow-lg shrink-0">
-                  <span className="text-3xl">{selectedTemplate.icon}</span>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/80 flex items-center justify-center text-3xl shadow-sm shrink-0">
+                  {selectedTemplate.icon}
                 </div>
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <h2 className="text-[22px] font-bold text-slate-900 tracking-tight">{selectedTemplate.name}</h2>
-                  <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">{selectedTemplate.description}</p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">{selectedTemplate.phases.length}단계 상담</span>
-                    <span className="text-[10px] text-slate-400">·</span>
-                    <span className="text-[10px] text-slate-400 flex items-center gap-1"><FileText className="w-3 h-3" />{selectedTemplate.outputFormat}</span>
+                <div>
+                  <h3 className="text-[16px] font-bold text-slate-800">{selectedTemplate.name}</h3>
+                  <p className="text-[12px] text-slate-600 mt-0.5">{selectedTemplate.description}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white/60 px-2 py-0.5 rounded-full">{selectedTemplate.phases.length}단계</span>
+                    <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1"><FileText className="w-3 h-3" />{selectedTemplate.outputFormat}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Scenario examples */}
-            {scenarioExamples[selectedTemplate.id] && (
-              <div className="px-8 pb-5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">이런 상담을 할 수 있어요</p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {scenarioExamples[selectedTemplate.id].map((ex, i) => (
-                    <button key={i} onClick={() => setQuestion(ex.title + ' - ' + ex.preview)}
-                      className="text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all group">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Zap className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors" />
-                        <span className="text-[11px] font-bold text-slate-700">{ex.title}</span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">{ex.preview}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Process timeline — horizontal steps with icons */}
-            <div className="px-8 pb-5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">상담 프로세스</p>
-              <div className="flex items-start gap-0">
+            {/* Phase timeline */}
+            <div className="px-6 py-5">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">상담 진행 순서</p>
+              <div className="grid grid-cols-1 gap-3">
                 {selectedTemplate.phases.map((phase, i) => {
                   const isLast = i === selectedTemplate.phases.length - 1;
                   return (
-                    <div key={phase.id} className="flex-1 flex flex-col items-center text-center relative">
-                      {i > 0 && <div className="absolute top-4 right-1/2 w-full h-px bg-slate-200 -z-0" />}
-                      {/* Icon + Number badge */}
-                      <div className={cn('w-9 h-9 rounded-xl flex flex-col items-center justify-center z-10 mb-2',
-                        isLast ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 shadow-sm')}>
-                        <span className="text-[12px] leading-none">{isLast ? '✓' : phase.expertIcon}</span>
-                        {!isLast && <span className="text-[7px] font-bold leading-none mt-0.5 text-slate-400">{i + 1}</span>}
+                    <div key={phase.id} className={cn('flex items-start gap-3 p-3 rounded-xl border', isLast ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50/50 border-slate-100')}>
+                      <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0',
+                        isLast ? 'bg-amber-200 text-amber-700' : 'bg-slate-200 text-slate-600')}>
+                        {isLast ? '✓' : i + 1}
                       </div>
-                      <p className={cn('text-[10px] font-bold leading-tight', isLast ? 'text-slate-800' : 'text-slate-600')}>{phase.expertRole}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[14px]">{phase.expertIcon}</span>
+                          <span className={cn('text-[12px] font-semibold', isLast ? 'text-amber-700' : 'text-slate-700')}>{phase.expertRole}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{phase.description}</p>
+                        {phase.sampleQuestions.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {phase.sampleQuestions.map((q, qi) => (
+                              <span key={qi} className="text-[9px] text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">&ldquo;{q}&rdquo;</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -1083,8 +1027,8 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
             </div>
 
             {/* Input */}
-            <div className="px-8 py-5 border-t border-slate-100 bg-slate-50/30">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">상담 시작</p>
+            <div className="px-6 pb-5 pt-1 border-t border-slate-100">
+              <p className="text-[11px] font-semibold text-slate-600 mb-2.5 mt-3">상담 내용을 간단히 설명해주세요</p>
               <div className="flex gap-2">
                 <input
                   value={question}
@@ -1093,18 +1037,17 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                   placeholder={`${selectedTemplate.name} 관련 상황을 설명해주세요...`}
                   disabled={isDiscussing}
                   autoFocus
-                  className="flex-1 px-5 py-3.5 rounded-xl border border-slate-200 bg-white text-[13px] outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-[13px] outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all bg-slate-50/50"
                 />
                 <button
                   onClick={() => question.trim() && onSubmit(question)}
                   disabled={!question.trim() || isDiscussing}
-                  className="px-6 py-3.5 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-2 shadow-sm"
+                  className="px-5 py-3 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm"
                 >
                   상담 시작 <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       )}
@@ -1357,14 +1300,9 @@ export function ExpertSelectionPanel({
   })).filter(g => g.items.length > 0);
 
   const validCats = grouped.map(g => g.cat);
-  // 심층/찬반 모드에서 AI 탭 선택되어 있으면 전문가 탭으로 자동 전환
-  const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
-  const effectiveCategory = aiBlocked
-    ? (validCats.find(c => c === 'specialist') || validCats.find(c => c !== 'ai') || validCats[0] || 'ai')
-    : (validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai');
+  const effectiveCategory = validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai';
 
   const handleMainModeChange = (m: MainMode) => {
-    setAutoAssign(false);
     if (m === 'general') onModeChange('general');
     else if (m === 'multi') onModeChange('multi');
     else if (m === 'expert') onModeChange('expert');
@@ -1419,7 +1357,7 @@ export function ExpertSelectionPanel({
                 const info = DEBATE_SUB_MODE_LABELS[sub];
                 const isActive = discussionMode === sub;
                 return (
-                  <button key={sub} onClick={() => { setAutoAssign(false); onModeChange(sub); }} disabled={isDiscussing}
+                  <button key={sub} onClick={() => onModeChange(sub)} disabled={isDiscussing}
                     style={{ animationDelay: `${i * 20}ms` }}
                     className={cn(
                       'flex items-center gap-1 px-3.5 py-[3px] rounded-full text-[10.5px] font-medium transition-all duration-150 animate-in fade-in',
@@ -1485,27 +1423,35 @@ export function ExpertSelectionPanel({
         <AssistantCardsPanel onSubmit={onSubmit} isDiscussing={isDiscussing} />
       )}
 
+      {/* ── Auto/Manual Toggle (심층/브레인/청문회) ── */}
+      {showExpertGrid && supportsAutoAssign && (
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 w-fit">
+          <button onClick={() => setAutoAssign(false)}
+            className={cn('px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all',
+              !autoAssign ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+            직접 선택
+          </button>
+          <button onClick={() => setAutoAssign(true)}
+            className={cn('px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1',
+              autoAssign ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+            <Zap className="w-3 h-3" /> 자동 배정
+          </button>
+        </div>
+      )}
+
       {/* ── Expert Selection Grid (general / multi / debate) ── */}
-      {showExpertGrid && (
-        <div className={cn('border border-slate-200 rounded-xl bg-white overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.07)] transition-all duration-200',
-          autoAssign && 'opacity-50'
-        )}
-          onClick={() => { if (autoAssign) setAutoAssign(false); }}
-        >
+      {showExpertGrid && !autoAssign && (
+        <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
           {/* Category tabs */}
           <div className="flex flex-col bg-slate-50 border-b-2 border-slate-200">
             <div className="flex items-center px-2 pt-1 pb-1 overflow-x-auto scrollbar-none">
               <div className="flex flex-1 min-w-0 gap-0.5">
                 {grouped.map(({ cat, label }) => {
                   const isActive = effectiveCategory === cat;
-                  const isAiTab = cat === 'ai';
-                  const isAiDisabled = isAiTab && isStandardOrProcon;
                   return (
                     <button key={cat} type="button"
-                      disabled={isAiDisabled || autoAssign}
-                      onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
+                      onClick={() => { setActiveCategory(cat); setActiveSubCategory('전체'); }}
                       className={cn('flex items-center gap-1 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
-                        isAiDisabled ? 'text-slate-300 cursor-not-allowed' :
                         isActive ? 'bg-slate-800 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
                       {label}
                     </button>
@@ -1629,7 +1575,7 @@ export function ExpertSelectionPanel({
           selectedIds={selectedIds} experts={experts}
           selectedFramework={selectedFramework} onFrameworkChange={onFrameworkChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
+          autoAssign={autoAssign}
         />
       )}
 
@@ -1638,7 +1584,7 @@ export function ExpertSelectionPanel({
           issues={discussionIssues} onIssuesChange={onDiscussionIssuesChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           selectedExperts={experts.filter(e => selectedIds.includes(e.id))}
-          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
+          autoAssign={autoAssign}
         />
       )}
 
@@ -1646,7 +1592,7 @@ export function ExpertSelectionPanel({
         <HearingSettingsPanel
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign} onAutoAssignChange={setAutoAssign}
+          autoAssign={autoAssign}
         />
       )}
 
