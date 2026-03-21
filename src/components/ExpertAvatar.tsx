@@ -15,10 +15,10 @@ const logoSizeClasses = {
 };
 
 const emojiSizeClasses = {
-  sm: 'w-7 h-7 text-[16px]',
-  md: 'w-10 h-10 text-[22px]',
-  lg: 'w-12 h-12 text-[28px]',
-  xl: 'w-14 h-14 text-[32px]',
+  sm: 'w-8 h-8 text-[18px]',
+  md: 'w-11 h-11 text-[26px]',
+  lg: 'w-14 h-14 text-[32px]',
+  xl: 'w-16 h-16 text-[36px]',
 };
 
 const softBg: Record<ExpertColor, string> = {
