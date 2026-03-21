@@ -1352,6 +1352,7 @@ export function ExpertSelectionPanel({
     : (validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai');
 
   const handleMainModeChange = (m: MainMode) => {
+    setAutoAssign(false);
     if (m === 'general') onModeChange('general');
     else if (m === 'multi') onModeChange('multi');
     else if (m === 'expert') onModeChange('expert');
@@ -1406,7 +1407,7 @@ export function ExpertSelectionPanel({
                 const info = DEBATE_SUB_MODE_LABELS[sub];
                 const isActive = discussionMode === sub;
                 return (
-                  <button key={sub} onClick={() => onModeChange(sub)} disabled={isDiscussing}
+                  <button key={sub} onClick={() => { setAutoAssign(false); onModeChange(sub); }} disabled={isDiscussing}
                     style={{ animationDelay: `${i * 20}ms` }}
                     className={cn(
                       'flex items-center gap-1 px-3.5 py-[3px] rounded-full text-[10.5px] font-medium transition-all duration-150 animate-in fade-in',
