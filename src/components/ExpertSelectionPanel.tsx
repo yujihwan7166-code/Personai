@@ -1028,8 +1028,8 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
             </div>
 
             {/* ── Process: full-width card rows ── */}
-            <div className="px-5 pt-5 pb-3">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="px-3 pt-5 pb-3">
+              <div className="flex items-center gap-2 mb-3 px-2">
                 <div className="h-px flex-1 bg-slate-200" />
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-2">상담 프로세스</span>
                 <div className="h-px flex-1 bg-slate-200" />
