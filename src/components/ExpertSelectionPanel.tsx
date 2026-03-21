@@ -1066,25 +1066,50 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               </div>
             </div>
 
-            {/* ── Input ── */}
-            <div className="px-5 pb-5 pt-3">
-              <div className="flex gap-2">
-                <input
-                  value={question}
-                  onChange={e => setQuestion(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && question.trim()) onSubmit(question); }}
-                  placeholder={`${selectedTemplate.name} 관련 상황을 설명해주세요...`}
-                  disabled={isDiscussing}
-                  autoFocus
-                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-white text-[12px] outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all placeholder:text-slate-400"
-                />
-                <button
-                  onClick={() => question.trim() && onSubmit(question)}
-                  disabled={!question.trim() || isDiscussing}
-                  className="px-5 py-3 rounded-xl bg-slate-900 text-white text-[12px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm"
-                >
-                  상담 시작 <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+            {/* ── Suggested + Input ── */}
+            <div className="px-5 pb-5 pt-3 border-t border-slate-100">
+              {/* Quick example prompts */}
+              {selectedTemplate.phases[0]?.sampleQuestions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {selectedTemplate.phases.flatMap(p => p.sampleQuestions).slice(0, 3).map((q, qi) => (
+                    <button key={qi} type="button" onClick={() => setQuestion(q)}
+                      className="text-[10px] text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors text-left leading-snug">
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Input — matching QuestionInput style */}
+              <div className={cn(
+                'rounded-2xl border-2 transition-all duration-200',
+                question.trim() ? 'border-slate-300 shadow-[0_2px_12px_rgba(0,0,0,0.08)]' : 'border-slate-200'
+              )}>
+                <div className="rounded-[calc(1rem-1px)] bg-white">
+                  <textarea
+                    value={question}
+                    onChange={e => { setQuestion(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && question.trim()) { e.preventDefault(); onSubmit(question); } }}
+                    placeholder={`${selectedTemplate.name} 관련 상황을 설명해주세요...`}
+                    disabled={isDiscussing}
+                    autoFocus
+                    rows={2}
+                    className="w-full px-5 pt-4 pb-2 text-[13px] outline-none resize-none bg-transparent placeholder:text-slate-400 leading-relaxed"
+                  />
+                  <div className="flex items-center justify-between px-4 pb-3">
+                    <span className="text-[9px] text-slate-300">Shift+Enter로 줄바꿈</span>
+                    <button
+                      type="button"
+                      onClick={() => question.trim() && onSubmit(question)}
+                      disabled={!question.trim() || isDiscussing}
+                      className={cn(
+                        'w-8 h-8 rounded-lg flex items-center justify-center transition-all',
+                        question.trim() ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm' : 'bg-slate-100 text-slate-400'
+                      )}
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
