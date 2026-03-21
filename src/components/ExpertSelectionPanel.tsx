@@ -980,22 +980,18 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
 
           {/* Modal */}
           <div ref={modalRef} className="relative w-full max-w-2xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            {/* Header — gradient accent */}
-            <div className={cn('px-8 pt-6 pb-5 relative', `bg-gradient-to-r ${selectedTemplate.gradient}`)}>
+            {/* Header — gradient accent, centered */}
+            <div className={cn('px-8 pt-7 pb-5 relative text-center', `bg-gradient-to-r ${selectedTemplate.gradient}`)}>
               <button onClick={() => onSelectTemplate(null)}
                 className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/70 hover:bg-white flex items-center justify-center transition-colors shadow-sm">
                 <X className="w-4 h-4 text-slate-500" />
               </button>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shadow-sm shrink-0">
-                  {selectedTemplate.icon}
-                </div>
-                <div className="flex-1 pt-0.5">
-                  <h3 className="text-[18px] font-bold text-slate-900 tracking-tight">{selectedTemplate.name}</h3>
-                  <p className="text-[12px] text-slate-600 mt-0.5">{selectedTemplate.description}</p>
-                </div>
+              <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center text-3xl shadow-sm mx-auto mb-3">
+                {selectedTemplate.icon}
               </div>
-              <div className="flex items-center gap-3 mt-3 ml-16">
+              <h3 className="text-[20px] font-bold text-slate-900 tracking-tight">{selectedTemplate.name}</h3>
+              <p className="text-[12px] text-slate-600 mt-1">{selectedTemplate.description}</p>
+              <div className="flex items-center justify-center gap-3 mt-3">
                 <span className="text-[10px] font-semibold text-slate-600 bg-white/80 px-2.5 py-1 rounded-md shadow-sm">{selectedTemplate.phases.length}단계 순차 상담</span>
                 <span className="text-[10px] text-slate-500 flex items-center gap-1"><FileText className="w-3 h-3" />{selectedTemplate.outputFormat}</span>
               </div>
