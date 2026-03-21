@@ -1060,23 +1060,22 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               </div>
             )}
 
-            {/* Process timeline — horizontal steps */}
+            {/* Process timeline — horizontal steps with icons */}
             <div className="px-8 pb-5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">상담 프로세스</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">상담 프로세스</p>
               <div className="flex items-start gap-0">
                 {selectedTemplate.phases.map((phase, i) => {
                   const isLast = i === selectedTemplate.phases.length - 1;
                   return (
                     <div key={phase.id} className="flex-1 flex flex-col items-center text-center relative">
-                      {/* Connector line */}
-                      {i > 0 && <div className="absolute top-3.5 right-1/2 w-full h-px bg-slate-200 -z-0" />}
-                      {/* Step badge */}
-                      <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold z-10 mb-2',
-                        isLast ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 border-2 border-slate-200')}>
-                        {isLast ? <Check className="w-3 h-3" /> : i + 1}
+                      {i > 0 && <div className="absolute top-4 right-1/2 w-full h-px bg-slate-200 -z-0" />}
+                      {/* Icon + Number badge */}
+                      <div className={cn('w-9 h-9 rounded-xl flex flex-col items-center justify-center z-10 mb-2',
+                        isLast ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 shadow-sm')}>
+                        <span className="text-[12px] leading-none">{isLast ? '✓' : phase.expertIcon}</span>
+                        {!isLast && <span className="text-[7px] font-bold leading-none mt-0.5 text-slate-400">{i + 1}</span>}
                       </div>
                       <p className={cn('text-[10px] font-bold leading-tight', isLast ? 'text-slate-800' : 'text-slate-600')}>{phase.expertRole}</p>
-                      <p className="text-[8px] text-slate-400 mt-0.5 leading-snug px-1">{phase.description}</p>
                     </div>
                   );
                 })}
