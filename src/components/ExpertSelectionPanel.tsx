@@ -1017,83 +1017,101 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
       {selectedTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div ref={modalRef} className="relative w-full max-w-xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div ref={modalRef} className="relative w-full max-w-2xl max-h-[88vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
             {/* Hero header */}
-            <div className="text-center px-6 pt-8 pb-5 relative">
+            <div className="px-8 pt-8 pb-6 relative border-b border-slate-100">
               <button onClick={() => onSelectTemplate(null)}
-                className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                <X className="w-4 h-4 text-slate-500" />
+                className="absolute top-5 right-5 w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                <X className="w-4 h-4 text-slate-400" />
               </button>
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <span className="text-2xl">{selectedTemplate.icon}</span>
-              </div>
-              <h2 className="text-[20px] font-bold text-slate-900">{selectedTemplate.name}</h2>
-              <p className="text-[12px] text-slate-400 mt-1">{selectedTemplate.description}</p>
-            </div>
-
-            {/* Scenario examples */}
-            {scenarioExamples[selectedTemplate.id] && (
-              <div className="px-6 pb-4">
-                <div className="grid grid-cols-2 gap-3">
-                  {scenarioExamples[selectedTemplate.id].map((ex, i) => (
-                    <button key={i} onClick={() => setQuestion(ex.title + ' - ' + ex.preview)}
-                      className="text-left p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md transition-all group">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <Zap className="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
-                        <span className="text-[12px] font-semibold text-slate-700">{ex.title}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2">{ex.preview}</p>
-                    </button>
-                  ))}
+              <div className="flex items-start gap-5">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center shadow-lg shrink-0">
+                  <span className="text-3xl">{selectedTemplate.icon}</span>
+                </div>
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <h2 className="text-[22px] font-bold text-slate-900 tracking-tight">{selectedTemplate.name}</h2>
+                  <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">{selectedTemplate.description}</p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">{selectedTemplate.phases.length}단계 상담</span>
+                    <span className="text-[10px] text-slate-400">·</span>
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1"><FileText className="w-3 h-3" />{selectedTemplate.outputFormat}</span>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Process timeline — always visible */}
-            <div className="px-6 pb-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">상담 프로세스</p>
-                <span className="text-[9px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded">{selectedTemplate.phases.length}단계 · {selectedTemplate.outputFormat}</span>
+            <div className="grid grid-cols-5 divide-x divide-slate-100">
+              {/* Left: Process timeline */}
+              <div className="col-span-3 px-6 py-5">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">상담 프로세스</p>
+                <div className="space-y-0">
+                  {selectedTemplate.phases.map((phase, i) => {
+                    const isLast = i === selectedTemplate.phases.length - 1;
+                    return (
+                      <div key={phase.id} className="flex gap-3.5">
+                        <div className="flex flex-col items-center shrink-0">
+                          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold',
+                            isLast ? 'bg-slate-900 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 shadow-sm')}>
+                            {isLast ? <Check className="w-4 h-4" /> : i + 1}
+                          </div>
+                          {!isLast && <div className="w-px flex-1 bg-slate-200 my-1" />}
+                        </div>
+                        <div className="pb-5 flex-1 min-w-0">
+                          <p className={cn('text-[13px] font-bold', isLast ? 'text-slate-900' : 'text-slate-700')}>{phase.expertRole}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{phase.description}</p>
+                          {phase.sampleQuestions.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {phase.sampleQuestions.slice(0, 2).map((q, qi) => (
+                                <p key={qi} className="text-[10px] text-slate-400 pl-3 border-l-2 border-slate-200">{q}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50/50 overflow-hidden">
-                {selectedTemplate.phases.map((phase, i) => {
-                  const isLast = i === selectedTemplate.phases.length - 1;
-                  return (
-                    <div key={phase.id} className={cn('flex items-center gap-3 px-4 py-3', !isLast && 'border-b border-slate-100')}>
-                      <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0',
-                        isLast ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200')}>
-                        {isLast ? <Check className="w-3.5 h-3.5" /> : i + 1}
+
+              {/* Right: Scenario examples */}
+              <div className="col-span-2 px-5 py-5 bg-slate-50/50">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">예시 상담</p>
+                <div className="space-y-2.5">
+                  {(scenarioExamples[selectedTemplate.id] || []).map((ex, i) => (
+                    <button key={i} onClick={() => setQuestion(ex.title + ' - ' + ex.preview)}
+                      className="w-full text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all group">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Zap className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                        <span className="text-[11px] font-bold text-slate-700">{ex.title}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn('text-[12px] font-semibold', isLast ? 'text-slate-800' : 'text-slate-700')}>{phase.expertRole}</p>
-                        <p className="text-[10px] text-slate-400">{phase.description}</p>
-                      </div>
-                      {!isLast && <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
-                    </div>
-                  );
-                })}
+                      <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-3">{ex.preview}</p>
+                    </button>
+                  ))}
+                  <p className="text-[9px] text-slate-300 text-center mt-2">클릭하면 입력창에 자동 입력됩니다</p>
+                </div>
               </div>
             </div>
 
             {/* Input */}
-            <div className="px-6 pb-6 border-t border-slate-100 pt-4">
+            <div className="px-8 py-5 border-t border-slate-100 bg-slate-50/30">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">상담 시작</p>
               <div className="flex gap-2">
                 <input
                   value={question}
                   onChange={e => setQuestion(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && question.trim()) onSubmit(question); }}
-                  placeholder={`궁금한 ${selectedTemplate.name.replace(' 상담', '')} 질문을 물어보세요.`}
+                  placeholder={`${selectedTemplate.name} 관련 상황을 설명해주세요...`}
                   disabled={isDiscussing}
                   autoFocus
-                  className="flex-1 px-5 py-3.5 rounded-2xl border border-slate-200 text-[13px] outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+                  className="flex-1 px-5 py-3.5 rounded-xl border border-slate-200 bg-white text-[13px] outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
                 />
                 <button
                   onClick={() => question.trim() && onSubmit(question)}
                   disabled={!question.trim() || isDiscussing}
-                  className="px-5 py-3.5 rounded-2xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm"
+                  className="px-6 py-3.5 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-2 shadow-sm"
                 >
-                  <ArrowRight className="w-4 h-4" />
+                  상담 시작 <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
