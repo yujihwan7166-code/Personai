@@ -990,7 +990,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                 {selectedTemplate.icon}
               </div>
               <h3 className="text-[20px] font-bold text-slate-900 tracking-tight">{selectedTemplate.name}</h3>
-              <p className="text-[12px] text-slate-600 mt-1">{selectedTemplate.description}</p>
+              <p className="text-[12px] text-slate-700 mt-1">{selectedTemplate.description}</p>
               <div className="flex items-center justify-center gap-3 mt-3">
                 <span className="text-[10px] font-semibold text-slate-600 bg-white/80 px-2.5 py-1 rounded-md shadow-sm">{selectedTemplate.phases.length}단계 순차 상담</span>
                 <span className="text-[10px] text-slate-500 flex items-center gap-1"><FileText className="w-3 h-3" />{selectedTemplate.outputFormat}</span>
@@ -999,7 +999,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
 
             {/* Phase timeline — vertical */}
             <div className="px-8 py-6">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-5">상담 프로세스</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-5">상담 프로세스</p>
               <div className="space-y-0">
                 {selectedTemplate.phases.map((phase, i) => {
                   const isLast = i === selectedTemplate.phases.length - 1;
@@ -1019,11 +1019,11 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                           <span className="text-[15px]">{phase.expertIcon}</span>
                           <span className={cn('text-[13px] font-bold', isLast ? 'text-slate-900' : 'text-slate-700')}>{phase.expertRole}</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-1">{phase.description}</p>
+                        <p className="text-[11px] text-slate-500 mt-1">{phase.description}</p>
                         {phase.sampleQuestions.length > 0 && (
                           <div className="mt-2.5 space-y-1">
                             {phase.sampleQuestions.map((q, qi) => (
-                              <p key={qi} className="text-[10px] text-slate-400 pl-3 border-l-2 border-slate-200 leading-relaxed">{q}</p>
+                              <p key={qi} className="text-[10px] text-slate-500 pl-3 border-l-2 border-slate-300 leading-relaxed">{q}</p>
                             ))}
                           </div>
                         )}
