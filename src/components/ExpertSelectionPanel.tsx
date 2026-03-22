@@ -63,7 +63,7 @@ interface Props {
   onBulkSelect?: (ids: string[]) => void;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'expert', 'debate', 'assistant'];
+const mainModes: MainMode[] = ['general', 'multi', 'expert', 'debate', 'assistant', 'player'];
 const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'hearing'];
 
 const mainModeLabels: Record<MainMode, string> = {
@@ -72,6 +72,7 @@ const mainModeLabels: Record<MainMode, string> = {
   expert: '전문가 모드',
   debate: '라운드테이블',
   assistant: '어시스턴트',
+  player: '플레이어',
 };
 
 const debateSubIcons: Record<DebateSubMode, React.ReactNode> = {
@@ -185,10 +186,9 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             <div className="flex items-center gap-1.5 flex-wrap">
               {selectedExperts.map(e => (
                 <button key={e.id} type="button" onClick={() => onToggle(e.id)}
-                  className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
+                  className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
                   <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
                   <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
-                  <X className="w-3 h-3 text-slate-300 group-hover:text-red-400 pointer-events-none" />
                 </button>
               ))}
             </div>
@@ -525,10 +525,9 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                 const e = experts.find(x => x.id === id);
                 return e ? (
                   <button key={id} type="button" onClick={() => onToggle(id)}
-                    className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
+                    className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
                     <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
                     <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
-                    <X className="w-3 h-3 text-slate-300 group-hover:text-red-400 pointer-events-none" />
                   </button>
                 ) : null;
               })}
@@ -658,10 +657,9 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
             <div className="flex items-center gap-1.5 flex-wrap">
               {selected.map(e => (
                 <button key={e.id} type="button" onClick={() => onToggle(e.id)}
-                  className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
+                  className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
                   <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
                   <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
-                  <X className="w-3 h-3 text-slate-300 group-hover:text-red-400 pointer-events-none" />
                 </button>
               ))}
             </div>
@@ -812,7 +810,7 @@ function CollaborationBoard({ experts, selectedIds, selectedTeam, onTeamChange, 
                   <div className="font-semibold text-[10px] mb-1">{team.name}</div>
                   <p className="text-slate-300 mb-1.5">{team.description}</p>
                   <div className="space-y-0.5 text-slate-400">{team.phases.map((p, pi) => (
-                    <div key={p.id}><span className="text-slate-200">{pi+1}.</span> {p.label}{p.deliverable && ` → ${p.deliverable}`}</div>
+                    <div key={p.id}><span className="text-slate-200">{pi + 1}.</span> {p.label}{p.deliverable && ` → ${p.deliverable}`}</div>
                   ))}</div>
                   <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-slate-800 rotate-45 -mt-1" />
                 </div>
@@ -1006,113 +1004,113 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               };
               const pc = procColors[selectedTemplate.id] || procColors.medical;
               return (
-            <div className="px-8 pt-1 pb-3">
-              <div className="space-y-1.5">
-                {selectedTemplate.phases.map((phase, i) => {
-                  const isLast = i === selectedTemplate.phases.length - 1;
-                  if (isLast) return null;
-                  return (
-                    <div key={phase.id}
-                      className="flex items-start gap-3 px-4 py-2.5 rounded-lg border border-slate-100 bg-slate-50/80 hover:bg-slate-50 animate-in fade-in slide-in-from-bottom-2 duration-400"
-                      style={{ animationDelay: `${800 + i * 150}ms`, animationFillMode: 'both' }}>
-                      <div className={cn('w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5', pc.numBg, pc.numText)}>
-                        {i + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[12px]">{phase.expertIcon}</span>
-                          <span className="text-[11px] font-bold text-slate-800">{phase.expertRole}</span>
-                          <span className="text-[9px] text-slate-500">— {phase.description}</span>
-                        </div>
-                        {phase.sampleQuestions.length > 0 && (
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {phase.sampleQuestions.map((q, qi) => (
-                              <span key={qi} className="text-[9px] px-2 py-0.5 rounded text-slate-600 bg-white border border-slate-200">{q}</span>
-                            ))}
+                <div className="px-8 pt-1 pb-3">
+                  <div className="space-y-1.5">
+                    {selectedTemplate.phases.map((phase, i) => {
+                      const isLast = i === selectedTemplate.phases.length - 1;
+                      if (isLast) return null;
+                      return (
+                        <div key={phase.id}
+                          className="flex items-start gap-3 px-4 py-2.5 rounded-lg border border-slate-100 bg-slate-50/80 hover:bg-slate-50 animate-in fade-in slide-in-from-bottom-2 duration-400"
+                          style={{ animationDelay: `${800 + i * 150}ms`, animationFillMode: 'both' }}>
+                          <div className={cn('w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5', pc.numBg, pc.numText)}>
+                            {i + 1}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Connector */}
-              <div className="flex items-center gap-2 py-5 animate-in fade-in slide-in-from-bottom-2 duration-500"
-                style={{ animationDelay: `${800 + selectedTemplate.phases.length * 150 + 400}ms`, animationFillMode: 'both' }}>
-                <div className="h-px flex-1 bg-slate-200" />
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[11px] font-semibold text-slate-600">상담 완료 시 {selectedTemplate.outputFormat} 제공</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
-              {/* Final step — premium deliverable card */}
-                {(() => {
-                  const lastPhase = selectedTemplate.phases[selectedTemplate.phases.length - 1];
-                  const colorMap: Record<string, { accent: string; bg: string; text: string; icon: string }> = {
-                    medical: { accent: 'from-red-500 to-rose-500', bg: 'bg-red-50', text: 'text-red-700', icon: 'text-red-500' },
-                    legal: { accent: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50', text: 'text-amber-700', icon: 'text-amber-500' },
-                    finance: { accent: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: 'text-emerald-500' },
-                    realestate: { accent: 'from-blue-500 to-sky-500', bg: 'bg-blue-50', text: 'text-blue-700', icon: 'text-blue-500' },
-                    startup: { accent: 'from-purple-500 to-violet-500', bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
-                  };
-                  const deliverables: Record<string, { icon: string; label: string }[]> = {
-                    medical: [
-                      { icon: '🔍', label: '감별진단 목록' }, { icon: '🧪', label: '권장 검사 항목' },
-                      { icon: '💪', label: '생활습관 교정' }, { icon: '📋', label: 'SOAP Note 작성' },
-                      { icon: '📅', label: '추적 관찰 일정' }, { icon: '🏥', label: '전문의 연계 권고' },
-                    ],
-                    legal: [
-                      { icon: '📜', label: '법률의견서 작성' }, { icon: '⚖️', label: '쟁점별 판례 분석' },
-                      { icon: '📊', label: '승소 가능성 평가' }, { icon: '🎯', label: '소송 전략 권고' },
-                      { icon: '💰', label: '예상 비용·기간' }, { icon: '✅', label: '즉시 조치 체크리스트' },
-                    ],
-                    finance: [
-                      { icon: '💯', label: '재무 건강 점수' }, { icon: '📊', label: '자산 배분 설계' },
-                      { icon: '🧾', label: '절세 전략' }, { icon: '📈', label: '투자 포트폴리오' },
-                      { icon: '📋', label: '개인재무보고서' }, { icon: '🗓️', label: '90일 액션플랜' },
-                    ],
-                    realestate: [
-                      { icon: '📊', label: '시세 분석 리포트' }, { icon: '🧾', label: '세금 시뮬레이션' },
-                      { icon: '⚠️', label: '리스크 체크' }, { icon: '📈', label: '수익률 분석' },
-                      { icon: '🏠', label: '매수/매도 판정' }, { icon: '✅', label: '실행 체크리스트' },
-                    ],
-                    startup: [
-                      { icon: '📐', label: 'Lean Canvas' }, { icon: '🔎', label: '시장 규모 분석' },
-                      { icon: '💼', label: '재무 모델링' }, { icon: '📊', label: 'IR Pitch Deck' },
-                      { icon: '🗓️', label: '90일 로드맵' }, { icon: '📈', label: 'KPI 대시보드' },
-                    ],
-                  };
-                  const colors = colorMap[selectedTemplate.id] || colorMap.medical;
-                  const items = deliverables[selectedTemplate.id] || [{ icon: '📋', label: lastPhase.description }];
-                  return (
-                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-500"
-                      style={{ animationDelay: `${800 + selectedTemplate.phases.length * 150 + 900}ms`, animationFillMode: 'both' }}>
-                      {/* Gradient accent top */}
-                      <div className={cn('h-1 bg-gradient-to-r', colors.accent)} />
-                      {/* Header */}
-                      <div className="flex items-center gap-3 px-5 py-3 bg-white border-b border-slate-100">
-                        <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', colors.bg)}>
-                          <FileText className={cn('w-4 h-4', colors.icon)} />
-                        </div>
-                        <div>
-                          <p className="text-[13px] font-bold text-slate-900">{selectedTemplate.outputFormat}</p>
-                          <p className="text-[9px] text-slate-500">최종 리포트에 포함되는 항목</p>
-                        </div>
-                      </div>
-                      {/* Items grid */}
-                      <div className="grid grid-cols-3 gap-0">
-                        {items.map((item, ii) => (
-                          <div key={ii} className={cn('flex items-center gap-2 px-4 py-2.5 border-b border-r border-slate-50',
-                            ii % 3 === 2 && 'border-r-0')}>
-                            <span className="text-[12px]">{item.icon}</span>
-                            <span className="text-[10px] font-medium text-slate-700">{item.label}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[12px]">{phase.expertIcon}</span>
+                              <span className="text-[11px] font-bold text-slate-800">{phase.expertRole}</span>
+                              <span className="text-[9px] text-slate-500">— {phase.description}</span>
+                            </div>
+                            {phase.sampleQuestions.length > 0 && (
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {phase.sampleQuestions.map((q, qi) => (
+                                  <span key={qi} className="text-[9px] px-2 py-0.5 rounded text-slate-600 bg-white border border-slate-200">{q}</span>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Connector */}
+                  <div className="flex items-center gap-2 py-5 animate-in fade-in slide-in-from-bottom-2 duration-500"
+                    style={{ animationDelay: `${800 + selectedTemplate.phases.length * 150 + 400}ms`, animationFillMode: 'both' }}>
+                    <div className="h-px flex-1 bg-slate-200" />
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-[11px] font-semibold text-slate-600">상담 완료 시 {selectedTemplate.outputFormat} 제공</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    <div className="h-px flex-1 bg-slate-200" />
+                  </div>
+                  {/* Final step — premium deliverable card */}
+                  {(() => {
+                    const lastPhase = selectedTemplate.phases[selectedTemplate.phases.length - 1];
+                    const colorMap: Record<string, { accent: string; bg: string; text: string; icon: string }> = {
+                      medical: { accent: 'from-red-500 to-rose-500', bg: 'bg-red-50', text: 'text-red-700', icon: 'text-red-500' },
+                      legal: { accent: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50', text: 'text-amber-700', icon: 'text-amber-500' },
+                      finance: { accent: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: 'text-emerald-500' },
+                      realestate: { accent: 'from-blue-500 to-sky-500', bg: 'bg-blue-50', text: 'text-blue-700', icon: 'text-blue-500' },
+                      startup: { accent: 'from-purple-500 to-violet-500', bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
+                    };
+                    const deliverables: Record<string, { icon: string; label: string }[]> = {
+                      medical: [
+                        { icon: '🔍', label: '감별진단 목록' }, { icon: '🧪', label: '권장 검사 항목' },
+                        { icon: '💪', label: '생활습관 교정' }, { icon: '📋', label: 'SOAP Note 작성' },
+                        { icon: '📅', label: '추적 관찰 일정' }, { icon: '🏥', label: '전문의 연계 권고' },
+                      ],
+                      legal: [
+                        { icon: '📜', label: '법률의견서 작성' }, { icon: '⚖️', label: '쟁점별 판례 분석' },
+                        { icon: '📊', label: '승소 가능성 평가' }, { icon: '🎯', label: '소송 전략 권고' },
+                        { icon: '💰', label: '예상 비용·기간' }, { icon: '✅', label: '즉시 조치 체크리스트' },
+                      ],
+                      finance: [
+                        { icon: '💯', label: '재무 건강 점수' }, { icon: '📊', label: '자산 배분 설계' },
+                        { icon: '🧾', label: '절세 전략' }, { icon: '📈', label: '투자 포트폴리오' },
+                        { icon: '📋', label: '개인재무보고서' }, { icon: '🗓️', label: '90일 액션플랜' },
+                      ],
+                      realestate: [
+                        { icon: '📊', label: '시세 분석 리포트' }, { icon: '🧾', label: '세금 시뮬레이션' },
+                        { icon: '⚠️', label: '리스크 체크' }, { icon: '📈', label: '수익률 분석' },
+                        { icon: '🏠', label: '매수/매도 판정' }, { icon: '✅', label: '실행 체크리스트' },
+                      ],
+                      startup: [
+                        { icon: '📐', label: 'Lean Canvas' }, { icon: '🔎', label: '시장 규모 분석' },
+                        { icon: '💼', label: '재무 모델링' }, { icon: '📊', label: 'IR Pitch Deck' },
+                        { icon: '🗓️', label: '90일 로드맵' }, { icon: '📈', label: 'KPI 대시보드' },
+                      ],
+                    };
+                    const colors = colorMap[selectedTemplate.id] || colorMap.medical;
+                    const items = deliverables[selectedTemplate.id] || [{ icon: '📋', label: lastPhase.description }];
+                    return (
+                      <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-500"
+                        style={{ animationDelay: `${800 + selectedTemplate.phases.length * 150 + 900}ms`, animationFillMode: 'both' }}>
+                        {/* Gradient accent top */}
+                        <div className={cn('h-1 bg-gradient-to-r', colors.accent)} />
+                        {/* Header */}
+                        <div className="flex items-center gap-3 px-5 py-3 bg-white border-b border-slate-100">
+                          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', colors.bg)}>
+                            <FileText className={cn('w-4 h-4', colors.icon)} />
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-bold text-slate-900">{selectedTemplate.outputFormat}</p>
+                            <p className="text-[9px] text-slate-500">최종 리포트에 포함되는 항목</p>
+                          </div>
+                        </div>
+                        {/* Items grid */}
+                        <div className="grid grid-cols-3 gap-0">
+                          {items.map((item, ii) => (
+                            <div key={ii} className={cn('flex items-center gap-2 px-4 py-2.5 border-b border-r border-slate-50',
+                              ii % 3 === 2 && 'border-r-0')}>
+                              <span className="text-[12px]">{item.icon}</span>
+                              <span className="text-[10px] font-medium text-slate-700">{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
-            </div>
+                    );
+                  })()}
+                </div>
               );
             })()}
 
@@ -1345,6 +1343,8 @@ export function ExpertSelectionPanel({
   const [maxLimitMsg, setMaxLimitMsg] = useState<string | null>(null);
   const [selectedExpertModeTemplate, setSelectedExpertModeTemplate] = useState<ExpertModeTemplate | null>(null);
   const [autoAssign, setAutoAssign] = useState(false);
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const MAX_PER_ZONE = 3;
   const mainMode = getMainMode(discussionMode);
@@ -1429,12 +1429,12 @@ export function ExpertSelectionPanel({
   const subtitleText = mainMode === 'general'
     ? 'GPT, Claude, Gemini 등 원하는 AI를 선택하고 자유롭게 대화하세요'
     : mainMode === 'multi'
-    ? '여러 챗봇을 선택하면 각자 답변한 뒤 하나의 종합 결론으로 정리해드립니다'
-    : mainMode === 'expert'
-    ? '전문가들이 단계별로 질문하며 최고 품질의 상담을 제공합니다'
-    : mainMode === 'assistant'
-    ? '목적에 맞는 AI 어시스턴트를 선택해 작업을 도와받으세요'
-    : '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다';
+      ? '여러 챗봇을 선택하면 각자 답변한 뒤 하나의 종합 결론으로 정리해드립니다'
+      : mainMode === 'expert'
+        ? '전문가들이 단계별로 질문하며 최고 품질의 상담을 제공합니다'
+        : mainMode === 'assistant'
+          ? '목적에 맞는 AI 어시스턴트를 선택해 작업을 도와받으세요'
+          : '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다';
 
   const typedSubtitle = useTypewriter(subtitleText, 20);
   const isGeneral = mainMode === 'general';
@@ -1480,9 +1480,9 @@ export function ExpertSelectionPanel({
         <h2 key={mainMode} className="text-2xl sm:text-[26px] font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
-            : mainMode === 'expert' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
-            : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
-            : '전문가 챗봇들의 토론으로 더 넓은 시야를 얻으세요'}
+              : mainMode === 'expert' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
+                : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
+                  : '전문가 챗봇들의 토론으로 더 넓은 시야를 얻으세요'}
         </h2>
         <div className="relative flex justify-center">
           <span className="invisible text-[12px] leading-relaxed">{subtitleText}</span>
@@ -1503,12 +1503,14 @@ export function ExpertSelectionPanel({
             {mainModes.map(m => {
               const isActive = mainMode === m;
               return (
-                <button key={m} onClick={() => handleMainModeChange(m)} disabled={isDiscussing}
+                <button key={m} onClick={() => m !== 'player' && handleMainModeChange(m)} disabled={isDiscussing || m === 'player'}
                   className={cn(
-                    'flex items-center justify-center gap-1 min-w-[72px] px-4 py-[2px] rounded-full text-[11px] tracking-tight transition-all duration-200',
-                    isActive ? 'bg-slate-800 text-white font-semibold shadow-sm' : 'text-slate-600 font-medium hover:text-slate-900'
+                    'flex items-center justify-center gap-1 min-w-0 px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-all duration-200',
+                    m === 'player' ? 'text-slate-300 cursor-not-allowed' :
+                      isActive ? 'bg-slate-800 text-white font-semibold shadow-sm' : 'text-slate-600 font-medium hover:text-slate-900'
                   )}>
                   {mainModeLabels[m]}
+                  {m === 'player' && <span className="text-[8px] ml-0.5 bg-slate-100 text-slate-400 px-1 rounded">준비중</span>}
                 </button>
               );
             })}
@@ -1591,28 +1593,51 @@ export function ExpertSelectionPanel({
         <div className={cn('border border-slate-200 rounded-xl bg-white overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.07)] transition-all duration-200',
           autoAssign && 'opacity-50'
         )} onClick={() => { if (autoAssign) setAutoAssign(false); }}>
-          {/* Category tabs */}
+          {/* Category tabs / Search */}
           <div className="flex flex-col bg-slate-50 border-b-2 border-slate-200">
             <div className="flex items-center px-2 pt-1 pb-1 overflow-x-auto scrollbar-none">
-              <div className="flex flex-1 min-w-0 gap-0.5">
-                {grouped.map(({ cat, label }) => {
-                  const isActive = effectiveCategory === cat;
-                  const isAiTab = cat === 'ai';
-                  const isAiDisabled = isAiTab && isStandardOrProcon;
-                  return (
-                    <button key={cat} type="button"
-                      disabled={isAiDisabled || autoAssign}
-                      onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
-                      className={cn('flex items-center gap-1 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
-                        isAiDisabled ? 'text-slate-300 cursor-not-allowed' :
-                        isActive ? 'bg-slate-800 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+              {searchMode ? (
+                <div className="flex items-center gap-1.5 flex-1 px-1">
+                  <Search className="w-3 h-3 text-slate-400 shrink-0" />
+                  <input
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="검색..."
+                    autoFocus
+                    className="flex-1 bg-transparent text-[11px] outline-none placeholder:text-slate-400 py-0"
+                  />
+                  <button onClick={() => { setSearchMode(false); setSearchQuery(''); }}
+                    className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-1 min-w-0 gap-0.5">
+                    {grouped.map(({ cat, label }) => {
+                      const isActive = effectiveCategory === cat;
+                      const isAiTab = cat === 'ai';
+                      const isAiDisabled = isAiTab && isStandardOrProcon;
+                      return (
+                        <button key={cat} type="button"
+                          disabled={isAiDisabled || autoAssign}
+                          onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
+                          className={cn('flex items-center gap-1 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
+                            isAiDisabled ? 'text-slate-300 cursor-not-allowed' :
+                              isActive ? 'bg-slate-800 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button onClick={() => setSearchMode(true)}
+                    className="ml-1 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors shrink-0">
+                    <Search className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
             </div>
-            {EXPERT_SUB_CATEGORIES[effectiveCategory as ExpertCategory] && (
+            {!searchMode && EXPERT_SUB_CATEGORIES[effectiveCategory as ExpertCategory] && (
               <div className="flex items-center gap-1 px-3 pt-1 pb-1 border-t border-slate-200 overflow-x-auto scrollbar-none">
                 {EXPERT_SUB_CATEGORIES[effectiveCategory as ExpertCategory]!.map(sub => (
                   <button key={sub.id} type="button" onClick={() => setActiveSubCategory(sub.id)}
@@ -1626,8 +1651,11 @@ export function ExpertSelectionPanel({
           </div>
 
           {/* Expert grid */}
-          {grouped.filter(({ cat }) => cat === effectiveCategory).map(({ cat, items }) => {
-            const subCats = EXPERT_SUB_CATEGORIES[cat as ExpertCategory];
+          {(searchMode && searchQuery.trim()
+            ? [{ cat: 'search' as ExpertCategory, label: '검색', items: experts.filter(e => e.id !== 'router' && (e.nameKo.includes(searchQuery) || e.name.toLowerCase().includes(searchQuery.toLowerCase()) || e.description.includes(searchQuery))) }]
+            : grouped.filter(({ cat }) => cat === effectiveCategory)
+          ).map(({ cat, items }) => {
+            const subCats = searchMode ? undefined : EXPERT_SUB_CATEGORIES[cat as ExpertCategory];
             const filtered = !subCats || activeSubCategory === '전체'
               ? items : items.filter(e => e.subCategory === activeSubCategory);
             return (
@@ -1685,9 +1713,9 @@ export function ExpertSelectionPanel({
                           <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
                             isDisabled ? 'text-slate-300'
                               : isProcon && isPro ? 'text-blue-600 font-semibold'
-                              : isProcon && isCon ? 'text-red-500 font-semibold'
-                              : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
-                              : 'text-slate-400 group-hover:text-slate-700')}>
+                                : isProcon && isCon ? 'text-red-500 font-semibold'
+                                  : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
+                                    : 'text-slate-400 group-hover:text-slate-700')}>
                             {expert.nameKo}
                           </span>
                         </button>

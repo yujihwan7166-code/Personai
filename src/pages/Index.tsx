@@ -11,7 +11,7 @@ import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight } from 'lucid
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/expert-discuss`;
+const CHAT_URL = '/api/chat';
 
 function mockRoute(question: string, candidates: Expert[]): { expert: Expert; reason: string } {
   const q = question.toLowerCase();
@@ -109,11 +109,8 @@ async function streamExpert({
 }: {question: string;expert: Expert;previousResponses: {name: string;content: string;}[];round: DiscussionRound | 'summary';onDelta: (text: string) => void;onDone: () => void;signal?: AbortSignal;}) {
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-    },
-    body: JSON.stringify({ question, expertSystemPrompt: expert.systemPrompt, previousResponses, round }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ systemPrompt: expert.systemPrompt, question, previousResponses }),
     signal
   });
 
@@ -970,9 +967,38 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const isDone = messages.length > 0 && !isDiscussing;
   const selectable = !isDiscussing && messages.length === 0;
 
+  // Floating memo
+  const [memoOpen, setMemoOpen] = useState(false);
+  const [memoText, setMemoText] = useState(() => localStorage.getItem('dev-memo') || '');
+  const saveMemo = (text: string) => { setMemoText(text); localStorage.setItem('dev-memo', text); };
+
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="h-screen flex w-full bg-[#f7f8fa]">
+        {/* Floating Memo */}
+        <div className={cn('fixed left-0 top-1/3 z-40 transition-all duration-200', memoOpen ? 'w-64' : 'w-0')}>
+          {memoOpen && (
+            <div className="w-64 h-80 bg-white border border-slate-200 rounded-r-xl shadow-lg flex flex-col animate-in slide-in-from-left duration-200">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50 rounded-tr-xl">
+                <span className="text-[11px] font-bold text-slate-600">📝 메모장</span>
+                <button onClick={() => setMemoOpen(false)} className="text-slate-400 hover:text-slate-600 text-[14px]">✕</button>
+              </div>
+              <textarea
+                value={memoText}
+                onChange={e => saveMemo(e.target.value)}
+                placeholder="메모를 입력하세요..."
+                className="flex-1 p-3 text-[12px] outline-none resize-none bg-transparent text-slate-700 placeholder:text-slate-300"
+              />
+              <div className="px-3 py-1.5 border-t border-slate-100 text-[9px] text-slate-300 text-right">자동 저장</div>
+            </div>
+          )}
+          {!memoOpen && (
+            <button onClick={() => setMemoOpen(true)}
+              className="absolute left-0 top-0 w-8 h-8 bg-white border border-slate-200 border-l-0 rounded-r-lg shadow-sm flex items-center justify-center hover:bg-slate-50 transition-colors">
+              <span className="text-[14px]">📝</span>
+            </button>
+          )}
+        </div>
         <AppSidebar
           experts={experts}
           onLoadHistory={loadHistory}
