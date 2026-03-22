@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     contents.push({ role: 'user', parts: [{ text: question }] });
   }
 
-  const model = 'gemini-2.5-flash-preview-04-17';
+  const model = 'gemini-1.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   try {
