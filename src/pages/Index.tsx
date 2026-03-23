@@ -341,29 +341,28 @@ const Index = () => {
     customEdit: string;
   }>({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
 
-  // Topic clarification — ask AI to refine vague topics for debate modes
-  const clarifyTopic = useCallback(async (input: string, mode: DiscussionMode) => {
-    setClarifyState({ show: true, loading: true, originalInput: input, suggestions: [], customEdit: input });
-    try {
-      const resp = await fetch('/api/clarify-topic', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input, mode }),
-      });
-      const data = await resp.json();
-      // 무조건 제안 표시 — 토론 모드에서는 항상 주제 확인 단계를 거침
+  // Topic clarification — 토론 모드에서 주제 확인 UI 표시
+  const clarifyTopic = useCallback((input: string, mode: DiscussionMode) => {
+    // 먼저 UI를 즉시 표시 (원본 입력으로)
+    setClarifyState({
+      show: true, loading: true, originalInput: input,
+      suggestions: [{ topic: input, description: '입력한 주제 그대로 사용' }],
+      customEdit: input,
+    });
+
+    // 백그라운드에서 AI 제안 가져오기
+    fetch('/api/clarify-topic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input, mode }),
+    }).then(r => r.json()).then(data => {
       const suggestions = data.suggestions?.length > 0
         ? data.suggestions
         : [{ topic: data.refined || input, description: '입력한 주제 그대로 사용' }];
       setClarifyState(prev => ({ ...prev, loading: false, suggestions, customEdit: suggestions[0]?.topic || input }));
-    } catch {
-      // 실패해도 주제 확인 UI 표시 (원본 입력을 제안으로)
-      setClarifyState(prev => ({
-        ...prev, loading: false,
-        suggestions: [{ topic: input, description: '입력한 주제 그대로 사용' }],
-        customEdit: input,
-      }));
-    }
+    }).catch(() => {
+      setClarifyState(prev => ({ ...prev, loading: false }));
+    });
   }, []);
 
   const startDiscussionDirect = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
@@ -1298,13 +1297,17 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               {clarifyState.show && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-                    {/* Header */}
-                    <div className="px-5 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[15px]">🎯</span>
-                        <h3 className="text-[14px] font-bold text-slate-800">주제를 구체화해주세요</h3>
+                    {/* Header — 토론 주최자 */}
+                    <div className="px-5 py-4 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                          <span className="text-[18px]">🎙️</span>
+                        </div>
+                        <div>
+                          <h3 className="text-[14px] font-bold text-slate-800">토론 주최자</h3>
+                          <p className="text-[11px] text-slate-400">토론을 시작하기 전에 주제를 확인합니다</p>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-slate-400 ml-7">더 좋은 토론을 위해 명확한 주제가 필요합니다</p>
                     </div>
 
                     {clarifyState.loading ? (
