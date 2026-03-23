@@ -1719,10 +1719,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   }
 
                   return (
-                    <div className="space-y-3">
-                      {/* 라운드 탭 */}
+                    <div className="space-y-2">
+                      {/* 라운드 탭 — 헤더에 바로 붙음 */}
                       {mergedRounds.length > 0 && (
-                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mt-1">
                           {mergedRounds.map((r, ri) => {
                             const isActive = ri === (activeRound >= 0 ? activeRound : 0);
                             const roundNum = r.label.match(/(\d)/)?.[1] || '';
