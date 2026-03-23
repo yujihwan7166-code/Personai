@@ -1327,22 +1327,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 </div>
               )}
 
-              {/* #3 Mode indicator bar */}
-              {currentQuestion && messages.length > 0 && (
-                <div className="flex items-center gap-2 px-1 py-1">
-                  <span className="text-[10px] font-bold text-primary bg-primary/8 px-2 py-0.5 rounded-md">
-                    {discussionMode === 'general' ? '단일 AI' : discussionMode === 'multi' ? '다중 AI' : discussionMode === 'expert' ? '전문가' : discussionMode === 'standard' ? '심층토론' : discussionMode === 'procon' ? '찬반토론' : discussionMode === 'brainstorm' ? '브레인스토밍' : discussionMode === 'hearing' ? '아이디어 검증' : discussionMode === 'assistant' ? '어시스턴트' : ''}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    {activeExperts.slice(0, 5).map(e => (
-                      <span key={e.id} className="text-[12px]" title={e.nameKo}>{e.icon || e.nameKo[0]}</span>
-                    ))}
-                    {activeExperts.length > 5 && <span className="text-[9px] text-slate-400">+{activeExperts.length - 5}</span>}
-                  </div>
-                </div>
-              )}
-
-              {currentQuestion && messages.length > 0 && (
+              {/* Question header — procon은 VS 헤더에 포함, 나머지만 표시 */}
+              {currentQuestion && messages.length > 0 && discussionMode !== 'procon' && (
                 <div className="flex items-center gap-3 px-1 py-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-slate-800 font-medium text-[13px] leading-snug">{currentQuestion}</p>
