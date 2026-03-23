@@ -914,12 +914,23 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ input, mode }),
     }).then(r => r.json()).then(data => {
-      const suggestions = data.suggestions?.length > 0
-        ? data.suggestions
+      let suggestions = data.suggestions?.length > 0
+        ? data.suggestions.slice(0, 3)
         : [{ topic: data.refined || input, description: '입력한 주제 그대로 사용' }];
-      setClarifyState(prev => ({ ...prev, loading: false, suggestions, customEdit: suggestions[0]?.topic || input }));
+      // 항상 3개 보장
+      while (suggestions.length < 3) {
+        suggestions.push({ topic: `${input} — 관점 ${suggestions.length + 1}`, description: '다른 키워드로 다시 제안받아 보세요' });
+      }
+      setClarifyState(prev => ({ ...prev, loading: false, suggestions, customEdit: '' }));
     }).catch(() => {
-      setClarifyState(prev => ({ ...prev, loading: false }));
+      setClarifyState(prev => ({
+        ...prev, loading: false,
+        suggestions: [
+          { topic: input, description: '입력한 주제 그대로 사용' },
+          { topic: `${input}의 장단점`, description: '장단점 분석' },
+          { topic: `${input}이 미치는 영향`, description: '영향 분석' },
+        ],
+      }));
     });
   }, []);
 
