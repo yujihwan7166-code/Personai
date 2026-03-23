@@ -1347,19 +1347,19 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                           </div>
                         )}
 
-                        {/* Custom edit */}
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">직접 입력</p>
+                        {/* Re-suggest */}
+                        <div className="rounded-xl border border-dashed border-slate-200 p-3">
+                          <p className="text-[11px] text-slate-500 mb-2">원하는 주제가 없나요? 힌트를 입력하면 다시 제안해드립니다</p>
                           <div className="flex gap-2">
                             <input type="text" value={clarifyState.customEdit}
                               onChange={e => setClarifyState(prev => ({ ...prev, customEdit: e.target.value }))}
-                              className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
-                              placeholder="주제를 직접 입력하세요..."
-                              onKeyDown={e => { if (e.key === 'Enter' && clarifyState.customEdit.trim()) { setClarifyState(prev => ({ ...prev, show: false })); runDiscussion(clarifyState.customEdit.trim()); } }}
+                              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
+                              placeholder="예: 소비자 물가 영향, 전기차 전환..."
+                              onKeyDown={e => { if (e.key === 'Enter' && clarifyState.customEdit.trim()) clarifyTopic(clarifyState.customEdit.trim(), discussionMode as any); }}
                             />
-                            <button onClick={() => { if (clarifyState.customEdit.trim()) { setClarifyState(prev => ({ ...prev, show: false })); runDiscussion(clarifyState.customEdit.trim()); } }}
-                              className="px-4 py-2.5 rounded-xl bg-slate-800 text-white text-[12px] font-semibold hover:bg-slate-700 transition-colors shadow-sm shrink-0">
-                              시작
+                            <button onClick={() => { if (clarifyState.customEdit.trim()) clarifyTopic(clarifyState.customEdit.trim(), discussionMode as any); }}
+                              className="px-3.5 py-2 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-semibold hover:bg-slate-200 transition-colors shrink-0">
+                              다시 제안
                             </button>
                           </div>
                         </div>
