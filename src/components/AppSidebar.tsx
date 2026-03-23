@@ -182,7 +182,7 @@ export function AppSidebar({
             onClick={() => onNewDiscussion?.()}
             className={cn(
               'flex items-center gap-2 rounded-xl text-[12px] font-semibold transition-all duration-200',
-              'bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:from-slate-700 hover:to-slate-800 shadow-sm hover:shadow-md',
+              'bg-indigo-500 text-white hover:bg-indigo-600 shadow-sm hover:shadow-md',
               collapsed ? 'w-9 h-9 justify-center' : 'w-full px-3 py-2.5'
             )}
           >

@@ -1447,7 +1447,7 @@ export function ExpertSelectionPanel({
                   className={cn(
                     'flex items-center justify-center gap-1 min-w-0 px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-all duration-200',
                     m === 'player' ? 'text-slate-300 cursor-not-allowed' :
-                      isActive ? 'bg-slate-800 text-white font-semibold shadow-sm' : 'text-slate-600 font-medium hover:text-slate-900'
+                      isActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-600 font-medium hover:text-slate-900'
                   )}>
                   {mainModeLabels[m]}
                   {m === 'player' && <span className="text-[8px] ml-0.5 bg-slate-100 text-slate-400 px-1 rounded">준비중</span>}
@@ -1564,7 +1564,7 @@ export function ExpertSelectionPanel({
                           onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
                           className={cn('flex items-center gap-1 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
                             isAiDisabled ? 'text-slate-300 cursor-not-allowed' :
-                              isActive ? 'bg-slate-800 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
+                              isActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
                           {label}
                         </button>
                       );

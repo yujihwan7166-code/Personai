@@ -1465,7 +1465,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               {currentQuestion && messages.length > 0 && discussionMode !== 'procon' && discussionMode !== 'standard' && (
                 <div className="flex items-center gap-3 px-1 py-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-slate-800 font-medium text-[13px] leading-snug">{currentQuestion}</p>
+                    <p className="text-slate-900 font-bold text-[16px] leading-snug">{currentQuestion}</p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {isDone && (
@@ -2055,7 +2055,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       <div key={msg.id} className={cn(isMessenger ? 'flex justify-end' : '')}>
                         <div className={cn(
                           isMessenger
-                            ? 'max-w-[75%] bg-slate-800 text-white rounded-2xl rounded-br-md px-3.5 py-2.5 text-[12.5px]'
+                            ? 'max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
                             : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
                         )}>
                           <ReactMarkdownInline content={msg.content} />

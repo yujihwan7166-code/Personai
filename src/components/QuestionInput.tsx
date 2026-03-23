@@ -32,24 +32,24 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
   };
 
   const placeholder = isFollowUp
-    ? '후속 질문을 입력하세요...'
+    ? '이어서 질문해보세요'
     : discussionMode === 'general'
-    ? '무엇이든 물어보세요...'
+    ? '궁금한 것을 물어보세요'
     : discussionMode === 'multi'
-    ? '최대 3개 AI에게 동시에 질문해보세요'
+    ? '여러 AI에게 동시에 질문해보세요'
     : discussionMode === 'expert'
     ? '전문가에게 상담할 내용을 입력하세요'
-    : '토론 주제를 입력하세요...';
+    : '토론하고 싶은 주제를 입력하세요';
 
   const canSubmit = !!question.trim() && !disabled;
 
   return (
     <form onSubmit={handleSubmit}>
       <div className={cn(
-        'rounded-2xl border transition-all duration-200',
-        disabled ? 'border-slate-200 opacity-75' : focused ? 'border-slate-300 shadow-[0_2px_16px_rgba(0,0,0,0.08)]' : 'border-slate-200 shadow-sm hover:border-slate-300'
+        'rounded-2xl border-2 transition-all duration-200',
+        disabled ? 'border-slate-200 opacity-75' : focused ? 'border-indigo-400 shadow-[0_2px_20px_rgba(79,70,229,0.12)]' : 'border-slate-200 shadow-sm hover:border-indigo-300'
       )}>
-      <div className="rounded-[calc(1rem-1px)] bg-white transition-all duration-200">
+      <div className="rounded-[calc(1rem-2px)] bg-white transition-all duration-200">
         {/* Selected AI chips / participant label (hidden in follow-up mode) */}
         {!isFollowUp && selectedExperts && selectedExperts.length > 0 && (
           (discussionMode === 'standard' || discussionMode === 'brainstorm') ? (
@@ -104,7 +104,7 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
           onBlur={() => setFocused(false)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-transparent resize-none text-[13px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none leading-relaxed px-5 pt-3 pb-1 min-h-[36px] max-h-[140px] block"
+          className="w-full bg-transparent resize-none text-[14px] text-foreground placeholder:text-slate-400 focus:outline-none leading-relaxed px-5 pt-4 pb-2 min-h-[44px] max-h-[140px] block"
           rows={1}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); }
@@ -144,13 +144,13 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
               type="submit"
               disabled={!canSubmit}
               className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-150',
+                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150',
                 canSubmit
-                  ? 'bg-foreground text-white hover:bg-foreground/85 shadow-sm'
-                  : 'bg-muted/60 text-muted-foreground/30'
+                  ? 'bg-indigo-500 text-white hover:bg-indigo-600 shadow-md'
+                  : 'bg-slate-100 text-slate-300'
               )}
             >
-              <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />
+              <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
             </button>
           </div>
         </div>
