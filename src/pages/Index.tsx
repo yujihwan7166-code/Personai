@@ -1289,10 +1289,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 />
               )}
 
-              {/* Topic clarification overlay */}
+              {/* Topic clarification — floating modal */}
               {clarifyState.show && (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
                     {/* Header — 토론 주최자 */}
                     <div className="px-5 py-4 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100">
                       <div className="flex items-center gap-3">
