@@ -1350,7 +1350,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 discussionMode === 'standard' ? (
                   /* 심층토론 스테이지 헤더 */
                   <div className="rounded-2xl overflow-hidden shadow-md">
-                    <div className="bg-gradient-to-r from-indigo-600 to-violet-700 px-5 py-4">
+                    <div className="bg-gradient-to-r from-indigo-400 to-violet-500 px-5 py-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[20px]">🎯</span>
@@ -1371,7 +1371,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         })}
                       </div>
                     </div>
-                    <div className="bg-slate-900 px-5 py-2.5 flex items-center justify-between">
+                    <div className="bg-slate-700 px-5 py-2.5 flex items-center justify-between">
                       <span className="text-[12px] font-medium text-white flex-1">{currentQuestion}</span>
                       {/* 라운드 진행 표시 */}
                       <div className="flex items-center gap-1 ml-3 shrink-0">
@@ -1890,7 +1890,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               <button key={r.id} onClick={() => setStdActiveRound(ri)}
                                 className={cn('flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all shrink-0',
                                   isActive
-                                    ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' : 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md'
+                                    ? isFinal ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md' : 'bg-gradient-to-r from-indigo-400 to-violet-500 text-white shadow-md'
                                     : r.msgs.length > 0 ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-50 text-slate-300')}>
                                 <span className="text-[14px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
                                 <span className="text-[11px] font-semibold">{r.label.replace(/\d라운드\s*·?\s*/, '')}</span>
