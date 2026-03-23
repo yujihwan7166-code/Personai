@@ -26,10 +26,10 @@ export interface SuggestedQuestion {
 }
 
 export const SUGGESTED_QUESTIONS: SuggestedQuestion[] = [
-  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-foreground', expertIds: ['gpt', 'claude', 'engineer', 'programmer', 'buffett'], mode: 'standard' },
-  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-foreground', expertIds: ['buffett', 'dalio', 'finance', 'accountant'], mode: 'multi' },
-  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-foreground', expertIds: ['gemini', 'psychology', 'teacher', 'artist', 'jobs'], mode: 'brainstorm' },
-  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-foreground', expertIds: ['medical', 'doctor', 'nurse', 'chef'], mode: 'multi' },
+  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-foreground', expertIds: ['gpt', 'claude', 'economics', 'programmer'], mode: 'standard' },
+  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-foreground', expertIds: ['buffett', 'dalio', 'finance'], mode: 'multi' },
+  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-foreground', expertIds: ['gemini', 'psychology', 'teacher'], mode: 'brainstorm' },
+  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-foreground', expertIds: ['medical', 'doctor', 'nutrition'], mode: 'multi' },
 ];
 
 export type ProconStance = 'pro' | 'con';

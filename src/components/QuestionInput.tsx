@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowUp, Plus, Wrench, Mic } from 'lucide-react';
 import { DiscussionMode, Expert } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
@@ -21,7 +21,7 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto focus on mount
-  useState(() => { setTimeout(() => textareaRef.current?.focus(), 100); });
+  useEffect(() => { setTimeout(() => textareaRef.current?.focus(), 100); }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

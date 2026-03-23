@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, CollaborationTeam, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, COLLABORATION_TEAMS } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS } from '@/types/expert';
 import { QuestionInput } from '@/components/QuestionInput';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
@@ -193,9 +193,6 @@ const Index = () => {
   const [proconStances, setProconStances] = useState<Record<string, 'pro' | 'con'>>({});
   const [debateSettings, setDebateSettings] = useState<DebateSettings>(DEFAULT_DEBATE_SETTINGS);
   const [showDebateSettings, setShowDebateSettings] = useState(false);
-  const [selectedCollaborationTeam, setSelectedCollaborationTeam] = useState<CollaborationTeam | null>(null);
-  const [collaborationRoles, setCollaborationRoles] = useState<Record<string, string>>({});
-  const [collaborationMission, setCollaborationMission] = useState('');
   const [selectedFramework, setSelectedFramework] = useState<ThinkingFramework | null>(null);
   const [discussionIssues, setDiscussionIssues] = useState<DiscussionIssue[]>([]);
   const [debateIntensity, setDebateIntensity] = useState('moderate');
@@ -244,9 +241,6 @@ const Index = () => {
     setSelectedExpertIds(nextMain === 'general' ? ['gpt'] : nextMain === 'multi' ? ['gpt'] : []);
     setProconStances({});
     setShowDebateSettings(false);
-    setSelectedCollaborationTeam(null);
-    setCollaborationRoles({});
-    setCollaborationMission('');
     setSelectedFramework(null);
     setDiscussionIssues([]);
     // suppress unused warning — prevMain used for future extension
@@ -783,112 +777,6 @@ const Index = () => {
           await new Promise(r => setTimeout(r, 500));
         }
       }
-    } else if (useMode === 'collaboration') {
-      const team = selectedCollaborationTeam;
-      const roles = collaborationRoles;
-      const mission = collaborationMission;
-      const phases = team?.phases || [
-        { id: 'r1', label: '각 역할별 의견', instruction: '각자의 역할 관점에서 의견을 제시해주세요.', deliverable: '', description: '' },
-        { id: 'r2', label: '상호 피드백', instruction: '다른 역할의 의견에 대해 피드백을 제시해주세요.', deliverable: '', description: '' },
-        { id: 'r3', label: '종합 결론', instruction: '모든 의견을 종합하여 최종 결론을 도출해주세요.', deliverable: '', description: '' },
-      ];
-      const roundMap: DiscussionRound[] = ['initial', 'rebuttal', 'final'];
-      const phaseDeliverables: { phaseLabel: string; deliverable: string; content: string }[] = [];
-
-      for (let pi = 0; pi < phases.length; pi++) {
-        if (shouldStop()) break;
-        const phase = phases[pi];
-        const round = roundMap[pi] || 'final';
-
-        // Build previous phase context from deliverables
-        const previousPhaseContext = phaseDeliverables.length > 0
-          ? '\n\n=== 이전 단계 산출물 ===\n' + phaseDeliverables.map(d => `[${d.phaseLabel} - ${d.deliverable}]:\n${d.content}`).join('\n---\n') + '\n=== 끝 ===\n'
-          : '';
-
-        const phaseLabel = phase.deliverable
-          ? `${pi + 1}단계 · ${phase.label} → 📄 ${phase.deliverable}`
-          : `${pi + 1}단계 · ${phase.label}`;
-        setMessages((prev) => [...prev, { id: `round-sep-collab-${pi}-${Date.now()}`, expertId: '__round__', content: phaseLabel, round }]);
-
-        for (const expert of discussionExperts) {
-          if (shouldStop()) break;
-          setActiveExpertId(expert.id);
-          const role = roles[expert.id] || '협력팀원';
-          const roleInstruction = phase.roleInstructions?.[role] || phase.instruction;
-
-          const collabPrompt = buildCollaborationPrompt({
-            role, mission, phaseLabel: phase.label, phaseIndex: pi, totalPhases: phases.length,
-            roleInstruction, previousPhaseContext, deliverableTarget: phase.deliverable, teamName: team?.name || '협업팀',
-          });
-
-          const msgId = `${expert.id}-collab-${pi}-${Date.now()}`;
-          setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
-          let fullContent = '';
-          try {
-            await streamExpert({ question, expert: { ...expert, systemPrompt: collabPrompt + lengthExtra }, previousResponses: allResponses, round,
-              onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
-              signal: controller.signal });
-          } catch (err) {
-            if ((err as Error).name === 'AbortError') break;
-            fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
-            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
-          }
-          allResponses.push({ name: `${expert.nameKo} (${role}, ${phase.label})`, content: fullContent });
-          await new Promise((r) => setTimeout(r, 500));
-        }
-
-        // Generate deliverable with enhanced prompt
-        if (phase.deliverable && !shouldStop()) {
-          const delivPrompt = buildDeliverablePrompt({
-            mission, phaseLabel: phase.label, deliverableName: phase.deliverable,
-            previousPhaseContext, teamName: team?.name || '협업팀', roles: Object.values(roles),
-          });
-          const delivId = `deliverable-${pi}-${Date.now()}`;
-          setMessages((prev) => [...prev, { id: delivId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, round }]);
-          setActiveExpertId(SUMMARIZER_EXPERT.id);
-          let delivContent = '';
-          try {
-            await streamExpert({
-              question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: delivPrompt },
-              previousResponses: allResponses, round: 'summary' as DiscussionRound,
-              onDelta: (chunk) => { delivContent += chunk; setMessages((prev) => prev.map((m) => m.id === delivId ? { ...m, content: delivContent } : m)); },
-              onDone: () => { setMessages((prev) => prev.map((m) => m.id === delivId ? { ...m, isStreaming: false, isSummary: true } : m)); },
-              signal: controller.signal
-            });
-          } catch (err) {
-            if ((err as Error).name !== 'AbortError') {
-              delivContent = `⚠️ 산출물 생성 실패`;
-              setMessages((prev) => prev.map((m) => m.id === delivId ? { ...m, content: delivContent, isStreaming: false } : m));
-            }
-          }
-          phaseDeliverables.push({ phaseLabel: phase.label, deliverable: phase.deliverable, content: delivContent });
-          allResponses.push({ name: `📄 ${phase.deliverable}`, content: delivContent });
-          await new Promise((r) => setTimeout(r, 500));
-        }
-      }
-
-      // Final comprehensive report
-      if (!shouldStop() && debateSettings.includeConclusion) {
-        const finalId = `final-report-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: `round-sep-final-${Date.now()}`, expertId: '__round__', content: '📋 종합 보고서', round: 'final' }]);
-        setMessages((prev) => [...prev, { id: finalId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, round: 'final' }]);
-        setActiveExpertId(CONCLUSION_EXPERT.id);
-        let finalContent = '';
-        try {
-          await streamExpert({
-            question, expert: { ...CONCLUSION_EXPERT, systemPrompt: buildFinalReportPrompt({ mission, teamName: team?.name || '협업팀', roles: Object.values(roles) }) },
-            previousResponses: allResponses, round: 'summary' as DiscussionRound,
-            onDelta: (chunk) => { finalContent += chunk; setMessages((prev) => prev.map((m) => m.id === finalId ? { ...m, content: finalContent } : m)); },
-            onDone: () => { setMessages((prev) => prev.map((m) => m.id === finalId ? { ...m, isStreaming: false, isSummary: true } : m)); },
-            signal: controller.signal
-          });
-        } catch (err) {
-          if ((err as Error).name !== 'AbortError') {
-            setMessages((prev) => prev.map((m) => m.id === finalId ? { ...m, content: '⚠️ 종합 보고서 생성 실패', isStreaming: false } : m));
-          }
-        }
-      }
     } else if (useMode === 'assistant') {
       // Assistant mode: single expert answers directly (same as general but for assistant category)
       const expert = discussionExperts[0];
@@ -1243,23 +1131,23 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
         {/* Floating Memo */}
         <div className={cn('fixed left-0 top-1/3 z-40 transition-all duration-200', memoOpen ? 'w-64' : 'w-0')}>
           {memoOpen && (
-            <div className="w-64 h-80 bg-white border border-slate-200 rounded-r-xl shadow-lg flex flex-col animate-in slide-in-from-left duration-200">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50 rounded-tr-xl">
-                <span className="text-[11px] font-bold text-slate-600">📝 메모장</span>
-                <button onClick={() => setMemoOpen(false)} className="text-slate-400 hover:text-slate-600 text-[14px]">✕</button>
+            <div className="w-64 h-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-r-xl shadow-lg flex flex-col animate-in slide-in-from-left duration-200">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-tr-xl">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">📝 메모장</span>
+                <button onClick={() => setMemoOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-[14px]">✕</button>
               </div>
               <textarea
                 value={memoText}
                 onChange={e => saveMemo(e.target.value)}
                 placeholder="메모를 입력하세요..."
-                className="flex-1 p-3 text-[12px] outline-none resize-none bg-transparent text-slate-700 placeholder:text-slate-300"
+                className="flex-1 p-3 text-[12px] outline-none resize-none bg-transparent text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
               />
-              <div className="px-3 py-1.5 border-t border-slate-100 text-[9px] text-slate-300 text-right">자동 저장</div>
+              <div className="px-3 py-1.5 border-t border-slate-100 dark:border-slate-700 text-[9px] text-slate-300 dark:text-slate-500 text-right">자동 저장</div>
             </div>
           )}
           {!memoOpen && (
             <button onClick={() => setMemoOpen(true)}
-              className="absolute left-0 top-0 w-8 h-8 bg-white border border-slate-200 border-l-0 rounded-r-lg shadow-sm flex items-center justify-center hover:bg-slate-50 transition-colors">
+              className="absolute left-0 top-0 w-8 h-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 border-l-0 rounded-r-lg shadow-sm flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
               <span className="text-[14px]">📝</span>
             </button>
           )}
@@ -1278,7 +1166,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           {/* Scroll to bottom FAB */}
           {showScrollBtn && (
             <button onClick={scrollToBottom}
-              className="absolute bottom-20 right-6 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 shadow-md hover:bg-slate-50 transition-all animate-in fade-in zoom-in-75 duration-200">
+              className="absolute bottom-20 right-6 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-all animate-in fade-in zoom-in-75 duration-200">
               <ArrowDown className="w-3 h-3 text-slate-500" />
               {isDiscussing && <span className="text-[10px] font-medium text-primary">새 메시지</span>}
             </button>
@@ -1308,18 +1196,12 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   debateSettings={debateSettings}
                   onDebateSettingsChange={setDebateSettings}
                   showDebateSettings={showDebateSettings}
-                  selectedCollaborationTeam={selectedCollaborationTeam}
-                  onCollaborationTeamChange={setSelectedCollaborationTeam}
-                  collaborationRoles={collaborationRoles}
-                  onCollaborationRolesChange={setCollaborationRoles}
                   selectedFramework={selectedFramework}
                   onFrameworkChange={setSelectedFramework}
                   discussionIssues={discussionIssues}
                   onDiscussionIssuesChange={setDiscussionIssues}
                   debateIntensity={debateIntensity}
                   onDebateIntensityChange={setDebateIntensity}
-                  collaborationMission={collaborationMission}
-                  onCollaborationMissionChange={setCollaborationMission}
                   onBulkSelect={setSelectedExpertIds}
                 />
               )}
@@ -1346,11 +1228,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               )}
 
               {/* Participants display */}
-              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
+              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
                 <div className="flex items-center gap-1.5 px-1 flex-wrap">
                   {activeExperts.map((expert) => {
                     const role =
-                      discussionMode === 'collaboration' ? collaborationRoles[expert.id] :
                       discussionMode === 'procon' ? (proconStances[expert.id] === 'pro' ? '찬성' : '반대') :
                       undefined;
                     return (
