@@ -238,7 +238,7 @@ const Index = () => {
     const prevMain = getMainMode(discussionMode);
     const nextMain = getMainMode(mode);
     setDiscussionMode(mode);
-    setSelectedExpertIds(nextMain === 'general' ? ['gpt'] : nextMain === 'multi' ? ['gpt'] : []);
+    setSelectedExpertIds(nextMain === prevMain ? selectedExpertIds : nextMain === 'general' ? ['gpt'] : nextMain === 'multi' ? ['gpt'] : []);
     setProconStances({});
     setShowDebateSettings(false);
     setSelectedFramework(null);
@@ -365,9 +365,6 @@ const Index = () => {
     });
   }, []);
 
-  const startDiscussionDirect = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
-    _startDiscussionImpl(question, overrideExpertIds, overrideMode);
-  }, []);
 
   const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
     // 주제 확인 UI가 보이는 동안에는 무시 (카드에서만 시작 가능)
