@@ -1880,44 +1880,47 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   return (
                     <div className="space-y-3">
                       {/* 라운드 탭 */}
-                      {rounds.length > 0 && (
-                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                          {rounds.map((r, ri) => {
-                            const isActive = ri === (activeRound >= 0 ? activeRound : 0);
-                            const roundNum = r.label.match(/(\d)/)?.[1] || '';
-                            const isFinal = r.label.includes('최종');
-                            return (
-                              <button key={r.id} onClick={() => setStdActiveRound(ri)}
-                                className={cn('flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all shrink-0',
-                                  isActive
-                                    ? isFinal ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md' : 'bg-gradient-to-r from-indigo-400 to-violet-500 text-white shadow-md'
-                                    : r.msgs.length > 0 ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-50 text-slate-300')}>
-                                <span className="text-[14px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
-                                <span className="text-[11px] font-semibold">{r.label.replace(/\d라운드\s*·?\s*/, '')}</span>
-                                {isDiscussing && ri === rounds.length - 1 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
-                              </button>
-                            );
-                          })}
+                      {/* 회색 칸 — 라운드 탭 + 발언 */}
+                      <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                        {/* 라운드 탭 */}
+                        {rounds.length > 0 && (
+                          <div className="flex items-center gap-1 bg-slate-100 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                            {rounds.map((r, ri) => {
+                              const isActive = ri === (activeRound >= 0 ? activeRound : 0);
+                              const roundNum = r.label.match(/(\d)/)?.[1] || '';
+                              const isFinal = r.label.includes('최종');
+                              return (
+                                <button key={r.id} onClick={() => setStdActiveRound(ri)}
+                                  className={cn('flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
+                                    isActive
+                                      ? isFinal ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm'
+                                      : r.msgs.length > 0 ? 'text-slate-500 hover:text-slate-700 hover:bg-white/60' : 'text-slate-300')}>
+                                  <span className="text-[12px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
+                                  {r.label.replace(/\d라운드\s*·?\s*/, '')}
+                                  {isDiscussing && ri === rounds.length - 1 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {/* 발언 */}
+                        <div className="p-4">
+                          {currentRound && currentRound.msgs.length > 0 ? (
+                            <div className="space-y-3">
+                              {currentRound.msgs.map(msg => {
+                                const expert = allExperts.find(e => e.id === msg.expertId);
+                                if (!expert) return null;
+                                return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default"
+                                  onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />;
+                              })}
+                            </div>
+                          ) : (
+                            <div className="py-6 text-center text-[11px] text-slate-300">
+                              {isDiscussing ? '발언 대기 중...' : '발언 없음'}
+                            </div>
+                          )}
                         </div>
-                      )}
-
-                      {/* 현재 라운드 발언 */}
-                      {currentRound && currentRound.msgs.length > 0 && (
-                        <div className="space-y-3">
-                          {currentRound.msgs.map(msg => {
-                            const expert = allExperts.find(e => e.id === msg.expertId);
-                            if (!expert) return null;
-                            return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default"
-                              onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />;
-                          })}
-                        </div>
-                      )}
-
-                      {currentRound && currentRound.msgs.length === 0 && (
-                        <div className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/30 px-4 py-8 text-center text-[11px] text-indigo-300">
-                          {isDiscussing ? '발언 대기 중...' : '발언 없음'}
-                        </div>
-                      )}
+                      </div>
 
                       {/* 종합 */}
                       {summaryMsgs.map(msg => {
