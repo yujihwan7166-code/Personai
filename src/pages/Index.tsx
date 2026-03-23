@@ -1429,9 +1429,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       </div>
                     </div>
                     {/* 토론 주제 */}
-                    <div className="bg-slate-900 px-5 py-2.5 flex items-center justify-center gap-2">
-                      <span className="text-[11px] text-slate-400">주제</span>
-                      <span className="text-[12px] font-semibold text-white">{currentQuestion}</span>
+                    <div className="bg-slate-800 px-5 py-2 flex items-center justify-center gap-2">
+                      <span className="text-[12px] font-medium text-slate-300">{currentQuestion}</span>
                     </div>
                   </div>
                 ) : (
@@ -1720,9 +1719,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                   return (
                     <div className="space-y-2">
-                      {/* 라운드 탭 — 헤더에 바로 붙음 */}
+                      {/* 라운드 탭 — 다크 톤 */}
                       {mergedRounds.length > 0 && (
-                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mt-1">
+                        <div className="flex items-center gap-1 bg-slate-800 rounded-xl p-1 overflow-x-auto scrollbar-none">
                           {mergedRounds.map((r, ri) => {
                             const isActive = ri === (activeRound >= 0 ? activeRound : 0);
                             const roundNum = r.label.match(/(\d)/)?.[1] || '';
@@ -1730,11 +1729,11 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             const hasContent = r.proMsgs.length > 0 || r.conMsgs.length > 0;
                             return (
                               <button key={r.id} onClick={() => setProconActiveRound(ri)}
-                                className={cn('flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all shrink-0',
+                                className={cn('flex items-center gap-2 px-4 py-2 rounded-lg transition-all shrink-0',
                                   isActive
-                                    ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' : 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-md'
-                                    : hasContent ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-50 text-slate-300')}>
-                                <span className={cn('text-[14px] font-black', isActive ? 'text-white' : '')}>
+                                    ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' : 'bg-white text-slate-800 shadow-md'
+                                    : hasContent ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-600')}>
+                                <span className="text-[13px] font-black">
                                   {isFinal ? '⚖️' : `${roundNum}R`}
                                 </span>
                                 <span className="text-[11px] font-semibold">
