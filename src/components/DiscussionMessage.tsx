@@ -103,7 +103,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
         <div className="flex-1 min-w-0 max-w-[85%]">
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
-          <div className="bg-white border border-slate-200 border-l-[3px] border-l-indigo-400 rounded-2xl rounded-tl-md px-4 py-3 shadow-sm">
+          <div className="bg-white border border-slate-200 border-l-[3px] border-l-indigo-400 rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
               <MessageContent content={message.content} isStreaming={message.isStreaming} noCollapse />
             </div>
