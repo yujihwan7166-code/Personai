@@ -45,7 +45,7 @@ function StreamingCursor() {
   return <span className="inline-block w-0.5 h-3.5 bg-primary/40 ml-0.5 cursor-blink rounded-full" />;
 }
 
-const COLLAPSE_THRESHOLD = 800; // characters
+const COLLAPSE_THRESHOLD = 300; // ~9-10줄
 
 function MessageContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
   const [expanded, setExpanded] = useState(false);
