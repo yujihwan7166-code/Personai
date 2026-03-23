@@ -341,46 +341,8 @@ const Index = () => {
     customEdit: string;
   }>({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
 
-  // Topic clarification — 토론 모드에서 주제 확인 UI 표시
-  const clarifyTopic = useCallback((input: string, mode: DiscussionMode) => {
-    // 먼저 UI를 즉시 표시 (원본 입력으로)
-    setClarifyState({
-      show: true, loading: true, originalInput: input,
-      suggestions: [{ topic: input, description: '입력한 주제 그대로 사용' }],
-      customEdit: input,
-    });
-
-    // 백그라운드에서 AI 제안 가져오기
-    fetch('/api/clarify-topic', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input, mode }),
-    }).then(r => r.json()).then(data => {
-      const suggestions = data.suggestions?.length > 0
-        ? data.suggestions
-        : [{ topic: data.refined || input, description: '입력한 주제 그대로 사용' }];
-      setClarifyState(prev => ({ ...prev, loading: false, suggestions, customEdit: suggestions[0]?.topic || input }));
-    }).catch(() => {
-      setClarifyState(prev => ({ ...prev, loading: false }));
-    });
-  }, []);
-
-
-  const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
-    // 주제 확인 UI가 보이는 동안에는 무시 (카드에서만 시작 가능)
-    if (clarifyState.show) return;
-
-    const useMode = overrideMode || discussionMode;
-    // 토론 모드에서만 주제 구체화 단계
-    const debateModes = ['standard', 'procon', 'brainstorm', 'hearing'];
-    if (debateModes.includes(useMode)) {
-      clarifyTopic(question, useMode);
-      return;
-    }
-    _startDiscussionImpl(question, overrideExpertIds, overrideMode);
-  }, [discussionMode, clarifyState.show, clarifyTopic]);
-
-  const _startDiscussionImpl = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+  // 실제 토론 시작 함수 (먼저 선언)
+  const runDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
     const useIds = overrideExpertIds || selectedExpertIds;
     const useMode = overrideMode || discussionMode;
     const discussionExperts = experts.filter((e) => useIds.includes(e.id));
@@ -938,6 +900,38 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
     setStopRequested(false);
   }, [experts, selectedExpertIds, discussionMode, debateSettings]);
 
+  // Topic clarification — 토론 모드에서 주제 확인 UI 표시
+  const clarifyTopic = useCallback((input: string, mode: DiscussionMode) => {
+    setClarifyState({
+      show: true, loading: true, originalInput: input,
+      suggestions: [{ topic: input, description: '입력한 주제 그대로 사용' }],
+      customEdit: input,
+    });
+    fetch('/api/clarify-topic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input, mode }),
+    }).then(r => r.json()).then(data => {
+      const suggestions = data.suggestions?.length > 0
+        ? data.suggestions
+        : [{ topic: data.refined || input, description: '입력한 주제 그대로 사용' }];
+      setClarifyState(prev => ({ ...prev, loading: false, suggestions, customEdit: suggestions[0]?.topic || input }));
+    }).catch(() => {
+      setClarifyState(prev => ({ ...prev, loading: false }));
+    });
+  }, []);
+
+  const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+    if (clarifyState.show) return;
+    const useMode = overrideMode || discussionMode;
+    const debateModes = ['standard', 'procon', 'brainstorm', 'hearing'];
+    if (debateModes.includes(useMode)) {
+      clarifyTopic(question, useMode);
+      return;
+    }
+    runDiscussion(question, overrideExpertIds, overrideMode);
+  }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussion]);
+
   // Save to history when discussion completes
   useEffect(() => {
     if (!isDiscussing && messages.length > 0 && currentQuestion) {
@@ -1333,7 +1327,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">추천 주제</p>
                             {clarifyState.suggestions.map((s, i) => (
                               <button key={i} type="button"
-                                onClick={() => { setClarifyState(prev => ({ ...prev, show: false })); _startDiscussionImpl(s.topic); }}
+                                onClick={() => { setClarifyState(prev => ({ ...prev, show: false })); runDiscussion(s.topic); }}
                                 className={cn(
                                   'w-full text-left px-4 py-3 rounded-xl border transition-all group/sug',
                                   'border-slate-200 hover:border-primary hover:bg-primary/5 hover:shadow-md'
@@ -1359,9 +1353,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               onChange={e => setClarifyState(prev => ({ ...prev, customEdit: e.target.value }))}
                               className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
                               placeholder="주제를 직접 입력하세요..."
-                              onKeyDown={e => { if (e.key === 'Enter' && clarifyState.customEdit.trim()) { setClarifyState(prev => ({ ...prev, show: false })); _startDiscussionImpl(clarifyState.customEdit.trim()); } }}
+                              onKeyDown={e => { if (e.key === 'Enter' && clarifyState.customEdit.trim()) { setClarifyState(prev => ({ ...prev, show: false })); runDiscussion(clarifyState.customEdit.trim()); } }}
                             />
-                            <button onClick={() => { if (clarifyState.customEdit.trim()) { setClarifyState(prev => ({ ...prev, show: false })); _startDiscussionImpl(clarifyState.customEdit.trim()); } }}
+                            <button onClick={() => { if (clarifyState.customEdit.trim()) { setClarifyState(prev => ({ ...prev, show: false })); runDiscussion(clarifyState.customEdit.trim()); } }}
                               className="px-4 py-2.5 rounded-xl bg-slate-800 text-white text-[12px] font-semibold hover:bg-slate-700 transition-colors shadow-sm shrink-0">
                               시작
                             </button>
