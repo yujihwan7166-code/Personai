@@ -907,6 +907,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
       suggestions: [{ topic: input, description: '입력한 주제 그대로 사용' }],
       customEdit: input,
     });
+    // 주제 확인 UI로 스크롤
+    setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }), 100);
     fetch('/api/clarify-topic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
