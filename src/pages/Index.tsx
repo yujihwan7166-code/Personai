@@ -370,10 +370,13 @@ const Index = () => {
   }, []);
 
   const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+    // 주제 확인 UI가 보이는 동안에는 무시 (카드에서만 시작 가능)
+    if (clarifyState.show) return;
+
     const useMode = overrideMode || discussionMode;
     // 토론 모드에서만 주제 구체화 단계
     const debateModes = ['standard', 'procon', 'brainstorm', 'hearing'];
-    if (debateModes.includes(useMode) && !clarifyState.show) {
+    if (debateModes.includes(useMode)) {
       clarifyTopic(question, useMode);
       return;
     }
