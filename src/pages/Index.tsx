@@ -1417,25 +1417,57 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 </div>
               )}
 
-              {/* Participants display */}
+              {/* Participants display — VS layout for procon, normal for others */}
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
-                <div className="flex items-center gap-1.5 px-1 flex-wrap">
-                  {activeExperts.map((expert) => {
-                    const role =
-                      discussionMode === 'procon' ? (proconStances[expert.id] === 'pro' ? '찬성' : '반대') :
-                      undefined;
-                    return (
+                discussionMode === 'procon' ? (
+                  /* VS 대결 헤더 */
+                  <div className="rounded-xl border border-slate-200 bg-gradient-to-r from-blue-50 via-white to-red-50 overflow-hidden">
+                    <div className="flex items-center">
+                      {/* 찬성 팀 */}
+                      <div className="flex-1 px-4 py-3">
+                        <div className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2">찬성</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {activeExperts.filter(e => proconStances[e.id] === 'pro').map(e => (
+                            <div key={e.id} className={cn('flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all',
+                              activeExpertId === e.id ? 'bg-blue-100 border-blue-300' : 'bg-white border-blue-100')}>
+                              <ExpertAvatar expert={e} size="xs" active={activeExpertId === e.id} />
+                              <span className="text-[11px] font-semibold text-blue-700">{e.nameKo}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* VS */}
+                      <div className="shrink-0 w-12 flex items-center justify-center">
+                        <span className="text-[16px] font-black text-slate-300">VS</span>
+                      </div>
+                      {/* 반대 팀 */}
+                      <div className="flex-1 px-4 py-3 text-right">
+                        <div className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-2">반대</div>
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                          {activeExperts.filter(e => proconStances[e.id] === 'con').map(e => (
+                            <div key={e.id} className={cn('flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all',
+                              activeExpertId === e.id ? 'bg-red-100 border-red-300' : 'bg-white border-red-100')}>
+                              <ExpertAvatar expert={e} size="xs" active={activeExpertId === e.id} />
+                              <span className="text-[11px] font-semibold text-red-700">{e.nameKo}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-1 flex-wrap">
+                    {activeExperts.map((expert) => (
                       <span key={expert.id} className={cn(
                         'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border',
                         activeExpertId === expert.id ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-white border-slate-100 text-slate-500'
                       )}>
                         <span className="text-[12px]">{expert.icon}</span>
                         {expert.nameKo}
-                        {role && <span className={cn('text-[8px] font-bold', role === '찬성' ? 'text-blue-500' : role === '반대' ? 'text-red-500' : 'text-slate-400')}>{role}</span>}
                       </span>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )
               )}
 
               {/* Messages — mode-specific rendering */}
@@ -1679,7 +1711,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     if (g.round) {
                       const isCollapsed = collapsedRounds.has(g.round.id);
                       return (
-                        <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed}
+                        <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed} variant="procon"
                           onToggle={() => setCollapsedRounds(prev => { const n = new Set(prev); if (n.has(g.round!.id)) n.delete(g.round!.id); else n.add(g.round!.id); return n; })}
                           count={groups[gi + 1]?.msgs?.length || 0} />
                       );
@@ -1753,7 +1785,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     if (g.round) {
                       const isCollapsed = collapsedRounds.has(g.round.id);
                       return (
-                        <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed}
+                        <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed} variant="procon"
                           onToggle={() => setCollapsedRounds(prev => { const n = new Set(prev); if (n.has(g.round!.id)) n.delete(g.round!.id); else n.add(g.round!.id); return n; })}
                           count={groups[gi + 1]?.msgs?.length || 0} />
                       );
@@ -1887,9 +1919,31 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
 };
 
-function RoundSeparator({ msg, isCollapsed, onToggle, count }: { msg: DiscussionMessage; isCollapsed: boolean; onToggle: () => void; count: number }) {
+function RoundSeparator({ msg, isCollapsed, onToggle, count, variant }: { msg: DiscussionMessage; isCollapsed: boolean; onToggle: () => void; count: number; variant?: string }) {
+  if (variant === 'procon') {
+    const isProRound = msg.content.includes('찬성');
+    const isConRound = msg.content.includes('반대');
+    const isFinal = msg.content.includes('최종');
+    return (
+      <button type="button" onClick={onToggle} className="w-full py-1 cursor-pointer">
+        <div className={cn('flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all',
+          isFinal ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200'
+            : isProRound ? 'bg-blue-50 border border-blue-100'
+            : isConRound ? 'bg-red-50 border border-red-100'
+            : 'bg-slate-50 border border-slate-200')}>
+          <span className="text-[14px]">{isFinal ? '⚖️' : isProRound ? '👍' : isConRound ? '👎' : '💬'}</span>
+          <span className={cn('text-[12px] font-bold flex-1 text-left',
+            isFinal ? 'text-amber-700' : isProRound ? 'text-blue-700' : isConRound ? 'text-red-700' : 'text-slate-600')}>
+            {msg.content}
+          </span>
+          {count > 0 && <span className="text-[10px] text-slate-400">{count}명</span>}
+          {isCollapsed ? <ChevronRight className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+        </div>
+      </button>
+    );
+  }
   return (
-    <button key={msg.id} type="button" onClick={onToggle}
+    <button type="button" onClick={onToggle}
       className="w-full flex items-center gap-3 py-1.5 group/round cursor-pointer">
       <div className="flex-1 h-px bg-slate-100" />
       <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-1 rounded-full bg-slate-50 border border-slate-100 transition-all group-hover/round:border-primary/20 group-hover/round:text-primary">

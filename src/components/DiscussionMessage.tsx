@@ -215,14 +215,14 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
     <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
       <div className={cn(
         'rounded-xl border transition-all overflow-hidden',
-        isSummary ? 'border-primary/15 bg-gradient-to-b from-blue-50/30 to-white shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm'
+        isSummary ? 'border-amber-200 bg-gradient-to-b from-amber-50/50 to-white shadow-md ring-1 ring-amber-100/50' : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm'
       )}>
         {/* Header */}
         <div className="flex items-center gap-2 px-3.5 py-2.5">
           <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
           <div className="flex-1 min-w-0 flex items-center gap-1.5">
             <span className="font-semibold text-[12px] text-slate-700">{expert.nameKo}</span>
-            {isSummary && <span className="text-[9px] font-medium bg-primary/8 text-primary px-1.5 py-0.5 rounded-full">종합</span>}
+            {isSummary && <span className="text-[9px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">⚖️ 종합 판정</span>}
             {message.round && !isSummary && (
               <span className="text-[9px] font-medium bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">{ROUND_LABELS[message.round]}</span>
             )}
