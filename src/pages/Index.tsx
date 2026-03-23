@@ -1329,7 +1329,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               )}
 
               {/* Question header — procon은 VS 헤더에 포함, 나머지만 표시 */}
-              {currentQuestion && messages.length > 0 && discussionMode !== 'procon' && (
+              {currentQuestion && messages.length > 0 && discussionMode !== 'procon' && discussionMode !== 'standard' && (
                 <div className="flex items-center gap-3 px-1 py-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-slate-800 font-medium text-[13px] leading-snug">{currentQuestion}</p>
@@ -1347,7 +1347,35 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
               {/* Participants display — VS layout for procon, normal for others */}
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
-                discussionMode === 'procon' ? (
+                discussionMode === 'standard' ? (
+                  /* 심층토론 스테이지 헤더 */
+                  <div className="rounded-2xl overflow-hidden shadow-md">
+                    <div className="bg-gradient-to-r from-indigo-600 to-violet-700 px-5 py-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[20px]">🎯</span>
+                          <span className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest">심층 토론</span>
+                        </div>
+                        {isDiscussing && <span className="text-[8px] font-bold text-red-300 uppercase tracking-widest animate-pulse">● LIVE</span>}
+                      </div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {activeExperts.map((e, i) => {
+                          const colors = ['from-blue-400 to-blue-500', 'from-emerald-400 to-emerald-500', 'from-violet-400 to-violet-500', 'from-amber-400 to-amber-500', 'from-rose-400 to-rose-500'];
+                          return (
+                            <div key={e.id} className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all',
+                              activeExpertId === e.id ? `bg-gradient-to-r ${colors[i % colors.length]} shadow-lg scale-105` : 'bg-white/10')}>
+                              <ExpertAvatar expert={e} size="xs" active={activeExpertId === e.id} />
+                              <span className="text-[11px] font-bold text-white">{e.nameKo}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="bg-slate-900 px-5 py-2.5">
+                      <span className="text-[12px] font-medium text-white">{currentQuestion}</span>
+                    </div>
+                  </div>
+                ) : discussionMode === 'procon' ? (
                   /* VS 토론 스테이지 */
                   <div className="rounded-2xl overflow-hidden shadow-md">
                     {/* 그라디언트 배경 */}
@@ -1805,6 +1833,88 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       </div>
                     );
                   });
+                })()
+              ) : discussionMode === 'standard' ? (
+                /* 심층토론: 탭형 라운드 + 발언자별 컬러 */
+                (() => {
+                  const rounds: { label: string; id: string; msgs: typeof messages }[] = [];
+                  let currentLabel = '';
+                  let currentId = '';
+                  let currentMsgs: typeof messages = [];
+                  const summaryMsgs = messages.filter(m => m.isSummary);
+
+                  for (const msg of messages) {
+                    if (msg.expertId === '__round__') {
+                      if (currentLabel) rounds.push({ label: currentLabel, id: currentId, msgs: currentMsgs });
+                      currentLabel = msg.content;
+                      currentId = msg.id;
+                      currentMsgs = [];
+                    } else if (!msg.isSummary && msg.expertId !== '__user__') {
+                      currentMsgs.push(msg);
+                    }
+                  }
+                  if (currentLabel) rounds.push({ label: currentLabel, id: currentId, msgs: currentMsgs });
+
+                  const [stdActiveRound, setStdActiveRound] = [proconActiveRound, setProconActiveRound];
+                  const activeRound = Math.min(stdActiveRound, rounds.length - 1);
+                  const currentRound = rounds[activeRound >= 0 ? activeRound : 0];
+
+                  if (isDiscussing && rounds.length > 0 && stdActiveRound !== rounds.length - 1) {
+                    setTimeout(() => setStdActiveRound(rounds.length - 1), 0);
+                  }
+
+                  const expertColors = ['border-l-blue-500', 'border-l-emerald-500', 'border-l-violet-500', 'border-l-amber-500', 'border-l-rose-500'];
+
+                  return (
+                    <div className="space-y-3">
+                      {/* 라운드 탭 */}
+                      {rounds.length > 0 && (
+                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                          {rounds.map((r, ri) => {
+                            const isActive = ri === (activeRound >= 0 ? activeRound : 0);
+                            const roundNum = r.label.match(/(\d)/)?.[1] || '';
+                            const isFinal = r.label.includes('최종');
+                            return (
+                              <button key={r.id} onClick={() => setStdActiveRound(ri)}
+                                className={cn('flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all shrink-0',
+                                  isActive
+                                    ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' : 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md'
+                                    : r.msgs.length > 0 ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-50 text-slate-300')}>
+                                <span className="text-[14px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
+                                <span className="text-[11px] font-semibold">{r.label.replace(/\d라운드\s*·?\s*/, '')}</span>
+                                {isDiscussing && ri === rounds.length - 1 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* 현재 라운드 발언 */}
+                      {currentRound && currentRound.msgs.length > 0 && (
+                        <div className="space-y-3">
+                          {currentRound.msgs.map(msg => {
+                            const expert = allExperts.find(e => e.id === msg.expertId);
+                            if (!expert) return null;
+                            return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default"
+                              onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />;
+                          })}
+                        </div>
+                      )}
+
+                      {currentRound && currentRound.msgs.length === 0 && (
+                        <div className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/30 px-4 py-8 text-center text-[11px] text-indigo-300">
+                          {isDiscussing ? '발언 대기 중...' : '발언 없음'}
+                        </div>
+                      )}
+
+                      {/* 종합 */}
+                      {summaryMsgs.map(msg => {
+                        const expert = allExperts.find(e => e.id === msg.expertId);
+                        if (!expert) return null;
+                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                      })}
+                    </div>
+                  );
                 })()
               ) : (
                 /* All other modes: sequential */
