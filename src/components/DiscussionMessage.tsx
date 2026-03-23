@@ -47,9 +47,9 @@ function StreamingCursor() {
 
 const COLLAPSE_THRESHOLD = 300; // ~9-10줄
 
-function MessageContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
+function MessageContent({ content, isStreaming, noCollapse }: { content: string; isStreaming?: boolean; noCollapse?: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const isLong = content.length > COLLAPSE_THRESHOLD && !isStreaming;
+  const isLong = !noCollapse && content.length > COLLAPSE_THRESHOLD && !isStreaming;
 
   if (content) {
     const displayContent = isLong && !expanded ? content.slice(0, COLLAPSE_THRESHOLD) + '...' : content;
@@ -105,14 +105,12 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
           <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-md px-3.5 py-2.5 shadow-sm">
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
-              <MessageContent content={message.content} isStreaming={message.isStreaming} />
+              <MessageContent content={message.content} isStreaming={message.isStreaming} noCollapse />
             </div>
           </div>
           {!message.isStreaming && message.content && (
             <div className="opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-0.5 ml-1">
               <CopyBtn className="text-slate-300 hover:text-slate-500" />
-              <button onClick={() => onLike?.(message.id)} className="p-1 rounded text-slate-300 hover:text-slate-500"><ThumbsUp className="w-3 h-3" /></button>
-              {onRebuttal && <button onClick={() => setShowRebuttal(!showRebuttal)} className="p-1 rounded text-slate-300 hover:text-slate-500"><MessageSquareReply className="w-3 h-3" /></button>}
             </div>
           )}
           {showRebuttal && <RebuttalInput expert={expert} value={rebuttalText} onChange={setRebuttalText} onSubmit={handleRebuttalSubmit} />}
