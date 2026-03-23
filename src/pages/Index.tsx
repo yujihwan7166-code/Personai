@@ -1323,7 +1323,12 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               {discussionMode === 'multi' ? (
                 /* Multi AI: enhanced 3-layer view */
                 (() => {
-                  const expertMsgs = messages.filter(m => m.expertId !== '__round__' && m.expertId !== '__user__' && !m.isSummary);
+                  // 각 전문가의 모든 메시지 (follow-up 포함)
+                  const allExpertMsgs = messages.filter(m => m.expertId !== '__round__' && m.expertId !== '__user__' && !m.isSummary);
+                  // 각 전문가의 첫 응답 (오버뷰용)
+                  const expertMsgs = allExpertMsgs.filter((m, i, arr) => arr.findIndex(x => x.expertId === m.expertId) === i);
+                  // 각 전문가의 후속 응답 (상세 보기에서 표시)
+                  const getExpertAllMsgs = (id: string) => allExpertMsgs.filter(m => m.expertId === id);
                   const conclusionMsgs = messages.filter(m => m.isSummary);
                   const userMsgs = messages.filter(m => m.expertId === '__user__');
                   const participatingExperts = activeExperts.filter(e => expertMsgs.some(m => m.expertId === e.id));
@@ -1410,29 +1415,42 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                       {/* ── Layer 2: Detail ── */}
                       {multiView === 'detail' && !isDiscussing && (() => {
-                        const activeMsg = expertMsgs.find(m => m.expertId === activeTab);
+                        const activeMsgs = getExpertAllMsgs(activeTab || '');
                         const activeExp = allExperts.find(e => e.id === activeTab);
-                        if (!activeMsg || !activeExp) return null;
+                        if (!activeMsgs.length || !activeExp) return null;
+                        // 해당 AI에게 보낸 유저 메시지도 포함
+                        const relatedUserMsgs = userMsgs.filter(m => m.content.includes(activeExp.nameKo));
                         return (
                           <div className="space-y-2">
                             {/* Tab bar with votes */}
                             <div className="flex gap-1 overflow-x-auto scrollbar-none">
                               {sortedExperts.map(expert => {
                                 const votes = multiVotes[expert.id] || 0;
+                                const followUpCount = getExpertAllMsgs(expert.id).length;
                                 return (
                                   <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
                                     className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all shrink-0 text-[11px] font-medium',
                                       activeTab === expert.id ? 'bg-white border-slate-200 shadow-sm text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50')}>
                                     <ExpertAvatar expert={expert} size="xs" />
                                     {expert.nameKo}
+                                    {followUpCount > 1 && <span className="text-[9px] bg-slate-100 text-slate-400 px-1 rounded">{followUpCount}</span>}
                                     {votes > 0 && <span className="text-[9px] text-primary">👍{votes}</span>}
                                   </button>
                                 );
                               })}
                             </div>
-                            {/* Response */}
-                            <DiscussionMessageCard message={activeMsg} expert={activeExp} variant="default"
-                              onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
+                            {/* All responses from this AI (including follow-ups) */}
+                            {activeMsgs.map((msg, i) => (
+                              <div key={msg.id}>
+                                {i > 0 && relatedUserMsgs[i - 1] && (
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2 text-[11.5px] text-slate-500 mb-2">
+                                    {relatedUserMsgs[i - 1].content}
+                                  </div>
+                                )}
+                                <DiscussionMessageCard message={msg} expert={activeExp} variant="default"
+                                  onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
+                              </div>
+                            ))}
                             {/* Actions bar */}
                             <div className="flex items-center justify-between px-1">
                               {prevExpert ? (
