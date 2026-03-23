@@ -220,7 +220,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
     <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
       <div className={cn(
         'rounded-xl border transition-all overflow-hidden',
-        isSummary ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-lg ring-1 ring-amber-200/50 border-2' : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm'
+        isSummary ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-lg ring-1 ring-amber-200/50 border-2' : 'border-slate-300 bg-white hover:border-slate-400 hover:shadow-md'
       )}>
         {/* Header */}
         <div className="flex items-center gap-2 px-3.5 py-2.5">

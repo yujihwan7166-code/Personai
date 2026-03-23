@@ -1371,8 +1371,20 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         })}
                       </div>
                     </div>
-                    <div className="bg-slate-900 px-5 py-2.5">
-                      <span className="text-[12px] font-medium text-white">{currentQuestion}</span>
+                    <div className="bg-slate-900 px-5 py-2.5 flex items-center justify-between">
+                      <span className="text-[12px] font-medium text-white flex-1">{currentQuestion}</span>
+                      {/* 라운드 진행 표시 */}
+                      <div className="flex items-center gap-1 ml-3 shrink-0">
+                        {[1, 2, 3].map(r => {
+                          const roundMsgs = messages.filter(m => m.expertId === '__round__');
+                          const done = roundMsgs.length >= r;
+                          const current = roundMsgs.length === r - 1 && isDiscussing;
+                          return (
+                            <div key={r} className={cn('w-2 h-2 rounded-full transition-all',
+                              current ? 'bg-indigo-400 animate-pulse scale-125' : done ? 'bg-white' : 'bg-white/20')} />
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ) : discussionMode === 'procon' ? (
