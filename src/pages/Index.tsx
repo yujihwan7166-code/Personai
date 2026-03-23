@@ -996,6 +996,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const [multiView, setMultiView] = useState<'overview' | 'detail' | 'compare'>('overview');
   const [multiCompareIds, setMultiCompareIds] = useState<[string, string] | null>(null);
   const [multiVotes, setMultiVotes] = useState<Record<string, number>>({});
+  const [proconActiveRound, setProconActiveRound] = useState(0);
   const [multiPinned, setMultiPinned] = useState<Set<string>>(new Set());
 
 
@@ -1630,78 +1631,141 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   );
                 })()
               ) : discussionMode === 'procon' ? (
-                /* Procon: left-right split layout */
+                /* Procon: 탭형 라운드 + 찬반 나란히 */
                 (() => {
-                  const groups: { round?: typeof messages[0]; msgs: typeof messages }[] = [];
-                  let current: typeof messages = [];
+                  // 라운드별로 그룹핑
+                  const rounds: { label: string; id: string; proMsgs: typeof messages; conMsgs: typeof messages; otherMsgs: typeof messages }[] = [];
+                  let currentLabel = '';
+                  let currentId = '';
+                  let currentPro: typeof messages = [];
+                  let currentCon: typeof messages = [];
+                  let currentOther: typeof messages = [];
+                  const summaryMsgs = messages.filter(m => m.isSummary);
+
                   for (const msg of messages) {
                     if (msg.expertId === '__round__') {
-                      if (current.length) groups.push({ msgs: current });
-                      groups.push({ round: msg, msgs: [] });
-                      current = [];
-                    } else {
-                      current.push(msg);
+                      if (currentLabel) rounds.push({ label: currentLabel, id: currentId, proMsgs: currentPro, conMsgs: currentCon, otherMsgs: currentOther });
+                      currentLabel = msg.content;
+                      currentId = msg.id;
+                      currentPro = []; currentCon = []; currentOther = [];
+                    } else if (!msg.isSummary && msg.expertId !== '__user__') {
+                      if (proconStances[msg.expertId] === 'pro') currentPro.push(msg);
+                      else if (proconStances[msg.expertId] === 'con') currentCon.push(msg);
+                      else currentOther.push(msg);
                     }
                   }
-                  if (current.length) groups.push({ msgs: current });
+                  if (currentLabel) rounds.push({ label: currentLabel, id: currentId, proMsgs: currentPro, conMsgs: currentCon, otherMsgs: currentOther });
 
-                  return groups.map((g, gi) => {
-                    if (g.round) {
-                      const isCollapsed = collapsedRounds.has(g.round.id);
-                      return (
-                        <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed} variant="procon"
-                          onToggle={() => setCollapsedRounds(prev => { const n = new Set(prev); if (n.has(g.round!.id)) n.delete(g.round!.id); else n.add(g.round!.id); return n; })}
-                          count={groups[gi + 1]?.msgs?.length || 0} />
-                      );
+                  // 메인 라운드만 (찬성+반대 합쳐서 같은 라운드번호끼리 병합)
+                  const mergedRounds: typeof rounds = [];
+                  for (const r of rounds) {
+                    const roundNum = r.label.match(/(\d)/)?.[1];
+                    const existing = mergedRounds.find(mr => mr.label.match(/(\d)/)?.[1] === roundNum && roundNum);
+                    if (existing) {
+                      existing.proMsgs.push(...r.proMsgs);
+                      existing.conMsgs.push(...r.conMsgs);
+                      existing.otherMsgs.push(...r.otherMsgs);
+                    } else {
+                      mergedRounds.push({ ...r, proMsgs: [...r.proMsgs], conMsgs: [...r.conMsgs], otherMsgs: [...r.otherMsgs] });
                     }
-                    const prevRound = groups.slice(0, gi).reverse().find(g2 => g2.round);
-                    if (prevRound?.round && collapsedRounds.has(prevRound.round.id)) return null;
-                    const proMsgs = g.msgs.filter(m => m.expertId !== '__user__' && proconStances[m.expertId] === 'pro');
-                    const conMsgs = g.msgs.filter(m => m.expertId !== '__user__' && proconStances[m.expertId] === 'con');
-                    const otherMsgs = g.msgs.filter(m => m.expertId !== '__user__' && !proconStances[m.expertId]);
-                    // If no stance info yet (e.g. analysis phase), render sequentially
-                    if (proMsgs.length === 0 && conMsgs.length === 0) {
-                      return (
-                        <div key={`procon-seq-${gi}`} className="space-y-2.5">
-                          {g.msgs.filter(m => m.expertId !== '__user__').map(msg => {
-                            const expert = allExperts.find(e => e.id === msg.expertId);
-                            if (!expert) return null;
-                            return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={getChatVariant(msg)} onLike={handleLike} onDislike={handleDislike} />;
+                  }
+
+                  const activeRound = Math.min(proconActiveRound, mergedRounds.length - 1);
+                  const currentRound = mergedRounds[activeRound >= 0 ? activeRound : 0];
+
+                  // 스트리밍 중이면 마지막 라운드로 자동 이동
+                  if (isDiscussing && mergedRounds.length > 0 && proconActiveRound !== mergedRounds.length - 1) {
+                    setTimeout(() => setProconActiveRound(mergedRounds.length - 1), 0);
+                  }
+
+                  return (
+                    <div className="space-y-3">
+                      {/* 라운드 탭 */}
+                      {mergedRounds.length > 0 && (
+                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                          {mergedRounds.map((r, ri) => {
+                            const isActive = ri === (activeRound >= 0 ? activeRound : 0);
+                            const roundNum = r.label.match(/(\d)/)?.[1] || '';
+                            const isFinal = r.label.includes('최종');
+                            const hasContent = r.proMsgs.length > 0 || r.conMsgs.length > 0;
+                            return (
+                              <button key={r.id} onClick={() => setProconActiveRound(ri)}
+                                className={cn('flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all shrink-0',
+                                  isActive
+                                    ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' : 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-md'
+                                    : hasContent ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-50 text-slate-300')}>
+                                <span className={cn('text-[14px] font-black', isActive ? 'text-white' : '')}>
+                                  {isFinal ? '⚖️' : `${roundNum}R`}
+                                </span>
+                                <span className="text-[11px] font-semibold">
+                                  {isFinal ? '최종' : r.label.includes('주장') ? '주장' : r.label.includes('반론') ? '반론' : r.label.replace(/\d라운드\s*·?\s*/, '')}
+                                </span>
+                                {isDiscussing && ri === mergedRounds.length - 1 && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                                )}
+                              </button>
+                            );
                           })}
                         </div>
-                      );
-                    }
-                    return (
-                      <div key={`procon-split-${gi}`} className="space-y-2.5">
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* Pro column */}
-                          <div className="space-y-2">
-                            {gi === 0 && proMsgs.length > 0 && <div className="text-center text-[10px] font-bold text-blue-500 uppercase tracking-wider py-1">찬성</div>}
-                            {proMsgs.map(msg => {
+                      )}
+
+                      {/* 현재 라운드 — 찬반 나란히 */}
+                      {currentRound && (currentRound.proMsgs.length > 0 || currentRound.conMsgs.length > 0) && (
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* 찬성 칼럼 */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-2">
+                              <div className="w-2 h-2 rounded-full bg-blue-500" />
+                              <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">찬성</span>
+                              <div className="flex-1 h-px bg-blue-100" />
+                            </div>
+                            {currentRound.proMsgs.map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-pro" onLike={handleLike} onDislike={handleDislike} />;
                             })}
+                            {currentRound.proMsgs.length === 0 && (
+                              <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/30 px-4 py-8 text-center text-[11px] text-blue-300">
+                                {isDiscussing ? '발언 대기 중...' : '발언 없음'}
+                              </div>
+                            )}
                           </div>
-                          {/* Con column */}
-                          <div className="space-y-2">
-                            {gi === 0 && conMsgs.length > 0 && <div className="text-center text-[10px] font-bold text-red-500 uppercase tracking-wider py-1">반대</div>}
-                            {conMsgs.map(msg => {
+                          {/* 반대 칼럼 */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-2">
+                              <div className="w-2 h-2 rounded-full bg-red-500" />
+                              <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider">반대</span>
+                              <div className="flex-1 h-px bg-red-100" />
+                            </div>
+                            {currentRound.conMsgs.map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-con" onLike={handleLike} onDislike={handleDislike} />;
                             })}
+                            {currentRound.conMsgs.length === 0 && (
+                              <div className="rounded-xl border border-dashed border-red-200 bg-red-50/30 px-4 py-8 text-center text-[11px] text-red-300">
+                                {isDiscussing ? '발언 대기 중...' : '발언 없음'}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        {/* Other messages (summary, conclusion) rendered full width */}
-                        {otherMsgs.map(msg => {
-                          const expert = allExperts.find(e => e.id === msg.expertId);
-                          if (!expert) return null;
-                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onLike={handleLike} onDislike={handleDislike} />;
-                        })}
-                      </div>
-                    );
-                  });
+                      )}
+
+                      {/* 기타 (배정 분석 등) */}
+                      {currentRound?.otherMsgs.map(msg => {
+                        const expert = allExperts.find(e => e.id === msg.expertId);
+                        if (!expert) return null;
+                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onLike={handleLike} onDislike={handleDislike} />;
+                      })}
+
+                      {/* 종합 판정 */}
+                      {summaryMsgs.map(msg => {
+                        const expert = allExperts.find(e => e.id === msg.expertId);
+                        if (!expert) return null;
+                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                      })}
+                    </div>
+                  );
                 })()
               ) : discussionMode === 'brainstorm' ? (
                 /* Brainstorm: grid layout */
