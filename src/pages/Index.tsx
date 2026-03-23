@@ -1361,39 +1361,50 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               {/* Participants display — VS layout for procon, normal for others */}
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
                 discussionMode === 'procon' ? (
-                  /* VS 대결 헤더 */
-                  <div className="rounded-xl border border-slate-200 bg-gradient-to-r from-blue-50 via-white to-red-50 overflow-hidden">
-                    <div className="flex items-center">
-                      {/* 찬성 팀 */}
-                      <div className="flex-1 px-4 py-3">
-                        <div className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2">찬성</div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {activeExperts.filter(e => proconStances[e.id] === 'pro').map(e => (
-                            <div key={e.id} className={cn('flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all',
-                              activeExpertId === e.id ? 'bg-blue-100 border-blue-300' : 'bg-white border-blue-100')}>
-                              <ExpertAvatar expert={e} size="xs" active={activeExpertId === e.id} />
-                              <span className="text-[11px] font-semibold text-blue-700">{e.nameKo}</span>
-                            </div>
-                          ))}
+                  /* VS 토론 스테이지 */
+                  <div className="rounded-2xl overflow-hidden shadow-md">
+                    {/* 그라디언트 배경 */}
+                    <div className="bg-gradient-to-r from-blue-600 via-slate-800 to-red-600 px-5 py-5">
+                      <div className="flex items-center">
+                        {/* 찬성 팀 */}
+                        <div className="flex-1">
+                          <div className="text-[10px] font-bold text-blue-200 uppercase tracking-widest mb-2">TEAM PRO</div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {activeExperts.filter(e => proconStances[e.id] === 'pro').map(e => (
+                              <div key={e.id} className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all',
+                                activeExpertId === e.id ? 'bg-blue-500/40 ring-2 ring-blue-300' : 'bg-white/10')}>
+                                <ExpertAvatar expert={e} size="sm" active={activeExpertId === e.id} />
+                                <span className="text-[12px] font-bold text-white">{e.nameKo}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {/* VS 뱃지 */}
+                        <div className="shrink-0 mx-4 flex flex-col items-center gap-1">
+                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <span className="text-[18px] font-black text-white">VS</span>
+                          </div>
+                          {isDiscussing && <span className="text-[8px] font-bold text-red-300 uppercase tracking-widest animate-pulse">LIVE</span>}
+                        </div>
+                        {/* 반대 팀 */}
+                        <div className="flex-1 text-right">
+                          <div className="text-[10px] font-bold text-red-200 uppercase tracking-widest mb-2">TEAM CON</div>
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
+                            {activeExperts.filter(e => proconStances[e.id] === 'con').map(e => (
+                              <div key={e.id} className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all',
+                                activeExpertId === e.id ? 'bg-red-500/40 ring-2 ring-red-300' : 'bg-white/10')}>
+                                <span className="text-[12px] font-bold text-white">{e.nameKo}</span>
+                                <ExpertAvatar expert={e} size="sm" active={activeExpertId === e.id} />
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      {/* VS */}
-                      <div className="shrink-0 w-12 flex items-center justify-center">
-                        <span className="text-[16px] font-black text-slate-300">VS</span>
-                      </div>
-                      {/* 반대 팀 */}
-                      <div className="flex-1 px-4 py-3 text-right">
-                        <div className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-2">반대</div>
-                        <div className="flex items-center gap-2 flex-wrap justify-end">
-                          {activeExperts.filter(e => proconStances[e.id] === 'con').map(e => (
-                            <div key={e.id} className={cn('flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all',
-                              activeExpertId === e.id ? 'bg-red-100 border-red-300' : 'bg-white border-red-100')}>
-                              <ExpertAvatar expert={e} size="xs" active={activeExpertId === e.id} />
-                              <span className="text-[11px] font-semibold text-red-700">{e.nameKo}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                    </div>
+                    {/* 토론 주제 */}
+                    <div className="bg-slate-900 px-5 py-2.5 flex items-center justify-center gap-2">
+                      <span className="text-[11px] text-slate-400">주제</span>
+                      <span className="text-[12px] font-semibold text-white">{currentQuestion}</span>
                     </div>
                   </div>
                 ) : (
@@ -1865,20 +1876,23 @@ function RoundSeparator({ msg, isCollapsed, onToggle, count, variant }: { msg: D
     const isProRound = msg.content.includes('찬성');
     const isConRound = msg.content.includes('반대');
     const isFinal = msg.content.includes('최종');
+    // 라운드 번호 추출
+    const roundMatch = msg.content.match(/(\d)/);
+    const roundNum = roundMatch ? roundMatch[1] : '';
     return (
-      <button type="button" onClick={onToggle} className="w-full py-1 cursor-pointer">
-        <div className={cn('flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all',
-          isFinal ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200'
-            : isProRound ? 'bg-blue-50 border border-blue-100'
-            : isConRound ? 'bg-red-50 border border-red-100'
-            : 'bg-slate-50 border border-slate-200')}>
-          <span className="text-[14px]">{isFinal ? '⚖️' : isProRound ? '👍' : isConRound ? '👎' : '💬'}</span>
-          <span className={cn('text-[12px] font-bold flex-1 text-left',
-            isFinal ? 'text-amber-700' : isProRound ? 'text-blue-700' : isConRound ? 'text-red-700' : 'text-slate-600')}>
-            {msg.content}
-          </span>
-          {count > 0 && <span className="text-[10px] text-slate-400">{count}명</span>}
-          {isCollapsed ? <ChevronRight className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+      <button type="button" onClick={onToggle} className="w-full py-2 cursor-pointer">
+        <div className={cn('flex items-center gap-4 px-5 py-3 rounded-2xl transition-all shadow-sm',
+          isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+            : isProRound ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+            : isConRound ? 'bg-gradient-to-r from-red-500 to-red-600'
+            : 'bg-gradient-to-r from-slate-500 to-slate-600')}>
+          {/* 라운드 번호 */}
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+            <span className="text-[16px] font-black text-white">{isFinal ? '⚖️' : roundNum ? `${roundNum}R` : '💬'}</span>
+          </div>
+          <span className="text-[13px] font-bold text-white flex-1 text-left">{msg.content}</span>
+          {count > 0 && <span className="text-[10px] text-white/60 font-medium">{count}명</span>}
+          {isCollapsed ? <ChevronRight className="w-4 h-4 text-white/60" /> : <ChevronDown className="w-4 h-4 text-white/60" />}
         </div>
       </button>
     );

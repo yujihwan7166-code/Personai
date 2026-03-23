@@ -139,25 +139,30 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
     );
   }
 
-  // ── Procon (찬반) ──
+  // ── Procon (찬반) — 좌우 대칭 발언 카드 ──
   if (variant === 'procon-pro' || variant === 'procon-con') {
     const isPro = variant === 'procon-pro';
     return (
       <div className={cn(
-        'group rounded-xl border p-3.5 animate-in fade-in duration-200',
-        isPro ? 'bg-blue-50/40 border-blue-200/50' : 'bg-red-50/40 border-red-200/50',
-        isPro ? 'slide-in-from-left-2' : 'slide-in-from-right-2'
+        'group rounded-xl overflow-hidden animate-in fade-in duration-200 transition-all',
+        isPro ? 'border-l-4 border-l-blue-500 border border-blue-100 bg-white' : 'border-r-4 border-r-red-500 border border-red-100 bg-white',
+        isPro ? 'slide-in-from-left-3' : 'slide-in-from-right-3',
+        message.isStreaming && 'ring-2 ring-offset-1',
+        message.isStreaming && isPro ? 'ring-blue-300' : message.isStreaming ? 'ring-red-300' : ''
       )}>
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className={cn('flex items-center gap-2 px-3.5 py-2.5', isPro ? 'bg-blue-50/50' : 'bg-red-50/50')}>
           <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
-          <span className="text-[11px] font-semibold text-slate-600">{expert.nameKo}</span>
-          <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full', isPro ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600')}>
+          <span className={cn('text-[12px] font-bold', isPro ? 'text-blue-800' : 'text-red-800')}>{expert.nameKo}</span>
+          <span className={cn('text-[9px] font-bold px-2 py-0.5 rounded-full', isPro ? 'bg-blue-500 text-white' : 'bg-red-500 text-white')}>
             {isPro ? '찬성' : '반대'}
           </span>
+          {message.isStreaming && <span className={cn('text-[8px] font-bold uppercase tracking-wider animate-pulse', isPro ? 'text-blue-400' : 'text-red-400')}>발언 중</span>}
           {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
         </div>
-        <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
-          <MessageContent content={message.content} isStreaming={message.isStreaming} />
+        <div className="px-3.5 py-3">
+          <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
+            <MessageContent content={message.content} isStreaming={message.isStreaming} />
+          </div>
         </div>
       </div>
     );
@@ -215,7 +220,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
     <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
       <div className={cn(
         'rounded-xl border transition-all overflow-hidden',
-        isSummary ? 'border-amber-200 bg-gradient-to-b from-amber-50/50 to-white shadow-md ring-1 ring-amber-100/50' : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm'
+        isSummary ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-lg ring-1 ring-amber-200/50 border-2' : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm'
       )}>
         {/* Header */}
         <div className="flex items-center gap-2 px-3.5 py-2.5">
