@@ -526,81 +526,22 @@ const Index = () => {
       const manuallyAssigned = discussionExperts.every(e => proconStances[e.id] === 'pro' || proconStances[e.id] === 'con');
 
       if (manuallyAssigned) {
-        // Use manual assignments
+        // Use manual assignments — 바로 토론 시작 (배정 카드 없음)
         stanceMap = { ...proconStances };
-        const proNames = discussionExperts.filter(e => stanceMap[e.id] === 'pro').map(e => e.nameKo);
-        const conNames = discussionExperts.filter(e => stanceMap[e.id] === 'con').map(e => e.nameKo);
-        const manualContent = `## ⚔️ 수동 배정\n\n### 👍 찬성\n${proNames.join(', ')}\n\n### 👎 반대\n${conNames.join(', ')}`;
-        setMessages((prev) => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '입장 배정', round: 'initial' }]);
-        const manualId = `stance-manual-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: manualId, expertId: SUMMARIZER_EXPERT.id, content: manualContent, round: 'initial' }]);
-        allResponses.push({ name: '사회자 (수동 배정)', content: manualContent });
       } else {
+        // Auto-assign via AI — 배정 결과는 VS 헤더에 표시되므로 메시지 없음
         // Auto-assign via AI
-        setMessages((prev) => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '주제 분석 · AI 자동 배정', round: 'initial' }]);
-        const analysisId = `stance-analysis-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: analysisId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, round: 'initial' }]);
-        setActiveExpertId(SUMMARIZER_EXPERT.id);
-
         try {
-          const stanceResp = await fetch('/api/procon-stance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              question,
-              experts: discussionExperts.map((e) => ({ id: e.id, nameKo: e.nameKo, description: e.description }))
-            }),
-            signal: controller.signal
-          });
-
-          if (!stanceResp.ok) {
-            const errorData = await stanceResp.json().catch(() => ({}));
-            throw new Error(errorData.error || '입장 배정 실패');
+          const stanceResp = await fetch("/api/procon-stance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, experts: discussionExperts.map(e => ({ id: e.id, nameKo: e.nameKo, description: e.description })) }), signal: controller.signal });
+          if (stanceResp.ok) {
+            const stanceResult = await stanceResp.json();
+            for (const a of stanceResult.assignments || []) { if (discussionExperts.some(e => e.id === a.expertId)) stanceMap[a.expertId] = a.stance; }
           }
-
-          const stanceResult = await stanceResp.json();
-
-          for (const assignment of stanceResult.assignments || []) {
-            if (discussionExperts.some((e) => e.id === assignment.expertId)) {
-              stanceMap[assignment.expertId] = assignment.stance;
-            }
-          }
-
-          for (const expert of discussionExperts) {
-            if (!stanceMap[expert.id]) {
-              const proCount = Object.values(stanceMap).filter((s) => s === 'pro').length;
-              const conCount = Object.values(stanceMap).filter((s) => s === 'con').length;
-              stanceMap[expert.id] = proCount <= conCount ? 'pro' : 'con';
-            }
-          }
-
-          const proNames = discussionExperts.filter((e) => stanceMap[e.id] === 'pro').map((e) => e.nameKo);
-          const conNames = discussionExperts.filter((e) => stanceMap[e.id] === 'con').map((e) => e.nameKo);
-          const reasonLines = (stanceResult.assignments || []).
-          filter((a: any) => discussionExperts.some((e) => e.id === a.expertId)).
-          map((a: any) => {
-            const expert = discussionExperts.find((e) => e.id === a.expertId);
-            const side = a.stance === 'pro' ? '찬성' : '반대';
-            return `- **${expert?.nameKo}** (${side}): ${a.reason}`;
-          }).join('\n');
-
-          const analysisContent = `## ⚔️ AI 자동 배정 결과\n\n${stanceResult.analysis || ''}\n\n### 👍 찬성 팀\n${proNames.join(', ')}\n\n### 👎 반대 팀\n${conNames.join(', ')}\n\n### 배정 이유\n${reasonLines}`;
-
-          setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: analysisContent, isStreaming: false } : m));
-          allResponses.push({ name: '사회자 (AI 배정)', content: analysisContent });
-
+          for (const expert of discussionExperts) { if (!stanceMap[expert.id]) { const pc = Object.values(stanceMap).filter(s => s === "pro").length; stanceMap[expert.id] = pc <= Object.values(stanceMap).filter(s => s === "con").length ? "pro" : "con"; } }
         } catch (err) {
-          if ((err as Error).name === 'AbortError') {
-            setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: '⚠️ 중단됨', isStreaming: false } : m));
-            setActiveExpertId(undefined);
-            setIsDiscussing(false);
-            setStopRequested(false);
-            return;
-          }
+          if ((err as Error).name === "AbortError") { setActiveExpertId(undefined); setIsDiscussing(false); return; }
           const half = Math.ceil(discussionExperts.length / 2);
-          discussionExperts.forEach((e, i) => {stanceMap[e.id] = i < half ? 'pro' : 'con';});
-          const fallbackContent = `⚠️ AI 배정 실패, 순서대로 배정합니다.\n\n👍 찬성: ${discussionExperts.filter((e) => stanceMap[e.id] === 'pro').map((e) => e.nameKo).join(', ')}\n👎 반대: ${discussionExperts.filter((e) => stanceMap[e.id] === 'con').map((e) => e.nameKo).join(', ')}`;
-          setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: fallbackContent, isStreaming: false } : m));
+          discussionExperts.forEach((e, i) => { stanceMap[e.id] = i < half ? "pro" : "con"; });
         }
       }
 
