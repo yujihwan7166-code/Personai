@@ -7,7 +7,7 @@ import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
-import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, Download } from 'lucide-react';
+import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, Download, RotateCcw, Pencil } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -1093,6 +1093,43 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
       return;
     }
 
+    // 다중 AI: 모든 AI에게 동시 후속 질문
+    if (discussionMode === 'multi') {
+      setIsDiscussing(true);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const prevAll = messages.filter(m => m.expertId !== '__round__' && m.content).map(m => {
+        if (m.expertId === '__user__') return { name: '사용자', content: m.content };
+        const e = allExperts.find(ex => ex.id === m.expertId);
+        return { name: e?.nameKo || '', content: m.content };
+      });
+      setMessages(prev => [...prev, { id: `user-multi-${Date.now()}`, expertId: '__user__', content: question, timestamp: Date.now() }]);
+      setMultiView('overview');
+
+      for (const expert of activeExperts) {
+        if (controller.signal.aborted) break;
+        setActiveExpertId(expert.id);
+        const msgId = `${expert.id}-followup-${Date.now()}`;
+        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, timestamp: Date.now() }]);
+        let fullContent = '';
+        try {
+          await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n이전 대화 맥락을 참고하여 후속 질문에 답변하세요.' },
+            previousResponses: prevAll, round: 'initial',
+            onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') break;
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 오류`, isStreaming: false } : m));
+        }
+        prevAll.push({ name: expert.nameKo, content: fullContent });
+        await new Promise(r => setTimeout(r, 300));
+      }
+      setActiveExpertId(undefined);
+      setIsDiscussing(false);
+      return;
+    }
+
     // 다른 모드: 새 토론 시작
     startDiscussion(question);
   }, [isDiscussing, discussionMode, activeExperts, messages, allExperts, startDiscussion]);
@@ -1204,6 +1241,21 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   onDebateIntensityChange={setDebateIntensity}
                   onBulkSelect={setSelectedExpertIds}
                 />
+              )}
+
+              {/* #3 Mode indicator bar */}
+              {currentQuestion && messages.length > 0 && (
+                <div className="flex items-center gap-2 px-1 py-1">
+                  <span className="text-[10px] font-bold text-primary bg-primary/8 px-2 py-0.5 rounded-md">
+                    {discussionMode === 'general' ? '단일 AI' : discussionMode === 'multi' ? '다중 AI' : discussionMode === 'expert' ? '전문가' : discussionMode === 'standard' ? '심층토론' : discussionMode === 'procon' ? '찬반토론' : discussionMode === 'brainstorm' ? '브레인스토밍' : discussionMode === 'hearing' ? '아이디어 검증' : discussionMode === 'assistant' ? '어시스턴트' : ''}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {activeExperts.slice(0, 5).map(e => (
+                      <span key={e.id} className="text-[12px]" title={e.nameKo}>{e.icon || e.nameKo[0]}</span>
+                    ))}
+                    {activeExperts.length > 5 && <span className="text-[9px] text-slate-400">+{activeExperts.length - 5}</span>}
+                  </div>
+                </div>
               )}
 
               {currentQuestion && messages.length > 0 && (

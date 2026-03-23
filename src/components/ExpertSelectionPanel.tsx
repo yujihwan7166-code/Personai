@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER,
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
-  DEBATE_SUB_MODE_LABELS, getMainMode, DebateSettings, COLLABORATION_TEAMS,
-  CollaborationTeam, THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
+  DEBATE_SUB_MODE_LABELS, getMainMode, DebateSettings,
+  THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
   EXPERT_MODE_TEMPLATES, ExpertModeTemplate, ASSISTANT_CARDS, AssistantCard,
 } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
@@ -12,9 +11,8 @@ import { QuestionInput } from './QuestionInput';
 import { cn } from '@/lib/utils';
 import {
   Brain, TrendingUp, Sparkles, HelpCircle, Target, Scale, Lightbulb,
-  Users, Plus, X, Pencil, Check, ChevronRight, ChevronDown, ArrowRight, Star, Zap,
-  Clock, FileText, BookOpen, Presentation, Globe, Code, BarChart3,
-  PenTool, Search, Filter, Sliders, ToggleLeft, ToggleRight,
+  Plus, X, Check, ChevronRight, ChevronDown, ArrowRight, Zap,
+  FileText, Search, Sliders,
 } from 'lucide-react';
 
 export interface SuggestedQuestion {
@@ -48,18 +46,12 @@ interface Props {
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
   showDebateSettings?: boolean;
-  selectedCollaborationTeam?: CollaborationTeam | null;
-  onCollaborationTeamChange?: (team: CollaborationTeam | null) => void;
-  collaborationRoles?: Record<string, string>;
-  onCollaborationRolesChange?: (roles: Record<string, string>) => void;
   selectedFramework?: ThinkingFramework | null;
   onFrameworkChange?: (fw: ThinkingFramework | null) => void;
   discussionIssues?: DiscussionIssue[];
   onDiscussionIssuesChange?: (issues: DiscussionIssue[]) => void;
   debateIntensity?: string;
   onDebateIntensityChange?: (v: string) => void;
-  collaborationMission?: string;
-  onCollaborationMissionChange?: (v: string) => void;
   onBulkSelect?: (ids: string[]) => void;
 }
 
@@ -808,144 +800,6 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
   );
 }
 
-// ── Collaboration Board (협업모드 — kept for backward compat) ──
-function CollaborationBoard({ experts, selectedIds, selectedTeam, onTeamChange, roles, onRolesChange, externalDragId, onToggle, mission, onMissionChange }: {
-  experts: Expert[];
-  selectedIds: string[];
-  selectedTeam: CollaborationTeam | null;
-  onTeamChange?: (team: CollaborationTeam | null) => void;
-  roles: Record<string, string>;
-  onRolesChange?: (roles: Record<string, string>) => void;
-  externalDragId?: string | null;
-  onToggle?: (id: string) => void;
-  mission: string;
-  onMissionChange?: (v: string) => void;
-}) {
-  const [draggedToSlot, setDraggedToSlot] = useState<number | null>(null);
-  const [draggedExpert, setDraggedExpert] = useState<string | null>(null);
-  const [customRoleNames, setCustomRoleNames] = useState<string[]>(['역할 1', '역할 2', '역할 3']);
-  const [editingSlot, setEditingSlot] = useState<number | null>(null);
-  const [editSlotText, setEditSlotText] = useState('');
-
-  const isCustom = selectedTeam?.id === '__custom__';
-  const customTeam: CollaborationTeam = {
-    id: '__custom__', name: '직접 구성', description: '역할을 자유롭게 설정', roles: customRoleNames,
-    phases: [
-      { id: 'phase1', label: '1단계 · 각 역할별 의견', description: '', deliverable: '', instruction: '각자의 역할 관점에서 의견을 제시해주세요.' },
-      { id: 'phase2', label: '2단계 · 상호 피드백', description: '', deliverable: '', instruction: '다른 역할의 의견에 대해 피드백을 제시해주세요.' },
-      { id: 'phase3', label: '3단계 · 종합 결론', description: '', deliverable: '', instruction: '모든 의견을 종합하여 최종 결론을 도출해주세요.' },
-    ],
-  };
-  const effectiveTeam = isCustom ? customTeam : selectedTeam;
-
-  const assignToSlot = (expertId: string, slotIndex: number) => {
-    if (!effectiveTeam) return;
-    const roleName = effectiveTeam.roles[slotIndex];
-    if (!roleName) return;
-    if (!selectedIds.includes(expertId) && onToggle) onToggle(expertId);
-    const newRoles = { ...roles };
-    Object.keys(newRoles).forEach(k => { if (newRoles[k] === roleName) delete newRoles[k]; });
-    newRoles[expertId] = roleName;
-    onRolesChange?.(newRoles);
-  };
-
-  const removeFromSlot = (expertId: string) => {
-    const newRoles = { ...roles };
-    delete newRoles[expertId];
-    onRolesChange?.(newRoles);
-  };
-
-  const getExpertInSlot = (roleName: string): Expert | undefined => {
-    const id = Object.keys(roles).find(k => roles[k] === roleName);
-    return id ? experts.find(e => e.id === id) : undefined;
-  };
-
-  const startEditSlot = (i: number) => { setEditingSlot(i); setEditSlotText(customRoleNames[i]); };
-  const saveEditSlot = () => {
-    if (editingSlot === null) return;
-    const next = [...customRoleNames];
-    next[editingSlot] = editSlotText.trim() || `역할 ${editingSlot + 1}`;
-    setCustomRoleNames(next);
-    setEditingSlot(null);
-    onRolesChange?.({});
-  };
-
-  return (
-    <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-        <div className="text-[13px] font-bold text-slate-700">협업 모드 설정</div>
-      </div>
-      <div className="p-4 space-y-3">
-        <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">팀 구성</div>
-          <div className="flex flex-wrap gap-1.5">
-            <button onClick={() => { onTeamChange?.(isCustom ? null : customTeam); onRolesChange?.({}); }}
-              className={cn('px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all border', isCustom ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
-              직접 구성
-            </button>
-            {COLLABORATION_TEAMS.map(team => (
-              <div key={team.id} className="relative group/team">
-                <button onClick={() => { onTeamChange?.(selectedTeam?.id === team.id ? null : team); onRolesChange?.({}); }}
-                  className={cn('px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all border', selectedTeam?.id === team.id && !isCustom ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
-                  {team.name}
-                </button>
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2.5 rounded-lg bg-slate-800 text-white text-[9px] leading-relaxed shadow-xl opacity-0 invisible group-hover/team:opacity-100 group-hover/team:visible transition-all duration-200 z-50 pointer-events-none">
-                  <div className="font-semibold text-[10px] mb-1">{team.name}</div>
-                  <p className="text-slate-300 mb-1.5">{team.description}</p>
-                  <div className="space-y-0.5 text-slate-400">{team.phases.map((p, pi) => (
-                    <div key={p.id}><span className="text-slate-200">{pi + 1}.</span> {p.label}{p.deliverable && ` → ${p.deliverable}`}</div>
-                  ))}</div>
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-slate-800 rotate-45 -mt-1" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        {effectiveTeam && (
-          <div>
-            <div className="text-[11px] font-bold text-slate-600 mb-2.5">역할 배정 <span className="font-normal text-slate-400">— 위에서 드래그{isCustom ? ' · 역할명 클릭 편집' : ''}</span></div>
-            <div className="relative flex items-start gap-0">
-              {effectiveTeam.roles.map((roleName, i) => {
-                const assigned = getExpertInSlot(roleName);
-                const isOver = draggedToSlot === i;
-                const phase = effectiveTeam.phases[i];
-                return (
-                  <div key={`${roleName}-${i}`} className="flex-1 flex flex-col items-center relative">
-                    {i < effectiveTeam.roles.length - 1 && <div className="absolute top-[9px] left-[calc(50%+12px)] right-0 h-px bg-slate-200 z-0" />}
-                    {i > 0 && <div className="absolute top-[9px] right-[calc(50%+12px)] left-0 h-px bg-slate-200 z-0" />}
-                    <div className={cn('w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center z-10 text-[9px] font-bold transition-all mb-2',
-                      assigned ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white border-slate-300 text-slate-400')}>
-                      {i + 1}
-                    </div>
-                    <div onDragOver={e => { e.preventDefault(); setDraggedToSlot(i); }} onDragLeave={() => setDraggedToSlot(null)}
-                      onDrop={() => { const dropId = draggedExpert || externalDragId; if (dropId) assignToSlot(dropId, i); setDraggedToSlot(null); setDraggedExpert(null); }}
-                      className={cn('w-full rounded-lg border-2 p-2 text-center transition-all duration-150',
-                        assigned ? 'border-solid border-indigo-200 bg-indigo-50/30' : isOver ? 'border-solid border-indigo-400 bg-indigo-50' : 'border-dashed border-slate-200')}>
-                      {isCustom && editingSlot === i ? (
-                        <input value={editSlotText} onChange={e => setEditSlotText(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveEditSlot()} onBlur={saveEditSlot} autoFocus className="text-[10px] font-bold text-slate-600 bg-transparent outline-none text-center w-full" />
-                      ) : (
-                        <div className={cn('text-[10px] font-bold', assigned ? 'text-indigo-600' : 'text-slate-500', isCustom && 'cursor-pointer hover:text-indigo-600')} onClick={() => isCustom && startEditSlot(i)}>
-                          {roleName}
-                        </div>
-                      )}
-                      {phase && <div className="text-[8px] text-slate-400 mt-0.5">{phase.label}</div>}
-                      {assigned ? (
-                        <div className="flex items-center justify-center gap-1 mt-1.5">
-                          <span className="text-[10px] font-semibold text-slate-700">{assigned.nameKo}</span>
-                          <button onClick={() => removeFromSlot(assigned.id)} className="text-slate-300 hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>
-                        </div>
-                      ) : <div className="text-[9px] text-slate-300 mt-1.5">드래그</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ── Expert Mode Selection Panel ──
 function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscussing }: {
@@ -1409,12 +1263,9 @@ export function ExpertSelectionPanel({
   experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing,
   onSuggestedQuestion, onSubmit, proconStances = {}, onProconStancesChange,
   debateSettings, onDebateSettingsChange, showDebateSettings,
-  selectedCollaborationTeam, onCollaborationTeamChange,
-  collaborationRoles = {}, onCollaborationRolesChange,
   selectedFramework, onFrameworkChange,
   discussionIssues = [], onDiscussionIssuesChange,
   debateIntensity = 'moderate', onDebateIntensityChange,
-  collaborationMission = '', onCollaborationMissionChange,
   onBulkSelect,
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('recommended');
@@ -1566,7 +1417,7 @@ export function ExpertSelectionPanel({
     <div className="space-y-3 py-4">
       {/* Hero */}
       <div className="text-center space-y-2 relative z-0">
-        <h2 key={mainMode} className="text-2xl sm:text-[26px] font-bold text-foreground tracking-tight animate-in fade-in duration-700">
+        <h2 key={mainMode} className="text-lg sm:text-xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
               : mainMode === 'expert' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
@@ -1719,9 +1570,6 @@ export function ExpertSelectionPanel({
                       );
                     })}
                   </div>
-                  {selectedIds.length > 0 && (
-                    <span className="ml-auto mr-1 text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0">{selectedIds.length}명</span>
-                  )}
                   <button onClick={() => setSearchMode(true)}
                     className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors shrink-0">
                     <Search className="w-3.5 h-3.5" />

@@ -503,6 +503,7 @@ export interface DiscussionMessage {
   round?: DiscussionRound;
   likes?: number;
   dislikes?: number;
+  timestamp?: number;
 }
 
 // ══════════════════════════════════════════
