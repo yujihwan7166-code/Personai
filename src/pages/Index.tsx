@@ -1349,7 +1349,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                         {/* Re-suggest */}
                         <div className="rounded-xl border border-dashed border-slate-200 p-3">
-                          <p className="text-[11px] text-slate-500 mb-2">원하는 주제가 없나요? 힌트를 입력하면 다시 제안해드립니다</p>
+                          <p className="text-[11px] text-slate-500 mb-2">원하는 주제가 없나요? 키워드를 바꿔서 다시 제안받을 수 있어요</p>
                           <div className="flex gap-2">
                             <input type="text" value={clarifyState.customEdit}
                               onChange={e => setClarifyState(prev => ({ ...prev, customEdit: e.target.value }))}
