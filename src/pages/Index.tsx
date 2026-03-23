@@ -1719,39 +1719,33 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                   return (
                     <div className="space-y-2">
-                      {/* 라운드 탭 — 다크 톤 */}
-                      {mergedRounds.length > 0 && (
-                        <div className="flex items-center gap-1 bg-slate-800 rounded-xl p-1 overflow-x-auto scrollbar-none">
-                          {mergedRounds.map((r, ri) => {
-                            const isActive = ri === (activeRound >= 0 ? activeRound : 0);
-                            const roundNum = r.label.match(/(\d)/)?.[1] || '';
-                            const isFinal = r.label.includes('최종');
-                            const hasContent = r.proMsgs.length > 0 || r.conMsgs.length > 0;
-                            return (
-                              <button key={r.id} onClick={() => setProconActiveRound(ri)}
-                                className={cn('flex items-center gap-2 px-4 py-2 rounded-lg transition-all shrink-0',
-                                  isActive
-                                    ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' : 'bg-white text-slate-800 shadow-md'
-                                    : hasContent ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-600')}>
-                                <span className="text-[13px] font-black">
-                                  {isFinal ? '⚖️' : `${roundNum}R`}
-                                </span>
-                                <span className="text-[11px] font-semibold">
+                      {/* 현재 라운드 — 회색 칸 안에 탭 + 찬반 */}
+                      {currentRound && (
+                        <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                        {/* 라운드 탭 — 회색 칸 상단에 고정 */}
+                        {mergedRounds.length > 0 && (
+                          <div className="flex items-center gap-1 bg-slate-100 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                            {mergedRounds.map((r, ri) => {
+                              const isActive = ri === (activeRound >= 0 ? activeRound : 0);
+                              const roundNum = r.label.match(/(\d)/)?.[1] || '';
+                              const isFinal = r.label.includes('최종');
+                              const hasContent = r.proMsgs.length > 0 || r.conMsgs.length > 0;
+                              return (
+                                <button key={r.id} onClick={() => setProconActiveRound(ri)}
+                                  className={cn('flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
+                                    isActive
+                                      ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm'
+                                      : hasContent ? 'text-slate-500 hover:text-slate-700 hover:bg-white/60' : 'text-slate-300')}>
+                                  <span className="text-[12px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
                                   {isFinal ? '최종' : r.label.includes('주장') ? '주장' : r.label.includes('반론') ? '반론' : r.label.replace(/\d라운드\s*·?\s*/, '')}
-                                </span>
-                                {isDiscussing && ri === mergedRounds.length - 1 && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* 현재 라운드 — 찬반 나란히 */}
-                      {currentRound && (currentRound.proMsgs.length > 0 || currentRound.conMsgs.length > 0) && (
-                        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                        <div className="grid grid-cols-2 gap-4">
+                                  {isDiscussing && ri === mergedRounds.length - 1 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {(currentRound.proMsgs.length > 0 || currentRound.conMsgs.length > 0) ? (
+                        <div className="grid grid-cols-2 gap-4 p-4">
                           {/* 찬성 칼럼 */}
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 px-2">
@@ -1789,6 +1783,11 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             )}
                           </div>
                         </div>
+                        ) : (
+                          <div className="px-4 py-8 text-center text-[11px] text-slate-300">
+                            {isDiscussing ? '발언 대기 중...' : '발언 없음'}
+                          </div>
+                        )}
                         </div>
                       )}
 
