@@ -324,6 +324,8 @@ const Index = () => {
     setCurrentQuestion('');
     setIsDiscussing(false);
     setActiveExpertId(undefined);
+    skipClarifyRef.current = false;
+    setChatClarify(null);
   };
 
   const handleSuggestedQuestion = (question: string, expertIds: string[], mode: DiscussionMode) => {
@@ -402,9 +404,9 @@ const Index = () => {
     }
 
     if (useMode === 'general') {
-      // Clarifying questions check (첫 질문에만)
+      // Clarifying questions check (첫 질문에만, 스킵 플래그 확인)
       const expert0 = discussionExperts[0];
-      if (expert0 && !chatClarify) {
+      if (expert0 && !skipClarifyRef.current) {
         try {
           const clarifyResp = await fetch('/api/clarify-chat', {
             method: 'POST',
@@ -427,6 +429,7 @@ const Index = () => {
           }
         } catch { /* 실패 시 그냥 답변 진행 */ }
       }
+      skipClarifyRef.current = true;
       setChatClarify(null);
 
       // Smart router: auto-select best AI
@@ -1019,6 +1022,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   }, [messages, experts, currentQuestion, isDiscussing]);
 
   // Clarifying questions state (단일 AI)
+  const skipClarifyRef = useRef(false);
   const [chatClarify, setChatClarify] = useState<{
     show: boolean;
     loading: boolean;
