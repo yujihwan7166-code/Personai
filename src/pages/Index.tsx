@@ -7,7 +7,7 @@ import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
-import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, Download, RotateCcw, Pencil } from 'lucide-react';
+import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, Download, RotateCcw, Pencil } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -332,7 +332,56 @@ const Index = () => {
     startDiscussion(question, expertIds, mode);
   };
 
+  // Topic clarification state
+  const [clarifyState, setClarifyState] = useState<{
+    show: boolean;
+    loading: boolean;
+    originalInput: string;
+    suggestions: { topic: string; description: string }[];
+    customEdit: string;
+  }>({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
+
+  // Topic clarification — ask AI to refine vague topics for debate modes
+  const clarifyTopic = useCallback(async (input: string, mode: DiscussionMode) => {
+    setClarifyState({ show: true, loading: true, originalInput: input, suggestions: [], customEdit: input });
+    try {
+      const resp = await fetch('/api/clarify-topic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input, mode }),
+      });
+      const data = await resp.json();
+      if (data.is_clear) {
+        // 이미 구체적 → 바로 토론 시작
+        setClarifyState(prev => ({ ...prev, show: false, loading: false }));
+        startDiscussionDirect(data.refined || input);
+      } else {
+        // 모호함 → 제안 표시
+        setClarifyState(prev => ({ ...prev, loading: false, suggestions: data.suggestions || [], customEdit: data.suggestions?.[0]?.topic || input }));
+      }
+    } catch {
+      // 실패 시 그냥 원본으로 시작
+      setClarifyState(prev => ({ ...prev, show: false, loading: false }));
+      startDiscussionDirect(input);
+    }
+  }, []);
+
+  const startDiscussionDirect = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+    _startDiscussionImpl(question, overrideExpertIds, overrideMode);
+  }, []);
+
   const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+    const useMode = overrideMode || discussionMode;
+    // 토론 모드에서만 주제 구체화 단계
+    const debateModes = ['standard', 'procon', 'brainstorm', 'hearing'];
+    if (debateModes.includes(useMode) && !clarifyState.show) {
+      clarifyTopic(question, useMode);
+      return;
+    }
+    _startDiscussionImpl(question, overrideExpertIds, overrideMode);
+  }, [discussionMode, clarifyState.show, clarifyTopic]);
+
+  const _startDiscussionImpl = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
     const useIds = overrideExpertIds || selectedExpertIds;
     const useMode = overrideMode || discussionMode;
     const discussionExperts = experts.filter((e) => useIds.includes(e.id));
@@ -344,6 +393,7 @@ const Index = () => {
     setIsDiscussing(true);
     setCurrentQuestion(question);
     setMessages([]);
+    setClarifyState({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
     const allResponses: {name: string;content: string;}[] = [];
     const shouldStop = () => controller.signal.aborted;
     const lengthExtra = debateSettings.responseLength === 'short'
@@ -1001,6 +1051,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const [multiVotes, setMultiVotes] = useState<Record<string, number>>({});
   const [multiPinned, setMultiPinned] = useState<Set<string>>(new Set());
 
+
   // Keyboard nav for multi detail view
   useEffect(() => {
     if (discussionMode !== 'multi' || multiView !== 'detail') return;
@@ -1243,6 +1294,88 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 />
               )}
 
+              {/* Topic clarification overlay */}
+              {clarifyState.show && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                    {/* Header */}
+                    <div className="px-5 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[15px]">🎯</span>
+                        <h3 className="text-[14px] font-bold text-slate-800">주제를 구체화해주세요</h3>
+                      </div>
+                      <p className="text-[11px] text-slate-400 ml-7">더 좋은 토론을 위해 명확한 주제가 필요합니다</p>
+                    </div>
+
+                    {clarifyState.loading ? (
+                      <div className="px-5 py-8 text-center">
+                        <div className="flex justify-center gap-1.5 mb-3">
+                          <span className="typing-dot w-2 h-2 rounded-full bg-primary/50" />
+                          <span className="typing-dot w-2 h-2 rounded-full bg-primary/50" />
+                          <span className="typing-dot w-2 h-2 rounded-full bg-primary/50" />
+                        </div>
+                        <p className="text-[12px] text-slate-400">입력을 분석하고 있습니다...</p>
+                      </div>
+                    ) : (
+                      <div className="p-5 space-y-4">
+                        {/* Original input */}
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50">
+                          <span className="text-[10px] font-semibold text-slate-400 shrink-0">입력</span>
+                          <span className="text-[12px] text-slate-600 font-medium">{clarifyState.originalInput}</span>
+                        </div>
+
+                        {/* Suggestion cards */}
+                        {clarifyState.suggestions.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">추천 주제</p>
+                            {clarifyState.suggestions.map((s, i) => (
+                              <button key={i} type="button"
+                                onClick={() => { setClarifyState(prev => ({ ...prev, show: false })); _startDiscussionImpl(s.topic); }}
+                                className={cn(
+                                  'w-full text-left px-4 py-3 rounded-xl border transition-all group/sug',
+                                  'border-slate-200 hover:border-primary hover:bg-primary/5 hover:shadow-md'
+                                )}>
+                                <div className="flex items-start gap-3">
+                                  <span className="w-6 h-6 rounded-full bg-slate-100 group-hover/sug:bg-primary/10 flex items-center justify-center text-[11px] font-bold text-slate-400 group-hover/sug:text-primary shrink-0 mt-0.5">{i + 1}</span>
+                                  <div className="flex-1">
+                                    <p className="text-[13px] font-semibold text-slate-700 group-hover/sug:text-primary leading-snug">{s.topic}</p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">{s.description}</p>
+                                  </div>
+                                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover/sug:text-primary shrink-0 mt-1 opacity-0 group-hover/sug:opacity-100 transition-all" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Custom edit */}
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">직접 입력</p>
+                          <div className="flex gap-2">
+                            <input type="text" value={clarifyState.customEdit}
+                              onChange={e => setClarifyState(prev => ({ ...prev, customEdit: e.target.value }))}
+                              className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                              placeholder="주제를 직접 입력하세요..."
+                              onKeyDown={e => { if (e.key === 'Enter' && clarifyState.customEdit.trim()) { setClarifyState(prev => ({ ...prev, show: false })); _startDiscussionImpl(clarifyState.customEdit.trim()); } }}
+                            />
+                            <button onClick={() => { if (clarifyState.customEdit.trim()) { setClarifyState(prev => ({ ...prev, show: false })); _startDiscussionImpl(clarifyState.customEdit.trim()); } }}
+                              className="px-4 py-2.5 rounded-xl bg-slate-800 text-white text-[12px] font-semibold hover:bg-slate-700 transition-colors shadow-sm shrink-0">
+                              시작
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Cancel */}
+                        <button onClick={() => setClarifyState({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' })}
+                          className="w-full text-center text-[11px] text-slate-400 hover:text-slate-600 py-1 transition-colors">
+                          취소
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* #3 Mode indicator bar */}
               {currentQuestion && messages.length > 0 && (
                 <div className="flex items-center gap-2 px-1 py-1">
@@ -1326,66 +1459,75 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                   return (
                     <div className="space-y-3">
-                      {/* View mode switcher */}
+                      {/* View mode switcher — compact inline */}
                       {sortedExperts.length > 1 && !isDiscussing && (
-                        <div className="flex items-center justify-center">
-                          <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1 shadow-sm">
-                            {([['overview', '전체 보기', '📋'], ['detail', '상세 보기', '📄'], ['compare', '비교 모드', '⚖️']] as const).map(([v, label, icon]) => (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+                            {([['overview', '전체'], ['detail', '상세'], ['compare', '비교']] as const).map(([v, label]) => (
                               <button key={v} onClick={() => {
                                 setMultiView(v as any);
                                 if (v === 'compare' && sortedExperts.length >= 2) setMultiCompareIds([sortedExperts[0].id, sortedExperts[1].id]);
-                              }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-semibold transition-all',
-                                multiView === v ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50')}>
-                                <span className="text-[13px]">{icon}</span> {label}
+                              }} className={cn('px-3 py-1 rounded-md text-[10px] font-semibold transition-all',
+                                multiView === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+                                {label}
                               </button>
                             ))}
                           </div>
+                          <span className="text-[10px] text-slate-400">{sortedExperts.length}개 AI 응답</span>
                         </div>
                       )}
 
                       {/* ── Layer 1: Overview ── */}
                       {(multiView === 'overview' || isDiscussing) && (
-                        <div className={cn('grid gap-2.5', sortedExperts.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
-                          {sortedExperts.map(expert => {
+                        <div className={cn('grid gap-3', sortedExperts.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
+                          {sortedExperts.map((expert, ei) => {
                             const msg = expertMsgs.find(m => m.expertId === expert.id);
                             if (!msg) return null;
-                            const preview = msg.content.slice(0, 150);
+                            const preview = msg.content.slice(0, 180);
                             const votes = multiVotes[expert.id] || 0;
                             const isPinned = multiPinned.has(expert.id);
                             const charCount = msg.content.length;
+                            const accentColors = ['border-t-blue-400', 'border-t-emerald-400', 'border-t-violet-400', 'border-t-amber-400', 'border-t-rose-400', 'border-t-cyan-400'];
+                            const accent = accentColors[ei % accentColors.length];
                             return (
-                              <div key={expert.id} className={cn('rounded-xl border bg-white overflow-hidden transition-all',
-                                isPinned ? 'border-amber-200 ring-1 ring-amber-100' : 'border-slate-100 hover:border-slate-200 hover:shadow-md')}>
+                              <div key={expert.id} className={cn(
+                                'rounded-xl border border-slate-100 bg-white overflow-hidden transition-all border-t-2',
+                                accent,
+                                isPinned && 'ring-1 ring-amber-100',
+                                !isDiscussing && 'hover:shadow-lg hover:-translate-y-0.5'
+                              )}>
                                 {/* Header */}
-                                <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-50">
+                                <div className="flex items-center gap-2.5 px-3.5 py-2.5">
                                   <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
-                                  <span className="text-[11px] font-semibold text-slate-700 flex-1">{expert.nameKo}</span>
-                                  {isPinned && <span className="text-[10px]">📌</span>}
-                                  {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1 h-1 rounded-full bg-primary/50" /><span className="typing-dot w-1 h-1 rounded-full bg-primary/50" /><span className="typing-dot w-1 h-1 rounded-full bg-primary/50" /></span>}
-                                  {!msg.isStreaming && charCount > 0 && <span className="text-[8px] text-slate-300">{charCount}자</span>}
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-[12px] font-bold text-slate-800">{expert.nameKo}</span>
+                                    {!msg.isStreaming && charCount > 0 && <span className="text-[9px] text-slate-300 ml-1.5">{charCount}자</span>}
+                                  </div>
+                                  {isPinned && <span className="text-[11px]">📌</span>}
+                                  {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /></span>}
                                 </div>
                                 {/* Preview */}
                                 <button type="button" onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
-                                  className="w-full text-left px-3 py-2.5 text-[11.5px] leading-relaxed text-slate-500 line-clamp-4 hover:bg-slate-50/50 transition-colors">
+                                  className="w-full text-left px-3.5 py-2 text-[12px] leading-relaxed text-slate-600 line-clamp-5 hover:bg-slate-50/50 transition-colors min-h-[80px]">
                                   {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
-                                  {charCount > 150 && '...'}
+                                  {charCount > 180 && <span className="text-slate-300">...</span>}
                                 </button>
                                 {/* Actions */}
                                 {!isDiscussing && (
-                                  <div className="flex items-center gap-1 px-2 py-1.5 border-t border-slate-50">
+                                  <div className="flex items-center gap-1.5 px-3 py-2 border-t border-slate-50 bg-slate-50/30">
                                     <button onClick={() => setMultiVotes(prev => ({ ...prev, [expert.id]: (prev[expert.id] || 0) + 1 }))}
-                                      className={cn('flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] transition-all',
-                                        votes > 0 ? 'text-primary bg-primary/5 font-medium' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-50')}>
-                                      👍 {votes > 0 && votes}
+                                      className={cn('flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all',
+                                        votes > 0 ? 'text-primary bg-primary/8' : 'text-slate-400 hover:text-slate-600 hover:bg-white')}>
+                                      👍 {votes > 0 ? `${votes}표` : '추천'}
                                     </button>
                                     <button onClick={() => setMultiPinned(prev => { const n = new Set(prev); if (n.has(expert.id)) n.delete(expert.id); else n.add(expert.id); return n; })}
-                                      className={cn('px-2 py-0.5 rounded-md text-[10px] transition-all',
-                                        isPinned ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-50')}>
-                                      📌
+                                      className={cn('px-2 py-0.5 rounded-md text-[10px] font-medium transition-all',
+                                        isPinned ? 'text-amber-600 bg-amber-50' : 'text-slate-400 hover:text-slate-600 hover:bg-white')}>
+                                      {isPinned ? '고정됨' : '고정'}
                                     </button>
                                     <span className="flex-1" />
                                     <button onClick={() => { setMultiActiveTab(expert.id); setMultiView('detail'); }}
-                                      className="text-[9px] text-slate-300 hover:text-primary transition-colors">전체 보기 →</button>
+                                      className="text-[10px] font-medium text-primary/60 hover:text-primary transition-colors">자세히 →</button>
                                   </div>
                                 )}
                               </div>
@@ -1509,13 +1651,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
                       })}
 
-                      {/* Generate conclusion */}
-                      {isDone && conclusionMsgs.length === 0 && sortedExperts.length > 0 && (
-                        <button onClick={generateConclusion}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-slate-200 text-[12px] font-medium text-slate-400 hover:text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition-all">
-                          <span className="text-[16px]">🎯</span> 종합 결론 내리기
-                        </button>
-                      )}
                     </div>
                   );
                 })()
@@ -1681,16 +1816,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 })
               )}
 
-              {isDone && (
-                <div className="flex items-center justify-center gap-3 pt-8 pb-4">
-                  <div className="h-px flex-1 bg-slate-100" />
-                  <button onClick={handleNewDiscussion}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium text-slate-400 bg-white border border-slate-100 hover:border-slate-200 hover:text-slate-600 transition-all shadow-sm">
-                    <RefreshCw className="w-3 h-3" /> 새 대화
-                  </button>
-                  <div className="h-px flex-1 bg-slate-100" />
-                </div>
-              )}
             </div>
           </div>
 
@@ -1722,10 +1847,16 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     )}
                   </div>
                 )}
-                {/* Export button when done */}
+                {/* Action bar when done */}
                 {isDone && (
-                  <div className="flex items-center gap-1.5">
-                    <button onClick={exportDiscussion} className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    {discussionMode === 'multi' && !messages.some(m => m.isSummary) && (
+                      <button onClick={generateConclusion}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700 transition-colors shadow-sm">
+                        🎯 종합 결론
+                      </button>
+                    )}
+                    <button onClick={exportDiscussion} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] text-slate-400 border border-slate-200 hover:text-slate-600 hover:bg-slate-50 transition-colors">
                       <Download className="w-3 h-3" /> 내보내기
                     </button>
                   </div>
