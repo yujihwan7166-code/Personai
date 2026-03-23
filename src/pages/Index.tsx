@@ -7,7 +7,7 @@ import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
-import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, Download, RotateCcw, Pencil } from 'lucide-react';
+import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -995,9 +995,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const [multiActiveTab, setMultiActiveTab] = useState<string | null>(null);
   const [multiView, setMultiView] = useState<'overview' | 'detail' | 'compare'>('overview');
   const [multiCompareIds, setMultiCompareIds] = useState<[string, string] | null>(null);
-  const [multiVotes, setMultiVotes] = useState<Record<string, number>>({});
   const [proconActiveRound, setProconActiveRound] = useState(0);
-  const [multiPinned, setMultiPinned] = useState<Set<string>>(new Set());
 
 
   // Keyboard nav for multi detail view
@@ -1134,20 +1132,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   }, [isDiscussing, discussionMode, activeExperts, messages, allExperts, startDiscussion]);
 
   // Export discussion as markdown
-  const exportDiscussion = () => {
-    const text = messages.filter(m => m.expertId !== '__round__' && m.expertId !== '__user__').map(msg => {
-      const expert = allExperts.find(e => e.id === msg.expertId);
-      return `## ${expert?.nameKo || '알 수 없음'}\n\n${msg.content}`;
-    }).join('\n\n---\n\n');
-    const md = `# ${currentQuestion}\n\n${text}`;
-    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `personai-${new Date().toISOString().slice(0,10)}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   // Round progress
   const roundProgress = (() => {
@@ -1461,12 +1445,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   const conclusionMsgs = messages.filter(m => m.isSummary);
                   const userMsgs = messages.filter(m => m.expertId === '__user__');
                   const participatingExperts = activeExperts.filter(e => expertMsgs.some(m => m.expertId === e.id));
-                  // Sort: pinned first, then by votes
-                  const sortedExperts = [...participatingExperts].sort((a, b) => {
-                    const ap = multiPinned.has(a.id) ? 1 : 0, bp = multiPinned.has(b.id) ? 1 : 0;
-                    if (ap !== bp) return bp - ap;
-                    return (multiVotes[b.id] || 0) - (multiVotes[a.id] || 0);
-                  });
+                  const sortedExperts = participatingExperts;
                   const activeTab = multiActiveTab || sortedExperts[0]?.id || null;
                   const activeIdx = sortedExperts.findIndex(e => e.id === activeTab);
                   const prevExpert = activeIdx > 0 ? sortedExperts[activeIdx - 1] : null;
@@ -1499,110 +1478,79 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             const msg = expertMsgs.find(m => m.expertId === expert.id);
                             if (!msg) return null;
                             const preview = msg.content.slice(0, 180);
-                            const votes = multiVotes[expert.id] || 0;
-                            const isPinned = multiPinned.has(expert.id);
                             const charCount = msg.content.length;
                             const accentColors = ['border-t-blue-400', 'border-t-emerald-400', 'border-t-violet-400', 'border-t-amber-400', 'border-t-rose-400', 'border-t-cyan-400'];
                             const accent = accentColors[ei % accentColors.length];
                             return (
-                              <div key={expert.id} className={cn(
-                                'rounded-xl border border-slate-100 bg-white overflow-hidden transition-all border-t-2',
-                                accent,
-                                isPinned && 'ring-1 ring-amber-100',
-                                !isDiscussing && 'hover:shadow-lg hover:-translate-y-0.5'
-                              )}>
-                                {/* Header */}
-                                <div className="flex items-center gap-2.5 px-3.5 py-2.5">
+                              <button key={expert.id} type="button"
+                                onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
+                                className={cn(
+                                  'rounded-xl border border-slate-200 bg-white overflow-hidden transition-all border-t-2 text-left',
+                                  accent,
+                                  !isDiscussing && 'hover:shadow-lg hover:-translate-y-0.5'
+                                )}>
+                                <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-slate-100">
                                   <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
-                                  <div className="flex-1 min-w-0">
-                                    <span className="text-[12px] font-bold text-slate-800">{expert.nameKo}</span>
-                                    {!msg.isStreaming && charCount > 0 && <span className="text-[9px] text-slate-300 ml-1.5">{charCount}자</span>}
-                                  </div>
-                                  {isPinned && <span className="text-[11px]">📌</span>}
+                                  <span className="text-[12px] font-bold text-slate-800 flex-1">{expert.nameKo}</span>
                                   {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /></span>}
+                                  {!msg.isStreaming && charCount > 0 && <span className="text-[9px] text-slate-300">{charCount}자</span>}
                                 </div>
-                                {/* Preview */}
-                                <button type="button" onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
-                                  className="w-full text-left px-3.5 py-2 text-[12px] leading-relaxed text-slate-600 line-clamp-5 hover:bg-slate-50/50 transition-colors min-h-[80px]">
+                                <div className="px-3.5 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-5 min-h-[80px]">
                                   {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
                                   {charCount > 180 && <span className="text-slate-300">...</span>}
-                                </button>
-                                {/* Actions */}
-                                {!isDiscussing && (
-                                  <div className="flex items-center gap-1.5 px-3 py-2 border-t border-slate-50 bg-slate-50/30">
-                                    <button onClick={() => setMultiVotes(prev => ({ ...prev, [expert.id]: (prev[expert.id] || 0) + 1 }))}
-                                      className={cn('flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all',
-                                        votes > 0 ? 'text-primary bg-primary/8' : 'text-slate-400 hover:text-slate-600 hover:bg-white')}>
-                                      👍 {votes > 0 ? `${votes}표` : '추천'}
-                                    </button>
-                                    <button onClick={() => setMultiPinned(prev => { const n = new Set(prev); if (n.has(expert.id)) n.delete(expert.id); else n.add(expert.id); return n; })}
-                                      className={cn('px-2 py-0.5 rounded-md text-[10px] font-medium transition-all',
-                                        isPinned ? 'text-amber-600 bg-amber-50' : 'text-slate-400 hover:text-slate-600 hover:bg-white')}>
-                                      {isPinned ? '고정됨' : '고정'}
-                                    </button>
-                                    <span className="flex-1" />
-                                    <button onClick={() => { setMultiActiveTab(expert.id); setMultiView('detail'); }}
-                                      className="text-[10px] font-medium text-primary/60 hover:text-primary transition-colors">자세히 →</button>
-                                  </div>
-                                )}
-                              </div>
+                                </div>
+                              </button>
                             );
                           })}
                         </div>
                       )}
 
-                      {/* ── Layer 2: Detail ── */}
+                      {/* ── Layer 2: Detail — 회색 칸 통합 ── */}
                       {multiView === 'detail' && !isDiscussing && (() => {
                         const activeMsgs = getExpertAllMsgs(activeTab || '');
                         const activeExp = allExperts.find(e => e.id === activeTab);
                         if (!activeMsgs.length || !activeExp) return null;
-                        // 해당 AI에게 보낸 유저 메시지도 포함
                         const relatedUserMsgs = userMsgs.filter(m => m.content.includes(activeExp.nameKo));
                         return (
-                          <div className="space-y-2">
-                            {/* Tab bar with votes */}
-                            <div className="flex gap-1 overflow-x-auto scrollbar-none">
-                              {sortedExperts.map(expert => {
-                                const votes = multiVotes[expert.id] || 0;
-                                const followUpCount = getExpertAllMsgs(expert.id).length;
-                                return (
-                                  <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
-                                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all shrink-0 text-[11px] font-medium',
-                                      activeTab === expert.id ? 'bg-white border-slate-200 shadow-sm text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50')}>
-                                    <ExpertAvatar expert={expert} size="xs" />
-                                    {expert.nameKo}
-                                    {followUpCount > 1 && <span className="text-[9px] bg-slate-100 text-slate-400 px-1 rounded">{followUpCount}</span>}
-                                    {votes > 0 && <span className="text-[9px] text-primary">👍{votes}</span>}
-                                  </button>
-                                );
-                              })}
+                          <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                            {/* AI 탭바 */}
+                            <div className="flex items-center gap-1 bg-slate-100 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                              {sortedExperts.map(expert => (
+                                <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
+                                  className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
+                                    activeTab === expert.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white/60')}>
+                                  <ExpertAvatar expert={expert} size="xs" />
+                                  {expert.nameKo}
+                                  {getExpertAllMsgs(expert.id).length > 1 && <span className="text-[9px] bg-slate-200 text-slate-400 px-1 rounded">{getExpertAllMsgs(expert.id).length}</span>}
+                                </button>
+                              ))}
+                              <span className="flex-1" />
+                              <button onClick={() => setMultiView('overview')}
+                                className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors shrink-0">전체 보기</button>
                             </div>
-                            {/* All responses from this AI (including follow-ups) */}
-                            {activeMsgs.map((msg, i) => (
-                              <div key={msg.id}>
-                                {i > 0 && relatedUserMsgs[i - 1] && (
-                                  <div className="bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2 text-[11.5px] text-slate-500 mb-2">
-                                    {relatedUserMsgs[i - 1].content}
-                                  </div>
-                                )}
-                                <DiscussionMessageCard message={msg} expert={activeExp} variant="default"
-                                  onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
-                              </div>
-                            ))}
-                            {/* Navigation + Ask bar */}
-                            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-                              {/* Prev/Next */}
-                              <div className="flex items-center justify-between px-2 py-1.5 bg-slate-50 border-b border-slate-100">
+                            {/* 응답 */}
+                            <div className="p-4 space-y-3">
+                              {activeMsgs.map((msg, i) => (
+                                <div key={msg.id}>
+                                  {i > 0 && relatedUserMsgs[i - 1] && (
+                                    <div className="bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-[11.5px] text-slate-500 mb-2">
+                                      {relatedUserMsgs[i - 1].content}
+                                    </div>
+                                  )}
+                                  <DiscussionMessageCard message={msg} expert={activeExp} variant="default"
+                                    onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
+                                </div>
+                              ))}
+                            </div>
+                            {/* 하단 — 네비게이션 + 추가 질문 */}
+                            <div className="border-t border-slate-200">
+                              <div className="flex items-center justify-between px-3 py-2 bg-slate-100">
                                 {prevExpert ? (
                                   <button onClick={() => setMultiActiveTab(prevExpert.id)}
                                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-white transition-all">
                                     ← {prevExpert.nameKo}
                                   </button>
                                 ) : <div />}
-                                <button onClick={() => setMultiView('overview')}
-                                  className="px-3 py-1 rounded-lg text-[10px] font-medium text-slate-400 hover:text-slate-700 hover:bg-white transition-all">
-                                  📋 전체 보기
-                                </button>
                                 {nextExpert ? (
                                   <button onClick={() => setMultiActiveTab(nextExpert.id)}
                                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-white transition-all">
@@ -1610,15 +1558,14 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                   </button>
                                 ) : <div />}
                               </div>
-                              {/* Ask this AI */}
                               {isDone && (
-                                <div className="flex items-center gap-2 px-3 py-2">
+                                <div className="flex items-center gap-2 px-3 py-2.5 bg-white">
                                   <ExpertAvatar expert={activeExp} size="xs" />
                                   <input type="text" placeholder={`${activeExp.nameKo}에게 추가 질문...`}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                                    className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                                     onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) { askSingleAI(activeExp.id, (e.target as HTMLInputElement).value.trim()); (e.target as HTMLInputElement).value = ''; } }} />
                                   <button onClick={() => { const input = document.querySelector<HTMLInputElement>(`input[placeholder*="${activeExp.nameKo}"]`); if (input?.value.trim()) { askSingleAI(activeExp.id, input.value.trim()); input.value = ''; } }}
-                                    className="px-4 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700 transition-colors shadow-sm">질문</button>
+                                    className="px-4 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700 transition-colors">질문</button>
                                 </div>
                               )}
                             </div>
@@ -1626,7 +1573,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         );
                       })()}
 
-                      {/* ── Layer 3: Compare ── */}
+                      {/* ── Layer 3: Compare — 회색 칸 통합 ── */}
                       {multiView === 'compare' && !isDiscussing && multiCompareIds && (() => {
                         const [leftId, rightId] = multiCompareIds;
                         const leftMsg = expertMsgs.find(m => m.expertId === leftId);
@@ -1634,30 +1581,31 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         const leftExp = allExperts.find(e => e.id === leftId);
                         const rightExp = allExperts.find(e => e.id === rightId);
                         return (
-                          <div className="space-y-2">
-                            <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                            {/* AI 선택 드롭다운 */}
+                            <div className="grid grid-cols-2 gap-0 border-b border-slate-200">
                               {[0, 1].map(side => (
-                                <select key={side} value={multiCompareIds[side]}
-                                  onChange={e => { const next = [...multiCompareIds] as [string, string]; next[side] = e.target.value; setMultiCompareIds(next); }}
-                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-medium text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20">
-                                  {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
-                                </select>
+                                <div key={side} className={cn('px-3 py-2', side === 0 ? 'border-r border-slate-200 bg-blue-50/30' : 'bg-red-50/30')}>
+                                  <select value={multiCompareIds[side]}
+                                    onChange={e => { const next = [...multiCompareIds] as [string, string]; next[side] = e.target.value; setMultiCompareIds(next); }}
+                                    className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20">
+                                    {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
+                                  </select>
+                                </div>
                               ))}
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              {leftMsg && leftExp && <DiscussionMessageCard message={leftMsg} expert={leftExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
-                              {rightMsg && rightExp && <DiscussionMessageCard message={rightMsg} expert={rightExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
+                            {/* 나란히 비교 */}
+                            <div className="grid grid-cols-2 gap-0">
+                              <div className="p-3 border-r border-slate-200">
+                                {leftMsg && leftExp && <DiscussionMessageCard message={leftMsg} expert={leftExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
+                              </div>
+                              <div className="p-3">
+                                {rightMsg && rightExp && <DiscussionMessageCard message={rightMsg} expert={rightExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
+                              </div>
                             </div>
                           </div>
                         );
                       })()}
-
-                      {/* User follow-up messages */}
-                      {userMsgs.map(msg => (
-                        <div key={msg.id} className="bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600">
-                          <ReactMarkdownInline content={msg.content} />
-                        </div>
-                      ))}
 
                       {/* Conclusion */}
                       {conclusionMsgs.map(msg => {
@@ -2024,9 +1972,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         🎯 종합 결론
                       </button>
                     )}
-                    <button onClick={exportDiscussion} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] text-slate-400 border border-slate-200 hover:text-slate-600 hover:bg-slate-50 transition-colors">
-                      <Download className="w-3 h-3" /> 내보내기
-                    </button>
                   </div>
                 )}
                 <QuestionInput
