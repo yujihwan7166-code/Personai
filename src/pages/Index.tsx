@@ -1751,6 +1751,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                       {/* 현재 라운드 — 찬반 나란히 */}
                       {currentRound && (currentRound.proMsgs.length > 0 || currentRound.conMsgs.length > 0) && (
+                        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
                         <div className="grid grid-cols-2 gap-4">
                           {/* 찬성 칼럼 */}
                           <div className="space-y-3">
@@ -1788,6 +1789,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               </div>
                             )}
                           </div>
+                        </div>
                         </div>
                       )}
 
