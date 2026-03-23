@@ -20,6 +20,9 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Auto focus on mount
+  useState(() => { setTimeout(() => textareaRef.current?.focus(), 100); });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || disabled) return;

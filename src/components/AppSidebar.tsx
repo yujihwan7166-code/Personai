@@ -20,11 +20,12 @@ interface Props {
   discussionMode: DiscussionMode;
   onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
+  onNewDiscussion?: () => void;
 }
 
 export function AppSidebar({
   experts, onLoadHistory, onUpdateExperts,
-  discussionMode, onModeChange, isDiscussing,
+  discussionMode, onModeChange, isDiscussing, onNewDiscussion,
 }: Props) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
@@ -178,7 +179,7 @@ export function AppSidebar({
         {/* New discussion */}
         <div className={cn('shrink-0', collapsed ? 'px-2 py-3' : 'px-3 py-3')}>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => onNewDiscussion?.()}
             className={cn(
               'flex items-center gap-2 rounded-xl text-[12px] font-semibold transition-all duration-200',
               'bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:from-slate-700 hover:to-slate-800 shadow-sm hover:shadow-md',
@@ -244,7 +245,7 @@ export function AppSidebar({
                     <p className="text-[11px] font-medium text-slate-500">토론 기록이 없어요</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">AI와 대화를 시작하면 여기에 저장됩니다</p>
                   </div>
-                  <button onClick={() => window.location.reload()}
+                  <button onClick={() => onNewDiscussion?.()}
                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-medium hover:bg-slate-700 transition-colors">
                     <Plus className="w-3 h-3" /> 첫 대화 시작
                   </button>

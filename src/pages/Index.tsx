@@ -1156,11 +1156,58 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
     setIsDiscussing(false);
   }, [experts, messages, isDiscussing]);
 
-  // Follow-up question
-  const handleFollowUp = useCallback((question: string) => {
-    if (isDiscussing || !currentQuestion) return;
+  // Follow-up question — continues conversation with full context
+  const handleFollowUp = useCallback(async (question: string) => {
+    if (isDiscussing) return;
+    const mode = getMainMode(discussionMode);
+
+    // 단일 AI / 어시스턴트: 같은 AI에게 이어서 대화
+    if (mode === 'general' || discussionMode === 'assistant' || discussionMode === 'expert') {
+      const expert = activeExperts[0];
+      if (!expert) return;
+      setIsDiscussing(true);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      setActiveExpertId(expert.id);
+
+      // 이전 대화 전체를 맥락으로 전달
+      const prevResponses = messages
+        .filter(m => m.expertId !== '__round__' && m.content)
+        .map(m => {
+          if (m.expertId === '__user__') return { name: '사용자', content: m.content };
+          const e = allExperts.find(ex => ex.id === m.expertId);
+          return { name: e?.nameKo || '', content: m.content };
+        });
+
+      const userMsgId = `user-${Date.now()}`;
+      const replyId = `${expert.id}-reply-${Date.now()}`;
+      setMessages(prev => [...prev,
+        { id: userMsgId, expertId: '__user__', content: question },
+        { id: replyId, expertId: expert.id, content: '', isStreaming: true }
+      ]);
+
+      let fullContent = '';
+      try {
+        await streamExpert({
+          question, expert,
+          previousResponses: prevResponses, round: 'initial',
+          onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: fullContent } : m)); },
+          onDone: () => { setMessages(prev => prev.map(m => m.id === replyId ? { ...m, isStreaming: false } : m)); },
+          signal: controller.signal,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: `⚠️ 오류: ${(err as Error).message}`, isStreaming: false } : m));
+        }
+      }
+      setActiveExpertId(undefined);
+      setIsDiscussing(false);
+      return;
+    }
+
+    // 다른 모드: 새 토론 시작
     startDiscussion(question);
-  }, [isDiscussing, currentQuestion, startDiscussion]);
+  }, [isDiscussing, discussionMode, activeExperts, messages, allExperts, startDiscussion]);
 
   // Export discussion as markdown
   const exportDiscussion = () => {
@@ -1223,7 +1270,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           onUpdateExperts={setExperts}
           discussionMode={discussionMode}
           onModeChange={handleModeChange}
-          isDiscussing={isDiscussing} />
+          isDiscussing={isDiscussing}
+          onNewDiscussion={handleNewDiscussion} />
 
 
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
@@ -1348,14 +1396,14 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       {/* View mode switcher */}
                       {sortedExperts.length > 1 && !isDiscussing && (
                         <div className="flex items-center justify-center">
-                          <div className="flex bg-slate-100 rounded-lg p-0.5 gap-0.5">
-                            {([['overview', '전체'], ['detail', '상세'], ['compare', '비교']] as const).map(([v, label]) => (
+                          <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1 shadow-sm">
+                            {([['overview', '전체 보기', '📋'], ['detail', '상세 보기', '📄'], ['compare', '비교 모드', '⚖️']] as const).map(([v, label, icon]) => (
                               <button key={v} onClick={() => {
                                 setMultiView(v as any);
                                 if (v === 'compare' && sortedExperts.length >= 2) setMultiCompareIds([sortedExperts[0].id, sortedExperts[1].id]);
-                              }} className={cn('px-3 py-1 rounded-md text-[10px] font-medium transition-all',
-                                multiView === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
-                                {label}
+                              }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-semibold transition-all',
+                                multiView === v ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50')}>
+                                <span className="text-[13px]">{icon}</span> {label}
                               </button>
                             ))}
                           </div>
@@ -1451,36 +1499,39 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                   onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
                               </div>
                             ))}
-                            {/* Actions bar */}
-                            <div className="flex items-center justify-between px-1">
-                              {prevExpert ? (
-                                <button onClick={() => setMultiActiveTab(prevExpert.id)}
-                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
-                                  ← {prevExpert.nameKo}
+                            {/* Navigation + Ask bar */}
+                            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                              {/* Prev/Next */}
+                              <div className="flex items-center justify-between px-2 py-1.5 bg-slate-50 border-b border-slate-100">
+                                {prevExpert ? (
+                                  <button onClick={() => setMultiActiveTab(prevExpert.id)}
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-white transition-all">
+                                    ← {prevExpert.nameKo}
+                                  </button>
+                                ) : <div />}
+                                <button onClick={() => setMultiView('overview')}
+                                  className="px-3 py-1 rounded-lg text-[10px] font-medium text-slate-400 hover:text-slate-700 hover:bg-white transition-all">
+                                  📋 전체 보기
                                 </button>
-                              ) : <div />}
-                              <div className="flex items-center gap-2">
-                                <button onClick={() => setMultiView('overview')} className="text-[10px] text-slate-300 hover:text-slate-500 transition-colors">전체 보기</button>
-                                <span className="text-slate-200">·</span>
-                                <span className="text-[9px] text-slate-300">← → 키로 이동 · ESC 전체보기</span>
+                                {nextExpert ? (
+                                  <button onClick={() => setMultiActiveTab(nextExpert.id)}
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-white transition-all">
+                                    {nextExpert.nameKo} →
+                                  </button>
+                                ) : <div />}
                               </div>
-                              {nextExpert ? (
-                                <button onClick={() => setMultiActiveTab(nextExpert.id)}
-                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
-                                  {nextExpert.nameKo} →
-                                </button>
-                              ) : <div />}
+                              {/* Ask this AI */}
+                              {isDone && (
+                                <div className="flex items-center gap-2 px-3 py-2">
+                                  <ExpertAvatar expert={activeExp} size="xs" />
+                                  <input type="text" placeholder={`${activeExp.nameKo}에게 추가 질문...`}
+                                    className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                                    onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) { askSingleAI(activeExp.id, (e.target as HTMLInputElement).value.trim()); (e.target as HTMLInputElement).value = ''; } }} />
+                                  <button onClick={() => { const input = document.querySelector<HTMLInputElement>(`input[placeholder*="${activeExp.nameKo}"]`); if (input?.value.trim()) { askSingleAI(activeExp.id, input.value.trim()); input.value = ''; } }}
+                                    className="px-4 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700 transition-colors shadow-sm">질문</button>
+                                </div>
+                              )}
                             </div>
-                            {/* Ask this AI more */}
-                            {isDone && (
-                              <div className="flex gap-2">
-                                <input type="text" placeholder={`${activeExp.nameKo}에게 추가 질문...`}
-                                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] text-slate-600 placeholder:text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/20"
-                                  onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) { askSingleAI(activeExp.id, (e.target as HTMLInputElement).value.trim()); (e.target as HTMLInputElement).value = ''; } }} />
-                                <button onClick={() => { const input = document.querySelector<HTMLInputElement>(`input[placeholder*="${activeExp.nameKo}"]`); if (input?.value.trim()) { askSingleAI(activeExp.id, input.value.trim()); input.value = ''; } }}
-                                  className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-medium hover:bg-slate-700 transition-colors">질문</button>
-                              </div>
-                            )}
                           </div>
                         );
                       })()}

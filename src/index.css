@@ -248,6 +248,17 @@
     contain: content;
   }
 
+  /* Mobile responsive */
+  @media (max-width: 640px) {
+    .grid-cols-8 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+    .grid-cols-2 { grid-template-columns: 1fr !important; }
+    .grid-cols-3 { grid-template-columns: 1fr !important; }
+    .max-w-3xl { max-width: 100% !important; }
+    .max-w-2xl { max-width: 100% !important; }
+    .max-w-4xl { max-width: 100% !important; }
+    .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  }
+
   /* Smooth page transitions */
   .fade-enter {
     opacity: 0;
