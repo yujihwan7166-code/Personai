@@ -351,14 +351,11 @@ const Index = () => {
         body: JSON.stringify({ input, mode }),
       });
       const data = await resp.json();
-      if (data.is_clear) {
-        // 이미 구체적 → 바로 토론 시작
-        setClarifyState(prev => ({ ...prev, show: false, loading: false }));
-        startDiscussionDirect(data.refined || input);
-      } else {
-        // 모호함 → 제안 표시
-        setClarifyState(prev => ({ ...prev, loading: false, suggestions: data.suggestions || [], customEdit: data.suggestions?.[0]?.topic || input }));
-      }
+      // 무조건 제안 표시 — 토론 모드에서는 항상 주제 확인 단계를 거침
+      const suggestions = data.suggestions?.length > 0
+        ? data.suggestions
+        : [{ topic: data.refined || input, description: '입력한 주제 그대로 사용' }];
+      setClarifyState(prev => ({ ...prev, loading: false, suggestions, customEdit: suggestions[0]?.topic || input }));
     } catch {
       // 실패 시 그냥 원본으로 시작
       setClarifyState(prev => ({ ...prev, show: false, loading: false }));
@@ -1397,11 +1394,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     <p className="text-slate-800 font-medium text-[13px] leading-snug">{currentQuestion}</p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {isDiscussing && (
-                      <button onClick={stopDiscussion} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-500 text-[11px] font-medium hover:bg-red-100 transition-colors">
-                        <Square className="w-3 h-3" /> 중단
-                      </button>
-                    )}
                     {isDone && (
                       <button onClick={copyAllResults} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors">
                         {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
@@ -1823,7 +1815,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           {(messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 border-t border-slate-100 bg-white/80 backdrop-blur-sm">
               <div className="max-w-3xl mx-auto px-4 sm:px-6 py-2.5 space-y-2">
-                {/* Progress bar + Active bot */}
+                {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
                   <div className="flex items-center gap-3">
                     {activeExpert && (
@@ -1837,6 +1829,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         </span>
                       </div>
                     )}
+                    <button onClick={stopDiscussion}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500 text-white text-[11px] font-semibold hover:bg-red-600 transition-colors shadow-sm ml-auto shrink-0">
+                      <Square className="w-3 h-3" /> 중지
+                    </button>
                     {roundProgress && (
                       <div className="flex items-center gap-2 ml-auto">
                         <span className="text-[10px] text-slate-400">{roundProgress.current}/{roundProgress.total}</span>
