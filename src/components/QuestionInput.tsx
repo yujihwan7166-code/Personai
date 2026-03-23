@@ -12,9 +12,10 @@ interface Props {
   onRemoveExpert?: (id: string) => void;
   onToggleSettings?: () => void;
   showSettings?: boolean;
+  isFollowUp?: boolean;
 }
 
-export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExperts, onRemoveExpert, onToggleSettings, showSettings }: Props) {
+export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExperts, onRemoveExpert, onToggleSettings, showSettings, isFollowUp }: Props) {
   const [question, setQuestion] = useState('');
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -27,24 +28,27 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
-  const placeholder = discussionMode === 'general'
-    ? '무엇이든 물어보고 만들어보세요'
+  const placeholder = isFollowUp
+    ? '후속 질문을 입력하세요...'
+    : discussionMode === 'general'
+    ? '무엇이든 물어보세요...'
     : discussionMode === 'multi'
     ? '최대 3개 AI에게 동시에 질문해보세요'
-    : '전문가들에게 토론 주제를 던져보세요';
+    : discussionMode === 'expert'
+    ? '전문가에게 상담할 내용을 입력하세요'
+    : '토론 주제를 입력하세요...';
 
   const canSubmit = !!question.trim() && !disabled;
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* Gradient border wrapper */}
       <div className={cn(
-        disabled ? 'input-gradient-border-disabled opacity-60' : 'input-gradient-border',
-        focused ? 'shadow-[0_4px_24px_rgba(196,181,253,0.35)]' : 'shadow-[0_2px_12px_rgba(0,0,0,0.07)]'
+        'rounded-2xl border transition-all duration-200',
+        disabled ? 'border-slate-200 opacity-75' : focused ? 'border-slate-300 shadow-[0_2px_16px_rgba(0,0,0,0.08)]' : 'border-slate-200 shadow-sm hover:border-slate-300'
       )}>
-      <div className="rounded-[calc(1rem-1.5px)] bg-white transition-all duration-200">
-        {/* Selected AI chips / participant label */}
-        {selectedExperts && selectedExperts.length > 0 && (
+      <div className="rounded-[calc(1rem-1px)] bg-white transition-all duration-200">
+        {/* Selected AI chips / participant label (hidden in follow-up mode) */}
+        {!isFollowUp && selectedExperts && selectedExperts.length > 0 && (
           (discussionMode === 'standard' || discussionMode === 'brainstorm') ? (
             <div className="flex items-center gap-2.5 px-5 pt-3 pb-1">
               <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
@@ -97,7 +101,7 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
           onBlur={() => setFocused(false)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-transparent resize-none text-[14px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none leading-6 px-5 pt-3 pb-1 min-h-[40px] max-h-[160px] block"
+          className="w-full bg-transparent resize-none text-[13px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none leading-relaxed px-5 pt-3 pb-1 min-h-[36px] max-h-[140px] block"
           rows={1}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); }
@@ -116,34 +120,23 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
             <button
               type="button"
               disabled={disabled}
-              className="w-8 h-8 rounded-full border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              disabled={disabled}
               onClick={onToggleSettings}
               className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center transition-all',
+                'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all',
                 showSettings
-                  ? 'text-foreground bg-slate-100'
-                  : 'text-muted-foreground/60 hover:text-foreground'
+                  ? 'bg-slate-800 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
               )}
             >
-              <Wrench className="w-3.5 h-3.5" strokeWidth={1.8} />
+              <Wrench className="w-3 h-3" strokeWidth={1.8} />
+              {!showSettings && '설정'}
+              {showSettings && '닫기'}
             </button>
           </div>
 
           {/* Right tools */}
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              disabled={disabled}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-all"
-            >
-              <Mic className="w-3.5 h-3.5" strokeWidth={1.8} />
-            </button>
+            {!disabled && <span className="text-[9px] text-slate-300 mr-1 hidden sm:inline">Enter 전송 · Shift+Enter 줄바꿈</span>}
             <button
               type="submit"
               disabled={!canSubmit}

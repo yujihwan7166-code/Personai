@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sidebar';
 import {
   Plus, Clock, Trash2, MessageSquare, Home, Search, Settings2,
-  ChevronDown, BookOpen, Pin, HelpCircle
+  ChevronDown, BookOpen, Pin, HelpCircle, Moon, Sun
 } from 'lucide-react';
 
 interface Props {
@@ -168,8 +168,8 @@ export function AppSidebar({
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-bold text-slate-800 leading-tight tracking-tight">AI 전문가 토론</div>
-                <div className="text-[9px] text-slate-400 font-medium">Expert Chat Forum</div>
+                <div className="text-[14px] font-extrabold text-slate-800 leading-tight tracking-tight">Personai</div>
+                <div className="text-[9px] text-slate-400 font-medium">AI 토론 & 상담 플랫폼</div>
               </div>
             )}
           </div>
@@ -236,12 +236,18 @@ export function AppSidebar({
 
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1 mb-2">최근 토론</p>
               {historyRecords.length === 0 ? (
-                <div className="py-8 text-center">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
-                    <MessageSquare className="w-5 h-5 text-slate-300" />
+                <div className="py-6 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center mx-auto shadow-sm">
+                    <span className="text-[20px]">💬</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">아직 토론 기록이 없습니다</p>
-                  <p className="text-[10px] text-slate-300 mt-0.5">새 토론을 시작해보세요</p>
+                  <div>
+                    <p className="text-[11px] font-medium text-slate-500">토론 기록이 없어요</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">AI와 대화를 시작하면 여기에 저장됩니다</p>
+                  </div>
+                  <button onClick={() => window.location.reload()}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-medium hover:bg-slate-700 transition-colors">
+                    <Plus className="w-3 h-3" /> 첫 대화 시작
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-0.5">
@@ -338,6 +344,8 @@ export function AppSidebar({
                 ].map((item, i) => (
                   <button
                     key={i}
+                    onClick={() => { navigator.clipboard.writeText(item.label); }}
+                    title="클릭하여 복사"
                     className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-left hover:bg-slate-50 transition-all group/prompt"
                   >
                     <span className="text-[13px] shrink-0">{item.icon}</span>
@@ -371,21 +379,20 @@ export function AppSidebar({
 
         {/* Bottom */}
         <div className={cn('shrink-0 border-t border-slate-100', collapsed ? 'px-2 py-2' : 'px-3 py-2 space-y-0.5')}>
-          <button className={cn(
-            'flex items-center gap-2.5 w-full rounded-xl transition-all duration-150 text-[12px]',
-            collapsed ? 'justify-center w-9 h-9 mx-auto' : 'px-3 py-2',
-            'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-          )}>
-            <HelpCircle className="w-4 h-4 shrink-0 text-slate-400" />
-            {!collapsed && '도움말'}
-          </button>
-          <button className={cn(
-            'flex items-center gap-2.5 w-full rounded-xl transition-all duration-150 text-[12px]',
-            collapsed ? 'justify-center w-9 h-9 mx-auto' : 'px-3 py-2',
-            'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-          )}>
-            <Settings2 className="w-4 h-4 shrink-0 text-slate-400" />
-            {!collapsed && '설정'}
+          <button
+            onClick={() => {
+              const isDark = document.documentElement.classList.toggle('dark');
+              localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            }}
+            className={cn(
+              'flex items-center gap-2.5 w-full rounded-xl transition-all duration-150 text-[12px]',
+              collapsed ? 'justify-center w-9 h-9 mx-auto' : 'px-3 py-2',
+              'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+            )}>
+            <Moon className="w-4 h-4 shrink-0 text-slate-400 dark:hidden" />
+            <Sun className="w-4 h-4 shrink-0 text-slate-400 hidden dark:block" />
+            {!collapsed && <span className="dark:hidden">다크모드</span>}
+            {!collapsed && <span className="hidden dark:block">라이트모드</span>}
           </button>
         </div>
       </SidebarContent>

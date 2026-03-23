@@ -3,17 +3,74 @@ import { DiscussionMessage as DiscussionMessageType, Expert, ROUND_LABELS } from
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
-import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply } from 'lucide-react';
+import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp } from 'lucide-react';
+
+export type ChatVariant = 'default' | 'messenger' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
 
 interface Props {
   message: DiscussionMessageType;
   expert: Expert;
+  variant?: ChatVariant;
   onRebuttal?: (expertId: string, content: string, userRebuttal: string) => void;
   onLike?: (messageId: string) => void;
   onDislike?: (messageId: string) => void;
 }
 
-export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onDislike }: Props) {
+const proseClasses = `prose prose-sm max-w-none
+  prose-p:my-1.5 prose-p:leading-relaxed prose-p:text-[12.5px]
+  prose-headings:text-slate-800 prose-headings:font-semibold prose-headings:tracking-tight
+  prose-headings:mt-3 prose-headings:mb-1.5
+  prose-h2:text-[14px] prose-h3:text-[13px] prose-h4:text-[12.5px]
+  prose-strong:text-slate-700 prose-strong:font-semibold
+  prose-ul:my-1.5 prose-li:my-0.5 prose-li:text-[12.5px]
+  prose-ol:my-1.5
+  prose-blockquote:border-l-2 prose-blockquote:border-primary/20 prose-blockquote:text-slate-500 prose-blockquote:text-[12px] prose-blockquote:py-0.5 prose-blockquote:my-2
+  prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-code:text-slate-600 prose-code:before:content-none prose-code:after:content-none
+  prose-pre:bg-slate-900 prose-pre:rounded-lg prose-pre:text-[11px] prose-pre:my-2
+  prose-table:text-[11px] prose-table:my-2 prose-th:bg-slate-50 prose-th:px-2.5 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold prose-th:text-slate-600 prose-td:px-2.5 prose-td:py-1.5 prose-td:border-t prose-td:border-slate-100
+  prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+  prose-img:rounded-lg prose-img:my-2`;
+
+function StreamingIndicator() {
+  return (
+    <div className="flex items-center gap-1.5 py-1.5">
+      <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-300" />
+      <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-300" />
+      <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-300" />
+    </div>
+  );
+}
+
+function StreamingCursor() {
+  return <span className="inline-block w-0.5 h-3.5 bg-primary/40 ml-0.5 cursor-blink rounded-full" />;
+}
+
+const COLLAPSE_THRESHOLD = 800; // characters
+
+function MessageContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = content.length > COLLAPSE_THRESHOLD && !isStreaming;
+
+  if (content) {
+    const displayContent = isLong && !expanded ? content.slice(0, COLLAPSE_THRESHOLD) + '...' : content;
+    return (
+      <>
+        <ReactMarkdown>{displayContent}</ReactMarkdown>
+        {isStreaming && <StreamingCursor />}
+        {isLong && (
+          <button onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 mt-2 text-[11px] font-medium text-primary/70 hover:text-primary transition-colors">
+            {expanded ? <><ChevronUp className="w-3 h-3" /> 접기</> : <><ChevronDown className="w-3 h-3" /> 더 보기</>}
+          </button>
+        )}
+      </>
+    );
+  }
+  if (isStreaming) return <StreamingIndicator />;
+  return null;
+}
+
+export function DiscussionMessageCard({ message, expert, variant = 'default', onRebuttal, onLike, onDislike }: Props) {
   const [copied, setCopied] = useState(false);
   const [showRebuttal, setShowRebuttal] = useState(false);
   const [rebuttalText, setRebuttalText] = useState('');
@@ -33,135 +90,197 @@ export function DiscussionMessageCard({ message, expert, onRebuttal, onLike, onD
     }
   };
 
-  return (
-    <div className={cn(
-      'group animate-in fade-in slide-in-from-bottom-2 duration-300',
-      isSummary ? 'mt-2' : ''
-    )}>
-      <div className={cn(
-        'rounded-xl border bg-white card-shadow transition-shadow hover:card-shadow-md overflow-hidden',
-        isSummary ? 'border-primary/15 bg-gradient-to-b from-blue-50/20 to-white' : 'border-border'
-      )}>
-        {/* Header */}
-        <div className="flex items-center gap-3 px-4 pt-3.5 pb-3">
-          <ExpertAvatar expert={expert} active={message.isStreaming} />
-          <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-[13px] text-foreground">
-              {expert.nameKo}
-            </span>
-            {isSummary && (
-              <span className="text-[10px] font-medium bg-primary/8 text-primary px-2 py-0.5 rounded-md">
-                종합 정리
-              </span>
-            )}
-            {message.round && !isSummary && (
-              <span className="text-[10px] font-medium bg-muted text-muted-foreground/70 px-2 py-0.5 rounded-md">
-                {ROUND_LABELS[message.round]}
-              </span>
-            )}
-            {message.isStreaming && (
-              <span className="flex items-center gap-1">
-                <span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" />
-                <span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" />
-                <span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" />
-              </span>
-            )}
+  const CopyBtn = ({ className: cls }: { className?: string }) => (
+    <button onClick={handleCopy} className={cn('p-1 rounded transition-all', cls)}>
+      {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+    </button>
+  );
+
+  // ── Messenger (단일 AI) ──
+  if (variant === 'messenger') {
+    return (
+      <div className="group flex gap-2.5 items-start animate-in fade-in slide-in-from-bottom-1 duration-200">
+        <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
+        <div className="flex-1 min-w-0 max-w-[85%]">
+          <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
+          <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-md px-3.5 py-2.5 shadow-sm">
+            <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
+              <MessageContent content={message.content} isStreaming={message.isStreaming} />
+            </div>
           </div>
           {!message.isStreaming && message.content && (
-            <button
-              onClick={handleCopy}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
+            <div className="opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-0.5 ml-1">
+              <CopyBtn className="text-slate-300 hover:text-slate-500" />
+              <button onClick={() => onLike?.(message.id)} className="p-1 rounded text-slate-300 hover:text-slate-500"><ThumbsUp className="w-3 h-3" /></button>
+              {onRebuttal && <button onClick={() => setShowRebuttal(!showRebuttal)} className="p-1 rounded text-slate-300 hover:text-slate-500"><MessageSquareReply className="w-3 h-3" /></button>}
+            </div>
           )}
+          {showRebuttal && <RebuttalInput expert={expert} value={rebuttalText} onChange={setRebuttalText} onSubmit={handleRebuttalSubmit} />}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Postit (브레인스토밍) ──
+  if (variant === 'postit') {
+    const colors = ['bg-amber-50/80 border-amber-200/60', 'bg-emerald-50/80 border-emerald-200/60', 'bg-sky-50/80 border-sky-200/60', 'bg-violet-50/80 border-violet-200/60', 'bg-rose-50/80 border-rose-200/60'];
+    const colorIdx = expert.name.charCodeAt(0) % colors.length;
+    return (
+      <div className={cn('group rounded-xl border p-3.5 animate-in fade-in zoom-in-95 duration-200 hover:shadow-md transition-shadow', colors[colorIdx])}>
+        <div className="flex items-center gap-1.5 mb-2">
+          <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
+          <span className="text-[11px] font-semibold text-slate-600">{expert.nameKo}</span>
+          {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
+        </div>
+        <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
+          <MessageContent content={message.content} isStreaming={message.isStreaming} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Procon (찬반) ──
+  if (variant === 'procon-pro' || variant === 'procon-con') {
+    const isPro = variant === 'procon-pro';
+    return (
+      <div className={cn(
+        'group rounded-xl border p-3.5 animate-in fade-in duration-200',
+        isPro ? 'bg-blue-50/40 border-blue-200/50' : 'bg-red-50/40 border-red-200/50',
+        isPro ? 'slide-in-from-left-2' : 'slide-in-from-right-2'
+      )}>
+        <div className="flex items-center gap-1.5 mb-2">
+          <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
+          <span className="text-[11px] font-semibold text-slate-600">{expert.nameKo}</span>
+          <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full', isPro ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600')}>
+            {isPro ? '찬성' : '반대'}
+          </span>
+          {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
+        </div>
+        <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
+          <MessageContent content={message.content} isStreaming={message.isStreaming} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Hearing (아이디어 검증) ──
+  if (variant === 'hearing') {
+    return (
+      <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
+        <div className="flex items-start gap-2.5">
+          <div className="flex flex-col items-center gap-1 pt-0.5 shrink-0">
+            <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
+            <div className="w-px flex-1 bg-slate-200 min-h-[20px]" />
+          </div>
+          <div className="flex-1 min-w-0 pb-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-[11px] font-semibold text-slate-700">{expert.nameKo}</span>
+              <span className="text-[9px] font-medium bg-amber-50 text-amber-600 border border-amber-200/50 px-1.5 py-0.5 rounded-full">패널</span>
+              {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
+            </div>
+            <div className="bg-white border border-slate-100 rounded-lg px-3.5 py-2.5 shadow-sm">
+              <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
+                <MessageContent content={message.content} isStreaming={message.isStreaming} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Report (전문가 모드) ──
+  if (variant === 'report') {
+    return (
+      <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
+        <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50/50 border-b border-slate-100">
+            <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
+            <span className="text-[12px] font-semibold text-slate-700">{expert.nameKo}</span>
+            <span className="text-[9px] font-medium bg-emerald-50 text-emerald-600 border border-emerald-200/50 px-1.5 py-0.5 rounded-full">전문가</span>
+            {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
+          </div>
+          <div className="px-4 py-3.5">
+            <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
+              <MessageContent content={message.content} isStreaming={message.isStreaming} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Default (다중AI, 심층토론, 어시스턴트) ──
+  return (
+    <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
+      <div className={cn(
+        'rounded-xl border transition-all overflow-hidden',
+        isSummary ? 'border-primary/15 bg-gradient-to-b from-blue-50/30 to-white shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm'
+      )}>
+        {/* Header */}
+        <div className="flex items-center gap-2 px-3.5 py-2.5">
+          <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
+          <div className="flex-1 min-w-0 flex items-center gap-1.5">
+            <span className="font-semibold text-[12px] text-slate-700">{expert.nameKo}</span>
+            {isSummary && <span className="text-[9px] font-medium bg-primary/8 text-primary px-1.5 py-0.5 rounded-full">종합</span>}
+            {message.round && !isSummary && (
+              <span className="text-[9px] font-medium bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">{ROUND_LABELS[message.round]}</span>
+            )}
+            {message.isStreaming && !message.content && (
+              <span className="flex items-center gap-1">
+                <span className="typing-dot w-1 h-1 rounded-full bg-primary/40" />
+                <span className="typing-dot w-1 h-1 rounded-full bg-primary/40" />
+                <span className="typing-dot w-1 h-1 rounded-full bg-primary/40" />
+              </span>
+            )}
+          </div>
+          {!message.isStreaming && message.content && <CopyBtn className="opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
         </div>
 
-        {/* Divider */}
-        <div className="mx-4 h-px bg-border/40" />
-
         {/* Content */}
-        <div className="px-4 py-4">
-          <div className="text-sm leading-7 text-foreground/85 prose prose-sm max-w-none
-            prose-p:my-2 prose-p:leading-7
-            prose-headings:text-foreground prose-headings:font-semibold prose-headings:tracking-tight
-            prose-headings:mt-4 prose-headings:mb-2
-            prose-strong:text-foreground prose-strong:font-semibold
-            prose-ul:my-2 prose-li:my-0.5
-            prose-ol:my-2
-            prose-blockquote:border-l-2 prose-blockquote:border-primary/30 prose-blockquote:text-muted-foreground
-            prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
-            prose-table:text-xs prose-th:bg-muted
-          ">
-            {message.content ? (
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            ) : message.isStreaming ? (
-              <span className="text-muted-foreground italic text-xs">답변 생성 중...</span>
-            ) : null}
-            {message.isStreaming && message.content && (
-              <span className="inline-block w-0.5 h-4 bg-primary/50 ml-0.5 cursor-blink rounded-full" />
-            )}
+        <div className="px-3.5 pb-3 pt-0">
+          <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
+            <MessageContent content={message.content} isStreaming={message.isStreaming} />
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Hover actions */}
         {!message.isStreaming && message.content && !isSummary && (
-          <div className="flex items-center gap-1 px-4 pb-3">
-            <button
-              onClick={() => onLike?.(message.id)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-lg hover:bg-muted"
-            >
-              <ThumbsUp className="w-3.5 h-3.5" />
-              {(message.likes ?? 0) > 0 && <span className="font-medium">{message.likes}</span>}
+          <div className="flex items-center gap-0.5 px-3.5 pb-2.5 opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 transition-opacity">
+            <button onClick={() => onLike?.(message.id)} className="flex items-center gap-1 text-[11px] text-slate-300 hover:text-slate-500 px-1.5 py-1 rounded hover:bg-slate-50 transition-colors">
+              <ThumbsUp className="w-3 h-3" />{(message.likes ?? 0) > 0 && <span>{message.likes}</span>}
             </button>
-            <button
-              onClick={() => onDislike?.(message.id)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-lg hover:bg-muted"
-            >
-              <ThumbsDown className="w-3.5 h-3.5" />
-              {(message.dislikes ?? 0) > 0 && <span className="font-medium">{message.dislikes}</span>}
+            <button onClick={() => onDislike?.(message.id)} className="flex items-center gap-1 text-[11px] text-slate-300 hover:text-slate-500 px-1.5 py-1 rounded hover:bg-slate-50 transition-colors">
+              <ThumbsDown className="w-3 h-3" />{(message.dislikes ?? 0) > 0 && <span>{message.dislikes}</span>}
             </button>
             {onRebuttal && (
-              <button
-                onClick={() => setShowRebuttal(!showRebuttal)}
-                className={cn(
-                  'flex items-center gap-1.5 text-xs transition-colors px-2.5 py-1.5 rounded-lg',
-                  showRebuttal
-                    ? 'text-primary bg-primary/10'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                )}
-              >
-                <MessageSquareReply className="w-3.5 h-3.5" />
-                <span>반박하기</span>
+              <button onClick={() => setShowRebuttal(!showRebuttal)} className={cn(
+                'flex items-center gap-1 text-[11px] px-1.5 py-1 rounded transition-colors',
+                showRebuttal ? 'text-primary bg-primary/5' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-50'
+              )}>
+                <MessageSquareReply className="w-3 h-3" /><span>반박</span>
               </button>
             )}
           </div>
         )}
 
-        {/* Rebuttal Input */}
-        {showRebuttal && (
-          <div className="mx-4 mb-4 flex gap-2">
-            <input
-              type="text"
-              value={rebuttalText}
-              onChange={e => setRebuttalText(e.target.value)}
-              placeholder={`${expert.nameKo}에게 반박...`}
-              autoFocus
-              className="flex-1 bg-muted/60 border border-border rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
-              onKeyDown={e => {
-                if (e.key === 'Enter' && rebuttalText.trim()) handleRebuttalSubmit();
-              }}
-            />
-            <button
-              onClick={handleRebuttalSubmit}
-              disabled={!rebuttalText.trim()}
-              className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
-            >
-              전송
-            </button>
-          </div>
-        )}
+        {showRebuttal && <RebuttalInput expert={expert} value={rebuttalText} onChange={setRebuttalText} onSubmit={handleRebuttalSubmit} />}
       </div>
+    </div>
+  );
+}
+
+function RebuttalInput({ expert, value, onChange, onSubmit }: { expert: Expert; value: string; onChange: (v: string) => void; onSubmit: () => void }) {
+  return (
+    <div className="mx-3.5 mb-3 flex gap-2">
+      <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={`${expert.nameKo}에게 반박...`} autoFocus
+        className="flex-1 bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
+        onKeyDown={e => { if (e.key === 'Enter' && value.trim()) onSubmit(); }}
+      />
+      <button onClick={onSubmit} disabled={!value.trim()}
+        className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-[11px] font-medium disabled:opacity-30 hover:bg-slate-700 transition-colors">
+        전송
+      </button>
     </div>
   );
 }

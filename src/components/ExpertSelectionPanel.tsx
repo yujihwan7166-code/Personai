@@ -79,7 +79,7 @@ const debateSubIcons: Record<DebateSubMode, React.ReactNode> = {
   standard: <Target className="w-3 h-3" />,
   procon: <Scale className="w-3 h-3" />,
   brainstorm: <Lightbulb className="w-3 h-3" />,
-  hearing: <Scale className="w-3 h-3" />,
+  hearing: <Search className="w-3 h-3" />,
 };
 
 function useTypewriter(text: string, speed = 40) {
@@ -247,7 +247,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
         {showDetail && debateSettings && onDebateSettingsChange && (
           <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0">답변 길이</span>
+              <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0 cursor-help" title="각 전문가 답변의 분량을 조절합니다">답변 길이</span>
               <div className="flex gap-1 flex-1">
                 {(['short', 'medium', 'long'] as const).map(v => (
                   <button key={v} onClick={() => onDebateSettingsChange({ ...ds, responseLength: v })}
@@ -258,7 +258,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0">라운드</span>
+              <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0 cursor-help" title="토론 진행 횟수. 많을수록 깊이 있는 토론">라운드</span>
               <div className="flex gap-1 flex-1">
                 {([2, 3, 4] as const).map(v => (
                   <button key={v} onClick={() => onDebateSettingsChange({ ...ds, rounds: v })}
@@ -276,9 +276,13 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
 }
 
 // ── Procon Settings Panel — 완전 재설계 ──
-function ProconSettingsPanel({ experts, proconStances, dragOver, draggedId, setDragOver, setDraggedId, assignStance, removeStance, MAX_PER_ZONE, debateSettings, onDebateSettingsChange }: {
+function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dragOver, draggedId, setDragOver, setDraggedId, assignStance, removeStance, MAX_PER_ZONE, assignMode, setAssignMode, debateSettings, onDebateSettingsChange }: {
   experts: Expert[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
   proconStances: Record<string, 'pro' | 'con'>;
+  assignMode: 'manual' | 'auto';
+  setAssignMode: (v: 'manual' | 'auto') => void;
   dragOver: 'pro' | 'con' | null;
   draggedId: string | null;
   setDragOver: (v: 'pro' | 'con' | null) => void;
@@ -311,58 +315,137 @@ function ProconSettingsPanel({ experts, proconStances, dragOver, draggedId, setD
         <div className="text-[13px] font-bold text-violet-800">찬반 토론</div>
       </div>
       <div className="p-4 space-y-4">
-        {/* Drag zones */}
+        {/* Assignment mode tabs + Drag zones */}
         <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2.5">진영 배정 <span className="font-normal text-slate-400">— 위에서 전문가를 드래그하세요</span></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-2 mb-2.5">
+            <span className="text-[11px] font-bold text-slate-600">진영 배정</span>
+            <div className="flex bg-slate-100 rounded-lg p-0.5 gap-0.5">
+              <button onClick={() => setAssignMode('manual')}
+                className={cn('px-2.5 py-1 rounded-md text-[10px] font-medium transition-all',
+                  assignMode === 'manual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+                수동 배정
+              </button>
+              <button onClick={() => { setAssignMode('auto'); Object.keys(proconStances).forEach(id => removeStance(id)); }}
+                className={cn('px-2.5 py-1 rounded-md text-[10px] font-medium transition-all',
+                  assignMode === 'auto' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+                자동 배정
+              </button>
+            </div>
+          </div>
+
+          {assignMode === 'auto' ? (
+            <div className={cn(
+              'rounded-xl border overflow-hidden transition-all',
+              dragOver ? 'border-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.15)]' : 'border-violet-200'
+            )}
+              onDragOver={e => { e.preventDefault(); setDragOver('pro'); }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={() => { if (draggedId) assignStance(draggedId, 'pro'); setDragOver(null); setDraggedId(null); }}>
+              <div className="px-3.5 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px]">🤖</span>
+                  <span className="text-[11px] font-bold text-violet-700">토론 참여자</span>
+                </div>
+                {(() => {
+                  const count = experts.filter(e => selectedIds.includes(e.id)).length;
+                  return count > 0 ? (
+                    <span className="text-[10px] font-medium text-violet-400">{count}명 선택됨</span>
+                  ) : null;
+                })()}
+              </div>
+              <div className={cn(
+                'px-3 py-4 bg-white transition-colors',
+                dragOver && 'bg-violet-50/30'
+              )}>
+                {(() => {
+                  const autoExperts = experts.filter(e => selectedIds.includes(e.id));
+                  return (
+                    <div className="flex flex-col items-center gap-3">
+                      {/* Circle slots */}
+                      <div className="flex items-center gap-3 flex-wrap justify-center">
+                        {autoExperts.length > 0 ? autoExperts.map(e => (
+                          <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                            className="flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-75 duration-200 group/auto">
+                            <div className="relative w-14 h-14 rounded-full bg-violet-50 border-2 border-violet-200 flex items-center justify-center shadow-sm group-hover/auto:border-red-300 group-hover/auto:bg-red-50 transition-colors">
+                              <ExpertAvatar expert={e} size="md" />
+                              <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/auto:bg-red-500/10 flex items-center justify-center transition-all">
+                                <X className="w-4 h-4 text-red-500 opacity-0 group-hover/auto:opacity-100 transition-opacity" />
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-semibold text-violet-600 max-w-[64px] truncate text-center group-hover/auto:text-red-500 transition-colors">{e.nameKo}</span>
+                          </button>
+                        )) : (
+                          <>
+                            <div className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200" />
+                            <div className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200" />
+                            <div className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200" />
+                          </>
+                        )}
+                      </div>
+                      {/* Helper text */}
+                      <span className={cn('text-[12px] font-medium', autoExperts.length > 0 ? 'text-violet-400' : 'text-slate-400')}>
+                        {autoExperts.length > 0 ? `${autoExperts.length}명 선택됨 · 더 추가하거나 토론을 시작하세요` : '위에서 전문가를 선택하거나 드래그하세요'}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="px-3.5 py-1.5 bg-slate-50 border-t border-slate-100">
+                <p className="text-[9px] text-slate-400 text-center">토론 시작 시 AI가 주제를 분석하여 찬성/반대를 자동 배정합니다</p>
+              </div>
+            </div>
+          ) : (
+          <div className="grid grid-cols-2 gap-4">
             {(['pro', 'con'] as const).map(zone => {
               const isOver = dragOver === zone;
               const assigned = Object.keys(proconStances).filter(id => proconStances[id] === zone);
               const isFull = assigned.length >= MAX_PER_ZONE;
               const isPro = zone === 'pro';
               const canDrop = !isFull || (draggedId ? proconStances[draggedId] === zone : false);
-              const slotCount = isPro ? effectiveProSlots : effectiveConSlots;
-              const slots = Array.from({ length: slotCount }, (_, i) => assigned[i] || null);
-              const canAddSlot = slotCount < MAX_PER_ZONE;
               return (
                 <div key={zone} onDragOver={e => { e.preventDefault(); setDragOver(zone); }} onDragLeave={() => setDragOver(null)}
                   onDrop={() => { if (draggedId) assignStance(draggedId, zone); setDragOver(null); setDraggedId(null); }}
                   className={cn('rounded-xl border transition-all duration-150 overflow-hidden',
-                    isOver && canDrop ? isPro ? 'border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.2)]' : 'border-red-400 shadow-[0_0_12px_rgba(239,68,68,0.2)]'
-                      : isOver && !canDrop ? 'border-slate-300' : isPro ? 'border-blue-200' : 'border-red-200')}>
+                    isOver && canDrop ? isPro ? 'border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.15)]' : 'border-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]'
+                      : isPro ? 'border-blue-200' : 'border-red-200')}>
                   <div className={cn('px-3 py-2 flex items-center justify-between', isPro ? 'bg-blue-50' : 'bg-red-50')}>
                     <span className={cn('text-[12px] font-bold', isPro ? 'text-blue-600' : 'text-red-600')}>{isPro ? '찬성' : '반대'}</span>
                     <span className={cn('text-[10px] font-medium', isPro ? 'text-blue-400' : 'text-red-400')}>{assigned.length}/{MAX_PER_ZONE}</span>
                   </div>
-                  <div className="px-3 py-2 space-y-1.5 bg-white">
-                    {slots.map((id, i) => {
-                      const e = id ? experts.find(x => x.id === id) : null;
-                      return e ? (
-                        <div key={id} draggable onDragStart={() => setDraggedId(id!)} onDragEnd={() => setDraggedId(null)}
-                          className={cn('flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-grab active:cursor-grabbing', isPro ? 'bg-blue-50 hover:bg-blue-100' : 'bg-red-50 hover:bg-red-100')}>
-                          <ExpertAvatar expert={e} size="sm" />
-                          <span className={cn('text-[11px] font-semibold flex-1', isPro ? 'text-blue-700' : 'text-red-700')}>{e.nameKo}</span>
-                          <button type="button" onClick={() => removeStance(id!)} className="text-slate-400 hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                  <div className={cn('px-3 py-4 bg-white transition-colors', isOver && canDrop && (isPro ? 'bg-blue-50/30' : 'bg-red-50/30'))}>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {assigned.map(id => {
+                        const e = experts.find(x => x.id === id);
+                        if (!e) return null;
+                        return (
+                          <button key={id} type="button" onClick={() => removeStance(id)}
+                            draggable onDragStart={() => setDraggedId(id)} onDragEnd={() => setDraggedId(null)}
+                            className="flex flex-col items-center gap-1 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot">
+                            <div className={cn('relative w-14 h-14 rounded-full flex items-center justify-center shadow-sm border-2 transition-colors',
+                              isPro ? 'bg-blue-50 border-blue-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50' : 'bg-red-50 border-red-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50')}>
+                              <ExpertAvatar expert={e} size="md" />
+                              <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/slot:bg-red-500/10 flex items-center justify-center transition-all">
+                                <X className="w-4 h-4 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
+                              </div>
+                            </div>
+                            <span className={cn('text-[10px] font-semibold max-w-[60px] truncate text-center transition-colors group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
+                          </button>
+                        );
+                      })}
+                      {/* 빈칸: 아무도 없을 때만 1개 표시 */}
+                      {assigned.length === 0 && (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className={cn('w-14 h-14 rounded-full border-2 border-dashed', isPro ? 'border-blue-200 bg-blue-50/30' : 'border-red-200 bg-red-50/30')} />
+                          <span className={cn('text-[10px]', isPro ? 'text-blue-300' : 'text-red-300')}>클릭 또는 드래그</span>
                         </div>
-                      ) : (
-                        <div key={`empty-${i}`} className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-dashed border-slate-200">
-                          <div className="w-7 h-7 rounded-full bg-slate-100 shrink-0" />
-                          <span className="text-[10px] text-slate-300">드래그</span>
-                        </div>
-                      );
-                    })}
-                    {canAddSlot && (
-                      <button type="button"
-                        onClick={() => isPro ? setProSlotCount(p => Math.min(p + 1, MAX_PER_ZONE)) : setConSlotCount(p => Math.min(p + 1, MAX_PER_ZONE))}
-                        className="w-full flex items-center justify-center gap-1 py-1 rounded-lg text-[9px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
-                        <Plus className="w-3 h-3" /> 슬롯 추가
-                      </button>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
+          )}
         </div>
 
         {/* Detail settings toggle */}
@@ -694,7 +777,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
         {showDetail && (
           <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0">답변 길이</span>
+              <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0 cursor-help" title="각 전문가 답변의 분량을 조절합니다">답변 길이</span>
               <div className="flex gap-1 flex-1">
                 {(['short', 'medium', 'long'] as const).map(v => (
                   <button key={v} onClick={() => update({ responseLength: v })}
@@ -1334,9 +1417,10 @@ export function ExpertSelectionPanel({
   collaborationMission = '', onCollaborationMissionChange,
   onBulkSelect,
 }: Props) {
-  const [activeCategory, setActiveCategory] = useState<string>('ai');
+  const [activeCategory, setActiveCategory] = useState<string>('recommended');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
   const isProcon = discussionMode === 'procon';
+  const [proconAssignMode, setProconAssignMode] = useState<'manual' | 'auto'>('manual');
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<'pro' | 'con' | null>(null);
   const [hintId, setHintId] = useState<string | null>(null);
@@ -1446,23 +1530,28 @@ export function ExpertSelectionPanel({
   // - collaboration: non-ai categories
   const showExpertGrid = mainMode === 'general' || mainMode === 'multi' || mainMode === 'debate';
   const isDebateMode = mainMode === 'debate';
-  const isStandardOrProcon = discussionMode === 'standard' || discussionMode === 'procon';
+  const isStandardOrProcon = false; // AI 모델 제한 해제
   const isBrainstorm = discussionMode === 'brainstorm';
   const isHearing = discussionMode === 'hearing';
 
+  const RECOMMENDED_IDS = ['gpt', 'claude', 'gemini', 'doctor', 'lawyer', 'psychology', 'finance', 'economics', 'teacher', 'programmer', 'chef', 'buffett', 'musk', 'korean', 'marketing'];
+
   const visibleCategories = EXPERT_CATEGORY_ORDER;
 
-  const grouped = visibleCategories.map(cat => ({
-    cat: cat as ExpertCategory,
-    label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
-    items: experts.filter(e => e.category === cat),
-  })).filter(g => g.items.length > 0);
+  const grouped: { cat: string; label: string; items: typeof experts }[] = [
+    { cat: 'recommended', label: '추천', items: RECOMMENDED_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
+    ...visibleCategories.map(cat => ({
+      cat: cat as string,
+      label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
+      items: experts.filter(e => e.category === cat),
+    })),
+  ].filter(g => g.items.length > 0);
 
   const validCats = grouped.map(g => g.cat);
   const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
   const effectiveCategory = aiBlocked
-    ? (validCats.find(c => c === 'specialist') || validCats.find(c => c !== 'ai') || validCats[0] || 'ai')
-    : (validCats.includes(activeCategory as ExpertCategory) ? activeCategory : validCats[0] || 'ai');
+    ? (validCats.find(c => c === 'specialist') || validCats.find(c => c !== 'ai' && c !== 'recommended') || validCats[0] || 'ai')
+    : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'recommended');
 
   const handleMainModeChange = (m: MainMode) => {
     setAutoAssign(false);
@@ -1630,8 +1719,11 @@ export function ExpertSelectionPanel({
                       );
                     })}
                   </div>
+                  {selectedIds.length > 0 && (
+                    <span className="ml-auto mr-1 text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0">{selectedIds.length}명</span>
+                  )}
                   <button onClick={() => setSearchMode(true)}
-                    className="ml-1 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors shrink-0">
+                    className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors shrink-0">
                     <Search className="w-3.5 h-3.5" />
                   </button>
                 </>
@@ -1660,7 +1752,13 @@ export function ExpertSelectionPanel({
               ? items : items.filter(e => e.subCategory === activeSubCategory);
             return (
               <div key={cat} className="relative bg-white">
-                <div className="px-4 pt-3 pb-3 max-h-[180px] overflow-y-auto scrollbar-none grid grid-cols-8 gap-x-1 gap-y-2">
+                <div className="px-4 pt-3 pb-3 max-h-[180px] overflow-y-auto scrollbar-none">
+                {filtered.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <p className="text-[12px] text-slate-400">{searchMode ? `"${searchQuery}"에 대한 검색 결과가 없습니다` : '이 카테고리에 전문가가 없습니다'}</p>
+                  </div>
+                ) : (
+                <div className="grid grid-cols-8 gap-x-1 gap-y-2">
                   {filtered.map(expert => {
                     const isSelected = selectedIds.includes(expert.id);
                     const stance = proconStances[expert.id];
@@ -1673,6 +1771,7 @@ export function ExpertSelectionPanel({
                         draggable={isProcon && !isDisabled}
                         onDragStart={() => !isDisabled && setDraggedId(expert.id)}
                         onDragEnd={() => setDraggedId(null)}
+                        title={`${expert.nameKo} — ${expert.description}`}
                         className={cn(
                           'group relative flex flex-col items-center gap-0.5 p-1 rounded-lg transition-all duration-150',
                           isDisabled ? 'opacity-25 cursor-not-allowed' : '',
@@ -1685,15 +1784,33 @@ export function ExpertSelectionPanel({
                           onClick={() => {
                             if (isDisabled) return;
                             if (isProcon) {
-                              if (stance) removeStance(expert.id);
-                              else triggerDragHint(expert.id);
+                              if (proconAssignMode === 'auto') {
+                                // 자동 배정: 그냥 선택/해제
+                                onToggle(expert.id);
+                              } else if (stance) {
+                                removeStance(expert.id);
+                              } else {
+                                // 수동 배정: 클릭으로 빈자리에 자동 배치
+                                const proCount = Object.values(proconStances).filter(s => s === 'pro').length;
+                                const conCount = Object.values(proconStances).filter(s => s === 'con').length;
+                                if (proCount < MAX_PER_ZONE && proCount <= conCount) {
+                                  assignStance(expert.id, 'pro');
+                                } else if (conCount < MAX_PER_ZONE) {
+                                  assignStance(expert.id, 'con');
+                                } else if (proCount < MAX_PER_ZONE) {
+                                  assignStance(expert.id, 'pro');
+                                } else {
+                                  setMaxLimitMsg('찬성/반대 모두 가득 찼습니다');
+                                  setTimeout(() => setMaxLimitMsg(null), 2000);
+                                }
+                              }
                             } else {
                               if (mainMode === 'multi' && !isSelected && selectedIds.length >= 3) {
                                 setMaxLimitMsg('다중 AI는 최대 3개까지 선택할 수 있습니다');
                                 setTimeout(() => setMaxLimitMsg(null), 2000);
                                 return;
                               }
-                              if (mainMode === 'debate' && discussionMode !== 'procon' && !isSelected && selectedIds.length >= 4) {
+                              if (mainMode === 'debate' && !isProcon && !isSelected && selectedIds.length >= 4) {
                                 setMaxLimitMsg('최대 4명까지 선택할 수 있습니다');
                                 setTimeout(() => setMaxLimitMsg(null), 2000);
                                 return;
@@ -1729,6 +1846,8 @@ export function ExpertSelectionPanel({
                     );
                   })}
                 </div>
+                )}
+                </div>
                 <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none rounded-r-xl" />
               </div>
             );
@@ -1746,7 +1865,8 @@ export function ExpertSelectionPanel({
       {/* Mode-specific settings panels */}
       {isProcon && (
         <ProconSettingsPanel
-          experts={experts} proconStances={proconStances}
+          experts={experts} selectedIds={selectedIds} onToggle={onToggle} proconStances={proconStances}
+          assignMode={proconAssignMode} setAssignMode={setProconAssignMode}
           dragOver={dragOver} draggedId={draggedId}
           setDragOver={setDragOver} setDraggedId={setDraggedId}
           assignStance={assignStance} removeStance={removeStance}

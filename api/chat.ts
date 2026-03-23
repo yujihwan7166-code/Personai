@@ -43,8 +43,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (!geminiRes.ok) {
-      const error = await geminiRes.text();
-      return res.status(geminiRes.status).json({ error });
+      const errorText = await geminiRes.text();
+      if (geminiRes.status === 429) {
+        return res.status(429).json({ error: 'API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.' });
+      }
+      return res.status(geminiRes.status).json({ error: errorText });
     }
 
     // Stream SSE response

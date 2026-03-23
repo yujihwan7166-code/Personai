@@ -2,16 +2,24 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, CollaborationTeam, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, COLLABORATION_TEAMS } from '@/types/expert';
 import { QuestionInput } from '@/components/QuestionInput';
+import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
 import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
-import { useAuth } from '@/contexts/AuthContext';
-import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, Download } from 'lucide-react';
+import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 const CHAT_URL = '/api/chat';
+
+const SAFETY_GUARDRAIL = `\n=== 안전 규칙 (최우선) ===
+- 의료/약물/건강 관련: 캐릭터 관점에서 간단히 의견만 말하되 "실제로는 전문의와 상담하세요" 면책 문구 필수.
+- 법률 관련: 일반적 정보만 제공, "구체적 사안은 변호사와 상담하세요" 추가.
+- 자해/자살: 절대 구체적 방법 제시 금지. 자살예방상담전화 1393 안내.
+- 불법 행위 조언/개인정보 요청: 거부.
+=== 끝 ===\n`;
 
 function mockRoute(question: string, candidates: Expert[]): { expert: Expert; reason: string } {
   const q = question.toLowerCase();
@@ -110,12 +118,15 @@ async function streamExpert({
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: expert.systemPrompt, question, previousResponses }),
+    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + expert.systemPrompt, question, previousResponses }),
     signal
   });
 
   if (!resp.ok || !resp.body) {
     const errorData = await resp.json().catch(() => ({}));
+    if (resp.status === 429) {
+      throw new Error('API 요청 한도 초과 — 잠시 후 다시 시도해주세요. (무료 티어: 일 20회)');
+    }
     throw new Error(errorData.error || '스트림 시작 실패');
   }
 
@@ -151,7 +162,6 @@ async function streamExpert({
 }
 
 const Index = () => {
-  useAuth();
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
       const saved = localStorage.getItem('ai-debate-experts-v16');
@@ -348,6 +358,44 @@ const Index = () => {
       ? '\n답변은 풍부한 근거와 예시를 들어 충분히 상세하게 작성하세요.'
       : '';
 
+    if (useMode === 'player') {
+      // Player mode: 준비 중
+      setMessages([{ id: `player-${Date.now()}`, expertId: '__round__', content: '플레이어 모드는 현재 준비 중입니다.' }]);
+      setIsDiscussing(false);
+      setStopRequested(false);
+      return;
+    }
+
+    if (useMode === 'expert') {
+      // Expert mode: deep consultation with selected expert
+      const expert = discussionExperts[0];
+      if (expert) {
+        setActiveExpertId(expert.id);
+        const msgId = `${expert.id}-expert-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+        let fullContent = '';
+        const expertExtra = `\n\n=== 전문가 상담 모드 ===\n당신은 해당 분야의 최고 전문가입니다. 사용자의 질문에 대해 깊이 있고 실용적인 전문 상담을 제공하세요.\n- 전문 용어를 사용하되 쉽게 설명해주세요\n- 구체적인 사례, 수치, 근거를 포함하세요\n- 단계별 실행 방안이 있다면 제시하세요\n- 주의사항이나 리스크도 언급하세요\n마크다운 형식으로 구조화하여 답변하세요.`;
+        try {
+          await streamExpert({
+            question, expert: { ...expert, systemPrompt: expert.systemPrompt + expertExtra },
+            previousResponses: [], round: 'initial',
+            onDelta: (chunk) => { fullContent += chunk; setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m)); },
+            onDone: () => { setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`, isStreaming: false } : m));
+          }
+        }
+      }
+      setActiveExpertId(undefined);
+      setIsDiscussing(false);
+      setStopRequested(false);
+      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
+      return;
+    }
+
     if (useMode === 'general') {
       // Smart router: auto-select best AI
       let expertsToRun = discussionExperts;
@@ -419,45 +467,7 @@ const Index = () => {
         await new Promise((r) => setTimeout(r, 300));
       }
 
-      if (!shouldStop()) {
-        setActiveExpertId(CONCLUSION_EXPERT.id);
-        const conclusionId = `fast-conclusion-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: conclusionId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
-        let conclusionContent = '';
-        try {
-          await streamExpert({
-            question,
-            expert: { ...CONCLUSION_EXPERT, systemPrompt: `You are an AI synthesizer. Multiple experts have shared brief opinions on the user's question. Provide a well-organized conclusion in Korean using this markdown format:
-
-## 🎯 종합 결론
-
-### 핵심 답변
-(2-3 sentences directly answering the original question)
-
-### 주요 근거
-1. **(근거 1 제목)** — 설명
-2. **(근거 2 제목)** — 설명
-
-### 실행 제안
-- (actionable recommendation 1)
-- (actionable recommendation 2)
-
-> 💡 **한 줄 요약:** (one-sentence takeaway)
-
-Do NOT mention expert names. Actually ANSWER the question by integrating all insights into ONE unified answer.` },
-            previousResponses: allResponses, round: 'summary',
-            onDelta: (chunk) => {conclusionContent += chunk;setMessages((prev) => prev.map((m) => m.id === conclusionId ? { ...m, content: conclusionContent } : m));},
-            onDone: () => {setMessages((prev) => prev.map((m) => m.id === conclusionId ? { ...m, isStreaming: false } : m));},
-            signal: controller.signal
-          });
-        } catch (err) {
-          if ((err as Error).name !== 'AbortError') {
-            conclusionContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
-            setMessages((prev) => prev.map((m) => m.id === conclusionId ? { ...m, content: conclusionContent, isStreaming: false } : m));
-          }
-        }
-      }
-
+      // 결론은 자동으로 내지 않음 — 사용자가 "결론 내리기" 버튼을 눌러야 생성
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
@@ -505,84 +515,91 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
         }
       }
     } else if (useMode === 'procon') {
-      // Phase 0: AI analyzes the topic and assigns stances based on expert perspectives
-      setMessages((prev) => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '주제 분석', round: 'initial' }]);
-
-      const STANCE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/procon-stance`;
       let stanceMap: Record<string, 'pro' | 'con'> = {};
 
-      // Show a loading message from the summarizer
-      const analysisId = `stance-analysis-${Date.now()}`;
-      setMessages((prev) => [...prev, { id: analysisId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, round: 'initial' }]);
-      setActiveExpertId(SUMMARIZER_EXPERT.id);
+      // Check if user manually assigned all stances
+      const manuallyAssigned = discussionExperts.every(e => proconStances[e.id] === 'pro' || proconStances[e.id] === 'con');
 
-      try {
-        const stanceResp = await fetch(STANCE_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-          },
-          body: JSON.stringify({
-            question,
-            experts: discussionExperts.map((e) => ({ id: e.id, nameKo: e.nameKo, description: e.description }))
-          }),
-          signal: controller.signal
-        });
+      if (manuallyAssigned) {
+        // Use manual assignments
+        stanceMap = { ...proconStances };
+        const proNames = discussionExperts.filter(e => stanceMap[e.id] === 'pro').map(e => e.nameKo);
+        const conNames = discussionExperts.filter(e => stanceMap[e.id] === 'con').map(e => e.nameKo);
+        const manualContent = `## ⚔️ 수동 배정\n\n### 👍 찬성\n${proNames.join(', ')}\n\n### 👎 반대\n${conNames.join(', ')}`;
+        setMessages((prev) => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '입장 배정', round: 'initial' }]);
+        const manualId = `stance-manual-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: manualId, expertId: SUMMARIZER_EXPERT.id, content: manualContent, round: 'initial' }]);
+        allResponses.push({ name: '사회자 (수동 배정)', content: manualContent });
+      } else {
+        // Auto-assign via AI
+        setMessages((prev) => [...prev, { id: `round-sep-stance-${Date.now()}`, expertId: '__round__', content: '주제 분석 · AI 자동 배정', round: 'initial' }]);
+        const analysisId = `stance-analysis-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: analysisId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, round: 'initial' }]);
+        setActiveExpertId(SUMMARIZER_EXPERT.id);
 
-        if (!stanceResp.ok) {
-          const errorData = await stanceResp.json().catch(() => ({}));
-          throw new Error(errorData.error || '입장 배정 실패');
-        }
+        try {
+          const stanceResp = await fetch('/api/procon-stance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              question,
+              experts: discussionExperts.map((e) => ({ id: e.id, nameKo: e.nameKo, description: e.description }))
+            }),
+            signal: controller.signal
+          });
 
-        const stanceResult = await stanceResp.json();
-
-        // Build stance map from AI assignments
-        for (const assignment of stanceResult.assignments || []) {
-          if (discussionExperts.some((e) => e.id === assignment.expertId)) {
-            stanceMap[assignment.expertId] = assignment.stance;
+          if (!stanceResp.ok) {
+            const errorData = await stanceResp.json().catch(() => ({}));
+            throw new Error(errorData.error || '입장 배정 실패');
           }
-        }
 
-        // Ensure all experts have a stance
-        for (const expert of discussionExperts) {
-          if (!stanceMap[expert.id]) {
-            const proCount = Object.values(stanceMap).filter((s) => s === 'pro').length;
-            const conCount = Object.values(stanceMap).filter((s) => s === 'con').length;
-            stanceMap[expert.id] = proCount <= conCount ? 'pro' : 'con';
+          const stanceResult = await stanceResp.json();
+
+          for (const assignment of stanceResult.assignments || []) {
+            if (discussionExperts.some((e) => e.id === assignment.expertId)) {
+              stanceMap[assignment.expertId] = assignment.stance;
+            }
           }
+
+          for (const expert of discussionExperts) {
+            if (!stanceMap[expert.id]) {
+              const proCount = Object.values(stanceMap).filter((s) => s === 'pro').length;
+              const conCount = Object.values(stanceMap).filter((s) => s === 'con').length;
+              stanceMap[expert.id] = proCount <= conCount ? 'pro' : 'con';
+            }
+          }
+
+          const proNames = discussionExperts.filter((e) => stanceMap[e.id] === 'pro').map((e) => e.nameKo);
+          const conNames = discussionExperts.filter((e) => stanceMap[e.id] === 'con').map((e) => e.nameKo);
+          const reasonLines = (stanceResult.assignments || []).
+          filter((a: any) => discussionExperts.some((e) => e.id === a.expertId)).
+          map((a: any) => {
+            const expert = discussionExperts.find((e) => e.id === a.expertId);
+            const side = a.stance === 'pro' ? '찬성' : '반대';
+            return `- **${expert?.nameKo}** (${side}): ${a.reason}`;
+          }).join('\n');
+
+          const analysisContent = `## ⚔️ AI 자동 배정 결과\n\n${stanceResult.analysis || ''}\n\n### 👍 찬성 팀\n${proNames.join(', ')}\n\n### 👎 반대 팀\n${conNames.join(', ')}\n\n### 배정 이유\n${reasonLines}`;
+
+          setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: analysisContent, isStreaming: false } : m));
+          allResponses.push({ name: '사회자 (AI 배정)', content: analysisContent });
+
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') {
+            setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: '⚠️ 중단됨', isStreaming: false } : m));
+            setActiveExpertId(undefined);
+            setIsDiscussing(false);
+            setStopRequested(false);
+            return;
+          }
+          const half = Math.ceil(discussionExperts.length / 2);
+          discussionExperts.forEach((e, i) => {stanceMap[e.id] = i < half ? 'pro' : 'con';});
+          const fallbackContent = `⚠️ AI 배정 실패, 순서대로 배정합니다.\n\n👍 찬성: ${discussionExperts.filter((e) => stanceMap[e.id] === 'pro').map((e) => e.nameKo).join(', ')}\n👎 반대: ${discussionExperts.filter((e) => stanceMap[e.id] === 'con').map((e) => e.nameKo).join(', ')}`;
+          setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: fallbackContent, isStreaming: false } : m));
         }
-
-        // Build the analysis message content
-        const proNames = discussionExperts.filter((e) => stanceMap[e.id] === 'pro').map((e) => e.nameKo);
-        const conNames = discussionExperts.filter((e) => stanceMap[e.id] === 'con').map((e) => e.nameKo);
-        const reasonLines = (stanceResult.assignments || []).
-        filter((a: any) => discussionExperts.some((e) => e.id === a.expertId)).
-        map((a: any) => {
-          const expert = discussionExperts.find((e) => e.id === a.expertId);
-          const side = a.stance === 'pro' ? '찬성' : '반대';
-          return `- **${expert?.nameKo}** (${side}): ${a.reason}`;
-        }).join('\n');
-
-        const analysisContent = `## ⚔️ 찬반 배정 결과\n\n${stanceResult.analysis || ''}\n\n### 👍 찬성 팀\n${proNames.join(', ')}\n\n### 👎 반대 팀\n${conNames.join(', ')}\n\n### 배정 이유\n${reasonLines}`;
-
-        setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: analysisContent, isStreaming: false } : m));
-        allResponses.push({ name: '사회자 (입장 배정)', content: analysisContent });
-
-      } catch (err) {
-        if ((err as Error).name === 'AbortError') {
-          setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: '⚠️ 중단됨', isStreaming: false } : m));
-          setActiveExpertId(undefined);
-          setIsDiscussing(false);
-          setStopRequested(false);
-          return;
-        }
-        // Fallback: split evenly
-        const half = Math.ceil(discussionExperts.length / 2);
-        discussionExperts.forEach((e, i) => {stanceMap[e.id] = i < half ? 'pro' : 'con';});
-        const fallbackContent = `⚠️ AI 배정 실패, 순서대로 배정합니다.\n\n👍 찬성: ${discussionExperts.filter((e) => stanceMap[e.id] === 'pro').map((e) => e.nameKo).join(', ')}\n👎 반대: ${discussionExperts.filter((e) => stanceMap[e.id] === 'con').map((e) => e.nameKo).join(', ')}`;
-        setMessages((prev) => prev.map((m) => m.id === analysisId ? { ...m, content: fallbackContent, isStreaming: false } : m));
       }
+
+      setProconStances(stanceMap);
 
       await new Promise((r) => setTimeout(r, 500));
 
@@ -608,6 +625,22 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
       { label: '2라운드 · 반대 반론', round: 'rebuttal' as DiscussionRound, experts: conExperts, side: 'con' as const },
       { label: '3라운드 · 최종 입장', round: 'final' as DiscussionRound, experts: discussionExperts, side: 'all' as const }];
 
+      // Build procon settings prompt
+      const proconToneMap: Record<string, string> = {
+        mild: '정중하고 차분한 어조로 토론하세요.',
+        moderate: '논리적이고 단호한 어조로 토론하세요.',
+        intense: '열정적이고 강한 어조로 토론하세요. 상대 논리의 허점을 날카롭게 지적하세요.',
+      };
+      const proconStyleMap: Record<string, string> = {
+        formal: '격식체로 답변하세요.',
+        casual: '구어체로 자연스럽게 답변하세요.',
+        academic: '학술적 표현과 전문 용어를 사용하세요.',
+      };
+      const proconSettingsExtra = `\n${proconToneMap[debateSettings.debateTone] || ''}` +
+        `\n${proconStyleMap[debateSettings.speakingStyle] || ''}` +
+        `\n근거와 사례를 ${debateSettings.evidenceCount}개 이상 제시하세요.` +
+        (debateSettings.allowEmotional ? '\n감정적 호소도 적절히 활용 가능합니다.' : '\n감정적 호소는 자제하고 논리와 근거 중심으로 토론하세요.');
+
       for (const { label, round, experts: sideExperts, side } of rounds) {
         if (shouldStop()) break;
         setMessages((prev) => [...prev, { id: `round-sep-${label}-${Date.now()}`, expertId: '__round__', content: label, round }]);
@@ -615,9 +648,9 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
           const sideLabel = stanceMap[expert.id] === 'pro' ? '찬성' : '반대';
-          const extra = round !== 'final' ?
+          const extra = (round !== 'final' ?
           `\n\n당신은 이 주제에 대해 스스로 "${sideLabel}" 입장을 선택했습니다. ${sideLabel === '찬성' ? '찬성하는 입장에서' : '반대하는 입장에서'} 강하게 주장해주세요.` :
-          `\n\n최종 라운드입니다. 당신은 "${sideLabel}" 입장이었습니다. 토론을 통해 입장이 변했다면 그 이유를 설명하고, 최종 입장을 정리해주세요.`;
+          `\n\n최종 라운드입니다. 당신은 "${sideLabel}" 입장이었습니다. 토론을 통해 입장이 변했다면 그 이유를 설명하고, 최종 입장을 정리해주세요.`) + proconSettingsExtra;
           const msgId = `${expert.id}-${round}-${side}-${Date.now()}`;
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
@@ -636,6 +669,24 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
         }
       }
     } else if (useMode === 'brainstorm') {
+      // Build brainstorm settings prompt
+      const bsFormatMap: Record<string, string> = {
+        list: '번호 매긴 목록 형식으로 아이디어를 제시하세요.',
+        mindmap: '마인드맵 구조(중심→가지→세부)로 아이디어를 정리하세요.',
+        table: '표 형식(| 아이디어 | 설명 | 장점 | 단점 |)으로 정리하세요.',
+        free: '',
+      };
+      const bsCreativityMap: Record<string, string> = {
+        realistic: '현실적이고 즉시 실행 가능한 아이디어에 집중하세요.',
+        balanced: '현실적 아이디어와 혁신적 아이디어를 균형있게 제시하세요.',
+        radical: '파격적이고 급진적인 아이디어를 과감하게 제시하세요. 기존 틀을 완전히 깨세요.',
+      };
+      const bsSettingsExtra =
+        (bsFormatMap[debateSettings.ideaFormat] ? `\n${bsFormatMap[debateSettings.ideaFormat]}` : '') +
+        `\n아이디어를 최소 ${debateSettings.ideaCount}개 이상 제시하세요.` +
+        (debateSettings.deduplication ? '\n다른 참여자와 중복되는 아이디어는 피하고 새로운 관점만 제시하세요.' : '') +
+        (bsCreativityMap[debateSettings.creativityLevel] ? `\n${bsCreativityMap[debateSettings.creativityLevel]}` : '');
+
       // Use selected framework or default to 'free'
       const fw = selectedFramework || THINKING_FRAMEWORKS.find(f => f.id === 'free')!;
       const fwRounds = fw.rounds;
@@ -650,7 +701,7 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
         for (const expert of roundExperts) {
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
-          const extra = `\n\n[${fw.nameKo}] ${fwRound.label}\n${fwRound.instruction}`;
+          const extra = `\n\n[${fw.nameKo}] ${fwRound.label}\n${fwRound.instruction}` + bsSettingsExtra;
           const msgId = `${expert.id}-brainstorm-${ri}-${Date.now()}`;
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
@@ -680,21 +731,27 @@ Do NOT mention expert names. Actually ANSWER the question by integrating all ins
         logic: '논리적 허점, 모순, 비약을 집중 추궁하세요.',
         feasibility: '실행 가능성, 자원, 현실적 한계를 파고드세요.',
         ethics: '윤리적·도덕적 문제, 사회적 영향을 추궁하세요.',
+        cost: '비용 구조, 수익성, 경제적 타당성을 파고드세요.',
+        risk: '잠재적 리스크, 실패 시나리오, 위험 요소를 집중 추궁하세요.',
+        legal: '법적 쟁점, 규제 이슈, 컴플라이언스 문제를 파고드세요.',
+        social: '사회적 영향, 이해관계자 반응, 공공성 문제를 추궁하세요.',
       };
       const pressure = debateSettings.hearingPressure || 'moderate';
       const focus = debateSettings.hearingFocus || 'overall';
       const pressureInst = pressureMap[pressure];
       const focusInst = focusMap[focus];
+      const scoringInst = debateSettings.ideaScoring ? '\n최종 평가 시 10점 만점 기준으로 점수를 매기세요: 실현성 ?점, 혁신성 ?점, 시장성 ?점, 종합 ?점.' : '';
+      const investorInst = debateSettings.investorSimulation ? '\n투자자 관점에서 평가하세요. "이 아이디어에 투자할 것인가?"를 핵심 질문으로 삼고, ROI, 시장 규모, 경쟁 우위를 중심으로 판단하세요.' : '';
 
       const hearingPhases = [
         { label: '📋 모두발언', round: 'initial' as const,
-          instruction: `[아이디어 검증 — 모두발언]\n이 주제에 대해 당신의 전문 분야 관점에서 핵심 요약과 초기 평가를 제시하세요. 이후 청문 질의에서 깊이 파고들 부분을 예고하세요.` },
+          instruction: `[아이디어 검증 — 모두발언]\n이 주제에 대해 당신의 전문 분야 관점에서 핵심 요약과 초기 평가를 제시하세요. 이후 청문 질의에서 깊이 파고들 부분을 예고하세요.${investorInst}` },
         { label: '🎤 전문가 질의', round: 'rebuttal' as const,
-          instruction: `[아이디어 검증 — 전문가 질의]\n당신은 "${'{expertName}'}" 위원입니다. 당신의 전문 분야에서 이 주제의 약점, 모호한 점, 검증이 필요한 부분을 날카롭게 질문하세요. ${focusInst}${pressureInst}\n\n반드시 구체적인 질문 형태로 제시하고, 왜 그 질문이 중요한지 간략히 설명하세요. 질문은 최소 2개 이상 제시하세요.` },
+          instruction: `[아이디어 검증 — 전문가 질의]\n당신은 "${'{expertName}'}" 위원입니다. 당신의 전문 분야에서 이 주제의 약점, 모호한 점, 검증이 필요한 부분을 날카롭게 질문하세요. ${focusInst}${pressureInst}${investorInst}\n\n반드시 구체적인 질문 형태로 제시하고, 왜 그 질문이 중요한지 간략히 설명하세요. 질문은 최소 2개 이상 제시하세요.` },
         { label: '🔥 추가 심문', round: 'rebuttal' as const,
           instruction: `[아이디어 검증 — 추가 심문]\n이전 질의에서 드러난 약점과 회피한 부분을 집중 추궁하세요. 다른 위원들의 질의도 참고하여 아직 해결되지 않은 핵심 쟁점을 파고드세요.${pressureInst}\n\n"앞서 ~라고 했는데, 그렇다면 ~은 어떻게 설명하시겠습니까?" 형식으로 추궁하세요.` },
         { label: '⚖️ 최종 평가', round: 'final' as const,
-          instruction: `[아이디어 검증 — 최종 평가]\n검증을 종합하여 당신의 최종 평가를 내리세요.\n\n1. 검증 결과 (통과/조건부 통과/부적격)\n2. 확인된 강점\n3. 드러난 약점\n4. 보완 필요 사항\n5. 종합 의견 (1-2문장)\n\n전문가로서 엄격하지만 공정하게 판정하세요.` },
+          instruction: `[아이디어 검증 — 최종 평가]\n검증을 종합하여 당신의 최종 평가를 내리세요.\n\n1. 검증 결과 (통과/조건부 통과/부적격)\n2. 확인된 강점\n3. 드러난 약점\n4. 보완 필요 사항\n5. 종합 의견 (1-2문장)${scoringInst}${investorInst}\n\n전문가로서 엄격하지만 공정하게 판정하세요.` },
       ];
 
       for (const phase of hearingPhases) {
@@ -972,9 +1029,170 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const [memoText, setMemoText] = useState(() => localStorage.getItem('dev-memo') || '');
   const saveMemo = (text: string) => { setMemoText(text); localStorage.setItem('dev-memo', text); };
 
+  // Scroll to bottom
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 200);
+  }, []);
+  const scrollToBottom = () => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+
+  // Mode-specific chat variant
+  const getChatVariant = (msg: DiscussionMessage): ChatVariant => {
+    const mainMode = getMainMode(discussionMode);
+    if (mainMode === 'general') return 'messenger';
+    if (discussionMode === 'brainstorm') return 'postit';
+    if (discussionMode === 'hearing') return 'hearing';
+    if (discussionMode === 'expert') return 'report';
+    if (discussionMode === 'procon') {
+      // Determine pro/con from the message's expert stance
+      const expertId = msg.expertId;
+      if (proconStances[expertId] === 'pro') return 'procon-pro';
+      if (proconStances[expertId] === 'con') return 'procon-con';
+      return 'default';
+    }
+    return 'default';
+  };
+
+  // Generate conclusion on demand (다중 AI)
+  const generateConclusion = useCallback(async () => {
+    if (isDiscussing) return;
+    setIsDiscussing(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const allResponses = messages
+      .filter(m => m.expertId !== '__round__' && m.expertId !== '__user__' && m.content)
+      .map(m => {
+        const e = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT].find(ex => ex.id === m.expertId);
+        return { name: e?.nameKo || '', content: m.content };
+      });
+
+    setActiveExpertId(CONCLUSION_EXPERT.id);
+    const conclusionId = `conclusion-ondemand-${Date.now()}`;
+    setMessages(prev => [...prev, { id: conclusionId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+    let conclusionContent = '';
+    try {
+      await streamExpert({
+        question: currentQuestion, expert: { ...CONCLUSION_EXPERT, systemPrompt: `여러 AI/전문가의 의견을 종합하여 한국어로 결론을 작성하세요.
+
+## 🎯 종합 결론
+
+### 핵심 답변
+(질문에 대한 직접적 답변 2-3문장)
+
+### 주요 근거
+1. **(근거 1)** — 설명
+2. **(근거 2)** — 설명
+
+### 실행 제안
+- (구체적 제안 1)
+- (구체적 제안 2)
+
+> 💡 **한 줄 요약:** (핵심 한 문장)
+
+전문가 이름을 언급하지 말고, 모든 관점을 통합한 하나의 답변을 작성하세요.` },
+        previousResponses: allResponses, round: 'summary',
+        onDelta: chunk => { conclusionContent += chunk; setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: conclusionContent } : m)); },
+        onDone: () => { setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, isStreaming: false } : m)); },
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: `⚠️ 결론 생성 실패`, isStreaming: false } : m));
+      }
+    }
+    setActiveExpertId(undefined);
+    setIsDiscussing(false);
+  }, [messages, experts, currentQuestion, isDiscussing]);
+
+  // Multi AI view state
+  const [multiActiveTab, setMultiActiveTab] = useState<string | null>(null);
+  const [multiView, setMultiView] = useState<'overview' | 'detail' | 'compare'>('overview');
+  const [multiCompareIds, setMultiCompareIds] = useState<[string, string] | null>(null);
+  const [multiVotes, setMultiVotes] = useState<Record<string, number>>({});
+  const [multiPinned, setMultiPinned] = useState<Set<string>>(new Set());
+
+  // Keyboard nav for multi detail view
+  useEffect(() => {
+    if (discussionMode !== 'multi' || multiView !== 'detail') return;
+    const handler = (e: KeyboardEvent) => {
+      const expertMsgs = messages.filter(m => m.expertId !== '__round__' && m.expertId !== '__user__' && !m.isSummary);
+      const parts = activeExperts.filter(ex => expertMsgs.some(m => m.expertId === ex.id));
+      const idx = parts.findIndex(ex => ex.id === multiActiveTab);
+      if (e.key === 'ArrowLeft' && idx > 0) { setMultiActiveTab(parts[idx - 1].id); }
+      else if (e.key === 'ArrowRight' && idx < parts.length - 1) { setMultiActiveTab(parts[idx + 1].id); }
+      else if (e.key === 'Escape') { setMultiView('overview'); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [discussionMode, multiView, multiActiveTab, messages, activeExperts]);
+
+  // Ask single AI follow-up (multi mode)
+  const askSingleAI = useCallback(async (expertId: string, followUpQ: string) => {
+    if (isDiscussing) return;
+    const expert = experts.find(e => e.id === expertId);
+    if (!expert) return;
+    setIsDiscussing(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setActiveExpertId(expert.id);
+    const prevResponses = messages.filter(m => m.expertId === expertId && m.content).map(m => ({ name: expert.nameKo, content: m.content }));
+    const msgId = `${expertId}-followup-${Date.now()}`;
+    setMessages(prev => [...prev, { id: `user-followup-${Date.now()}`, expertId: '__user__', content: `💬 ${expert.nameKo}에게: ${followUpQ}` }, { id: msgId, expertId, content: '', isStreaming: true }]);
+    let fullContent = '';
+    try {
+      await streamExpert({ question: followUpQ, expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n이전에 이 주제에 대해 답변한 적이 있습니다. 사용자의 추가 질문에 이전 답변을 바탕으로 더 깊이 답변해주세요.' },
+        previousResponses: prevResponses, round: 'initial',
+        onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
+        onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+        signal: controller.signal });
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 오류: ${(err as Error).message}`, isStreaming: false } : m));
+      }
+    }
+    setActiveExpertId(undefined);
+    setIsDiscussing(false);
+  }, [experts, messages, isDiscussing]);
+
+  // Follow-up question
+  const handleFollowUp = useCallback((question: string) => {
+    if (isDiscussing || !currentQuestion) return;
+    startDiscussion(question);
+  }, [isDiscussing, currentQuestion, startDiscussion]);
+
+  // Export discussion as markdown
+  const exportDiscussion = () => {
+    const text = messages.filter(m => m.expertId !== '__round__' && m.expertId !== '__user__').map(msg => {
+      const expert = allExperts.find(e => e.id === msg.expertId);
+      return `## ${expert?.nameKo || '알 수 없음'}\n\n${msg.content}`;
+    }).join('\n\n---\n\n');
+    const md = `# ${currentQuestion}\n\n${text}`;
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `personai-${new Date().toISOString().slice(0,10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Round progress
+  const roundProgress = (() => {
+    if (!isDiscussing) return null;
+    const roundMsgs = messages.filter(m => m.expertId === '__round__');
+    if (roundMsgs.length === 0) return null;
+    const totalRounds = debateSettings.rounds || 3;
+    return { current: roundMsgs.length, total: totalRounds };
+  })();
+
+  // Active expert info
+  const activeExpert = activeExpertId ? allExperts.find(e => e.id === activeExpertId) : null;
+
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="h-screen flex w-full bg-[#f7f8fa]">
+      <div className="h-screen flex w-full bg-white dark:bg-[#0f1117]">
         {/* Floating Memo */}
         <div className={cn('fixed left-0 top-1/3 z-40 transition-all duration-200', memoOpen ? 'w-64' : 'w-0')}>
           {memoOpen && (
@@ -1008,14 +1226,23 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           isDiscussing={isDiscussing} />
 
 
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+          {/* Scroll to bottom FAB */}
+          {showScrollBtn && (
+            <button onClick={scrollToBottom}
+              className="absolute bottom-20 right-6 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 shadow-md hover:bg-slate-50 transition-all animate-in fade-in zoom-in-75 duration-200">
+              <ArrowDown className="w-3 h-3 text-slate-500" />
+              {isDiscussing && <span className="text-[10px] font-medium text-primary">새 메시지</span>}
+            </button>
+          )}
+
           {/* Main scroll area */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin" onScroll={handleScroll}>
             <div className={cn(
-              'mx-auto px-4 sm:px-6 pt-24 pb-6 space-y-3',
-              !selectable ? 'max-w-xl'
-                : (discussionMode === 'assistant' || discussionMode === 'expert') ? 'max-w-4xl'
-                : 'max-w-2xl'
+              'mx-auto px-4 sm:px-6 pt-16 pb-6',
+              !selectable ? 'max-w-3xl space-y-2.5'
+                : (discussionMode === 'assistant' || discussionMode === 'expert') ? 'max-w-4xl space-y-3'
+                : 'max-w-2xl space-y-3'
             )}>
 
               {selectable && (
@@ -1050,173 +1277,464 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               )}
 
               {currentQuestion && messages.length > 0 && (
-                <div className="rounded-2xl px-4 py-3.5 border border-border bg-white card-shadow flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 px-1 py-2">
                   <div className="flex-1 min-w-0">
-                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">질문</span>
-                    <p className="text-foreground font-medium text-[14px] mt-0.5 leading-snug">{currentQuestion}</p>
+                    <p className="text-slate-800 font-medium text-[13px] leading-snug">{currentQuestion}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {isDiscussing && (
-                      <Button variant="destructive" size="sm" onClick={stopDiscussion} className="text-[12px] gap-1.5 rounded-xl h-8">
+                      <button onClick={stopDiscussion} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-500 text-[11px] font-medium hover:bg-red-100 transition-colors">
                         <Square className="w-3 h-3" /> 중단
-                      </Button>
+                      </button>
                     )}
                     {isDone && (
-                      <Button variant="ghost" size="sm" onClick={copyAllResults} className="text-[12px] gap-1.5 text-muted-foreground hover:text-foreground rounded-xl h-8">
-                        {copiedAll ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copiedAll ? '복사됨' : '전체 복사'}
-                      </Button>
+                      <button onClick={copyAllResults} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors">
+                        {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                        {copiedAll ? '복사됨' : '복사'}
+                      </button>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Participants display for debate modes */}
+              {/* Participants display */}
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing', 'collaboration'].includes(discussionMode) && activeExperts.length > 0 && (
-                <div className="rounded-2xl px-4 py-2.5 border border-border bg-slate-50 card-shadow">
-                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                    {discussionMode === 'standard' && '토론자'}
-                    {discussionMode === 'procon' && '토론자'}
-                    {discussionMode === 'brainstorm' && '참여자'}
-                    {discussionMode === 'hearing' && '검증 위원'}
-                    {discussionMode === 'collaboration' && '협업팀'}
-                  </span>
-                  <div className="flex flex-wrap gap-2 mt-1.5">
-                    {activeExperts.map((expert) => {
-                      const role =
-                        discussionMode === 'collaboration' ? collaborationRoles[expert.id] :
-                        discussionMode === 'procon' ? (proconStances[expert.id] === 'pro' ? '찬성' : '반대') :
-                        undefined;
-                      return (
-                        <div key={expert.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-border text-[11px] font-medium text-slate-700">
-                          <span>{expert.nameKo}</span>
-                          {role && <span className="text-muted-foreground">({role})</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="flex items-center gap-1.5 px-1 flex-wrap">
+                  {activeExperts.map((expert) => {
+                    const role =
+                      discussionMode === 'collaboration' ? collaborationRoles[expert.id] :
+                      discussionMode === 'procon' ? (proconStances[expert.id] === 'pro' ? '찬성' : '반대') :
+                      undefined;
+                    return (
+                      <span key={expert.id} className={cn(
+                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border',
+                        activeExpertId === expert.id ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-white border-slate-100 text-slate-500'
+                      )}>
+                        <span className="text-[12px]">{expert.icon}</span>
+                        {expert.nameKo}
+                        {role && <span className={cn('text-[8px] font-bold', role === '찬성' ? 'text-blue-500' : role === '반대' ? 'text-red-500' : 'text-slate-400')}>{role}</span>}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
 
-              {messages.map((msg, idx) => {
-                if (msg.expertId === '__round__') {
-                  const isCollapsed = collapsedRounds.has(msg.id);
-                  let roundMsgCount = 0;
-                  for (let i = idx + 1; i < messages.length; i++) {
-                    if (messages[i].expertId === '__round__') break;
-                    if (messages[i].expertId !== '__user__') roundMsgCount++;
-                  }
+              {/* Messages — mode-specific rendering */}
+              {discussionMode === 'multi' ? (
+                /* Multi AI: enhanced 3-layer view */
+                (() => {
+                  const expertMsgs = messages.filter(m => m.expertId !== '__round__' && m.expertId !== '__user__' && !m.isSummary);
+                  const conclusionMsgs = messages.filter(m => m.isSummary);
+                  const userMsgs = messages.filter(m => m.expertId === '__user__');
+                  const participatingExperts = activeExperts.filter(e => expertMsgs.some(m => m.expertId === e.id));
+                  // Sort: pinned first, then by votes
+                  const sortedExperts = [...participatingExperts].sort((a, b) => {
+                    const ap = multiPinned.has(a.id) ? 1 : 0, bp = multiPinned.has(b.id) ? 1 : 0;
+                    if (ap !== bp) return bp - ap;
+                    return (multiVotes[b.id] || 0) - (multiVotes[a.id] || 0);
+                  });
+                  const activeTab = multiActiveTab || sortedExperts[0]?.id || null;
+                  const activeIdx = sortedExperts.findIndex(e => e.id === activeTab);
+                  const prevExpert = activeIdx > 0 ? sortedExperts[activeIdx - 1] : null;
+                  const nextExpert = activeIdx < sortedExperts.length - 1 ? sortedExperts[activeIdx + 1] : null;
+
                   return (
-                    <button
-                      key={msg.id}
-                      type="button"
-                      onClick={() => setCollapsedRounds(prev => {
-                        const next = new Set(prev);
-                        if (next.has(msg.id)) next.delete(msg.id); else next.add(msg.id);
-                        return next;
+                    <div className="space-y-3">
+                      {/* View mode switcher */}
+                      {sortedExperts.length > 1 && !isDiscussing && (
+                        <div className="flex items-center justify-center">
+                          <div className="flex bg-slate-100 rounded-lg p-0.5 gap-0.5">
+                            {([['overview', '전체'], ['detail', '상세'], ['compare', '비교']] as const).map(([v, label]) => (
+                              <button key={v} onClick={() => {
+                                setMultiView(v as any);
+                                if (v === 'compare' && sortedExperts.length >= 2) setMultiCompareIds([sortedExperts[0].id, sortedExperts[1].id]);
+                              }} className={cn('px-3 py-1 rounded-md text-[10px] font-medium transition-all',
+                                multiView === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── Layer 1: Overview ── */}
+                      {(multiView === 'overview' || isDiscussing) && (
+                        <div className={cn('grid gap-2.5', sortedExperts.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
+                          {sortedExperts.map(expert => {
+                            const msg = expertMsgs.find(m => m.expertId === expert.id);
+                            if (!msg) return null;
+                            const preview = msg.content.slice(0, 150);
+                            const votes = multiVotes[expert.id] || 0;
+                            const isPinned = multiPinned.has(expert.id);
+                            const charCount = msg.content.length;
+                            return (
+                              <div key={expert.id} className={cn('rounded-xl border bg-white overflow-hidden transition-all',
+                                isPinned ? 'border-amber-200 ring-1 ring-amber-100' : 'border-slate-100 hover:border-slate-200 hover:shadow-md')}>
+                                {/* Header */}
+                                <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-50">
+                                  <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
+                                  <span className="text-[11px] font-semibold text-slate-700 flex-1">{expert.nameKo}</span>
+                                  {isPinned && <span className="text-[10px]">📌</span>}
+                                  {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1 h-1 rounded-full bg-primary/50" /><span className="typing-dot w-1 h-1 rounded-full bg-primary/50" /><span className="typing-dot w-1 h-1 rounded-full bg-primary/50" /></span>}
+                                  {!msg.isStreaming && charCount > 0 && <span className="text-[8px] text-slate-300">{charCount}자</span>}
+                                </div>
+                                {/* Preview */}
+                                <button type="button" onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
+                                  className="w-full text-left px-3 py-2.5 text-[11.5px] leading-relaxed text-slate-500 line-clamp-4 hover:bg-slate-50/50 transition-colors">
+                                  {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
+                                  {charCount > 150 && '...'}
+                                </button>
+                                {/* Actions */}
+                                {!isDiscussing && (
+                                  <div className="flex items-center gap-1 px-2 py-1.5 border-t border-slate-50">
+                                    <button onClick={() => setMultiVotes(prev => ({ ...prev, [expert.id]: (prev[expert.id] || 0) + 1 }))}
+                                      className={cn('flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] transition-all',
+                                        votes > 0 ? 'text-primary bg-primary/5 font-medium' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-50')}>
+                                      👍 {votes > 0 && votes}
+                                    </button>
+                                    <button onClick={() => setMultiPinned(prev => { const n = new Set(prev); if (n.has(expert.id)) n.delete(expert.id); else n.add(expert.id); return n; })}
+                                      className={cn('px-2 py-0.5 rounded-md text-[10px] transition-all',
+                                        isPinned ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-50')}>
+                                      📌
+                                    </button>
+                                    <span className="flex-1" />
+                                    <button onClick={() => { setMultiActiveTab(expert.id); setMultiView('detail'); }}
+                                      className="text-[9px] text-slate-300 hover:text-primary transition-colors">전체 보기 →</button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* ── Layer 2: Detail ── */}
+                      {multiView === 'detail' && !isDiscussing && (() => {
+                        const activeMsg = expertMsgs.find(m => m.expertId === activeTab);
+                        const activeExp = allExperts.find(e => e.id === activeTab);
+                        if (!activeMsg || !activeExp) return null;
+                        return (
+                          <div className="space-y-2">
+                            {/* Tab bar with votes */}
+                            <div className="flex gap-1 overflow-x-auto scrollbar-none">
+                              {sortedExperts.map(expert => {
+                                const votes = multiVotes[expert.id] || 0;
+                                return (
+                                  <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
+                                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all shrink-0 text-[11px] font-medium',
+                                      activeTab === expert.id ? 'bg-white border-slate-200 shadow-sm text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50')}>
+                                    <ExpertAvatar expert={expert} size="xs" />
+                                    {expert.nameKo}
+                                    {votes > 0 && <span className="text-[9px] text-primary">👍{votes}</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {/* Response */}
+                            <DiscussionMessageCard message={activeMsg} expert={activeExp} variant="default"
+                              onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
+                            {/* Actions bar */}
+                            <div className="flex items-center justify-between px-1">
+                              {prevExpert ? (
+                                <button onClick={() => setMultiActiveTab(prevExpert.id)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
+                                  ← {prevExpert.nameKo}
+                                </button>
+                              ) : <div />}
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => setMultiView('overview')} className="text-[10px] text-slate-300 hover:text-slate-500 transition-colors">전체 보기</button>
+                                <span className="text-slate-200">·</span>
+                                <span className="text-[9px] text-slate-300">← → 키로 이동 · ESC 전체보기</span>
+                              </div>
+                              {nextExpert ? (
+                                <button onClick={() => setMultiActiveTab(nextExpert.id)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
+                                  {nextExpert.nameKo} →
+                                </button>
+                              ) : <div />}
+                            </div>
+                            {/* Ask this AI more */}
+                            {isDone && (
+                              <div className="flex gap-2">
+                                <input type="text" placeholder={`${activeExp.nameKo}에게 추가 질문...`}
+                                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] text-slate-600 placeholder:text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/20"
+                                  onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) { askSingleAI(activeExp.id, (e.target as HTMLInputElement).value.trim()); (e.target as HTMLInputElement).value = ''; } }} />
+                                <button onClick={() => { const input = document.querySelector<HTMLInputElement>(`input[placeholder*="${activeExp.nameKo}"]`); if (input?.value.trim()) { askSingleAI(activeExp.id, input.value.trim()); input.value = ''; } }}
+                                  className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-medium hover:bg-slate-700 transition-colors">질문</button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* ── Layer 3: Compare ── */}
+                      {multiView === 'compare' && !isDiscussing && multiCompareIds && (() => {
+                        const [leftId, rightId] = multiCompareIds;
+                        const leftMsg = expertMsgs.find(m => m.expertId === leftId);
+                        const rightMsg = expertMsgs.find(m => m.expertId === rightId);
+                        const leftExp = allExperts.find(e => e.id === leftId);
+                        const rightExp = allExperts.find(e => e.id === rightId);
+                        return (
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-3">
+                              {[0, 1].map(side => (
+                                <select key={side} value={multiCompareIds[side]}
+                                  onChange={e => { const next = [...multiCompareIds] as [string, string]; next[side] = e.target.value; setMultiCompareIds(next); }}
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-medium text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20">
+                                  {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
+                                </select>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              {leftMsg && leftExp && <DiscussionMessageCard message={leftMsg} expert={leftExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
+                              {rightMsg && rightExp && <DiscussionMessageCard message={rightMsg} expert={rightExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* User follow-up messages */}
+                      {userMsgs.map(msg => (
+                        <div key={msg.id} className="bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600">
+                          <ReactMarkdownInline content={msg.content} />
+                        </div>
+                      ))}
+
+                      {/* Conclusion */}
+                      {conclusionMsgs.map(msg => {
+                        const expert = allExperts.find(e => e.id === msg.expertId);
+                        if (!expert) return null;
+                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
                       })}
-                      className="w-full flex items-center gap-3 py-2 group/round cursor-pointer"
-                    >
-                      <div className="flex-1 h-px bg-border" />
-                      <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground px-3 py-1.5 rounded-full bg-white border border-border card-shadow transition-all group-hover/round:border-primary/20 group-hover/round:text-primary">
-                        {msg.content}
-                        {roundMsgCount > 0 && <span className="opacity-50">({roundMsgCount})</span>}
-                        {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                      </span>
-                      <div className="flex-1 h-px bg-border" />
-                    </button>
-                  );
-                }
 
-                let belongsToCollapsedRound = false;
-                for (let i = idx - 1; i >= 0; i--) {
-                  if (messages[i].expertId === '__round__') {
-                    belongsToCollapsedRound = collapsedRounds.has(messages[i].id);
-                    break;
-                  }
-                }
-                if (belongsToCollapsedRound) return null;
-
-                if (msg.expertId === '__user__') {
-                  return (
-                    <div key={msg.id} className="bg-white border border-border rounded-2xl px-4 py-3 text-[13px] text-foreground/80 card-shadow">
-                      <ReactMarkdownInline content={msg.content} />
+                      {/* Generate conclusion */}
+                      {isDone && conclusionMsgs.length === 0 && sortedExperts.length > 0 && (
+                        <button onClick={generateConclusion}
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-slate-200 text-[12px] font-medium text-slate-400 hover:text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition-all">
+                          <span className="text-[16px]">🎯</span> 종합 결론 내리기
+                        </button>
+                      )}
                     </div>
                   );
-                }
-                const expert = allExperts.find(e => e.id === msg.expertId);
-                if (!expert) return null;
-                return (
-                  <DiscussionMessageCard
-                    key={msg.id} message={msg} expert={expert}
-                    onLike={handleLike} onDislike={handleDislike}
-                    onRebuttal={isDone ? handleRebuttal : undefined}
-                  />
-                );
-              })}
+                })()
+              ) : discussionMode === 'procon' ? (
+                /* Procon: left-right split layout */
+                (() => {
+                  const groups: { round?: typeof messages[0]; msgs: typeof messages }[] = [];
+                  let current: typeof messages = [];
+                  for (const msg of messages) {
+                    if (msg.expertId === '__round__') {
+                      if (current.length) groups.push({ msgs: current });
+                      groups.push({ round: msg, msgs: [] });
+                      current = [];
+                    } else {
+                      current.push(msg);
+                    }
+                  }
+                  if (current.length) groups.push({ msgs: current });
+
+                  return groups.map((g, gi) => {
+                    if (g.round) {
+                      const isCollapsed = collapsedRounds.has(g.round.id);
+                      return (
+                        <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed}
+                          onToggle={() => setCollapsedRounds(prev => { const n = new Set(prev); if (n.has(g.round!.id)) n.delete(g.round!.id); else n.add(g.round!.id); return n; })}
+                          count={groups[gi + 1]?.msgs?.length || 0} />
+                      );
+                    }
+                    const prevRound = groups.slice(0, gi).reverse().find(g2 => g2.round);
+                    if (prevRound?.round && collapsedRounds.has(prevRound.round.id)) return null;
+                    const proMsgs = g.msgs.filter(m => m.expertId !== '__user__' && proconStances[m.expertId] === 'pro');
+                    const conMsgs = g.msgs.filter(m => m.expertId !== '__user__' && proconStances[m.expertId] === 'con');
+                    const otherMsgs = g.msgs.filter(m => m.expertId !== '__user__' && !proconStances[m.expertId]);
+                    // If no stance info yet (e.g. analysis phase), render sequentially
+                    if (proMsgs.length === 0 && conMsgs.length === 0) {
+                      return (
+                        <div key={`procon-seq-${gi}`} className="space-y-2.5">
+                          {g.msgs.filter(m => m.expertId !== '__user__').map(msg => {
+                            const expert = allExperts.find(e => e.id === msg.expertId);
+                            if (!expert) return null;
+                            return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={getChatVariant(msg)} onLike={handleLike} onDislike={handleDislike} />;
+                          })}
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={`procon-split-${gi}`} className="space-y-2.5">
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Pro column */}
+                          <div className="space-y-2">
+                            {gi === 0 && proMsgs.length > 0 && <div className="text-center text-[10px] font-bold text-blue-500 uppercase tracking-wider py-1">찬성</div>}
+                            {proMsgs.map(msg => {
+                              const expert = allExperts.find(e => e.id === msg.expertId);
+                              if (!expert) return null;
+                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-pro" onLike={handleLike} onDislike={handleDislike} />;
+                            })}
+                          </div>
+                          {/* Con column */}
+                          <div className="space-y-2">
+                            {gi === 0 && conMsgs.length > 0 && <div className="text-center text-[10px] font-bold text-red-500 uppercase tracking-wider py-1">반대</div>}
+                            {conMsgs.map(msg => {
+                              const expert = allExperts.find(e => e.id === msg.expertId);
+                              if (!expert) return null;
+                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-con" onLike={handleLike} onDislike={handleDislike} />;
+                            })}
+                          </div>
+                        </div>
+                        {/* Other messages (summary, conclusion) rendered full width */}
+                        {otherMsgs.map(msg => {
+                          const expert = allExperts.find(e => e.id === msg.expertId);
+                          if (!expert) return null;
+                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onLike={handleLike} onDislike={handleDislike} />;
+                        })}
+                      </div>
+                    );
+                  });
+                })()
+              ) : discussionMode === 'brainstorm' ? (
+                /* Brainstorm: grid layout */
+                (() => {
+                  const groups: { round?: typeof messages[0]; msgs: typeof messages }[] = [];
+                  let current: typeof messages = [];
+                  for (const msg of messages) {
+                    if (msg.expertId === '__round__') {
+                      if (current.length) groups.push({ msgs: current });
+                      groups.push({ round: msg, msgs: [] });
+                      current = [];
+                    } else {
+                      current.push(msg);
+                    }
+                  }
+                  if (current.length) groups.push({ msgs: current });
+
+                  return groups.map((g, gi) => {
+                    if (g.round) {
+                      const isCollapsed = collapsedRounds.has(g.round.id);
+                      return (
+                        <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed}
+                          onToggle={() => setCollapsedRounds(prev => { const n = new Set(prev); if (n.has(g.round!.id)) n.delete(g.round!.id); else n.add(g.round!.id); return n; })}
+                          count={groups[gi + 1]?.msgs?.length || 0} />
+                      );
+                    }
+                    // Check if collapsed
+                    const prevRound = groups.slice(0, gi).reverse().find(g2 => g2.round);
+                    if (prevRound?.round && collapsedRounds.has(prevRound.round.id)) return null;
+                    return (
+                      <div key={`grid-${gi}`} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {g.msgs.filter(m => m.expertId !== '__user__').map(msg => {
+                          const expert = allExperts.find(e => e.id === msg.expertId);
+                          if (!expert) return null;
+                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="postit" onLike={handleLike} onDislike={handleDislike} />;
+                        })}
+                      </div>
+                    );
+                  });
+                })()
+              ) : (
+                /* All other modes: sequential */
+                messages.map((msg, idx) => {
+                  if (msg.expertId === '__round__') {
+                    const isCollapsed = collapsedRounds.has(msg.id);
+                    let roundMsgCount = 0;
+                    for (let i = idx + 1; i < messages.length; i++) {
+                      if (messages[i].expertId === '__round__') break;
+                      if (messages[i].expertId !== '__user__') roundMsgCount++;
+                    }
+                    return <RoundSeparator key={msg.id} msg={msg} isCollapsed={isCollapsed}
+                      onToggle={() => setCollapsedRounds(prev => { const n = new Set(prev); if (n.has(msg.id)) n.delete(msg.id); else n.add(msg.id); return n; })}
+                      count={roundMsgCount} />;
+                  }
+
+                  let belongsToCollapsedRound = false;
+                  for (let i = idx - 1; i >= 0; i--) {
+                    if (messages[i].expertId === '__round__') { belongsToCollapsedRound = collapsedRounds.has(messages[i].id); break; }
+                  }
+                  if (belongsToCollapsedRound) return null;
+
+                  if (msg.expertId === '__user__') {
+                    const isMessenger = getMainMode(discussionMode) === 'general';
+                    return (
+                      <div key={msg.id} className={cn(isMessenger ? 'flex justify-end' : '')}>
+                        <div className={cn(
+                          isMessenger
+                            ? 'max-w-[75%] bg-slate-800 text-white rounded-2xl rounded-br-md px-3.5 py-2.5 text-[12.5px]'
+                            : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
+                        )}>
+                          <ReactMarkdownInline content={msg.content} />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const expert = allExperts.find(e => e.id === msg.expertId);
+                  if (!expert) return null;
+                  return (
+                    <DiscussionMessageCard
+                      key={msg.id} message={msg} expert={expert}
+                      variant={getChatVariant(msg)}
+                      onLike={handleLike} onDislike={handleDislike}
+                      onRebuttal={isDone ? handleRebuttal : undefined}
+                    />
+                  );
+                })
+              )}
 
               {isDone && (
-                <div className="text-center pt-10 pb-4 space-y-3">
-                  <p className="text-[13px] text-muted-foreground">토론이 완료되었습니다</p>
-                  <Button
-                    onClick={handleNewDiscussion}
-                    className="rounded-full gap-2 px-6 h-10 bg-primary text-white hover:bg-primary/90 shadow-sm"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    새 토론 시작
-                  </Button>
+                <div className="flex items-center justify-center gap-3 pt-8 pb-4">
+                  <div className="h-px flex-1 bg-slate-100" />
+                  <button onClick={handleNewDiscussion}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium text-slate-400 bg-white border border-slate-100 hover:border-slate-200 hover:text-slate-600 transition-all shadow-sm">
+                    <RefreshCw className="w-3 h-3" /> 새 대화
+                  </button>
+                  <div className="h-px flex-1 bg-slate-100" />
                 </div>
               )}
             </div>
           </div>
 
-          {/* Bottom Input – only when conversation is active */}
+          {/* Bottom Input */}
           {(messages.length > 0 || isDiscussing) && (
-            <div className="shrink-0 border-t border-border bg-white">
-              <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 space-y-2">
-                {activeExperts.length > 0 && (
-                  (discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'hearing') ? (
-                    <div className="flex items-center gap-2.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
-                        {discussionMode === 'standard' ? '토론자' : discussionMode === 'hearing' ? '검증 위원' : '참여자'}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        {activeExperts.map((e, i) => (
-                          <span key={e.id} className="inline-flex items-center gap-1.5">
-                            <span className="text-[13px] font-semibold text-slate-800">{e.nameKo}</span>
-                            {i < activeExperts.length - 1 && <span className="text-slate-300">·</span>}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] text-muted-foreground font-medium shrink-0">참여 전문가</span>
-                      {activeExperts.slice(0, 8).map(expert => (
-                        <span
-                          key={expert.id}
-                          className={cn(
-                            'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border',
-                            activeExpertId === expert.id
-                              ? 'bg-primary/10 border-primary/20 text-primary'
-                              : 'bg-muted/40 border-border text-muted-foreground'
-                          )}
-                        >
-                          {expert.nameKo}
+            <div className="shrink-0 border-t border-slate-100 bg-white/80 backdrop-blur-sm">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-2.5 space-y-2">
+                {/* Progress bar + Active bot */}
+                {isDiscussing && (
+                  <div className="flex items-center gap-3">
+                    {activeExpert && (
+                      <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                        <ExpertAvatar expert={activeExpert} size="xs" active />
+                        <span className="text-[11px] font-medium text-slate-500">{activeExpert.nameKo} 응답 중</span>
+                        <span className="flex items-center gap-0.5">
+                          <span className="typing-dot w-1 h-1 rounded-full bg-primary/50" />
+                          <span className="typing-dot w-1 h-1 rounded-full bg-primary/50" />
+                          <span className="typing-dot w-1 h-1 rounded-full bg-primary/50" />
                         </span>
-                      ))}
-                      {activeExperts.length > 8 && (
-                        <span className="text-[10px] text-muted-foreground">+{activeExperts.length - 8}</span>
-                      )}
-                    </div>
-                  )
+                      </div>
+                    )}
+                    {roundProgress && (
+                      <div className="flex items-center gap-2 ml-auto">
+                        <span className="text-[10px] text-slate-400">{roundProgress.current}/{roundProgress.total}</span>
+                        <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary/60 rounded-full transition-all duration-500" style={{ width: `${(roundProgress.current / roundProgress.total) * 100}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Export button when done */}
+                {isDone && (
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={exportDiscussion} className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">
+                      <Download className="w-3 h-3" /> 내보내기
+                    </button>
+                  </div>
                 )}
                 <QuestionInput
-                  onSubmit={startDiscussion}
+                  onSubmit={isDone ? handleFollowUp : startDiscussion}
                   disabled={isDiscussing || activeExperts.length < 1}
                   discussionMode={discussionMode}
                   onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                   showSettings={showDebateSettings}
+                  isFollowUp={isDone}
                 />
               </div>
             </div>
@@ -1226,6 +1744,21 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
     </SidebarProvider>);
 
 };
+
+function RoundSeparator({ msg, isCollapsed, onToggle, count }: { msg: DiscussionMessage; isCollapsed: boolean; onToggle: () => void; count: number }) {
+  return (
+    <button key={msg.id} type="button" onClick={onToggle}
+      className="w-full flex items-center gap-3 py-1.5 group/round cursor-pointer">
+      <div className="flex-1 h-px bg-slate-100" />
+      <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-1 rounded-full bg-slate-50 border border-slate-100 transition-all group-hover/round:border-primary/20 group-hover/round:text-primary">
+        {msg.content}
+        {count > 0 && <span className="text-slate-300 font-normal">{count}</span>}
+        {isCollapsed ? <ChevronRight className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+      </span>
+      <div className="flex-1 h-px bg-slate-100" />
+    </button>
+  );
+}
 
 function ReactMarkdownInline({ content }: {content: string;}) {
   const parts = content.split(/(\*\*.*?\*\*)/g);
