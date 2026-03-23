@@ -357,9 +357,12 @@ const Index = () => {
         : [{ topic: data.refined || input, description: '입력한 주제 그대로 사용' }];
       setClarifyState(prev => ({ ...prev, loading: false, suggestions, customEdit: suggestions[0]?.topic || input }));
     } catch {
-      // 실패 시 그냥 원본으로 시작
-      setClarifyState(prev => ({ ...prev, show: false, loading: false }));
-      startDiscussionDirect(input);
+      // 실패해도 주제 확인 UI 표시 (원본 입력을 제안으로)
+      setClarifyState(prev => ({
+        ...prev, loading: false,
+        suggestions: [{ topic: input, description: '입력한 주제 그대로 사용' }],
+        customEdit: input,
+      }));
     }
   }, []);
 
