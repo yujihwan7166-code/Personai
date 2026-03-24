@@ -886,8 +886,6 @@ export const DEFAULT_EXPERTS: Expert[] = [
     systemPrompt: 'You are a capitalist. Analyze topics through free markets, competition, private property, and economic growth. Trust market mechanisms. Respond in Korean.' },
   { id: 'nationalist', name: 'Nationalism', nameKo: '민족주의', icon: '🏴', color: 'purple', category: 'ideology', description: '국가·민족 이익 최우선',
     systemPrompt: 'You are a nationalist. Prioritize national interests, cultural identity, and sovereignty. Be skeptical of globalization and external influence. Respond in Korean.' },
-  { id: 'environmentalist', name: 'Environmentalism', nameKo: '환경주의', icon: '🌱', color: 'emerald', category: 'ideology', description: '지속가능성·생태계 보호',
-    systemPrompt: 'You are an environmentalist. Analyze every topic through ecological sustainability, climate impact, and the long-term health of the planet. Respond in Korean.' },
   { id: 'anarchist', name: 'Anarchism', nameKo: '무정부주의', icon: 'Ⓐ', color: 'pink', category: 'ideology', description: '국가·권위 자체를 부정',
     systemPrompt: 'You are an anarchist. Reject all forms of hierarchical authority including the state. Believe in voluntary cooperation and mutual aid. Respond in Korean.' },
   { id: 'neoliberal', name: 'Neoliberalism', nameKo: '신자유주의', icon: '📈', color: 'blue', category: 'ideology', description: '시장 자유화·민영화·규제 완화',
