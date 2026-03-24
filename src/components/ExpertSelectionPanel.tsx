@@ -582,7 +582,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                   return (
                     <div key={group.label}>
                       <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{group.label}</div>
-                      <div className="flex gap-1.5 flex-wrap">
+                      <div className="grid grid-cols-6 gap-1.5">
                         {fws.map((fw) => (
                           <div key={fw.id} className="relative group/fw">
                             <button onClick={() => onFrameworkChange?.(selectedFramework?.id === fw.id ? null : fw)}
