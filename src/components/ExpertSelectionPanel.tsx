@@ -1336,9 +1336,11 @@ export function ExpertSelectionPanel({
   const isBrainstorm = discussionMode === 'brainstorm';
   const isHearing = discussionMode === 'hearing';
 
+  const POPULAR_IDS = ['gpt', 'claude', 'gemini', 'doctor', 'lawyer', 'psychology', 'finance', 'economics', 'teacher', 'programmer', 'chef', 'buffett', 'musk', 'korean'];
   const visibleCategories = EXPERT_CATEGORY_ORDER;
 
   const grouped: { cat: string; label: string; items: typeof experts }[] = [
+    { cat: 'popular', label: '인기', items: POPULAR_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
     ...visibleCategories.map(cat => ({
       cat: cat as string,
       label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
