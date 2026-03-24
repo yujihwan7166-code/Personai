@@ -1649,7 +1649,12 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               </button>
                             ))}
                           </div>
-                          <span className="text-[10px] text-slate-400">{sortedExperts.length}개 AI 응답</span>
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex -space-x-1.5">
+                              {sortedExperts.slice(0, 4).map(e => <ExpertAvatar key={e.id} expert={e} size="xs" />)}
+                            </div>
+                            <span className="text-[10px] text-slate-400">{sortedExperts.length}개 AI</span>
+                          </div>
                         </div>
                       )}
 
