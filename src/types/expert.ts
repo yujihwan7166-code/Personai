@@ -21,7 +21,7 @@ export const EXPERT_CATEGORY_LABELS: Record<ExpertCategory, string> = {
   lifestyle: '라이프스타일',
 };
 
-export const EXPERT_CATEGORY_ORDER: ExpertCategory[] = ['ai', 'occupation', 'specialist', 'perspective', 'region', 'ideology', 'religion', 'lifestyle', 'celebrity', 'fictional'];
+export const EXPERT_CATEGORY_ORDER: ExpertCategory[] = ['ai', 'occupation', 'specialist', 'religion', 'ideology', 'region', 'perspective', 'lifestyle', 'celebrity', 'fictional'];
 
 export const EXPERT_SUB_CATEGORIES: Partial<Record<ExpertCategory, { id: string; label: string }[]>> = {
   region: [
