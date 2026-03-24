@@ -1501,7 +1501,7 @@ export function ExpertSelectionPanel({
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-1 min-w-0 gap-0.5">
+                  <div className="flex flex-1 min-w-0 gap-0.5 overflow-x-auto scrollbar-none">
                     {grouped.map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = cat === 'ai';
