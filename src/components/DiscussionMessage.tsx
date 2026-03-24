@@ -103,16 +103,16 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
         <div className="flex-1 min-w-0 max-w-[85%]">
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
-          <div className="bg-white border border-slate-200 border-l-[3px] border-l-indigo-400 rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+          <div className="bg-white border border-slate-100 border-l-[4px] border-l-indigo-400 rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
               <MessageContent content={message.content} isStreaming={message.isStreaming} noCollapse />
             </div>
+            {!message.isStreaming && message.content && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-2 pt-2 border-t border-slate-100">
+                <CopyBtn className="text-slate-300 hover:text-slate-500" />
+              </div>
+            )}
           </div>
-          {!message.isStreaming && message.content && (
-            <div className="opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-0.5 ml-1">
-              <CopyBtn className="text-slate-300 hover:text-slate-500" />
-            </div>
-          )}
           {showRebuttal && <RebuttalInput expert={expert} value={rebuttalText} onChange={setRebuttalText} onSubmit={handleRebuttalSubmit} />}
         </div>
       </div>
