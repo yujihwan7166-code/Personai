@@ -23,8 +23,14 @@ export function saveDiscussionToHistory(record: Omit<DiscussionRecord, 'id' | 't
       id: `hist-${Date.now()}`,
       timestamp: Date.now(),
     };
-    const updated = [newRecord, ...existing].slice(0, MAX_HISTORY);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    let updated = [newRecord, ...existing].slice(0, MAX_HISTORY);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    } catch {
+      // QuotaExceeded — trim older records and retry
+      updated = updated.slice(0, Math.max(1, updated.length - 5));
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch { /* give up */ }
+    }
   } catch { /* ignore */ }
 }
 

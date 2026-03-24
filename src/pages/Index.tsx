@@ -14,6 +14,13 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 const CHAT_URL = '/api/chat';
 
+// Timing constants
+const DELAY_BETWEEN_EXPERTS = 300; // ms between expert responses
+const DELAY_BETWEEN_ROUNDS = 500; // ms between debate rounds
+const DELAY_ROUTER_ANALYSIS = 1200; // ms for router analysis animation
+const DELAY_ROUTER_TRANSITION = 400; // ms for router to expert transition
+const DELAY_PROCON_START = 500; // ms before procon debate starts
+
 const SAFETY_GUARDRAIL = `\n=== 안전 규칙 (최우선) ===
 - 의료/약물/건강 관련: 캐릭터 관점에서 간단히 의견만 말하되 "실제로는 전문의와 상담하세요" 면책 문구 필수.
 - 법률 관련: 일반적 정보만 제공, "구체적 사안은 변호사와 상담하세요" 추가.
@@ -213,8 +220,11 @@ const Index = () => {
     localStorage.setItem('ai-debate-selected-v5', JSON.stringify(selectedExpertIds));
   }, [selectedExpertIds]);
 
+  const userScrolledUpRef = useRef(false);
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    if (!userScrolledUpRef.current) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    }
   }, [messages]);
 
   const toggleExpert = (id: string) => {
@@ -243,8 +253,6 @@ const Index = () => {
     setShowDebateSettings(false);
     setSelectedFramework(null);
     setDiscussionIssues([]);
-    // suppress unused warning — prevMain used for future extension
-    void prevMain;
   };
 
   const copyAllResults = () => {
@@ -325,14 +333,10 @@ const Index = () => {
     setIsDiscussing(false);
     setActiveExpertId(undefined);
     skipClarifyRef.current = false;
+    userScrolledUpRef.current = false;
     setChatClarify(null);
   };
 
-  const handleSuggestedQuestion = (question: string, expertIds: string[], mode: DiscussionMode) => {
-    setSelectedExpertIds(expertIds);
-    setDiscussionMode(mode);
-    startDiscussion(question, expertIds, mode);
-  };
 
   // Topic clarification state
   const [clarifyState, setClarifyState] = useState<{
@@ -356,6 +360,7 @@ const Index = () => {
     setIsDiscussing(true);
     setCurrentQuestion(question);
     setMessages([]);
+    userScrolledUpRef.current = false;
     setClarifyState({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
     const allResponses: {name: string;content: string;}[] = [];
     const shouldStop = () => controller.signal.aborted;
@@ -364,14 +369,6 @@ const Index = () => {
       : debateSettings.responseLength === 'long'
       ? '\n답변은 풍부한 근거와 예시를 들어 충분히 상세하게 작성하세요.'
       : '';
-
-    if (useMode === 'player') {
-      // Player mode: 준비 중
-      setMessages([{ id: `player-${Date.now()}`, expertId: '__round__', content: '플레이어 모드는 현재 준비 중입니다.' }]);
-      setIsDiscussing(false);
-      setStopRequested(false);
-      return;
-    }
 
     if (useMode === 'expert') {
       // Expert mode: deep consultation with selected expert
@@ -438,7 +435,7 @@ const Index = () => {
         const routingId = `routing-${Date.now()}`;
         setMessages((prev) => [...prev, { id: routingId, expertId: 'router', content: '🔍 질문 분석 중...', isStreaming: true }]);
         setActiveExpertId('router');
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise(r => setTimeout(r, DELAY_ROUTER_ANALYSIS));
         if (shouldStop()) { setActiveExpertId(undefined); setIsDiscussing(false); setStopRequested(false); return; }
         const candidates = experts.filter(e => e.id !== 'router' && e.category === 'ai');
         const { expert: picked, reason } = mockRoute(question, candidates);
@@ -446,7 +443,7 @@ const Index = () => {
           ? { ...m, content: `🎯 **${picked.nameKo}** 선택 — ${reason}`, isStreaming: false } : m));
         expertsToRun = [picked];
         setActiveExpertId(undefined);
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, DELAY_ROUTER_TRANSITION));
       }
 
       for (const expert of expertsToRun) {
@@ -468,7 +465,7 @@ const Index = () => {
           fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
           setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
         }
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, DELAY_BETWEEN_EXPERTS));
       }
       setActiveExpertId(undefined);
       setIsDiscussing(false);
@@ -499,7 +496,7 @@ const Index = () => {
           setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
         }
         allResponses.push({ name: expert.nameKo, content: fullContent });
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, DELAY_BETWEEN_EXPERTS));
       }
 
       // 결론은 자동으로 내지 않음 — 사용자가 "결론 내리기" 버튼을 눌러야 생성
@@ -546,7 +543,7 @@ const Index = () => {
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${label})`, content: fullContent });
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
         }
       }
     } else if (useMode === 'procon') {
@@ -577,7 +574,7 @@ const Index = () => {
 
       setProconStances(stanceMap);
 
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
 
       const proExperts = discussionExperts.filter((e) => stanceMap[e.id] === 'pro');
       const conExperts = discussionExperts.filter((e) => stanceMap[e.id] === 'con');
@@ -641,7 +638,7 @@ const Index = () => {
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${sideLabel}, ${label})`, content: fullContent });
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
         }
       }
     } else if (useMode === 'brainstorm') {
@@ -692,7 +689,7 @@ const Index = () => {
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${fwRound.label})`, content: fullContent });
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
         }
       }
     } else if (useMode === 'hearing') {
@@ -756,7 +753,7 @@ const Index = () => {
             setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${phase.label})`, content: fullContent });
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, DELAY_BETWEEN_ROUNDS));
         }
       }
     } else if (useMode === 'assistant') {
@@ -944,14 +941,19 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const [memoText, setMemoText] = useState(() => localStorage.getItem('dev-memo') || '');
   const saveMemo = (text: string) => { setMemoText(text); localStorage.setItem('dev-memo', text); };
 
-  // Scroll to bottom
+  // Scroll to bottom — smart: pause auto-scroll when user scrolls up
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-    setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 200);
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    setShowScrollBtn(distanceFromBottom > 200);
+    userScrolledUpRef.current = distanceFromBottom > 150;
   }, []);
-  const scrollToBottom = () => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  const scrollToBottom = () => {
+    userScrolledUpRef.current = false;
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  };
 
   // Mode-specific chat variant
   const getChatVariant = (msg: DiscussionMessage): ChatVariant => {
@@ -1163,7 +1165,49 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 오류`, isStreaming: false } : m));
         }
         prevAll.push({ name: expert.nameKo, content: fullContent });
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, DELAY_BETWEEN_EXPERTS));
+      }
+      setActiveExpertId(undefined);
+      setIsDiscussing(false);
+      return;
+    }
+
+    // 찬반/심층/브레인스토밍/검증 토론: 모든 토론자에게 질문 (토론 맥락 유지)
+    if (['procon', 'standard', 'brainstorm', 'hearing'].includes(discussionMode)) {
+      setIsDiscussing(true);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const prevAll = messages.filter(m => m.expertId !== '__round__' && m.content).map(m => {
+        if (m.expertId === '__user__') return { name: '사용자', content: m.content };
+        const e = allExperts.find(ex => ex.id === m.expertId);
+        return { name: e?.nameKo || '', content: m.content };
+      });
+      setMessages(prev => [...prev, { id: `user-debate-followup-${Date.now()}`, expertId: '__user__', content: question }]);
+
+      const stanceExtra = discussionMode === 'procon'
+        ? (id: string) => proconStances[id] === 'pro'
+          ? '\n\n사용자가 추가 질문을 했습니다. 당신은 찬성 측이었습니다. 찬성 관점에서 이전 토론 맥락을 바탕으로 답변하세요.'
+          : '\n\n사용자가 추가 질문을 했습니다. 당신은 반대 측이었습니다. 반대 관점에서 이전 토론 맥락을 바탕으로 답변하세요.'
+        : () => '\n\n사용자가 추가 질문을 했습니다. 이전 토론 맥락을 바탕으로 답변하세요.';
+
+      for (const expert of activeExperts) {
+        if (controller.signal.aborted) break;
+        setActiveExpertId(expert.id);
+        const msgId = `${expert.id}-debate-followup-${Date.now()}`;
+        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+        let fullContent = '';
+        try {
+          await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + stanceExtra(expert.id) },
+            previousResponses: prevAll, round: 'initial',
+            onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') break;
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 오류`, isStreaming: false } : m));
+        }
+        prevAll.push({ name: expert.nameKo, content: fullContent });
+        await new Promise(r => setTimeout(r, DELAY_BETWEEN_EXPERTS));
       }
       setActiveExpertId(undefined);
       setIsDiscussing(false);
@@ -1172,18 +1216,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
     // 다른 모드: 새 토론 시작
     startDiscussion(question);
-  }, [isDiscussing, discussionMode, activeExperts, messages, allExperts, startDiscussion]);
+  }, [isDiscussing, discussionMode, activeExperts, messages, allExperts, proconStances, startDiscussion]);
 
   // Export discussion as markdown
-
-  // Round progress
-  const roundProgress = (() => {
-    if (!isDiscussing) return null;
-    const roundMsgs = messages.filter(m => m.expertId === '__round__');
-    if (roundMsgs.length === 0) return null;
-    const totalRounds = debateSettings.rounds || 3;
-    return { current: roundMsgs.length, total: totalRounds };
-  })();
 
   // Active expert info
   const activeExpert = activeExpertId ? allExperts.find(e => e.id === activeExpertId) : null;
@@ -1252,7 +1287,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   discussionMode={discussionMode}
                   onModeChange={handleModeChange}
                   isDiscussing={isDiscussing}
-                  onSuggestedQuestion={handleSuggestedQuestion}
                   onSubmit={startDiscussion}
                   proconStances={proconStances}
                   onProconStancesChange={setProconStances}
@@ -1279,13 +1313,14 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 const handleSelect = (value: string) => {
                   const newSelections = { ...chatClarify.selections, [q.id]: value };
                   if (value !== '__custom__' && isLast) {
-                    // 마지막 질문 선택 → 바로 답변 시작
+                    // 마지막 질문 선택 → 바로 답변 시작 (clarify 스킵 설정)
                     const answerParts = chatClarify.questions.map(qq => {
                       const sel = qq.id === q.id ? value : newSelections[qq.id];
                       const opt = qq.options.find(o => o.value === sel);
                       return opt ? opt.label : sel || '';
                     }).filter(Boolean);
                     const enriched = `${chatClarify.originalQuestion} (${answerParts.join(', ')})`;
+                    skipClarifyRef.current = true;
                     setChatClarify(null);
                     runDiscussion(enriched);
                   } else if (value !== '__custom__' && !isLast) {
@@ -1306,6 +1341,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       return sel || '';
                     }).filter(Boolean);
                     const enriched = `${chatClarify.originalQuestion} (${answerParts.join(', ')})`;
+                    skipClarifyRef.current = true;
                     setChatClarify(null);
                     runDiscussion(enriched);
                   } else {
@@ -1314,6 +1350,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 };
 
                 const handleSkip = () => {
+                  skipClarifyRef.current = true;
                   setChatClarify(null);
                   runDiscussion(chatClarify.originalQuestion);
                 };
@@ -1383,15 +1420,19 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               {clarifyState.show && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
                   <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                    {/* Header — 토론 주최자 */}
+                    {/* Header — 모드별 진행자 */}
                     <div className="px-5 py-4 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                          <span className="text-[18px]">🎙️</span>
+                          <span className="text-[18px]">{discussionMode === 'hearing' ? '🔍' : discussionMode === 'brainstorm' ? '💡' : '🎙️'}</span>
                         </div>
                         <div>
-                          <h3 className="text-[14px] font-bold text-slate-800">토론 주최자</h3>
-                          <p className="text-[11px] text-slate-400">토론을 시작하기 전에 주제를 확인합니다</p>
+                          <h3 className="text-[14px] font-bold text-slate-800">
+                            {discussionMode === 'hearing' ? '검증 진행자' : discussionMode === 'brainstorm' ? '세션 진행자' : '토론 진행자'}
+                          </h3>
+                          <p className="text-[11px] text-slate-400">
+                            {discussionMode === 'hearing' ? '아이디어를 검증하기 전에 주제를 확인합니다' : discussionMode === 'brainstorm' ? '브레인스토밍 전에 주제를 확인합니다' : '토론을 시작하기 전에 주제를 확인합니다'}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1486,8 +1527,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
                 discussionMode === 'standard' ? (
                   /* 심층토론 스테이지 헤더 */
-                  <div className="rounded-2xl overflow-hidden shadow-md">
-                    <div className="bg-gradient-to-r from-indigo-400 to-violet-500 px-5 py-4">
+                  <div className="rounded-2xl overflow-hidden shadow-lg border border-indigo-200/50">
+                    <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-5 py-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[20px]">🎯</span>
@@ -1495,12 +1536,12 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         </div>
                         {isDiscussing && <span className="text-[8px] font-bold text-red-300 uppercase tracking-widest animate-pulse">● LIVE</span>}
                       </div>
-                      <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2.5 flex-wrap">
                         {activeExperts.map((e, i) => {
                           const colors = ['from-blue-400 to-blue-500', 'from-emerald-400 to-emerald-500', 'from-violet-400 to-violet-500', 'from-amber-400 to-amber-500', 'from-rose-400 to-rose-500'];
                           return (
-                            <div key={e.id} className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all',
-                              activeExpertId === e.id ? `bg-gradient-to-r ${colors[i % colors.length]} shadow-lg scale-105` : 'bg-white/10')}>
+                            <div key={e.id} className={cn('flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all',
+                              activeExpertId === e.id ? `bg-gradient-to-r ${colors[i % colors.length]} shadow-lg scale-105` : 'bg-white/15 backdrop-blur-sm')}>
                               <ExpertAvatar expert={e} size="xs" active={activeExpertId === e.id} />
                               <span className="text-[11px] font-bold text-white">{e.nameKo}</span>
                             </div>
@@ -1508,27 +1549,15 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         })}
                       </div>
                     </div>
-                    <div className="bg-slate-700 px-5 py-2.5 flex items-center justify-between">
-                      <span className="text-[12px] font-medium text-white flex-1">{currentQuestion}</span>
-                      {/* 라운드 진행 표시 */}
-                      <div className="flex items-center gap-1 ml-3 shrink-0">
-                        {[1, 2, 3].map(r => {
-                          const roundMsgs = messages.filter(m => m.expertId === '__round__');
-                          const done = roundMsgs.length >= r;
-                          const current = roundMsgs.length === r - 1 && isDiscussing;
-                          return (
-                            <div key={r} className={cn('w-2 h-2 rounded-full transition-all',
-                              current ? 'bg-indigo-400 animate-pulse scale-125' : done ? 'bg-white' : 'bg-white/20')} />
-                          );
-                        })}
-                      </div>
+                    <div className="bg-slate-800 px-5 py-2.5 flex items-center">
+                      <span className="text-[12px] font-medium text-slate-200 flex-1 leading-snug">{currentQuestion}</span>
                     </div>
                   </div>
                 ) : discussionMode === 'procon' ? (
                   /* VS 토론 스테이지 */
-                  <div className="rounded-2xl overflow-hidden shadow-md">
+                  <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-300/50">
                     {/* 그라디언트 배경 */}
-                    <div className="bg-gradient-to-r from-blue-600 via-slate-800 to-red-600 px-5 py-5">
+                    <div className="bg-gradient-to-r from-blue-600 via-slate-900 to-red-600 px-5 py-5">
                       <div className="flex items-center">
                         {/* 찬성 팀 */}
                         <div className="flex-1">
@@ -1638,7 +1667,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               <button key={expert.id} type="button"
                                 onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
                                 className={cn(
-                                  'rounded-xl border border-slate-200 bg-white overflow-hidden transition-all border-t-2 text-left',
+                                  'group rounded-xl border border-slate-200 bg-white overflow-hidden transition-all border-t-2 text-left',
                                   accent,
                                   !isDiscussing && 'hover:shadow-lg hover:-translate-y-0.5'
                                 )}>
@@ -1652,6 +1681,11 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                   {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
                                   {charCount > 180 && <span className="text-slate-300">...</span>}
                                 </div>
+                                {!msg.isStreaming && charCount > 0 && (
+                                  <div className="px-3.5 pb-3 pt-0">
+                                    <span className="text-[10px] font-medium text-indigo-500 group-hover:text-indigo-600 transition-colors">자세히 보기 →</span>
+                                  </div>
+                                )}
                               </button>
                             );
                           })}
@@ -1665,21 +1699,21 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         if (!activeMsgs.length || !activeExp) return null;
                         const relatedUserMsgs = userMsgs.filter(m => m.content.includes(activeExp.nameKo));
                         return (
-                          <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                             {/* AI 탭바 */}
-                            <div className="flex items-center gap-1 bg-slate-100 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                            <div className="flex items-center gap-1 bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
                               {sortedExperts.map(expert => (
                                 <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
                                   className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
-                                    activeTab === expert.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white/60')}>
+                                    activeTab === expert.id ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white')}>
                                   <ExpertAvatar expert={expert} size="xs" />
                                   {expert.nameKo}
-                                  {getExpertAllMsgs(expert.id).length > 1 && <span className="text-[9px] bg-slate-200 text-slate-400 px-1 rounded">{getExpertAllMsgs(expert.id).length}</span>}
+                                  {getExpertAllMsgs(expert.id).length > 1 && <span className={cn('text-[9px] px-1 rounded', activeTab === expert.id ? 'bg-indigo-400 text-white' : 'bg-slate-200 text-slate-400')}>{getExpertAllMsgs(expert.id).length}</span>}
                                 </button>
                               ))}
                               <span className="flex-1" />
                               <button onClick={() => setMultiView('overview')}
-                                className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors shrink-0">전체 보기</button>
+                                className="text-[10px] text-slate-400 hover:text-indigo-500 transition-colors shrink-0">전체 보기</button>
                             </div>
                             {/* 응답 */}
                             <div className="p-4 space-y-3">
@@ -1696,29 +1730,29 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               ))}
                             </div>
                             {/* 하단 — 네비게이션 + 추가 질문 */}
-                            <div className="border-t border-slate-200">
-                              <div className="flex items-center justify-between px-3 py-2 bg-slate-100">
+                            <div className="border-t border-slate-100">
+                              <div className="flex items-center justify-between px-3 py-2 bg-slate-50/50">
                                 {prevExpert ? (
                                   <button onClick={() => setMultiActiveTab(prevExpert.id)}
-                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-white transition-all">
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
                                     ← {prevExpert.nameKo}
                                   </button>
                                 ) : <div />}
                                 {nextExpert ? (
                                   <button onClick={() => setMultiActiveTab(nextExpert.id)}
-                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-white transition-all">
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
                                     {nextExpert.nameKo} →
                                   </button>
                                 ) : <div />}
                               </div>
                               {isDone && (
-                                <div className="flex items-center gap-2 px-3 py-2.5 bg-white">
+                                <div className="flex items-center gap-2 px-3 py-3 bg-white border-t border-slate-100">
                                   <ExpertAvatar expert={activeExp} size="xs" />
                                   <input type="text" placeholder={`${activeExp.nameKo}에게 추가 질문...`}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                    className="flex-1 px-3 py-2 rounded-xl bg-indigo-50/40 border border-indigo-200 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:bg-white transition-all"
                                     onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) { askSingleAI(activeExp.id, (e.target as HTMLInputElement).value.trim()); (e.target as HTMLInputElement).value = ''; } }} />
                                   <button onClick={() => { const input = document.querySelector<HTMLInputElement>(`input[placeholder*="${activeExp.nameKo}"]`); if (input?.value.trim()) { askSingleAI(activeExp.id, input.value.trim()); input.value = ''; } }}
-                                    className="px-4 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700 transition-colors">질문</button>
+                                    className="px-4 py-2 rounded-xl bg-indigo-500 text-white text-[11px] font-semibold hover:bg-indigo-600 transition-colors shadow-sm">질문</button>
                                 </div>
                               )}
                             </div>
@@ -1734,14 +1768,14 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         const leftExp = allExperts.find(e => e.id === leftId);
                         const rightExp = allExperts.find(e => e.id === rightId);
                         return (
-                          <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                             {/* AI 선택 드롭다운 */}
                             <div className="grid grid-cols-2 gap-0 border-b border-slate-200">
                               {[0, 1].map(side => (
-                                <div key={side} className={cn('px-3 py-2', side === 0 ? 'border-r border-slate-200 bg-blue-50/30' : 'bg-red-50/30')}>
+                                <div key={side} className={cn('px-3 py-2.5', side === 0 ? 'border-r border-slate-200 bg-indigo-50/40' : 'bg-violet-50/40')}>
                                   <select value={multiCompareIds[side]}
                                     onChange={e => { const next = [...multiCompareIds] as [string, string]; next[side] = e.target.value; setMultiCompareIds(next); }}
-                                    className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20">
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
                                     {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
                                   </select>
                                 </div>
@@ -1749,10 +1783,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             </div>
                             {/* 나란히 비교 */}
                             <div className="grid grid-cols-2 gap-0">
-                              <div className="p-3 border-r border-slate-200">
+                              <div className="p-3.5 border-r border-slate-100 bg-white">
                                 {leftMsg && leftExp && <DiscussionMessageCard message={leftMsg} expert={leftExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
-                              <div className="p-3">
+                              <div className="p-3.5 bg-white">
                                 {rightMsg && rightExp && <DiscussionMessageCard message={rightMsg} expert={rightExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
                             </div>
@@ -1822,10 +1856,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     <div className="space-y-2">
                       {/* 현재 라운드 — 회색 칸 안에 탭 + 찬반 */}
                       {currentRound && (
-                        <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                         {/* 라운드 탭 — 회색 칸 상단에 고정 */}
                         {mergedRounds.length > 0 && (
-                          <div className="flex items-center gap-1 bg-slate-100 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                          <div className="flex items-center gap-1 bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
                             {mergedRounds.map((r, ri) => {
                               const isActive = ri === (activeRound >= 0 ? activeRound : 0);
                               const roundNum = r.label.match(/(\d)/)?.[1] || '';
@@ -1835,8 +1869,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                 <button key={r.id} onClick={() => setProconActiveRound(ri)}
                                   className={cn('flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
                                     isActive
-                                      ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm'
-                                      : hasContent ? 'text-slate-500 hover:text-slate-700 hover:bg-white/60' : 'text-slate-300')}>
+                                      ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-slate-800 text-white shadow-sm'
+                                      : hasContent ? 'text-slate-500 hover:text-slate-700 hover:bg-white' : 'text-slate-300')}>
                                   <span className="text-[12px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
                                   {isFinal ? '최종' : r.label.includes('주장') ? '주장' : r.label.includes('반론') ? '반론' : r.label.replace(/\d라운드\s*·?\s*/, '')}
                                   {isDiscussing && ri === mergedRounds.length - 1 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
@@ -1846,13 +1880,13 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                           </div>
                         )}
                         {(currentRound.proMsgs.length > 0 || currentRound.conMsgs.length > 0) ? (
-                        <div className="grid grid-cols-2 gap-4 p-4">
+                        <div className="grid grid-cols-2 gap-0 p-0">
                           {/* 찬성 칼럼 */}
-                          <div className="space-y-3">
+                          <div className="space-y-3 p-4 bg-blue-50/30 border-r border-slate-100">
                             <div className="flex items-center gap-2 px-2">
                               <div className="w-2 h-2 rounded-full bg-blue-500" />
                               <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">찬성</span>
-                              <div className="flex-1 h-px bg-blue-100" />
+                              <div className="flex-1 h-px bg-blue-200" />
                             </div>
                             {currentRound.proMsgs.map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
@@ -1866,11 +1900,11 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             )}
                           </div>
                           {/* 반대 칼럼 */}
-                          <div className="space-y-3">
+                          <div className="space-y-3 p-4 bg-red-50/30">
                             <div className="flex items-center gap-2 px-2">
                               <div className="w-2 h-2 rounded-full bg-red-500" />
                               <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider">반대</span>
-                              <div className="flex-1 h-px bg-red-100" />
+                              <div className="flex-1 h-px bg-red-200" />
                             </div>
                             {currentRound.conMsgs.map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
@@ -1982,10 +2016,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     <div className="space-y-3">
                       {/* 라운드 탭 */}
                       {/* 회색 칸 — 라운드 탭 + 발언 */}
-                      <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                         {/* 라운드 탭 */}
                         {rounds.length > 0 && (
-                          <div className="flex items-center gap-1 bg-slate-100 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                          <div className="flex items-center gap-1 bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
                             {rounds.map((r, ri) => {
                               const isActive = ri === (activeRound >= 0 ? activeRound : 0);
                               const roundNum = r.label.match(/(\d)/)?.[1] || '';
@@ -1994,8 +2028,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                 <button key={r.id} onClick={() => setStdActiveRound(ri)}
                                   className={cn('flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
                                     isActive
-                                      ? isFinal ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm'
-                                      : r.msgs.length > 0 ? 'text-slate-500 hover:text-slate-700 hover:bg-white/60' : 'text-slate-300')}>
+                                      ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-indigo-500 text-white shadow-sm'
+                                      : r.msgs.length > 0 ? 'text-slate-500 hover:text-slate-700 hover:bg-white' : 'text-slate-300')}>
                                   <span className="text-[12px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
                                   {r.label.replace(/\d라운드\s*·?\s*/, '')}
                                   {isDiscussing && ri === rounds.length - 1 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
@@ -2106,14 +2140,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500 text-white text-[11px] font-semibold hover:bg-red-600 transition-colors shadow-sm ml-auto shrink-0">
                       <Square className="w-3 h-3" /> 중지
                     </button>
-                    {roundProgress && (
-                      <div className="flex items-center gap-2 ml-auto">
-                        <span className="text-[10px] text-slate-400">{roundProgress.current}/{roundProgress.total}</span>
-                        <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary/60 rounded-full transition-all duration-500" style={{ width: `${(roundProgress.current / roundProgress.total) * 100}%` }} />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
                 {/* Action bar when done */}

@@ -10,25 +10,11 @@ import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
 import { cn } from '@/lib/utils';
 import {
-  Brain, TrendingUp, Sparkles, HelpCircle, Target, Scale, Lightbulb,
+  Target, Scale, Lightbulb,
   Plus, X, Check, ChevronRight, ChevronDown, ArrowRight, Zap,
   FileText, Search, Sliders,
 } from 'lucide-react';
 
-export interface SuggestedQuestion {
-  icon: React.ReactNode;
-  text: string;
-  color: string;
-  expertIds: string[];
-  mode: DiscussionMode;
-}
-
-export const SUGGESTED_QUESTIONS: SuggestedQuestion[] = [
-  { icon: <Brain className="w-4 h-4" />, text: 'AI가 인간의 일자리를 대체할까요?', color: 'text-foreground', expertIds: ['gpt', 'claude', 'economics', 'programmer'], mode: 'standard' },
-  { icon: <TrendingUp className="w-4 h-4" />, text: '2026년 투자 전략은 어떻게 세워야 할까요?', color: 'text-foreground', expertIds: ['buffett', 'dalio', 'finance'], mode: 'multi' },
-  { icon: <Sparkles className="w-4 h-4" />, text: '창의력을 키우는 가장 효과적인 방법은?', color: 'text-foreground', expertIds: ['gemini', 'psychology', 'teacher'], mode: 'brainstorm' },
-  { icon: <HelpCircle className="w-4 h-4" />, text: '건강한 식단의 핵심 원칙은 무엇인가요?', color: 'text-foreground', expertIds: ['medical', 'doctor', 'nutrition'], mode: 'multi' },
-];
 
 export type ProconStance = 'pro' | 'con';
 
@@ -39,7 +25,6 @@ interface Props {
   discussionMode: DiscussionMode;
   onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
-  onSuggestedQuestion?: (question: string, expertIds: string[], mode: DiscussionMode) => void;
   onSubmit: (question: string) => void;
   proconStances?: Record<string, ProconStance>;
   onProconStancesChange?: (stances: Record<string, ProconStance>) => void;
@@ -55,7 +40,7 @@ interface Props {
   onBulkSelect?: (ids: string[]) => void;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'expert', 'debate', 'assistant', 'player'];
+const mainModes: MainMode[] = ['general', 'multi', 'expert', 'debate', 'assistant'];
 const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'hearing'];
 
 const mainModeLabels: Record<MainMode, string> = {
@@ -64,7 +49,6 @@ const mainModeLabels: Record<MainMode, string> = {
   expert: '전문가 모드',
   debate: '라운드테이블',
   assistant: '어시스턴트',
-  player: '플레이어',
 };
 
 const debateSubIcons: Record<DebateSubMode, React.ReactNode> = {
@@ -410,17 +394,20 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                         const e = experts.find(x => x.id === id);
                         if (!e) return null;
                         return (
-                          <button key={id} type="button" onClick={() => removeStance(id)}
+                          <button key={id} type="button"
+                            onClick={() => assignStance(id, isPro ? 'con' : 'pro')}
                             draggable onDragStart={() => setDraggedId(id)} onDragEnd={() => setDraggedId(null)}
+                            title={`클릭하면 ${isPro ? '반대' : '찬성'}로 이동`}
                             className="flex flex-col items-center gap-1 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot">
                             <div className={cn('relative w-14 h-14 rounded-full flex items-center justify-center shadow-sm border-2 transition-colors',
-                              isPro ? 'bg-blue-50 border-blue-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50' : 'bg-red-50 border-red-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50')}>
+                              isPro ? 'bg-blue-50 border-blue-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50' : 'bg-red-50 border-red-200 group-hover/slot:border-blue-300 group-hover/slot:bg-blue-50')}>
                               <ExpertAvatar expert={e} size="md" />
-                              <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/slot:bg-red-500/10 flex items-center justify-center transition-all">
-                                <X className="w-4 h-4 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
+                              <div className={cn('absolute inset-0 rounded-full flex items-center justify-center transition-all',
+                                isPro ? 'bg-red-500/0 group-hover/slot:bg-red-500/10' : 'bg-blue-500/0 group-hover/slot:bg-blue-500/10')}>
+                                <ArrowRight className={cn('w-4 h-4 opacity-0 group-hover/slot:opacity-100 transition-opacity', isPro ? 'text-red-500' : 'text-blue-500')} />
                               </div>
                             </div>
-                            <span className={cn('text-[10px] font-semibold max-w-[60px] truncate text-center transition-colors group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
+                            <span className={cn('text-[10px] font-semibold max-w-[60px] truncate text-center transition-colors', isPro ? 'text-blue-600 group-hover/slot:text-red-500' : 'text-red-600 group-hover/slot:text-blue-500')}>{e.nameKo}</span>
                           </button>
                         );
                       })}
@@ -1261,7 +1248,7 @@ function AssistantCardsPanel({ onSubmit, isDiscussing }: {
 // ══════════════════════════════════════════
 export function ExpertSelectionPanel({
   experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing,
-  onSuggestedQuestion, onSubmit, proconStances = {}, onProconStancesChange,
+  onSubmit, proconStances = {}, onProconStancesChange,
   debateSettings, onDebateSettingsChange, showDebateSettings,
   selectedFramework, onFrameworkChange,
   discussionIssues = [], onDiscussionIssuesChange,
@@ -1378,7 +1365,6 @@ export function ExpertSelectionPanel({
   // - general/multi: all categories shown, all selectable
   // - brainstorm: all categories shown, all selectable (including AI)
   // - standard/procon: all categories shown, but AI models are grayed/disabled
-  // - collaboration: non-ai categories
   const showExpertGrid = mainMode === 'general' || mainMode === 'multi' || mainMode === 'debate';
   const isDebateMode = mainMode === 'debate';
   const isStandardOrProcon = false; // AI 모델 제한 해제
@@ -1443,14 +1429,12 @@ export function ExpertSelectionPanel({
             {mainModes.map(m => {
               const isActive = mainMode === m;
               return (
-                <button key={m} onClick={() => m !== 'player' && handleMainModeChange(m)} disabled={isDiscussing || m === 'player'}
+                <button key={m} onClick={() => handleMainModeChange(m)} disabled={isDiscussing}
                   className={cn(
                     'flex items-center justify-center gap-1 min-w-0 px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-all duration-200',
-                    m === 'player' ? 'text-slate-300 cursor-not-allowed' :
-                      isActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-600 font-medium hover:text-slate-900'
+                    isActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-600 font-medium hover:text-slate-900'
                   )}>
                   {mainModeLabels[m]}
-                  {m === 'player' && <span className="text-[8px] ml-0.5 bg-slate-100 text-slate-400 px-1 rounded">준비중</span>}
                 </button>
               );
             })}
@@ -1606,7 +1590,7 @@ export function ExpertSelectionPanel({
                     <p className="text-[12px] text-slate-400">{searchMode ? `"${searchQuery}"에 대한 검색 결과가 없습니다` : '이 카테고리에 전문가가 없습니다'}</p>
                   </div>
                 ) : (
-                <div className="grid grid-cols-8 gap-x-1 gap-y-2">
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
                   {filtered.map(expert => {
                     const isSelected = selectedIds.includes(expert.id);
                     const stance = proconStances[expert.id];
@@ -1767,29 +1751,6 @@ export function ExpertSelectionPanel({
         />
       )}
 
-      {/* Suggested Questions */}
-      {onSuggestedQuestion && !isGeneral && mainMode !== 'expert' && mainMode !== 'assistant' && (
-        <div>
-          <p className="text-[10px] text-muted-foreground font-medium mb-2 px-0.5 tracking-wide">추천 질문</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-            {SUGGESTED_QUESTIONS.map((q, i) => {
-              const participants = q.expertIds.map(id => experts.find(e => e.id === id)).filter(Boolean) as Expert[];
-              return (
-                <button key={i} onClick={() => onSuggestedQuestion(q.text, q.expertIds, q.mode)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white text-left hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm transition-all duration-150 group">
-                  <span className="shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">{q.icon}</span>
-                  <span className="text-[12px] text-foreground/75 leading-snug flex-1">{q.text}</span>
-                  {participants.length > 0 && (
-                    <div className="flex -space-x-1.5 shrink-0">
-                      {participants.slice(0, 3).map(e => <ExpertAvatar key={e.id} expert={e} size="sm" />)}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

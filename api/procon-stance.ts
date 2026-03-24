@@ -10,7 +10,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
-  const { question, experts } = req.body;
+  const { question, experts } = req.body || {};
+
+  if (!question || typeof question !== 'string') {
+    return res.status(400).json({ error: 'question is required' });
+  }
+  if (!Array.isArray(experts) || experts.length === 0) {
+    return res.status(400).json({ error: 'experts array is required' });
+  }
 
   const prompt = `당신은 찬반 토론의 사회자입니다. 주어진 주제와 전문가 목록을 보고, 각 전문가가 어느 쪽 입장을 대변하면 좋을지 배정해주세요.
 

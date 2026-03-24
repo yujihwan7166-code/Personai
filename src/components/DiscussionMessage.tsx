@@ -243,7 +243,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         {/* Content */}
         <div className="px-3.5 pb-3 pt-0">
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
-            <MessageContent content={message.content} isStreaming={message.isStreaming} />
+            <MessageContent content={message.content} isStreaming={message.isStreaming} noCollapse={isSummary} />
           </div>
         </div>
 

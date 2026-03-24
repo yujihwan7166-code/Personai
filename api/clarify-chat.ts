@@ -6,7 +6,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
-  const { message, expertName, expertDescription, previousResponses } = req.body;
+  const { message, expertName, expertDescription, previousResponses } = req.body || {};
+
+  if (!message || typeof message !== 'string') {
+    return res.status(200).json({ type: 'answer' });
+  }
 
   // 이전 대화가 있으면 (이어가기 중) 명확화 불필요
   if (previousResponses && previousResponses.length > 0) {

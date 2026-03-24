@@ -227,10 +227,10 @@ export function AppSidebar({
                   <button
                     key={i}
                     onClick={() => onModeChange(item.mode)}
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all text-left group/quick"
+                    className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all text-left group/quick whitespace-nowrap"
                   >
-                    <span className="text-[13px]">{item.icon}</span>
-                    <span className="text-[10.5px] text-slate-600 font-medium group-hover/quick:text-slate-800 transition-colors">{item.label}</span>
+                    <span className="text-[13px] shrink-0">{item.icon}</span>
+                    <span className="text-[10.5px] text-slate-600 font-medium group-hover/quick:text-slate-800 transition-colors truncate">{item.label}</span>
                   </button>
                 ))}
               </div>

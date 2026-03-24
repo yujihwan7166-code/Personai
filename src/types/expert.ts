@@ -61,7 +61,7 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 };
 
 // Main mode: 5 categories
-export type MainMode = 'general' | 'multi' | 'expert' | 'debate' | 'assistant' | 'player';
+export type MainMode = 'general' | 'multi' | 'expert' | 'debate' | 'assistant';
 
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
   general: { label: '단일 AI', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
@@ -69,7 +69,6 @@ export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; d
   expert: { label: '전문가 모드', icon: '🔬', description: '분야 전문가와 깊이 있는 상담' },
   debate: { label: '라운드테이블', icon: '⚔️', description: '전문가들이 토론 후 결론을 냅니다' },
   assistant: { label: '어시스턴트', icon: '🛠️', description: '작업을 도와주는 AI 도구' },
-  player: { label: '플레이어', icon: '🎮', description: '준비 중' },
 };
 
 // Sub-modes for debate
@@ -83,15 +82,14 @@ export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon
 };
 
 // Flat DiscussionMode for backward compat in logic
-export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'collaboration' | 'hearing' | 'assistant' | 'player';
+export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'assistant';
 
 export function getMainMode(mode: DiscussionMode): MainMode {
   if (mode === 'general') return 'general';
   if (mode === 'multi') return 'multi';
   if (mode === 'expert') return 'expert';
   if (mode === 'assistant') return 'assistant';
-  if (mode === 'player') return 'player';
-  return 'debate'; // standard | procon | brainstorm | socratic | collaboration
+  return 'debate'; // standard | procon | brainstorm | hearing
 }
 
 // Legacy compat label map
@@ -101,7 +99,6 @@ export const DISCUSSION_MODE_LABELS: Record<string, { label: string; icon: strin
   standard: { label: '심층 토론', icon: '🎯', description: '3라운드 토론', detail: '초기 의견 → 반론 → 최종 입장, 3라운드 깊이 있는 토론을 진행합니다.' },
   procon: { label: '찬반 토론', icon: '⚖️', description: '찬반 대립', detail: '전문가들이 찬성·반대로 나뉘어 논쟁합니다.' },
   brainstorm: { label: '브레인스토밍', icon: '💡', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
-  collaboration: { label: '협업 모드', icon: '🤝', description: '역할 분담 협업', detail: '전문가들이 역할을 나눠 단계별로 프로젝트를 수행합니다.' },
   hearing: { label: '아이디어 검증', icon: '🔍', description: '전문가 검증', detail: '전문가들이 각자 전문 분야에서 날카로운 질문으로 아이디어를 검증합니다.' },
   creative: { label: '창의적 토론', icon: '🎨', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
   endless: { label: '끝장 토론', icon: '♾️', description: '합의까지', detail: '최대 5라운드, 합의에 도달할 때까지 토론합니다.' },
@@ -157,201 +154,6 @@ export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
   investorSimulation: false,
 };
 
-// ── Collaboration ──
-
-export interface WorkPhase {
-  id: string;
-  label: string;
-  description: string;
-  deliverable: string;
-  instruction: string;
-  roleInstructions?: Record<string, string>;
-}
-
-export interface CollaborationTeam {
-  id: string;
-  name: string;
-  description: string;
-  roles: string[];
-  phases: WorkPhase[];
-}
-
-export const COLLABORATION_TEAMS: CollaborationTeam[] = [
-  {
-    id: 'startup',
-    name: '사업 기획',
-    description: '사업 아이디어를 시장·기술·홍보 관점에서 검토',
-    roles: ['시장 분석', '기술 설계', '마케팅 전략'],
-    phases: [
-      { id: 'problem', label: '문제 정의', description: '해결할 문제와 타겟 고객 정의', deliverable: '문제 정의서', instruction: '팀이 해결할 문제의 핵심을 파악합니다.',
-        roleInstructions: {
-          '시장 분석': '시장 규모(TAM/SAM/SOM), 타겟 고객 페르소나, 고객의 pain point, 기존 대안의 한계를 구체적 수치와 함께 분석하세요. 기술 구현이나 마케팅은 절대 언급하지 마세요.',
-          '기술 설계': '이 문제를 기술적으로 해결할 수 있는지, 기술적 장벽이 무엇인지, 유사 기술 사례를 분석하세요. 시장 분석이나 마케팅은 절대 언급하지 마세요.',
-          '마케팅 전략': '타겟 사용자의 행동 패턴, 경쟁사 대비 차별점, 사용자 여정을 분석하세요. 기술 구현이나 재무 분석은 절대 언급하지 마세요.',
-        },
-      },
-      { id: 'solution', label: '솔루션 설계', description: '해결 방안과 MVP 정의', deliverable: 'MVP 기획서', instruction: '문제 정의를 기반으로 솔루션을 설계합니다.',
-        roleInstructions: {
-          '시장 분석': '비즈니스 모델(수익 모델, 가격 전략, 파트너십)을 설계하세요. MVP의 핵심 가치 제안 1가지를 명확히 정의하세요.',
-          '기술 설계': 'MVP의 핵심 기능 목록, 기술 아키텍처, 개발 일정(주 단위)을 제시하세요. 기술적 리스크와 대안을 명시하세요.',
-          '마케팅 전략': 'MVP의 핵심 사용자 플로우, 온보딩 시나리오, 초기 피드백 수집 방법을 설계하세요.',
-        },
-      },
-      { id: 'execution', label: '실행 계획', description: '3개월 로드맵 수립', deliverable: '실행 로드맵', instruction: '솔루션의 구체적 실행 계획을 수립합니다.',
-        roleInstructions: {
-          '시장 분석': '3개월 마일스톤, 필요 자금(월별), 채용 계획, KPI를 표로 정리하세요.',
-          '기술 설계': '스프린트 단위 개발 로드맵, 기술 부채 관리 계획, 배포 파이프라인을 제시하세요.',
-          '마케팅 전략': '론칭 전략, 채널별 마케팅 계획, 사용자 획득 목표(월별)를 제시하세요.',
-        },
-      },
-    ],
-  },
-  {
-    id: 'legal',
-    name: '법률 자문',
-    description: '법적 쟁점을 공격·방어·학술 관점에서 분석',
-    roles: ['기소 분석', '방어 논리', '판례 검토'],
-    phases: [
-      { id: 'facts', label: '사실관계 정리', description: '사건의 핵심 사실 파악', deliverable: '사실관계 정리서', instruction: '사건의 사실관계를 정리합니다.',
-        roleInstructions: {
-          '기소 분석': '법적으로 문제 되는 행위, 위반 가능한 법조문, 구성요건 해당 여부를 분석하세요.',
-          '방어 논리': '피고 측 유리한 사실, 위법성 조각 사유, 반론 가능한 포인트를 분석하세요.',
-          '판례 검토': '유사 판례를 검색하고 판결의 핵심 논리와 적용 가능성을 정리하세요.',
-        },
-      },
-      { id: 'analysis', label: '법적 분석', description: '각 관점에서 법적 분석', deliverable: '법적 분석서', instruction: '법적 쟁점을 깊이 분석합니다.',
-        roleInstructions: {
-          '기소 분석': '구성요건 충족 여부를 세부적으로 분석하고, 예상 양형을 제시하세요.',
-          '방어 논리': '방어 전략을 구체적으로 수립하고, 감경 사유를 제시하세요.',
-          '판례 검토': '대법원 판례 변경 가능성, 헌법재판소 결정 등을 분석하세요.',
-        },
-      },
-      { id: 'verdict', label: '결론 도출', description: '종합 법률 의견', deliverable: '법률 의견서', instruction: '종합적 법률 의견을 도출합니다.',
-        roleInstructions: {
-          '기소 분석': '최종 기소 의견과 유죄 입증 가능성을 정리하세요.',
-          '방어 논리': '최선의 방어 전략과 예상 결과를 정리하세요.',
-          '판례 검토': '학술적 관점에서 공정한 결론과 판결 예측을 제시하세요.',
-        },
-      },
-    ],
-  },
-  {
-    id: 'medical',
-    name: '의료 자문',
-    description: '의학적 문제를 진료·약학·간호 관점에서 분석',
-    roles: ['진단 분석', '약물 검토', '환자 관리'],
-    phases: [
-      { id: 'assessment', label: '초기 평가', description: '환자 상태 평가', deliverable: '초기 평가서', instruction: '환자 상태를 초기 평가합니다.',
-        roleInstructions: {
-          '진단 분석': '주증상, 병력, 가족력, 감별진단 목록을 작성하세요. 약물이나 간호는 다루지 마세요.',
-          '약물 검토': '현재 복용 약물, 알레르기, 약물 상호작용 가능성을 검토하세요. 진단은 다루지 마세요.',
-          '환자 관리': '활력징후, 생활습관(수면·식이·운동), 심리 상태를 평가하세요. 진단이나 처방은 다루지 마세요.',
-        },
-      },
-      { id: 'planning', label: '계획 수립', description: '검사 및 치료 계획', deliverable: '치료 계획서', instruction: '검사 및 치료 방안을 수립합니다.',
-        roleInstructions: {
-          '진단 분석': '필요 검사 목록, 감별진단 우선순위, 치료 옵션을 제시하세요.',
-          '약물 검토': '약물 치료 방안, 복용법, 주의사항, 대체 약물을 제시하세요.',
-          '환자 관리': '생활 교정 방안, 추적 관찰 계획, 환자 교육 내용을 제시하세요.',
-        },
-      },
-      { id: 'summary', label: '종합 소견', description: '최종 의학적 소견', deliverable: '종합 소견서', instruction: '모든 관점을 종합하여 최종 소견을 작성합니다.',
-        roleInstructions: {
-          '진단 분석': '최종 진단 의견, 예후, 추가 필요 검사를 정리하세요.',
-          '약물 검토': '최종 약물 계획, 모니터링 항목, 부작용 주의사항을 정리하세요.',
-          '환자 관리': '종합 관리 계획, 후속 방문 일정, 생활 지침을 정리하세요.',
-        },
-      },
-    ],
-  },
-  {
-    id: 'content',
-    name: '콘텐츠 기획',
-    description: '콘텐츠를 기획·작성·마케팅 관점에서 제작',
-    roles: ['기획', '작성', '마케팅'],
-    phases: [
-      { id: 'concept', label: '기획', description: '콘텐츠 기획', deliverable: '기획서', instruction: '콘텐츠의 기획 방향을 수립합니다.',
-        roleInstructions: {
-          '기획': '타겟 독자, 핵심 메시지, 포맷(영상/글/인포그래픽), 차별화 포인트를 기획하세요.',
-          '작성': '제목 후보, 도입부 훅, 본문 구조(목차)를 제안하세요.',
-          '마케팅': '유통 채널, 발행 타이밍, SEO 키워드, 경쟁 콘텐츠 분석을 하세요.',
-        },
-      },
-      { id: 'production', label: '제작', description: '콘텐츠 제작', deliverable: '초안', instruction: '기획을 기반으로 콘텐츠를 제작합니다.',
-        roleInstructions: {
-          '기획': '기획 의도에 맞게 초안을 검토하고 방향성 피드백을 제시하세요.',
-          '작성': '기획서를 기반으로 완성도 높은 본문 초안을 작성하세요.',
-          '마케팅': '콘텐츠에 맞는 CTA, 썸네일 컨셉, 배포 전략을 수립하세요.',
-        },
-      },
-      { id: 'publish', label: '배포 계획', description: '배포 및 성과 측정', deliverable: '배포 계획서', instruction: '배포 전략과 성과 측정 방안을 수립합니다.',
-        roleInstructions: {
-          '기획': '최종 퀄리티 체크, 콘텐츠 시리즈 계획, 후속 콘텐츠 방향을 제시하세요.',
-          '작성': '최종 교정, 요약본/하이라이트 버전 작성을 하세요.',
-          '마케팅': '채널별 배포 일정, KPI 설정, A/B 테스트 계획을 제시하세요.',
-        },
-      },
-    ],
-  },
-  {
-    id: 'business',
-    name: '경영 분석',
-    description: '재무·영업·운영 관점에서 비즈니스 분석',
-    roles: ['재무 분석', '영업 전략', '운영 관리'],
-    phases: [
-      { id: 'situation', label: '현황 분석', description: '현재 상황 파악', deliverable: '현황 분석서', instruction: '현재 상황을 분석합니다.',
-        roleInstructions: {
-          '재무 분석': '재무제표 기반 수익/비용 구조, 현금흐름, 주요 재무 지표를 분석하세요. 영업이나 운영은 다루지 마세요.',
-          '영업 전략': '매출 현황, 고객 분석, 파이프라인, 경쟁사 동향을 분석하세요. 재무나 운영은 다루지 마세요.',
-          '운영 관리': '업무 프로세스 효율성, 인력 운영, 공급망, 병목 지점을 분석하세요. 재무나 영업은 다루지 마세요.',
-        },
-      },
-      { id: 'strategy', label: '전략 수립', description: '대응 전략 도출', deliverable: '전략 보고서', instruction: '전략적 방안을 수립합니다.',
-        roleInstructions: {
-          '재무 분석': '비용 절감 방안, 투자 우선순위, 자금 조달 전략, ROI 분석을 제시하세요.',
-          '영업 전략': '매출 성장 전략, 신규 시장 진출, 고객 유지 전략, 가격 정책을 제시하세요.',
-          '운영 관리': '프로세스 개선 방안, 자동화 기회, 인력 최적화, 품질 관리 전략을 제시하세요.',
-        },
-      },
-      { id: 'action', label: '실행 방안', description: '구체적 실행 계획', deliverable: '실행 계획서', instruction: '전략을 실행 계획으로 전환합니다.',
-        roleInstructions: {
-          '재무 분석': '분기별 예산 계획, 투자 집행 일정, 재무 KPI와 모니터링 방법을 제시하세요.',
-          '영업 전략': '월별 매출 목표, 영업 활동 계획, 성과 측정 지표를 제시하세요.',
-          '운영 관리': '주 단위 운영 개선 로드맵, 담당자 배정, 성과 지표를 제시하세요.',
-        },
-      },
-    ],
-  },
-  {
-    id: 'academic',
-    name: '연구 분석',
-    description: '학술적 문제를 이론·실증·비판 관점에서 탐구',
-    roles: ['이론 분석', '실증 연구', '비판적 검토'],
-    phases: [
-      { id: 'review', label: '문헌 검토', description: '기존 연구와 이론 정리', deliverable: '문헌 검토서', instruction: '기존 연구를 검토합니다.',
-        roleInstructions: {
-          '이론 분석': '이 분야의 핵심 이론, 패러다임, 학술적 논쟁 지형을 거시적으로 정리하세요.',
-          '실증 연구': '최근 5년 내 주요 연구 결과, 방법론, 데이터를 체계적으로 정리하세요.',
-          '비판적 검토': '입문자 관점에서 핵심 개념 정의, 기본 원리, 이해하기 어려운 부분에 대한 질문을 제시하세요.',
-        },
-      },
-      { id: 'analysis2', label: '분석/논증', description: '핵심 논증 수행', deliverable: '분석 보고서', instruction: '핵심 주장을 논증합니다.',
-        roleInstructions: {
-          '이론 분석': '이론적 프레임워크를 적용한 심층 분석, 학계의 주요 논쟁에 대한 비판적 평가를 제시하세요.',
-          '실증 연구': '실증 데이터 기반 분석, 통계적 근거, 연구 방법론의 강약점을 제시하세요.',
-          '비판적 검토': '논증의 논리적 약점, 대중적 관점에서의 의문점, 실생활 적용 가능성을 질문하세요.',
-        },
-      },
-      { id: 'conclusion', label: '결론 도출', description: '종합 결론', deliverable: '연구 결론서', instruction: '결론과 시사점을 도출합니다.',
-        roleInstructions: {
-          '이론 분석': '학술적 기여도, 이론적 시사점, 향후 연구 방향을 제시하세요.',
-          '실증 연구': '연구 한계점, 추가 연구 필요 영역, 실무적 시사점을 제시하세요.',
-          '비판적 검토': '배운 점 정리, 핵심 결론의 사회적 의미, 후속 학습 방향을 제시하세요.',
-        },
-      },
-    ],
-  },
-];
 
 // ── Thinking Frameworks (brainstorm) ──
 

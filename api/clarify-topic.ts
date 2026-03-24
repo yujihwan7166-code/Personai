@@ -10,7 +10,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
-  const { input, mode } = req.body;
+  const { input, mode } = req.body || {};
+
+  if (!input || typeof input !== 'string') {
+    return res.status(400).json({ error: 'input is required' });
+  }
+
+  const validModes = ['standard', 'procon', 'brainstorm', 'hearing'];
+  if (!validModes.includes(mode)) {
+    return res.status(400).json({ error: 'Invalid mode' });
+  }
 
   const modeDescriptions: Record<string, string> = {
     standard: '심층 토론 — 여러 전문가가 3라운드에 걸쳐 깊이 있게 토론합니다',
@@ -42,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 규칙:
 - ${mode === 'procon' ? '찬반으로 나눌 수 있는 명제 형태로 제안하세요 (예: "~해야 하는가?", "~은 ~보다 나은가?")' : ''}
 - ${mode === 'brainstorm' ? '아이디어를 낼 수 있는 구체적 방향을 제안하세요 (예: "~를 개선하는 방법", "~를 위한 아이디어")' : ''}
-- ${mode === 'hearing' ? '검증 가능한 구체적 주장이나 아이디어를 제안하세요' : ''}
+- ${mode === 'hearing' ? '검증할 수 있는 구체적 아이디어 형태로 제안하세요 (예: "~라는 아이디어는 실현 가능한가?", "~서비스를 만들면 시장성이 있을까?")' : ''}
 - ${mode === 'standard' ? '다양한 관점에서 토론할 수 있는 주제를 제안하세요' : ''}
 - 제안은 반드시 한국어로, 흥미롭고 현실적인 주제로 작성하세요`;
 

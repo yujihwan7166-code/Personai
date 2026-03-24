@@ -10,7 +10,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
-  const { systemPrompt, question, previousResponses } = req.body;
+  const { systemPrompt, question, previousResponses } = req.body || {};
+
+  if (!question || typeof question !== 'string') {
+    return res.status(400).json({ error: 'question is required and must be a string' });
+  }
+  if (typeof systemPrompt !== 'string') {
+    return res.status(400).json({ error: 'systemPrompt must be a string' });
+  }
+  if (question.length > 10000) {
+    return res.status(400).json({ error: 'question is too long' });
+  }
 
   // Build conversation contents
   const contents: any[] = [];
@@ -29,6 +39,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   try {
+    const abortCtrl = new AbortController();
+    const timeoutId = setTimeout(() => abortCtrl.abort(), 30000); // 30s timeout
+
     const geminiRes = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -40,7 +53,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           maxOutputTokens: 2048,
         },
       }),
+      signal: abortCtrl.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!geminiRes.ok) {
       const errorText = await geminiRes.text();
