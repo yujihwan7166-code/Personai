@@ -2122,7 +2122,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           {(messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
               <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f5f5f7] to-transparent pointer-events-none" />
-              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2">
+              <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2">
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
                   <div className="flex items-center gap-3">
