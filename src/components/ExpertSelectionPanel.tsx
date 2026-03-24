@@ -1403,7 +1403,7 @@ export function ExpertSelectionPanel({
     <div className="space-y-3 py-4">
       {/* Hero */}
       <div className="text-center space-y-2 relative z-0">
-        <h2 key={mainMode} className="text-lg sm:text-xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
+        <h2 key={mainMode} className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
               : mainMode === 'expert' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
