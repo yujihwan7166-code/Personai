@@ -1901,7 +1901,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         {(currentRound.proMsgs.length > 0 || currentRound.conMsgs.length > 0) ? (
                         <div className="grid grid-cols-2 gap-0 p-0">
                           {/* 찬성 칼럼 */}
-                          <div className="space-y-3 p-4 bg-blue-50/30 border-r border-slate-100">
+                          <div className="space-y-3 p-4 bg-blue-50/60 border-r border-slate-100">
                             <div className="flex items-center gap-2 px-2">
                               <div className="w-2 h-2 rounded-full bg-blue-500" />
                               <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">찬성</span>
@@ -1919,7 +1919,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             )}
                           </div>
                           {/* 반대 칼럼 */}
-                          <div className="space-y-3 p-4 bg-red-50/30">
+                          <div className="space-y-3 p-4 bg-red-50/60">
                             <div className="flex items-center gap-2 px-2">
                               <div className="w-2 h-2 rounded-full bg-red-500" />
                               <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider">반대</span>
