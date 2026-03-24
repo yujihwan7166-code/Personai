@@ -1508,23 +1508,17 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
               {/* Question header — procon은 VS 헤더에 포함, 나머지만 표시 */}
               {currentQuestion && messages.length > 0 && discussionMode !== 'procon' && discussionMode !== 'standard' && (
-                <div className={cn(
-                  'px-4 py-3 rounded-xl',
-                  discussionMode === 'multi' ? 'bg-white border border-slate-200 shadow-sm' : ''
-                )}>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      {discussionMode === 'multi' && <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider mb-1 block">질문</span>}
-                      <p className="text-slate-900 font-bold text-[15px] leading-snug">{currentQuestion}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {isDone && (
-                        <button onClick={copyAllResults} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors">
-                          {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                          {copiedAll ? '복사됨' : '복사'}
-                        </button>
-                      )}
-                    </div>
+                <div className="flex items-center gap-3 px-1 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-slate-900 font-bold text-[16px] leading-snug">{currentQuestion}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {isDone && (
+                      <button onClick={copyAllResults} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors">
+                        {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                        {copiedAll ? '복사됨' : '복사'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1641,26 +1635,21 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                   return (
                     <div className="space-y-3">
-                      {/* View mode switcher + 참여 AI */}
+                      {/* View mode switcher — compact inline */}
                       {sortedExperts.length > 1 && !isDiscussing && (
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-0.5 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
                             {([['overview', '전체'], ['detail', '상세'], ['compare', '비교']] as const).map(([v, label]) => (
                               <button key={v} onClick={() => {
                                 setMultiView(v as any);
                                 if (v === 'compare' && sortedExperts.length >= 2) setMultiCompareIds([sortedExperts[0].id, sortedExperts[1].id]);
-                              }} className={cn('px-3.5 py-1.5 rounded-[10px] text-[11px] font-semibold transition-all',
-                                multiView === v ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50')}>
+                              }} className={cn('px-3 py-1 rounded-md text-[10px] font-semibold transition-all',
+                                multiView === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
                                 {label}
                               </button>
                             ))}
                           </div>
-                          <div className="flex items-center gap-1">
-                            <div className="flex -space-x-1.5">
-                              {sortedExperts.slice(0, 4).map(e => <ExpertAvatar key={e.id} expert={e} size="xs" />)}
-                            </div>
-                            <span className="text-[10px] text-slate-400 ml-1">{sortedExperts.length}개 AI</span>
-                          </div>
+                          <span className="text-[10px] text-slate-400">{sortedExperts.length}개 AI 응답</span>
                         </div>
                       )}
 
@@ -1670,31 +1659,31 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                           {sortedExperts.map((expert, ei) => {
                             const msg = expertMsgs.find(m => m.expertId === expert.id);
                             if (!msg) return null;
-                            const preview = msg.content.slice(0, 200);
+                            const preview = msg.content.slice(0, 180);
                             const charCount = msg.content.length;
-                            const accentColors = ['bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'];
-                            const dotColor = accentColors[ei % accentColors.length];
+                            const accentColors = ['border-t-blue-400', 'border-t-emerald-400', 'border-t-violet-400', 'border-t-amber-400', 'border-t-rose-400', 'border-t-cyan-400'];
+                            const accent = accentColors[ei % accentColors.length];
                             return (
                               <button key={expert.id} type="button"
                                 onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
                                 className={cn(
-                                  'group rounded-xl border border-slate-200 bg-white overflow-hidden transition-all text-left',
-                                  !isDiscussing && 'hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300'
+                                  'group rounded-xl border border-slate-200 bg-white overflow-hidden transition-all border-t-2 text-left',
+                                  accent,
+                                  !isDiscussing && 'hover:shadow-lg hover:-translate-y-0.5'
                                 )}>
-                                <div className="flex items-center gap-2.5 px-4 py-3">
-                                  <div className={cn('w-2 h-2 rounded-full shrink-0', dotColor)} />
+                                <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-slate-100">
                                   <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
                                   <span className="text-[12px] font-bold text-slate-800 flex-1">{expert.nameKo}</span>
                                   {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /></span>}
+                                  {!msg.isStreaming && charCount > 0 && <span className="text-[9px] text-slate-300">{charCount}자</span>}
                                 </div>
-                                <div className="px-4 pb-3 text-[12px] leading-relaxed text-slate-500 line-clamp-5 min-h-[80px]">
+                                <div className="px-3.5 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-5 min-h-[80px]">
                                   {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
-                                  {charCount > 200 && <span className="text-slate-300">...</span>}
+                                  {charCount > 180 && <span className="text-slate-300">...</span>}
                                 </div>
                                 {!msg.isStreaming && charCount > 0 && (
-                                  <div className="px-4 pb-3 flex items-center justify-between">
-                                    <span className="text-[10px] font-medium text-indigo-400 group-hover:text-indigo-600 transition-colors">자세히 보기 →</span>
-                                    <span className="text-[9px] text-slate-300">{charCount}자</span>
+                                  <div className="px-3.5 pb-3 pt-0">
+                                    <span className="text-[10px] font-medium text-indigo-500 group-hover:text-indigo-600 transition-colors">자세히 보기 →</span>
                                   </div>
                                 )}
                               </button>
@@ -1703,74 +1692,69 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         </div>
                       )}
 
-                      {/* ── Layer 2: Detail ── */}
+                      {/* ── Layer 2: Detail — 회색 칸 통합 ── */}
                       {multiView === 'detail' && !isDiscussing && (() => {
                         const activeMsgs = getExpertAllMsgs(activeTab || '');
                         const activeExp = allExperts.find(e => e.id === activeTab);
                         if (!activeMsgs.length || !activeExp) return null;
                         const relatedUserMsgs = userMsgs.filter(m => m.content.includes(activeExp.nameKo));
                         return (
-                          <div className="space-y-3">
-                            {/* AI 탭바 — 독립형 */}
-                            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
-                              {sortedExperts.map((expert, ei) => {
-                                const dotColors = ['bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500'];
-                                return (
-                                  <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
-                                    className={cn('flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all shrink-0 text-[11px] font-semibold border',
-                                      activeTab === expert.id
-                                        ? 'bg-white border-slate-200 text-slate-800 shadow-sm'
-                                        : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 hover:bg-white/60')}>
-                                    <div className={cn('w-1.5 h-1.5 rounded-full', dotColors[ei % dotColors.length])} />
-                                    <ExpertAvatar expert={expert} size="xs" />
-                                    {expert.nameKo}
-                                  </button>
-                                );
-                              })}
+                          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+                            {/* AI 탭바 */}
+                            <div className="flex items-center gap-1 bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                              {sortedExperts.map(expert => (
+                                <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
+                                  className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
+                                    activeTab === expert.id ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white')}>
+                                  <ExpertAvatar expert={expert} size="xs" />
+                                  {expert.nameKo}
+                                  {getExpertAllMsgs(expert.id).length > 1 && <span className={cn('text-[9px] px-1 rounded', activeTab === expert.id ? 'bg-indigo-400 text-white' : 'bg-slate-200 text-slate-400')}>{getExpertAllMsgs(expert.id).length}</span>}
+                                </button>
+                              ))}
+                              <span className="flex-1" />
+                              <button onClick={() => setMultiView('overview')}
+                                className="text-[10px] text-slate-400 hover:text-indigo-500 transition-colors shrink-0">전체 보기</button>
                             </div>
-                            {/* 응답 카드 */}
-                            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-                              <div className="p-5 space-y-3">
-                                {activeMsgs.map((msg, i) => (
-                                  <div key={msg.id}>
-                                    {i > 0 && relatedUserMsgs[i - 1] && (
-                                      <div className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-[11.5px] text-slate-500 mb-3">
-                                        {relatedUserMsgs[i - 1].content}
-                                      </div>
-                                    )}
-                                    <DiscussionMessageCard message={msg} expert={activeExp} variant="default"
-                                      onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
-                                  </div>
-                                ))}
+                            {/* 응답 */}
+                            <div className="p-4 space-y-3">
+                              {activeMsgs.map((msg, i) => (
+                                <div key={msg.id}>
+                                  {i > 0 && relatedUserMsgs[i - 1] && (
+                                    <div className="bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-[11.5px] text-slate-500 mb-2">
+                                      {relatedUserMsgs[i - 1].content}
+                                    </div>
+                                  )}
+                                  <DiscussionMessageCard message={msg} expert={activeExp} variant="default"
+                                    onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
+                                </div>
+                              ))}
+                            </div>
+                            {/* 하단 — 네비게이션 + 추가 질문 */}
+                            <div className="border-t border-slate-100">
+                              <div className="flex items-center justify-between px-3 py-2 bg-slate-50/50">
+                                {prevExpert ? (
+                                  <button onClick={() => setMultiActiveTab(prevExpert.id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                    ← {prevExpert.nameKo}
+                                  </button>
+                                ) : <div />}
+                                {nextExpert ? (
+                                  <button onClick={() => setMultiActiveTab(nextExpert.id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                    {nextExpert.nameKo} →
+                                  </button>
+                                ) : <div />}
                               </div>
-                              {/* 추가 질문 */}
                               {isDone && (
-                                <div className="flex items-center gap-2 px-4 py-3 border-t border-slate-100">
+                                <div className="flex items-center gap-2 px-3 py-3 bg-white border-t border-slate-100">
                                   <ExpertAvatar expert={activeExp} size="xs" />
                                   <input type="text" placeholder={`${activeExp.nameKo}에게 추가 질문...`}
-                                    className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 focus:bg-white transition-all"
+                                    className="flex-1 px-3 py-2 rounded-xl bg-indigo-50/40 border border-indigo-200 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:bg-white transition-all"
                                     onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) { askSingleAI(activeExp.id, (e.target as HTMLInputElement).value.trim()); (e.target as HTMLInputElement).value = ''; } }} />
                                   <button onClick={() => { const input = document.querySelector<HTMLInputElement>(`input[placeholder*="${activeExp.nameKo}"]`); if (input?.value.trim()) { askSingleAI(activeExp.id, input.value.trim()); input.value = ''; } }}
-                                    className="px-4 py-2 rounded-xl bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700 transition-colors">질문</button>
+                                    className="px-4 py-2 rounded-xl bg-indigo-500 text-white text-[11px] font-semibold hover:bg-indigo-600 transition-colors shadow-sm">질문</button>
                                 </div>
                               )}
-                            </div>
-                            {/* 하단 네비 */}
-                            <div className="flex items-center justify-between px-1">
-                              {prevExpert ? (
-                                <button onClick={() => setMultiActiveTab(prevExpert.id)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-slate-700 transition-all">
-                                  ← {prevExpert.nameKo}
-                                </button>
-                              ) : <div />}
-                              <button onClick={() => setMultiView('overview')}
-                                className="text-[10px] text-slate-400 hover:text-indigo-500 transition-colors">전체 보기</button>
-                              {nextExpert ? (
-                                <button onClick={() => setMultiActiveTab(nextExpert.id)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-slate-700 transition-all">
-                                  {nextExpert.nameKo} →
-                                </button>
-                              ) : <div />}
                             </div>
                           </div>
                         );
