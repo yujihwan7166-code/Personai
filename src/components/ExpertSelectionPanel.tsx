@@ -399,10 +399,9 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                             draggable onDragStart={() => setDraggedId(id)} onDragEnd={() => setDraggedId(null)}
                             title="클릭하면 배정 해제"
                             className="flex flex-col items-center gap-1 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot">
-                            <div className={cn('relative w-14 h-14 rounded-full flex items-center justify-center shadow-sm border-2 transition-colors',
-                              isPro ? 'bg-blue-50 border-blue-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50' : 'bg-red-50 border-red-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50')}>
-                              <ExpertAvatar expert={e} size="md" />
-                              <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/slot:bg-red-500/10 flex items-center justify-center transition-all">
+                            <div className="relative w-14 h-14 flex items-center justify-center group-hover/slot:opacity-70 transition-opacity">
+                              <span className="text-[36px] leading-none">{e.icon}</span>
+                              <div className="absolute inset-0 rounded-full flex items-center justify-center transition-all">
                                 <X className="w-4 h-4 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
                               </div>
                             </div>

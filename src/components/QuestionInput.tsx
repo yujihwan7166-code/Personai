@@ -13,9 +13,10 @@ interface Props {
   onToggleSettings?: () => void;
   showSettings?: boolean;
   isFollowUp?: boolean;
+  onConclusion?: () => void;
 }
 
-export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExperts, onRemoveExpert, onToggleSettings, showSettings, isFollowUp }: Props) {
+export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExperts, onRemoveExpert, onToggleSettings, showSettings, isFollowUp, onConclusion }: Props) {
   const [question, setQuestion] = useState('');
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -141,6 +142,12 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
               {!showSettings && '설정'}
               {showSettings && '닫기'}
             </button>
+            {onConclusion && (
+              <button type="button" onClick={onConclusion}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium text-amber-600 hover:bg-amber-50 transition-all">
+                🎯 종합 결론
+              </button>
+            )}
           </div>
 
           {/* Right tools */}

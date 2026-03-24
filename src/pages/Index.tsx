@@ -2264,17 +2264,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     </button>
                   </div>
                 )}
-                {/* Action bar when done */}
-                {isDone && (
-                  <div className="flex items-center gap-2">
-                    {discussionMode === 'multi' && !messages.some(m => m.isSummary) && (
-                      <button onClick={generateConclusion}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700 transition-colors shadow-sm">
-                        🎯 종합 결론
-                      </button>
-                    )}
-                  </div>
-                )}
                 <QuestionInput
                   onSubmit={isDone ? handleFollowUp : startDiscussion}
                   disabled={isDiscussing || activeExperts.length < 1}
@@ -2282,6 +2271,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                   showSettings={showDebateSettings}
                   isFollowUp={isDone}
+                  onConclusion={isDone && discussionMode === 'multi' && !messages.some(m => m.isSummary) ? generateConclusion : undefined}
                 />
               </div>
             </div>
