@@ -566,56 +566,34 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           )}
         </div>
 
-        {/* Framework — 그룹별 분류 */}
+        {/* Framework */}
         <div>
           <div className="text-[11px] font-bold text-slate-600 mb-2">사고 프레임워크</div>
-          {(() => {
-            const fwGroups: { label: string; ids: string[] }[] = [
-              { label: '체계적으로 정리', ids: ['free', 'sixhats', 'scamper', 'swot', 'pmi', 'starbursting'] },
-              { label: '틀을 깨는 발상', ids: ['moonshot', 'designthinking', 'reversal', 'fivewhys'] },
-            ];
-            return (
-              <div className="space-y-2">
-                {fwGroups.map(group => {
-                  const fws = group.ids.map(id => THINKING_FRAMEWORKS.find(f => f.id === id)).filter(Boolean) as typeof THINKING_FRAMEWORKS;
-                  if (fws.length === 0) return null;
-                  return (
-                    <div key={group.label}>
-                      <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{group.label}</div>
-                      <div className="grid grid-cols-6 gap-1.5">
-                        {fws.map((fw) => (
-                          <div key={fw.id} className="relative group/fw">
-                            <button onClick={() => onFrameworkChange?.(selectedFramework?.id === fw.id ? null : fw)}
-                              className={cn('relative px-2.5 py-2 rounded-lg text-center transition-all duration-150',
-                                selectedFramework?.id === fw.id ? `bg-gradient-to-br ${fw.color} ring-2 ring-slate-300` : 'bg-slate-50 hover:bg-slate-100')}>
-                              {fw.id === 'free' && !selectedFramework && (
-                                <span className="absolute -top-1.5 -right-1.5 px-1 py-0 rounded text-[7px] font-bold bg-violet-500 text-white">추천</span>
-                              )}
-                              {selectedFramework?.id === fw.id && (
-                                <span className="absolute top-1 right-1 w-3 h-3 bg-slate-700 rounded-full flex items-center justify-center">
-                                  <Check className="w-2 h-2 text-white" />
-                                </span>
-                              )}
-                              <div className="text-[13px]">{fw.icon}</div>
-                              <div className="text-[9px] font-semibold text-slate-700 mt-0.5 leading-tight">{fw.nameKo}</div>
-                            </button>
-                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 p-3 rounded-xl bg-slate-800 text-white text-[10px] leading-relaxed shadow-xl opacity-0 invisible group-hover/fw:opacity-100 group-hover/fw:visible transition-all duration-200 z-[9999] pointer-events-none">
-                              <div className="font-bold text-[11px] mb-1">{fw.icon} {fw.nameKo}</div>
-                              <p className="text-slate-300 mb-2">{fw.detailDescription}</p>
-                              <div className="space-y-0.5">{fw.rounds.map((r, i) => (
-                                <div key={i} className="text-[9px] text-slate-400"><span className="text-slate-200">{i + 1}.</span> {r.label}</div>
-                              ))}</div>
-                              <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-slate-800 rotate-45 -mt-1" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+          <div className="grid grid-cols-5 gap-1.5">
+            {THINKING_FRAMEWORKS.map((fw) => (
+              <div key={fw.id} className="relative group/fw">
+                <button onClick={() => onFrameworkChange?.(selectedFramework?.id === fw.id ? null : fw)}
+                  className={cn('relative w-full px-2 py-2 rounded-lg text-center transition-all duration-150',
+                    selectedFramework?.id === fw.id ? `bg-gradient-to-br ${fw.color} ring-2 ring-slate-300` : 'bg-slate-50 hover:bg-slate-100')}>
+                  {selectedFramework?.id === fw.id && (
+                    <span className="absolute top-1 right-1 w-3 h-3 bg-slate-700 rounded-full flex items-center justify-center">
+                      <Check className="w-2 h-2 text-white" />
+                    </span>
+                  )}
+                  <div className="text-[13px]">{fw.icon}</div>
+                  <div className="text-[9px] font-semibold text-slate-700 mt-0.5 leading-tight">{fw.nameKo}</div>
+                </button>
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 p-3 rounded-xl bg-slate-800 text-white text-[10px] leading-relaxed shadow-xl opacity-0 invisible group-hover/fw:opacity-100 group-hover/fw:visible transition-all duration-200 z-[9999] pointer-events-none">
+                  <div className="font-bold text-[11px] mb-1">{fw.icon} {fw.nameKo}</div>
+                  <p className="text-slate-300 mb-2">{fw.detailDescription}</p>
+                  <div className="space-y-0.5">{fw.rounds.map((r, i) => (
+                    <div key={i} className="text-[9px] text-slate-400"><span className="text-slate-200">{i + 1}.</span> {r.label}</div>
+                  ))}</div>
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-slate-800 rotate-45 -mt-1" />
+                </div>
               </div>
-            );
-          })()}
+            ))}
+          </div>
         </div>
 
         {/* 창의성 수준 */}
