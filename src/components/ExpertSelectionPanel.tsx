@@ -282,7 +282,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
   const effectiveProSlots = Math.max(proSlotCount, proAssigned);
   const effectiveConSlots = Math.max(conSlotCount, conAssigned);
 
-  const roundsEnabled = ds.debateFormat === 'alternating';
+
 
   return (
     <div className="border border-violet-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
@@ -467,35 +467,21 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
             </div>
 
             {/* Section 2: 진행 방식 */}
-            <div className="px-4 py-3 border-b border-slate-100">
+            <div className="px-4 py-3">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">진행 방식</p>
               <div className="space-y-2.5">
-                {/* 형식 */}
+                {/* 라운드 */}
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-semibold text-slate-600 w-12 shrink-0">형식</span>
-                  <div className="flex gap-1 flex-1">
-                    {[{ id: 'alternating' as const, label: '교대 발언' }, { id: 'free' as const, label: '자유 토론' }, { id: 'opening-rebuttal' as const, label: '오프닝+반론' }].map(opt => (
-                      <button key={opt.id} onClick={() => update({ debateFormat: opt.id })}
-                        className={cn('flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center transition-all', ds.debateFormat === opt.id ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:border-slate-400')}>
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {/* 라운드 — 교대 발언일 때만 활성화 */}
-                <div className="flex items-center gap-3">
-                  <span className={cn('text-[10px] font-semibold w-12 shrink-0 transition-colors', roundsEnabled ? 'text-slate-600' : 'text-slate-300')}>라운드</span>
+                  <span className="text-[10px] font-semibold text-slate-600 w-12 shrink-0">라운드</span>
                   <div className="flex gap-1 flex-1">
                     {([2, 3, 4, 5] as const).map(v => (
-                      <button key={v} onClick={() => roundsEnabled && update({ rounds: v })} disabled={!roundsEnabled}
+                      <button key={v} onClick={() => update({ rounds: v })}
                         className={cn('flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center transition-all',
-                          !roundsEnabled ? 'bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed'
-                            : ds.rounds === v ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:border-slate-400')}>
+                          ds.rounds === v ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:border-slate-400')}>
                         {v}R
                       </button>
                     ))}
                   </div>
-                  {!roundsEnabled && <span className="text-[9px] text-slate-300 shrink-0">교대 발언 선택 시 활성화</span>}
                 </div>
                 {/* 발언 길이 */}
                 <div className="flex items-center gap-3">
@@ -509,25 +495,6 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Section 3: 추가 옵션 */}
-            <div className="px-4 py-3">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">추가 옵션</p>
-              <div className="space-y-2.5">
-                {[
-                  { key: 'allowEmotional' as const, label: '감정적 호소 허용', desc: '논리 외 감성적 언어 사용 허용' },
-                  { key: 'includeConclusion' as const, label: '승패 판정', desc: 'AI가 토론 종료 후 승패를 판정' },
-                ].map(opt => (
-                  <div key={opt.key} className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold text-slate-700">{opt.label}</p>
-                      <p className="text-[9px] text-slate-400">{opt.desc}</p>
-                    </div>
-                    <Toggle checked={ds[opt.key] as boolean} onChange={v => update({ [opt.key]: v })} />
-                  </div>
-                ))}
               </div>
             </div>
           </div>
