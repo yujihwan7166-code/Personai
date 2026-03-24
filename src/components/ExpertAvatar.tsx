@@ -54,8 +54,8 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
         roundedClass,
         containerClasses[size],
         active
-          ? 'bg-white shadow-sm ring-1 ring-slate-200 scale-105'
-          : 'bg-slate-50/80'
+          ? 'bg-white shadow-md scale-105'
+          : 'bg-slate-100'
       )}>
         {expert.icon}
       </div>
