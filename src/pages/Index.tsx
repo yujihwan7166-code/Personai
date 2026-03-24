@@ -191,7 +191,9 @@ const Index = () => {
   const [selectedExpertIds, setSelectedExpertIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('ai-debate-selected-v5');
-      return saved ? JSON.parse(saved) : ['gpt'];
+      const parsed = saved ? JSON.parse(saved) : ['gpt'];
+      // 단일 AI 모드 기본이므로 1개만 유지
+      return Array.isArray(parsed) && parsed.length > 0 ? [parsed[0]] : ['gpt'];
     } catch {return ['gpt'];}
   });
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
