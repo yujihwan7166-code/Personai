@@ -174,7 +174,7 @@ async function streamExpert({
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v20');
+      const saved = localStorage.getItem('ai-debate-experts-v21');
       if (saved) {
         const parsed = JSON.parse(saved) as Expert[];
         // Merge: keep saved customizations but add any new default experts
@@ -214,7 +214,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v20', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v21', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
