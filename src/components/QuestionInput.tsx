@@ -50,10 +50,10 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
         disabled
           ? 'border-slate-200 opacity-75'
           : focused
-            ? 'border-indigo-500 shadow-[0_2px_24px_rgba(79,70,229,0.18)] bg-white'
-            : 'border-indigo-200 bg-indigo-50/30 shadow-sm hover:border-indigo-400 hover:bg-white'
+            ? 'border-indigo-300 shadow-[0_2px_20px_rgba(79,70,229,0.10)] bg-white'
+            : 'border-indigo-200 bg-white shadow-sm hover:border-indigo-300'
       )}>
-      <div className={cn('rounded-[calc(1rem-2px)] transition-all duration-200', focused ? 'bg-white' : 'bg-transparent')}>
+      <div className="rounded-[calc(1rem-2px)] bg-white transition-all duration-200">
         {/* Selected AI chips / participant label (hidden in follow-up mode) */}
         {!isFollowUp && selectedExperts && selectedExperts.length > 0 && (
           (discussionMode === 'standard' || discussionMode === 'brainstorm') ? (
