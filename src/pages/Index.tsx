@@ -1225,7 +1225,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="h-screen flex w-full bg-white dark:bg-[#0f1117]">
+      <div className="h-screen flex w-full bg-[#f5f5f7] dark:bg-[#0f1117]">
         {/* Floating Memo */}
         <div className={cn('fixed left-0 top-1/3 z-40 transition-all duration-200', memoOpen ? 'w-64' : 'w-0')}>
           {memoOpen && (
