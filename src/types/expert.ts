@@ -14,7 +14,7 @@ export const EXPERT_CATEGORY_LABELS: Record<ExpertCategory, string> = {
   occupation: '직업',
   celebrity: '인물',
   fictional: '캐릭터',
-  region: '지역/문화권',
+  region: '국가/문화',
   ideology: '이념',
   perspective: '페르소나',
   religion: '종교',
