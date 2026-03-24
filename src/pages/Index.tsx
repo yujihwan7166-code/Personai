@@ -939,10 +939,18 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const isDone = messages.length > 0 && !isDiscussing;
   const selectable = !isDiscussing && messages.length === 0;
 
-  // Floating memo
-  const [memoOpen, setMemoOpen] = useState(false);
-  const [memoText, setMemoText] = useState(() => localStorage.getItem('dev-memo') || '');
-  const saveMemo = (text: string) => { setMemoText(text); localStorage.setItem('dev-memo', text); };
+  // Dev panel state (D-day, Todo, Schedule)
+  const [devPanelOpen, setDevPanelOpen] = useState(() => {
+    try { return localStorage.getItem('dev-panel-open') === 'true'; } catch { return false; }
+  });
+  const [devTodos, setDevTodos] = useState<{ id: string; text: string; done: boolean }[]>(() => {
+    try { const s = localStorage.getItem('dev-todos'); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [devSchedule, setDevSchedule] = useState(() => localStorage.getItem('dev-schedule') || '');
+  const saveDevTodos = (todos: typeof devTodos) => { setDevTodos(todos); localStorage.setItem('dev-todos', JSON.stringify(todos)); };
+  const saveDevSchedule = (text: string) => { setDevSchedule(text); localStorage.setItem('dev-schedule', text); };
+  const [newTodoText, setNewTodoText] = useState('');
+  const toggleDevPanel = () => { const next = !devPanelOpen; setDevPanelOpen(next); localStorage.setItem('dev-panel-open', String(next)); };
 
   // Scroll to bottom — smart: pause auto-scroll when user scrolls up
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -1229,30 +1237,88 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]">
-        {/* Floating Memo */}
-        <div className={cn('fixed left-0 top-1/3 z-40 transition-all duration-200', memoOpen ? 'w-64' : 'w-0')}>
-          {memoOpen && (
-            <div className="w-64 h-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-r-xl shadow-lg flex flex-col animate-in slide-in-from-left duration-200">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-tr-xl">
-                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">📝 메모장</span>
-                <button onClick={() => setMemoOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-[14px]">✕</button>
-              </div>
-              <textarea
-                value={memoText}
-                onChange={e => saveMemo(e.target.value)}
-                placeholder="메모를 입력하세요..."
-                className="flex-1 p-3 text-[12px] outline-none resize-none bg-transparent text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
-              />
-              <div className="px-3 py-1.5 border-t border-slate-100 dark:border-slate-700 text-[9px] text-slate-300 dark:text-slate-500 text-right">자동 저장</div>
+        {/* Dev Panel — D-day + Todo + Schedule */}
+        {(() => {
+          const targetDate = new Date('2026-04-06T00:00:00');
+          const now = new Date();
+          const diffMs = targetDate.getTime() - now.getTime();
+          const dDay = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          const dDayText = dDay > 0 ? `D-${dDay}` : dDay === 0 ? 'D-DAY' : `D+${Math.abs(dDay)}`;
+          return (
+            <div className={cn('fixed left-0 top-4 z-40 transition-all duration-300', devPanelOpen ? 'w-72' : 'w-0')}>
+              {devPanelOpen && (
+                <div className="w-72 max-h-[80vh] bg-white border border-slate-200 rounded-r-2xl shadow-xl flex flex-col animate-in slide-in-from-left duration-200 overflow-hidden">
+                  {/* D-day Header */}
+                  <div className="px-4 py-3 bg-gradient-to-r from-red-500 to-rose-500 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-white text-[22px] font-black tracking-tight">{dDayText}</span>
+                      <div>
+                        <p className="text-white/90 text-[10px] font-semibold">4월 6일 마감</p>
+                        <p className="text-white/60 text-[9px]">{now.getMonth() + 1}월 {now.getDate()}일 기준</p>
+                      </div>
+                    </div>
+                    <button onClick={toggleDevPanel} className="text-white/60 hover:text-white text-[16px] transition-colors">✕</button>
+                  </div>
+
+                  {/* Todo List */}
+                  <div className="px-3 py-2.5 border-b border-slate-100 flex-shrink-0">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">할 일</p>
+                    <div className="space-y-1 max-h-[200px] overflow-y-auto scrollbar-thin">
+                      {devTodos.map(todo => (
+                        <div key={todo.id} className="flex items-center gap-2 group">
+                          <button onClick={() => saveDevTodos(devTodos.map(t => t.id === todo.id ? { ...t, done: !t.done } : t))}
+                            className={cn('w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all',
+                              todo.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 hover:border-slate-400')}>
+                            {todo.done && <Check className="w-2.5 h-2.5 text-white" />}
+                          </button>
+                          <span className={cn('flex-1 text-[11px] leading-snug', todo.done ? 'text-slate-400 line-through' : 'text-slate-700')}>{todo.text}</span>
+                          <button onClick={() => saveDevTodos(devTodos.filter(t => t.id !== todo.id))}
+                            className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 text-[12px] transition-all shrink-0">✕</button>
+                        </div>
+                      ))}
+                      {devTodos.length === 0 && <p className="text-[10px] text-slate-300 text-center py-2">할 일이 없습니다</p>}
+                    </div>
+                    <div className="flex gap-1.5 mt-2">
+                      <input type="text" value={newTodoText} onChange={e => setNewTodoText(e.target.value)}
+                        placeholder="할 일 추가..."
+                        className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-slate-400 transition-all"
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && newTodoText.trim()) {
+                            saveDevTodos([...devTodos, { id: `todo-${Date.now()}`, text: newTodoText.trim(), done: false }]);
+                            setNewTodoText('');
+                          }
+                        }} />
+                      <button onClick={() => {
+                        if (newTodoText.trim()) {
+                          saveDevTodos([...devTodos, { id: `todo-${Date.now()}`, text: newTodoText.trim(), done: false }]);
+                          setNewTodoText('');
+                        }
+                      }} className="px-2 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-semibold hover:bg-slate-700 transition-colors shrink-0">추가</button>
+                    </div>
+                  </div>
+
+                  {/* Schedule Memo */}
+                  <div className="px-3 py-2.5 flex-1 min-h-0 flex flex-col">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">일정 / 메모</p>
+                    <textarea
+                      value={devSchedule}
+                      onChange={e => saveDevSchedule(e.target.value)}
+                      placeholder="일정이나 메모를 자유롭게 입력하세요..."
+                      className="flex-1 min-h-[100px] p-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-700 placeholder:text-slate-300 outline-none resize-none focus:border-slate-400 transition-all"
+                    />
+                    <p className="text-[8px] text-slate-300 text-right mt-1">자동 저장</p>
+                  </div>
+                </div>
+              )}
+              {!devPanelOpen && (
+                <button onClick={toggleDevPanel}
+                  className="absolute left-0 top-0 px-2.5 py-1.5 bg-gradient-to-r from-red-500 to-rose-500 border-0 rounded-r-lg shadow-md flex items-center gap-1.5 hover:shadow-lg transition-all">
+                  <span className="text-white text-[13px] font-black">{dDayText}</span>
+                </button>
+              )}
             </div>
-          )}
-          {!memoOpen && (
-            <button onClick={() => setMemoOpen(true)}
-              className="absolute left-0 top-0 w-8 h-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 border-l-0 rounded-r-lg shadow-sm flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-              <span className="text-[14px]">📝</span>
-            </button>
-          )}
-        </div>
+          );
+        })()}
         <AppSidebar
           experts={experts}
           onLoadHistory={loadHistory}
