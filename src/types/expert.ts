@@ -11,7 +11,7 @@ export type ExpertCategory = 'ai' | 'specialist' | 'occupation' | 'celebrity' | 
 export const EXPERT_CATEGORY_LABELS: Record<ExpertCategory, string> = {
   ai: 'AI 모델',
   specialist: '지식인',
-  occupation: '직업군',
+  occupation: '직업',
   celebrity: '인물',
   fictional: '캐릭터',
   region: '지역/문화권',

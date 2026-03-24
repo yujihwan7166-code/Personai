@@ -1528,11 +1528,11 @@ export function ExpertSelectionPanel({
               )}
             </div>
             {!searchMode && EXPERT_SUB_CATEGORIES[effectiveCategory as ExpertCategory] && (
-              <div className="flex items-center gap-1 px-3 pt-1 pb-1 border-t border-slate-200 overflow-x-auto scrollbar-none">
+              <div className="flex items-center gap-1.5 px-3 pt-0 pb-1.5 overflow-x-auto scrollbar-none">
                 {EXPERT_SUB_CATEGORIES[effectiveCategory as ExpertCategory]!.map(sub => (
                   <button key={sub.id} type="button" onClick={() => setActiveSubCategory(sub.id)}
-                    className={cn('px-2.5 py-0.5 rounded-full text-[10px] whitespace-nowrap transition-all duration-150',
-                      activeSubCategory === sub.id ? 'bg-slate-700 text-white font-semibold' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
+                    className={cn('px-2 py-0.5 rounded text-[9px] whitespace-nowrap transition-all duration-150 border',
+                      activeSubCategory === sub.id ? 'bg-slate-100 text-slate-700 font-semibold border-slate-300' : 'text-slate-400 font-medium hover:text-slate-600 border-transparent hover:border-slate-200')}>
                     {sub.label}
                   </button>
                 ))}
