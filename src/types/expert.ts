@@ -74,7 +74,7 @@ export type MainMode = 'general' | 'multi' | 'expert' | 'debate' | 'assistant';
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
   general: { label: '단일 AI', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
   multi: { label: '다중 AI', icon: '🔄', description: '여러 AI의 답변을 종합합니다' },
-  expert: { label: '전문가 모드', icon: '🔬', description: '분야 전문가와 깊이 있는 상담' },
+  expert: { label: '전문 AI 상담', icon: '🔬', description: '분야 전문가와 깊이 있는 1:1 상담' },
   debate: { label: '라운드테이블', icon: '⚔️', description: '전문가들이 토론 후 결론을 냅니다' },
   assistant: { label: '어시스턴트', icon: '🛠️', description: '작업을 도와주는 AI 도구' },
 };
