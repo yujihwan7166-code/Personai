@@ -256,25 +256,6 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           </div>
         </div>
 
-        {/* Hover actions */}
-        {!message.isStreaming && message.content && !isSummary && (
-          <div className="flex items-center gap-0.5 px-3.5 pb-2.5 opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 transition-opacity">
-            <button onClick={() => onLike?.(message.id)} className="flex items-center gap-1 text-[11px] text-slate-300 hover:text-slate-500 px-1.5 py-1 rounded hover:bg-slate-50 transition-colors">
-              <ThumbsUp className="w-3 h-3" />{(message.likes ?? 0) > 0 && <span>{message.likes}</span>}
-            </button>
-            <button onClick={() => onDislike?.(message.id)} className="flex items-center gap-1 text-[11px] text-slate-300 hover:text-slate-500 px-1.5 py-1 rounded hover:bg-slate-50 transition-colors">
-              <ThumbsDown className="w-3 h-3" />{(message.dislikes ?? 0) > 0 && <span>{message.dislikes}</span>}
-            </button>
-            {onRebuttal && (
-              <button onClick={() => setShowRebuttal(!showRebuttal)} className={cn(
-                'flex items-center gap-1 text-[11px] px-1.5 py-1 rounded transition-colors',
-                showRebuttal ? 'text-primary bg-primary/5' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-50'
-              )}>
-                <MessageSquareReply className="w-3 h-3" /><span>반박</span>
-              </button>
-            )}
-          </div>
-        )}
 
         {showRebuttal && <RebuttalInput expert={expert} value={rebuttalText} onChange={setRebuttalText} onSubmit={handleRebuttalSubmit} />}
       </div>
