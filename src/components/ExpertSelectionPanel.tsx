@@ -571,8 +571,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           <div className="text-[11px] font-bold text-slate-600 mb-2">사고 프레임워크</div>
           {(() => {
             const fwGroups: { label: string; ids: string[] }[] = [
-              { label: '기본 · 구조적', ids: ['free', 'sixhats', 'scamper', 'swot', 'pmi', 'starbursting'] },
-              { label: '혁신 · 심화', ids: ['moonshot', 'designthinking', 'reversal', 'fivewhys'] },
+              { label: '체계적으로 정리', ids: ['free', 'sixhats', 'scamper', 'swot', 'pmi', 'starbursting'] },
+              { label: '틀을 깨는 발상', ids: ['moonshot', 'designthinking', 'reversal', 'fivewhys'] },
             ];
             return (
               <div className="space-y-2">
