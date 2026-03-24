@@ -1225,7 +1225,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="h-screen flex w-full bg-[#f5f5f7] dark:bg-[#0f1117]">
+      <div className="h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]">
         {/* Floating Memo */}
         <div className={cn('fixed left-0 top-1/3 z-40 transition-all duration-200', memoOpen ? 'w-64' : 'w-0')}>
           {memoOpen && (
@@ -2121,7 +2121,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           {/* Bottom Input */}
           {(messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
-              <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f5f5f7] to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
               <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2">
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
