@@ -1983,9 +1983,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               if (!expert) return null;
                               return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-pro" onLike={handleLike} onDislike={handleDislike} />;
                             })}
-                            {currentRound.proMsgs.length === 0 && (
+                            {currentRound.proMsgs.length === 0 && isDiscussing && (
                               <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/30 px-4 py-8 text-center text-[11px] text-blue-300">
-                                {isDiscussing ? '발언 대기 중...' : '발언 없음'}
+                                발언 대기 중...
                               </div>
                             )}
                           </div>
@@ -2001,18 +2001,16 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               if (!expert) return null;
                               return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-con" onLike={handleLike} onDislike={handleDislike} />;
                             })}
-                            {currentRound.conMsgs.length === 0 && (
+                            {currentRound.conMsgs.length === 0 && isDiscussing && (
                               <div className="rounded-xl border border-dashed border-red-200 bg-red-50/30 px-4 py-8 text-center text-[11px] text-red-300">
-                                {isDiscussing ? '발언 대기 중...' : '발언 없음'}
+                                발언 대기 중...
                               </div>
                             )}
                           </div>
                         </div>
-                        ) : (
-                          <div className="px-4 py-8 text-center text-[11px] text-slate-300">
-                            {isDiscussing ? '발언 대기 중...' : '발언 없음'}
-                          </div>
-                        )}
+                        ) : isDiscussing ? (
+                          <div className="px-4 py-8 text-center text-[11px] text-slate-300">발언 대기 중...</div>
+                        ) : null}
                         </div>
                       )}
 
@@ -2139,11 +2137,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                   onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />;
                               })}
                             </div>
-                          ) : (
-                            <div className="py-6 text-center text-[11px] text-slate-300">
-                              {isDiscussing ? '발언 대기 중...' : '발언 없음'}
-                            </div>
-                          )}
+                          ) : isDiscussing ? (
+                            <div className="py-6 text-center text-[11px] text-slate-300">발언 대기 중...</div>
+                          ) : null}
                         </div>
                       </div>
 
