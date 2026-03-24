@@ -1254,7 +1254,7 @@ export function ExpertSelectionPanel({
   debateIntensity = 'moderate', onDebateIntensityChange,
   onBulkSelect,
 }: Props) {
-  const [activeCategory, setActiveCategory] = useState<string>('recommended');
+  const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
   const isProcon = discussionMode === 'procon';
   const [proconAssignMode, setProconAssignMode] = useState<'manual' | 'auto'>('manual');
