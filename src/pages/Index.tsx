@@ -949,6 +949,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
     try { const s = localStorage.getItem('dev-todos'); return s ? JSON.parse(s) : []; } catch { return []; }
   });
   const [devSchedule, setDevSchedule] = useState(() => localStorage.getItem('dev-schedule') || '');
+  const [devPrinciple, setDevPrinciple] = useState(() => localStorage.getItem('dev-principle') || '');
+  const saveDevPrinciple = (text: string) => { setDevPrinciple(text); localStorage.setItem('dev-principle', text); };
   const saveDevTodos = (todos: typeof devTodos) => { setDevTodos(todos); localStorage.setItem('dev-todos', JSON.stringify(todos)); };
   const saveDevSchedule = (text: string) => { setDevSchedule(text); localStorage.setItem('dev-schedule', text); };
   const [newTodoText, setNewTodoText] = useState('');
@@ -1260,6 +1262,17 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       </div>
                     </div>
                     <button onClick={toggleDevPanel} className="text-white/60 hover:text-white text-[16px] transition-colors">✕</button>
+                  </div>
+
+                  {/* 대원칙 */}
+                  <div className="px-3 py-2.5 border-b border-slate-100 flex-shrink-0">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">대원칙</p>
+                    <textarea
+                      value={devPrinciple}
+                      onChange={e => saveDevPrinciple(e.target.value)}
+                      placeholder="프로젝트 대원칙을 적어주세요..."
+                      className="w-full min-h-[60px] p-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-700 placeholder:text-slate-300 outline-none resize-none focus:border-slate-400 transition-all"
+                    />
                   </div>
 
                   {/* Todo List */}
