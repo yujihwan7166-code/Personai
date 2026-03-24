@@ -1760,7 +1760,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         );
                       })()}
 
-                      {/* ── Layer 3: Compare — 회색 칸 통합 ── */}
+                      {/* ── Layer 3: Compare — 재설계 ── */}
                       {multiView === 'compare' && !isDiscussing && multiCompareIds && (() => {
                         const [leftId, rightId] = multiCompareIds;
                         const leftMsg = expertMsgs.find(m => m.expertId === leftId);
@@ -1769,24 +1769,38 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         const rightExp = allExperts.find(e => e.id === rightId);
                         return (
                           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-                            {/* AI 선택 드롭다운 */}
-                            <div className="grid grid-cols-2 gap-0 border-b border-slate-200">
-                              {[0, 1].map(side => (
-                                <div key={side} className={cn('px-3 py-2.5', side === 0 ? 'border-r border-slate-200 bg-indigo-50/40' : 'bg-violet-50/40')}>
-                                  <select value={multiCompareIds[side]}
-                                    onChange={e => { const next = [...multiCompareIds] as [string, string]; next[side] = e.target.value; setMultiCompareIds(next); }}
-                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all">
-                                    {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
-                                  </select>
-                                </div>
-                              ))}
+                            {/* AI 선택 — 아바타 탭 스타일 */}
+                            <div className="grid grid-cols-[1fr_auto_1fr] border-b border-slate-200">
+                              {/* 좌측 AI 선택 */}
+                              <div className="flex items-center gap-2 px-4 py-3 bg-indigo-50/30">
+                                {leftExp && <ExpertAvatar expert={leftExp} size="xs" />}
+                                <select value={multiCompareIds[0]}
+                                  onChange={e => { const next = [...multiCompareIds] as [string, string]; next[0] = e.target.value; setMultiCompareIds(next); }}
+                                  className="flex-1 px-2 py-1 rounded-lg border-0 bg-transparent text-[12px] font-bold text-slate-800 focus:outline-none cursor-pointer">
+                                  {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
+                                </select>
+                              </div>
+                              {/* VS 구분 */}
+                              <div className="flex items-center px-2">
+                                <span className="text-[10px] font-black text-slate-300">VS</span>
+                              </div>
+                              {/* 우측 AI 선택 */}
+                              <div className="flex items-center gap-2 px-4 py-3 bg-violet-50/30">
+                                {rightExp && <ExpertAvatar expert={rightExp} size="xs" />}
+                                <select value={multiCompareIds[1]}
+                                  onChange={e => { const next = [...multiCompareIds] as [string, string]; next[1] = e.target.value; setMultiCompareIds(next); }}
+                                  className="flex-1 px-2 py-1 rounded-lg border-0 bg-transparent text-[12px] font-bold text-slate-800 focus:outline-none cursor-pointer">
+                                  {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
+                                </select>
+                              </div>
                             </div>
                             {/* 나란히 비교 */}
-                            <div className="grid grid-cols-2 gap-0">
-                              <div className="p-3.5 border-r border-slate-100 bg-white">
+                            <div className="grid grid-cols-[1fr_auto_1fr]">
+                              <div className="p-4 bg-indigo-50/10">
                                 {leftMsg && leftExp && <DiscussionMessageCard message={leftMsg} expert={leftExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
-                              <div className="p-3.5 bg-white">
+                              <div className="w-px bg-slate-200" />
+                              <div className="p-4 bg-violet-50/10">
                                 {rightMsg && rightExp && <DiscussionMessageCard message={rightMsg} expert={rightExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
                             </div>
