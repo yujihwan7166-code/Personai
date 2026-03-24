@@ -1245,9 +1245,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           const dDay = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
           const dDayText = dDay > 0 ? `D-${dDay}` : dDay === 0 ? 'D-DAY' : `D+${Math.abs(dDay)}`;
           return (
-            <div className={cn('fixed left-0 top-4 z-40 transition-all duration-300', devPanelOpen ? 'w-72' : 'w-0')}>
+            <div className={cn('fixed right-0 top-4 z-40 transition-all duration-300', devPanelOpen ? 'w-72' : 'w-0')}>
               {devPanelOpen && (
-                <div className="w-72 max-h-[80vh] bg-white border border-slate-200 rounded-r-2xl shadow-xl flex flex-col animate-in slide-in-from-left duration-200 overflow-hidden">
+                <div className="w-72 max-h-[80vh] bg-white border border-slate-200 rounded-l-2xl shadow-xl flex flex-col animate-in slide-in-from-right duration-200 overflow-hidden">
                   {/* D-day Header */}
                   <div className="px-4 py-3 bg-gradient-to-r from-red-500 to-rose-500 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -1312,7 +1312,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
               )}
               {!devPanelOpen && (
                 <button onClick={toggleDevPanel}
-                  className="absolute left-0 top-0 px-2.5 py-1.5 bg-gradient-to-r from-red-500 to-rose-500 border-0 rounded-r-lg shadow-md flex items-center gap-1.5 hover:shadow-lg transition-all">
+                  className="absolute right-0 top-0 px-2.5 py-1.5 bg-gradient-to-r from-red-500 to-rose-500 border-0 rounded-l-lg shadow-md flex items-center gap-1.5 hover:shadow-lg transition-all">
                   <span className="text-white text-[13px] font-black">{dDayText}</span>
                 </button>
               )}
