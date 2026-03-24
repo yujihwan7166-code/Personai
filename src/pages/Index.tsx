@@ -1266,7 +1266,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     <div className="space-y-1 max-h-[200px] overflow-y-auto scrollbar-thin">
                       {devTodos.map(todo => (
                         <div key={todo.id} className="flex items-center gap-2 group">
-                          <button onClick={() => saveDevTodos(devTodos.map(t => t.id === todo.id ? { ...t, done: !t.done } : t))}
+                          <button onClick={() => saveDevTodos(devTodos.filter(t => t.id !== todo.id))}
                             className={cn('w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all',
                               todo.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 hover:border-slate-400')}>
                             {todo.done && <Check className="w-2.5 h-2.5 text-white" />}
