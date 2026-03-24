@@ -1131,6 +1131,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const [multiView, setMultiView] = useState<'overview' | 'detail' | 'compare'>('overview');
   const [multiCompareIds, setMultiCompareIds] = useState<[string, string] | null>(null);
   const [proconActiveRound, setProconActiveRound] = useState(0);
+  const [proconFocusSide, setProconFocusSide] = useState<null | 'pro' | 'con'>(null);
 
 
   // Keyboard nav for multi detail view
@@ -2074,13 +2075,22 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                           </div>
                         )}
                         {(currentRound.proMsgs.length > 0 || currentRound.conMsgs.length > 0) ? (
-                        <div className="grid grid-cols-2 gap-0 p-0">
+                        <div className={cn('grid gap-0 p-0 transition-all duration-300',
+                          proconFocusSide === 'pro' ? 'grid-cols-1' : proconFocusSide === 'con' ? 'grid-cols-1' : 'grid-cols-2')}>
                           {/* 찬성 칼럼 */}
+                          {proconFocusSide !== 'con' && (
                           <div className="space-y-3 p-4 bg-blue-50 border-r border-slate-100">
                             <div className="flex items-center gap-2 px-2">
-                              <div className="w-2 h-2 rounded-full bg-blue-500" />
-                              <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">찬성</span>
+                              <button type="button" onClick={() => setProconFocusSide(prev => prev === 'pro' ? null : 'pro')}
+                                className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer">
+                                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">찬성</span>
+                              </button>
                               <div className="flex-1 h-px bg-blue-200" />
+                              {proconFocusSide === 'pro' && (
+                                <button type="button" onClick={() => setProconFocusSide(null)}
+                                  className="text-[9px] text-blue-400 hover:text-blue-600 transition-colors">전체 보기 ←</button>
+                              )}
                             </div>
                             {currentRound.proMsgs.map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
@@ -2093,12 +2103,21 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               </div>
                             )}
                           </div>
+                          )}
                           {/* 반대 칼럼 */}
+                          {proconFocusSide !== 'pro' && (
                           <div className="space-y-3 p-4 bg-red-50">
                             <div className="flex items-center gap-2 px-2">
-                              <div className="w-2 h-2 rounded-full bg-red-500" />
-                              <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider">반대</span>
+                              <button type="button" onClick={() => setProconFocusSide(prev => prev === 'con' ? null : 'con')}
+                                className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer">
+                                <div className="w-2 h-2 rounded-full bg-red-500" />
+                                <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider">반대</span>
+                              </button>
                               <div className="flex-1 h-px bg-red-200" />
+                              {proconFocusSide === 'con' && (
+                                <button type="button" onClick={() => setProconFocusSide(null)}
+                                  className="text-[9px] text-red-400 hover:text-red-600 transition-colors">→ 전체 보기</button>
+                              )}
                             </div>
                             {currentRound.conMsgs.map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
@@ -2111,6 +2130,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               </div>
                             )}
                           </div>
+                          )}
                         </div>
                         ) : isDiscussing ? (
                           <div className="px-4 py-8 text-center text-[11px] text-slate-300">발언 대기 중...</div>
