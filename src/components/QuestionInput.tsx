@@ -33,7 +33,9 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
   };
 
   const placeholder = isFollowUp
-    ? (discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'hearing'
+    ? (discussionMode === 'brainstorm'
+      ? '추가 방향을 제시하세요 (예: "교육 분야에서는?", "비용 절감 관점으로")'
+      : discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'hearing'
       ? '토론자들에게 추가 질문을 해보세요'
       : '이어서 질문해보세요')
     : discussionMode === 'general'

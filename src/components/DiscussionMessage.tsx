@@ -3,7 +3,7 @@ import { DiscussionMessage as DiscussionMessageType, Expert, ROUND_LABELS } from
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
-import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 
 export type ChatVariant = 'default' | 'messenger' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
 
@@ -14,6 +14,7 @@ interface Props {
   onRebuttal?: (expertId: string, content: string, userRebuttal: string) => void;
   onLike?: (messageId: string) => void;
   onDislike?: (messageId: string) => void;
+  onDevelop?: (ideaContent: string) => void;
 }
 
 const proseClasses = `prose prose-sm max-w-none
@@ -79,7 +80,7 @@ function MessageContent({ content, isStreaming, noCollapse }: { content: string;
   return null;
 }
 
-export function DiscussionMessageCard({ message, expert, variant = 'default', onRebuttal, onLike, onDislike }: Props) {
+export function DiscussionMessageCard({ message, expert, variant = 'default', onRebuttal, onLike, onDislike, onDevelop }: Props) {
   const [copied, setCopied] = useState(false);
   const [showRebuttal, setShowRebuttal] = useState(false);
   const [rebuttalText, setRebuttalText] = useState('');
@@ -131,17 +132,35 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   // ── Postit (브레인스토밍) ──
   if (variant === 'postit') {
     const colors = ['bg-amber-50/80 border-amber-200/60', 'bg-emerald-50/80 border-emerald-200/60', 'bg-sky-50/80 border-sky-200/60', 'bg-violet-50/80 border-violet-200/60', 'bg-rose-50/80 border-rose-200/60'];
-    const colorIdx = expert.name.charCodeAt(0) % colors.length;
+    const colorIdx = expert.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % colors.length;
+    const hasLikes = (message.likes ?? 0) >= 1;
     return (
-      <div className={cn('group rounded-xl border p-3.5 animate-in fade-in zoom-in-95 duration-200 hover:shadow-md transition-shadow', colors[colorIdx])}>
+      <div className={cn(
+        'group rounded-xl border p-3.5 animate-in fade-in zoom-in-95 duration-200 hover:shadow-md transition-all',
+        colors[colorIdx],
+        hasLikes && 'ring-2 ring-amber-300 shadow-md'
+      )}>
         <div className="flex items-center gap-1.5 mb-2">
           <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
           <span className="text-[11px] font-semibold text-slate-600">{expert.nameKo}</span>
-          {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
         </div>
-        <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
+        <div className={cn('text-[12px] leading-relaxed text-slate-600 max-h-[140px] overflow-hidden', proseClasses)}>
           <MessageContent content={message.content} isStreaming={message.isStreaming} />
         </div>
+        {!message.isStreaming && message.content && (
+          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-200/50 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => onLike?.(message.id)} className={cn('flex items-center gap-0.5 text-[10px] transition-colors', hasLikes ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500')}>
+              <ThumbsUp className="w-3 h-3" />
+              {(message.likes ?? 0) > 0 && <span>{message.likes}</span>}
+            </button>
+            {onDevelop && (
+              <button onClick={() => onDevelop(message.content)} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-violet-500 transition-colors">
+                <Zap className="w-3 h-3" /> 발전
+              </button>
+            )}
+            <CopyBtn className="ml-auto text-slate-300 hover:text-slate-500" />
+          </div>
+        )}
       </div>
     );
   }

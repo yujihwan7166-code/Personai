@@ -662,10 +662,16 @@ const Index = () => {
         radical: '파격적이고 급진적인 아이디어를 과감하게 제시하세요. 기존 틀을 완전히 깨세요.',
       };
       const bsSettingsExtra =
-        (bsFormatMap[debateSettings.ideaFormat] ? `\n${bsFormatMap[debateSettings.ideaFormat]}` : '') +
-        `\n아이디어를 최소 ${debateSettings.ideaCount}개 이상 제시하세요.` +
+        `\n\n=== 아이디어 출력 규칙 ===` +
+        `\n각 아이디어를 반드시 다음 형식으로 구분하여 제시하세요:` +
+        `\n---IDEA---` +
+        `\n**제목:** (핵심을 담은 한 줄 제목)` +
+        `\n(2-3문장 설명. 50단어 이내로 간결하게.)` +
+        `\n---END---` +
+        `\n총 ${debateSettings.ideaCount}개를 제시하세요. 아이디어당 최대 3문장.` +
         (debateSettings.deduplication ? '\n다른 참여자와 중복되는 아이디어는 피하고 새로운 관점만 제시하세요.' : '') +
-        (bsCreativityMap[debateSettings.creativityLevel] ? `\n${bsCreativityMap[debateSettings.creativityLevel]}` : '');
+        (bsCreativityMap[debateSettings.creativityLevel] ? `\n${bsCreativityMap[debateSettings.creativityLevel]}` : '') +
+        `\n=== 끝 ===`;
 
       // Use selected framework or default to 'free'
       const fw = selectedFramework || THINKING_FRAMEWORKS.find(f => f.id === 'free')!;
@@ -688,7 +694,27 @@ const Index = () => {
           try {
             await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra + lengthExtra }, previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
+              onDone: () => {
+                // 아이디어 구분자로 분리
+                const ideas = fullContent.split('---IDEA---')
+                  .map(s => s.replace(/---END---/g, '').trim())
+                  .filter(s => s.length > 0);
+                if (ideas.length > 1) {
+                  setMessages((prev) => {
+                    const without = prev.filter(m => m.id !== msgId);
+                    const ideaMsgs = ideas.map((idea, ii) => ({
+                      id: `${msgId}-idea-${ii}`,
+                      expertId: expert.id,
+                      content: idea,
+                      isStreaming: false,
+                      round,
+                    }));
+                    return [...without, ...ideaMsgs];
+                  });
+                } else {
+                  setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));
+                }
+              },
               signal: controller.signal });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
@@ -794,6 +820,33 @@ const Index = () => {
     }
 
     if (!shouldStop() && debateSettings.includeConclusion) {
+      // 브레인스토밍 전용 결론
+      const isBrainstormConclusion = useMode === 'brainstorm';
+      const brainstormSummaryPrompt = `You are a brainstorming session facilitator. Organize ALL ideas from the session into a clear Korean summary using this format:
+
+## 💡 브레인스토밍 결과 정리
+
+### 📌 핵심 아이디어 TOP 5
+1. **(제목)** — 요약 (발제자: 전문가명)
+2. ...
+
+### 🔗 결합 가능한 아이디어
+- (아이디어 A) + (아이디어 B) → (결합 결과)
+
+### 📊 카테고리별 분류
+| 카테고리 | 아이디어 수 | 대표 아이디어 |
+|---------|-----------|-------------|
+
+### 🎯 즉시 실행 가능한 것
+- ...
+
+### 🚀 추가 발전이 필요한 것
+- ...
+
+> 총 아이디어 중 실행 가능성이 높은 것을 우선순위로 정리했습니다.
+
+모든 참여자의 아이디어를 빠짐없이 반영하세요. 한국어로 작성하세요.`;
+
       // Summary
       setActiveExpertId(SUMMARIZER_EXPERT.id);
       const summaryId = `summary-${Date.now()}`;
@@ -801,7 +854,7 @@ const Index = () => {
       let summaryContent = '';
       try {
         await streamExpert({
-          question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: `You are a debate summarizer. Organize the discussion into a clean, well-structured Korean summary using the following markdown format EXACTLY:
+          question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: isBrainstormConclusion ? brainstormSummaryPrompt : `You are a debate summarizer. Organize the discussion into a clean, well-structured Korean summary using the following markdown format EXACTLY:
 
 ## 📋 토론 정리
 
@@ -831,7 +884,7 @@ Keep it concise and factual. Do NOT provide your own conclusion or opinion. Refe
         }
       }
 
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && !isBrainstormConclusion) {
         setActiveExpertId(CONCLUSION_EXPERT.id);
         const conclusionId = `conclusion-${Date.now()}`;
         setMessages((prev) => [...prev, { id: conclusionId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
@@ -1225,6 +1278,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
         ? (id: string) => proconStances[id] === 'pro'
           ? '\n\n사용자가 추가 질문을 했습니다. 당신은 찬성 측이었습니다. 찬성 관점에서 이전 토론 맥락을 바탕으로 답변하세요.'
           : '\n\n사용자가 추가 질문을 했습니다. 당신은 반대 측이었습니다. 반대 관점에서 이전 토론 맥락을 바탕으로 답변하세요.'
+        : discussionMode === 'brainstorm'
+        ? () => '\n\n사용자가 새로운 방향을 제시했습니다. 이 방향으로 새로운 아이디어를 짧고 핵심적으로 제시하세요. 아이디어당 2-3문장 이내.\n각 아이디어를 ---IDEA--- / ---END--- 구분자로 분리하세요.'
         : () => '\n\n사용자가 추가 질문을 했습니다. 이전 토론 맥락을 바탕으로 답변하세요.';
 
       for (const expert of activeExperts) {
@@ -1237,7 +1292,21 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + stanceExtra(expert.id) },
             previousResponses: prevAll, round: 'initial',
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => {
+              // brainstorm 후속질문도 아이디어 파싱
+              if (discussionMode === 'brainstorm') {
+                const ideas = fullContent.split('---IDEA---').map(s => s.replace(/---END---/g, '').trim()).filter(s => s.length > 0);
+                if (ideas.length > 1) {
+                  setMessages(prev => {
+                    const without = prev.filter(m => m.id !== msgId);
+                    const ideaMsgs = ideas.map((idea, ii) => ({ id: `${msgId}-idea-${ii}`, expertId: expert.id, content: idea, isStreaming: false }));
+                    return [...without, ...ideaMsgs];
+                  });
+                  return;
+                }
+              }
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
+            },
             signal: controller.signal });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
@@ -2081,28 +2150,59 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                   }
                   if (current.length) groups.push({ msgs: current });
 
-                  return groups.map((g, gi) => {
-                    if (g.round) {
-                      const isCollapsed = collapsedRounds.has(g.round.id);
-                      return (
-                        <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed} variant="procon"
-                          onToggle={() => setCollapsedRounds(prev => { const n = new Set(prev); if (n.has(g.round!.id)) n.delete(g.round!.id); else n.add(g.round!.id); return n; })}
-                          count={groups[gi + 1]?.msgs?.length || 0} />
-                      );
-                    }
-                    // Check if collapsed
-                    const prevRound = groups.slice(0, gi).reverse().find(g2 => g2.round);
-                    if (prevRound?.round && collapsedRounds.has(prevRound.round.id)) return null;
-                    return (
-                      <div key={`grid-${gi}`} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {g.msgs.filter(m => m.expertId !== '__user__').map(msg => {
-                          const expert = allExperts.find(e => e.id === msg.expertId);
-                          if (!expert) return null;
-                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="postit" onLike={handleLike} onDislike={handleDislike} />;
-                        })}
-                      </div>
-                    );
-                  });
+                  // 아이디어 발전시키기 핸들러
+                  const handleDevelopIdea = (ideaContent: string) => {
+                    const developQ = `다음 아이디어를 더 발전시켜주세요. 구체적인 실행 방안, 예상 효과, 보완점을 제시하세요:\n\n${ideaContent}`;
+                    handleFollowUp(developQ);
+                  };
+
+                  // 프로그레스 인디케이터
+                  const roundGroups = groups.filter(g => g.round);
+                  const totalSteps = roundGroups.length;
+
+                  return (
+                    <div className="space-y-3">
+                      {/* 프레임워크 단계 프로그레스 */}
+                      {totalSteps > 1 && (
+                        <div className="flex items-center gap-1.5 flex-wrap px-1">
+                          {roundGroups.map((g, i) => {
+                            const isDone = groups.indexOf(g) < groups.length - 1 || !isDiscussing;
+                            const isCurrent = !isDone && i === totalSteps - 1;
+                            return (
+                              <div key={i} className={cn(
+                                'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all',
+                                isDone ? 'bg-violet-500 text-white' : isCurrent ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'bg-slate-100 text-slate-400'
+                              )}>
+                                {g.round!.content}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {groups.map((g, gi) => {
+                        if (g.round) {
+                          const isCollapsed = collapsedRounds.has(g.round.id);
+                          return (
+                            <RoundSeparator key={g.round.id} msg={g.round} isCollapsed={isCollapsed} variant="brainstorm"
+                              onToggle={() => setCollapsedRounds(prev => { const n = new Set(prev); if (n.has(g.round!.id)) n.delete(g.round!.id); else n.add(g.round!.id); return n; })}
+                              count={groups[gi + 1]?.msgs?.length || 0} />
+                          );
+                        }
+                        const prevRound = groups.slice(0, gi).reverse().find(g2 => g2.round);
+                        if (prevRound?.round && collapsedRounds.has(prevRound.round.id)) return null;
+                        return (
+                          <div key={`grid-${gi}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                            {g.msgs.filter(m => m.expertId !== '__user__').map(msg => {
+                              const expert = allExperts.find(e => e.id === msg.expertId);
+                              if (!expert) return null;
+                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="postit" onLike={handleLike} onDislike={handleDislike} onDevelop={isDone ? handleDevelopIdea : undefined} />;
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
                 })()
               ) : discussionMode === 'standard' ? (
                 /* 심층토론: 탭형 라운드 + 발언자별 컬러 */
@@ -2283,6 +2383,20 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 };
 
 function RoundSeparator({ msg, isCollapsed, onToggle, count, variant }: { msg: DiscussionMessage; isCollapsed: boolean; onToggle: () => void; count: number; variant?: string }) {
+  if (variant === 'brainstorm') {
+    return (
+      <button type="button" onClick={onToggle} className="w-full py-1 cursor-pointer">
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200/50 transition-all hover:shadow-sm">
+          <div className="w-7 h-7 rounded-lg bg-violet-500 flex items-center justify-center text-white text-[12px] font-black shrink-0">💡</div>
+          <div className="flex-1 text-left">
+            <div className="text-[11px] font-bold text-violet-800">{msg.content}</div>
+            {count > 0 && <div className="text-[9px] text-violet-400">아이디어 {count}개</div>}
+          </div>
+          {isCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-violet-400" /> : <ChevronDown className="w-3.5 h-3.5 text-violet-400" />}
+        </div>
+      </button>
+    );
+  }
   if (variant === 'procon') {
     const isProRound = msg.content.includes('찬성');
     const isConRound = msg.content.includes('반대');
