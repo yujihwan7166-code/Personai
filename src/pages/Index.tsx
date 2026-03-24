@@ -1274,7 +1274,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
           <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin" onScroll={handleScroll}>
             <div className={cn(
               'mx-auto px-4 sm:px-6 pt-16 pb-6',
-              !selectable ? 'max-w-2xl space-y-2.5'
+              !selectable ? 'max-w-3xl space-y-2.5'
                 : (discussionMode === 'assistant' || discussionMode === 'expert') ? 'max-w-4xl space-y-3'
                 : 'max-w-2xl space-y-3'
             )}>
@@ -2093,7 +2093,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       <div key={msg.id} className={cn(isMessenger ? 'flex justify-end' : '')}>
                         <div className={cn(
                           isMessenger
-                            ? 'max-w-[60%] bg-slate-100 text-slate-800 rounded-2xl rounded-br-md px-4 py-3 text-[13px] font-medium'
+                            ? 'max-w-[60%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
                             : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
                         )}>
                           <ReactMarkdownInline content={msg.content} />
