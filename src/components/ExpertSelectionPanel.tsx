@@ -1336,12 +1336,9 @@ export function ExpertSelectionPanel({
   const isBrainstorm = discussionMode === 'brainstorm';
   const isHearing = discussionMode === 'hearing';
 
-  const RECOMMENDED_IDS = ['gpt', 'claude', 'gemini', 'doctor', 'lawyer', 'psychology', 'finance', 'economics', 'teacher', 'programmer', 'chef', 'buffett', 'musk', 'korean', 'marketing'];
-
   const visibleCategories = EXPERT_CATEGORY_ORDER;
 
   const grouped: { cat: string; label: string; items: typeof experts }[] = [
-    { cat: 'recommended', label: '추천', items: RECOMMENDED_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
     ...visibleCategories.map(cat => ({
       cat: cat as string,
       label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
@@ -1352,8 +1349,8 @@ export function ExpertSelectionPanel({
   const validCats = grouped.map(g => g.cat);
   const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
   const effectiveCategory = aiBlocked
-    ? (validCats.find(c => c === 'specialist') || validCats.find(c => c !== 'ai' && c !== 'recommended') || validCats[0] || 'ai')
-    : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'recommended');
+    ? (validCats.find(c => c === 'specialist') || validCats[0] || 'ai')
+    : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'ai');
 
   const handleMainModeChange = (m: MainMode) => {
     setAutoAssign(false);
