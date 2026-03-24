@@ -132,9 +132,12 @@ async function streamExpert({
   if (!resp.ok || !resp.body) {
     const errorData = await resp.json().catch(() => ({}));
     if (resp.status === 429) {
-      throw new Error('API 요청 한도 초과 — 잠시 후 다시 시도해주세요. (무료 티어: 일 20회)');
+      throw new Error('일일 사용 한도에 도달했어요. 내일 다시 이용해주세요.');
     }
-    throw new Error(errorData.error || '스트림 시작 실패');
+    if (resp.status >= 500) {
+      throw new Error('서버에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해주세요.');
+    }
+    throw new Error(errorData.error || '응답을 받아오지 못했어요. 네트워크를 확인해주세요.');
   }
 
   const reader = resp.body.getReader();
@@ -312,7 +315,7 @@ const Index = () => {
       });
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+        fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
         setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, content: fullContent, isStreaming: false } : m));
       }
     }
@@ -389,7 +392,7 @@ const Index = () => {
           });
         } catch (err) {
           if ((err as Error).name !== 'AbortError') {
-            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`, isStreaming: false } : m));
+            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`, isStreaming: false } : m));
           }
         }
       }
@@ -462,7 +465,7 @@ const Index = () => {
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
-          fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+          fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
           setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
         }
         await new Promise((r) => setTimeout(r, DELAY_BETWEEN_EXPERTS));
@@ -492,7 +495,7 @@ const Index = () => {
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
-          fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+          fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
           setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
         }
         allResponses.push({ name: expert.nameKo, content: fullContent });
@@ -539,7 +542,7 @@ const Index = () => {
               signal: controller.signal });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
-            fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+            fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${label})`, content: fullContent });
@@ -634,7 +637,7 @@ const Index = () => {
               signal: controller.signal });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
-            fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+            fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${sideLabel}, ${label})`, content: fullContent });
@@ -685,7 +688,7 @@ const Index = () => {
               signal: controller.signal });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
-            fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+            fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
             setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${fwRound.label})`, content: fullContent });
@@ -749,7 +752,7 @@ const Index = () => {
             });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
-            fullContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+            fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
             setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${phase.label})`, content: fullContent });
@@ -775,7 +778,7 @@ const Index = () => {
           });
         } catch (err) {
           if ((err as Error).name !== 'AbortError') {
-            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`, isStreaming: false } : m));
+            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`, isStreaming: false } : m));
           }
         }
       }
@@ -819,7 +822,7 @@ Keep it concise and factual. Do NOT provide your own conclusion or opinion. Refe
           signal: controller.signal });
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
-          summaryContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+          summaryContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
           setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false } : m));
         }
       }
@@ -856,7 +859,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
             signal: controller.signal });
         } catch (err) {
           if ((err as Error).name !== 'AbortError') {
-            conclusionContent = `⚠️ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`;
+            conclusionContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
             setMessages((prev) => prev.map((m) => m.id === conclusionId ? { ...m, content: conclusionContent, isStreaming: false } : m));
           }
         }
@@ -1079,7 +1082,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
         signal: controller.signal });
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 오류: ${(err as Error).message}`, isStreaming: false } : m));
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false } : m));
       }
     }
     setActiveExpertId(undefined);
@@ -1127,7 +1130,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
         });
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
-          setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: `⚠️ 오류: ${(err as Error).message}`, isStreaming: false } : m));
+          setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false } : m));
         }
       }
       setActiveExpertId(undefined);
@@ -1162,7 +1165,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
             signal: controller.signal });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
-          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 오류`, isStreaming: false } : m));
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false } : m));
         }
         prevAll.push({ name: expert.nameKo, content: fullContent });
         await new Promise(r => setTimeout(r, DELAY_BETWEEN_EXPERTS));
@@ -1204,7 +1207,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
             signal: controller.signal });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
-          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 오류`, isStreaming: false } : m));
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false } : m));
         }
         prevAll.push({ name: expert.nameKo, content: fullContent });
         await new Promise(r => setTimeout(r, DELAY_BETWEEN_EXPERTS));

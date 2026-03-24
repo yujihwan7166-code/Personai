@@ -50,8 +50,17 @@ const COLLAPSE_THRESHOLD = 300; // ~9-10줄
 function MessageContent({ content, isStreaming, noCollapse }: { content: string; isStreaming?: boolean; noCollapse?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const isLong = !noCollapse && content.length > COLLAPSE_THRESHOLD && !isStreaming;
+  const isError = content.startsWith('⚠️');
 
   if (content) {
+    if (isError) {
+      return (
+        <div className="flex items-center gap-2 py-1 text-[12px] text-red-500">
+          <span>{content}</span>
+          <span className="text-[10px] text-slate-400">· 질문을 다시 입력해보세요</span>
+        </div>
+      );
+    }
     const displayContent = isLong && !expanded ? content.slice(0, COLLAPSE_THRESHOLD) + '...' : content;
     return (
       <>
