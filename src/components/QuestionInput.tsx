@@ -32,7 +32,9 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
   };
 
   const placeholder = isFollowUp
-    ? '이어서 질문해보세요'
+    ? (discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'hearing'
+      ? '토론자들에게 추가 질문을 해보세요'
+      : '이어서 질문해보세요')
     : discussionMode === 'general'
     ? '궁금한 것을 물어보세요'
     : discussionMode === 'multi'
@@ -50,8 +52,8 @@ export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExpe
         disabled
           ? 'border-slate-200 opacity-75'
           : focused
-            ? 'border-indigo-300 shadow-[0_2px_20px_rgba(79,70,229,0.10)] bg-white'
-            : 'border-indigo-200 bg-white shadow-sm hover:border-indigo-300'
+            ? 'border-violet-300 shadow-[0_2px_20px_rgba(139,92,246,0.10)] bg-white'
+            : 'border-slate-200 bg-slate-50 shadow-sm hover:border-violet-300'
       )}>
       <div className="rounded-[calc(1rem-2px)] bg-white transition-all duration-200">
         {/* Selected AI chips / participant label (hidden in follow-up mode) */}

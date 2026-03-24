@@ -338,6 +338,7 @@ const Index = () => {
     setIsDiscussing(false);
     setActiveExpertId(undefined);
     skipClarifyRef.current = false;
+    clarifyAttemptsRef.current = 0;
     userScrolledUpRef.current = false;
     setChatClarify(null);
   };
@@ -408,7 +409,8 @@ const Index = () => {
     if (useMode === 'general') {
       // Clarifying questions check (첫 질문에만, 스킵 플래그 확인)
       const expert0 = discussionExperts[0];
-      if (expert0 && !skipClarifyRef.current) {
+      if (expert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS) {
+        clarifyAttemptsRef.current++;
         try {
           const clarifyResp = await fetch('/api/clarify-chat', {
             method: 'POST',
@@ -958,12 +960,30 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
   // Scroll to bottom — smart: pause auto-scroll when user scrolls up
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const userInitiatedScrollRef = useRef(false);
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     setShowScrollBtn(distanceFromBottom > 200);
-    userScrolledUpRef.current = distanceFromBottom > 150;
+    // userScrolledUpRef는 wheel/touch 이벤트에서만 변경 (콘텐츠 높이 변화와 구분)
+    if (userInitiatedScrollRef.current) {
+      userScrolledUpRef.current = distanceFromBottom > 100;
+      userInitiatedScrollRef.current = false;
+    }
+  }, []);
+
+  // wheel/touch 이벤트만 감지하여 사용자 스크롤 구분
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const markUserScroll = () => { userInitiatedScrollRef.current = true; };
+    el.addEventListener('wheel', markUserScroll, { passive: true });
+    el.addEventListener('touchmove', markUserScroll, { passive: true });
+    return () => {
+      el.removeEventListener('wheel', markUserScroll);
+      el.removeEventListener('touchmove', markUserScroll);
+    };
   }, []);
   const scrollToBottom = () => {
     userScrolledUpRef.current = false;
@@ -1040,6 +1060,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
   // Clarifying questions state (단일 AI)
   const skipClarifyRef = useRef(false);
+  const clarifyAttemptsRef = useRef(0);
+  const MAX_CLARIFY_ATTEMPTS = 1;
   const [chatClarify, setChatClarify] = useState<{
     show: boolean;
     loading: boolean;
@@ -1756,7 +1778,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               <button key={expert.id} type="button"
                                 onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
                                 className={cn(
-                                  'group rounded-xl border border-slate-200 bg-white overflow-hidden transition-all border-t-2 text-left',
+                                  'group rounded-xl border border-slate-200 bg-slate-50 overflow-hidden transition-all border-t-2 text-left',
                                   accent,
                                   !isDiscussing && 'hover:shadow-lg hover:-translate-y-0.5'
                                 )}>
@@ -1985,7 +2007,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         {(currentRound.proMsgs.length > 0 || currentRound.conMsgs.length > 0) ? (
                         <div className="grid grid-cols-2 gap-0 p-0">
                           {/* 찬성 칼럼 */}
-                          <div className="space-y-3 p-4 bg-blue-50/30 border-r border-slate-100">
+                          <div className="space-y-3 p-4 bg-blue-50 border-r border-slate-100">
                             <div className="flex items-center gap-2 px-2">
                               <div className="w-2 h-2 rounded-full bg-blue-500" />
                               <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">찬성</span>
@@ -2003,7 +2025,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             )}
                           </div>
                           {/* 반대 칼럼 */}
-                          <div className="space-y-3 p-4 bg-red-50/30">
+                          <div className="space-y-3 p-4 bg-red-50">
                             <div className="flex items-center gap-2 px-2">
                               <div className="w-2 h-2 rounded-full bg-red-500" />
                               <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider">반대</span>
@@ -2140,7 +2162,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                           </div>
                         )}
                         {/* 발언 */}
-                        <div className="p-4">
+                        <div className="p-4 bg-slate-50/50">
                           {currentRound && currentRound.msgs.length > 0 ? (
                             <div className="space-y-3">
                               {currentRound.msgs.map(msg => {
