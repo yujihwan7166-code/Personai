@@ -1,6 +1,14 @@
 import { Expert } from '@/types/expert';
 import { cn } from '@/lib/utils';
 
+const OCCUPATION_SUB_COLORS: Record<string, string> = {
+  '의료': 'ring-rose-300',
+  '법·경제': 'ring-amber-300',
+  '교육·창작': 'ring-violet-300',
+  '공학·IT': 'ring-cyan-300',
+  '현장·기타': 'ring-emerald-300',
+};
+
 interface ExpertAvatarProps {
   expert: Expert;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -48,14 +56,16 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
 
   // Emoji icon
   if (expert.icon) {
+    const occRing = expert.category === 'occupation' && expert.subCategory
+      ? OCCUPATION_SUB_COLORS[expert.subCategory] : null;
     return (
       <div className={cn(
         'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
         roundedClass,
         containerClasses[size],
         active
-          ? 'bg-white shadow-sm ring-1 ring-slate-200 scale-105'
-          : 'bg-slate-50/80'
+          ? cn('bg-white shadow-sm scale-105', occRing ? `ring-2 ${occRing}` : 'ring-1 ring-slate-200')
+          : cn('bg-slate-50/80', occRing ? `ring-1 ${occRing}` : '')
       )}>
         {expert.icon}
       </div>
