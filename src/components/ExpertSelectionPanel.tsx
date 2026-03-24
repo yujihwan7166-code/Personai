@@ -395,19 +395,18 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                         if (!e) return null;
                         return (
                           <button key={id} type="button"
-                            onClick={() => assignStance(id, isPro ? 'con' : 'pro')}
+                            onClick={() => removeStance(id)}
                             draggable onDragStart={() => setDraggedId(id)} onDragEnd={() => setDraggedId(null)}
-                            title={`클릭하면 ${isPro ? '반대' : '찬성'}로 이동`}
+                            title="클릭하면 배정 해제"
                             className="flex flex-col items-center gap-1 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot">
                             <div className={cn('relative w-14 h-14 rounded-full flex items-center justify-center shadow-sm border-2 transition-colors',
-                              isPro ? 'bg-blue-50 border-blue-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50' : 'bg-red-50 border-red-200 group-hover/slot:border-blue-300 group-hover/slot:bg-blue-50')}>
+                              isPro ? 'bg-blue-50 border-blue-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50' : 'bg-red-50 border-red-200 group-hover/slot:border-red-300 group-hover/slot:bg-red-50')}>
                               <ExpertAvatar expert={e} size="md" />
-                              <div className={cn('absolute inset-0 rounded-full flex items-center justify-center transition-all',
-                                isPro ? 'bg-red-500/0 group-hover/slot:bg-red-500/10' : 'bg-blue-500/0 group-hover/slot:bg-blue-500/10')}>
-                                <ArrowRight className={cn('w-4 h-4 opacity-0 group-hover/slot:opacity-100 transition-opacity', isPro ? 'text-red-500' : 'text-blue-500')} />
+                              <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/slot:bg-red-500/10 flex items-center justify-center transition-all">
+                                <X className="w-4 h-4 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
                               </div>
                             </div>
-                            <span className={cn('text-[10px] font-semibold max-w-[60px] truncate text-center transition-colors', isPro ? 'text-blue-600 group-hover/slot:text-red-500' : 'text-red-600 group-hover/slot:text-blue-500')}>{e.nameKo}</span>
+                            <span className={cn('text-[10px] font-semibold max-w-[60px] truncate text-center transition-colors group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
                           </button>
                         );
                       })}
