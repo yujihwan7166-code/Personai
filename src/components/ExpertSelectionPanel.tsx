@@ -389,7 +389,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                     <span className={cn('text-[10px] font-medium', isPro ? 'text-blue-400' : 'text-red-400')}>{assigned.length}/{MAX_PER_ZONE}</span>
                   </div>
                   <div className={cn('px-3 py-4 bg-white transition-colors', isOver && canDrop && (isPro ? 'bg-blue-50/30' : 'bg-red-50/30'))}>
-                    <div className="flex flex-wrap gap-2 justify-center">
+                    <div className="flex flex-wrap gap-4 justify-center">
                       {assigned.map(id => {
                         const e = experts.find(x => x.id === id);
                         if (!e) return null;
@@ -398,14 +398,14 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                             onClick={() => removeStance(id)}
                             draggable onDragStart={() => setDraggedId(id)} onDragEnd={() => setDraggedId(null)}
                             title="클릭하면 배정 해제"
-                            className="flex flex-col items-center gap-1 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot">
-                            <div className="relative w-14 h-14 flex items-center justify-center group-hover/slot:opacity-70 transition-opacity">
-                              <span className="text-[36px] leading-none">{e.icon}</span>
+                            className="flex flex-col items-center gap-1.5 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot min-w-[56px]">
+                            <div className="relative group-hover/slot:opacity-70 transition-opacity">
+                              <ExpertAvatar expert={e} size="lg" />
                               <div className="absolute inset-0 rounded-full flex items-center justify-center transition-all">
                                 <X className="w-4 h-4 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
                               </div>
                             </div>
-                            <span className={cn('text-[10px] font-semibold max-w-[60px] truncate text-center transition-colors group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
+                            <span className={cn('text-[10px] font-semibold max-w-[64px] truncate text-center transition-colors group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
                           </button>
                         );
                       })}
