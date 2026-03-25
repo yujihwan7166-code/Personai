@@ -40,16 +40,17 @@ interface Props {
   onBulkSelect?: (ids: string[]) => void;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'brainstorm_main', 'expert', 'debate', 'assistant'];
+const mainModes: MainMode[] = ['general', 'multi', 'brainstorm_main', 'expert', 'debate', 'assistant', 'player'];
 const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'hearing'];
 
 const mainModeLabels: Record<MainMode, string> = {
   general: '단일 AI',
   multi: '다중 AI',
   brainstorm_main: '브레인스토밍',
-  expert: '전문가 모드',
+  expert: '전문가 상담',
   debate: '라운드테이블',
   assistant: '어시스턴트',
+  player: '플레이어',
 };
 
 const debateSubIcons: Record<DebateSubMode, React.ReactNode> = {
@@ -1324,7 +1325,9 @@ export function ExpertSelectionPanel({
           ? '전문가들이 단계별로 질문하며 최고 품질의 상담을 제공합니다'
           : mainMode === 'assistant'
             ? '목적에 맞는 AI 어시스턴트를 선택해 작업을 도와받으세요'
-            : '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다';
+            : mainMode === 'player'
+              ? 'AI와 함께 게임, 퀴즈, 재미있는 놀이를 즐겨보세요'
+              : '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다';
 
   const typedSubtitle = useTypewriter(subtitleText, 20);
   const isGeneral = mainMode === 'general';
@@ -1364,6 +1367,7 @@ export function ExpertSelectionPanel({
     else if (m === 'brainstorm_main') onModeChange('brainstorm');
     else if (m === 'expert') onModeChange('expert');
     else if (m === 'assistant') onModeChange('assistant');
+    else if (m === 'player') onModeChange('player');
     else onModeChange('standard');
   };
 
@@ -1377,7 +1381,8 @@ export function ExpertSelectionPanel({
               : mainMode === 'brainstorm_main' ? 'AI들이 협업해 아이디어를 정리해드립니다'
                 : mainMode === 'expert' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
                   : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
-                    : '전문가 챗봇들의 토론으로 더 넓은 시야를 얻으세요'}
+                    : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
+                      : '전문가 챗봇들의 토론으로 더 넓은 시야를 얻으세요'}
         </h2>
         <div className="relative flex justify-center">
           <span className="invisible text-[12px] leading-relaxed">{subtitleText}</span>
