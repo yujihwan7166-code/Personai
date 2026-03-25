@@ -1492,8 +1492,8 @@ export function ExpertSelectionPanel({
           autoAssign && 'opacity-50'
         )} onClick={() => { if (autoAssign) setAutoAssign(false); }}>
           {/* Category tabs / Search */}
-          <div className="flex flex-col bg-slate-50 border-b-2 border-slate-200">
-            <div className="flex items-center px-2 pt-1 pb-1 overflow-x-auto scrollbar-none">
+          <div className="flex flex-col bg-slate-50 border-b-2 border-slate-200 overflow-visible relative z-20">
+            <div className="flex items-center px-2 pt-1 pb-1 overflow-visible">
               {searchMode ? (
                 <div className="flex items-center gap-1.5 flex-1 px-1">
                   <Search className="w-3 h-3 text-slate-400 shrink-0" />
