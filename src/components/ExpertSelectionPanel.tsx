@@ -1705,7 +1705,7 @@ export function ExpertSelectionPanel({
       {mainMode !== 'expert' && mainMode !== 'assistant' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
-          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1)}
+          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2)}
           discussionMode={discussionMode}
           selectedExperts={
             (isProcon || discussionMode === 'standard' || isBrainstorm || isHearing)
