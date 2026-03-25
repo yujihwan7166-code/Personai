@@ -164,7 +164,7 @@ export function AppSidebar({
         {/* Logo */}
         <div className={cn('shrink-0 border-b border-slate-100', collapsed ? 'px-2 py-3' : 'px-4 py-4')}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shrink-0 shadow-sm">
               <MessageSquare className="w-4 h-4 text-white" />
             </div>
             {!collapsed && (
