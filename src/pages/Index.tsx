@@ -1811,40 +1811,42 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                   return (
                     <div className="space-y-3">
-                      {/* 질문 + 뷰 스위처 통합 헤더 */}
-                      <div className="space-y-2">
-                        {currentQuestion && (
-                          <div className="flex items-center gap-3">
-                            <p className="text-slate-900 font-bold text-[15px] leading-snug flex-1 min-w-0 line-clamp-2">{currentQuestion}</p>
-                            {isDone && (
-                              <button onClick={copyAllResults} className="flex items-center gap-1 px-2 py-1 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors shrink-0">
-                                {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                                {copiedAll ? '복사됨' : '복사'}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        {sortedExperts.length > 1 && !isDiscussing && (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
-                              {([['overview', '전체'], ['detail', '상세'], ['compare', '비교']] as const).map(([v, label]) => (
-                                <button key={v} onClick={() => {
-                                  setMultiView(v as any);
-                                  if (v === 'compare' && sortedExperts.length >= 2) setMultiCompareIds([sortedExperts[0].id, sortedExperts[1].id]);
-                                }} className={cn('px-3 py-1 rounded-md text-[11px] font-semibold transition-all',
-                                  multiView === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
-                                  {label}
+                      {/* 헤더 — overview일 때만 질문+뷰스위처 표시 */}
+                      {(multiView === 'overview' || isDiscussing) && (
+                        <div className="space-y-2">
+                          {currentQuestion && (
+                            <div className="flex items-center gap-3">
+                              <p className="text-slate-900 font-bold text-[15px] leading-snug flex-1 min-w-0 line-clamp-2">{currentQuestion}</p>
+                              {isDone && (
+                                <button onClick={copyAllResults} className="flex items-center gap-1 px-2 py-1 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors shrink-0">
+                                  {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                                  {copiedAll ? '복사됨' : '복사'}
                                 </button>
-                              ))}
+                              )}
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="flex -space-x-1.5">
-                                {sortedExperts.slice(0, 4).map(e => <ExpertAvatar key={e.id} expert={e} size="xs" />)}
+                          )}
+                          {sortedExperts.length > 1 && !isDiscussing && (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+                                {([['overview', '전체'], ['detail', '상세'], ['compare', '비교']] as const).map(([v, label]) => (
+                                  <button key={v} onClick={() => {
+                                    setMultiView(v as any);
+                                    if (v === 'compare' && sortedExperts.length >= 2) setMultiCompareIds([sortedExperts[0].id, sortedExperts[1].id]);
+                                  }} className={cn('px-3 py-1 rounded-md text-[11px] font-semibold transition-all',
+                                    multiView === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex -space-x-1.5">
+                                  {sortedExperts.slice(0, 4).map(e => <ExpertAvatar key={e.id} expert={e} size="xs" />)}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* ── Layer 1: Overview ── */}
                       {(multiView === 'overview' || isDiscussing) && (
