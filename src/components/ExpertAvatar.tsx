@@ -1,5 +1,6 @@
 import { Expert } from '@/types/expert';
 import { cn } from '@/lib/utils';
+import { parse } from 'twemoji-parser';
 
 interface ExpertAvatarProps {
   expert: Expert;
@@ -23,6 +24,11 @@ const containerClasses = {
   xl: 'w-16 h-16 text-[36px]',
 };
 
+function getTwemojiUrl(emoji: string): string | null {
+  const parsed = parse(emoji);
+  return parsed.length > 0 ? parsed[0].url : null;
+}
+
 export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps) {
   const isCompact = size === 'xs' || size === 'sm';
   const roundedClass = isCompact ? 'rounded-lg' : 'rounded-xl';
@@ -44,6 +50,30 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
         />
       </div>
     );
+  }
+
+  // Persona (perspective): Twemoji — 모든 기기에서 동일하게 보임
+  if (expert.icon && expert.category === 'perspective') {
+    const twemojiUrl = getTwemojiUrl(expert.icon);
+    if (twemojiUrl) {
+      return (
+        <div className={cn(
+          'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+          roundedClass,
+          containerClasses[size],
+          active
+            ? 'bg-white shadow-md scale-105'
+            : 'bg-slate-100'
+        )}>
+          <img
+            src={twemojiUrl}
+            alt={expert.nameKo}
+            className={cn('object-contain', logoSizeClasses[size])}
+            draggable={false}
+          />
+        </div>
+      );
+    }
   }
 
   // Emoji icon
