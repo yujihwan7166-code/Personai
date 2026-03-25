@@ -2189,13 +2189,7 @@ Rules:
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <div key={msg.id} className="flex gap-2.5 items-start">
-                                  <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
-                                  <div className="flex-1 min-w-0 max-w-[85%]">
-                                    <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
-                                    <DiscussionMessageCard message={msg} expert={expert} variant="messenger" />
-                                  </div>
-                                </div>
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="messenger" />
                               );
                             })}
                           </div>
@@ -2377,13 +2371,7 @@ Rules:
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <div key={msg.id} className="flex gap-2.5 items-start">
-                                  <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
-                                  <div className="flex-1 min-w-0 max-w-[85%]">
-                                    <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
-                                    <DiscussionMessageCard message={msg} expert={expert} variant="messenger" />
-                                  </div>
-                                </div>
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="messenger" />
                               );
                             })}
                           </div>
