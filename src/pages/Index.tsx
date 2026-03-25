@@ -1848,7 +1848,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                       {/* ── Layer 1: Overview ── */}
                       {(multiView === 'overview' || isDiscussing) && (
-                        <div className={cn('grid gap-3', sortedExperts.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
+                        <div className={cn('grid gap-3 items-start', sortedExperts.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
                           {sortedExperts.map((expert, ei) => {
                             const msg = expertMsgs.find(m => m.expertId === expert.id);
                             if (!msg) return null;
@@ -1882,8 +1882,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                   </div>
                                   {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /></span>}
                                 </div>
-                                {/* 본문 — 더 길게 */}
-                                <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-8 min-h-[120px] flex-1">
+                                {/* 본문 */}
+                                <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-8 min-h-[80px] max-h-[200px] overflow-hidden flex-1">
                                   {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
                                   {charCount > 200 && <span className="text-slate-300">...</span>}
                                 </div>
