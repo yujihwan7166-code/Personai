@@ -657,7 +657,7 @@ const Index = () => {
       const fw = selectedFramework || THINKING_FRAMEWORKS.find(f => f.id === 'free')!;
       const fwRounds = fw.rounds;
       const roundMap: DiscussionRound[] = ['initial', 'rebuttal', 'final', 'rebuttal', 'final', 'rebuttal'];
-      const isCuratedFramework = ['free', 'swot', 'sixhats'].includes(fw.id);
+      const isCuratedFramework = ['free', 'swot', 'sixhats', 'scamper', 'pmi', 'fivewhys', 'moonshot', 'designthinking', 'starbursting', 'reversal'].includes(fw.id);
 
       if (isCuratedFramework) {
         // ── 큐레이션 방식: 내부 수집 → 프로그레스 → 최종 결과만 표시 ──
@@ -739,6 +739,34 @@ Rules: 각 영역 3~5개. 한국어로. JSON만 출력.`,
             sixhats: `You are a Six Hats facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"white":["사실1","사실2"],"red":["감정1","감정2"],"black":["위험1","위험2"],"yellow":["긍정1","긍정2"],"green":["창의1","창의2"],"blue":["결론1","결론2"],"summary":"한줄 요약"}
 Rules: 각 모자 2~4개 포인트. 한국어로. JSON만 출력.`,
+
+            scamper: `You are a SCAMPER facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"substitute":[{"title":"제목","desc":"설명"}],"combine":[{"title":"제목","desc":"설명"}],"adapt":[{"title":"제목","desc":"설명"}],"modify":[{"title":"제목","desc":"설명"}],"putToOtherUse":[{"title":"제목","desc":"설명"}],"eliminate":[{"title":"제목","desc":"설명"}],"reverse":[{"title":"제목","desc":"설명"}],"summary":"한줄 요약"}
+Rules: 각 기법 1~3개. 한국어로. JSON만 출력.`,
+
+            pmi: `You are a PMI analyst. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"plus":[{"title":"제목","desc":"설명"}],"minus":[{"title":"제목","desc":"설명"}],"interesting":[{"title":"제목","desc":"설명"}],"summary":"한줄 요약"}
+Rules: 각 영역 3~5개. 한국어로. JSON만 출력.`,
+
+            fivewhys: `You are a Five Whys analyst. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"chain":[{"why":"왜 이 문제가 발생하는가?","because":"원인 설명"},{"why":"왜 그 원인이 발생하는가?","because":"더 깊은 원인"},{"why":"세번째 Why","because":"근본 원인에 가까워짐"},{"why":"네번째 Why","because":"거의 근본 원인"},{"why":"다섯번째 Why","because":"근본 원인"}],"rootCause":"최종 근본 원인 한줄","solutions":[{"title":"해결책 제목","desc":"설명"}],"summary":"한줄 요약"}
+Rules: chain 5개. solutions 2~4개. 한국어로. JSON만 출력.`,
+
+            moonshot: `You are a Moonshot thinking facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"current":{"title":"현재 상태","desc":"설명"},"tenX":{"title":"10배 비전","desc":"설명"},"constraints":[{"title":"제거할 제약","desc":"설명"}],"mvp":{"title":"최소 실행 단위","desc":"설명"},"roadmap":[{"phase":"단계명","desc":"설명"}],"summary":"한줄 요약"}
+Rules: constraints 2~3개. roadmap 3~4단계. 한국어로. JSON만 출력.`,
+
+            designthinking: `You are a Design Thinking facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"empathize":[{"title":"인사이트","desc":"설명"}],"define":{"problem":"핵심 문제 정의","persona":"대상 사용자"},"ideate":[{"title":"아이디어","desc":"설명"}],"prototype":{"title":"프로토타입 제안","desc":"설명","steps":["단계1","단계2"]},"summary":"한줄 요약"}
+Rules: empathize 2~3개. ideate 3~5개. 한국어로. JSON만 출력.`,
+
+            starbursting: `You are a Starbursting facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"who":[{"q":"질문","a":"답변"}],"what":[{"q":"질문","a":"답변"}],"when":[{"q":"질문","a":"답변"}],"where":[{"q":"질문","a":"답변"}],"why":[{"q":"질문","a":"답변"}],"how":[{"q":"질문","a":"답변"}],"summary":"한줄 요약"}
+Rules: 각 카테고리 2~3개 Q&A. 한국어로. JSON만 출력.`,
+
+            reversal: `You are a Reversal Thinking facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"original":{"title":"원래 관점","desc":"설명"},"reversed":{"title":"뒤집은 관점","desc":"설명"},"insights":[{"title":"발견","desc":"설명"}],"actions":[{"title":"적용 방안","desc":"설명"}],"summary":"한줄 요약"}
+Rules: insights 2~4개. actions 2~3개. 한국어로. JSON만 출력.`,
           };
 
           setActiveExpertId(SUMMARIZER_EXPERT.id);
@@ -2550,7 +2578,281 @@ Rules:
                       );
                     }
 
-                    // fallback
+                    // ── SCAMPER 렌더링 ──
+                    if (fwId === 'scamper') {
+                      const steps = [
+                        { key: 'substitute', label: 'S · 대체', icon: '🔄', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
+                        { key: 'combine', label: 'C · 결합', icon: '🔗', bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700' },
+                        { key: 'adapt', label: 'A · 적용', icon: '🔧', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
+                        { key: 'modify', label: 'M · 수정', icon: '✏️', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' },
+                        { key: 'putToOtherUse', label: 'P · 용도변경', icon: '♻️', bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700' },
+                        { key: 'eliminate', label: 'E · 제거', icon: '✂️', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700' },
+                        { key: 'reverse', label: 'R · 뒤집기', icon: '🔃', bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700' },
+                      ];
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2"><span className="text-[20px]">🔧</span><h3 className="text-[15px] font-bold text-slate-800 mt-1">SCAMPER 분석 결과</h3></div>
+                          <div className="space-y-2">
+                            {steps.map(s => {
+                              const items = data[s.key] || [];
+                              if (items.length === 0) return null;
+                              return (
+                                <div key={s.key} className={cn('rounded-xl border p-3', s.bg, s.border)}>
+                                  <div className={cn('text-[12px] font-bold mb-1.5', s.text)}>{s.icon} {s.label}</div>
+                                  {items.map((item: any, i: number) => (
+                                    <div key={i} className="text-[11px] text-slate-600 mb-1"><span className="font-semibold">{item.title}</span> — {item.desc}</div>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {data.summary && <div className="text-center px-4 py-3 rounded-xl bg-slate-100"><span className="text-[12px] text-slate-600">💡 {data.summary}</span></div>}
+                        </div>
+                      );
+                    }
+
+                    // ── PMI 렌더링 ──
+                    if (fwId === 'pmi') {
+                      const cols = [
+                        { key: 'plus', label: '➕ Plus · 장점', bg: 'bg-emerald-50', border: 'border-emerald-200', header: 'bg-emerald-100', text: 'text-emerald-700' },
+                        { key: 'minus', label: '➖ Minus · 단점', bg: 'bg-red-50', border: 'border-red-200', header: 'bg-red-100', text: 'text-red-700' },
+                        { key: 'interesting', label: '💡 Interesting · 흥미', bg: 'bg-amber-50', border: 'border-amber-200', header: 'bg-amber-100', text: 'text-amber-700' },
+                      ];
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2"><span className="text-[20px]">⚖️</span><h3 className="text-[15px] font-bold text-slate-800 mt-1">PMI 분석 결과</h3></div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {cols.map(c => (
+                              <div key={c.key} className={cn('rounded-xl border overflow-hidden', c.border, c.bg)}>
+                                <div className={cn('px-3 py-2 text-[11px] font-bold text-center', c.header, c.text)}>{c.label}</div>
+                                <div className="px-3 py-2.5 space-y-1.5">
+                                  {(data[c.key] || []).map((item: any, i: number) => (
+                                    <div key={i} className="text-[11px] text-slate-600"><span className="font-semibold">{item.title}</span>{item.desc && ` — ${item.desc}`}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {data.summary && <div className="text-center px-4 py-3 rounded-xl bg-slate-100"><span className="text-[12px] text-slate-600">💡 {data.summary}</span></div>}
+                        </div>
+                      );
+                    }
+
+                    // ── Five Whys 렌더링 ──
+                    if (fwId === 'fivewhys') {
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2"><span className="text-[20px]">🔍</span><h3 className="text-[15px] font-bold text-slate-800 mt-1">5 Why 분석 결과</h3></div>
+                          <div className="space-y-0">
+                            {(data.chain || []).map((step: any, i: number) => (
+                              <div key={i} className="flex items-stretch">
+                                <div className="flex flex-col items-center mr-3">
+                                  <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0',
+                                    i < 2 ? 'bg-blue-400' : i < 4 ? 'bg-violet-500' : 'bg-red-500')}>
+                                    W{i + 1}
+                                  </div>
+                                  {i < (data.chain?.length || 0) - 1 && <div className="w-0.5 flex-1 bg-slate-200 my-1" />}
+                                </div>
+                                <div className="flex-1 pb-4">
+                                  <div className="text-[12px] font-bold text-slate-700">{step.why}</div>
+                                  <div className="text-[11px] text-slate-500 mt-0.5 pl-2 border-l-2 border-slate-200">{step.because}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {data.rootCause && (
+                            <div className="rounded-xl border-2 border-red-300 bg-red-50 p-3.5">
+                              <div className="text-[11px] font-bold text-red-600 mb-1">🎯 근본 원인</div>
+                              <div className="text-[12px] text-red-700 font-medium">{data.rootCause}</div>
+                            </div>
+                          )}
+                          {data.solutions?.length > 0 && (
+                            <div className="space-y-1.5">
+                              <div className="text-[11px] font-bold text-slate-600">💊 해결책</div>
+                              {data.solutions.map((s: any, i: number) => (
+                                <div key={i} className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+                                  <div className="text-[11px] text-emerald-700"><span className="font-semibold">{s.title}</span> — {s.desc}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {data.summary && <div className="text-center px-4 py-3 rounded-xl bg-slate-100"><span className="text-[12px] text-slate-600">💡 {data.summary}</span></div>}
+                        </div>
+                      );
+                    }
+
+                    // ── Moonshot 렌더링 ──
+                    if (fwId === 'moonshot') {
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2"><span className="text-[20px]">🚀</span><h3 className="text-[15px] font-bold text-slate-800 mt-1">Moonshot 분석 결과</h3></div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                              <div className="text-[10px] font-bold text-slate-400 mb-1">현재</div>
+                              <div className="text-[12px] font-semibold text-slate-700">{data.current?.title}</div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">{data.current?.desc}</div>
+                            </div>
+                            <span className="text-[16px] shrink-0">→</span>
+                            <div className="flex-1 rounded-xl border-2 border-violet-300 bg-violet-50 p-3">
+                              <div className="text-[10px] font-bold text-violet-500 mb-1">10× 비전</div>
+                              <div className="text-[12px] font-semibold text-violet-700">{data.tenX?.title}</div>
+                              <div className="text-[11px] text-violet-500 mt-0.5">{data.tenX?.desc}</div>
+                            </div>
+                          </div>
+                          {data.constraints?.length > 0 && (
+                            <div className="rounded-xl border border-red-200 bg-red-50/50 p-3">
+                              <div className="text-[11px] font-bold text-red-600 mb-1.5">🔓 제거할 제약</div>
+                              {data.constraints.map((c: any, i: number) => (
+                                <div key={i} className="text-[11px] text-red-600 mb-1">✕ <span className="font-medium">{c.title}</span> — {c.desc}</div>
+                              ))}
+                            </div>
+                          )}
+                          {data.mvp && (
+                            <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-3">
+                              <div className="text-[11px] font-bold text-emerald-600 mb-1">🎯 최소 실행 단위 (MVP)</div>
+                              <div className="text-[12px] font-semibold text-emerald-700">{data.mvp.title}</div>
+                              <div className="text-[11px] text-emerald-500 mt-0.5">{data.mvp.desc}</div>
+                            </div>
+                          )}
+                          {data.roadmap?.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              {data.roadmap.map((r: any, i: number) => (
+                                <React.Fragment key={i}>
+                                  <div className="flex-1 rounded-lg bg-indigo-50 border border-indigo-200 p-2 text-center">
+                                    <div className="text-[10px] font-bold text-indigo-600">{r.phase}</div>
+                                    <div className="text-[9px] text-indigo-400 mt-0.5">{r.desc}</div>
+                                  </div>
+                                  {i < data.roadmap.length - 1 && <span className="text-[10px] text-slate-300 shrink-0">→</span>}
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          )}
+                          {data.summary && <div className="text-center px-4 py-3 rounded-xl bg-slate-100"><span className="text-[12px] text-slate-600">💡 {data.summary}</span></div>}
+                        </div>
+                      );
+                    }
+
+                    // ── Design Thinking 렌더링 ──
+                    if (fwId === 'designthinking') {
+                      const phases = [
+                        { key: 'empathize', label: '공감', icon: '❤️', bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700' },
+                      ];
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2"><span className="text-[20px]">🎨</span><h3 className="text-[15px] font-bold text-slate-800 mt-1">Design Thinking 결과</h3></div>
+                          {/* 공감 */}
+                          <div className="rounded-xl border border-pink-200 bg-pink-50 p-3">
+                            <div className="text-[12px] font-bold text-pink-700 mb-1.5">❤️ 공감 (Empathize)</div>
+                            {(data.empathize || []).map((item: any, i: number) => (
+                              <div key={i} className="text-[11px] text-pink-600 mb-1">· <span className="font-medium">{item.title}</span> — {item.desc}</div>
+                            ))}
+                          </div>
+                          {/* 정의 */}
+                          {data.define && (
+                            <div className="rounded-xl border-2 border-violet-300 bg-violet-50 p-3">
+                              <div className="text-[12px] font-bold text-violet-700 mb-1">🎯 문제 정의 (Define)</div>
+                              <div className="text-[12px] font-semibold text-violet-800">{data.define.problem}</div>
+                              {data.define.persona && <div className="text-[11px] text-violet-500 mt-1">👤 대상: {data.define.persona}</div>}
+                            </div>
+                          )}
+                          {/* 아이디어 */}
+                          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                            <div className="text-[12px] font-bold text-amber-700 mb-1.5">💡 아이디어 (Ideate)</div>
+                            {(data.ideate || []).map((item: any, i: number) => (
+                              <div key={i} className="text-[11px] text-amber-600 mb-1">{i + 1}. <span className="font-medium">{item.title}</span> — {item.desc}</div>
+                            ))}
+                          </div>
+                          {/* 프로토타입 */}
+                          {data.prototype && (
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                              <div className="text-[12px] font-bold text-emerald-700 mb-1">🔨 프로토타입 (Prototype)</div>
+                              <div className="text-[12px] font-semibold text-emerald-800">{data.prototype.title}</div>
+                              <div className="text-[11px] text-emerald-500 mt-0.5">{data.prototype.desc}</div>
+                              {data.prototype.steps?.length > 0 && (
+                                <div className="mt-2 flex gap-1">
+                                  {data.prototype.steps.map((s: string, i: number) => (
+                                    <span key={i} className="px-2 py-0.5 rounded-full bg-emerald-100 text-[9px] text-emerald-600 font-medium">{i + 1}. {s}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {data.summary && <div className="text-center px-4 py-3 rounded-xl bg-slate-100"><span className="text-[12px] text-slate-600">💡 {data.summary}</span></div>}
+                        </div>
+                      );
+                    }
+
+                    // ── Starbursting 렌더링 ──
+                    if (fwId === 'starbursting') {
+                      const cats = [
+                        { key: 'who', label: 'Who · 누가', icon: '👤', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
+                        { key: 'what', label: 'What · 무엇을', icon: '📦', bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700' },
+                        { key: 'when', label: 'When · 언제', icon: '🕐', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' },
+                        { key: 'where', label: 'Where · 어디서', icon: '📍', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
+                        { key: 'why', label: 'Why · 왜', icon: '❓', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700' },
+                        { key: 'how', label: 'How · 어떻게', icon: '⚙️', bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700' },
+                      ];
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2"><span className="text-[20px]">⭐</span><h3 className="text-[15px] font-bold text-slate-800 mt-1">Starbursting (5W1H) 결과</h3></div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {cats.map(c => (
+                              <div key={c.key} className={cn('rounded-xl border p-3', c.bg, c.border)}>
+                                <div className={cn('text-[11px] font-bold mb-1.5', c.text)}>{c.icon} {c.label}</div>
+                                {(data[c.key] || []).map((qa: any, i: number) => (
+                                  <div key={i} className="mb-1.5">
+                                    <div className="text-[11px] font-semibold text-slate-700">Q: {qa.q}</div>
+                                    <div className="text-[10px] text-slate-500 pl-2 border-l-2 border-slate-200 mt-0.5">A: {qa.a}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                          {data.summary && <div className="text-center px-4 py-3 rounded-xl bg-slate-100"><span className="text-[12px] text-slate-600">💡 {data.summary}</span></div>}
+                        </div>
+                      );
+                    }
+
+                    // ── Reversal 렌더링 ──
+                    if (fwId === 'reversal') {
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2"><span className="text-[20px]">🔄</span><h3 className="text-[15px] font-bold text-slate-800 mt-1">역발상 분석 결과</h3></div>
+                          <div className="flex items-stretch gap-2">
+                            <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                              <div className="text-[10px] font-bold text-slate-400 mb-1">➡️ 원래 관점</div>
+                              <div className="text-[12px] font-semibold text-slate-700">{data.original?.title}</div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">{data.original?.desc}</div>
+                            </div>
+                            <div className="flex items-center shrink-0"><span className="text-[18px]">🔄</span></div>
+                            <div className="flex-1 rounded-xl border-2 border-violet-300 bg-violet-50 p-3">
+                              <div className="text-[10px] font-bold text-violet-500 mb-1">⬅️ 뒤집은 관점</div>
+                              <div className="text-[12px] font-semibold text-violet-700">{data.reversed?.title}</div>
+                              <div className="text-[11px] text-violet-500 mt-0.5">{data.reversed?.desc}</div>
+                            </div>
+                          </div>
+                          {data.insights?.length > 0 && (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                              <div className="text-[11px] font-bold text-amber-600 mb-1.5">💡 발견한 인사이트</div>
+                              {data.insights.map((ins: any, i: number) => (
+                                <div key={i} className="text-[11px] text-amber-700 mb-1">· <span className="font-medium">{ins.title}</span> — {ins.desc}</div>
+                              ))}
+                            </div>
+                          )}
+                          {data.actions?.length > 0 && (
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                              <div className="text-[11px] font-bold text-emerald-600 mb-1.5">🎯 적용 방안</div>
+                              {data.actions.map((act: any, i: number) => (
+                                <div key={i} className="text-[11px] text-emerald-700 mb-1">{i + 1}. <span className="font-medium">{act.title}</span> — {act.desc}</div>
+                              ))}
+                            </div>
+                          )}
+                          {data.summary && <div className="text-center px-4 py-3 rounded-xl bg-slate-100"><span className="text-[12px] text-slate-600">💡 {data.summary}</span></div>}
+                        </div>
+                      );
+                    }
+
+                    // fallback — 알 수 없는 프레임워크
                     const expert = allExperts.find(e => e.id === msg.expertId);
                     if (!expert) return null;
                     return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
