@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 돋보기 -->
+  <circle cx="28" cy="28" r="14" stroke="#059669" stroke-width="3"/>
+  <path d="M38 38L52 52" stroke="#059669" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- 체크마크 (돋보기 안) -->
+  <path d="M22 28L26 34L36 22" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 얼굴 윤곽 -->
+  <circle cx="32" cy="28" r="14" stroke="#7C3AED" stroke-width="3"/>
+  <!-- 안경 -->
+  <circle cx="26" cy="26" r="5" stroke="#7C3AED" stroke-width="2.8"/>
+  <circle cx="38" cy="26" r="5" stroke="#7C3AED" stroke-width="2.8"/>
+  <path d="M31 26H33" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- 찡그린 입 -->
+  <path d="M26 34H38" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- 넥타이 -->
+  <path d="M32 42L28 50L32 58L36 50L32 42Z" stroke="#7C3AED" stroke-width="2.8" stroke-linejoin="round"/>
+</svg>

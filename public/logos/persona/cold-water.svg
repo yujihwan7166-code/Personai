@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 큰 물방울 -->
+  <path d="M32 8C32 8 14 28 14 40C14 50 22 56 32 56C42 56 50 50 50 40C50 28 32 8 32 8Z" stroke="#0D9488" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 얼음 결정 패턴 -->
+  <path d="M32 24V44" stroke="#0D9488" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M24 34H40" stroke="#0D9488" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M26 28L38 40" stroke="#0D9488" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M38 28L26 40" stroke="#0D9488" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

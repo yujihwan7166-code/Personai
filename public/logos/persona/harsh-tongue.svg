@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 날카로운 말풍선 -->
+  <path d="M8 10H50C52 10 54 12 54 14V36C54 38 52 40 50 40H20L12 50V40H8C6 40 4 38 4 36V14C4 12 6 10 8 10Z" stroke="#DC2626" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 번개/날카로운 심볼 (안) -->
+  <path d="M24 18L20 30H30L26 38" stroke="#DC2626" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M36 18L40 24" stroke="#DC2626" stroke-width="3" stroke-linecap="round"/>
+  <path d="M36 28L42 32" stroke="#DC2626" stroke-width="3" stroke-linecap="round"/>
+  <path d="M36 18L42 20" stroke="#DC2626" stroke-width="3" stroke-linecap="round"/>
+</svg>

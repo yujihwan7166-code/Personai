@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 거울 (타원) -->
+  <ellipse cx="32" cy="30" rx="14" ry="18" stroke="#EC4899" stroke-width="3"/>
+  <!-- 거울 손잡이 -->
+  <path d="M32 48V58" stroke="#EC4899" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M26 58H38" stroke="#EC4899" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- 반짝임 -->
+  <path d="M42 14L44 10" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M46 20L50 18" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

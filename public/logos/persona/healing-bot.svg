@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 하트 -->
+  <path d="M32 52L12 32C8 28 8 20 14 16C20 12 26 16 32 22C38 16 44 12 50 16C56 20 56 28 52 32L32 52Z" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 반창고 십자 -->
+  <path d="M26 30H38" stroke="#059669" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M32 24V36" stroke="#059669" stroke-width="3.2" stroke-linecap="round"/>
+</svg>

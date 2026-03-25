@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 찡그린 얼굴 -->
+  <circle cx="32" cy="32" r="22" stroke="#EA580C" stroke-width="3"/>
+  <!-- 찡그린 눈 (X 모양) -->
+  <path d="M20 24L26 30" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
+  <path d="M26 24L20 30" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
+  <path d="M38 24L44 30" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
+  <path d="M44 24L38 30" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
+  <!-- 삐뚤어진 입 -->
+  <path d="M22 42C26 38 30 40 32 42C34 44 38 38 42 40" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
+  <!-- 이마 주름 -->
+  <path d="M24 16H28" stroke="#EA580C" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M36 16H40" stroke="#EA580C" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

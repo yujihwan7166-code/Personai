@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 번개 -->
+  <path d="M36 6L22 30H32L28 58L46 28H34L36 6Z" stroke="#7C3AED" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 불꽃 눈 (왼쪽) -->
+  <path d="M12 20L8 16L14 18L12 12L16 18L18 14L16 20" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 불꽃 눈 (오른쪽) -->
+  <path d="M48 20L52 16L50 22L54 18L52 24" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

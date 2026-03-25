@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 훈수 손가락 (검지 치켜든 손) -->
+  <path d="M32 8V32" stroke="#EA580C" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- 손가락 마디 -->
+  <path d="M28 32H36V42C36 44 34 46 32 46C30 46 28 44 28 42V32Z" stroke="#EA580C" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 느낌표 강조 -->
+  <path d="M20 14L16 10" stroke="#EA580C" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M44 14L48 10" stroke="#EA580C" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- 지팡이 -->
+  <path d="M18 52C18 52 24 50 32 50C40 50 46 52 46 52" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
+  <path d="M32 46V50" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
+</svg>

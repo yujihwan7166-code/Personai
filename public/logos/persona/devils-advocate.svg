@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 삼지창 (trident) -->
+  <path d="M32 56V20" stroke="#DC2626" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M32 20L32 12" stroke="#DC2626" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M22 22L22 12C22 9 27 6 27 6" stroke="#DC2626" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M42 22L42 12C42 9 37 6 37 6" stroke="#DC2626" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 12C32 9 32 6 32 6" stroke="#DC2626" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- 뿔 -->
+  <path d="M24 46C20 44 18 40 18 36" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M40 46C44 44 46 40 46 36" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

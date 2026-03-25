@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 핀셋 -->
+  <path d="M24 6C24 6 20 24 18 32C16 38 20 42 24 40" stroke="#EC4899" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 6C32 6 36 24 38 32C40 38 36 42 32 40" stroke="#EC4899" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 핀셋 상단 연결 -->
+  <path d="M24 6H32" stroke="#EC4899" stroke-width="3" stroke-linecap="round"/>
+  <!-- 잡힌 작은 것 -->
+  <circle cx="28" cy="44" r="3" stroke="#EC4899" stroke-width="2.8"/>
+  <!-- 눈 (관찰) -->
+  <path d="M10 54C10 54 20 46 28 46C36 46 46 54 46 54" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <circle cx="28" cy="52" r="4" stroke="#EC4899" stroke-width="2.8"/>
+  <circle cx="28" cy="52" r="1.5" fill="#EC4899"/>
+</svg>

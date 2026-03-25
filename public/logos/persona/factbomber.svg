@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 폭탄 몸체 -->
+  <circle cx="30" cy="38" r="16" stroke="#3B82F6" stroke-width="3"/>
+  <!-- 심지 -->
+  <path d="M40 22L44 14" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  <path d="M38 26L40 22" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  <!-- 불꽃 -->
+  <path d="M44 14C45 11 47 10 48 8" stroke="#3B82F6" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M44 14C46 13 48 12 50 12" stroke="#3B82F6" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M44 14C43 12 44 10 45 9" stroke="#3B82F6" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- FACT 텍스트 대신 느낌표 -->
+  <path d="M30 32V40" stroke="#3B82F6" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="30" cy="45" r="1.5" fill="#3B82F6"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 먹구름 -->
+  <path d="M14 30C10 30 8 26 10 22C12 18 16 18 18 18C18 12 24 8 30 10C34 6 42 6 46 12C50 12 54 16 54 20C54 26 50 28 46 28H14Z" stroke="#7C3AED" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 빗방울들 -->
+  <path d="M20 34L16 44" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M30 34L26 44" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M40 34L36 44" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M24 42L20 52" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M34 42L30 52" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M44 42L40 52" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 해골 -->
+  <path d="M18 30C18 18 46 18 46 30C46 38 42 42 42 44H22C22 42 18 38 18 30Z" stroke="#DC2626" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 눈 -->
+  <ellipse cx="26" cy="30" rx="4" ry="5" stroke="#DC2626" stroke-width="2.8"/>
+  <ellipse cx="38" cy="30" rx="4" ry="5" stroke="#DC2626" stroke-width="2.8"/>
+  <!-- 코 -->
+  <path d="M30 37L32 39L34 37" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 턱/이빨 -->
+  <path d="M22 44H42V50C42 52 40 54 38 54H26C24 54 22 52 22 50V44Z" stroke="#DC2626" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M26 44V50" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M30 44V50" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M34 44V50" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M38 44V50" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

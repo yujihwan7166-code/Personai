@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 두 손이 하트를 감싸는 형태 -->
+  <!-- 하트 -->
+  <path d="M32 24C32 24 26 12 18 12C12 12 8 18 8 24C8 36 32 50 32 50C32 50 56 36 56 24C56 18 52 12 46 12C38 12 32 24 32 24Z" stroke="#EC4899" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 양쪽 손 -->
+  <path d="M8 40C4 36 4 32 6 28" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M56 40C60 36 60 32 58 28" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- 아래쪽 감싸는 손 -->
+  <path d="M14 46C18 50 26 52 32 50" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M50 46C46 50 38 52 32 50" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 삼각형 -->
+  <path d="M32 10L54 50H10L32 10Z" stroke="#0D9488" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 눈 (프로비던스의 눈) -->
+  <ellipse cx="32" cy="34" rx="8" ry="5" stroke="#0D9488" stroke-width="2.8"/>
+  <circle cx="32" cy="34" r="2.5" stroke="#0D9488" stroke-width="2.8"/>
+</svg>

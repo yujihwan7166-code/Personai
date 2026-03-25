@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 달 (초승달) -->
+  <path d="M36 10C28 12 22 20 22 30C22 40 28 48 36 50C30 52 22 50 16 44C10 38 8 28 12 20C16 12 26 8 36 10Z" stroke="#7C3AED" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 별 -->
+  <path d="M48 16L50 22L56 22L51 26L53 32L48 28L43 32L45 26L40 22L46 22Z" stroke="#7C3AED" stroke-width="2.8" stroke-linejoin="round"/>
+  <!-- 눈물방울 -->
+  <path d="M44 42C44 42 40 48 40 50C40 52.2 41.8 54 44 54C46.2 54 48 52.2 48 50C48 48 44 42 44 42Z" stroke="#7C3AED" stroke-width="2.8" stroke-linejoin="round"/>
+</svg>

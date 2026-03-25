@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 방패 -->
+  <path d="M32 6L10 16V30C10 44 20 54 32 58C44 54 54 44 54 30V16L32 6Z" stroke="#3B82F6" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 별 (방패 안) -->
+  <path d="M32 18L35 27H44L37 32L39 41L32 36L25 41L27 32L20 27H29L32 18Z" stroke="#3B82F6" stroke-width="2.8" stroke-linejoin="round"/>
+</svg>

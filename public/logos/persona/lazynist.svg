@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 늘어진 사람 (기대 앉은 자세) -->
+  <circle cx="24" cy="18" r="7" stroke="#D97706" stroke-width="3"/>
+  <!-- 몸 -->
+  <path d="M24 25C24 25 22 35 20 42" stroke="#D97706" stroke-width="3" stroke-linecap="round"/>
+  <!-- 팔 늘어짐 -->
+  <path d="M22 32L14 40" stroke="#D97706" stroke-width="3" stroke-linecap="round"/>
+  <!-- 다리 -->
+  <path d="M20 42L16 54" stroke="#D97706" stroke-width="3" stroke-linecap="round"/>
+  <path d="M20 42L28 52" stroke="#D97706" stroke-width="3" stroke-linecap="round"/>
+  <!-- Zzz -->
+  <path d="M38 10H46L38 18H46" stroke="#D97706" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M48 20H54L48 26H54" stroke="#D97706" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

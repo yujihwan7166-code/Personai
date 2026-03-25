@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 장미 꽃봉오리 -->
+  <path d="M32 20C28 20 24 24 24 28C24 34 32 40 32 40C32 40 40 34 40 28C40 24 36 20 32 20Z" stroke="#EC4899" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M28 26C30 24 34 24 36 26" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M26 30C28 32 32 34 36 30" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- 줄기 -->
+  <path d="M32 40V56" stroke="#EC4899" stroke-width="3" stroke-linecap="round"/>
+  <!-- 잎사귀 -->
+  <path d="M32 46C32 46 26 44 24 40" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M32 50C32 50 38 48 40 44" stroke="#EC4899" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- 하트 -->
+  <path d="M18 14C16 10 10 10 10 16C10 20 18 24 18 24C18 24 26 20 26 16C26 10 20 10 18 14Z" stroke="#EC4899" stroke-width="2.8" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 해 (반원 - 해돋이) -->
+  <path d="M12 42C12 42 12 20 32 20C52 20 52 42 52 42" stroke="#D97706" stroke-width="3" stroke-linecap="round"/>
+  <!-- 수평선 -->
+  <path d="M6 42H58" stroke="#D97706" stroke-width="3" stroke-linecap="round"/>
+  <!-- 햇살 -->
+  <path d="M32 12V6" stroke="#D97706" stroke-width="3" stroke-linecap="round"/>
+  <path d="M18 18L14 14" stroke="#D97706" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M46 18L50 14" stroke="#D97706" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M10 30L6 28" stroke="#D97706" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M54 30L58 28" stroke="#D97706" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- 무지개 호 -->
+  <path d="M16 54C16 54 24 48 32 48C40 48 48 54 48 54" stroke="#D97706" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

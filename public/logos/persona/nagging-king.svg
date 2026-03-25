@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 확성기 (megaphone) -->
+  <path d="M10 28L10 36" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
+  <path d="M10 28H16L38 16V48L16 36H10" stroke="#EA580C" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- 소리 파동 -->
+  <path d="M44 24C47 27 47 37 44 40" stroke="#EA580C" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M50 20C55 25 55 39 50 44" stroke="#EA580C" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M56 16C62 23 62 41 56 48" stroke="#EA580C" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

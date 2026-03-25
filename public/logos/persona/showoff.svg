@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 왕관 -->
+  <path d="M10 44L10 24L22 34L32 18L42 34L54 24L54 44Z" stroke="#7C3AED" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M10 44H54" stroke="#7C3AED" stroke-width="3" stroke-linecap="round"/>
+  <!-- 보석 장식 -->
+  <circle cx="22" cy="40" r="2" stroke="#7C3AED" stroke-width="2.8"/>
+  <circle cx="32" cy="40" r="2" stroke="#7C3AED" stroke-width="2.8"/>
+  <circle cx="42" cy="40" r="2" stroke="#7C3AED" stroke-width="2.8"/>
+  <!-- 반짝임 -->
+  <path d="M32 12L33 9L34 12" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

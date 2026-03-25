@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 웃는 마스크 -->
+  <circle cx="32" cy="32" r="20" stroke="#DC2626" stroke-width="3"/>
+  <!-- 눈 (장난스런) -->
+  <path d="M24 26L22 22L26 24" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M40 26L38 22L42 24" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 큰 웃음 입 -->
+  <path d="M22 36C22 36 26 44 32 44C38 44 42 36 42 36" stroke="#DC2626" stroke-width="3" stroke-linecap="round"/>
+  <!-- 광대 모자 꼭지 -->
+  <path d="M32 12L28 4" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round"/>
+  <circle cx="27" cy="3" r="2" stroke="#DC2626" stroke-width="2.8"/>
+</svg>

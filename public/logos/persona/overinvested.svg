@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 소용돌이 -->
+  <path d="M32 32C32 28 36 26 38 28C40 30 38 34 34 36C30 38 24 36 22 32C20 28 22 22 28 20C34 18 42 20 44 28C46 36 42 44 32 46C22 48 14 42 12 32C10 22 16 12 28 10" stroke="#DC2626" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+  <!-- 불꽃 -->
+  <path d="M46 10C46 10 50 14 48 18C48 18 52 16 50 10" stroke="#DC2626" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
