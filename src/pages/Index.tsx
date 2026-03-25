@@ -649,80 +649,247 @@ const Index = () => {
         }
       }
     } else if (useMode === 'brainstorm') {
-      // Build brainstorm settings prompt
-      const bsFormatMap: Record<string, string> = {
-        list: '번호 매긴 목록 형식으로 아이디어를 제시하세요.',
-        mindmap: '마인드맵 구조(중심→가지→세부)로 아이디어를 정리하세요.',
-        table: '표 형식(| 아이디어 | 설명 | 장점 | 단점 |)으로 정리하세요.',
-        free: '',
-      };
       const bsCreativityMap: Record<string, string> = {
         realistic: '현실적이고 즉시 실행 가능한 아이디어에 집중하세요.',
         balanced: '현실적 아이디어와 혁신적 아이디어를 균형있게 제시하세요.',
         radical: '파격적이고 급진적인 아이디어를 과감하게 제시하세요. 기존 틀을 완전히 깨세요.',
       };
-      const bsSettingsExtra =
-        `\n\n=== 아이디어 출력 규칙 ===` +
-        `\n각 아이디어를 반드시 다음 형식으로 구분하여 제시하세요:` +
-        `\n---IDEA---` +
-        `\n**제목:** (핵심을 담은 한 줄 제목)` +
-        `\n(2-3문장 설명. 50단어 이내로 간결하게.)` +
-        `\n---END---` +
-        `\n총 ${debateSettings.ideaCount}개를 제시하세요. 아이디어당 최대 3문장.` +
-        (debateSettings.deduplication ? '\n다른 참여자와 중복되는 아이디어는 피하고 새로운 관점만 제시하세요.' : '') +
-        (bsCreativityMap[debateSettings.creativityLevel] ? `\n${bsCreativityMap[debateSettings.creativityLevel]}` : '') +
-        `\n=== 끝 ===`;
-
-      // Use selected framework or default to 'free'
       const fw = selectedFramework || THINKING_FRAMEWORKS.find(f => f.id === 'free')!;
       const fwRounds = fw.rounds;
       const roundMap: DiscussionRound[] = ['initial', 'rebuttal', 'final', 'rebuttal', 'final', 'rebuttal'];
+      const isCuratedFramework = ['free', 'swot', 'sixhats'].includes(fw.id);
 
-      for (let ri = 0; ri < fwRounds.length; ri++) {
-        if (shouldStop()) break;
-        const fwRound = fwRounds[ri];
-        const round = roundMap[ri] || 'rebuttal';
-        const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
-        setMessages((prev) => [...prev, { id: `round-sep-brainstorm-${ri}-${Date.now()}`, expertId: '__round__', content: fwRound.label, round }]);
-        for (const expert of roundExperts) {
+      if (isCuratedFramework) {
+        // ── 큐레이션 방식: 내부 수집 → 프로그레스 → 최종 결과만 표시 ──
+        const progressId = `brainstorm-progress-${Date.now()}`;
+        const totalSteps = fwRounds.length + 1;
+        const expertNames = discussionExperts.map(e => e.nameKo);
+
+        // 프로그레스 메시지 추가
+        setMessages((prev) => [...prev, {
+          id: progressId, expertId: '__brainstorm_progress__', content: JSON.stringify({
+            framework: fw.id, frameworkName: fw.nameKo, currentStep: 0, totalSteps,
+            stepLabel: fwRounds[0]?.label || '준비 중...', experts: expertNames, completedExperts: [] as string[],
+          }),
+        }]);
+
+        // 각 라운드 → 각 전문가: 내부 수집 (메시지에 안 보임)
+        for (let ri = 0; ri < fwRounds.length; ri++) {
           if (shouldStop()) break;
-          setActiveExpertId(expert.id);
-          const extra = `\n\n[${fw.nameKo}] ${fwRound.label}\n${fwRound.instruction}` + bsSettingsExtra;
-          const msgId = `${expert.id}-brainstorm-${ri}-${Date.now()}`;
-          setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
-          let fullContent = '';
+          const fwRound = fwRounds[ri];
+          const round = roundMap[ri] || 'rebuttal';
+          const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
+          const completedInRound: string[] = [];
+
+          // 프로그레스 업데이트
+          setMessages((prev) => prev.map(m => m.id === progressId ? { ...m, content: JSON.stringify({
+            framework: fw.id, frameworkName: fw.nameKo, currentStep: ri, totalSteps,
+            stepLabel: fwRound.label, experts: expertNames, completedExperts: [],
+          }) } : m));
+
+          for (const expert of roundExperts) {
+            if (shouldStop()) break;
+            setActiveExpertId(expert.id);
+            const extra = `\n\n[${fw.nameKo}] ${fwRound.label}\n${fwRound.instruction}` +
+              `\n아이디어를 최소 ${debateSettings.ideaCount}개 제시하세요. 간결하게.` +
+              (debateSettings.deduplication ? '\n다른 참여자와 중복 피하세요.' : '') +
+              (bsCreativityMap[debateSettings.creativityLevel] || '');
+
+            let fullContent = '';
+            try {
+              await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra + lengthExtra },
+                previousResponses: allResponses, round,
+                onDelta: (chunk) => { fullContent += chunk; },
+                onDone: () => {},
+                signal: controller.signal });
+            } catch (err) {
+              if ((err as Error).name === 'AbortError') break;
+              fullContent = '';
+            }
+            allResponses.push({ name: `${expert.nameKo} (${fwRound.label})`, content: fullContent });
+            completedInRound.push(expert.nameKo);
+
+            // 프로그레스 업데이트 — 전문가 완료 표시
+            setMessages((prev) => prev.map(m => m.id === progressId ? { ...m, content: JSON.stringify({
+              framework: fw.id, frameworkName: fw.nameKo, currentStep: ri, totalSteps,
+              stepLabel: fwRound.label, experts: expertNames, completedExperts: [...completedInRound],
+            }) } : m));
+
+            await new Promise((r) => setTimeout(r, 200));
+          }
+        }
+
+        // 큐레이션 단계 — 프로그레스 업데이트
+        if (!shouldStop()) {
+          setMessages((prev) => prev.map(m => m.id === progressId ? { ...m, content: JSON.stringify({
+            framework: fw.id, frameworkName: fw.nameKo, currentStep: fwRounds.length, totalSteps,
+            stepLabel: '결과 정리 중...', experts: expertNames, completedExperts: expertNames,
+          }) } : m));
+
+          // 큐레이터 프롬프트
+          const curatorPrompts: Record<string, string> = {
+            free: `You are a brainstorming curator. Multiple AI experts generated ideas about the given topic. Synthesize ALL ideas into a curated Korean result using this format:
+
+## 💡 브레인스토밍 결과
+
+### 🏆 TOP 아이디어 (5~8개, 가장 실현 가능하고 임팩트 큰 것)
+1. **(제목)** — 설명 (2문장 이내)
+2. ...
+
+### 🔗 결합하면 더 좋은 아이디어
+- (A) + (B) → (결합 결과 한줄)
+
+### 🎯 즉시 실행 가능한 것
+- ...
+
+### 🚀 장기적으로 검토할 것
+- ...
+
+> 💡 **한줄 요약:** (전체 결론)
+
+반드시 한국어로. 중복 제거하고 핵심만. 표 사용 금지.`,
+
+            swot: `You are a SWOT analysis expert. Multiple AI experts analyzed the given topic from various angles. Synthesize ALL inputs into a clean SWOT matrix in Korean:
+
+## 📊 SWOT 분석 결과
+
+### 💪 강점 (Strengths)
+1. **(제목)** — 설명
+2. ...
+3. ...
+
+### ⚠️ 약점 (Weaknesses)
+1. **(제목)** — 설명
+2. ...
+3. ...
+
+### 🌟 기회 (Opportunities)
+1. **(제목)** — 설명
+2. ...
+3. ...
+
+### 🔥 위협 (Threats)
+1. **(제목)** — 설명
+2. ...
+3. ...
+
+### 🎯 전략 제안
+- **SO전략** (강점으로 기회 잡기): ...
+- **WO전략** (약점 보완해 기회 활용): ...
+- **ST전략** (강점으로 위협 방어): ...
+- **WT전략** (약점+위협 최소화): ...
+
+> 💡 **한줄 요약:** (핵심 전략 한 문장)
+
+반드시 한국어로. 각 영역 3~5개씩. 표 사용 금지.`,
+
+            sixhats: `You are a Six Thinking Hats facilitator. Multiple AI experts contributed perspectives. Synthesize ALL inputs into Six Hats format in Korean:
+
+## 🎩 6색 모자 분석 결과
+
+### ⬜ 흰 모자 · 사실과 데이터
+- (객관적 사실, 수치, 데이터만)
+- ...
+
+### 🟥 빨간 모자 · 감정과 직관
+- (감정적 반응, 직감, 본능적 느낌)
+- ...
+
+### ⬛ 검은 모자 · 비판과 위험
+- (위험 요소, 약점, 실패 가능성)
+- ...
+
+### 🟨 노란 모자 · 긍정과 가치
+- (장점, 기회, 긍정적 측면)
+- ...
+
+### 🟩 초록 모자 · 창의와 대안
+- (새로운 아이디어, 대안, 혁신적 접근)
+- ...
+
+### 🟦 파란 모자 · 종합과 결론
+- (전체 요약, 핵심 결론, 다음 단계)
+- ...
+
+> 💡 **한줄 요약:** (종합 결론)
+
+반드시 한국어로. 각 모자별 2~4개 포인트. 표 사용 금지.`,
+          };
+
+          setActiveExpertId(SUMMARIZER_EXPERT.id);
+          const curatorId = `brainstorm-result-${Date.now()}`;
+          // 프로그레스 제거 + 결과 메시지 추가
+          setMessages((prev) => [
+            ...prev.filter(m => m.id !== progressId),
+            { id: curatorId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }
+          ]);
+
+          let curatorContent = '';
           try {
-            await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra + lengthExtra }, previousResponses: allResponses, round,
-              onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-              onDone: () => {
-                // 아이디어 구분자로 분리
-                const ideas = fullContent.split('---IDEA---')
-                  .map(s => s.replace(/---END---/g, '').trim())
-                  .filter(s => s.length > 0);
-                if (ideas.length > 1) {
-                  setMessages((prev) => {
-                    const without = prev.filter(m => m.id !== msgId);
-                    const ideaMsgs = ideas.map((idea, ii) => ({
-                      id: `${msgId}-idea-${ii}`,
-                      expertId: expert.id,
-                      content: idea,
-                      isStreaming: false,
-                      round,
-                    }));
-                    return [...without, ...ideaMsgs];
-                  });
-                } else {
-                  setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));
-                }
-              },
+            await streamExpert({
+              question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: curatorPrompts[fw.id] || curatorPrompts.free },
+              previousResponses: allResponses, round: 'summary',
+              onDelta: (chunk) => { curatorContent += chunk; setMessages((prev) => prev.map(m => m.id === curatorId ? { ...m, content: curatorContent } : m)); },
+              onDone: () => { setMessages((prev) => prev.map(m => m.id === curatorId ? { ...m, isStreaming: false } : m)); },
               signal: controller.signal });
           } catch (err) {
-            if ((err as Error).name === 'AbortError') break;
-            fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+            if ((err as Error).name !== 'AbortError') {
+              setMessages((prev) => prev.map(m => m.id === curatorId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false } : m));
+            }
           }
-          allResponses.push({ name: `${expert.nameKo} (${fwRound.label})`, content: fullContent });
-          await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
+        } else {
+          // 중지 시 프로그레스 제거
+          setMessages((prev) => prev.filter(m => m.id !== progressId));
+        }
+
+      } else {
+        // ── 기존 방식: 개별 포스트잇 카드 ──
+        const bsSettingsExtra =
+          `\n\n=== 아이디어 출력 규칙 ===` +
+          `\n각 아이디어를 반드시 다음 형식으로 구분하여 제시하세요:` +
+          `\n---IDEA---\n**제목:** (한 줄 제목)\n(2-3문장 설명)\n---END---` +
+          `\n총 ${debateSettings.ideaCount}개. 아이디어당 최대 3문장.` +
+          (debateSettings.deduplication ? '\n중복 피하세요.' : '') +
+          (bsCreativityMap[debateSettings.creativityLevel] || '') +
+          `\n=== 끝 ===`;
+
+        for (let ri = 0; ri < fwRounds.length; ri++) {
+          if (shouldStop()) break;
+          const fwRound = fwRounds[ri];
+          const round = roundMap[ri] || 'rebuttal';
+          const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
+          setMessages((prev) => [...prev, { id: `round-sep-brainstorm-${ri}-${Date.now()}`, expertId: '__round__', content: fwRound.label, round }]);
+          for (const expert of roundExperts) {
+            if (shouldStop()) break;
+            setActiveExpertId(expert.id);
+            const extra = `\n\n[${fw.nameKo}] ${fwRound.label}\n${fwRound.instruction}` + bsSettingsExtra;
+            const msgId = `${expert.id}-brainstorm-${ri}-${Date.now()}`;
+            setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
+            let fullContent = '';
+            try {
+              await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra + lengthExtra }, previousResponses: allResponses, round,
+                onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
+                onDone: () => {
+                  const ideas = fullContent.split('---IDEA---').map(s => s.replace(/---END---/g, '').trim()).filter(s => s.length > 0);
+                  if (ideas.length > 1) {
+                    setMessages((prev) => {
+                      const without = prev.filter(m => m.id !== msgId);
+                      const ideaMsgs = ideas.map((idea, ii) => ({ id: `${msgId}-idea-${ii}`, expertId: expert.id, content: idea, isStreaming: false, round }));
+                      return [...without, ...ideaMsgs];
+                    });
+                  } else {
+                    setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));
+                  }
+                },
+                signal: controller.signal });
+            } catch (err) {
+              if ((err as Error).name === 'AbortError') break;
+              fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
+              setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+            }
+            allResponses.push({ name: `${expert.nameKo} (${fwRound.label})`, content: fullContent });
+            await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
+          }
         }
       }
     } else if (useMode === 'hearing') {
@@ -2199,8 +2366,97 @@ Rules:
                   );
                 })()
               ) : discussionMode === 'brainstorm' ? (
-                /* Brainstorm: grid layout */
+                /* Brainstorm: curated or grid layout */
                 (() => {
+                  // 프로그레스 메시지 체크
+                  const progressMsg = messages.find(m => m.expertId === '__brainstorm_progress__');
+                  if (progressMsg) {
+                    try {
+                      const p = JSON.parse(progressMsg.content);
+                      const stepPercent = Math.round((p.currentStep / p.totalSteps) * 100);
+                      const hatColors: Record<string, { bg: string; text: string; label: string }> = {
+                        '⬜ 흰 모자 · 사실': { bg: 'bg-slate-100', text: 'text-slate-600', label: '사실' },
+                        '🟥 빨간 모자 · 감정': { bg: 'bg-red-100', text: 'text-red-600', label: '감정' },
+                        '⬛ 검은 모자 · 비판': { bg: 'bg-slate-800', text: 'text-white', label: '비판' },
+                        '🟨 노란 모자 · 긍정': { bg: 'bg-yellow-100', text: 'text-yellow-700', label: '긍정' },
+                        '🟩 초록 모자 · 창의': { bg: 'bg-green-100', text: 'text-green-600', label: '창의' },
+                        '🟦 파란 모자 · 종합': { bg: 'bg-blue-100', text: 'text-blue-600', label: '종합' },
+                      };
+                      return (
+                        <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-500">
+                          {/* 프레임워크 아이콘 */}
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[28px] shadow-lg mb-6 animate-pulse">
+                            {p.framework === 'swot' ? '📊' : p.framework === 'sixhats' ? '🎩' : '💡'}
+                          </div>
+
+                          {/* 프레임워크 이름 + 단계 */}
+                          <h3 className="text-[16px] font-bold text-slate-800 mb-1">{p.frameworkName}</h3>
+                          <p className="text-[13px] text-violet-600 font-medium mb-6">{p.stepLabel}</p>
+
+                          {/* 프로그레스 바 */}
+                          <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden mb-4">
+                            <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
+                              style={{ width: `${stepPercent}%` }} />
+                          </div>
+                          <span className="text-[11px] text-slate-400 mb-6">{p.currentStep + 1} / {p.totalSteps} 단계</span>
+
+                          {/* SWOT 매트릭스 프로그레스 */}
+                          {p.framework === 'swot' && (
+                            <div className="grid grid-cols-2 gap-1 w-48 mb-6">
+                              {['강점', '약점', '기회', '위협'].map((label, i) => (
+                                <div key={label} className={cn('px-3 py-2 rounded-lg text-center text-[11px] font-semibold transition-all duration-500',
+                                  i < p.currentStep ? 'bg-violet-500 text-white' : i === p.currentStep ? 'bg-violet-100 text-violet-700 animate-pulse' : 'bg-slate-100 text-slate-400')}>
+                                  {label} {i < p.currentStep ? '✓' : i === p.currentStep ? '...' : ''}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* 6색 모자 프로그레스 */}
+                          {p.framework === 'sixhats' && (
+                            <div className="flex gap-1.5 mb-6">
+                              {Object.entries(hatColors).map(([key, val], i) => (
+                                <div key={key} className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all duration-500',
+                                  val.bg, val.text,
+                                  i < p.currentStep ? 'opacity-100 scale-100' : i === p.currentStep ? 'opacity-100 scale-110 ring-2 ring-violet-400 animate-pulse' : 'opacity-30 scale-90')}>
+                                  {i < p.currentStep ? '✓' : val.label.charAt(0)}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* 참여자 상태 */}
+                          <div className="flex items-center gap-2">
+                            {p.experts.map((name: string) => {
+                              const done = p.completedExperts?.includes(name);
+                              return (
+                                <span key={name} className={cn('px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-300',
+                                  done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400')}>
+                                  {name} {done ? '✓' : ''}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    } catch { return null; }
+                  }
+
+                  // 큐레이션 결과 (isSummary) 표시
+                  const summaryMsgs = messages.filter(m => m.isSummary);
+                  if (summaryMsgs.length > 0) {
+                    return (
+                      <div className="space-y-3">
+                        {summaryMsgs.map(msg => {
+                          const expert = allExperts.find(e => e.id === msg.expertId);
+                          if (!expert) return null;
+                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                        })}
+                      </div>
+                    );
+                  }
+
+                  // 기존 포스트잇 그리드 (비큐레이션 프레임워크)
                   const groups: { round?: typeof messages[0]; msgs: typeof messages }[] = [];
                   let current: typeof messages = [];
                   for (const msg of messages) {
