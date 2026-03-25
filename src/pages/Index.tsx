@@ -728,92 +728,17 @@ const Index = () => {
 
           // 큐레이터 프롬프트
           const curatorPrompts: Record<string, string> = {
-            free: `You are a brainstorming curator. Multiple AI experts generated ideas about the given topic. Synthesize ALL ideas into a curated Korean result using this format:
+            free: `You are a brainstorming curator. Synthesize ALL expert ideas into JSON. Output ONLY valid JSON, no markdown.
+{"topIdeas":[{"title":"제목","desc":"설명 2문장","tag":"즉시실행 또는 장기검토"}],"combinations":[{"a":"아이디어A","b":"아이디어B","result":"결합 결과"}],"summary":"한줄 요약"}
+Rules: topIdeas 5~8개, tag는 "즉시실행" 또는 "장기검토". combinations 2~3개. 한국어로. JSON만 출력.`,
 
-## 💡 브레인스토밍 결과
+            swot: `You are a SWOT analyst. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"strengths":[{"title":"제목","desc":"설명"}],"weaknesses":[{"title":"제목","desc":"설명"}],"opportunities":[{"title":"제목","desc":"설명"}],"threats":[{"title":"제목","desc":"설명"}],"strategies":{"so":"SO전략 설명","wo":"WO전략 설명","st":"ST전략 설명","wt":"WT전략 설명"},"summary":"한줄 요약"}
+Rules: 각 영역 3~5개. 한국어로. JSON만 출력.`,
 
-### 🏆 TOP 아이디어 (5~8개, 가장 실현 가능하고 임팩트 큰 것)
-1. **(제목)** — 설명 (2문장 이내)
-2. ...
-
-### 🔗 결합하면 더 좋은 아이디어
-- (A) + (B) → (결합 결과 한줄)
-
-### 🎯 즉시 실행 가능한 것
-- ...
-
-### 🚀 장기적으로 검토할 것
-- ...
-
-> 💡 **한줄 요약:** (전체 결론)
-
-반드시 한국어로. 중복 제거하고 핵심만. 표 사용 금지.`,
-
-            swot: `You are a SWOT analysis expert. Multiple AI experts analyzed the given topic from various angles. Synthesize ALL inputs into a clean SWOT matrix in Korean:
-
-## 📊 SWOT 분석 결과
-
-### 💪 강점 (Strengths)
-1. **(제목)** — 설명
-2. ...
-3. ...
-
-### ⚠️ 약점 (Weaknesses)
-1. **(제목)** — 설명
-2. ...
-3. ...
-
-### 🌟 기회 (Opportunities)
-1. **(제목)** — 설명
-2. ...
-3. ...
-
-### 🔥 위협 (Threats)
-1. **(제목)** — 설명
-2. ...
-3. ...
-
-### 🎯 전략 제안
-- **SO전략** (강점으로 기회 잡기): ...
-- **WO전략** (약점 보완해 기회 활용): ...
-- **ST전략** (강점으로 위협 방어): ...
-- **WT전략** (약점+위협 최소화): ...
-
-> 💡 **한줄 요약:** (핵심 전략 한 문장)
-
-반드시 한국어로. 각 영역 3~5개씩. 표 사용 금지.`,
-
-            sixhats: `You are a Six Thinking Hats facilitator. Multiple AI experts contributed perspectives. Synthesize ALL inputs into Six Hats format in Korean:
-
-## 🎩 6색 모자 분석 결과
-
-### ⬜ 흰 모자 · 사실과 데이터
-- (객관적 사실, 수치, 데이터만)
-- ...
-
-### 🟥 빨간 모자 · 감정과 직관
-- (감정적 반응, 직감, 본능적 느낌)
-- ...
-
-### ⬛ 검은 모자 · 비판과 위험
-- (위험 요소, 약점, 실패 가능성)
-- ...
-
-### 🟨 노란 모자 · 긍정과 가치
-- (장점, 기회, 긍정적 측면)
-- ...
-
-### 🟩 초록 모자 · 창의와 대안
-- (새로운 아이디어, 대안, 혁신적 접근)
-- ...
-
-### 🟦 파란 모자 · 종합과 결론
-- (전체 요약, 핵심 결론, 다음 단계)
-- ...
-
-> 💡 **한줄 요약:** (종합 결론)
-
-반드시 한국어로. 각 모자별 2~4개 포인트. 표 사용 금지.`,
+            sixhats: `You are a Six Hats facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
+{"white":["사실1","사실2"],"red":["감정1","감정2"],"black":["위험1","위험2"],"yellow":["긍정1","긍정2"],"green":["창의1","창의2"],"blue":["결론1","결론2"],"summary":"한줄 요약"}
+Rules: 각 모자 2~4개 포인트. 한국어로. JSON만 출력.`,
           };
 
           setActiveExpertId(SUMMARIZER_EXPERT.id);
@@ -821,7 +746,7 @@ const Index = () => {
           // 프로그레스 제거 + 결과 메시지 추가
           setMessages((prev) => [
             ...prev.filter(m => m.id !== progressId),
-            { id: curatorId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }
+            { id: curatorId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true, round: fw.id as DiscussionRound }
           ]);
 
           let curatorContent = '';
@@ -2442,18 +2367,193 @@ Rules:
                     } catch { return null; }
                   }
 
-                  // 큐레이션 결과 (isSummary) 표시
+                  // 큐레이션 결과 (isSummary) — 프레임워크별 커스텀 렌더링
                   const summaryMsgs = messages.filter(m => m.isSummary);
                   if (summaryMsgs.length > 0) {
-                    return (
-                      <div className="space-y-3">
-                        {summaryMsgs.map(msg => {
-                          const expert = allExperts.find(e => e.id === msg.expertId);
-                          if (!expert) return null;
-                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
-                        })}
-                      </div>
-                    );
+                    const msg = summaryMsgs[0];
+                    const fwId = msg.round || 'free';
+
+                    // 스트리밍 중이면 일반 텍스트로 표시
+                    if (msg.isStreaming) {
+                      return (
+                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                          <div className="text-[13px] text-slate-600 leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+                          <div className="flex items-center gap-1.5 mt-3">
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // JSON 파싱 시도
+                    let data: any = null;
+                    try {
+                      const cleaned = msg.content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                      if (jsonMatch) data = JSON.parse(jsonMatch[0]);
+                    } catch { /* 파싱 실패 시 fallback */ }
+
+                    // 파싱 실패 → 일반 마크다운으로 fallback
+                    if (!data) {
+                      const expert = allExperts.find(e => e.id === msg.expertId);
+                      if (!expert) return null;
+                      return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                    }
+
+                    // ── 자유 발산 렌더링 ──
+                    if (fwId === 'free') {
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2">
+                            <span className="text-[20px]">💡</span>
+                            <h3 className="text-[15px] font-bold text-slate-800 mt-1">브레인스토밍 결과</h3>
+                          </div>
+                          {/* TOP 아이디어 */}
+                          <div className="space-y-2">
+                            {(data.topIdeas || []).map((idea: any, i: number) => (
+                              <div key={i} className={cn(
+                                'flex items-start gap-3 p-3.5 rounded-xl border transition-all hover:shadow-md',
+                                i === 0 ? 'bg-amber-50 border-amber-200' : i === 1 ? 'bg-slate-50 border-slate-200' : i === 2 ? 'bg-orange-50/50 border-orange-200/50' : 'bg-white border-slate-200'
+                              )}>
+                                <span className="text-[18px] shrink-0 mt-0.5">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[13px] font-bold text-slate-800">{idea.title}</div>
+                                  <div className="text-[12px] text-slate-500 mt-0.5 leading-relaxed">{idea.desc}</div>
+                                </div>
+                                {idea.tag && (
+                                  <span className={cn('text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0',
+                                    idea.tag === '즉시실행' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600')}>
+                                    {idea.tag}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {/* 결합 아이디어 */}
+                          {data.combinations?.length > 0 && (
+                            <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-4">
+                              <div className="text-[12px] font-bold text-violet-700 mb-2">🔗 결합하면 더 좋은 아이디어</div>
+                              {data.combinations.map((c: any, i: number) => (
+                                <div key={i} className="text-[12px] text-violet-600 mb-1">
+                                  <span className="font-medium">{c.a}</span> + <span className="font-medium">{c.b}</span> → {c.result}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* 한줄 요약 */}
+                          {data.summary && (
+                            <div className="text-center px-4 py-3 rounded-xl bg-slate-100">
+                              <span className="text-[12px] text-slate-600">💡 {data.summary}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // ── SWOT 렌더링 ──
+                    if (fwId === 'swot') {
+                      const quadrants = [
+                        { key: 'strengths', label: '💪 강점', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', headerBg: 'bg-blue-100' },
+                        { key: 'weaknesses', label: '⚠️ 약점', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', headerBg: 'bg-red-100' },
+                        { key: 'opportunities', label: '🌟 기회', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', headerBg: 'bg-emerald-100' },
+                        { key: 'threats', label: '🔥 위협', bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', headerBg: 'bg-orange-100' },
+                      ];
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2">
+                            <span className="text-[20px]">📊</span>
+                            <h3 className="text-[15px] font-bold text-slate-800 mt-1">SWOT 분석 결과</h3>
+                          </div>
+                          {/* 2×2 매트릭스 */}
+                          <div className="grid grid-cols-2 gap-2">
+                            {quadrants.map(q => (
+                              <div key={q.key} className={cn('rounded-xl border overflow-hidden', q.border, q.bg)}>
+                                <div className={cn('px-3 py-2 text-[12px] font-bold', q.headerBg, q.text)}>{q.label}</div>
+                                <div className="px-3 py-2.5 space-y-1.5">
+                                  {(data[q.key] || []).map((item: any, i: number) => (
+                                    <div key={i} className="text-[11px] text-slate-700">
+                                      <span className="font-semibold">{item.title}</span>
+                                      {item.desc && <span className="text-slate-500"> — {item.desc}</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {/* 전략 제안 */}
+                          {data.strategies && (
+                            <div className="grid grid-cols-2 gap-2">
+                              {[
+                                { key: 'so', label: 'SO전략', sub: '강점 × 기회', bg: 'bg-blue-50/50 border-blue-100' },
+                                { key: 'wo', label: 'WO전략', sub: '약점 × 기회', bg: 'bg-emerald-50/50 border-emerald-100' },
+                                { key: 'st', label: 'ST전략', sub: '강점 × 위협', bg: 'bg-amber-50/50 border-amber-100' },
+                                { key: 'wt', label: 'WT전략', sub: '약점 × 위협', bg: 'bg-red-50/50 border-red-100' },
+                              ].map(s => (
+                                <div key={s.key} className={cn('rounded-lg border p-2.5', s.bg)}>
+                                  <div className="text-[10px] font-bold text-slate-700">{s.label} <span className="font-normal text-slate-400">{s.sub}</span></div>
+                                  <div className="text-[11px] text-slate-600 mt-1">{data.strategies[s.key]}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {data.summary && (
+                            <div className="text-center px-4 py-3 rounded-xl bg-slate-100">
+                              <span className="text-[12px] text-slate-600">💡 {data.summary}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // ── 6색 모자 렌더링 ──
+                    if (fwId === 'sixhats') {
+                      const hats = [
+                        { key: 'white', label: '흰 모자', sub: '사실과 데이터', bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-700', dot: 'bg-slate-400' },
+                        { key: 'red', label: '빨간 모자', sub: '감정과 직관', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', dot: 'bg-red-400' },
+                        { key: 'black', label: '검은 모자', sub: '비판과 위험', bg: 'bg-slate-800', border: 'border-slate-700', text: 'text-slate-200', dot: 'bg-slate-400' },
+                        { key: 'yellow', label: '노란 모자', sub: '긍정과 가치', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-400' },
+                        { key: 'green', label: '초록 모자', sub: '창의와 대안', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-400' },
+                        { key: 'blue', label: '파란 모자', sub: '종합과 결론', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-400' },
+                      ];
+                      return (
+                        <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
+                          <div className="text-center mb-2">
+                            <span className="text-[20px]">🎩</span>
+                            <h3 className="text-[15px] font-bold text-slate-800 mt-1">6색 모자 분석 결과</h3>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            {hats.map(h => (
+                              <div key={h.key} className={cn('rounded-xl border p-3.5 transition-all hover:shadow-md', h.bg, h.border)}>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className={cn('w-3 h-3 rounded-full', h.dot)} />
+                                  <span className={cn('text-[12px] font-bold', h.text)}>{h.label}</span>
+                                  <span className={cn('text-[9px]', h.key === 'black' ? 'text-slate-400' : 'text-slate-400')}>{h.sub}</span>
+                                </div>
+                                <div className="space-y-1">
+                                  {(data[h.key] || []).map((item: string, i: number) => (
+                                    <div key={i} className={cn('text-[11px] leading-relaxed', h.key === 'black' ? 'text-slate-300' : 'text-slate-600')}>
+                                      · {item}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {data.summary && (
+                            <div className="text-center px-4 py-3 rounded-xl bg-slate-100">
+                              <span className="text-[12px] text-slate-600">💡 {data.summary}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // fallback
+                    const expert = allExperts.find(e => e.id === msg.expertId);
+                    if (!expert) return null;
+                    return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
                   }
 
                   // 기존 포스트잇 그리드 (비큐레이션 프레임워크)
