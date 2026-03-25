@@ -2480,7 +2480,7 @@ Rules:
                       handleFollowUp(q);
                     }
                   } : startDiscussion}
-                  disabled={isDiscussing || activeExperts.length < 1}
+                  disabled={isDiscussing || activeExperts.length < 1 || (discussionMode === 'multi' && !isDone && activeExperts.length < 2)}
                   discussionMode={discussionMode}
                   onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                   showSettings={showDebateSettings}
