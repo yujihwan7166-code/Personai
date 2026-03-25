@@ -730,43 +730,53 @@ const Index = () => {
           const curatorPrompts: Record<string, string> = {
             free: `You are a brainstorming curator. Synthesize ALL expert ideas into JSON. Output ONLY valid JSON, no markdown.
 {"topIdeas":[{"title":"제목","desc":"설명 2문장","tag":"즉시실행 또는 장기검토"}],"combinations":[{"a":"아이디어A","b":"아이디어B","result":"결합 결과"}],"summary":"한줄 요약"}
-Rules: topIdeas 5~8개, tag는 "즉시실행" 또는 "장기검토". combinations 2~3개. 한국어로. JSON만 출력.`,
+Rules: topIdeas 5~8개, tag는 "즉시실행" 또는 "장기검토". combinations 2~3개. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             swot: `You are a SWOT analyst. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"strengths":[{"title":"제목","desc":"설명"}],"weaknesses":[{"title":"제목","desc":"설명"}],"opportunities":[{"title":"제목","desc":"설명"}],"threats":[{"title":"제목","desc":"설명"}],"strategies":{"so":"SO전략 설명","wo":"WO전략 설명","st":"ST전략 설명","wt":"WT전략 설명"},"summary":"한줄 요약"}
-Rules: 각 영역 3~5개. 한국어로. JSON만 출력.`,
+Rules: 각 영역 3~5개. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             sixhats: `You are a Six Hats facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"white":["사실1","사실2"],"red":["감정1","감정2"],"black":["위험1","위험2"],"yellow":["긍정1","긍정2"],"green":["창의1","창의2"],"blue":["결론1","결론2"],"summary":"한줄 요약"}
-Rules: 각 모자 2~4개 포인트. 한국어로. JSON만 출력.`,
+Rules: 각 모자 2~4개 포인트. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             scamper: `You are a SCAMPER facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"substitute":[{"title":"제목","desc":"설명"}],"combine":[{"title":"제목","desc":"설명"}],"adapt":[{"title":"제목","desc":"설명"}],"modify":[{"title":"제목","desc":"설명"}],"putToOtherUse":[{"title":"제목","desc":"설명"}],"eliminate":[{"title":"제목","desc":"설명"}],"reverse":[{"title":"제목","desc":"설명"}],"summary":"한줄 요약"}
-Rules: 각 기법 1~3개. 한국어로. JSON만 출력.`,
+Rules: 각 기법 1~3개. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             pmi: `You are a PMI analyst. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"plus":[{"title":"제목","desc":"설명"}],"minus":[{"title":"제목","desc":"설명"}],"interesting":[{"title":"제목","desc":"설명"}],"summary":"한줄 요약"}
-Rules: 각 영역 3~5개. 한국어로. JSON만 출력.`,
+Rules: 각 영역 3~5개. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             fivewhys: `You are a Five Whys analyst. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"chain":[{"why":"왜 이 문제가 발생하는가?","because":"원인 설명"},{"why":"왜 그 원인이 발생하는가?","because":"더 깊은 원인"},{"why":"세번째 Why","because":"근본 원인에 가까워짐"},{"why":"네번째 Why","because":"거의 근본 원인"},{"why":"다섯번째 Why","because":"근본 원인"}],"rootCause":"최종 근본 원인 한줄","solutions":[{"title":"해결책 제목","desc":"설명"}],"summary":"한줄 요약"}
-Rules: chain 5개. solutions 2~4개. 한국어로. JSON만 출력.`,
+Rules: chain 5개. solutions 2~4개. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             moonshot: `You are a Moonshot thinking facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"current":{"title":"현재 상태","desc":"설명"},"tenX":{"title":"10배 비전","desc":"설명"},"constraints":[{"title":"제거할 제약","desc":"설명"}],"mvp":{"title":"최소 실행 단위","desc":"설명"},"roadmap":[{"phase":"단계명","desc":"설명"}],"summary":"한줄 요약"}
-Rules: constraints 2~3개. roadmap 3~4단계. 한국어로. JSON만 출력.`,
+Rules: constraints 2~3개. roadmap 3~4단계. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             designthinking: `You are a Design Thinking facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"empathize":[{"title":"인사이트","desc":"설명"}],"define":{"problem":"핵심 문제 정의","persona":"대상 사용자"},"ideate":[{"title":"아이디어","desc":"설명"}],"prototype":{"title":"프로토타입 제안","desc":"설명","steps":["단계1","단계2"]},"summary":"한줄 요약"}
-Rules: empathize 2~3개. ideate 3~5개. 한국어로. JSON만 출력.`,
+Rules: empathize 2~3개. ideate 3~5개. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             starbursting: `You are a Starbursting facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"who":[{"q":"질문","a":"답변"}],"what":[{"q":"질문","a":"답변"}],"when":[{"q":"질문","a":"답변"}],"where":[{"q":"질문","a":"답변"}],"why":[{"q":"질문","a":"답변"}],"how":[{"q":"질문","a":"답변"}],"summary":"한줄 요약"}
-Rules: 각 카테고리 2~3개 Q&A. 한국어로. JSON만 출력.`,
+Rules: 각 카테고리 2~3개 Q&A. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
 
             reversal: `You are a Reversal Thinking facilitator. Synthesize ALL expert inputs into JSON. Output ONLY valid JSON, no markdown.
 {"original":{"title":"원래 관점","desc":"설명"},"reversed":{"title":"뒤집은 관점","desc":"설명"},"insights":[{"title":"발견","desc":"설명"}],"actions":[{"title":"적용 방안","desc":"설명"}],"summary":"한줄 요약"}
-Rules: insights 2~4개. actions 2~3개. 한국어로. JSON만 출력.`,
+Rules: insights 2~4개. actions 2~3개. 한국어로.
+CRITICAL: Output ONLY the JSON object starting with { and ending with }. No explanation, no markdown, no text before or after the JSON.`,
           };
 
           setActiveExpertId(SUMMARIZER_EXPERT.id);
@@ -2415,13 +2425,27 @@ Rules:
                       );
                     }
 
-                    // JSON 파싱 시도
+                    // JSON 파싱 시도 — 여러 형태 처리
                     let data: any = null;
                     try {
-                      const cleaned = msg.content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-                      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-                      if (jsonMatch) data = JSON.parse(jsonMatch[0]);
-                    } catch { /* 파싱 실패 시 fallback */ }
+                      let raw = msg.content;
+                      // markdown 코드블록 제거
+                      raw = raw.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
+                      // 앞뒤 설명 텍스트 제거 — JSON 객체만 추출
+                      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+                      if (jsonMatch) {
+                        // 이스케이프 안 된 줄바꿈 처리
+                        let jsonStr = jsonMatch[0].replace(/[\r\n]/g, ' ').replace(/\t/g, ' ');
+                        data = JSON.parse(jsonStr);
+                      }
+                    } catch {
+                      // 2차 시도: 줄바꿈 포함된 JSON
+                      try {
+                        const raw2 = msg.content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
+                        const match2 = raw2.match(/\{[\s\S]*\}/);
+                        if (match2) data = JSON.parse(match2[0]);
+                      } catch { /* 최종 실패 → fallback */ }
+                    }
 
                     // 파싱 실패 → 일반 마크다운으로 fallback
                     if (!data) {
