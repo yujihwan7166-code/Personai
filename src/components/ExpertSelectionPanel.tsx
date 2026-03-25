@@ -1535,16 +1535,16 @@ export function ExpertSelectionPanel({
                       return (
                         <div className="relative group/more">
                           <button type="button"
-                            className={cn('flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
-                              isMoreActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
+                            className="flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70">
                             더보기 <ChevronDown className="w-3 h-3" />
                           </button>
                           <div className="absolute left-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
                             {moreCats.map(({ cat, label }) => (
                               <button key={cat} type="button"
                                 onClick={() => { setActiveCategory(cat); setActiveSubCategory('전체'); }}
-                                className={cn('w-full text-left px-4 py-2 text-[11px] font-medium transition-colors',
-                                  effectiveCategory === cat ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50')}>
+                                className={cn('w-full text-left px-4 py-2 text-[11px] font-medium transition-colors flex items-center gap-2',
+                                  effectiveCategory === cat ? 'text-indigo-600' : 'text-slate-600 hover:bg-slate-50')}>
+                                {effectiveCategory === cat && <Check className="w-3 h-3 text-indigo-500" />}
                                 {label}
                               </button>
                             ))}
