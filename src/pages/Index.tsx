@@ -2320,6 +2320,41 @@ Rules:
                         if (!expert) return null;
                         return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
                       })}
+
+                      {/* 후속 1:1 대화 — 토론 아래 메신저 스타일 */}
+                      {(() => {
+                        // 토론 라운드/종합 이후의 사용자+AI 메시지만 추출
+                        const lastSummaryIdx = messages.reduce((acc, m, i) => m.isSummary ? i : acc, -1);
+                        const followUpMsgs = lastSummaryIdx >= 0 ? messages.slice(lastSummaryIdx + 1) : [];
+                        if (followUpMsgs.length === 0) return null;
+                        return (
+                          <div className="space-y-2.5 pt-3 border-t border-slate-200 mt-3">
+                            {followUpMsgs.map(msg => {
+                              if (msg.expertId === '__user__') {
+                                return (
+                                  <div key={msg.id} className="flex justify-end">
+                                    <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                                      <ReactMarkdownInline content={msg.content} />
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              if (msg.expertId === '__round__') return null;
+                              const expert = allExperts.find(e => e.id === msg.expertId);
+                              if (!expert) return null;
+                              return (
+                                <div key={msg.id} className="flex gap-2.5 items-start">
+                                  <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
+                                  <div className="flex-1 min-w-0 max-w-[85%]">
+                                    <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
+                                    <DiscussionMessageCard message={msg} expert={expert} variant="messenger" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()
@@ -2401,13 +2436,13 @@ Rules:
                   </div>
                 )}
                 {/* 토론 모드 후속질문 — 전문가 선택 칩 */}
-                {isDone && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 1 && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] text-slate-400 mr-0.5">질문할 토론자:</span>
+                {isDone && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length >= 1 && (
+                  <div className="flex items-center gap-1.5 flex-wrap px-1">
+                    <span className="text-[10px] text-slate-400">질문할 토론자 선택:</span>
                     {activeExperts.map(e => (
-                      <button key={e.id} type="button" onClick={() => setFollowUpTarget(e.id)}
-                        className={cn('flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold transition-all',
-                          followUpTarget === e.id ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+                      <button key={e.id} type="button" onClick={() => setFollowUpTarget(followUpTarget === e.id ? null : e.id)}
+                        className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border',
+                          followUpTarget === e.id ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50')}>
                         <ExpertAvatar expert={e} size="xs" />
                         {e.nameKo}
                       </button>
