@@ -1816,10 +1816,10 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                   return (
                     <div className="space-y-3">
-                      {/* 헤더 — overview일 때만 표시 */}
-                      {(multiView === 'overview' || isDiscussing) && (
+                      {/* 헤더 */}
+                      {!isDiscussing && (
                         <div className="space-y-3">
-                          {currentQuestion && (
+                          {currentQuestion && multiView === 'overview' && (
                             <div className="px-4 py-3 rounded-xl bg-slate-100">
                               <p className="text-[14px] text-slate-700 leading-relaxed">{currentQuestion}</p>
                             </div>
@@ -1937,8 +1937,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                 );
                               })}
                               <span className="flex-1" />
-                              <button onClick={() => setMultiView('overview')}
-                                className="text-[10px] text-white/60 hover:text-white transition-colors shrink-0">← 전체 보기</button>
                             </div>
                             {/* 응답 */}
                             <div className="p-4 space-y-3">
