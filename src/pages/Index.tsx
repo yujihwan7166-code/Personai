@@ -1820,13 +1820,11 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       {(multiView === 'overview' || isDiscussing) && (
                         <div className="space-y-3">
                           {currentQuestion && (
-                            <button type="button" onClick={() => setQuestionExpanded(!questionExpanded)}
-                              className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 text-left max-w-[80%] group hover:bg-slate-200/70 transition-colors">
-                              <p className={cn('text-[13px] text-slate-600 leading-relaxed flex-1', !questionExpanded && 'line-clamp-2')}>
-                                {currentQuestion}
-                              </p>
-                              <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 transition-transform', questionExpanded && 'rotate-180')} />
-                            </button>
+                            <div className="flex justify-end">
+                              <div className="max-w-[85%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                                <p className="text-[13px] leading-relaxed">{currentQuestion}</p>
+                              </div>
+                            </div>
                           )}
                           {sortedExperts.length > 1 && !isDiscussing && (
                             <div className="flex items-center justify-between">
