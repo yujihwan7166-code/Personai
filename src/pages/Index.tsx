@@ -1815,7 +1815,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       <div className="space-y-2">
                         {currentQuestion && (
                           <div className="flex items-center gap-3">
-                            <p className="text-slate-900 font-bold text-[16px] leading-snug flex-1 min-w-0">{currentQuestion}</p>
+                            <p className="text-slate-900 font-bold text-[15px] leading-snug flex-1 min-w-0 line-clamp-2">{currentQuestion}</p>
                             {isDone && (
                               <button onClick={copyAllResults} className="flex items-center gap-1 px-2 py-1 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors shrink-0">
                                 {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
