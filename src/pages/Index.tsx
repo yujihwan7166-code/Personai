@@ -2403,11 +2403,7 @@ Rules:
                 {/* 토론 모드 후속질문 — 전문가 선택 칩 */}
                 {isDone && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 1 && (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <button type="button" onClick={() => setFollowUpTarget(null)}
-                      className={cn('px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all',
-                        followUpTarget === null ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
-                      전체
-                    </button>
+                    <span className="text-[10px] text-slate-400 mr-0.5">질문할 토론자:</span>
                     {activeExperts.map(e => (
                       <button key={e.id} type="button" onClick={() => setFollowUpTarget(e.id)}
                         className={cn('flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold transition-all',
@@ -2420,8 +2416,9 @@ Rules:
                 )}
                 <QuestionInput
                   onSubmit={isDone ? (q: string) => {
-                    if (followUpTarget && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode)) {
-                      askSingleAI(followUpTarget, q);
+                    if (['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode)) {
+                      const target = followUpTarget || activeExperts[0]?.id;
+                      if (target) askSingleAI(target, q);
                     } else {
                       handleFollowUp(q);
                     }
