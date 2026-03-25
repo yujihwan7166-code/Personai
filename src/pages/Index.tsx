@@ -2436,7 +2436,7 @@ Rules:
                   </div>
                 )}
                 {/* 토론 모드 후속질문 — 전문가 선택 칩 */}
-                {isDone && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length >= 1 && (
+                {!isDiscussing && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length >= 1 && (
                   <div className="flex items-center gap-1.5 flex-wrap px-1">
                     <span className="text-[10px] text-slate-400">질문할 토론자 선택:</span>
                     {activeExperts.map(e => (
