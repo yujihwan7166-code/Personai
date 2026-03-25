@@ -1814,18 +1814,18 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       {/* 헤더 — overview일 때만 표시 */}
                       {(multiView === 'overview' || isDiscussing) && (
                         <div className="space-y-3">
-                          {currentQuestion && (
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-slate-800 font-semibold text-[14px] leading-relaxed line-clamp-2">{currentQuestion}</p>
-                              </div>
-                              {isDone && (
-                                <button onClick={copyAllResults} className="p-1.5 rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors shrink-0">
-                                  {copiedAll ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                                </button>
-                              )}
-                            </div>
-                          )}
+                          {currentQuestion && (() => {
+                            const [qExpanded, setQExpanded] = useState(false);
+                            return (
+                              <button type="button" onClick={() => setQExpanded(!qExpanded)}
+                                className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 text-left max-w-[80%] group hover:bg-slate-200/70 transition-colors">
+                                <p className={cn('text-[13px] text-slate-600 leading-relaxed flex-1', !qExpanded && 'line-clamp-2')}>
+                                  {currentQuestion}
+                                </p>
+                                <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 transition-transform', qExpanded && 'rotate-180')} />
+                              </button>
+                            );
+                          })()}
                           {sortedExperts.length > 1 && !isDiscussing && (
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
