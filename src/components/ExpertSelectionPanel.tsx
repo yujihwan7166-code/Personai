@@ -1524,7 +1524,7 @@ export function ExpertSelectionPanel({
               ) : (
                 <>
                   <div className="flex flex-1 min-w-0 gap-0.5">
-                    {grouped.filter(g => !['celebrity', 'lifestyle'].includes(g.cat)).map(({ cat, label }) => {
+                    {grouped.filter(g => !['celebrity', 'lifestyle', 'religion'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = cat === 'ai';
                       const isAiDisabled = isAiTab && isStandardOrProcon;
@@ -1541,7 +1541,7 @@ export function ExpertSelectionPanel({
                     })}
                     {/* 더보기 — 호버 시 세로 드롭다운 */}
                     {(() => {
-                      const moreCats = grouped.filter(g => ['lifestyle', 'celebrity'].includes(g.cat));
+                      const moreCats = grouped.filter(g => ['religion', 'lifestyle', 'celebrity'].includes(g.cat));
                       if (moreCats.length === 0) return null;
                       const isMoreActive = moreCats.some(g => effectiveCategory === g.cat);
                       return (
