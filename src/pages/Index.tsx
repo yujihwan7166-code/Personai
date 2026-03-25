@@ -1811,16 +1811,17 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
 
                   return (
                     <div className="space-y-3">
-                      {/* 헤더 — overview일 때만 질문+뷰스위처 표시 */}
+                      {/* 헤더 — overview일 때만 표시 */}
                       {(multiView === 'overview' || isDiscussing) && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {currentQuestion && (
-                            <div className="flex items-center gap-3">
-                              <p className="text-slate-900 font-bold text-[15px] leading-snug flex-1 min-w-0 line-clamp-2">{currentQuestion}</p>
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-slate-800 font-semibold text-[14px] leading-relaxed line-clamp-2">{currentQuestion}</p>
+                              </div>
                               {isDone && (
-                                <button onClick={copyAllResults} className="flex items-center gap-1 px-2 py-1 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors shrink-0">
-                                  {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                                  {copiedAll ? '복사됨' : '복사'}
+                                <button onClick={copyAllResults} className="p-1.5 rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors shrink-0">
+                                  {copiedAll ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
                                 </button>
                               )}
                             </div>
@@ -1838,10 +1839,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                   </button>
                                 ))}
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex -space-x-1.5">
-                                  {sortedExperts.slice(0, 4).map(e => <ExpertAvatar key={e.id} expert={e} size="xs" />)}
-                                </div>
+                              <div className="flex -space-x-1.5">
+                                {sortedExperts.slice(0, 4).map(e => <ExpertAvatar key={e.id} expert={e} size="xs" />)}
                               </div>
                             </div>
                           )}
