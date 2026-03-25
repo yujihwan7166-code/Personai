@@ -854,25 +854,31 @@ const Index = () => {
       let summaryContent = '';
       try {
         await streamExpert({
-          question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: isBrainstormConclusion ? brainstormSummaryPrompt : `You are a debate summarizer. Organize the discussion into a clean, well-structured Korean summary using the following markdown format EXACTLY:
+          question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: isBrainstormConclusion ? brainstormSummaryPrompt : `You are a debate summarizer and conclusion synthesizer. Create a comprehensive, well-structured Korean summary that combines both the discussion overview AND the final conclusion. Use this markdown format EXACTLY:
 
 ## 📋 토론 정리
 
-### 📌 핵심 합의점
-- (bullet points of key agreements, referencing expert names)
+### 💡 핵심 결론
+(질문에 대한 직접적 답변 2-3문장. 모든 전문가의 관점을 종합한 최종 답변.)
 
-### ⚔️ 주요 논쟁점
-- (bullet points of key disagreements, referencing who disagreed with whom and why)
+### 📌 주요 논점
+1. **(논점 제목)** — 이 논점에 대해 전문가들이 어떤 입장을 보였는지 설명. 합의가 있으면 합의 내용을, 대립이 있으면 누가 어떤 입장인지 포함.
+2. **(논점 제목)** — 설명
+3. **(논점 제목)** — 설명
 
-### 🔄 입장 변화
-- (any notable shifts in position during the debate)
+### 🎯 실행 제안
+- (구체적이고 실행 가능한 제안 1)
+- (구체적이고 실행 가능한 제안 2)
+- (구체적이고 실행 가능한 제안 3)
 
-### 👥 전문가별 핵심 주장
-| 전문가 | 핵심 주장 |
-|--------|----------|
-| (name) | (1-sentence summary) |
+> 💡 **한줄 요약:** (토론 전체를 한 문장으로 정리)
 
-Keep it concise and factual. Do NOT provide your own conclusion or opinion. Reference experts by name.` },
+Rules:
+- 핵심 결론을 가장 먼저 작성하세요.
+- 논점은 전문가 이름을 포함하여 구체적으로 작성하세요.
+- 테이블은 사용하지 마세요. 글머리 기호만 사용하세요.
+- 전체적으로 간결하게. 각 논점은 2-3문장 이내.
+- 한국어로 작성하세요.` },
           previousResponses: allResponses, round: 'summary',
           onDelta: (chunk) => {summaryContent += chunk;setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent } : m));},
           onDone: () => {setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, isStreaming: false } : m));},
@@ -884,43 +890,7 @@ Keep it concise and factual. Do NOT provide your own conclusion or opinion. Refe
         }
       }
 
-      if (!controller.signal.aborted && !isBrainstormConclusion) {
-        setActiveExpertId(CONCLUSION_EXPERT.id);
-        const conclusionId = `conclusion-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: conclusionId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
-        let conclusionContent = '';
-        try {
-          await streamExpert({
-            question, expert: { ...CONCLUSION_EXPERT, systemPrompt: `You are a final conclusion synthesizer. Provide a definitive, well-organized conclusion in Korean using this markdown format:
-
-## 🎯 최종 결론
-
-### 핵심 답변
-(2-3 sentences directly answering the original question)
-
-### 주요 근거
-1. **(근거 1 제목)** — 설명
-2. **(근거 2 제목)** — 설명
-3. **(근거 3 제목)** — 설명
-
-### 실행 제안
-- (actionable recommendation 1)
-- (actionable recommendation 2)
-
-> 💡 **한 줄 요약:** (one-sentence takeaway)
-
-Do NOT mention any expert by name. Synthesize all perspectives into ONE unified, authoritative answer. Be concise and clear.` },
-            previousResponses: allResponses, round: 'summary',
-            onDelta: (chunk) => {conclusionContent += chunk;setMessages((prev) => prev.map((m) => m.id === conclusionId ? { ...m, content: conclusionContent } : m));},
-            onDone: () => {setMessages((prev) => prev.map((m) => m.id === conclusionId ? { ...m, isStreaming: false } : m));},
-            signal: controller.signal });
-        } catch (err) {
-          if ((err as Error).name !== 'AbortError') {
-            conclusionContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-            setMessages((prev) => prev.map((m) => m.id === conclusionId ? { ...m, content: conclusionContent, isStreaming: false } : m));
-          }
-        }
-      }
+      // 최종 결론은 토론 정리에 통합됨 — 별도 호출 불필요
     }
 
     setActiveExpertId(undefined);
