@@ -1843,9 +1843,9 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                             const preview = msg.content.slice(0, 200);
                             const charCount = msg.content.length;
                             const gradients = [
-                              'from-blue-500 to-blue-600', 'from-emerald-500 to-emerald-600',
-                              'from-violet-500 to-violet-600', 'from-amber-500 to-amber-600',
-                              'from-rose-500 to-rose-600', 'from-cyan-500 to-cyan-600'
+                              'from-blue-400 to-blue-500', 'from-emerald-400 to-emerald-500',
+                              'from-violet-400 to-violet-500', 'from-amber-400 to-amber-500',
+                              'from-rose-400 to-rose-500', 'from-cyan-400 to-cyan-500'
                             ];
                             const bgTints = [
                               'bg-blue-50/50', 'bg-emerald-50/50', 'bg-violet-50/50',
@@ -1861,20 +1861,20 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                   bgTint,
                                   !isDiscussing && 'hover:shadow-xl hover:-translate-y-1 hover:border-slate-300'
                                 )}>
-                                {/* 헤더 — 그라디언트 */}
-                                <div className={cn('flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r text-white', gradient)}>
-                                  <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
+                                {/* 헤더 — 연한 그라디언트 */}
+                                <div className={cn('flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r text-white', gradient)}>
+                                  <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
                                   <div className="flex-1 min-w-0">
-                                    <span className="text-[13px] font-bold block">{expert.nameKo}</span>
-                                    <span className="text-[9px] text-white/70">{expert.description}</span>
+                                    <span className="text-[12px] font-bold">{expert.nameKo}</span>
+                                    <span className="text-[9px] text-white/60 ml-1.5">{expert.description}</span>
                                   </div>
                                   {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /></span>}
                                   {!msg.isStreaming && charCount > 0 && (
-                                    <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-medium">{charCount}자</span>
+                                    <span className="text-[9px] text-white/60 font-medium">{charCount}자</span>
                                   )}
                                 </div>
-                                {/* 본문 */}
-                                <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-4 min-h-[72px]">
+                                {/* 본문 — 더 길게 */}
+                                <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-8 min-h-[120px]">
                                   {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
                                   {charCount > 200 && <span className="text-slate-300">...</span>}
                                 </div>
@@ -1968,20 +1968,17 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         return (
                           <div className="rounded-2xl bg-white border border-slate-200 shadow-md overflow-hidden">
                             {/* AI 선택 헤더 — 그라디언트 */}
-                            <div className="grid grid-cols-[1fr_auto_1fr]">
-                              <div className="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600">
-                                {leftExp && <ExpertAvatar expert={leftExp} size="sm" />}
+                            <div className="grid grid-cols-2">
+                              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-r from-blue-400 to-blue-500 border-r border-white/20">
+                                {leftExp && <ExpertAvatar expert={leftExp} size="xs" />}
                                 <select value={multiCompareIds[0]}
                                   onChange={e => { const next = [...multiCompareIds] as [string, string]; next[0] = e.target.value; setMultiCompareIds(next); }}
                                   className="flex-1 px-2 py-1 rounded-lg border-0 bg-white/20 text-[12px] font-bold text-white focus:outline-none cursor-pointer [&>option]:text-slate-800">
                                   {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
                                 </select>
                               </div>
-                              <div className="flex items-center px-3 bg-slate-800">
-                                <span className="text-[11px] font-black text-white">VS</span>
-                              </div>
-                              <div className="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-violet-500 to-violet-600">
-                                {rightExp && <ExpertAvatar expert={rightExp} size="sm" />}
+                              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-r from-violet-400 to-violet-500">
+                                {rightExp && <ExpertAvatar expert={rightExp} size="xs" />}
                                 <select value={multiCompareIds[1]}
                                   onChange={e => { const next = [...multiCompareIds] as [string, string]; next[1] = e.target.value; setMultiCompareIds(next); }}
                                   className="flex-1 px-2 py-1 rounded-lg border-0 bg-white/20 text-[12px] font-bold text-white focus:outline-none cursor-pointer [&>option]:text-slate-800">
@@ -1990,12 +1987,11 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               </div>
                             </div>
                             {/* 나란히 비교 */}
-                            <div className="grid grid-cols-[1fr_auto_1fr]">
-                              <div className="p-4 bg-blue-50/30">
+                            <div className="grid grid-cols-2">
+                              <div className="p-4 bg-blue-50/20 border-r border-slate-100">
                                 {leftMsg && leftExp && <DiscussionMessageCard message={leftMsg} expert={leftExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
-                              <div className="w-px bg-slate-200" />
-                              <div className="p-4 bg-violet-50/30">
+                              <div className="p-4 bg-violet-50/20">
                                 {rightMsg && rightExp && <DiscussionMessageCard message={rightMsg} expert={rightExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
                             </div>
