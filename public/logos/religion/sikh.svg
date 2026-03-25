@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <circle cx="32" cy="32" r="16" stroke="#EA580C" stroke-width="2.8"/>
-  <line x1="32" y1="14" x2="32" y2="50" stroke="#EA580C" stroke-width="2.8" stroke-linecap="round"/>
-  <path d="M18 22 Q32 14 46 22" stroke="#EA580C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
-  <path d="M18 42 Q32 50 46 42" stroke="#EA580C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <!-- 칸다(Khanda) — 시크교 공식 심볼: 중앙 쌍날검 + 원(차크라) + 좌우 키르판 -->
+  <circle cx="32" cy="32" r="14" stroke="#EA580C" stroke-width="2.8" fill="none"/>
+  <line x1="32" y1="8" x2="32" y2="56" stroke="#EA580C" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M14 14 Q22 28 22 44 Q22 52 18 56" stroke="#EA580C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <path d="M50 14 Q42 28 42 44 Q42 52 46 56" stroke="#EA580C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
 </svg>
