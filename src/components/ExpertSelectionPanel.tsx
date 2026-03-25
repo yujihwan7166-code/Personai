@@ -1558,7 +1558,7 @@ export function ExpertSelectionPanel({
               ? items : items.filter(e => e.subCategory === activeSubCategory);
             return (
               <div key={cat} className="relative bg-white">
-                <div className="px-4 pt-3 pb-3 max-h-[180px] overflow-y-auto scrollbar-none">
+                <div className="px-4 pt-3 pb-3 max-h-[160px] overflow-y-auto scrollbar-thin">
                 {filtered.length === 0 ? (
                   <div className="py-6 text-center">
                     <p className="text-[12px] text-slate-400">{searchMode ? `"${searchQuery}"에 대한 검색 결과가 없습니다` : '이 카테고리에 전문가가 없습니다'}</p>
