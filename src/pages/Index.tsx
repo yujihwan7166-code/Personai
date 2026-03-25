@@ -1887,36 +1887,55 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         </div>
                       )}
 
-                      {/* ── Layer 2: Detail — 회색 칸 통합 ── */}
+                      {/* ── Layer 2: Detail — AI 컬러 연동 ── */}
                       {multiView === 'detail' && !isDiscussing && (() => {
                         const activeMsgs = getExpertAllMsgs(activeTab || '');
                         const activeExp = allExperts.find(e => e.id === activeTab);
                         if (!activeMsgs.length || !activeExp) return null;
                         const relatedUserMsgs = userMsgs.filter(m => m.content.includes(activeExp.nameKo));
+                        // Overview 카드와 동일한 컬러 매핑
+                        const detailGradients = [
+                          'from-blue-400 to-blue-500', 'from-emerald-400 to-emerald-500',
+                          'from-violet-400 to-violet-500', 'from-amber-400 to-amber-500',
+                          'from-rose-400 to-rose-500', 'from-cyan-400 to-cyan-500'
+                        ];
+                        const detailBgTints = [
+                          'bg-blue-500', 'bg-emerald-500', 'bg-violet-500',
+                          'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'
+                        ];
+                        const detailHoverBgs = [
+                          'hover:bg-blue-50', 'hover:bg-emerald-50', 'hover:bg-violet-50',
+                          'hover:bg-amber-50', 'hover:bg-rose-50', 'hover:bg-cyan-50'
+                        ];
+                        const activeIdx = sortedExperts.findIndex(e => e.id === activeTab);
+                        const activeGradient = detailGradients[(activeIdx >= 0 ? activeIdx : 0) % detailGradients.length];
                         return (
-                          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-                            {/* AI 탭바 */}
-                            <div className="flex items-center gap-1 bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
-                              {sortedExperts.map(expert => (
-                                <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
-                                  className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
-                                    activeTab === expert.id ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white')}>
-                                  <ExpertAvatar expert={expert} size="xs" />
-                                  {expert.nameKo}
-                                  {getExpertAllMsgs(expert.id).length > 1 && <span className={cn('text-[9px] px-1 rounded', activeTab === expert.id ? 'bg-indigo-400 text-white' : 'bg-slate-200 text-slate-400')}>{getExpertAllMsgs(expert.id).length}</span>}
-                                </button>
-                              ))}
+                          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-200">
+                            {/* AI 탭바 — 활성 AI 색상 연동 */}
+                            <div className={cn('flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-none bg-gradient-to-r', activeGradient)}>
+                              {sortedExperts.map((expert, ei) => {
+                                const isActive = activeTab === expert.id;
+                                return (
+                                  <button key={expert.id} onClick={() => setMultiActiveTab(expert.id)}
+                                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
+                                      isActive ? 'bg-white text-slate-800 shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/20')}>
+                                    <ExpertAvatar expert={expert} size="xs" />
+                                    {expert.nameKo}
+                                    {getExpertAllMsgs(expert.id).length > 1 && <span className={cn('text-[9px] px-1 rounded', isActive ? 'bg-slate-200 text-slate-500' : 'bg-white/20 text-white')}>{getExpertAllMsgs(expert.id).length}</span>}
+                                  </button>
+                                );
+                              })}
                               <span className="flex-1" />
                               <button onClick={() => setMultiView('overview')}
-                                className="text-[10px] text-slate-400 hover:text-indigo-500 transition-colors shrink-0">전체 보기</button>
+                                className="text-[10px] text-white/60 hover:text-white transition-colors shrink-0">← 전체 보기</button>
                             </div>
                             {/* 응답 */}
                             <div className="p-4 space-y-3">
                               {activeMsgs.map((msg, i) => (
                                 <div key={msg.id}>
                                   {i > 0 && relatedUserMsgs[i - 1] && (
-                                    <div className="bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-[11.5px] text-slate-500 mb-2">
-                                      {relatedUserMsgs[i - 1].content}
+                                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-[11.5px] text-slate-500 mb-2">
+                                      💬 {relatedUserMsgs[i - 1].content}
                                     </div>
                                   )}
                                   <DiscussionMessageCard message={msg} expert={activeExp} variant="default"
@@ -1929,13 +1948,15 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               <div className="flex items-center justify-between px-3 py-2 bg-slate-50/50">
                                 {prevExpert ? (
                                   <button onClick={() => setMultiActiveTab(prevExpert.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 transition-all',
+                                      detailHoverBgs[((activeIdx - 1 + sortedExperts.length) % sortedExperts.length) % detailHoverBgs.length])}>
                                     ← {prevExpert.nameKo}
                                   </button>
                                 ) : <div />}
                                 {nextExpert ? (
                                   <button onClick={() => setMultiActiveTab(nextExpert.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 transition-all',
+                                      detailHoverBgs[((activeIdx + 1) % sortedExperts.length) % detailHoverBgs.length])}>
                                     {nextExpert.nameKo} →
                                   </button>
                                 ) : <div />}
