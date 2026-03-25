@@ -41,7 +41,7 @@ interface Props {
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'brainstorm_main', 'expert', 'debate', 'assistant'];
-const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'hearing'];
+const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'hearing'];
 
 const mainModeLabels: Record<MainMode, string> = {
   general: '단일 AI',
@@ -1333,7 +1333,7 @@ export function ExpertSelectionPanel({
   // - general/multi: all categories shown, all selectable
   // - brainstorm: all categories shown, all selectable (including AI)
   // - standard/procon: all categories shown, but AI models are grayed/disabled
-  const showExpertGrid = mainMode === 'general' || mainMode === 'multi' || mainMode === 'debate';
+  const showExpertGrid = mainMode === 'general' || mainMode === 'multi' || mainMode === 'debate' || mainMode === 'brainstorm_main';
   const isDebateMode = mainMode === 'debate';
   const isStandardOrProcon = false; // AI 모델 제한 해제
   const isBrainstorm = discussionMode === 'brainstorm';

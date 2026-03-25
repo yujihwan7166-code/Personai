@@ -89,7 +89,7 @@ export type DebateSubMode = 'standard' | 'procon' | 'brainstorm' | 'hearing';
 export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon: string; description: string }> = {
   standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 깊이 있는 토론' },
   procon: { label: '찬반 토론', icon: '⚖️', description: '찬성 vs 반대로 나눠 격돌' },
-  brainstorm: { label: '브레인스토밍', icon: '💡', description: '자유롭게 아이디어를 쏟아내고 발전' },
+  brainstorm: { label: '브레인스토밍', icon: '💡', description: '자유롭게 아이디어를 쏟아내고 발전' }, // 메인 모드로 독립, 라운드테이블에서는 숨김
   hearing: { label: '아이디어 검증', icon: '🔍', description: '전문가들이 날카로운 질문으로 검증' },
 };
 
