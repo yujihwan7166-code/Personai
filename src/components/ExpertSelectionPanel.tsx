@@ -1317,11 +1317,13 @@ export function ExpertSelectionPanel({
     ? 'GPT, Claude, Gemini 등 원하는 AI를 선택하고 자유롭게 대화하세요'
     : mainMode === 'multi'
       ? '여러 챗봇을 선택하면 각자 답변한 뒤 하나의 종합 결론으로 정리해드립니다'
-      : mainMode === 'expert'
-        ? '전문가들이 단계별로 질문하며 최고 품질의 상담을 제공합니다'
-        : mainMode === 'assistant'
-          ? '목적에 맞는 AI 어시스턴트를 선택해 작업을 도와받으세요'
-          : '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다';
+      : mainMode === 'brainstorm_main'
+        ? '사고 프레임워크를 선택하면 AI들이 협업해 정리된 결과를 제공합니다'
+        : mainMode === 'expert'
+          ? '전문가들이 단계별로 질문하며 최고 품질의 상담을 제공합니다'
+          : mainMode === 'assistant'
+            ? '목적에 맞는 AI 어시스턴트를 선택해 작업을 도와받으세요'
+            : '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다';
 
   const typedSubtitle = useTypewriter(subtitleText, 20);
   const isGeneral = mainMode === 'general';
@@ -1358,6 +1360,7 @@ export function ExpertSelectionPanel({
     setAutoAssign(false);
     if (m === 'general') onModeChange('general');
     else if (m === 'multi') onModeChange('multi');
+    else if (m === 'brainstorm_main') onModeChange('brainstorm');
     else if (m === 'expert') onModeChange('expert');
     else if (m === 'assistant') onModeChange('assistant');
     else onModeChange('standard');
@@ -1370,9 +1373,10 @@ export function ExpertSelectionPanel({
         <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
-              : mainMode === 'expert' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
-                : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
-                  : '전문가 챗봇들의 토론으로 더 넓은 시야를 얻으세요'}
+              : mainMode === 'brainstorm_main' ? 'AI들이 협업해 아이디어를 정리해드립니다'
+                : mainMode === 'expert' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
+                  : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
+                    : '전문가 챗봇들의 토론으로 더 넓은 시야를 얻으세요'}
         </h2>
         <div className="relative flex justify-center">
           <span className="invisible text-[12px] leading-relaxed">{subtitleText}</span>
