@@ -1820,10 +1820,8 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       {(multiView === 'overview' || isDiscussing) && (
                         <div className="space-y-3">
                           {currentQuestion && (
-                            <div className="flex justify-end">
-                              <div className="max-w-[85%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
-                                <p className="text-[13px] leading-relaxed">{currentQuestion}</p>
-                              </div>
+                            <div className="px-4 py-3 rounded-xl bg-slate-100">
+                              <p className="text-[14px] text-slate-700 leading-relaxed">{currentQuestion}</p>
                             </div>
                           )}
                           {sortedExperts.length > 1 && !isDiscussing && (
