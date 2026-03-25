@@ -1869,7 +1869,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                               <button key={expert.id} type="button"
                                 onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
                                 className={cn(
-                                  'group rounded-2xl border border-slate-200 overflow-hidden transition-all text-left',
+                                  'group rounded-2xl border border-slate-200 overflow-hidden transition-all text-left flex flex-col',
                                   bgTint,
                                   !isDiscussing && 'hover:shadow-xl hover:-translate-y-1 hover:border-slate-300'
                                 )}>
@@ -1883,7 +1883,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                   {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /></span>}
                                 </div>
                                 {/* 본문 — 더 길게 */}
-                                <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-8 min-h-[120px]">
+                                <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-8 min-h-[120px] flex-1">
                                   {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
                                   {charCount > 200 && <span className="text-slate-300">...</span>}
                                 </div>
