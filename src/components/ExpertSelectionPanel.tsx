@@ -1343,16 +1343,28 @@ export function ExpertSelectionPanel({
   const isHearing = discussionMode === 'hearing';
 
   const POPULAR_IDS = ['gpt', 'claude', 'gemini', 'doctor', 'lawyer', 'psychology', 'finance', 'economics', 'teacher', 'programmer', 'chef', 'buffett', 'musk', 'korean'];
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
+    try { const s = localStorage.getItem('ai-debate-favorites'); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const toggleFavorite = (id: string) => {
+    setFavoriteIds(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem('ai-debate-favorites', JSON.stringify(next));
+      return next;
+    });
+  };
   const visibleCategories = EXPERT_CATEGORY_ORDER;
 
+  const favoriteItems = favoriteIds.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts;
   const grouped: { cat: string; label: string; items: typeof experts }[] = [
     { cat: 'popular', label: '인기', items: POPULAR_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
+    { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
     ...visibleCategories.map(cat => ({
       cat: cat as string,
       label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
       items: experts.filter(e => e.category === cat),
     })),
-  ].filter(g => g.items.length > 0);
+  ].filter(g => g.items.length > 0 || g.cat === 'favorites');
 
   const validCats = grouped.map(g => g.cat);
   const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
@@ -1512,7 +1524,7 @@ export function ExpertSelectionPanel({
               ) : (
                 <>
                   <div className="flex flex-1 min-w-0 gap-0.5">
-                    {grouped.filter(g => !['fictional'].includes(g.cat)).map(({ cat, label }) => {
+                    {grouped.filter(g => !['fictional', 'celebrity', 'lifestyle'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = cat === 'ai';
                       const isAiDisabled = isAiTab && isStandardOrProcon;
@@ -1529,14 +1541,15 @@ export function ExpertSelectionPanel({
                     })}
                     {/* 더보기 — 호버 시 세로 드롭다운 */}
                     {(() => {
-                      const moreCats = grouped.filter(g => ['fictional'].includes(g.cat));
+                      const moreCats = grouped.filter(g => ['lifestyle', 'celebrity', 'fictional'].includes(g.cat));
                       if (moreCats.length === 0) return null;
                       const isMoreActive = moreCats.some(g => effectiveCategory === g.cat);
                       return (
                         <div className="relative group/more">
                           <button type="button"
-                            className="flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70">
-                            더보기 <ChevronDown className="w-3 h-3" />
+                            className={cn('flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md font-medium',
+                              isMoreActive ? 'text-indigo-600 font-semibold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/70')}>
+                            {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
                           </button>
                           <div className="absolute left-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
                             {moreCats.map(({ cat, label }) => (
@@ -1657,6 +1670,12 @@ export function ExpertSelectionPanel({
                               </svg>
                             </span>
                           )}
+                          {/* 즐겨찾기 별 */}
+                          <button type="button" onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
+                            className={cn('absolute top-0 left-0 w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity z-10',
+                              favoriteIds.includes(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
+                            {favoriteIds.includes(expert.id) ? '★' : '☆'}
+                          </button>
                           <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
                           <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
                             isDisabled ? 'text-slate-300'
