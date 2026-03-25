@@ -1511,7 +1511,7 @@ export function ExpertSelectionPanel({
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-1 min-w-0 gap-0.5 flex-wrap">
+                  <div className="flex flex-1 min-w-0 gap-0.5">
                     {grouped.filter(g => !['fictional'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = cat === 'ai';
@@ -1527,22 +1527,29 @@ export function ExpertSelectionPanel({
                         </button>
                       );
                     })}
-                    {/* 더보기 — 클릭 시 아래에 추가 카테고리 표시 */}
+                    {/* 더보기 — 호버 시 세로 드롭다운 */}
                     {(() => {
                       const moreCats = grouped.filter(g => ['fictional'].includes(g.cat));
                       if (moreCats.length === 0) return null;
                       const isMoreActive = moreCats.some(g => effectiveCategory === g.cat);
                       return (
-                        <button type="button"
-                          onClick={() => {
-                            // 더보기 카테고리 중 첫 번째로 이동
-                            if (isMoreActive) { setActiveCategory('ai'); setActiveSubCategory('전체'); }
-                            else { setActiveCategory(moreCats[0].cat); setActiveSubCategory('전체'); }
-                          }}
-                          className={cn('flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
-                            isMoreActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
-                          더보기 <ChevronDown className="w-3 h-3" />
-                        </button>
+                        <div className="relative group/more">
+                          <button type="button"
+                            className={cn('flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
+                              isMoreActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
+                            더보기 <ChevronDown className="w-3 h-3" />
+                          </button>
+                          <div className="absolute left-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
+                            {moreCats.map(({ cat, label }) => (
+                              <button key={cat} type="button"
+                                onClick={() => { setActiveCategory(cat); setActiveSubCategory('전체'); }}
+                                className={cn('w-full text-left px-4 py-2 text-[11px] font-medium transition-colors',
+                                  effectiveCategory === cat ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50')}>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       );
                     })()}
                   </div>
@@ -1553,20 +1560,6 @@ export function ExpertSelectionPanel({
                 </>
               )}
             </div>
-            {/* 더보기 카테고리 — 활성 시 아래에 표시 */}
-            {!searchMode && ['fictional'].includes(effectiveCategory) && (
-              <div className="flex items-center gap-1 px-3 pt-0.5 pb-1 border-t border-slate-100 bg-slate-50/50">
-                <span className="text-[9px] text-slate-400 mr-1">더보기:</span>
-                {grouped.filter(g => ['fictional'].includes(g.cat)).map(({ cat, label }) => (
-                  <button key={cat} type="button"
-                    onClick={() => { setActiveCategory(cat); setActiveSubCategory('전체'); }}
-                    className={cn('px-2 py-0.5 rounded text-[10px] font-medium transition-all',
-                      effectiveCategory === cat ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:bg-slate-200')}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
             {!searchMode && EXPERT_SUB_CATEGORIES[effectiveCategory as ExpertCategory] && (
               <div className="flex items-center gap-1.5 px-3 pt-0 pb-1.5 overflow-x-auto scrollbar-none">
                 {EXPERT_SUB_CATEGORIES[effectiveCategory as ExpertCategory]!.map(sub => (
