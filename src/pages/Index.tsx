@@ -1683,21 +1683,25 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                 </div>
               )}
 
-              {/* Question header — procon은 VS 헤더에 포함, 나머지만 표시 */}
+              {/* Question header — 모드별 분기 */}
               {currentQuestion && messages.length > 0 && discussionMode !== 'procon' && discussionMode !== 'standard' && discussionMode !== 'multi' && (
-                <div className="flex items-center gap-3 px-1 py-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-slate-900 font-bold text-[16px] leading-snug">{currentQuestion}</p>
+                getMainMode(discussionMode) === 'general' ? (
+                  /* 단일 AI — 오른쪽 말풍선 */
+                  <div className="flex justify-end">
+                    <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                      <p className="text-[13px] leading-relaxed">{currentQuestion}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {isDone && (
-                      <button onClick={copyAllResults} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 text-[11px] hover:text-slate-600 hover:bg-slate-50 transition-colors">
-                        {copiedAll ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                        {copiedAll ? '복사됨' : '복사'}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                ) : (
+                  /* 기타 모드 — 왼쪽 버블 */
+                  <button type="button" onClick={() => setQuestionExpanded(!questionExpanded)}
+                    className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 text-left max-w-[80%] hover:bg-slate-200/70 transition-colors">
+                    <p className={cn('text-[13px] text-slate-600 leading-relaxed flex-1', !questionExpanded && 'line-clamp-2')}>
+                      {currentQuestion}
+                    </p>
+                    <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 transition-transform', questionExpanded && 'rotate-180')} />
+                  </button>
+                )
               )}
 
               {/* Participants display — VS layout for procon, normal for others */}
