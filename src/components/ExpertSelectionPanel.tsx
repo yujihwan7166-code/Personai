@@ -1488,7 +1488,7 @@ export function ExpertSelectionPanel({
 
       {/* ── Expert Selection Grid (general / multi / debate) ── */}
       {showExpertGrid && (
-        <div className={cn('border border-slate-200 rounded-xl bg-white overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.07)] transition-all duration-200',
+        <div className={cn('border border-slate-200 rounded-xl bg-white overflow-visible shadow-[0_2px_12px_rgba(0,0,0,0.07)] transition-all duration-200 relative',
           autoAssign && 'opacity-50'
         )} onClick={() => { if (autoAssign) setAutoAssign(false); }}>
           {/* Category tabs / Search */}
