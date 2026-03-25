@@ -40,12 +40,13 @@ interface Props {
   onBulkSelect?: (ids: string[]) => void;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'expert', 'debate', 'assistant'];
+const mainModes: MainMode[] = ['general', 'multi', 'brainstorm_main', 'expert', 'debate', 'assistant'];
 const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'hearing'];
 
 const mainModeLabels: Record<MainMode, string> = {
   general: '단일 AI',
   multi: '다중 AI',
+  brainstorm_main: '브레인스토밍',
   expert: '전문가 모드',
   debate: '라운드테이블',
   assistant: '어시스턴트',
