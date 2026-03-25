@@ -1103,6 +1103,7 @@ Rules:
   const [proconActiveRound, setProconActiveRound] = useState(0);
   const [proconFocusSide, setProconFocusSide] = useState<null | 'pro' | 'con'>(null);
   const [questionExpanded, setQuestionExpanded] = useState(false);
+  const [followUpTarget, setFollowUpTarget] = useState<string | null>(null); // null = 전체, id = 특정 전문가
 
 
   // Keyboard nav for multi detail view
@@ -2399,8 +2400,32 @@ Rules:
                     </button>
                   </div>
                 )}
+                {/* 토론 모드 후속질문 — 전문가 선택 칩 */}
+                {isDone && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 1 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button type="button" onClick={() => setFollowUpTarget(null)}
+                      className={cn('px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all',
+                        followUpTarget === null ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+                      전체
+                    </button>
+                    {activeExperts.map(e => (
+                      <button key={e.id} type="button" onClick={() => setFollowUpTarget(e.id)}
+                        className={cn('flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold transition-all',
+                          followUpTarget === e.id ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+                        <ExpertAvatar expert={e} size="xs" />
+                        {e.nameKo}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <QuestionInput
-                  onSubmit={isDone ? handleFollowUp : startDiscussion}
+                  onSubmit={isDone ? (q: string) => {
+                    if (followUpTarget && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode)) {
+                      askSingleAI(followUpTarget, q);
+                    } else {
+                      handleFollowUp(q);
+                    }
+                  } : startDiscussion}
                   disabled={isDiscussing || activeExperts.length < 1}
                   discussionMode={discussionMode}
                   onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
