@@ -2167,6 +2167,40 @@ Rules:
                         if (!expert) return null;
                         return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
                       })}
+
+                      {/* 후속 1:1 대화 — 메신저 스타일 */}
+                      {(() => {
+                        const lastSummaryIdx = messages.reduce((acc, m, i) => m.isSummary ? i : acc, -1);
+                        const followUpMsgs = lastSummaryIdx >= 0 ? messages.slice(lastSummaryIdx + 1) : [];
+                        if (followUpMsgs.length === 0) return null;
+                        return (
+                          <div className="space-y-2.5 pt-3 border-t border-slate-200 mt-3">
+                            {followUpMsgs.map(msg => {
+                              if (msg.expertId === '__user__') {
+                                return (
+                                  <div key={msg.id} className="flex justify-end">
+                                    <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                                      <ReactMarkdownInline content={msg.content} />
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              if (msg.expertId === '__round__') return null;
+                              const expert = allExperts.find(e => e.id === msg.expertId);
+                              if (!expert) return null;
+                              return (
+                                <div key={msg.id} className="flex gap-2.5 items-start">
+                                  <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
+                                  <div className="flex-1 min-w-0 max-w-[85%]">
+                                    <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
+                                    <DiscussionMessageCard message={msg} expert={expert} variant="messenger" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()
