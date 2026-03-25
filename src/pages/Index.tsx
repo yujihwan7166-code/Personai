@@ -2024,6 +2024,11 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                 {rightMsg && rightExp && <DiscussionMessageCard message={rightMsg} expert={rightExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
                             </div>
+                            {/* 전체보기 */}
+                            <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/50">
+                              <button onClick={() => setMultiView('overview')}
+                                className="text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors">← 전체 보기</button>
+                            </div>
                           </div>
                         );
                       })()}
