@@ -1820,9 +1820,17 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       {!isDiscussing && (
                         <div className="space-y-3">
                           {currentQuestion && multiView === 'overview' && (
-                            <div className="px-4 py-2.5 rounded-2xl border border-slate-200 bg-white/80">
-                              <p className="text-[13px] text-slate-600 leading-relaxed line-clamp-5">{currentQuestion}</p>
-                            </div>
+                            <button type="button" onClick={() => setQuestionExpanded(!questionExpanded)}
+                              className="w-full text-left px-4 py-2.5 rounded-t-2xl border border-b-0 border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+                              <p className={cn('text-[13px] text-slate-600 leading-relaxed', !questionExpanded && 'line-clamp-5')}>
+                                {currentQuestion}
+                              </p>
+                              {currentQuestion.length > 200 && (
+                                <span className="text-[10px] text-slate-400 mt-1 block">
+                                  {questionExpanded ? '▲ 접기' : '▼ 더보기'}
+                                </span>
+                              )}
+                            </button>
                           )}
                           {sortedExperts.length > 1 && !isDiscussing && (
                             <div className="flex items-center justify-between">
