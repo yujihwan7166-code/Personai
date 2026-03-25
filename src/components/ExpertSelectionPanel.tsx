@@ -1672,7 +1672,7 @@ export function ExpertSelectionPanel({
                           )}
                           {/* 즐겨찾기 별 */}
                           <button type="button" onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
-                            className={cn('absolute top-0 left-0 w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity z-10',
+                            className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10',
                               favoriteIds.includes(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
                             {favoriteIds.includes(expert.id) ? '★' : '☆'}
                           </button>
