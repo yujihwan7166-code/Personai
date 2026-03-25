@@ -1869,9 +1869,6 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                                     <span className="text-[9px] text-white/60 ml-1.5">{expert.description}</span>
                                   </div>
                                   {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /></span>}
-                                  {!msg.isStreaming && charCount > 0 && (
-                                    <span className="text-[9px] text-white/60 font-medium">{charCount}자</span>
-                                  )}
                                 </div>
                                 {/* 본문 — 더 길게 */}
                                 <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-8 min-h-[120px]">
