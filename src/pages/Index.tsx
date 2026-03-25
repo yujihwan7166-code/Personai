@@ -1995,24 +1995,20 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         return (
                           <div className="rounded-2xl bg-white border border-slate-200 shadow-md overflow-hidden">
                             {/* AI 선택 헤더 */}
-                            <div className="flex items-center">
-                              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-400 to-blue-500 flex-1 min-w-0">
+                            <div className="grid grid-cols-2">
+                              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-r from-blue-400 to-blue-500 border-r border-white/20">
                                 {leftExp && <ExpertAvatar expert={leftExp} size="xs" />}
                                 <select value={multiCompareIds[0]}
                                   onChange={e => { const next = [...multiCompareIds] as [string, string]; next[0] = e.target.value; setMultiCompareIds(next); }}
-                                  className="flex-1 min-w-0 px-1.5 py-0.5 rounded-md border-0 bg-white/20 text-[11px] font-bold text-white focus:outline-none cursor-pointer [&>option]:text-slate-800">
+                                  className="flex-1 px-2 py-1 rounded-lg border-0 bg-white/20 text-[12px] font-bold text-white focus:outline-none cursor-pointer [&>option]:text-slate-800">
                                   {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
                                 </select>
                               </div>
-                              <button onClick={() => setMultiView('overview')}
-                                className="px-3 py-2 bg-slate-700 text-[10px] text-white/70 hover:text-white font-medium transition-colors shrink-0 whitespace-nowrap">
-                                ← 전체
-                              </button>
-                              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-violet-400 to-violet-500 flex-1 min-w-0">
+                              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-r from-violet-400 to-violet-500">
                                 {rightExp && <ExpertAvatar expert={rightExp} size="xs" />}
                                 <select value={multiCompareIds[1]}
                                   onChange={e => { const next = [...multiCompareIds] as [string, string]; next[1] = e.target.value; setMultiCompareIds(next); }}
-                                  className="flex-1 min-w-0 px-1.5 py-0.5 rounded-md border-0 bg-white/20 text-[11px] font-bold text-white focus:outline-none cursor-pointer [&>option]:text-slate-800">
+                                  className="flex-1 px-2 py-1 rounded-lg border-0 bg-white/20 text-[12px] font-bold text-white focus:outline-none cursor-pointer [&>option]:text-slate-800">
                                   {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
                                 </select>
                               </div>
