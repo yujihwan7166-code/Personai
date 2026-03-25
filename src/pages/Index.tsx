@@ -1813,23 +1813,23 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                     <div className="space-y-3">
                       {/* View mode switcher — compact inline */}
                       {sortedExperts.length > 1 && !isDiscussing && (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
-                            {([['overview', '전체'], ['detail', '상세'], ['compare', '비교']] as const).map(([v, label]) => (
+                        <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200 px-2 py-1.5 shadow-sm">
+                          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+                            {([['overview', '📋', '전체'], ['detail', '🔍', '상세'], ['compare', '⚖️', '비교']] as const).map(([v, icon, label]) => (
                               <button key={v} onClick={() => {
                                 setMultiView(v as any);
                                 if (v === 'compare' && sortedExperts.length >= 2) setMultiCompareIds([sortedExperts[0].id, sortedExperts[1].id]);
-                              }} className={cn('px-3 py-1 rounded-md text-[10px] font-semibold transition-all',
+                              }} className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all',
                                 multiView === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
-                                {label}
+                                <span className="text-[12px]">{icon}</span> {label}
                               </button>
                             ))}
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
                             <div className="flex -space-x-1.5">
                               {sortedExperts.slice(0, 4).map(e => <ExpertAvatar key={e.id} expert={e} size="xs" />)}
                             </div>
-                            <span className="text-[10px] text-slate-400">{sortedExperts.length}개 AI</span>
+                            <span className="text-[10px] font-medium text-slate-400">{sortedExperts.length}개 AI 참여</span>
                           </div>
                         </div>
                       )}
@@ -1840,31 +1840,48 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                           {sortedExperts.map((expert, ei) => {
                             const msg = expertMsgs.find(m => m.expertId === expert.id);
                             if (!msg) return null;
-                            const preview = msg.content.slice(0, 180);
+                            const preview = msg.content.slice(0, 200);
                             const charCount = msg.content.length;
-                            const accentColors = ['border-t-blue-400', 'border-t-emerald-400', 'border-t-violet-400', 'border-t-amber-400', 'border-t-rose-400', 'border-t-cyan-400'];
-                            const accent = accentColors[ei % accentColors.length];
+                            const gradients = [
+                              'from-blue-500 to-blue-600', 'from-emerald-500 to-emerald-600',
+                              'from-violet-500 to-violet-600', 'from-amber-500 to-amber-600',
+                              'from-rose-500 to-rose-600', 'from-cyan-500 to-cyan-600'
+                            ];
+                            const bgTints = [
+                              'bg-blue-50/50', 'bg-emerald-50/50', 'bg-violet-50/50',
+                              'bg-amber-50/50', 'bg-rose-50/50', 'bg-cyan-50/50'
+                            ];
+                            const gradient = gradients[ei % gradients.length];
+                            const bgTint = bgTints[ei % bgTints.length];
                             return (
                               <button key={expert.id} type="button"
                                 onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
                                 className={cn(
-                                  'group rounded-xl border border-slate-200 bg-slate-50 overflow-hidden transition-all border-t-2 text-left',
-                                  accent,
-                                  !isDiscussing && 'hover:shadow-lg hover:-translate-y-0.5'
+                                  'group rounded-2xl border border-slate-200 overflow-hidden transition-all text-left',
+                                  bgTint,
+                                  !isDiscussing && 'hover:shadow-xl hover:-translate-y-1 hover:border-slate-300'
                                 )}>
-                                <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-slate-100">
-                                  <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
-                                  <span className="text-[12px] font-bold text-slate-800 flex-1">{expert.nameKo}</span>
-                                  {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-primary/50" /></span>}
-                                  {!msg.isStreaming && charCount > 0 && <span className="text-[9px] text-slate-300">{charCount}자</span>}
+                                {/* 헤더 — 그라디언트 */}
+                                <div className={cn('flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r text-white', gradient)}>
+                                  <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-[13px] font-bold block">{expert.nameKo}</span>
+                                    <span className="text-[9px] text-white/70">{expert.description}</span>
+                                  </div>
+                                  {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /></span>}
+                                  {!msg.isStreaming && charCount > 0 && (
+                                    <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-medium">{charCount}자</span>
+                                  )}
                                 </div>
-                                <div className="px-3.5 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-5 min-h-[80px]">
+                                {/* 본문 */}
+                                <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-4 min-h-[72px]">
                                   {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
-                                  {charCount > 180 && <span className="text-slate-300">...</span>}
+                                  {charCount > 200 && <span className="text-slate-300">...</span>}
                                 </div>
+                                {/* 푸터 */}
                                 {!msg.isStreaming && charCount > 0 && (
-                                  <div className="px-3.5 pb-3 pt-0">
-                                    <span className="text-[10px] font-medium text-indigo-500 group-hover:text-indigo-600 transition-colors">자세히 보기 →</span>
+                                  <div className="px-4 pb-3 pt-0 flex items-center justify-between">
+                                    <span className="text-[10px] font-semibold text-indigo-500 group-hover:text-indigo-600 transition-colors">자세히 보기 →</span>
                                   </div>
                                 )}
                               </button>
@@ -1949,39 +1966,36 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                         const leftExp = allExperts.find(e => e.id === leftId);
                         const rightExp = allExperts.find(e => e.id === rightId);
                         return (
-                          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-                            {/* AI 선택 — 아바타 탭 스타일 */}
-                            <div className="grid grid-cols-[1fr_auto_1fr] border-b border-slate-200">
-                              {/* 좌측 AI 선택 */}
-                              <div className="flex items-center gap-2 px-4 py-3 bg-indigo-50/30">
-                                {leftExp && <ExpertAvatar expert={leftExp} size="xs" />}
+                          <div className="rounded-2xl bg-white border border-slate-200 shadow-md overflow-hidden">
+                            {/* AI 선택 헤더 — 그라디언트 */}
+                            <div className="grid grid-cols-[1fr_auto_1fr]">
+                              <div className="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600">
+                                {leftExp && <ExpertAvatar expert={leftExp} size="sm" />}
                                 <select value={multiCompareIds[0]}
                                   onChange={e => { const next = [...multiCompareIds] as [string, string]; next[0] = e.target.value; setMultiCompareIds(next); }}
-                                  className="flex-1 px-2 py-1 rounded-lg border-0 bg-transparent text-[12px] font-bold text-slate-800 focus:outline-none cursor-pointer">
+                                  className="flex-1 px-2 py-1 rounded-lg border-0 bg-white/20 text-[12px] font-bold text-white focus:outline-none cursor-pointer [&>option]:text-slate-800">
                                   {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
                                 </select>
                               </div>
-                              {/* VS 구분 */}
-                              <div className="flex items-center px-2">
-                                <span className="text-[10px] font-black text-slate-300">VS</span>
+                              <div className="flex items-center px-3 bg-slate-800">
+                                <span className="text-[11px] font-black text-white">VS</span>
                               </div>
-                              {/* 우측 AI 선택 */}
-                              <div className="flex items-center gap-2 px-4 py-3 bg-violet-50/30">
-                                {rightExp && <ExpertAvatar expert={rightExp} size="xs" />}
+                              <div className="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-violet-500 to-violet-600">
+                                {rightExp && <ExpertAvatar expert={rightExp} size="sm" />}
                                 <select value={multiCompareIds[1]}
                                   onChange={e => { const next = [...multiCompareIds] as [string, string]; next[1] = e.target.value; setMultiCompareIds(next); }}
-                                  className="flex-1 px-2 py-1 rounded-lg border-0 bg-transparent text-[12px] font-bold text-slate-800 focus:outline-none cursor-pointer">
+                                  className="flex-1 px-2 py-1 rounded-lg border-0 bg-white/20 text-[12px] font-bold text-white focus:outline-none cursor-pointer [&>option]:text-slate-800">
                                   {sortedExperts.map(exp => (<option key={exp.id} value={exp.id}>{exp.nameKo}</option>))}
                                 </select>
                               </div>
                             </div>
                             {/* 나란히 비교 */}
                             <div className="grid grid-cols-[1fr_auto_1fr]">
-                              <div className="p-4 bg-indigo-50/10">
+                              <div className="p-4 bg-blue-50/30">
                                 {leftMsg && leftExp && <DiscussionMessageCard message={leftMsg} expert={leftExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
                               <div className="w-px bg-slate-200" />
-                              <div className="p-4 bg-violet-50/10">
+                              <div className="p-4 bg-violet-50/30">
                                 {rightMsg && rightExp && <DiscussionMessageCard message={rightMsg} expert={rightExp} variant="default" onLike={handleLike} onDislike={handleDislike} />}
                               </div>
                             </div>
