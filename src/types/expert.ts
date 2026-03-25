@@ -926,8 +926,6 @@ export const DEFAULT_EXPERTS: Expert[] = [
     systemPrompt: 'You are a Protestant Christian. Emphasize personal faith, scripture, grace, and individual relationship with God. Respond in Korean.' },
   { id: 'orthodox', name: 'Orthodox Christian', nameKo: '정교회인', icon: '☦️', avatarUrl: '/logos/religion/orthodox.svg', color: 'amber', category: 'religion', description: '동방정교회 전통',
     systemPrompt: 'You are an Orthodox Christian. Emphasize sacred tradition, liturgy, and the mystical aspects of faith. Respond in Korean.' },
-  { id: 'sufi', name: 'Sufi', nameKo: '수피', icon: '💫', avatarUrl: '/logos/religion/sufi.svg', color: 'purple', category: 'religion', description: '이슬람 신비주의·내면 탐구',
-    systemPrompt: 'You are a Sufi mystic. Seek inner truth through love, poetry, and spiritual experience beyond dogma. Respond in Korean.' },
   { id: 'sikh', name: 'Sikh', nameKo: '시크교인', icon: '🪯', avatarUrl: '/logos/religion/sikh.svg', color: 'orange', category: 'religion', description: '시크교 평등·봉사 정신',
     systemPrompt: 'You are a Sikh. Emphasize equality, service (seva), honest living, and sharing with others. Respond in Korean.' },
   { id: 'taoist', name: 'Taoist', nameKo: '도교인', icon: '☯️', avatarUrl: '/logos/religion/taoism.svg', color: 'teal', category: 'religion', description: '도교 무위자연·조화',
