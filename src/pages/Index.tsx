@@ -1132,6 +1132,7 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
   const [multiCompareIds, setMultiCompareIds] = useState<[string, string] | null>(null);
   const [proconActiveRound, setProconActiveRound] = useState(0);
   const [proconFocusSide, setProconFocusSide] = useState<null | 'pro' | 'con'>(null);
+  const [questionExpanded, setQuestionExpanded] = useState(false);
 
 
   // Keyboard nav for multi detail view
@@ -1814,18 +1815,15 @@ Do NOT mention any expert by name. Synthesize all perspectives into ONE unified,
                       {/* 헤더 — overview일 때만 표시 */}
                       {(multiView === 'overview' || isDiscussing) && (
                         <div className="space-y-3">
-                          {currentQuestion && (() => {
-                            const [qExpanded, setQExpanded] = useState(false);
-                            return (
-                              <button type="button" onClick={() => setQExpanded(!qExpanded)}
-                                className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 text-left max-w-[80%] group hover:bg-slate-200/70 transition-colors">
-                                <p className={cn('text-[13px] text-slate-600 leading-relaxed flex-1', !qExpanded && 'line-clamp-2')}>
-                                  {currentQuestion}
-                                </p>
-                                <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 transition-transform', qExpanded && 'rotate-180')} />
-                              </button>
-                            );
-                          })()}
+                          {currentQuestion && (
+                            <button type="button" onClick={() => setQuestionExpanded(!questionExpanded)}
+                              className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 text-left max-w-[80%] group hover:bg-slate-200/70 transition-colors">
+                              <p className={cn('text-[13px] text-slate-600 leading-relaxed flex-1', !questionExpanded && 'line-clamp-2')}>
+                                {currentQuestion}
+                              </p>
+                              <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 transition-transform', questionExpanded && 'rotate-180')} />
+                            </button>
+                          )}
                           {sortedExperts.length > 1 && !isDiscussing && (
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
