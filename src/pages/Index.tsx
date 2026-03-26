@@ -174,7 +174,7 @@ async function streamExpert({
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v39');
+      const saved = localStorage.getItem('ai-debate-experts-v57');
       if (saved) {
         const parsed = JSON.parse(saved) as Expert[];
         // Merge: keep saved customizations but add any new default experts
@@ -214,7 +214,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v39', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v57', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
@@ -354,7 +354,7 @@ const Index = () => {
   }>({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
 
   // 실제 토론 시작 함수 (먼저 선언)
-  const runDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+  const runDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode, displayQuestion?: string) => {
     const useIds = overrideExpertIds || selectedExpertIds;
     const useMode = overrideMode || discussionMode;
     const discussionExperts = experts.filter((e) => useIds.includes(e.id));
@@ -415,10 +415,14 @@ const Index = () => {
           const clarifyResp = await fetch('/api/clarify-chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: question, expertName: expert0.nameKo, expertDescription: expert0.description }),
+            body: JSON.stringify({ message: question, expertName: expert0.nameKo, expertDescription: expert0.description, attempt: clarifyAttemptsRef.current }),
           });
           const clarifyData = await clarifyResp.json();
           if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
+            // 사용자 메시지 추가 → 채팅 화면으로 전환
+            if (messages.length === 0) {
+              setMessages([{ id: `user-clarify-${Date.now()}`, expertId: '__user__', content: question }]);
+            }
             setChatClarify({
               show: true, loading: false,
               message: clarifyData.message || '더 정확한 답변을 위해 몇 가지 확인할게요',
@@ -1103,8 +1107,13 @@ Rules:
   });
   const [devSchedule, setDevSchedule] = useState(() => localStorage.getItem('dev-schedule') || '');
   const [devPrinciple, setDevPrinciple] = useState(() => localStorage.getItem('dev-principle') || '');
+  const [devDdayDate, setDevDdayDate] = useState(() => localStorage.getItem('dev-dday-date') || '2026-04-06');
+  const [devDdayLabel, setDevDdayLabel] = useState(() => localStorage.getItem('dev-dday-label') || '마감');
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+  const [editingTodoText, setEditingTodoText] = useState('');
   const saveDevPrinciple = (text: string) => { setDevPrinciple(text); localStorage.setItem('dev-principle', text); };
   const saveDevTodos = (todos: typeof devTodos) => { setDevTodos(todos); localStorage.setItem('dev-todos', JSON.stringify(todos)); };
+  const saveDevDday = (date: string, label: string) => { setDevDdayDate(date); setDevDdayLabel(label); localStorage.setItem('dev-dday-date', date); localStorage.setItem('dev-dday-label', label); };
   const saveDevSchedule = (text: string) => { setDevSchedule(text); localStorage.setItem('dev-schedule', text); };
   const [newTodoText, setNewTodoText] = useState('');
   const toggleDevPanel = () => { const next = !devPanelOpen; setDevPanelOpen(next); localStorage.setItem('dev-panel-open', String(next)); };
@@ -1212,7 +1221,7 @@ Rules:
   // Clarifying questions state (단일 AI)
   const skipClarifyRef = useRef(false);
   const clarifyAttemptsRef = useRef(0);
-  const MAX_CLARIFY_ATTEMPTS = 1;
+  const MAX_CLARIFY_ATTEMPTS = 2;
   const [chatClarify, setChatClarify] = useState<{
     show: boolean;
     loading: boolean;
@@ -1232,6 +1241,7 @@ Rules:
   const [proconFocusSide, setProconFocusSide] = useState<null | 'pro' | 'con'>(null);
   const [questionExpanded, setQuestionExpanded] = useState(false);
   const [followUpTarget, setFollowUpTarget] = useState<string | null>(null); // null = 전체, id = 특정 전문가
+  const [sampleQuestionValue, setSampleQuestionValue] = useState<string>('');
 
 
   // Keyboard nav for multi detail view
@@ -1300,12 +1310,19 @@ Rules:
           return { name: e?.nameKo || '', content: m.content };
         });
 
-      const userMsgId = `user-${Date.now()}`;
       const replyId = `${expert.id}-reply-${Date.now()}`;
-      setMessages(prev => [...prev,
-        { id: userMsgId, expertId: '__user__', content: question },
-        { id: replyId, expertId: expert.id, content: '', isStreaming: true }
-      ]);
+      const alreadyHasUserMsg = messages.some(m => m.expertId === '__user__');
+      if (alreadyHasUserMsg) {
+        setMessages(prev => [...prev,
+          { id: replyId, expertId: expert.id, content: '', isStreaming: true }
+        ]);
+      } else {
+        const userMsgId = `user-${Date.now()}`;
+        setMessages(prev => [...prev,
+          { id: userMsgId, expertId: '__user__', content: displayQuestion || question },
+          { id: replyId, expertId: expert.id, content: '', isStreaming: true }
+        ]);
+      }
 
       let fullContent = '';
       try {
@@ -1435,21 +1452,29 @@ Rules:
       <div className="h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]">
         {/* Dev Panel — D-day + Todo + Schedule */}
         {(() => {
-          const targetDate = new Date('2026-04-06T00:00:00');
+          const targetDate = new Date(devDdayDate + 'T00:00:00');
           const now = new Date();
           const diffMs = targetDate.getTime() - now.getTime();
           const dDay = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
           const dDayText = dDay > 0 ? `D-${dDay}` : dDay === 0 ? 'D-DAY' : `D+${Math.abs(dDay)}`;
+          const targetMonth = targetDate.getMonth() + 1;
+          const targetDay = targetDate.getDate();
           return (
             <div className={cn('fixed right-0 top-4 z-40 transition-all duration-300', devPanelOpen ? 'w-72' : 'w-0')}>
               {devPanelOpen && (
                 <div className="w-72 max-h-[80vh] bg-white border border-slate-200 rounded-l-2xl shadow-xl flex flex-col animate-in slide-in-from-right duration-200 overflow-hidden">
-                  {/* D-day Header */}
+                  {/* D-day Header — 클릭해서 날짜/라벨 수정 */}
                   <div className="px-4 py-3 bg-gradient-to-r from-red-500 to-rose-500 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <span className="text-white text-[22px] font-black tracking-tight">{dDayText}</span>
                       <div>
-                        <p className="text-white/90 text-[10px] font-semibold">4월 6일 마감</p>
+                        <div className="flex items-center gap-1">
+                          <input type="date" value={devDdayDate} onChange={e => saveDevDday(e.target.value, devDdayLabel)}
+                            className="bg-transparent text-white/90 text-[10px] font-semibold border-none outline-none w-[85px] cursor-pointer [color-scheme:dark]" />
+                          <input type="text" value={devDdayLabel} onChange={e => saveDevDday(devDdayDate, e.target.value)}
+                            className="bg-transparent text-white/90 text-[10px] font-semibold border-b border-white/30 outline-none w-[40px] placeholder:text-white/40"
+                            placeholder="라벨" />
+                        </div>
                         <p className="text-white/60 text-[9px]">{now.getMonth() + 1}월 {now.getDate()}일 기준</p>
                       </div>
                     </div>
@@ -1471,14 +1496,29 @@ Rules:
                   <div className="px-3 py-2.5 border-b border-slate-100 flex-shrink-0">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">할 일</p>
                     <div className="space-y-1 max-h-[200px] overflow-y-auto scrollbar-thin">
-                      {devTodos.map(todo => (
-                        <div key={todo.id} className="flex items-center gap-2 group">
-                          <button onClick={() => saveDevTodos(devTodos.filter(t => t.id !== todo.id))}
+                      {devTodos.map((todo, idx) => (
+                        <div key={todo.id} className="flex items-center gap-1.5 group">
+                          <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                            {idx > 0 && <button onClick={() => { const t = [...devTodos]; [t[idx-1], t[idx]] = [t[idx], t[idx-1]]; saveDevTodos(t); }}
+                              className="text-slate-300 hover:text-slate-600 text-[8px] leading-none">▲</button>}
+                            {idx < devTodos.length - 1 && <button onClick={() => { const t = [...devTodos]; [t[idx], t[idx+1]] = [t[idx+1], t[idx]]; saveDevTodos(t); }}
+                              className="text-slate-300 hover:text-slate-600 text-[8px] leading-none">▼</button>}
+                          </div>
+                          <button onClick={() => saveDevTodos(devTodos.map(t => t.id === todo.id ? { ...t, done: !t.done } : t))}
                             className={cn('w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all',
                               todo.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 hover:border-slate-400')}>
                             {todo.done && <Check className="w-2.5 h-2.5 text-white" />}
                           </button>
-                          <span className={cn('flex-1 text-[11px] leading-snug', todo.done ? 'text-slate-400 line-through' : 'text-slate-700')}>{todo.text}</span>
+                          {editingTodoId === todo.id ? (
+                            <input type="text" value={editingTodoText} onChange={e => setEditingTodoText(e.target.value)}
+                              onBlur={() => { saveDevTodos(devTodos.map(t => t.id === todo.id ? { ...t, text: editingTodoText } : t)); setEditingTodoId(null); }}
+                              onKeyDown={e => { if (e.key === 'Enter') { saveDevTodos(devTodos.map(t => t.id === todo.id ? { ...t, text: editingTodoText } : t)); setEditingTodoId(null); } }}
+                              className="flex-1 text-[11px] leading-snug text-slate-700 border-b border-slate-300 outline-none bg-transparent"
+                              autoFocus />
+                          ) : (
+                            <span onClick={() => { setEditingTodoId(todo.id); setEditingTodoText(todo.text); }}
+                              className={cn('flex-1 text-[11px] leading-snug cursor-pointer hover:text-blue-600', todo.done ? 'text-slate-400 line-through' : 'text-slate-700')}>{todo.text}</span>
+                          )}
                           <button onClick={() => saveDevTodos(devTodos.filter(t => t.id !== todo.id))}
                             className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 text-[12px] transition-all shrink-0">✕</button>
                         </div>
@@ -1547,7 +1587,7 @@ Rules:
           )}
 
           {/* Main scroll area */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin" onScroll={handleScroll}>
+          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin relative" onScroll={handleScroll}>
             <div className={cn(
               'mx-auto px-4 sm:px-6 pt-16 pb-6',
               !selectable ? 'max-w-3xl space-y-2.5'
@@ -1576,6 +1616,7 @@ Rules:
                   debateIntensity={debateIntensity}
                   onDebateIntensityChange={setDebateIntensity}
                   onBulkSelect={setSelectedExpertIds}
+                  onSampleQuestionClick={(q) => setSampleQuestionValue(q)}
                 />
               )}
 
@@ -1596,9 +1637,9 @@ Rules:
                       return opt ? opt.label : sel || '';
                     }).filter(Boolean);
                     const enriched = `${chatClarify.originalQuestion} (${answerParts.join(', ')})`;
-                    skipClarifyRef.current = true;
+                    const original = chatClarify.originalQuestion;
                     setChatClarify(null);
-                    runDiscussion(enriched);
+                    runDiscussion(enriched, undefined, undefined, original);
                   } else if (value !== '__custom__' && !isLast) {
                     setChatClarify({ ...chatClarify, selections: newSelections, currentPage: chatClarify.currentPage + 1 });
                   } else {
@@ -1616,9 +1657,9 @@ Rules:
                       return sel || '';
                     }).filter(Boolean);
                     const enriched = `${chatClarify.originalQuestion} (${answerParts.join(', ')})`;
-                    skipClarifyRef.current = true;
+                    const original = chatClarify.originalQuestion;
                     setChatClarify(null);
-                    runDiscussion(enriched);
+                    runDiscussion(enriched, undefined, undefined, original);
                   } else {
                     setChatClarify({ ...chatClarify, selections: newSelections, currentPage: chatClarify.currentPage + 1 });
                   }
@@ -1631,55 +1672,70 @@ Rules:
                 };
 
                 return (
-                  <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    {/* 사용자 질문 말풍선 */}
-                    <div className="flex justify-end">
-                      <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
-                        {chatClarify.originalQuestion}
-                      </div>
-                    </div>
-
-                    {/* AI 명확화 질문 — 인라인 */}
-                    <div className="flex gap-2.5 items-start">
-                      {expert0 && <ExpertAvatar expert={expert0} size="sm" />}
-                      <div className="flex-1 max-w-[85%]">
-                        <span className="text-[11px] font-medium text-slate-400 mb-1 block">{expert0?.nameKo || 'AI'}</span>
-                        <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-md px-4 py-3 shadow-sm space-y-3">
-                          <p className="text-[12px] text-slate-600">{chatClarify.message}</p>
-
-                          {/* 현재 질문 */}
-                          <div>
-                            <p className="text-[12px] font-semibold text-slate-700 mb-2">{q.question}</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {q.options.filter(o => o.value !== '__custom__').map((opt, oi) => (
-                                <button key={oi} onClick={() => handleSelect(opt.value)}
-                                  className={cn('px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all',
-                                    chatClarify.selections[q.id] === opt.value
-                                      ? 'bg-indigo-500 text-white border-indigo-500'
-                                      : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50')}>
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-
-                            {/* 기타 입력 */}
-                            {chatClarify.selections[q.id] === '__custom__' && (
-                              <div className="flex gap-2 mt-2">
-                                <input type="text" value={chatClarify.customInputs[q.id] || ''} autoFocus
-                                  onChange={e => setChatClarify({ ...chatClarify, customInputs: { ...chatClarify.customInputs, [q.id]: e.target.value } })}
-                                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-300"
-                                  placeholder="직접 입력..." onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit(); }} />
-                                <button onClick={handleCustomSubmit} className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-semibold">확인</button>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* 건너뛰기 */}
-                          <button onClick={handleSkip} className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors">
-                            건너뛰고 바로 답변 받기 →
-                          </button>
+                  <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60 backdrop-blur-[2px] animate-in fade-in duration-200">
+                    <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-3 duration-300">
+                      {/* AI 헤더 바 */}
+                      <div className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 flex items-center gap-2.5">
+                        {expert0 && <ExpertAvatar expert={expert0} size="xs" active />}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-[12px] font-bold truncate">{expert0?.nameKo || 'AI'}</p>
+                          <p className="text-white/60 text-[9px]">더 정확한 답변을 위해 확인 중</p>
                         </div>
                       </div>
+
+                      {/* 질문 헤더 — 질문 텍스트 + 페이지 표시 */}
+                      <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3">
+                        <p className="text-[15px] font-bold text-slate-800 leading-snug">{q.question}</p>
+                        {chatClarify.questions.length > 1 && (
+                          <div className="flex items-center gap-1.5 shrink-0 text-[11px] text-slate-400">
+                            {chatClarify.currentPage > 0 && (
+                              <button onClick={() => setChatClarify({ ...chatClarify, currentPage: chatClarify.currentPage - 1 })}
+                                className="hover:text-slate-600 transition-colors">‹</button>
+                            )}
+                            <span>{chatClarify.questions.length}개 중 {chatClarify.currentPage + 1}개</span>
+                            {chatClarify.currentPage < chatClarify.questions.length - 1 && (
+                              <span className="text-slate-300">›</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 선택지 — 깔끔한 리스트 */}
+                      <div className="px-3 pb-2">
+                        {q.options.filter(o => o.value !== '__custom__').map((opt, oi) => {
+                          const isSelected = chatClarify.selections[q.id] === opt.value;
+                          return (
+                            <button key={oi} onClick={() => handleSelect(opt.value)}
+                              className={cn('w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left mb-1',
+                                isSelected ? 'bg-indigo-50' : 'hover:bg-slate-50')}>
+                              <span className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0',
+                                isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-400')}>{oi + 1}</span>
+                              <span className={cn('text-[13px] font-medium flex-1', isSelected ? 'text-indigo-600' : 'text-slate-700')}>{opt.label}</span>
+                              {isSelected && <span className="text-indigo-400 text-[14px]">→</span>}
+                            </button>
+                          );
+                        })}
+
+                        {/* 기타 직접 입력 옵션 */}
+                        {q.options.some(o => o.value === '__custom__') && (
+                          <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-slate-50 transition-all mb-1">
+                            <span className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-[13px] text-slate-400 shrink-0">✎</span>
+                            {chatClarify.selections[q.id] === '__custom__' ? (
+                              <div className="flex-1 flex gap-2">
+                                <input type="text" value={chatClarify.customInputs[q.id] || ''} autoFocus
+                                  onChange={e => setChatClarify({ ...chatClarify, customInputs: { ...chatClarify.customInputs, [q.id]: e.target.value } })}
+                                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                  placeholder="직접 입력..." onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit(); }} />
+                                <button onClick={handleCustomSubmit} className="px-3 py-1.5 rounded-lg bg-indigo-500 text-white text-[11px] font-semibold">확인</button>
+                              </div>
+                            ) : (
+                              <button onClick={() => handleSelect('__custom__')} className="text-[13px] font-medium text-slate-400 hover:text-slate-600">기타</button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI 표시 — 상단 바 스타일 */}
                     </div>
                   </div>
                 );
@@ -3159,6 +3215,8 @@ Rules:
                   showSettings={showDebateSettings}
                   isFollowUp={isDone}
                   onConclusion={isDone && discussionMode === 'multi' && !messages.some(m => m.isSummary) ? generateConclusion : undefined}
+                  externalValue={sampleQuestionValue}
+                  onExternalValueConsumed={() => setSampleQuestionValue('')}
                 />
               </div>
             </div>

@@ -14,15 +14,26 @@ interface Props {
   showSettings?: boolean;
   isFollowUp?: boolean;
   onConclusion?: () => void;
+  externalValue?: string;
+  onExternalValueConsumed?: () => void;
 }
 
-export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExperts, onRemoveExpert, onToggleSettings, showSettings, isFollowUp, onConclusion }: Props) {
+export function QuestionInput({ onSubmit, disabled, discussionMode, selectedExperts, onRemoveExpert, onToggleSettings, showSettings, isFollowUp, onConclusion, externalValue, onExternalValueConsumed }: Props) {
   const [question, setQuestion] = useState('');
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto focus on mount
   useEffect(() => { setTimeout(() => textareaRef.current?.focus(), 100); }, []);
+
+  // 외부에서 값 세팅 (추천 질문 클릭 등)
+  useEffect(() => {
+    if (externalValue) {
+      setQuestion(externalValue);
+      onExternalValueConsumed?.();
+      setTimeout(() => textareaRef.current?.focus(), 50);
+    }
+  }, [externalValue]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

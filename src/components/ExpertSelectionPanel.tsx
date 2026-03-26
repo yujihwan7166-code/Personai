@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER,
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
@@ -38,6 +39,7 @@ interface Props {
   debateIntensity?: string;
   onDebateIntensityChange?: (v: string) => void;
   onBulkSelect?: (ids: string[]) => void;
+  onSampleQuestionClick?: (question: string) => void;
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'brainstorm_main', 'expert', 'debate', 'assistant', 'player'];
@@ -1221,6 +1223,7 @@ export function ExpertSelectionPanel({
   discussionIssues = [], onDiscussionIssuesChange,
   debateIntensity = 'moderate', onDebateIntensityChange,
   onBulkSelect,
+  onSampleQuestionClick,
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
@@ -1234,6 +1237,30 @@ export function ExpertSelectionPanel({
   const [autoAssign, setAutoAssign] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Portal 기반 hover 툴팁
+  const [hoveredExpert, setHoveredExpert] = useState<Expert | null>(null);
+  const [tipPos, setTipPos] = useState<{ x: number; y: number } | null>(null);
+  const tipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTip = useCallback((expert: Expert, el: HTMLElement) => {
+    if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
+    const delay = hoveredExpert ? 0 : 300;
+    tipTimerRef.current = setTimeout(() => {
+      const rect = el.getBoundingClientRect();
+      setHoveredExpert(expert);
+      setTipPos({ x: rect.left + rect.width / 2, y: rect.top });
+    }, delay);
+  }, [hoveredExpert]);
+  const hideTip = useCallback(() => {
+    if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
+    tipTimerRef.current = setTimeout(() => {
+      setHoveredExpert(null);
+      setTipPos(null);
+    }, 100);
+  }, []);
+  const keepTip = useCallback(() => {
+    if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
+  }, []);
 
   const MAX_PER_ZONE = 3;
   const mainMode = getMainMode(discussionMode);
@@ -1524,7 +1551,7 @@ export function ExpertSelectionPanel({
               ) : (
                 <>
                   <div className="flex flex-1 min-w-0 gap-0.5">
-                    {grouped.filter(g => !['celebrity', 'ideology', 'religion', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
+                    {grouped.filter(g => !['celebrity', 'ideology', 'region', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = cat === 'ai';
                       const isAiDisabled = isAiTab && isStandardOrProcon;
@@ -1541,7 +1568,7 @@ export function ExpertSelectionPanel({
                     })}
                     {/* 더보기 — 호버 시 세로 드롭다운 */}
                     {(() => {
-                      const moreCats = grouped.filter(g => ['religion', 'ideology', 'celebrity', 'mythology'].includes(g.cat));
+                      const moreCats = grouped.filter(g => ['region', 'ideology', 'celebrity', 'mythology'].includes(g.cat));
                       if (moreCats.length === 0) return null;
                       const isMoreActive = moreCats.some(g => effectiveCategory === g.cat);
                       return (
@@ -1615,7 +1642,8 @@ export function ExpertSelectionPanel({
                         draggable={isProcon && !isDisabled}
                         onDragStart={() => !isDisabled && setDraggedId(expert.id)}
                         onDragEnd={() => setDraggedId(null)}
-                        title={`${expert.nameKo} — ${expert.description}`}
+                        onMouseEnter={(e) => { if (!isDisabled) showTip(expert, e.currentTarget); }}
+                        onMouseLeave={hideTip}
                         className={cn(
                           'group relative flex flex-col items-center gap-0.5 p-1 rounded-lg transition-all duration-150',
                           isDisabled ? 'opacity-25 cursor-not-allowed' : '',
@@ -1686,6 +1714,7 @@ export function ExpertSelectionPanel({
                             {expert.nameKo}
                           </span>
                         </button>
+                        {/* 툴팁은 Portal로 렌더링 (아래 참조) */}
                         {/* Disabled overlay label for AI in debate modes */}
                         {isDisabled && (
                           <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
@@ -1769,6 +1798,50 @@ export function ExpertSelectionPanel({
         />
       )}
 
+      {/* Portal 기반 플로팅 툴팁 — overflow 영향 안 받음 */}
+      {hoveredExpert && tipPos && createPortal(
+        <div
+          onMouseEnter={keepTip}
+          onMouseLeave={hideTip}
+          className="fixed z-[9999] pointer-events-auto"
+          style={{
+            left: `clamp(8px, ${tipPos.x}px, calc(100vw - 8px))`,
+            top: `${tipPos.y - 8}px`,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out">
+          <div className="bg-gradient-to-b from-slate-800 to-slate-900 text-white rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.35)] w-40 overflow-hidden border border-white/[0.06]">
+            {/* 상단 액센트 라인 */}
+            <div className="h-[2px] bg-gradient-to-r from-indigo-500 via-violet-500 to-amber-400" />
+            <div className="px-2.5 pt-1.5 pb-1.5 text-center">
+              <p className="text-[11px] font-bold tracking-tight leading-tight">{hoveredExpert.nameKo}</p>
+              <p className="text-[8.5px] text-slate-300 mt-0.5 leading-tight">{hoveredExpert.description}</p>
+              {hoveredExpert.quote && (
+                <p className="text-[8px] text-amber-400/80 font-medium mt-0.5 leading-tight">"{hoveredExpert.quote}"</p>
+              )}
+            </div>
+            {hoveredExpert.sampleQuestions && hoveredExpert.sampleQuestions.length > 0 && (
+              <div className="mx-2 mb-2 mt-1 relative">
+                <div className="rounded border-[1.5px] border-white/20 pt-2 pb-1.5 px-2">
+                <span className="absolute -top-[5px] left-1/2 -translate-x-1/2 px-1.5 text-[7px] text-slate-400 tracking-wider font-medium" style={{ backgroundColor: '#1a2030' }}>추천 질문</span>
+                  {hoveredExpert.sampleQuestions.map((q, qi) => (
+                    <p key={qi} className="text-[8px] text-slate-300 text-center leading-normal py-[2.5px]">
+                      {q}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* 화살표 */}
+          <div className="flex justify-center">
+            <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 -mt-[5px] border-r border-b border-white/[0.06]" />
+          </div>
+        </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

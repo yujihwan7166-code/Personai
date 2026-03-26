@@ -6,7 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
-  const { message, expertName, expertDescription, previousResponses } = req.body || {};
+  const { message, expertName, expertDescription, previousResponses, attempt } = req.body || {};
 
   if (!message || typeof message !== 'string') {
     return res.status(200).json({ type: 'answer' });
@@ -17,49 +17,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ type: 'answer' });
   }
 
-  const prompt = `사용자가 AI 챗봇에게 "${message}"라고 질문했습니다.
-이 챗봇은 "${expertName}" (${expertDescription})입니다.
+  const isFollowUp = (attempt || 1) >= 2;
 
-이 질문이 바로 답변할 수 있을 만큼 명확한지 판단하세요.
+  const prompt = `당신은 사용자의 질문 의도를 정확히 파악하는 전문 분석가입니다.
 
-명확화가 필요한 경우:
-- 주제나 분야가 여러 가지로 해석될 수 있을 때
-- 사용자의 수준/상황을 모르면 답변 품질이 크게 달라질 때
-- 추천/비교를 요청하지만 기준이 불분명할 때
-- "좋은", "저렴한", "빠른" 등 주관적 기준이 포함된 경우
+사용자 질문: "${message}"
+답변할 AI: "${expertName}" (${expertDescription})
+${isFollowUp ? '⚠️ 이것은 2차 확인입니다. 이미 1차 선택지를 통해 범위가 좁혀진 질문입니다.' : ''}
 
-명확화가 불필요한 경우 (바로 답변):
-- 의도가 명확한 질문
-- 단순 사실 확인
-- 인사, 잡담
-- 이미 충분한 맥락이 제공된 경우
+## 판단 기준
 
-다음 JSON 형식으로만 답변하세요:
+### 반드시 명확화가 필요한 경우 (질문하세요):
+1. **동음이의어/다의어**: "유가" (석유 가격 vs 儒家), "배" (과일/선박/신체), "사과" (과일/apology)
+2. **범위가 너무 넓은 질문**: "경제 전망", "건강 관리" — 어떤 측면인지 특정 필요
+3. **맥락 의존적 추천**: "좋은 노트북", "투자 어디에" — 용도/예산/수준 모름
+4. **전문 분야 세분화**: "법률 상담" (민사/형사/가족법), "프로그래밍" (언어/분야)
+5. **시간/지역 범위 모호**: "날씨", "부동산" — 언제/어디인지
 
-명확화 필요 시:
+### 명확화 불필요 (바로 답변하세요):
+1. 이미 구체적인 질문: "파이썬으로 정렬 알고리즘 구현", "비트코인 블록체인 원리"
+2. 괄호 등으로 이미 맥락 제공됨: "유가 (국제 유가, 단기)"
+3. 단순 사실/정의: "GDP란?", "지구 둘레"
+4. 인사/잡담: "안녕", "뭐해?"
+5. 감정/의견 표현: "요즘 힘들어", "AI가 무서워"
+${isFollowUp ? '6. 이미 1차에서 범위가 좁혀졌으므로, 추가 질문이 진짜 답변 품질을 크게 바꿀 때만 질문하세요. 대부분은 바로 답변해야 합니다.' : ''}
+
+## 출력 형식 (JSON만)
+
+명확화 필요:
 {
   "type": "clarifying_questions",
-  "message": "사용자에게 보여줄 안내 메시지 (1문장, 친근하게)",
+  "message": "자연스러운 안내 (예: '어떤 유가를 말씀하시는 건지 확인할게요')",
   "questions": [
     {
       "id": "q1",
-      "question": "질문 텍스트",
+      "question": "핵심 질문 (구체적으로)",
       "options": [
-        {"label": "선택지 (10자 이내)", "value": "내부값"},
-        {"label": "선택지", "value": "내부값"}
+        {"label": "선택지명 (8자 이내)", "value": "구체적 내부값"}
       ]
     }
   ]
 }
 
-명확화 불필요 시:
-{"type": "answer"}
+불필요: {"type": "answer"}
 
-규칙:
-- 질문은 최대 2개
-- 선택지는 2~4개 + 선택적으로 {"label": "기타 (직접 설명)", "value": "__custom__"}
-- label은 짧고 명확하게 (10자 이내)
-- 한국어로 작성`;
+## 규칙
+- 질문은 최대 ${isFollowUp ? '1개 (2차는 정말 필요한 것만)' : '2개'}
+- 선택지는 2~4개 (가장 가능성 높은 순서로)
+- label은 짧고 직관적 (8자 이내)
+- value는 실제 의미를 담은 구체적 값
+- "기타" 선택지는 꼭 필요할 때만: {"label": "직접 입력", "value": "__custom__"}
+- 한국어로 작성
+- 질문이 모호하지 않다면 반드시 {"type": "answer"} 반환`;
 
   const model = 'gemini-2.5-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
