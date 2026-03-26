@@ -406,36 +406,34 @@ const Index = () => {
       return;
     }
 
-    // 모든 모드 공통: 명확화 질문 (첫 질문, 스킵 안 된 경우만)
-    if (!skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS && discussionExperts.length > 0) {
-      clarifyAttemptsRef.current++;
-      const expert0 = discussionExperts[0];
-      try {
-        const clarifyResp = await fetch('/api/clarify-chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: question, expertName: expert0.nameKo, expertDescription: expert0.description }),
-        });
-        const clarifyData = await clarifyResp.json();
-        if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
-          // 인라인 명확화 — 메시지로 추가
-          setChatClarify({
-            show: true, loading: false,
-            message: clarifyData.message || '더 정확한 답변을 위해 몇 가지 확인할게요',
-            questions: clarifyData.questions,
-            selections: {}, customInputs: {}, currentPage: 0,
-            originalQuestion: question,
-          });
-          setIsDiscussing(false);
-          setStopRequested(false);
-          return;
-        }
-      } catch { /* 실패 시 그냥 답변 진행 */ }
-    }
-    skipClarifyRef.current = true;
-    setChatClarify(null);
-
     if (useMode === 'general') {
+      // 단일 AI만: 명확화 질문 (첫 질문, 스킵 안 된 경우만)
+      const expert0 = discussionExperts[0];
+      if (expert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS) {
+        clarifyAttemptsRef.current++;
+        try {
+          const clarifyResp = await fetch('/api/clarify-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: question, expertName: expert0.nameKo, expertDescription: expert0.description }),
+          });
+          const clarifyData = await clarifyResp.json();
+          if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
+            setChatClarify({
+              show: true, loading: false,
+              message: clarifyData.message || '더 정확한 답변을 위해 몇 가지 확인할게요',
+              questions: clarifyData.questions,
+              selections: {}, customInputs: {}, currentPage: 0,
+              originalQuestion: question,
+            });
+            setIsDiscussing(false);
+            setStopRequested(false);
+            return;
+          }
+        } catch { /* 실패 시 그냥 답변 진행 */ }
+      }
+      skipClarifyRef.current = true;
+      setChatClarify(null);
       // Smart router: auto-select best AI
       let expertsToRun = discussionExperts;
       if (useIds.includes('router')) {
