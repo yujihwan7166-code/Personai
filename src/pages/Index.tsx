@@ -406,36 +406,36 @@ const Index = () => {
       return;
     }
 
-    if (useMode === 'general') {
-      // Clarifying questions check (첫 질문에만, 스킵 플래그 확인)
+    // 모든 모드 공통: 명확화 질문 (첫 질문, 스킵 안 된 경우만)
+    if (!skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS && discussionExperts.length > 0) {
+      clarifyAttemptsRef.current++;
       const expert0 = discussionExperts[0];
-      if (expert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS) {
-        clarifyAttemptsRef.current++;
-        try {
-          const clarifyResp = await fetch('/api/clarify-chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: question, expertName: expert0.nameKo, expertDescription: expert0.description }),
+      try {
+        const clarifyResp = await fetch('/api/clarify-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: question, expertName: expert0.nameKo, expertDescription: expert0.description }),
+        });
+        const clarifyData = await clarifyResp.json();
+        if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
+          // 인라인 명확화 — 메시지로 추가
+          setChatClarify({
+            show: true, loading: false,
+            message: clarifyData.message || '더 정확한 답변을 위해 몇 가지 확인할게요',
+            questions: clarifyData.questions,
+            selections: {}, customInputs: {}, currentPage: 0,
+            originalQuestion: question,
           });
-          const clarifyData = await clarifyResp.json();
-          if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
-            // 명확화 필요 → 모달 표시, 토론 중단
-            setChatClarify({
-              show: true, loading: false,
-              message: clarifyData.message || '더 정확한 답변을 위해 몇 가지 확인할게요',
-              questions: clarifyData.questions,
-              selections: {}, customInputs: {}, currentPage: 0,
-              originalQuestion: question,
-            });
-            setIsDiscussing(false);
-            setStopRequested(false);
-            return;
-          }
-        } catch { /* 실패 시 그냥 답변 진행 */ }
-      }
-      skipClarifyRef.current = true;
-      setChatClarify(null);
+          setIsDiscussing(false);
+          setStopRequested(false);
+          return;
+        }
+      } catch { /* 실패 시 그냥 답변 진행 */ }
+    }
+    skipClarifyRef.current = true;
+    setChatClarify(null);
 
+    if (useMode === 'general') {
       // Smart router: auto-select best AI
       let expertsToRun = discussionExperts;
       if (useIds.includes('router')) {
@@ -1582,6 +1582,7 @@ Rules:
               )}
 
               {/* Clarifying Questions — 단일 AI 플로팅 모달 */}
+              {/* 인라인 명확화 질문 — 채팅 흐름 안에서 표시 */}
               {chatClarify?.show && (() => {
                 const q = chatClarify.questions[chatClarify.currentPage];
                 if (!q) return null;
@@ -1591,7 +1592,6 @@ Rules:
                 const handleSelect = (value: string) => {
                   const newSelections = { ...chatClarify.selections, [q.id]: value };
                   if (value !== '__custom__' && isLast) {
-                    // 마지막 질문 선택 → 바로 답변 시작 (clarify 스킵 설정)
                     const answerParts = chatClarify.questions.map(qq => {
                       const sel = qq.id === q.id ? value : newSelections[qq.id];
                       const opt = qq.options.find(o => o.value === sel);
@@ -1602,7 +1602,6 @@ Rules:
                     setChatClarify(null);
                     runDiscussion(enriched);
                   } else if (value !== '__custom__' && !isLast) {
-                    // 다음 질문으로
                     setChatClarify({ ...chatClarify, selections: newSelections, currentPage: chatClarify.currentPage + 1 });
                   } else {
                     setChatClarify({ ...chatClarify, selections: newSelections });
@@ -1634,60 +1633,54 @@ Rules:
                 };
 
                 return (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                      {/* 헤더 */}
-                      <div className="px-5 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                        <div className="flex items-center gap-3">
-                          {expert0 && <ExpertAvatar expert={expert0} size="sm" />}
-                          <div className="flex-1">
-                            <p className="text-[13px] font-bold text-slate-800">{chatClarify.message}</p>
-                            {chatClarify.questions.length > 1 && (
-                              <p className="text-[10px] text-slate-400 mt-0.5">{chatClarify.questions.length}개 중 {chatClarify.currentPage + 1}개</p>
+                  <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {/* 사용자 질문 말풍선 */}
+                    <div className="flex justify-end">
+                      <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                        {chatClarify.originalQuestion}
+                      </div>
+                    </div>
+
+                    {/* AI 명확화 질문 — 인라인 */}
+                    <div className="flex gap-2.5 items-start">
+                      {expert0 && <ExpertAvatar expert={expert0} size="sm" />}
+                      <div className="flex-1 max-w-[85%]">
+                        <span className="text-[11px] font-medium text-slate-400 mb-1 block">{expert0?.nameKo || 'AI'}</span>
+                        <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-md px-4 py-3 shadow-sm space-y-3">
+                          <p className="text-[12px] text-slate-600">{chatClarify.message}</p>
+
+                          {/* 현재 질문 */}
+                          <div>
+                            <p className="text-[12px] font-semibold text-slate-700 mb-2">{q.question}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {q.options.filter(o => o.value !== '__custom__').map((opt, oi) => (
+                                <button key={oi} onClick={() => handleSelect(opt.value)}
+                                  className={cn('px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all',
+                                    chatClarify.selections[q.id] === opt.value
+                                      ? 'bg-indigo-500 text-white border-indigo-500'
+                                      : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50')}>
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* 기타 입력 */}
+                            {chatClarify.selections[q.id] === '__custom__' && (
+                              <div className="flex gap-2 mt-2">
+                                <input type="text" value={chatClarify.customInputs[q.id] || ''} autoFocus
+                                  onChange={e => setChatClarify({ ...chatClarify, customInputs: { ...chatClarify.customInputs, [q.id]: e.target.value } })}
+                                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                                  placeholder="직접 입력..." onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit(); }} />
+                                <button onClick={handleCustomSubmit} className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-semibold">확인</button>
+                              </div>
                             )}
                           </div>
+
+                          {/* 건너뛰기 */}
+                          <button onClick={handleSkip} className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors">
+                            건너뛰고 바로 답변 받기 →
+                          </button>
                         </div>
-                      </div>
-
-                      {/* 질문 + 선택지 */}
-                      <div className="p-5 space-y-2">
-                        <p className="text-[12px] font-semibold text-slate-600 mb-3">{q.question}</p>
-                        {q.options.map((opt, oi) => {
-                          const isSelected = chatClarify.selections[q.id] === opt.value;
-                          return (
-                            <button key={oi} onClick={() => handleSelect(opt.value)}
-                              className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left',
-                                isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50')}>
-                              <span className={cn('w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0',
-                                isSelected ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400')}>{oi + 1}</span>
-                              <span className={cn('text-[13px] font-medium flex-1', isSelected ? 'text-primary' : 'text-slate-700')}>{opt.label}</span>
-                              {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
-                            </button>
-                          );
-                        })}
-
-                        {/* 기타 직접 입력 */}
-                        {chatClarify.selections[q.id] === '__custom__' && (
-                          <div className="flex gap-2 mt-2">
-                            <input type="text" value={chatClarify.customInputs[q.id] || ''} autoFocus
-                              onChange={e => setChatClarify({ ...chatClarify, customInputs: { ...chatClarify.customInputs, [q.id]: e.target.value } })}
-                              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/20"
-                              placeholder="직접 입력..."
-                              onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit(); }} />
-                            <button onClick={handleCustomSubmit}
-                              className="px-3 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-semibold">확인</button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 하단 */}
-                      <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
-                        {chatClarify.currentPage > 0 ? (
-                          <button onClick={() => setChatClarify({ ...chatClarify, currentPage: chatClarify.currentPage - 1 })}
-                            className="text-[11px] text-slate-400 hover:text-slate-600">← 이전</button>
-                        ) : <div />}
-                        <button onClick={handleSkip}
-                          className="text-[11px] text-slate-400 hover:text-slate-600">건너뛰기</button>
                       </div>
                     </div>
                   </div>
