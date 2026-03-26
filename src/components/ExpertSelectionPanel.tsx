@@ -1342,7 +1342,7 @@ export function ExpertSelectionPanel({
   const isBrainstorm = discussionMode === 'brainstorm';
   const isHearing = discussionMode === 'hearing';
 
-  const POPULAR_IDS = ['gpt', 'claude', 'gemini', 'doctor', 'lawyer', 'psychology', 'finance', 'economics', 'teacher', 'programmer', 'chef', 'buffett', 'musk', 'korean'];
+  const POPULAR_IDS = ['gpt', 'claude', 'gemini', 'perplexity', 'doctor', 'lawyer', 'psychology', 'finance', 'programmer', 'teacher', 'devils-advocate', 'buffett', 'musk', 'sherlock'];
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
     try { const s = localStorage.getItem('ai-debate-favorites'); return s ? JSON.parse(s) : []; } catch { return []; }
   });
