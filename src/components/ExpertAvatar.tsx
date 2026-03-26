@@ -29,6 +29,14 @@ function getTwemojiUrl(emoji: string): string | null {
   return parsed.length > 0 ? parsed[0].url : null;
 }
 
+function getFluentEmojiUrl(emoji: string): string | null {
+  try {
+    const codePoints = [...emoji].map(c => c.codePointAt(0)?.toString(16)).filter(Boolean).join('_');
+    if (!codePoints) return null;
+    return `https://cdn.jsdelivr.net/npm/fluentui-emoji-js@latest/art/${encodeURIComponent(emoji)}/3D/${codePoints}_3d.png`;
+  } catch { return null; }
+}
+
 export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps) {
   const isCompact = size === 'xs' || size === 'sm';
   const roundedClass = isCompact ? 'rounded-lg' : 'rounded-xl';
@@ -70,6 +78,31 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
             alt={expert.nameKo}
             className={cn('object-contain', logoSizeClasses[size])}
             draggable={false}
+          />
+        </div>
+      );
+    }
+  }
+
+  // Ideology: Fluent Emoji 3D — 입체감 있는 스타일
+  if (expert.icon && expert.category === 'ideology') {
+    const fluentUrl = getFluentEmojiUrl(expert.icon);
+    if (fluentUrl) {
+      return (
+        <div className={cn(
+          'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+          roundedClass,
+          containerClasses[size],
+          active
+            ? 'bg-white shadow-md scale-105'
+            : 'bg-slate-100'
+        )}>
+          <img
+            src={fluentUrl}
+            alt={expert.nameKo}
+            className={cn('object-contain', logoSizeClasses[size])}
+            draggable={false}
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.textContent = expert.icon; }}
           />
         </div>
       );
