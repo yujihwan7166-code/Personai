@@ -48,7 +48,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
         'flex items-center justify-center shrink-0 transition-all duration-200',
         roundedClass,
         containerClasses[size],
-        active ? 'bg-white shadow-sm ring-1 ring-slate-200 scale-105' : 'bg-slate-50/80'
+        active ? 'bg-white shadow-sm ring-1 ring-slate-200 scale-105' : 'bg-slate-100'
       )}>
         <img
           src={expert.avatarUrl}
