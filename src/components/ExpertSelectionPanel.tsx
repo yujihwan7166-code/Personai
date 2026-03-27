@@ -6,6 +6,7 @@ import {
   DEBATE_SUB_MODE_LABELS, getMainMode, DebateSettings,
   THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
   EXPERT_MODE_TEMPLATES, ExpertModeTemplate, ASSISTANT_CARDS, AssistantCard,
+  GAME_CARDS, GameCard,
 } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
@@ -40,6 +41,7 @@ interface Props {
   onDebateIntensityChange?: (v: string) => void;
   onBulkSelect?: (ids: string[]) => void;
   onSampleQuestionClick?: (question: string) => void;
+  onStartGame?: (gameId: string, option: string, label: string) => void;
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'brainstorm_main', 'expert', 'debate', 'assistant', 'player'];
@@ -1105,6 +1107,354 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
   );
 }
 
+// ── Player Lobby (Game Mode) ──
+function PlayerLobby({ onSubmit, isDiscussing, onStartGame }: { onSubmit: (question: string) => void; isDiscussing: boolean; onStartGame?: (gameId: string, option: string, label: string) => void }) {
+  const [selectedGame, setSelectedGame] = useState<GameCard | null>(null);
+  const [gameOption, setGameOption] = useState('');
+
+  const gameAccentColors: Record<string, { border: string; bg: string; text: string; glow: string; btn: string }> = {
+    'twenty-questions': { border: 'border-blue-400', bg: 'bg-blue-500/20', text: 'text-blue-300', glow: 'shadow-[0_0_20px_rgba(59,130,246,0.3)]', btn: 'from-blue-500 via-blue-600 to-indigo-600' },
+    'liar-game': { border: 'border-red-400', bg: 'bg-red-500/20', text: 'text-red-300', glow: 'shadow-[0_0_20px_rgba(239,68,68,0.3)]', btn: 'from-red-500 via-rose-500 to-pink-600' },
+    'story-relay': { border: 'border-purple-400', bg: 'bg-purple-500/20', text: 'text-purple-300', glow: 'shadow-[0_0_20px_rgba(168,85,247,0.3)]', btn: 'from-purple-500 via-violet-500 to-indigo-600' },
+    'trivia-quiz': { border: 'border-amber-400', bg: 'bg-amber-500/20', text: 'text-amber-300', glow: 'shadow-[0_0_20px_rgba(245,158,11,0.3)]', btn: 'from-amber-500 via-orange-500 to-red-500' },
+    'word-chain': { border: 'border-emerald-400', bg: 'bg-emerald-500/20', text: 'text-emerald-300', glow: 'shadow-[0_0_20px_rgba(16,185,129,0.3)]', btn: 'from-emerald-500 via-green-500 to-teal-500' },
+    'personality-test': { border: 'border-pink-400', bg: 'bg-pink-500/20', text: 'text-pink-300', glow: 'shadow-[0_0_20px_rgba(236,72,153,0.3)]', btn: 'from-pink-500 via-rose-500 to-red-500' },
+    'debate-arena': { border: 'border-orange-400', bg: 'bg-orange-500/20', text: 'text-orange-300', glow: 'shadow-[0_0_20px_rgba(249,115,22,0.3)]', btn: 'from-orange-500 via-red-500 to-rose-600' },
+    'emoji-movie': { border: 'border-cyan-400', bg: 'bg-cyan-500/20', text: 'text-cyan-300', glow: 'shadow-[0_0_20px_rgba(6,182,212,0.3)]', btn: 'from-cyan-500 via-sky-500 to-blue-500' },
+  };
+  const accent = selectedGame ? gameAccentColors[selectedGame.id] : null;
+
+  const gameOptions: Record<string, { label: string; options: { id: string; label: string; icon: string }[] }> = {
+    'twenty-questions': {
+      label: '카테고리를 선택하세요',
+      options: [
+        { id: 'animal', label: '동물', icon: '🐾' },
+        { id: 'object', label: '사물', icon: '📦' },
+        { id: 'person', label: '인물', icon: '👤' },
+        { id: 'food', label: '음식', icon: '🍕' },
+      ],
+    },
+    'liar-game': {
+      label: '주제를 선택하세요',
+      options: [
+        { id: 'travel', label: '여행지', icon: '✈️' },
+        { id: 'movie', label: '영화', icon: '🎬' },
+        { id: 'food', label: '음식', icon: '🍜' },
+        { id: 'job', label: '직업', icon: '💼' },
+      ],
+    },
+    'story-relay': {
+      label: '장르를 선택하세요',
+      options: [
+        { id: 'fantasy', label: '판타지', icon: '🧙' },
+        { id: 'horror', label: '공포', icon: '👻' },
+        { id: 'romance', label: '로맨스', icon: '💕' },
+        { id: 'scifi', label: 'SF', icon: '🚀' },
+      ],
+    },
+    'trivia-quiz': {
+      label: '분야를 선택하세요',
+      options: [
+        { id: 'general', label: '상식', icon: '🌍' },
+        { id: 'science', label: '과학', icon: '🔬' },
+        { id: 'history', label: '역사', icon: '📜' },
+        { id: 'kpop', label: 'K-POP', icon: '🎵' },
+      ],
+    },
+    'word-chain': {
+      label: '주제를 선택하세요',
+      options: [
+        { id: 'free', label: '자유', icon: '🆓' },
+        { id: 'animal', label: '동물', icon: '🐾' },
+        { id: 'country', label: '나라', icon: '🌏' },
+        { id: 'food', label: '음식', icon: '🍔' },
+      ],
+    },
+    'personality-test': {
+      label: '테스트 유형을 선택하세요',
+      options: [
+        { id: 'mbti', label: 'MBTI형', icon: '🧠' },
+        { id: 'animal', label: '동물 유형', icon: '🐾' },
+        { id: 'job', label: '적성 직업', icon: '💼' },
+        { id: 'love', label: '연애 유형', icon: '💕' },
+      ],
+    },
+    'debate-arena': {
+      label: '토론 주제를 선택하세요',
+      options: [
+        { id: 'ai', label: 'AI가 인간을 대체?', icon: '🤖' },
+        { id: 'sns', label: 'SNS는 해로운가?', icon: '📱' },
+        { id: 'money', label: '돈이 행복을 살까?', icon: '💰' },
+        { id: 'edu', label: '대학 꼭 가야 해?', icon: '🎓' },
+      ],
+    },
+    'emoji-movie': {
+      label: '난이도를 선택하세요',
+      options: [
+        { id: 'easy', label: '쉬움', icon: '⭐' },
+        { id: 'medium', label: '보통', icon: '⭐⭐' },
+        { id: 'hard', label: '어려움', icon: '⭐⭐⭐' },
+        { id: 'korean', label: '한국 영화', icon: '🇰🇷' },
+      ],
+    },
+  };
+
+  const startGame = () => {
+    if (!selectedGame || !gameOption) return;
+    const opt = gameOptions[selectedGame.id]?.options.find(o => o.id === gameOption);
+    const optLabel = opt?.label || gameOption;
+
+    let prompt = '';
+    if (selectedGame.id === 'twenty-questions') {
+      prompt = `[스무고개 게임 시작]
+카테고리: ${optLabel}
+
+당신은 스무고개 게임의 출제자입니다.
+1. "${optLabel}" 카테고리에서 하나를 마음속으로 정하세요 (절대 공개하지 마세요)
+2. 사용자에게 "제가 ${optLabel} 중 하나를 떠올렸어요! 예/아니오로 답할 수 있는 질문을 해주세요. (20번의 기회)" 라고 안내하세요
+3. 사용자의 질문에 "예" 또는 "아니오"로만 답하세요 (짧은 힌트 가능)
+4. 남은 질문 횟수를 매번 표시하세요 (예: "🎯 남은 질문: 18/20")
+5. 사용자가 정답을 맞추면 축하하고, 20번 안에 못 맞추면 정답을 공개하세요
+6. 한국어로 진행하세요`;
+    } else if (selectedGame.id === 'liar-game') {
+      prompt = `[라이어 게임 시작]
+주제 카테고리: ${optLabel}
+
+당신은 라이어 게임의 진행자입니다.
+1. "${optLabel}" 카테고리에서 구체적인 주제 하나를 정하세요 (예: 여행지→"파리")
+2. AI 참가자 3명(A, B, C)을 설정하세요. 이 중 1명은 "라이어"로, 진짜 주제를 모르고 다른 주제를 받습니다
+3. 각 참가자가 주제에 대해 한마디씩 하게 하세요 (라이어는 애매하게 말합니다)
+4. 사용자에게 "누가 라이어일까요? A, B, C 중 선택하세요!" 라고 질문하세요
+5. 사용자가 답하면 정답 공개 + 라이어가 어떻게 속이려 했는지 해설하세요
+6. 틀리면 왜 헷갈렸는지 분석하고, 맞추면 축하하세요
+7. 한국어로 진행하세요`;
+    } else if (selectedGame.id === 'story-relay') {
+      prompt = `[이야기 이어쓰기 게임 시작]
+장르: ${optLabel}
+
+당신은 이야기 이어쓰기 게임의 파트너입니다.
+1. "${optLabel}" 장르의 흥미로운 첫 문장으로 이야기를 시작하세요
+2. 사용자가 다음 문장을 쓰면, 그에 이어서 한 문장을 추가하세요
+3. 매번 당신의 문장 뒤에 "✍️ 당신의 차례!" 라고 표시하세요
+4. 턴 수를 표시하세요 (예: "📖 3/10턴")
+5. 10턴이 되면 자연스러운 결말로 이야기를 마무리하세요
+6. 사용자의 문장이 어떤 방향이든 자연스럽게 이어가세요
+7. 한국어로 진행하세요. 이야기체로 쓰세요`;
+    } else if (selectedGame.id === 'trivia-quiz') {
+      prompt = `[AI 퀴즈쇼 게임 시작]
+분야: ${optLabel}
+
+당신은 퀴즈쇼의 진행자입니다.
+1. "${optLabel}" 분야에서 4지선다 퀴즈를 출제하세요
+2. 난이도를 점점 올리세요 (1~3번: 쉬움, 4~7번: 보통, 8~10번: 어려움)
+3. 각 문제를 이렇게 출제하세요:
+   "📝 Q1/10 (난이도: ⭐)
+   [문제 내용]
+   A) ... B) ... C) ... D) ..."
+4. 사용자가 답하면 정답/오답을 알려주고 간단한 해설을 덧붙이세요
+5. 현재 점수를 매번 표시하세요 (예: "🏆 4/6 정답")
+6. 10문제 완료 후 최종 점수 + 등급 (S~F) + 해설을 제공하세요
+7. 한국어로 진행하세요`;
+    } else if (selectedGame.id === 'word-chain') {
+      prompt = `[끝말잇기 배틀 게임 시작]
+주제: ${optLabel}
+
+당신은 끝말잇기 게임의 상대입니다.
+1. "${optLabel}" 주제로 끝말잇기를 합니다 (자유 주제면 모든 단어 가능)
+2. 먼저 첫 단어를 제시하세요
+3. 규칙:
+   - 상대 단어의 마지막 글자로 시작하는 단어를 말해야 합니다
+   - 이미 나온 단어는 사용 불가
+   - 한 글자 단어 불가
+4. 매 턴마다 이렇게 표시하세요:
+   "🔤 [당신의 단어] → 다음 글자: [X]
+   📊 턴: 5 | 사용된 단어: 10개"
+5. 사용자가 규칙을 어기면 친절하게 알려주세요
+6. 당신은 일부러 가끔 어려운 글자(예: 륨, 늄)로 끝나는 단어를 사용하세요
+7. 한국어로 진행하세요`;
+    } else if (selectedGame.id === 'personality-test') {
+      prompt = `[성격 테스트 게임 시작]
+유형: ${optLabel}
+
+당신은 성격 분석 전문가입니다.
+1. "${optLabel}" 유형의 성격 테스트를 진행합니다
+2. 상황 기반 질문 10개를 하나씩 출제하세요 (A/B/C 선택지)
+3. 각 질문을 이렇게 출제하세요:
+   "🪞 Q3/10
+   [상황 설명]
+   A) ... B) ... C) ..."
+4. 사용자의 답변 패턴을 분석하세요
+5. 10문제 완료 후 재미있고 상세한 분석 결과를 제공하세요:
+   - 유형 이름 + 이모지
+   - 핵심 특성 3가지
+   - 강점과 약점
+   - 궁합이 좋은 유형
+   - 유명인 예시
+6. 한국어로 재미있게 진행하세요`;
+    } else if (selectedGame.id === 'debate-arena') {
+      prompt = `[디베이트 아레나 게임 시작]
+주제: ${optLabel}
+
+당신은 토론 상대이자 심판입니다.
+1. 주제: "${optLabel}"
+2. 당신은 반대 입장을 맡습니다. 사용자가 먼저 주장하면 반박하세요.
+3. 3라운드로 진행:
+   - R1: 입론 (각자 주장)
+   - R2: 반박 (상대 논리 공격)
+   - R3: 최종 변론
+4. 매 라운드 시작 시 표시하세요:
+   "⚔️ ROUND 1/3 — 입론
+   사용자님의 주장을 먼저 들을게요."
+5. 3라운드 후 공정하게 판정:
+   "🏆 판정 결과
+   논리력: 사용자 ?/10 vs AI ?/10
+   근거: ...
+   설득력: ...
+   승자: ..."
+6. 강하지만 예의 바르게 토론하세요
+7. 한국어로 진행하세요`;
+    } else if (selectedGame.id === 'emoji-movie') {
+      prompt = `[이모지 영화 퀴즈 게임 시작]
+난이도: ${optLabel}
+
+당신은 이모지 영화 퀴즈 출제자입니다.
+1. 이모지 3~5개로 영화를 표현하세요 (${optLabel === '한국 영화' ? '한국 영화만' : optLabel + ' 난이도'})
+2. 이렇게 출제하세요:
+   "🎬 Q1/10
+   🦁👑🌅
+   이 영화는?"
+3. 사용자가 맞추면 "✅ 정답! [영화 설명 한 줄]" + 다음 문제
+4. 틀리면 "❌ 아쉬워요! 힌트: [힌트]" — 한 번 더 기회
+5. 두 번 틀리면 정답 공개 후 다음 문제
+6. 점수를 표시하세요 (예: "🏆 6/8 정답")
+7. 10문제 완료 후 최종 스코어 + "영화 매니아 등급" 제공
+8. 한국어로 재미있게 진행하세요`;
+    }
+
+    if (onStartGame) {
+      onStartGame(selectedGame.id, gameOption, optLabel);
+    }
+    onSubmit(prompt);
+  };
+
+  return (
+    <div className="rounded-2xl bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border border-slate-700 shadow-2xl overflow-hidden">
+      {/* 헤더 */}
+      <div className="px-6 pt-5 pb-4 text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/15 via-purple-600/10 to-pink-600/15" />
+        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(99,102,241,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(236,72,153,0.15) 0%, transparent 50%), radial-gradient(circle at 50% 80%, rgba(139,92,246,0.15) 0%, transparent 50%)' }} />
+        <div className="relative">
+          <h2 className="text-[22px] font-black text-white tracking-tight">
+            <span className="text-[28px] mr-1">🎮</span>
+            GAME <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">LOBBY</span>
+          </h2>
+          <p className="text-[11px] text-slate-400 mt-1.5">AI와 함께하는 게임을 선택하세요</p>
+        </div>
+      </div>
+
+      {/* 게임 카드 그리드 */}
+      <div className="px-4 pb-4">
+        <div className="grid grid-cols-4 gap-2.5">
+          {GAME_CARDS.map(game => {
+            const isSelected = selectedGame?.id === game.id;
+            return (
+              <button
+                key={game.id}
+                onClick={(e) => { setSelectedGame(isSelected ? null : game); setGameOption(''); if (!isSelected) setTimeout(() => (e.target as HTMLElement).closest('.rounded-2xl')?.querySelector('[data-game-options]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100); }}
+                className={cn(
+                  'relative text-left rounded-xl border-2 transition-all duration-200 overflow-hidden group',
+                  isSelected
+                    ? `${gameAccentColors[game.id]?.border || 'border-indigo-400'} ${gameAccentColors[game.id]?.bg || 'bg-indigo-500/20'} ${gameAccentColors[game.id]?.glow || ''} scale-[1.02]`
+                    : 'border-slate-600/50 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-700/50 hover:shadow-lg'
+                )}
+              >
+                <div className="p-4 text-center">
+                  <div className={cn('text-[32px] mb-2 transition-transform duration-200', isSelected ? 'scale-110' : 'group-hover:scale-110')}>{game.icon}</div>
+                  <h3 className={cn('text-[13px] font-bold mb-1', isSelected ? (gameAccentColors[game.id]?.text || 'text-indigo-300') : 'text-white')}>{game.name}</h3>
+                  <p className="text-[9px] text-slate-400 leading-snug line-clamp-2 min-h-[24px]">{game.description}</p>
+                  <div className="flex gap-1.5 mt-2.5 justify-center">
+                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-slate-700/80 text-slate-300">{game.players}</span>
+                    <span className={cn('text-[8px] px-1.5 py-0.5 rounded-full',
+                      game.difficulty === '쉬움' ? 'bg-emerald-500/20 text-emerald-400' :
+                      game.difficulty === '보통' ? 'bg-amber-500/20 text-amber-400' :
+                      'bg-red-500/20 text-red-400'
+                    )}>{game.difficulty}</span>
+                  </div>
+                </div>
+                {isSelected && (
+                  <div className={cn("absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center",
+                    game.id === 'twenty-questions' ? 'bg-blue-500' : game.id === 'liar-game' ? 'bg-red-500' : game.id === 'story-relay' ? 'bg-purple-500' : game.id === 'trivia-quiz' ? 'bg-amber-500' : game.id === 'word-chain' ? 'bg-emerald-500' : game.id === 'personality-test' ? 'bg-pink-500' : game.id === 'debate-arena' ? 'bg-orange-500' : game.id === 'emoji-movie' ? 'bg-cyan-500' : 'bg-indigo-500'
+                  )}>
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 미선택 안내 */}
+      {!selectedGame && (
+        <div className="px-4 pb-4">
+          <div className="py-3 text-center rounded-xl border border-dashed border-slate-600 bg-slate-800/30">
+            <p className="text-[11px] text-slate-500">👆 게임을 선택하면 옵션이 나타납니다</p>
+          </div>
+        </div>
+      )}
+
+      {/* 게임 옵션 + 시작 */}
+      {selectedGame && (
+        <div data-game-options className="px-4 pb-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {/* 규칙 설명 */}
+          <div className={cn("mb-3 px-3 py-2.5 rounded-lg border", accent?.bg || 'bg-slate-800/80', 'border-slate-700/50')}>
+            <p className={cn("text-[9px] font-semibold mb-1", accent?.text || 'text-indigo-400')}>{selectedGame.icon} 게임 규칙</p>
+            <p className="text-[10px] text-slate-300 leading-relaxed">{selectedGame.rules}</p>
+          </div>
+
+          {/* 옵션 선택 */}
+          <p className="text-[10px] text-slate-400 font-semibold mb-2 px-1">
+            {gameOptions[selectedGame.id]?.label}
+          </p>
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {gameOptions[selectedGame.id]?.options.map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setGameOption(opt.id)}
+                className={cn(
+                  'flex flex-col items-center gap-1 py-2.5 rounded-lg border transition-all duration-150',
+                  gameOption === opt.id
+                    ? `${accent?.border || 'border-indigo-400'} ${accent?.bg || 'bg-indigo-500/20'} text-white scale-[1.03]`
+                    : 'border-slate-600/50 bg-slate-800/30 text-slate-400 hover:border-slate-500 hover:text-white hover:bg-slate-700/50'
+                )}
+              >
+                <span className="text-[18px]">{opt.icon}</span>
+                <span className="text-[10px] font-medium">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* 시작 버튼 */}
+          <button
+            onClick={startGame}
+            disabled={!gameOption || isDiscussing}
+            className={cn(
+              'w-full py-3 rounded-xl text-[14px] font-bold transition-all duration-200',
+              gameOption && !isDiscussing
+                ? `bg-gradient-to-r ${accent?.btn || 'from-indigo-500 via-purple-500 to-pink-500'} text-white shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99]`
+                : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+            )}
+          >
+            {isDiscussing ? '게임 진행 중...' : `🎮 ${selectedGame.name} 시작!`}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Assistant Cards Panel ──
 function AssistantCardsPanel({ onSubmit, isDiscussing }: {
   onSubmit: (question: string) => void;
@@ -1224,6 +1574,7 @@ export function ExpertSelectionPanel({
   debateIntensity = 'moderate', onDebateIntensityChange,
   onBulkSelect,
   onSampleQuestionClick,
+  onStartGame,
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
@@ -1520,6 +1871,11 @@ export function ExpertSelectionPanel({
         <AssistantCardsPanel onSubmit={onSubmit} isDiscussing={isDiscussing} />
       )}
 
+      {/* ── Player Mode (Game Lobby) ── */}
+      {mainMode === 'player' && (
+        <PlayerLobby onSubmit={onSubmit} isDiscussing={isDiscussing} onStartGame={onStartGame} />
+      )}
+
       {/* ── Expert Selection Grid (general / multi / debate) ── */}
       {showExpertGrid && (
         <div className={cn('border border-slate-200 rounded-xl bg-white overflow-visible shadow-[0_2px_12px_rgba(0,0,0,0.07)] transition-all duration-200 relative',
@@ -1779,8 +2135,8 @@ export function ExpertSelectionPanel({
         />
       )}
 
-      {/* Question Input — not shown for expert/assistant (they have their own inputs) */}
-      {mainMode !== 'expert' && mainMode !== 'assistant' && (
+      {/* Question Input — not shown for expert/assistant/player (they have their own inputs) */}
+      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
           disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2)}

@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS } from '@/types/expert';
+import { PROMPTS } from '@/data/prompts';
+import { generatePpt, parsePptJson, PPT_SYSTEM_PROMPT } from '@/lib/pptGenerator';
+import { GamePlayer } from '@/components/GamePlayer';
 import { QuestionInput } from '@/components/QuestionInput';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
@@ -125,7 +128,7 @@ async function streamExpert({
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + expert.systemPrompt, question, previousResponses }),
+    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + (expert.systemPrompt || PROMPTS[expert.id] || ''), question, previousResponses }),
     signal
   });
 
@@ -174,7 +177,7 @@ async function streamExpert({
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v60');
+      const saved = localStorage.getItem('ai-debate-experts-v63');
       if (saved) {
         const parsed = JSON.parse(saved) as Expert[];
         // Merge: keep saved customizations but add any new default experts
@@ -214,7 +217,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v60', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v63', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
@@ -309,7 +312,7 @@ const Index = () => {
       abortControllerRef.current = controller;
       await streamExpert({
         question: currentQuestion,
-        expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n사용자가 당신의 의견에 반박했습니다. 사용자의 반박에 대해 정중하지만 논리적으로 응답해주세요. 동의할 부분은 인정하고, 반대할 부분은 근거를 들어 설명해주세요. 2문단 이내로 답변해주세요.' },
+        expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n사용자가 당신의 의견에 반박했습니다. 사용자의 반박에 대해 정중하지만 논리적으로 응답해주세요. 동의할 부분은 인정하고, 반대할 부분은 근거를 들어 설명해주세요. 2문단 이내로 답변해주세요.' },
         previousResponses: allResponses, round: 'rebuttal',
         onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, content: fullContent } : m));},
         onDone: () => {setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, isStreaming: false } : m));},
@@ -355,8 +358,11 @@ const Index = () => {
 
   // 실제 토론 시작 함수 (먼저 선언)
   const runDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode, displayQuestion?: string) => {
-    const useIds = overrideExpertIds || selectedExpertIds;
     const useMode = overrideMode || discussionMode;
+    // 플레이어 모드는 GPT 자동 선택
+    const useIds = useMode === 'player'
+      ? ['gpt']
+      : (overrideExpertIds || selectedExpertIds);
     const discussionExperts = experts.filter((e) => useIds.includes(e.id));
     if (discussionExperts.length < 1) return;
 
@@ -387,7 +393,7 @@ const Index = () => {
         const expertExtra = `\n\n=== 전문가 상담 모드 ===\n당신은 해당 분야의 최고 전문가입니다. 사용자의 질문에 대해 깊이 있고 실용적인 전문 상담을 제공하세요.\n- 전문 용어를 사용하되 쉽게 설명해주세요\n- 구체적인 사례, 수치, 근거를 포함하세요\n- 단계별 실행 방안이 있다면 제시하세요\n- 주의사항이나 리스크도 언급하세요\n마크다운 형식으로 구조화하여 답변하세요.`;
         try {
           await streamExpert({
-            question, expert: { ...expert, systemPrompt: expert.systemPrompt + expertExtra },
+            question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + expertExtra },
             previousResponses: [], round: 'initial',
             onDelta: (chunk) => { fullContent += chunk; setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -406,10 +412,10 @@ const Index = () => {
       return;
     }
 
-    if (useMode === 'general') {
-      // 단일 AI만: 명확화 질문 (첫 질문, 스킵 안 된 경우만)
+    if (useMode === 'general' || useMode === 'player') {
+      // 단일 AI만: 명확화 질문 (첫 질문, 스킵 안 된 경우만) — player 모드는 스킵
       const expert0 = discussionExperts[0];
-      if (expert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS) {
+      if (expert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS && useMode !== 'player') {
         clarifyAttemptsRef.current++;
         try {
           const clarifyResp = await fetch('/api/clarify-chat', {
@@ -455,6 +461,13 @@ const Index = () => {
         await new Promise(r => setTimeout(r, DELAY_ROUTER_TRANSITION));
       }
 
+      // player 모드: 게임 프롬프트 대신 깔끔한 시작 메시지 표시
+      if (useMode === 'player') {
+        const gameMatch = question.match(/\[(.+?)게임 시작\]|\[(.+?)시작\]/);
+        const gameName = gameMatch ? (gameMatch[1] || gameMatch[2]).trim() : '🎮 게임';
+        setMessages([{ id: `user-game-${Date.now()}`, expertId: '__user__', content: `🎮 **${gameName}** 시작!` }]);
+      }
+
       for (const expert of expertsToRun) {
         if (shouldStop()) break;
         setActiveExpertId(expert.id);
@@ -493,7 +506,7 @@ const Index = () => {
         try {
           await streamExpert({
             question,
-            expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n빠른 토론 모드입니다. 핵심만 1문단(3-4문장)으로 간결하게 답변해주세요.' },
+            expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n빠른 토론 모드입니다. 핵심만 1문단(3-4문장)으로 간결하게 답변해주세요.' },
             previousResponses: allResponses, round: 'initial',
             onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
             onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
@@ -542,7 +555,7 @@ const Index = () => {
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + issueContext + lengthExtra }, previousResponses: allResponses, round,
+            await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + issueContext + lengthExtra }, previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal });
@@ -637,7 +650,7 @@ const Index = () => {
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra }, previousResponses: allResponses, round,
+            await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + extra }, previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal });
@@ -699,7 +712,7 @@ const Index = () => {
 
             let fullContent = '';
             try {
-              await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra + lengthExtra },
+              await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + extra + lengthExtra },
                 previousResponses: allResponses, round,
                 onDelta: (chunk) => { fullContent += chunk; },
                 onDone: () => {},
@@ -832,7 +845,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
             setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
             let fullContent = '';
             try {
-              await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + extra + lengthExtra }, previousResponses: allResponses, round,
+              await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + extra + lengthExtra }, previousResponses: allResponses, round,
                 onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
                 onDone: () => {
                   const ideas = fullContent.split('---IDEA---').map(s => s.replace(/---END---/g, '').trim()).filter(s => s.length > 0);
@@ -906,7 +919,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           try {
             await streamExpert({
               question,
-              expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n' + instruction + lengthExtra },
+              expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n' + instruction + lengthExtra },
               previousResponses: allResponses, round: phase.round,
               onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
               onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -922,20 +935,38 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
         }
       }
     } else if (useMode === 'assistant') {
-      // Assistant mode: single expert answers directly (same as general but for assistant category)
+      // Assistant mode
       const expert = discussionExperts[0];
       if (expert) {
+        // PPT 어시스턴트인 경우 프롬프트 오버라이드
+        const isPpt = expert.id === 'ppt' || expert.name?.toLowerCase().includes('ppt');
+        const effectiveExpert = isPpt ? { ...expert, systemPrompt: PPT_SYSTEM_PROMPT } : expert;
+
         setActiveExpertId(expert.id);
         const msgId = `${expert.id}-assistant-${Date.now()}`;
         setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
         let fullContent = '';
         try {
           await streamExpert({
-            question, expert,
+            question, expert: effectiveExpert,
             previousResponses: [],
             round: 'initial',
             onDelta: (chunk) => { fullContent += chunk; setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => { setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => {
+              setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));
+              // PPT인 경우 JSON 파싱 시도 → 다운로드 버튼 메시지 추가
+              if (isPpt) {
+                const pptData = parsePptJson(fullContent);
+                if (pptData) {
+                  const btnId = `ppt-download-${Date.now()}`;
+                  setMessages((prev) => [...prev, {
+                    id: btnId,
+                    expertId: '__ppt_download__',
+                    content: JSON.stringify(pptData),
+                  }]);
+                }
+              }
+            },
             signal: controller.signal,
           });
         } catch (err) {
@@ -1242,6 +1273,7 @@ Rules:
   const [questionExpanded, setQuestionExpanded] = useState(false);
   const [followUpTarget, setFollowUpTarget] = useState<string | null>(null); // null = 전체, id = 특정 전문가
   const [sampleQuestionValue, setSampleQuestionValue] = useState<string>('');
+  const [activeGame, setActiveGame] = useState<{ id: string; option: string; label: string } | null>(null);
 
 
   // Keyboard nav for multi detail view
@@ -1273,7 +1305,7 @@ Rules:
     setMessages(prev => [...prev, { id: `user-followup-${Date.now()}`, expertId: '__user__', content: `💬 ${expert.nameKo}에게: ${followUpQ}` }, { id: msgId, expertId, content: '', isStreaming: true }]);
     let fullContent = '';
     try {
-      await streamExpert({ question: followUpQ, expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n이전에 이 주제에 대해 답변한 적이 있습니다. 사용자의 추가 질문에 이전 답변을 바탕으로 더 깊이 답변해주세요.' },
+      await streamExpert({ question: followUpQ, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n이전에 이 주제에 대해 답변한 적이 있습니다. 사용자의 추가 질문에 이전 답변을 바탕으로 더 깊이 답변해주세요.' },
         previousResponses: prevResponses, round: 'initial',
         onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
         onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -1293,7 +1325,7 @@ Rules:
     const mode = getMainMode(discussionMode);
 
     // 단일 AI / 어시스턴트: 같은 AI에게 이어서 대화
-    if (mode === 'general' || discussionMode === 'assistant' || discussionMode === 'expert') {
+    if (mode === 'general' || discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'player') {
       const expert = activeExperts[0];
       if (!expert) return;
       setIsDiscussing(true);
@@ -1356,7 +1388,7 @@ Rules:
         setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, timestamp: Date.now() }]);
         let fullContent = '';
         try {
-          await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + '\n\n이전 대화 맥락을 참고하여 후속 질문에 답변하세요.' },
+          await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n이전 대화 맥락을 참고하여 후속 질문에 답변하세요.' },
             previousResponses: prevAll, round: 'initial',
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -1400,7 +1432,7 @@ Rules:
         setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
         let fullContent = '';
         try {
-          await streamExpert({ question, expert: { ...expert, systemPrompt: expert.systemPrompt + stanceExtra(expert.id) },
+          await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + stanceExtra(expert.id) },
             previousResponses: prevAll, round: 'initial',
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => {
@@ -1580,7 +1612,7 @@ Rules:
           )}
 
           {/* Main scroll area */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin relative" onScroll={handleScroll}>
+          <div ref={scrollRef} className={cn("flex-1 overflow-y-auto scrollbar-thin relative", discussionMode === 'player' && 'bg-gradient-to-b from-slate-900 to-slate-800')} onScroll={handleScroll}>
             <div className={cn(
               'mx-auto px-4 sm:px-6 pt-16 pb-6',
               !selectable ? 'max-w-3xl space-y-2.5'
@@ -1610,6 +1642,20 @@ Rules:
                   onDebateIntensityChange={setDebateIntensity}
                   onBulkSelect={setSelectedExpertIds}
                   onSampleQuestionClick={(q) => setSampleQuestionValue(q)}
+                  onStartGame={(id, opt, label) => setActiveGame({ id, option: opt, label })}
+                />
+              )}
+
+              {/* Game Player — 게임 전용 UI */}
+              {activeGame && discussionMode === 'player' && (
+                <GamePlayer
+                  gameId={activeGame.id}
+                  gameOption={activeGame.option}
+                  optionLabel={activeGame.label}
+                  messages={messages}
+                  onSendMessage={(msg) => handleFollowUp(msg)}
+                  onExit={() => { setActiveGame(null); handleNewDiscussion(); }}
+                  isDiscussing={isDiscussing}
                 />
               )}
 
@@ -3105,6 +3151,23 @@ Rules:
               ) : (
                 /* All other modes: sequential */
                 messages.map((msg, idx) => {
+                  // PPT 다운로드 버튼
+                  if (msg.expertId === '__ppt_download__') {
+                    let pptData: import('@/lib/pptGenerator').PptData | null = null;
+                    try { pptData = JSON.parse(msg.content); } catch {}
+                    if (!pptData) return null;
+                    return (
+                      <div key={msg.id} className="flex justify-center py-3">
+                        <button
+                          onClick={() => generatePpt(pptData!, `presentation-${Date.now()}.pptx`)}
+                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-[13px] shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+                        >
+                          <span className="text-[18px]">📊</span>
+                          PPT 다운로드 ({pptData.slides?.length || 0}장)
+                        </button>
+                      </div>
+                    );
+                  }
                   if (msg.expertId === '__round__') {
                     const isCollapsed = collapsedRounds.has(msg.id);
                     let roundMsgCount = 0;
@@ -3193,7 +3256,7 @@ Rules:
                     ))}
                   </div>
                 )}
-                <QuestionInput
+                {!activeGame && <QuestionInput
                   onSubmit={isDone ? (q: string) => {
                     if (['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode)) {
                       const target = followUpTarget || activeExperts[0]?.id;
@@ -3210,7 +3273,7 @@ Rules:
                   onConclusion={isDone && discussionMode === 'multi' && !messages.some(m => m.isSummary) ? generateConclusion : undefined}
                   externalValue={sampleQuestionValue}
                   onExternalValueConsumed={() => setSampleQuestionValue('')}
-                />
+                />}
               </div>
             </div>
           )}
