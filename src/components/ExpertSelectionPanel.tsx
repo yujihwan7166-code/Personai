@@ -1253,13 +1253,8 @@ export function ExpertSelectionPanel({
   }, [hoveredExpert]);
   const hideTip = useCallback(() => {
     if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
-    tipTimerRef.current = setTimeout(() => {
-      setHoveredExpert(null);
-      setTipPos(null);
-    }, 100);
-  }, []);
-  const keepTip = useCallback(() => {
-    if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
+    setHoveredExpert(null);
+    setTipPos(null);
   }, []);
 
   const MAX_PER_ZONE = 3;
@@ -1801,9 +1796,7 @@ export function ExpertSelectionPanel({
       {/* Portal 기반 플로팅 툴팁 — overflow 영향 안 받음 */}
       {hoveredExpert && tipPos && createPortal(
         <div
-          onMouseEnter={keepTip}
-          onMouseLeave={hideTip}
-          className="fixed z-[9999] pointer-events-auto"
+          className="fixed z-[9999] pointer-events-none"
           style={{
             left: `clamp(8px, ${tipPos.x}px, calc(100vw - 8px))`,
             top: `${tipPos.y - 8}px`,
@@ -1811,11 +1804,22 @@ export function ExpertSelectionPanel({
           }}
         >
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out">
-          <div className="bg-gradient-to-b from-slate-800 to-slate-900 text-white rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.35)] w-40 overflow-hidden border border-white/[0.06]">
-            {/* 상단 액센트 라인 */}
-            <div className="h-[2px] bg-gradient-to-r from-indigo-500 via-violet-500 to-amber-400" />
-            <div className="px-2.5 pt-1.5 pb-1.5 text-center">
-              <p className="text-[11px] font-bold tracking-tight leading-tight">{hoveredExpert.nameKo}</p>
+          <div className="bg-gradient-to-b from-slate-800 to-slate-900 text-white rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.35)] w-48 overflow-hidden border border-white/[0.06]">
+            <div className="px-2.5 pt-2 pb-1 text-center">
+              <p className="text-[12px] font-bold tracking-tight leading-tight">{hoveredExpert.nameKo}</p>
+            </div>
+            {/* 액센트 라인 — 이름 아래 */}
+            <div className={cn('h-[3px] mx-2 mb-1 rounded-full', {
+              'bg-gradient-to-r from-blue-400 via-blue-300 to-blue-400': hoveredExpert.color === 'blue',
+              'bg-gradient-to-r from-emerald-400 via-green-300 to-emerald-400': hoveredExpert.color === 'emerald',
+              'bg-gradient-to-r from-red-400 via-rose-300 to-red-400': hoveredExpert.color === 'red',
+              'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400': hoveredExpert.color === 'amber',
+              'bg-gradient-to-r from-purple-400 via-violet-300 to-purple-400': hoveredExpert.color === 'purple',
+              'bg-gradient-to-r from-orange-400 via-orange-300 to-orange-400': hoveredExpert.color === 'orange',
+              'bg-gradient-to-r from-teal-400 via-teal-300 to-teal-400': hoveredExpert.color === 'teal',
+              'bg-gradient-to-r from-pink-400 via-pink-300 to-pink-400': hoveredExpert.color === 'pink',
+            })} />
+            <div className="px-2.5 pt-0 pb-1.5 text-center">
               <p className="text-[8.5px] text-slate-300 mt-0.5 leading-tight">{hoveredExpert.description}</p>
               {hoveredExpert.quote && (
                 <p className="text-[8px] text-amber-400/80 font-medium mt-0.5 leading-tight">"{hoveredExpert.quote}"</p>

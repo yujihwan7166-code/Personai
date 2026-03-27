@@ -174,7 +174,7 @@ async function streamExpert({
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v57');
+      const saved = localStorage.getItem('ai-debate-experts-v60');
       if (saved) {
         const parsed = JSON.parse(saved) as Expert[];
         // Merge: keep saved customizations but add any new default experts
@@ -214,7 +214,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v57', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v60', JSON.stringify(experts));
   }, [experts]);
 
   useEffect(() => {
@@ -1311,18 +1311,11 @@ Rules:
         });
 
       const replyId = `${expert.id}-reply-${Date.now()}`;
-      const alreadyHasUserMsg = messages.some(m => m.expertId === '__user__');
-      if (alreadyHasUserMsg) {
-        setMessages(prev => [...prev,
-          { id: replyId, expertId: expert.id, content: '', isStreaming: true }
-        ]);
-      } else {
-        const userMsgId = `user-${Date.now()}`;
-        setMessages(prev => [...prev,
-          { id: userMsgId, expertId: '__user__', content: displayQuestion || question },
-          { id: replyId, expertId: expert.id, content: '', isStreaming: true }
-        ]);
-      }
+      const userMsgId = `user-${Date.now()}`;
+      setMessages(prev => [...prev,
+        { id: userMsgId, expertId: '__user__', content: question },
+        { id: replyId, expertId: expert.id, content: '', isStreaming: true }
+      ]);
 
       let fullContent = '';
       try {
