@@ -1648,6 +1648,7 @@ Rules:
 
               {/* Game Player — 게임 전용 UI */}
               {activeGame && discussionMode === 'player' && (
+                <div className="animate-in fade-in zoom-in-95 duration-500 ease-out fill-mode-both">
                 <GamePlayer
                   gameId={activeGame.id}
                   gameOption={activeGame.option}
@@ -1657,6 +1658,7 @@ Rules:
                   onExit={() => { setActiveGame(null); handleNewDiscussion(); }}
                   isDiscussing={isDiscussing}
                 />
+                </div>
               )}
 
               {/* Clarifying Questions — 단일 AI 플로팅 모달 */}
@@ -1870,8 +1872,8 @@ Rules:
                 </div>
               )}
 
-              {/* Question header — 모드별 분기 */}
-              {currentQuestion && messages.length > 0 && discussionMode !== 'procon' && discussionMode !== 'standard' && discussionMode !== 'multi' && (
+              {/* Question header — 모드별 분기 (게임 모드에서는 숨김) */}
+              {!activeGame && currentQuestion && messages.length > 0 && discussionMode !== 'procon' && discussionMode !== 'standard' && discussionMode !== 'multi' && (
                 getMainMode(discussionMode) === 'general' ? (
                   /* 단일 AI — 오른쪽 말풍선 */
                   <div className="flex justify-end">
@@ -3148,7 +3150,7 @@ Rules:
                     </div>
                   );
                 })()
-              ) : (
+              ) : activeGame ? null : (
                 /* All other modes: sequential */
                 messages.map((msg, idx) => {
                   // PPT 다운로드 버튼
@@ -3217,8 +3219,8 @@ Rules:
             </div>
           </div>
 
-          {/* Bottom Input */}
-          {(messages.length > 0 || isDiscussing) && (
+          {/* Bottom Input — 게임 모드에서는 GamePlayer 내부에 입력 있으므로 숨김 */}
+          {!activeGame && (messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
               <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
               <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2">
@@ -3256,7 +3258,7 @@ Rules:
                     ))}
                   </div>
                 )}
-                {!activeGame && <QuestionInput
+                <QuestionInput
                   onSubmit={isDone ? (q: string) => {
                     if (['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode)) {
                       const target = followUpTarget || activeExperts[0]?.id;
@@ -3273,7 +3275,7 @@ Rules:
                   onConclusion={isDone && discussionMode === 'multi' && !messages.some(m => m.isSummary) ? generateConclusion : undefined}
                   externalValue={sampleQuestionValue}
                   onExternalValueConsumed={() => setSampleQuestionValue('')}
-                />}
+                />
               </div>
             </div>
           )}
