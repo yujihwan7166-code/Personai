@@ -11,6 +11,7 @@ import {
 import {
   Plus, Trash2, MessageSquare, Search,
   ChevronDown, Pin, Moon, Sun, Download, Star,
+  BarChart3, RefreshCw,
 } from 'lucide-react';
 
 interface Props {
@@ -92,15 +93,23 @@ export function AppSidebar({
     [effectiveFavIds, experts]
   );
 
-  // 추천 질문 (즐겨찾기 or 랜덤 봇에서)
-  const suggestedQuestion = useMemo(() => {
+  // 추천 질문 (즐겨찾기 or 랜덤 봇에서) — 3개까지 표시
+  const [suggestSeed, setSuggestSeed] = useState(0);
+  const suggestedQuestions = useMemo(() => {
+    void suggestSeed; // trigger recompute on refresh
     const pool = favoriteExperts.length > 0 ? favoriteExperts : experts.slice(0, 20);
     const withQ = pool.filter(e => e.sampleQuestions && e.sampleQuestions.length > 0);
-    if (withQ.length === 0) return null;
-    const expert = withQ[Math.floor(Math.random() * withQ.length)];
-    const q = expert.sampleQuestions![Math.floor(Math.random() * expert.sampleQuestions!.length)];
-    return { expert, question: q };
-  }, [favoriteExperts, experts]);
+    if (withQ.length === 0) return [];
+    // Pick up to 3 unique expert-question pairs
+    const shuffled = [...withQ].sort(() => Math.random() - 0.5);
+    const results: { expert: Expert; question: string }[] = [];
+    for (const expert of shuffled) {
+      if (results.length >= 3) break;
+      const q = expert.sampleQuestions![Math.floor(Math.random() * expert.sampleQuestions!.length)];
+      results.push({ expert, question: q });
+    }
+    return results;
+  }, [favoriteExperts, experts, suggestSeed]);
 
   // 검색 + 날짜 그룹
   const filteredHistory = searchQuery
@@ -252,16 +261,45 @@ export function AppSidebar({
               )}
 
               {/* 추천 질문 */}
-              {suggestedQuestion && !searchQuery && historyRecords.length > 0 && (
+              {suggestedQuestions.length > 0 && !searchQuery && (
                 <div className="mb-3 px-1">
-                  <button
-                    onClick={() => onSelectExpert?.(suggestedQuestion.expert.id)}
-                    className="w-full p-2.5 rounded-lg bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 hover:border-indigo-200 transition-all text-left"
-                  >
-                    <p className="text-[9px] text-indigo-400 font-semibold mb-1">💡 이런 질문은 어때요?</p>
-                    <p className="text-[10.5px] text-indigo-700 font-medium leading-snug">"{suggestedQuestion.question}"</p>
-                    <p className="text-[9px] text-indigo-400 mt-1">— {suggestedQuestion.expert.nameKo}</p>
-                  </button>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      추천 질문
+                    </p>
+                    <button
+                      onClick={() => setSuggestSeed(s => s + 1)}
+                      className="p-0.5 rounded text-slate-300 hover:text-slate-500 transition-colors"
+                      title="새로고침"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    {suggestedQuestions.map((sq, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => onSelectExpert?.(sq.expert.id)}
+                        className="w-full p-2 rounded-lg bg-gradient-to-br from-indigo-50/70 to-violet-50/70 border border-indigo-100/80 hover:border-indigo-200 transition-all text-left group/sq"
+                      >
+                        <p className="text-[10px] text-indigo-700 font-medium leading-snug truncate group-hover/sq:text-indigo-800">"{sq.question}"</p>
+                        <p className="text-[8.5px] text-indigo-400 mt-0.5">— {sq.expert.nameKo}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Section divider before history */}
+              {(favoriteExperts.length > 0 || suggestedQuestions.length > 0) && !searchQuery && filteredHistory.length > 0 && (
+                <div className="my-2 mx-1 border-t border-slate-100" />
+              )}
+
+              {/* 대화 기록 헤더 */}
+              {filteredHistory.length > 0 && !searchQuery && (
+                <div className="flex items-center gap-1 px-1 mb-1.5">
+                  <MessageSquare className="w-3 h-3 text-slate-300" />
+                  <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">대화 기록</span>
                 </div>
               )}
 
@@ -306,8 +344,26 @@ export function AppSidebar({
           )}
         </div>
 
-        {/* Bottom */}
+        {/* Statistics + Bottom */}
         <div className={cn('shrink-0 border-t border-slate-100', collapsed ? 'px-2 py-2' : 'px-3 py-2')}>
+          {!collapsed && historyRecords.length > 0 && (
+            <div className="mb-2 px-1 py-2 rounded-lg bg-slate-50/80">
+              <div className="flex items-center gap-1 mb-1.5">
+                <BarChart3 className="w-3 h-3 text-slate-400" />
+                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">통계</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="text-center py-1 rounded-md bg-white border border-slate-100">
+                  <p className="text-[13px] font-bold text-slate-700">{historyRecords.length}</p>
+                  <p className="text-[8px] text-slate-400">총 대화</p>
+                </div>
+                <div className="text-center py-1 rounded-md bg-white border border-slate-100">
+                  <p className="text-[13px] font-bold text-amber-500">{effectiveFavIds.length}</p>
+                  <p className="text-[8px] text-slate-400">즐겨찾기</p>
+                </div>
+              </div>
+            </div>
+          )}
           <button
             onClick={() => {
               const isDark = document.documentElement.classList.toggle('dark');

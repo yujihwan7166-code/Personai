@@ -2132,6 +2132,10 @@ export function ExpertSelectionPanel({
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // ── Mode transition states ──
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [pendingMode, setPendingMode] = useState<MainMode | null>(null);
+
   // Portal 기반 hover 툴팁
   const [hoveredExpert, setHoveredExpert] = useState<Expert | null>(null);
   const [tipPos, setTipPos] = useState<{ x: number; y: number } | null>(null);
@@ -2288,7 +2292,7 @@ export function ExpertSelectionPanel({
     ? (validCats.find(c => c === 'specialist') || validCats[0] || 'ai')
     : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'ai');
 
-  const handleMainModeChange = (m: MainMode) => {
+  const applyModeChange = (m: MainMode) => {
     setAutoAssign(false);
     if (m === 'general') onModeChange('general');
     else if (m === 'multi') onModeChange('multi');
@@ -2299,13 +2303,38 @@ export function ExpertSelectionPanel({
     else onModeChange('standard');
   };
 
+  const handleMainModeChange = (m: MainMode) => {
+    if (m === mainMode) return;
+    // Start fade-out transition
+    setIsTransitioning(true);
+    setPendingMode(m);
+    // After fade-out completes, apply the actual mode change
+    setTimeout(() => {
+      applyModeChange(m);
+      // Small delay then fade-in
+      requestAnimationFrame(() => {
+        setIsTransitioning(false);
+        setPendingMode(null);
+      });
+    }, 150);
+  };
+
+  // Determine if player mode is active or transitioning to/from player
+  const isPlayerActive = mainMode === 'player';
+  const isGoingToPlayer = pendingMode === 'player';
+  const showPlayerBg = isPlayerActive || isGoingToPlayer;
+
   return (
     <div className={cn(
       "space-y-3 py-4 rounded-2xl transition-all duration-500 ease-out",
-      mainMode === 'player' && 'bg-slate-950/50 -mx-2 px-2 pt-2'
+      showPlayerBg && 'bg-slate-950/50 -mx-2 px-2 pt-2'
     )}>
       {/* Hero — 플레이어 모드에서는 로비 자체에 제목이 있으므로 숨김 */}
-      <div className={cn("text-center space-y-2 relative z-0", mainMode === 'player' && 'hidden')}>
+      <div className={cn(
+        "text-center space-y-2 relative z-0 transition-all duration-300 ease-out",
+        mainMode === 'player' && 'hidden',
+        isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
+      )}>
         <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
@@ -2327,19 +2356,23 @@ export function ExpertSelectionPanel({
       {/* Main Mode Tabs */}
       <div className="flex flex-col items-center">
         <div className={cn(
-          'flex flex-col bg-white border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-200',
+          'flex flex-col shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-500 ease-out',
+          showPlayerBg
+            ? 'bg-slate-900 border border-slate-700'
+            : 'bg-white border border-slate-200',
           mainMode === 'debate' ? 'rounded-[18px] p-[4px] pb-[5px]' : 'rounded-full p-[3px]'
         )}>
           <div className="flex items-center gap-[3px]">
             {mainModes.map(m => {
-              const isActive = mainMode === m;
+              const isActive = mainMode === m || pendingMode === m;
               return (
-                <button key={m} onClick={() => handleMainModeChange(m)} disabled={isDiscussing}
+                <button key={m} onClick={() => handleMainModeChange(m)} disabled={isDiscussing || isTransitioning}
                   className={cn(
-                    'flex items-center justify-center gap-1 min-w-0 px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-all duration-200',
+                    'flex items-center justify-center gap-1 min-w-0 px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-all duration-300',
                     isActive && m === 'player'
                       ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold shadow-lg shadow-purple-500/25'
-                      : isActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-600 font-medium hover:text-slate-900'
+                      : isActive ? 'bg-indigo-500 text-white font-semibold shadow-sm'
+                        : showPlayerBg ? 'text-slate-400 font-medium hover:text-slate-200' : 'text-slate-600 font-medium hover:text-slate-900'
                   )}>
                   {mainModeLabels[m]}
                 </button>
@@ -2403,6 +2436,12 @@ export function ExpertSelectionPanel({
           )}
         </div>
       </div>
+
+      {/* Content transition wrapper — fades content when switching modes */}
+      <div className={cn(
+        "space-y-3 transition-all duration-300 ease-out",
+        isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
+      )}>
 
       {/* ── Expert Mode ── */}
       {mainMode === 'expert' && (
@@ -2698,6 +2737,8 @@ export function ExpertSelectionPanel({
           onRemoveExpert={isGeneral || isProcon ? undefined : onToggle}
         />
       )}
+
+      </div>{/* end content transition wrapper */}
 
       {/* Portal 기반 플로팅 툴팁 — overflow 영향 안 받음 */}
       {hoveredExpert && tipPos && createPortal(
