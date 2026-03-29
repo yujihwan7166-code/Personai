@@ -16,10 +16,9 @@ import {
   Plus, X, Check, ChevronRight, ChevronDown, ArrowRight, Zap,
   FileText, Search, Sliders,
   Eye, BookOpen, Brain, Link2, Sparkles, Swords, Clapperboard,
-  Users, User, Crown, Star, Gamepad2,
+  Users, User, Crown, Star,
   Flame, ShieldAlert, Heart, RotateCcw, Lock, Bomb, UserX, Shield, Handshake,
   Drama, Gavel,
-  Timer, TrendingUp, CheckCircle, BarChart3, Trophy, ClipboardCheck, Play,
 } from 'lucide-react';
 
 
@@ -1708,22 +1707,6 @@ ${caseDesc}
     'negotiator': '전략',
   };
 
-  // Game card gradient backgrounds (reference design style)
-  const gameCardGradientCSS: Record<string, string> = {
-    'ai-polygraph': 'linear-gradient(135deg, rgba(8,145,178,0.4) 0%, rgba(8,145,178,0.2) 100%)',
-    'mental-breaker': 'linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(185,28,28,0.2) 100%)',
-    'reverse-interrogation': 'linear-gradient(135deg, rgba(120,53,15,0.4) 0%, rgba(180,83,9,0.2) 100%)',
-    'split-personality': 'linear-gradient(135deg, rgba(6,78,59,0.4) 0%, rgba(5,150,105,0.2) 100%)',
-    'emotion-hacker': 'linear-gradient(135deg, rgba(136,19,55,0.4) 0%, rgba(190,18,60,0.2) 100%)',
-    'reverse-quiz': 'linear-gradient(135deg, rgba(30,58,138,0.4) 0%, rgba(37,99,235,0.2) 100%)',
-    'ai-court': 'linear-gradient(135deg, rgba(124,45,18,0.4) 0%, rgba(194,65,12,0.2) 100%)',
-    'code-breaker': 'linear-gradient(135deg, rgba(17,94,89,0.4) 0%, rgba(13,148,136,0.2) 100%)',
-    'minefield': 'linear-gradient(135deg, rgba(131,24,67,0.4) 0%, rgba(219,39,119,0.2) 100%)',
-    'ai-mafia': 'linear-gradient(135deg, rgba(76,29,149,0.4) 0%, rgba(124,58,237,0.2) 100%)',
-    'firewall-escape': 'linear-gradient(135deg, rgba(20,83,45,0.4) 0%, rgba(22,163,74,0.2) 100%)',
-    'negotiator': 'linear-gradient(135deg, rgba(113,63,18,0.4) 0%, rgba(202,138,4,0.2) 100%)',
-  };
-
   // ── Featured game (rotates daily) ──
   const featuredIdx = new Date().getDate() % GAME_CARDS.length;
   const featured = GAME_CARDS[featuredIdx];
@@ -1809,11 +1792,36 @@ ${caseDesc}
     return best;
   })();
 
+  // Game card gradient backgrounds for the reference design
+  const gameCardGradients: Record<string, string> = {
+    'ai-polygraph': 'linear-gradient(135deg, #0d33f2 0%, #0a2463 100%)',
+    'mental-breaker': 'linear-gradient(135deg, #6b0f0f 0%, #1a0a0a 100%)',
+    'reverse-interrogation': 'linear-gradient(135deg, #6b3f0f 0%, #1a1400 100%)',
+    'split-personality': 'linear-gradient(135deg, #0f6b2f 0%, #0a1a10 100%)',
+    'emotion-hacker': 'linear-gradient(135deg, #6b0f3f 0%, #1a0a14 100%)',
+    'reverse-quiz': 'linear-gradient(135deg, #0f2f6b 0%, #0a0c1a 100%)',
+    'ai-court': 'linear-gradient(135deg, #6b4f0f 0%, #1a1408 100%)',
+    'code-breaker': 'linear-gradient(135deg, #0f5b5b 0%, #0a1616 100%)',
+    'minefield': 'linear-gradient(135deg, #6b0f4f 0%, #1a0a16 100%)',
+    'ai-mafia': 'linear-gradient(135deg, #2f0f6b 0%, #0c0a1a 100%)',
+    'firewall-escape': 'linear-gradient(135deg, #0f6b4f 0%, #0a1a14 100%)',
+    'negotiator': 'linear-gradient(135deg, #5b5b0f 0%, #161608 100%)',
+  };
+
+  const gameCategoryColors: Record<string, { bg: string; text: string }> = {
+    '추리': { bg: 'rgba(13,51,242,0.15)', text: '#4d7af7' },
+    '심리': { bg: 'rgba(239,68,68,0.15)', text: '#f87171' },
+    '논리': { bg: 'rgba(16,185,129,0.15)', text: '#34d399' },
+    '언어': { bg: 'rgba(245,158,11,0.15)', text: '#fbbf24' },
+    '전략': { bg: 'rgba(168,85,247,0.15)', text: '#a78bfa' },
+  };
+
   return (
-    <div className="bg-[#0a0c16] overflow-hidden" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+    <div style={{ background: '#0a0c16', fontFamily: "'Space Grotesk', sans-serif", color: '#f1f5f9', minHeight: '100vh' }}>
       {/* CSS */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
         .glow-button {
           box-shadow: 0 0 20px rgba(13, 51, 242, 0.4);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1825,9 +1833,30 @@ ${caseDesc}
         .glow-button:active {
           transform: translateY(-1px) scale(0.98);
         }
+        .secondary-interactive {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .secondary-interactive:hover {
+          background: rgba(255, 255, 255, 0.15);
+          transform: translateY(-4px);
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+        .secondary-interactive:active {
+          transform: translateY(-1px);
+        }
+        .hero-gradient {
+          background: linear-gradient(0deg, #0a0c16 0%, rgba(10, 12, 22, 0.8) 40%, rgba(10, 12, 22, 0) 100%);
+        }
         .glass-panel {
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .pulse-primary {
+          animation: pulse-p 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-p {
+          0%, 100% { opacity: 1; }
+          50% { opacity: .7; }
         }
         .quest-card {
           transition: all 0.3s ease;
@@ -1837,410 +1866,376 @@ ${caseDesc}
           background: rgba(13, 51, 242, 0.08);
           transform: scale(1.02);
         }
-        .hero-gradient {
-          background: linear-gradient(0deg, #0a0c16 0%, rgba(10, 12, 22, 0.8) 40%, rgba(10, 12, 22, 0) 100%);
-        }
         @keyframes lobby-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
         @keyframes lobby-scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
         @keyframes start-btn-glow { 0%, 100% { box-shadow: 0 0 10px var(--btn-glow), 0 4px 15px var(--btn-glow); } 50% { box-shadow: 0 0 25px var(--btn-glow), 0 4px 30px var(--btn-glow); } }
         @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes countdown-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-        @keyframes hero-glow { 0%, 100% { text-shadow: 0 0 20px rgba(13,51,242,0.4); } 50% { text-shadow: 0 0 40px rgba(13,51,242,0.7), 0 0 80px rgba(13,51,242,0.3); } }
       `}</style>
 
       {/* ============================================================ */}
-      {/* 1. CINEMATIC HERO SECTION                                     */}
+      {/* 1. HEADER                                                     */}
       {/* ============================================================ */}
-      <div className="relative w-full overflow-hidden" style={{ minHeight: '420px' }}>
-        {/* Background gradient */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0a0c16 0%, #0d1230 30%, #0a0c16 70%, #10082a 100%)' }} />
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 20%, rgba(13,51,242,0.15), transparent 60%)' }} />
-        {/* Bottom gradient overlay */}
-        <div className="hero-gradient absolute inset-0 pointer-events-none" />
+      <header className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'rgba(255,255,255,0.05)', background: 'rgba(10,12,22,0.8)', backdropFilter: 'blur(12px)' }}>
+        <div className="flex items-center gap-4">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ background: '#0d33f2', boxShadow: '0 4px 15px rgba(13,51,242,0.2)' }}>
+            <span className="material-symbols-outlined text-sm">videogame_asset</span>
+          </div>
+          <h2 className="text-white text-lg font-bold tracking-tight">AI Game Arena</h2>
+        </div>
+        <div className="flex items-center gap-4">
+          <button onClick={() => onBackToHub?.()} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}>
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            AI Hub로 돌아가기
+          </button>
+          <button onClick={() => setShowProfile(true)} className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs" style={{ background: '#0d33f2', border: '2px solid #0d33f2' }}>
+            Lv.{playerLevel}
+          </button>
+        </div>
+      </header>
 
-        <div className="relative px-6 pt-5 pb-8 flex flex-col h-full" style={{ minHeight: '420px' }}>
-          {/* Top row: back button + badge + profile */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => onBackToHub?.()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 text-[12px] font-medium hover:text-slate-200 transition-all duration-200 active:scale-95"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-              >
-                <span className="text-[14px]">&#8592;</span> AI Hub
-              </button>
+      {/* ============================================================ */}
+      {/* 2. HERO SECTION                                               */}
+      {/* ============================================================ */}
+      <section className="relative w-full overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <div className="hero-gradient absolute inset-0 z-10"></div>
+          <div className="w-full" style={{ height: '500px', background: 'linear-gradient(135deg, #0d33f2 0%, #0a0c16 50%, #1a0a2e 100%)' }}></div>
+        </div>
+        <div className="relative z-20 max-w-[1200px] mx-auto px-6 pt-32 pb-16">
+          <div className="max-w-3xl flex flex-col items-start">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full w-fit mb-6" style={{ background: 'rgba(13,51,242,0.2)', border: '1px solid rgba(13,51,242,0.3)' }}>
+              <span className="material-symbols-outlined text-sm pulse-primary" style={{ color: '#0d33f2' }}>bolt</span>
+              <span style={{ color: '#0d33f2', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>&#127918; 12 Games Live</span>
             </div>
-            <button onClick={() => setShowProfile(true)} className="flex items-center gap-2 rounded-xl px-3 py-1.5 hover:bg-white/[0.06] transition-all" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#0d33f2] to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white">
-                Lv
-              </div>
-              <div className="text-left">
-                <div className="text-[11px] font-semibold text-slate-200">Player <span className="text-[9px] text-amber-400 font-semibold">{playerTitle}</span></div>
-                <div className="text-[9px] text-slate-500">Lv.{playerLevel} | {playerXP.toLocaleString()} XP</div>
-              </div>
-            </button>
-          </div>
-
-          {/* Badge */}
-          <div className="mb-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-[#0d33f2]" style={{ background: 'rgba(13,51,242,0.15)', border: '1px solid rgba(13,51,242,0.3)' }}>
-              <Gamepad2 className="w-3.5 h-3.5" /> 12 GAMES LIVE
-            </span>
-          </div>
-
-          {/* Giant title */}
-          <div className="flex-1 flex flex-col justify-center">
-            <h1 className="text-[42px] font-bold text-white tracking-tight leading-[1.1] mb-3">
-              AI Game{' '}
-              <span className="text-[#0d33f2]" style={{ animation: 'hero-glow 3s ease-in-out infinite' }}>Arena</span>
+            <h1 className="text-white font-black leading-[0.85] tracking-tight mb-6" style={{ fontSize: 'clamp(3rem, 8vw, 7rem)' }}>
+              AI Game<br/><span style={{ color: '#0d33f2', filter: 'drop-shadow(0 0 15px rgba(13,51,242,0.5))' }}>Arena</span>
             </h1>
-            <p className="text-[14px] text-slate-400 leading-relaxed max-w-md mb-6">
-              AI와 두뇌 대결, 지금 시작하세요. 12가지 게임이 당신을 기다립니다.
+            <p className="text-lg max-w-xl font-normal leading-relaxed mb-12" style={{ color: '#94a3b8' }}>
+              AI와 두뇌 대결의 장. 12가지 게임에서 당신의 논리력, 심리전, 관찰력을 시험하세요. 매 순간이 승부입니다.
             </p>
-
-            {/* Buttons */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleFeaturedStart}
-                className="glow-button inline-flex items-center gap-2 px-6 py-3 rounded-xl text-[14px] font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #0d33f2 0%, #2b5cf6 100%)' }}
-              >
-                <Play className="w-4 h-4" fill="currentColor" /> START BATTLE
+            <div className="flex flex-wrap gap-4">
+              <button onClick={handleFeaturedStart} className="glow-button text-white px-10 py-5 rounded-2xl font-black text-xl flex items-center gap-3" style={{ background: '#0d33f2' }}>
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
+                게임 시작
               </button>
-              <button
-                onClick={() => gameGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[14px] font-medium text-slate-300 hover:text-white transition-colors"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
-              >
-                <Gamepad2 className="w-4 h-4" /> 전체 게임 보기
+              <button onClick={() => gameGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="secondary-interactive text-white px-8 py-5 rounded-2xl font-bold text-lg flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <span className="material-symbols-outlined">psychology</span>
+                전체 게임
               </button>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Countdown in corner */}
-          <div className="absolute top-5 right-1/2 translate-x-1/2 sm:right-6 sm:translate-x-0 sm:top-auto sm:bottom-6">
-            <div className="flex items-center gap-2 text-[11px] text-slate-500">
-              <Timer className="w-3.5 h-3.5" />
-              <span>Daily Reset: </span>
-              <span className="font-mono text-slate-300" style={{ animation: 'countdown-pulse 2s ease-in-out infinite' }}>{countdown}</span>
+      {/* ============================================================ */}
+      {/* 3. MAIN CONTENT AREA                                          */}
+      {/* ============================================================ */}
+      <div className="max-w-[1200px] mx-auto px-6 py-16">
+
+        {/* Daily Quests */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-white text-2xl font-bold flex items-center gap-3">
+                <span className="material-symbols-outlined" style={{ color: '#0d33f2' }}>assignment_turned_in</span>
+                일일 퀘스트
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '14px' }} className="mt-1">완료하면 보너스 XP를 획득합니다</p>
+            </div>
+            <div style={{ color: '#64748b', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', background: 'rgba(255,255,255,0.05)', padding: '4px 12px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              리셋까지 {countdown}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* 2. DAILY QUESTS                                               */}
-      {/* ============================================================ */}
-      <div className="px-6 py-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Trophy className="w-4 h-4 text-amber-400" />
-          <h2 className="text-[16px] font-bold text-white">Daily Quests</h2>
-          <span className="text-[11px] text-slate-500 ml-auto font-mono">{countdown}</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {todayQuests.map((quest, qi) => {
-            const progress = (() => { try { return parseInt(localStorage.getItem(`quest-progress-${quest.game}`) || '0'); } catch { return 0; } })();
-            const questColors = ['bg-[#0d33f2]/20 text-[#4d7af7]', 'bg-amber-500/20 text-amber-400', 'bg-emerald-500/20 text-emerald-400'];
-            return (
-              <div
-                key={qi}
-                className="quest-card glass-panel rounded-xl p-4 relative overflow-hidden cursor-pointer"
-                onClick={() => {
-                  const g = GAME_CARDS.find(gc => gc.id === quest.game);
-                  if (g) { setSelectedGame(g); setGameOption(''); setTimeout(() => { const el = document.querySelector('[data-game-options]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150); }
-                }}
-                style={{ animation: `fadeSlideIn 0.5s ease-out ${0.1 * qi}s both` }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', questColors[qi])}>
-                    {quest.icon}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {todayQuests.map((quest, qi) => {
+              const progress = (() => { try { return parseInt(localStorage.getItem(`quest-progress-${quest.game}`) || '0'); } catch { return 0; } })();
+              const questIconBgs = ['#0d33f2', '#f59e0b', '#10b981'];
+              return (
+                <div
+                  key={qi}
+                  className="quest-card glass-panel rounded-2xl p-6 relative overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    const g = GAME_CARDS.find(gc => gc.id === quest.game);
+                    if (g) { setSelectedGame(g); setGameOption(''); setTimeout(() => { const el = document.querySelector('[data-game-options]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150); }
+                  }}
+                  style={{ animation: `fadeSlideIn 0.5s ease-out ${0.1 * qi}s both` }}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ background: questIconBgs[qi] }}>
+                      {quest.icon}
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold" style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.1)' }}>
+                      +{quest.xp} XP
+                    </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-amber-400 bg-amber-400/10">
-                    +{quest.xp} XP
-                  </span>
-                </div>
-                <h4 className="text-[13px] font-semibold text-white mb-1">{GAME_CARDS.find(g => g.id === quest.game)?.name}</h4>
-                <p className="text-[11px] text-slate-400 mb-3 leading-snug">{quest.mission}</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                    <div className="h-full rounded-full bg-[#0d33f2] transition-all duration-500" style={{ width: `${Math.min(progress * 100, 100)}%` }} />
+                  <h4 className="text-[15px] font-bold text-white mb-1">{GAME_CARDS.find(g => g.id === quest.game)?.name}</h4>
+                  <p className="text-[13px] mb-4 leading-snug" style={{ color: '#64748b' }}>{quest.mission}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(progress * 100, 100)}%`, background: '#0d33f2' }} />
+                    </div>
+                    <span className="text-[11px] font-mono" style={{ color: '#64748b' }}>{progress}/1</span>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-500">{progress}/1</span>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* ============================================================ */}
-      {/* 3. TWO-COLUMN: Rules + Career | Leaderboard                   */}
-      {/* ============================================================ */}
-      <div className="px-6 pb-6">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          {/* Left column (4/12) */}
-          <div className="md:col-span-4 space-y-4">
-            {/* Game Rules Card */}
-            <div className="glass-panel rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Scale className="w-4 h-4 text-[#4d7af7]" />
-                <h3 className="text-[13px] font-bold text-white">Game Rules</h3>
-              </div>
-              <div className="space-y-2.5">
+        {/* Rules + Career / Records (12-col grid) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Left sidebar: col-span-4 */}
+          <div className="lg:col-span-4 flex flex-col gap-8">
+            {/* Game Rules card */}
+            <div className="glass-panel p-8 rounded-2xl">
+              <h3 className="text-white text-lg font-bold flex items-center gap-3 mb-6">
+                <span className="material-symbols-outlined" style={{ color: '#0d33f2' }}>gavel</span>
+                게임 규칙
+              </h3>
+              <div className="space-y-5">
                 {[
-                  { icon: <Brain className="w-3.5 h-3.5 text-[#4d7af7]" />, text: 'AI가 출제하고 당신이 도전합니다' },
-                  { icon: <ClipboardCheck className="w-3.5 h-3.5 text-[#4d7af7]" />, text: '게임별 고유 규칙이 적용됩니다' },
-                  { icon: <TrendingUp className="w-3.5 h-3.5 text-[#4d7af7]" />, text: '승리하면 XP와 능력치를 획득합니다' },
+                  { num: '01', text: 'AI가 출제하고 당신이 도전합니다' },
+                  { num: '02', text: '게임별 고유 규칙이 적용됩니다' },
+                  { num: '03', text: '승리하면 XP와 능력치를 획득합니다' },
                 ].map((rule, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div className="w-6 h-6 rounded-md bg-[#0d33f2]/10 flex items-center justify-center shrink-0 mt-0.5">{rule.icon}</div>
-                    <span className="text-[11px] text-slate-400 leading-relaxed">{rule.text}</span>
+                  <div key={i} className="flex items-start gap-4">
+                    <span className="text-2xl font-black" style={{ color: 'rgba(13,51,242,0.4)' }}>{rule.num}</span>
+                    <p className="text-sm leading-relaxed pt-1" style={{ color: '#94a3b8' }}>{rule.text}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Your Career Card */}
-            <div className="glass-panel rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <BarChart3 className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-[13px] font-bold text-white">Your Career</h3>
+            {/* Your Career card */}
+            <div className="glass-panel p-8 rounded-2xl">
+              <h3 className="text-white text-lg font-bold flex items-center gap-3 mb-6">
+                <span className="material-symbols-outlined" style={{ color: '#0d33f2' }}>trending_up</span>
+                내 커리어
+              </h3>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div className="text-xs mb-1" style={{ color: '#64748b' }}>Personal Best</div>
+                  <div className="text-xl font-black" style={{ color: '#fbbf24' }}>{bestGame.xp > 0 ? `${bestGame.xp} XP` : '-'}</div>
+                  <div className="text-[10px] truncate" style={{ color: '#475569' }}>{bestGame.name}</div>
+                </div>
+                <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div className="text-xs mb-1" style={{ color: '#64748b' }}>Level</div>
+                  <div className="text-xl font-black" style={{ color: '#0d33f2' }}>Lv.{playerLevel}</div>
+                  <div className="text-[10px]" style={{ color: '#475569' }}>{playerTitle}</div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
-                  <div className="text-[10px] text-slate-500 mb-0.5">Personal Best</div>
-                  <div className="text-[14px] font-bold text-amber-400">{bestGame.xp > 0 ? `${bestGame.xp} XP` : '-'}</div>
-                  <div className="text-[9px] text-slate-600 truncate">{bestGame.name}</div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <span className="text-sm" style={{ color: '#64748b' }}>Win Rate</span>
+                  <span className="text-sm font-bold" style={{ color: '#10b981' }}>{winRate}%</span>
                 </div>
-                <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
-                  <div className="text-[10px] text-slate-500 mb-0.5">Total Games</div>
-                  <div className="text-[14px] font-bold text-white">{totalPlays || records.length}</div>
-                </div>
-                <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
-                  <div className="text-[10px] text-slate-500 mb-0.5">Win Rate</div>
-                  <div className="text-[14px] font-bold text-emerald-400">{winRate}%</div>
-                </div>
-                <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
-                  <div className="text-[10px] text-slate-500 mb-0.5">Level</div>
-                  <div className="text-[14px] font-bold text-[#4d7af7]">Lv.{playerLevel}</div>
-                  <div className="text-[9px] text-slate-600">{playerTitle}</div>
+                <div className="flex items-center justify-between py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <span className="text-sm" style={{ color: '#64748b' }}>Games Played</span>
+                  <span className="text-sm font-bold text-white">{totalPlays || records.length}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right column (8/12) — Leaderboard / My Records */}
-          <div className="md:col-span-8">
-            <div className="glass-panel rounded-xl p-4 h-full">
-              <div className="flex items-center gap-2 mb-4">
-                <CheckCircle className="w-4 h-4 text-violet-400" />
-                <h3 className="text-[13px] font-bold text-white">내 기록 (My Records)</h3>
-                <span className="text-[10px] text-slate-500 ml-auto">최근 5게임</span>
+          {/* Right: col-span-8 */}
+          <div className="lg:col-span-8">
+            <div className="glass-panel rounded-2xl overflow-hidden">
+              <div className="p-8 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                <h3 className="text-white text-lg font-bold flex items-center gap-3">
+                  <span className="material-symbols-outlined" style={{ color: '#0d33f2' }}>leaderboard</span>
+                  내 전적
+                  <span className="text-xs font-normal ml-auto" style={{ color: '#64748b' }}>최근 5게임</span>
+                </h3>
               </div>
-
               {lastRecords.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-14 h-14 rounded-full bg-white/[0.03] flex items-center justify-center mb-3">
-                    <Gamepad2 className="w-6 h-6 text-slate-600" />
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <span className="material-symbols-outlined text-3xl" style={{ color: '#475569' }}>sports_esports</span>
                   </div>
-                  <p className="text-[13px] text-slate-500 font-medium mb-1">아직 게임 기록이 없습니다</p>
-                  <p className="text-[11px] text-slate-600">게임을 플레이하면 여기에 기록이 표시됩니다</p>
+                  <p className="text-sm font-medium mb-1" style={{ color: '#64748b' }}>아직 게임 기록이 없습니다</p>
+                  <p className="text-xs" style={{ color: '#475569' }}>게임을 플레이하면 여기에 기록이 표시됩니다</p>
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-lg">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
-                        <th className="text-left py-2 px-3 font-semibold">게임</th>
-                        <th className="text-center py-2 px-3 font-semibold">결과</th>
-                        <th className="text-center py-2 px-3 font-semibold">등급</th>
-                        <th className="text-right py-2 px-3 font-semibold">시간</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lastRecords.map((rec: any, ri: number) => {
-                        const gc = GAME_CARDS.find(g => g.id === rec.gameId);
-                        const gradeColors: Record<string, string> = { S: 'text-amber-400', A: 'text-violet-400', B: 'text-blue-400', C: 'text-slate-400', F: 'text-red-400' };
-                        return (
-                          <tr key={ri} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                            <td className="py-2.5 px-3">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[13px]">{gc?.icon || '?'}</span>
-                                <span className="text-[12px] text-slate-300 font-medium">{gc?.name || rec.gameId}</span>
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full', rec.result === 'win' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')}>
-                                {rec.result === 'win' ? 'WIN' : 'LOSE'}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span className={cn('text-[13px] font-black', gradeColors[rec.grade] || 'text-slate-400')}>{rec.grade || '-'}</span>
-                            </td>
-                            <td className="py-2.5 px-3 text-right">
-                              <span className="text-[11px] text-slate-500">{rec.date ? new Date(rec.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '-'}</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <th className="text-left py-4 px-6 text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#64748b' }}>게임</th>
+                      <th className="text-center py-4 px-6 text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#64748b' }}>결과</th>
+                      <th className="text-center py-4 px-6 text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#64748b' }}>등급</th>
+                      <th className="text-right py-4 px-6 text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#64748b' }}>시간</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lastRecords.map((rec: any, ri: number) => {
+                      const gc = GAME_CARDS.find(g => g.id === rec.gameId);
+                      const gradeColors: Record<string, string> = { S: '#fbbf24', A: '#a78bfa', B: '#60a5fa', C: '#94a3b8', F: '#f87171' };
+                      return (
+                        <tr key={ri} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <span className="text-base">{gc?.icon || '?'}</span>
+                              <span className="text-sm font-medium text-white">{gc?.name || rec.gameId}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <span className="text-xs font-bold px-3 py-1 rounded-full" style={rec.result === 'win' ? { background: 'rgba(16,185,129,0.1)', color: '#34d399' } : { background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                              {rec.result === 'win' ? 'WIN' : 'LOSE'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <span className="text-base font-black" style={{ color: gradeColors[rec.grade] || '#94a3b8' }}>{rec.grade || '-'}</span>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <span className="text-xs" style={{ color: '#64748b' }}>{rec.date ? new Date(rec.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '-'}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ============================================================ */}
-      {/* 4. MORE CHALLENGES — Game Grid                                */}
-      {/* ============================================================ */}
-      <div className="px-6 pb-8" ref={gameGridRef}>
-        <div className="flex items-center gap-2 mb-5">
-          <Zap className="w-4 h-4 text-[#4d7af7]" />
-          <h2 className="text-[16px] font-bold text-white">More Challenges</h2>
-          <span className="text-[11px] text-slate-500 ml-auto">{GAME_CARDS.length} Games</span>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-lobby-root>
-          {GAME_CARDS.map((game, idx) => {
-            const isSelected = selectedGame?.id === game.id;
-            const glowColor = gameGlowColors[game.id];
-            return (
-              <button
-                key={game.id}
-                type="button"
-                onClick={() => {
-                  setSelectedGame(isSelected ? null : game);
-                  setGameOption('');
-                  if (!isSelected) setTimeout(() => { const el = document.querySelector('[data-game-options]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150);
-                }}
-                style={{
-                  animation: `cardIn 0.4s ease-out ${0.05 * idx}s both`,
-                  ...(isSelected ? { boxShadow: `0 0 25px ${glowColor}, 0 0 50px ${glowColor.replace('0.35', '0.12')}` } : {}),
-                }}
-                className={cn(
-                  'relative text-left rounded-xl overflow-hidden group transition-all duration-300 ease-out',
-                  isSelected
-                    ? 'ring-2 ring-[#0d33f2]/60'
-                    : 'hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(13,51,242,0.15)]',
-                )}
-              >
-                {/* Visual area */}
-                <div
-                  className="relative flex items-center justify-center overflow-hidden"
-                  style={{
-                    height: '140px',
-                    background: gameCardGradientCSS[game.id] || 'linear-gradient(135deg, rgba(30,41,59,0.5), rgba(30,41,59,0.3))',
+        {/* More Challenges -- 12 GAMES (4-col grid) */}
+        <div className="mt-20" ref={gameGridRef}>
+          <div className="flex justify-between items-end mb-8">
+            <div>
+              <h3 className="text-white text-3xl font-black italic uppercase tracking-tight">게임 목록</h3>
+              <p style={{ color: '#64748b' }} className="mt-1">당신의 두뇌 유형에 맞는 게임을 선택하세요</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {GAME_CARDS.map((game, idx) => {
+              const isSelected = selectedGame?.id === game.id;
+              const category = gameCategories[game.id] || '';
+              const catColor = gameCategoryColors[category] || { bg: 'rgba(255,255,255,0.1)', text: '#94a3b8' };
+              return (
+                <button
+                  key={game.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedGame(isSelected ? null : game);
+                    setGameOption('');
+                    if (!isSelected) setTimeout(() => { const el = document.querySelector('[data-game-options]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150);
                   }}
+                  className={cn(
+                    'group cursor-pointer rounded-2xl overflow-hidden glass-panel transition-all hover:-translate-y-2 text-left',
+                    isSelected && 'ring-2 ring-[#0d33f2]/60'
+                  )}
+                  style={{ animation: `cardIn 0.4s ease-out ${0.05 * idx}s both` }}
                 >
-                  {/* Glass overlay */}
-                  <div className="absolute inset-0" style={{ background: 'rgba(255,255,255,0.02)' }} />
-                  {/* Glow */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `radial-gradient(circle at 50% 50%, ${glowColor.replace('0.35', '0.2')}, transparent 70%)` }} />
-                  {/* Icon */}
-                  <div className={cn('relative transition-transform duration-300 group-hover:scale-125', isSelected && 'scale-110')}>
-                    <div className="text-white/80 [&>svg]:w-10 [&>svg]:h-10">
+                  <div className="h-44 overflow-hidden flex items-center justify-center relative" style={{ background: gameCardGradients[game.id] || 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
+                    <div className="text-white/80 [&>svg]:w-10 [&>svg]:h-10 transition-transform duration-300 group-hover:scale-125">
                       {gameIcons[game.id]}
                     </div>
+                    {/* Best grade badge */}
+                    {(() => {
+                      const grade = getBestGrade(game.id);
+                      if (!grade) return null;
+                      const gradeColors: Record<string, { bg: string; text: string }> = { S: { bg: 'rgba(251,191,36,0.2)', text: '#fbbf24' }, A: { bg: 'rgba(167,139,250,0.2)', text: '#a78bfa' }, B: { bg: 'rgba(96,165,250,0.2)', text: '#60a5fa' }, C: { bg: 'rgba(148,163,184,0.2)', text: '#94a3b8' }, F: { bg: 'rgba(248,113,113,0.2)', text: '#f87171' } };
+                      const gc = gradeColors[grade] || gradeColors.C;
+                      return <span className="absolute top-3 right-3 px-2 py-0.5 rounded text-[10px] font-black" style={{ background: gc.bg, color: gc.text }}>{grade}</span>;
+                    })()}
+                    {/* Selected check */}
+                    {isSelected && (
+                      <div className="absolute top-3 left-3 w-6 h-6 rounded-full flex items-center justify-center shadow-lg" style={{ background: '#0d33f2', animation: 'lobby-pulse 1.5s ease-in-out infinite' }}>
+                        <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                      </div>
+                    )}
                   </div>
-                  {/* Best grade badge */}
-                  {(() => {
-                    const grade = getBestGrade(game.id);
-                    if (!grade) return null;
-                    const gradeColors: Record<string, string> = { S: 'bg-amber-500/20 text-amber-400', A: 'bg-violet-500/20 text-violet-400', B: 'bg-blue-500/20 text-blue-400', C: 'bg-slate-600/30 text-slate-400', F: 'bg-red-500/20 text-red-400' };
-                    return <span className={cn("absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-black", gradeColors[grade] || '')}>{grade}</span>;
-                  })()}
-                  {/* Selected check */}
-                  {isSelected && (
-                    <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-[#0d33f2] flex items-center justify-center shadow-lg" style={{ animation: 'lobby-pulse 1.5s ease-in-out infinite' }}>
-                      <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                  <div className="p-5">
+                    <div className="flex justify-between items-center mb-1">
+                      <h4 className="font-bold text-white text-lg">{game.name}</h4>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: catColor.bg, color: catColor.text }}>{category}</span>
                     </div>
-                  )}
-                </div>
-
-                {/* Bottom info */}
-                <div className="p-3.5 glass-panel border-t-0 rounded-b-xl" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className={cn('text-[13px] font-bold tracking-tight', isSelected ? 'text-[#4d7af7]' : 'text-white')}>{game.name}</h3>
-                    <span className="px-1.5 py-0.5 rounded text-[8px] font-semibold bg-white/[0.06] text-slate-500">{gameCategories[game.id]}</span>
+                    <p className="text-xs font-medium" style={{ color: '#64748b' }}>{gameDescriptions[game.id]}</p>
                   </div>
-                  <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">
-                    {gameDescriptions[game.id]}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── Game Options Panel (when game selected) ── */}
-        {selectedGame && (
-          <div data-game-options className="mt-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
-            {/* Rules */}
-            <div className="glass-panel rounded-xl mb-3 px-4 py-3 relative overflow-hidden">
-              <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(ellipse at 0% 50%, ${gameGlowColors[selectedGame.id].replace('0.35', '0.15')}, transparent 60%)` }} />
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className={cn("text-[10px] font-bold uppercase tracking-wider", accent?.text || 'text-[#4d7af7]')}>Game Rules</span>
-                  <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.08), transparent)' }} />
-                </div>
-                <p className="text-[11px] text-slate-300 leading-relaxed">{selectedGame.rules}</p>
-              </div>
-            </div>
-
-            {/* Options */}
-            <p className="text-[11px] text-slate-400 font-semibold mb-2 px-1">
-              {gameOptions[selectedGame.id]?.label}
-            </p>
-            <div className={cn("grid gap-2.5 mb-4", (gameOptions[selectedGame.id]?.options.length || 0) <= 2 ? 'grid-cols-2' : (gameOptions[selectedGame.id]?.options.length || 0) === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
-              {gameOptions[selectedGame.id]?.options.map(opt => (
-                <button
-                  key={opt.id}
-                  onClick={() => setGameOption(opt.id)}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 py-3.5 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group/opt',
-                    gameOption === opt.id
-                      ? `${accent?.border || 'border-[#0d33f2]'} ${accent?.bg || 'bg-[#0d33f2]/20'} text-white scale-[1.03]`
-                      : 'border-white/[0.08] bg-white/[0.03] text-slate-400 hover:border-white/[0.15] hover:text-white hover:bg-white/[0.06] active:scale-[0.97]'
-                  )}
-                  style={gameOption === opt.id ? { boxShadow: `0 0 15px ${gameGlowColors[selectedGame.id].replace('0.35', '0.2')}` } : undefined}
-                >
-                  {gameOption === opt.id && <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />}
-                  <span className="text-[18px] relative transition-transform duration-200 group-hover/opt:scale-110">{opt.icon}</span>
-                  <span className="text-[10px] font-semibold relative">{opt.label}</span>
                 </button>
-              ))}
-            </div>
-
-            {/* Start button */}
-            <button
-              onClick={startGame}
-              disabled={!gameOption || isDiscussing}
-              className={cn(
-                'w-full py-3.5 rounded-xl text-[14px] font-bold transition-all duration-200 flex items-center justify-center gap-2 relative overflow-hidden',
-                gameOption && !isDiscussing
-                  ? 'text-white hover:scale-[1.01] active:scale-[0.99]'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-              )}
-              style={gameOption && !isDiscussing ? {
-                background: 'linear-gradient(135deg, #0d33f2 0%, #2b5cf6 100%)',
-                '--btn-glow': 'rgba(13,51,242,0.4)',
-                animation: 'start-btn-glow 2s ease-in-out infinite',
-              } as React.CSSProperties : undefined}
-            >
-              {gameOption && !isDiscussing && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" style={{ animation: 'lobby-scan 3s ease-in-out infinite' }} />
-              )}
-              <Zap className={cn("w-4 h-4 relative", gameOption && !isDiscussing && 'animate-[lobby-pulse_1s_ease-in-out_infinite]')} />
-              <span className="relative">{isDiscussing ? '게임 진행 중...' : `${selectedGame.name} 시작!`}</span>
-            </button>
+              );
+            })}
           </div>
-        )}
+
+          {/* Game Options Panel (when game selected) */}
+          {selectedGame && (
+            <div data-game-options className="mt-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
+              {/* Rules */}
+              <div className="glass-panel rounded-2xl mb-4 px-6 py-5 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(ellipse at 0% 50%, ${gameGlowColors[selectedGame.id]?.replace('0.35', '0.15') || 'rgba(13,51,242,0.15)'}, transparent 60%)` }} />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={cn("text-xs font-bold uppercase tracking-wider", accent?.text || 'text-[#4d7af7]')}>Game Rules</span>
+                    <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.08), transparent)' }} />
+                  </div>
+                  <p className="text-sm leading-relaxed" style={{ color: '#cbd5e1' }}>{selectedGame.rules}</p>
+                </div>
+              </div>
+
+              {/* Options */}
+              <p className="text-sm font-semibold mb-3 px-1" style={{ color: '#94a3b8' }}>
+                {gameOptions[selectedGame.id]?.label}
+              </p>
+              <div className={cn("grid gap-3 mb-5", (gameOptions[selectedGame.id]?.options.length || 0) <= 2 ? 'grid-cols-2' : (gameOptions[selectedGame.id]?.options.length || 0) === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
+                {gameOptions[selectedGame.id]?.options.map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setGameOption(opt.id)}
+                    className={cn(
+                      'flex flex-col items-center gap-2 py-4 rounded-2xl border-2 transition-all duration-200 relative overflow-hidden group/opt',
+                      gameOption === opt.id
+                        ? `${accent?.border || 'border-[#0d33f2]'} ${accent?.bg || 'bg-[#0d33f2]/20'} text-white scale-[1.03]`
+                        : 'border-white/[0.08] bg-white/[0.03] text-slate-400 hover:border-white/[0.15] hover:text-white hover:bg-white/[0.06] active:scale-[0.97]'
+                    )}
+                    style={gameOption === opt.id ? { boxShadow: `0 0 15px ${gameGlowColors[selectedGame.id]?.replace('0.35', '0.2') || 'rgba(13,51,242,0.2)'}` } : undefined}
+                  >
+                    {gameOption === opt.id && <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />}
+                    <span className="text-xl relative transition-transform duration-200 group-hover/opt:scale-110">{opt.icon}</span>
+                    <span className="text-xs font-semibold relative">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Start button */}
+              <button
+                onClick={startGame}
+                disabled={!gameOption || isDiscussing}
+                className={cn(
+                  'w-full py-4 rounded-2xl text-base font-bold transition-all duration-200 flex items-center justify-center gap-2 relative overflow-hidden',
+                  gameOption && !isDiscussing
+                    ? 'text-white hover:scale-[1.01] active:scale-[0.99]'
+                    : 'text-slate-500 cursor-not-allowed'
+                )}
+                style={gameOption && !isDiscussing ? {
+                  background: '#0d33f2',
+                  boxShadow: '0 0 20px rgba(13,51,242,0.4)',
+                } : { background: 'rgba(255,255,255,0.05)' }}
+              >
+                {gameOption && !isDiscussing && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" style={{ animation: 'lobby-scan 3s ease-in-out infinite' }} />
+                )}
+                <span className="material-symbols-outlined relative" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
+                <span className="relative">{isDiscussing ? '게임 진행 중...' : `${selectedGame.name} 시작!`}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Profile Sheet Modal ── */}
+      {/* ============================================================ */}
+      {/* FOOTER                                                        */}
+      {/* ============================================================ */}
+      <footer className="mt-auto border-t py-10 px-6" style={{ borderColor: 'rgba(255,255,255,0.05)', background: 'rgba(10,12,22,0.5)' }}>
+        <div className="max-w-[1200px] mx-auto flex justify-between items-center" style={{ color: '#64748b', fontSize: '14px' }}>
+          <div className="flex items-center gap-2">
+            <span style={{ color: 'white', fontWeight: 700 }}>AI Game Arena</span>
+          </div>
+          <span>&copy; 2026 Personai. AI와 함께하는 게임.</span>
+        </div>
+      </footer>
+
+      {/* Profile Sheet Modal */}
       {showProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
           <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl p-5 space-y-4 animate-in zoom-in-95 fade-in duration-300" style={{ background: 'rgba(15,17,30,0.95)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -2317,6 +2312,7 @@ ${caseDesc}
       )}
     </div>
   );
+
 }
 
 // ── Assistant Cards Panel ──
