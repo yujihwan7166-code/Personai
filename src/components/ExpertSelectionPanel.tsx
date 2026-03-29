@@ -1112,9 +1112,23 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
 }
 
 // ── Player Lobby (Game Mode) ──
-function PlayerLobby({ onSubmit, isDiscussing, onStartGame }: { onSubmit: (question: string) => void; isDiscussing: boolean; onStartGame?: (gameId: string, option: string, label: string) => void }) {
+function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onSubmit: (question: string) => void; isDiscussing: boolean; onStartGame?: (gameId: string, option: string, label: string) => void; onBackToHub?: () => void }) {
   const [selectedGame, setSelectedGame] = useState<GameCard | null>(null);
   const [gameOption, setGameOption] = useState('');
+  const [showProfile, setShowProfile] = useState(false);
+
+  const getBestGrade = (gameId: string): string | null => {
+    try {
+      const records = JSON.parse(localStorage.getItem('game-records') || '[]');
+      const gameRecords = records.filter((r: any) => r.gameId === gameId);
+      const gradeOrder = ['S', 'A', 'B', 'C', 'F'];
+      let best: string | null = null;
+      for (const r of gameRecords) {
+        if (!best || gradeOrder.indexOf(r.grade) < gradeOrder.indexOf(best)) best = r.grade;
+      }
+      return best;
+    } catch { return null; }
+  };
 
   const gameAccentColors: Record<string, { border: string; bg: string; text: string; glow: string; btn: string }> = {
     'ai-polygraph': { border: 'border-cyan-400', bg: 'bg-cyan-500/20', text: 'text-cyan-300', glow: 'shadow-[0_0_20px_rgba(6,182,212,0.3)]', btn: 'from-cyan-500 via-sky-500 to-blue-500' },
@@ -1769,9 +1783,83 @@ ${caseDesc}
     'negotiator': 'group-hover:animate-[lobby-pulse_1s_ease-in-out_infinite]',
   };
 
+  // ── New: Category system ──
+  const gameCategories: Record<string, string> = {
+    'ai-polygraph': '추리',
+    'mental-breaker': '심리',
+    'reverse-interrogation': '심리',
+    'split-personality': '추리',
+    'emotion-hacker': '심리',
+    'reverse-quiz': '언어',
+    'ai-court': '논리',
+    'code-breaker': '논리',
+    'minefield': '언어',
+    'ai-mafia': '심리',
+    'firewall-escape': '논리',
+    'negotiator': '전략',
+  };
+  const GAME_CATEGORIES = ['전체', '추리', '심리', '논리', '언어', '전략'];
+  const [activeCategory, setActiveCategory] = useState('전체');
+
+  const filteredGames = activeCategory === '전체'
+    ? GAME_CARDS
+    : GAME_CARDS.filter(g => gameCategories[g.id] === activeCategory);
+
+  // ── New: Featured game (rotates daily) ──
+  const featuredIdx = new Date().getDate() % GAME_CARDS.length;
+  const featured = GAME_CARDS[featuredIdx];
+  const featuredAccent = gameAccentColors[featured.id];
+
+  // ── New: HOT games ──
+  const hotGames = new Set(['ai-polygraph', 'mental-breaker', 'ai-mafia']);
+
+  // ── New: Stats (localStorage based) ──
+  const totalPlays = parseInt(localStorage.getItem('game-total-plays') || '0');
+  const todayPlays = parseInt(localStorage.getItem(`game-plays-${new Date().toDateString()}`) || '0');
+  const [randomPlayers] = useState(() => Math.floor(Math.random() * 80) + 30);
+
+  // ── New: Player XP ──
+  const playerXP = parseInt(localStorage.getItem('game-player-xp') || '0');
+  const playerLevel = Math.floor(playerXP / 1000) + 1;
+  const playerTitle = playerLevel >= 20 ? '마스터' : playerLevel >= 10 ? '도전자' : playerLevel >= 5 ? '탐험가' : playerLevel >= 3 ? '초심자' : '뉴비';
+
+  // ── New: Daily Challenge ──
+  const dailyChallenges = [
+    { game: 'ai-court', mission: 'AI 법정에서 유죄 판결 받기', xp: 500 },
+    { game: 'mental-breaker', mission: '멘탈 브레이커에서 3분 안에 승리', xp: 400 },
+    { game: 'ai-polygraph', mission: 'AI 폴리그래프 연속 3판 승리', xp: 600 },
+    { game: 'reverse-interrogation', mission: '역심문에서 무혐의 달성', xp: 450 },
+    { game: 'ai-mafia', mission: 'AI 마피아에서 마피아 찾기', xp: 350 },
+    { game: 'code-breaker', mission: '코드 브레이커 6자리 클리어', xp: 550 },
+    { game: 'firewall-escape', mission: '방화벽 5층 돌파', xp: 600 },
+    { game: 'negotiator', mission: '네고시에이터에서 승리', xp: 400 },
+  ];
+  const todayChallenge = dailyChallenges[new Date().getDate() % dailyChallenges.length];
+
+  // countdown to midnight
+  const [countdown, setCountdown] = useState('');
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const diff = midnight.getTime() - now.getTime();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setCountdown(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Top 3 game icons for featured banner
+  const top3Games = GAME_CARDS.filter(g => hotGames.has(g.id)).slice(0, 3);
+
   return (
-    <div className="rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border border-slate-700/60 shadow-2xl overflow-hidden">
-      {/* Cycle 1: Lobby CSS animations */}
+    <div className="bg-slate-950 overflow-hidden">
+      {/* CSS animations */}
       <style>{`
         @keyframes lobby-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
         @keyframes lobby-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px) rotate(-2deg); } 75% { transform: translateX(3px) rotate(2deg); } }
@@ -1781,217 +1869,437 @@ ${caseDesc}
         @keyframes lobby-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         @keyframes lobby-scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
         @keyframes start-btn-glow { 0%, 100% { box-shadow: 0 0 10px var(--btn-glow), 0 4px 15px var(--btn-glow); } 50% { box-shadow: 0 0 25px var(--btn-glow), 0 4px 30px var(--btn-glow); } }
-        @keyframes grid-shimmer { 0% { opacity: 0.02; } 50% { opacity: 0.06; } 100% { opacity: 0.02; } }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes countdown-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
       `}</style>
 
-      {/* Header - Enhanced with animated background */}
-      <div className="px-6 pt-6 pb-5 text-center relative overflow-hidden animate-in fade-in duration-300 fill-mode-both">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 via-purple-600/8 to-pink-600/10" />
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 40%, rgba(99,102,241,0.12) 0%, transparent 45%), radial-gradient(circle at 80% 20%, rgba(236,72,153,0.12) 0%, transparent 45%), radial-gradient(circle at 50% 80%, rgba(139,92,246,0.12) 0%, transparent 45%)' }} />
-        {/* Cycle 8: Animated grid background with shimmer */}
-        <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: '24px 24px', animation: 'grid-shimmer 4s ease-in-out infinite' }} />
-        {/* Cycle 8: Floating orbs */}
-        <div className="absolute w-32 h-32 rounded-full bg-indigo-500/8 blur-3xl" style={{ top: '10%', left: '5%', animation: 'lobby-float 6s ease-in-out infinite' }} />
-        <div className="absolute w-24 h-24 rounded-full bg-purple-500/8 blur-3xl" style={{ top: '20%', right: '10%', animation: 'lobby-float 8s ease-in-out infinite 1s' }} />
-        <div className="absolute w-20 h-20 rounded-full bg-pink-500/8 blur-3xl" style={{ bottom: '5%', left: '40%', animation: 'lobby-float 7s ease-in-out infinite 2s' }} />
-        <div className="relative">
-          <div className="flex items-center justify-center gap-2.5 mb-2">
-            <Gamepad2 className="w-8 h-8 text-indigo-400" style={{ filter: 'drop-shadow(0 0 12px rgba(99,102,241,0.6))', animation: 'lobby-float 3s ease-in-out infinite' }} />
-            {/* Cycle 7: Enhanced typography */}
-            <h2 className="text-[28px] font-black tracking-tight">
-              <span className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]">GAME </span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 drop-shadow-[0_0_20px_rgba(139,92,246,0.4)]">LOBBY</span>
-            </h2>
-          </div>
-          <p className="text-[12px] text-slate-400 font-medium tracking-wider uppercase">AI와 두뇌 대결, 지금 시작!</p>
-          {/* Cycle 6: Game count indicator */}
-          <div className="flex items-center justify-center gap-1.5 mt-2">
-            <span className="text-[10px] text-slate-500 font-semibold">{GAME_CARDS.length}개 게임</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-[10px] text-slate-500 font-semibold">
-              {selectedGame ? `${selectedGame.name} 선택됨` : '게임을 선택하세요'}
+      {/* GAME ARENA 헤더 — 독립 브랜딩 + 뒤로가기 */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.04]" style={{ animation: 'fadeSlideIn 0.4s ease-out' }}>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onBackToHub?.()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-slate-400 text-[12px] font-medium hover:bg-white/[0.1] hover:text-slate-200 transition-all duration-200 active:scale-95"
+          >
+            <span className="text-[14px]">←</span> AI Hub
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-[20px]">🎮</span>
+            <span className="text-[18px] font-extrabold tracking-tight bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
+              GAME ARENA
             </span>
           </div>
         </div>
+        <button onClick={() => setShowProfile(true)} className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-1.5 hover:bg-white/[0.08] transition-all">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
+            Lv
+          </div>
+          <div className="text-left">
+            <div className="text-[11px] font-semibold text-slate-200">Player <span className="text-[9px] text-amber-400 font-semibold">{playerTitle}</span></div>
+            <div className="text-[9px] text-slate-500">Lv.{playerLevel} | {playerXP.toLocaleString()} XP</div>
+          </div>
+        </button>
       </div>
 
-      {/* Cycle 1-3: Game card grid - responsive 3x4 layout on narrow, 4x3 on wide */}
-      <div className="px-4 pb-4">
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-          {GAME_CARDS.map((game, idx) => {
+      <div className="px-4 pt-3 pb-5 space-y-4">
+
+        {/* ── Player Level Badge (top-right) ── */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-slate-500 font-medium">{GAME_CARDS.length}개 게임</span>
+          </div>
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/50">
+            <span className="text-[11px]">⭐</span>
+            <span className="text-[11px] font-bold text-amber-400">Lv.{playerLevel}</span>
+            <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500" style={{ width: `${(playerXP % 1000) / 10}%` }} />
+            </div>
+            <span className="text-[9px] text-slate-500 font-medium">{playerXP % 1000}/1000 XP</span>
+          </div>
+        </div>
+
+        {/* ── Hero / Featured Banner ── */}
+        <button
+          type="button"
+          onClick={(e) => {
+            setSelectedGame(featured);
+            setGameOption('');
+            setTimeout(() => (e.target as HTMLElement).closest('[data-lobby-root]')?.querySelector('[data-game-options]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+          }}
+          className={cn(
+            'relative w-full rounded-2xl overflow-hidden border transition-all duration-300 text-left',
+            featuredAccent?.border || 'border-slate-700/50',
+            'hover:scale-[1.01] active:scale-[0.995]'
+          )}
+          style={{ animation: 'fadeSlideIn 0.5s ease-out both' }}
+        >
+          <div className={cn('absolute inset-0 bg-gradient-to-br', gameCardGradients[featured.id])} />
+          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 80% 20%, ${gameGlowColors[featured.id].replace('0.35', '0.2')}, transparent 60%)` }} />
+          <div className="relative px-5 py-5">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider mb-2', featuredAccent?.bg || 'bg-indigo-500/20', featuredAccent?.text || 'text-indigo-400')}>
+                  <Sparkles className="w-2.5 h-2.5" /> FEATURED
+                </span>
+                <h3 className="text-[20px] font-black text-white mb-1 tracking-tight">{featured.name}</h3>
+                <p className="text-[12px] text-slate-400 mb-3 leading-relaxed">{gameDescriptions[featured.id]}</p>
+                <div className={cn(
+                  'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all',
+                  'bg-gradient-to-r text-white',
+                  featuredAccent?.btn || 'from-indigo-500 to-purple-500'
+                )}>
+                  <Zap className="w-3.5 h-3.5" /> 지금 플레이
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2 ml-4">
+                <div className={cn(
+                  'w-14 h-14 rounded-xl flex items-center justify-center text-2xl',
+                  gameIconBg[featured.id]
+                )} style={{ boxShadow: `0 0 20px ${gameGlowColors[featured.id]}` }}>
+                  {gameIcons[featured.id]}
+                </div>
+                <div className="flex items-center gap-1.5 mt-1">
+                  {top3Games.map(g => (
+                    <div key={g.id} className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-sm border border-slate-600/40', gameIconBg[g.id])}>
+                      {gameIcons[g.id] ? <span className="scale-[0.55]">{gameIcons[g.id]}</span> : g.icon}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* ── Stats Bar ── */}
+        <div className="grid grid-cols-3 gap-3" style={{ animation: 'fadeSlideIn 0.6s ease-out 0.1s both' }}>
+          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[10px]">🟢</span>
+              <span className="text-[10px] text-slate-500 font-medium">접속 중</span>
+            </div>
+            <span className="text-[18px] font-black text-white">{randomPlayers}</span>
+            <span className="text-[10px] text-slate-500 ml-1">명</span>
+          </div>
+          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[10px]">🎯</span>
+              <span className="text-[10px] text-slate-500 font-medium">오늘 플레이</span>
+            </div>
+            <span className="text-[18px] font-black text-white">{todayPlays}</span>
+            <span className="text-[10px] text-slate-500 ml-1">판</span>
+          </div>
+          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[10px]">🤖</span>
+              <span className="text-[10px] text-slate-500 font-medium">AI 승률</span>
+            </div>
+            <span className="text-[18px] font-black text-white">62</span>
+            <span className="text-[10px] text-slate-500 ml-0.5">%</span>
+          </div>
+        </div>
+
+        {/* ── Category Filter + Game Count ── */}
+        <div className="flex justify-between items-center" style={{ animation: 'fadeSlideIn 0.6s ease-out 0.15s both' }}>
+          <div className="flex gap-1.5">
+            {GAME_CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => { setActiveCategory(cat); if (selectedGame && cat !== '전체' && gameCategories[selectedGame.id] !== cat) { setSelectedGame(null); setGameOption(''); } }}
+                className={cn(
+                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all duration-200',
+                  activeCategory === cat
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/70 hover:text-slate-300'
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] text-slate-500 font-medium">{filteredGames.length}개 게임</span>
+        </div>
+
+        {/* ── Game Grid - 3 columns ── */}
+        <div className="grid grid-cols-3 gap-3.5" data-lobby-root>
+          {filteredGames.map((game, idx) => {
             const isSelected = selectedGame?.id === game.id;
-            const isOtherSelected = selectedGame !== null && !isSelected;
             const diff = gameDifficulty[game.id];
             const player = gamePlayerType[game.id];
             const glowColor = gameGlowColors[game.id];
+            const isHot = hotGames.has(game.id);
             return (
               <button
                 key={game.id}
-                onClick={(e) => { setSelectedGame(isSelected ? null : game); setGameOption(''); if (!isSelected) setTimeout(() => (e.target as HTMLElement).closest('.rounded-2xl')?.querySelector('[data-game-options]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100); }}
+                onClick={(e) => {
+                  setSelectedGame(isSelected ? null : game);
+                  setGameOption('');
+                  if (!isSelected) setTimeout(() => (e.target as HTMLElement).closest('[data-lobby-root]')?.parentElement?.querySelector('[data-game-options]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+                }}
                 style={{
-                  animationDelay: `${200 + idx * 60}ms`,
+                  animation: `cardIn 0.4s ease-out ${0.05 * idx}s both`,
                   ...(isSelected ? {
-                    boxShadow: `0 0 25px ${glowColor}, 0 0 50px ${glowColor.replace('0.35', '0.15')}`,
+                    boxShadow: `0 0 20px ${glowColor}, 0 0 40px ${glowColor.replace('0.35', '0.12')}`,
                     '--glow-color': glowColor,
                   } as React.CSSProperties : {}),
                 }}
                 className={cn(
-                  'relative text-left rounded-xl border-2 overflow-hidden group animate-in fade-in slide-in-from-bottom-3 duration-400 fill-mode-both',
-                  'transition-all duration-300 ease-out',
+                  'relative text-left rounded-xl border overflow-hidden group transition-all duration-300 ease-out',
                   isSelected
-                    ? `${gameAccentColors[game.id]?.border || 'border-indigo-400'} bg-gradient-to-br ${gameCardGradients[game.id]} scale-[1.04] -translate-y-1.5 z-10`
-                    : isOtherSelected
-                      ? 'border-slate-700/30 bg-slate-800/25 opacity-60 scale-[0.97] hover:opacity-90 hover:scale-[0.99] hover:border-slate-600/50'
-                      : 'border-slate-700/50 bg-slate-800/40 hover:border-slate-600 hover:bg-slate-800/70 hover:-translate-y-1.5 hover:shadow-xl active:scale-[0.97] active:translate-y-0'
+                    ? `${gameAccentColors[game.id]?.border || 'border-indigo-400'} bg-gradient-to-br ${gameCardGradients[game.id]}`
+                    : 'border-slate-700/40 bg-slate-800/50 hover:border-slate-600/70 hover:bg-slate-800/80 hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]'
                 )}
               >
-                {/* Cycle 3: Enhanced hover glow effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background: `radial-gradient(circle at 50% 30%, ${glowColor.replace('0.35', '0.18')}, transparent 70%)` }} />
-                {/* Cycle 3: Scanning line on hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none overflow-hidden">
-                  <div className="absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent" style={{ animation: 'lobby-scan 2s ease-in-out infinite' }} />
-                </div>
-                {/* Cycle 2: Unique gradient background per card */}
-                {isSelected && <div className="absolute inset-0 bg-gradient-to-br opacity-40" style={{ backgroundImage: `radial-gradient(ellipse at 30% 20%, ${glowColor.replace('0.35', '0.25')}, transparent 60%)` }} />}
-
-                <div className="p-3 sm:p-4 text-center relative">
-                  {/* Cycle 4-5: Icon with animated hover + glow background */}
-                  <div className={cn(
-                    'w-11 h-11 sm:w-12 sm:h-12 mx-auto mb-2 rounded-xl flex items-center justify-center transition-all duration-200',
-                    gameIconBg[game.id],
-                    isSelected ? 'scale-110' : '',
-                  )} style={isSelected ? { boxShadow: `0 0 15px ${glowColor}`, animation: 'lobby-glow-pulse 2s ease-in-out infinite' } : undefined}>
-                    <span className={cn('transition-transform duration-300', gameIconAnimation[game.id], isSelected && 'animate-[lobby-pulse_1.5s_ease-in-out_infinite]')}>
-                      {gameIcons[game.id]}
-                    </span>
+                {/* Best grade badge */}
+                {(() => {
+                  const grade = getBestGrade(game.id);
+                  if (!grade) return null;
+                  const gradeColors: Record<string, string> = { S: 'bg-amber-500/20 text-amber-400', A: 'bg-violet-500/20 text-violet-400', B: 'bg-blue-500/20 text-blue-400', C: 'bg-slate-600/30 text-slate-400', F: 'bg-red-500/20 text-red-400' };
+                  return <span className={cn("absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-black z-10", gradeColors[grade] || '')}>{grade}</span>;
+                })()}
+                {/* HOT badge or first-clear bonus */}
+                {isHot ? (
+                  <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded bg-red-500 text-[8px] font-black text-white tracking-wider shadow-lg shadow-red-500/30">
+                    HOT
                   </div>
-                  {/* Cycle 7: Enhanced typography */}
-                  <h3 className={cn(
-                    'text-[12px] sm:text-[13px] font-extrabold mb-0.5 tracking-tight transition-colors duration-200',
-                    isSelected ? (gameAccentColors[game.id]?.text || 'text-indigo-300') : 'text-white group-hover:text-slate-100'
-                  )}>{game.name}</h3>
-                  {/* Cycle 3: Description slides in on hover */}
-                  <p className={cn(
-                    'text-[9px] text-slate-400 leading-snug line-clamp-2 min-h-[26px] transition-all duration-300',
-                    'group-hover:text-slate-300',
-                  )}>{gameDescriptions[game.id]}</p>
-                  {/* Difficulty + Player badges */}
-                  <div className="flex gap-1 sm:gap-1.5 mt-2 justify-center flex-wrap">
-                    <span className={cn('flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full font-semibold transition-all duration-200',
-                      player.isVs ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20' : 'bg-slate-700/60 text-slate-300 border border-slate-600/40'
-                    )}>
-                      {player.isVs ? <Swords className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
-                      {player.label}
-                    </span>
-                    <span className={cn('flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full font-semibold',
-                      diff.stars === 1 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
-                      diff.stars === 2 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' :
-                      'bg-red-500/15 text-red-400 border border-red-500/20'
-                    )}>
-                      {Array.from({ length: diff.stars }).map((_, si) => <Star key={si} className="w-2 h-2 fill-current" />)}
-                    </span>
-                  </div>
-                </div>
-                {/* Cycle 4: Selected check badge with pulse */}
+                ) : (() => {
+                  try {
+                    const records = JSON.parse(localStorage.getItem('game-records') || '[]');
+                    const played = records.some((r: any) => r.gameId === game.id);
+                    if (!played) return <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-500/20 text-emerald-400 z-10">+200 XP</span>;
+                    return null;
+                  } catch { return null; }
+                })()}
+                {/* Selected check */}
                 {isSelected && (
                   <div className={cn(
-                    "absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center shadow-lg",
+                    "absolute top-2 left-2 z-10 w-5 h-5 rounded-full flex items-center justify-center shadow-lg",
                     gameCheckBg[game.id] || 'bg-indigo-500',
                   )} style={{ animation: 'lobby-pulse 1.5s ease-in-out infinite' }}>
                     <Check className="w-3 h-3 text-white" strokeWidth={3} />
                   </div>
                 )}
+                {/* Hover glow */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
+                  style={{ background: `radial-gradient(circle at 50% 30%, ${glowColor.replace('0.35', '0.12')}, transparent 65%)` }} />
+
+                <div className="p-3.5 relative" style={{ minHeight: '170px' }}>
+                  {/* Icon */}
+                  <div className={cn(
+                    'w-11 h-11 rounded-xl flex items-center justify-center mb-2.5 transition-all duration-200',
+                    gameIconBg[game.id],
+                    isSelected ? 'scale-110' : '',
+                  )} style={isSelected ? { boxShadow: `0 0 12px ${glowColor}` } : undefined}>
+                    <span className={cn('transition-transform duration-300', gameIconAnimation[game.id])}>
+                      {gameIcons[game.id]}
+                    </span>
+                  </div>
+                  {/* Name */}
+                  <h3 className={cn(
+                    'text-[14px] font-bold mb-1 tracking-tight transition-colors duration-200',
+                    isSelected ? (gameAccentColors[game.id]?.text || 'text-indigo-300') : 'text-white group-hover:text-slate-100'
+                  )}>{game.name}</h3>
+                  {/* Description */}
+                  <p className="text-[11px] text-slate-400 leading-snug line-clamp-2 mb-3 group-hover:text-slate-300 transition-colors duration-200">
+                    {gameDescriptions[game.id]}
+                  </p>
+                  {/* Bottom: mode badge + difficulty dots */}
+                  <div className="flex items-center gap-2 mt-auto">
+                    <span className={cn(
+                      'inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-semibold',
+                      player.isVs ? 'bg-rose-500/15 text-rose-400' : 'bg-slate-700/60 text-slate-400'
+                    )}>
+                      {player.isVs ? <Swords className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
+                      {player.label}
+                    </span>
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: 3 }).map((_, di) => (
+                        <div
+                          key={di}
+                          className={cn(
+                            'w-1.5 h-1.5 rounded-full',
+                            di < diff.stars
+                              ? diff.stars === 1 ? 'bg-emerald-400' : diff.stars === 2 ? 'bg-amber-400' : 'bg-red-400'
+                              : 'bg-slate-600'
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </button>
             );
           })}
         </div>
-      </div>
 
-      {/* Cycle 6: Enhanced no-selection empty state */}
-      {!selectedGame && (
-        <div className="px-4 pb-5">
-          <div className="py-6 text-center rounded-xl border border-dashed border-slate-600/40 bg-gradient-to-br from-slate-800/30 via-slate-900/20 to-slate-800/30 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-            <div className="relative">
-              <Gamepad2 className="w-8 h-8 text-slate-600/80 mx-auto mb-2" style={{ animation: 'lobby-float 3s ease-in-out infinite' }} />
-              <p className="text-[12px] text-slate-500 font-semibold mb-1">게임을 선택하세요</p>
-              <p className="text-[10px] text-slate-600">카드를 클릭하면 게임 옵션이 나타납니다</p>
-              <div className="flex items-center justify-center gap-4 mt-3">
-                <div className="flex items-center gap-1 text-[9px] text-slate-600">
-                  <User className="w-3 h-3" /> 솔로 게임
+        {/* ── Game Options Panel (when game selected) ── */}
+        {selectedGame && (
+          <div data-game-options className="animate-in fade-in slide-in-from-bottom-3 duration-300">
+            {/* Rules */}
+            <div className={cn("mb-3 px-4 py-3 rounded-xl border relative overflow-hidden", accent?.bg || 'bg-slate-800/80', 'border-slate-700/40')}>
+              <div className="absolute inset-0 opacity-20 bg-gradient-to-r" style={{ backgroundImage: `radial-gradient(ellipse at 0% 50%, ${gameGlowColors[selectedGame.id].replace('0.35', '0.15')}, transparent 60%)` }} />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className={cn("text-[10px] font-bold uppercase tracking-wider", accent?.text || 'text-indigo-400')}>Game Rules</span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-slate-700/50 to-transparent" />
                 </div>
-                <div className="flex items-center gap-1 text-[9px] text-rose-500/60">
-                  <Swords className="w-3 h-3" /> VS AI 대결
-                </div>
+                <p className="text-[10px] text-slate-300 leading-relaxed">{selectedGame.rules}</p>
               </div>
+            </div>
+
+            {/* Options */}
+            <p className="text-[10px] text-slate-400 font-semibold mb-2 px-1">
+              {gameOptions[selectedGame.id]?.label}
+            </p>
+            <div className={cn("grid gap-2.5 mb-4", (gameOptions[selectedGame.id]?.options.length || 0) <= 2 ? 'grid-cols-2' : (gameOptions[selectedGame.id]?.options.length || 0) === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
+              {gameOptions[selectedGame.id]?.options.map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setGameOption(opt.id)}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 py-3.5 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group/opt',
+                    gameOption === opt.id
+                      ? `${accent?.border || 'border-indigo-400'} ${accent?.bg || 'bg-indigo-500/20'} text-white scale-[1.03]`
+                      : 'border-slate-600/40 bg-slate-800/30 text-slate-400 hover:border-slate-500 hover:text-white hover:bg-slate-700/50 active:scale-[0.97]'
+                  )}
+                  style={gameOption === opt.id ? { boxShadow: `0 0 15px ${gameGlowColors[selectedGame.id].replace('0.35', '0.2')}` } : undefined}
+                >
+                  {gameOption === opt.id && <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />}
+                  <span className="text-[18px] relative transition-transform duration-200 group-hover/opt:scale-110">{opt.icon}</span>
+                  <span className="text-[10px] font-semibold relative">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Start button */}
+            <button
+              onClick={startGame}
+              disabled={!gameOption || isDiscussing}
+              className={cn(
+                'w-full py-3.5 rounded-xl text-[14px] font-bold transition-all duration-200 flex items-center justify-center gap-2 relative overflow-hidden',
+                gameOption && !isDiscussing
+                  ? `bg-gradient-to-r ${accent?.btn || 'from-indigo-500 via-purple-500 to-pink-500'} text-white hover:scale-[1.01] active:scale-[0.99]`
+                  : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+              )}
+              style={gameOption && !isDiscussing ? {
+                '--btn-glow': gameGlowColors[selectedGame.id].replace('0.35', '0.4'),
+                animation: 'start-btn-glow 2s ease-in-out infinite',
+              } as React.CSSProperties : undefined}
+            >
+              {gameOption && !isDiscussing && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" style={{ animation: 'lobby-scan 3s ease-in-out infinite' }} />
+              )}
+              <Zap className={cn("w-4 h-4 relative", gameOption && !isDiscussing && 'animate-[lobby-pulse_1s_ease-in-out_infinite]')} />
+              <span className="relative">{isDiscussing ? '게임 진행 중...' : `${selectedGame.name} 시작!`}</span>
+            </button>
+          </div>
+        )}
+
+        {/* ── Daily Challenge Banner ── */}
+        <div
+          className="relative rounded-xl overflow-hidden border border-amber-500/20 bg-gradient-to-r from-amber-900/20 via-slate-800/60 to-orange-900/20"
+          style={{ animation: 'fadeSlideIn 0.7s ease-out 0.25s both' }}
+        >
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 10% 50%, rgba(245,158,11,0.1), transparent 60%)' }} />
+          <div className="relative px-4 py-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-lg shrink-0">
+              🏆
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">Daily Challenge</span>
+                <span className="text-[9px] font-bold text-amber-500/70" style={{ animation: 'countdown-pulse 2s ease-in-out infinite' }}>{countdown}</span>
+              </div>
+              <p className="text-[12px] text-slate-300 font-semibold truncate">{todayChallenge.mission}</p>
+            </div>
+            <div className="shrink-0 flex flex-col items-end gap-0.5">
+              <span className="text-[14px] font-black text-amber-400">+{todayChallenge.xp}</span>
+              <span className="text-[9px] text-amber-500/70 font-semibold">XP</span>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Game options + start - Cycle 9-15: Enhanced options panel */}
-      {selectedGame && (
-        <div data-game-options className="px-4 pb-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
-          {/* Cycle 9: Rules with accent glow border */}
-          <div className={cn("mb-3 px-4 py-3 rounded-xl border relative overflow-hidden", accent?.bg || 'bg-slate-800/80', 'border-slate-700/40')}>
-            <div className="absolute inset-0 opacity-20 bg-gradient-to-r" style={{ backgroundImage: `radial-gradient(ellipse at 0% 50%, ${gameGlowColors[selectedGame.id].replace('0.35', '0.15')}, transparent 60%)` }} />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className={cn("text-[10px] font-bold uppercase tracking-wider", accent?.text || 'text-indigo-400')}>Game Rules</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-slate-700/50 to-transparent" />
+      </div>
+
+      {/* ── Profile Sheet Modal ── */}
+      {showProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-slate-800/95 border border-slate-700/50 p-5 space-y-4 animate-in zoom-in-95 fade-in duration-300">
+            {/* Avatar + Name + Level */}
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-2xl font-black text-white">
+                {playerLevel}
               </div>
-              <p className="text-[10px] text-slate-300 leading-relaxed">{selectedGame.rules}</p>
+              <h3 className="text-lg font-bold text-white">Player</h3>
+              <p className="text-[11px] text-amber-400 font-semibold">{playerTitle}</p>
+              <div className="mt-2 mx-auto max-w-[200px]">
+                <div className="flex justify-between text-[9px] text-slate-500 mb-1">
+                  <span>Lv.{playerLevel}</span>
+                  <span>{playerXP % 1000}/1,000 XP</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-700">
+                  <div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${(playerXP % 1000) / 10}%` }} />
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Options */}
-          <p className="text-[10px] text-slate-400 font-semibold mb-2 px-1">
-            {gameOptions[selectedGame.id]?.label}
-          </p>
-          {/* Cycle 10: Enhanced option buttons with glow feedback */}
-          <div className={cn("grid gap-2.5 mb-4", (gameOptions[selectedGame.id]?.options.length || 0) <= 2 ? 'grid-cols-2' : (gameOptions[selectedGame.id]?.options.length || 0) === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
-            {gameOptions[selectedGame.id]?.options.map(opt => (
-              <button
-                key={opt.id}
-                onClick={() => setGameOption(opt.id)}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 py-3.5 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group/opt',
-                  gameOption === opt.id
-                    ? `${accent?.border || 'border-indigo-400'} ${accent?.bg || 'bg-indigo-500/20'} text-white scale-[1.03]`
-                    : 'border-slate-600/40 bg-slate-800/30 text-slate-400 hover:border-slate-500 hover:text-white hover:bg-slate-700/50 active:scale-[0.97]'
-                )}
-                style={gameOption === opt.id ? { boxShadow: `0 0 15px ${gameGlowColors[selectedGame.id].replace('0.35', '0.2')}` } : undefined}
-              >
-                {gameOption === opt.id && <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />}
-                <span className="text-[18px] relative transition-transform duration-200 group-hover/opt:scale-110">{opt.icon}</span>
-                <span className="text-[10px] font-semibold relative">{opt.label}</span>
-              </button>
-            ))}
-          </div>
+            {/* Radar Chart - SVG */}
+            {(() => {
+              const stats = JSON.parse(localStorage.getItem('game-ability-stats') || '{"logic":10,"creativity":10,"language":10,"psychology":10,"observation":10}');
+              const labels = [{key:'logic',label:'논리력'},{key:'creativity',label:'창의력'},{key:'language',label:'언어력'},{key:'psychology',label:'심리전'},{key:'observation',label:'관찰력'}];
+              const n = 5, cx = 80, cy = 80, r = 55;
+              const angles = labels.map((_, i) => (Math.PI * 2 * i / n) - Math.PI / 2);
+              const bgPoints = (s: number) => angles.map(a => `${cx + r * s * Math.cos(a)},${cy + r * s * Math.sin(a)}`).join(' ');
+              const dataPoints = labels.map((l, i) => `${cx + r * (stats[l.key] / 100) * Math.cos(angles[i])},${cy + r * (stats[l.key] / 100) * Math.sin(angles[i])}`).join(' ');
+              return (
+                <svg viewBox="0 0 160 160" className="w-40 h-40 mx-auto">
+                  {[0.25, 0.5, 0.75, 1].map(s => <polygon key={s} points={bgPoints(s)} fill="none" stroke="rgba(148,163,184,0.12)" strokeWidth="0.5" />)}
+                  {angles.map((a, i) => <line key={i} x1={cx} y1={cy} x2={cx + r * Math.cos(a)} y2={cy + r * Math.sin(a)} stroke="rgba(148,163,184,0.08)" strokeWidth="0.5" />)}
+                  <polygon points={dataPoints} fill="rgba(139,92,246,0.2)" stroke="#8B5CF6" strokeWidth="1.5" />
+                  {labels.map((l, i) => (
+                    <text key={i} x={cx + (r + 14) * Math.cos(angles[i])} y={cy + (r + 14) * Math.sin(angles[i])} textAnchor="middle" dominantBaseline="middle" fill="#94A3B8" fontSize="8" fontWeight="600">{l.label}</text>
+                  ))}
+                </svg>
+              );
+            })()}
 
-          {/* Cycle 5: Start button with pulsing glow when ready */}
-          <button
-            onClick={startGame}
-            disabled={!gameOption || isDiscussing}
-            className={cn(
-              'w-full py-3.5 rounded-xl text-[14px] font-bold transition-all duration-200 flex items-center justify-center gap-2 relative overflow-hidden',
-              gameOption && !isDiscussing
-                ? `bg-gradient-to-r ${accent?.btn || 'from-indigo-500 via-purple-500 to-pink-500'} text-white hover:scale-[1.01] active:scale-[0.99]`
-                : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-            )}
-            style={gameOption && !isDiscussing ? {
-              '--btn-glow': gameGlowColors[selectedGame.id].replace('0.35', '0.4'),
-              animation: 'start-btn-glow 2s ease-in-out infinite',
-            } as React.CSSProperties : undefined}
-          >
-            {/* Cycle 11: Shimmer effect on ready start button */}
-            {gameOption && !isDiscussing && (
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" style={{ animation: 'lobby-scan 3s ease-in-out infinite' }} />
-            )}
-            <Zap className={cn("w-4 h-4 relative", gameOption && !isDiscussing && 'animate-[lobby-pulse_1s_ease-in-out_infinite]')} />
-            <span className="relative">{isDiscussing ? '게임 진행 중...' : `${selectedGame.name} 시작!`}</span>
-          </button>
+            {/* Stats summary */}
+            {(() => {
+              const records = JSON.parse(localStorage.getItem('game-records') || '[]');
+              const wins = records.filter((r: any) => r.result === 'win').length;
+              const total = records.length;
+              return (
+                <div className="flex justify-center gap-4 text-center">
+                  <div><div className="text-[16px] font-bold text-white">{total}</div><div className="text-[10px] text-slate-500">총 게임</div></div>
+                  <div><div className="text-[16px] font-bold text-emerald-400">{wins}</div><div className="text-[10px] text-slate-500">승리</div></div>
+                  <div><div className="text-[16px] font-bold text-amber-400">{total ? Math.round(wins/total*100) : 0}%</div><div className="text-[10px] text-slate-500">승률</div></div>
+                </div>
+              );
+            })()}
+
+            {/* Achievements */}
+            {(() => {
+              const unlocked = JSON.parse(localStorage.getItem('game-achievements') || '[]');
+              const allAchievements = [
+                { id: 'first-win', icon: '🎯' }, { id: 'streak-3', icon: '🔥' },
+                { id: 'brain-full', icon: '🧠' }, { id: 'speedrun', icon: '⚡' },
+                { id: 'perfect-detective', icon: '🕵️' }, { id: 'mental-destroyer', icon: '💀' },
+                { id: 'justice', icon: '⚖️' }, { id: 'hacker', icon: '🔐' },
+                { id: 'identity-master', icon: '🎭' }, { id: 'grandmaster', icon: '👑' },
+              ];
+              return (
+                <div>
+                  <p className="text-[11px] text-slate-500 font-semibold mb-2">업적 ({unlocked.length}/{allAchievements.length})</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {allAchievements.map(a => (
+                      <span key={a.id} className={cn("text-lg transition-all", unlocked.includes(a.id) ? '' : 'opacity-20 grayscale')}>{a.icon}</span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <button onClick={() => setShowProfile(false)} className="w-full py-2 rounded-xl bg-slate-700 text-slate-300 text-[12px] font-semibold hover:bg-slate-600 transition-all">닫기</button>
+          </div>
         </div>
       )}
     </div>
@@ -2135,6 +2443,8 @@ export function ExpertSelectionPanel({
   // ── Mode transition states ──
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [pendingMode, setPendingMode] = useState<MainMode | null>(null);
+  const [transitionPhase, setTransitionPhase] = useState<0 | 1 | 2 | 3>(0);
+  // Phase 0: idle, Phase 1: content fade out, Phase 2: bg darken + tabs shift, Phase 3: new content fade in
 
   // Portal 기반 hover 툴팁
   const [hoveredExpert, setHoveredExpert] = useState<Expert | null>(null);
@@ -2304,36 +2614,71 @@ export function ExpertSelectionPanel({
   };
 
   const handleMainModeChange = (m: MainMode) => {
-    if (m === mainMode) return;
-    // Start fade-out transition
-    setIsTransitioning(true);
-    setPendingMode(m);
-    // After fade-out completes, apply the actual mode change
-    setTimeout(() => {
-      applyModeChange(m);
-      // Small delay then fade-in
-      requestAnimationFrame(() => {
-        setIsTransitioning(false);
-        setPendingMode(null);
-      });
-    }, 150);
+    if (m === mainMode || transitionPhase !== 0) return;
+    const toPlayer = m === 'player';
+    const fromPlayer = mainMode === 'player';
+
+    if (toPlayer || fromPlayer) {
+      // 3-phase cinematic transition for player mode
+      setPendingMode(m);
+      setIsTransitioning(true);
+
+      // Phase 1: fade out current content (200ms)
+      setTransitionPhase(1);
+      setTimeout(() => {
+        // Phase 2: darken/lighten bg + shrink tabs (400ms)
+        setTransitionPhase(2);
+        setTimeout(() => {
+          // Apply actual mode change
+          applyModeChange(m);
+          // Phase 3: fade in new content (300ms)
+          setTransitionPhase(3);
+          setTimeout(() => {
+            setTransitionPhase(0);
+            setIsTransitioning(false);
+            setPendingMode(null);
+          }, 300);
+        }, 400);
+      }, 200);
+    } else {
+      // Quick transition for non-player modes
+      setIsTransitioning(true);
+      setPendingMode(m);
+      setTimeout(() => {
+        applyModeChange(m);
+        requestAnimationFrame(() => {
+          setIsTransitioning(false);
+          setPendingMode(null);
+        });
+      }, 150);
+    }
   };
 
   // Determine if player mode is active or transitioning to/from player
   const isPlayerActive = mainMode === 'player';
   const isGoingToPlayer = pendingMode === 'player';
-  const showPlayerBg = isPlayerActive || isGoingToPlayer;
+  const isLeavingPlayer = mainMode === 'player' && pendingMode && pendingMode !== 'player';
+  // Show dark bg from phase 2 onward when going to player, or while in player (until phase 2 when leaving)
+  const showPlayerBg = isPlayerActive ? (isLeavingPlayer ? transitionPhase < 2 : true) : (isGoingToPlayer && transitionPhase >= 2);
+  // Content visibility: hidden during phase 1 (fade out) and phase 2 (bg transition), visible in phase 0 and 3
+  const contentVisible = transitionPhase === 0 || transitionPhase === 3;
 
   return (
-    <div className={cn(
-      "space-y-3 py-4 rounded-2xl transition-all duration-500 ease-out",
-      showPlayerBg && 'bg-slate-950/50 -mx-2 px-2 pt-2'
-    )}>
-      {/* Hero — 플레이어 모드에서는 로비 자체에 제목이 있으므로 숨김 */}
+    <div className={cn("space-y-3 relative transition-all duration-500", isPlayerActive ? 'py-1' : 'py-4')}>
+      {/* 플레이어 모드 전체화면 다크 오버레이 */}
       <div className={cn(
-        "text-center space-y-2 relative z-0 transition-all duration-300 ease-out",
-        mainMode === 'player' && 'hidden',
-        isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
+        "fixed inset-0 bg-slate-950 pointer-events-none transition-opacity duration-700 ease-out z-10",
+        showPlayerBg ? 'opacity-100' : 'opacity-0'
+      )} />
+      {/* Hero — 플레이어 모드에서는 높이를 부드럽게 줄여서 모드탭이 자연스럽게 올라감 */}
+      <div className={cn(
+        "text-center relative z-0 transition-all ease-out overflow-hidden",
+        // 플레이어 진입: phase 1에서 페이드아웃, phase 2에서 높이 축소
+        (isGoingToPlayer && transitionPhase >= 1) || (isPlayerActive && !isLeavingPlayer)
+          ? 'opacity-0 max-h-0 py-0 space-y-0 duration-500'
+          : 'opacity-100 max-h-32 py-0 space-y-2 duration-500',
+        // 플레이어 떠날 때: phase 2부터 높이 복원
+        isLeavingPlayer && transitionPhase >= 2 && 'opacity-100 max-h-32 space-y-2'
       )}>
         <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
@@ -2353,8 +2698,12 @@ export function ExpertSelectionPanel({
         </div>
       </div>
 
-      {/* Main Mode Tabs */}
-      <div className="flex flex-col items-center">
+      {/* Main Mode Tabs — 플레이어 모드에서는 숨김 (GAME ARENA 자체 헤더 사용) */}
+      <div className={cn(
+        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden",
+        isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mb-0' : 'max-h-24 opacity-100',
+        isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
+      )}>
         <div className={cn(
           'flex flex-col shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-500 ease-out',
           showPlayerBg
@@ -2366,7 +2715,7 @@ export function ExpertSelectionPanel({
             {mainModes.map(m => {
               const isActive = mainMode === m || pendingMode === m;
               return (
-                <button key={m} onClick={() => handleMainModeChange(m)} disabled={isDiscussing || isTransitioning}
+                <button key={m} onClick={() => handleMainModeChange(m)} disabled={isDiscussing || transitionPhase !== 0}
                   className={cn(
                     'flex items-center justify-center gap-1 min-w-0 px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-all duration-300',
                     isActive && m === 'player'
@@ -2439,8 +2788,8 @@ export function ExpertSelectionPanel({
 
       {/* Content transition wrapper — fades content when switching modes */}
       <div className={cn(
-        "space-y-3 transition-all duration-300 ease-out",
-        isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
+        "space-y-3 transition-all ease-out relative z-20",
+        !contentVisible ? 'opacity-0 scale-[0.97] translate-y-2 duration-200' : 'opacity-100 scale-100 translate-y-0 duration-400'
       )}>
 
       {/* ── Expert Mode ── */}
@@ -2460,8 +2809,8 @@ export function ExpertSelectionPanel({
 
       {/* ── Player Mode (Game Lobby) ── */}
       {mainMode === 'player' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
-          <PlayerLobby onSubmit={onSubmit} isDiscussing={isDiscussing} onStartGame={onStartGame} />
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out fill-mode-both">
+          <PlayerLobby onSubmit={onSubmit} isDiscussing={isDiscussing} onStartGame={onStartGame} onBackToHub={() => handleMainModeChange('general')} />
         </div>
       )}
 

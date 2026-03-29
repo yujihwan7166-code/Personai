@@ -1,5 +1,9 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  addXP, boostAbility, addGameRecord, calculateGrade, calculateXP,
+  checkAchievements, incrementPlayCount,
+} from '@/lib/gameProgress';
 import {
   ArrowUp, LogOut, Lightbulb, Flag,
   Sparkles, Send, Trophy, Target, MessageCircle,
@@ -617,6 +621,21 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
   const [objectionOverlay, setObjectionOverlay] = useState(false);
   const prevAiCount = useRef(0);
 
+  // ── Post-game result state ──
+  const [gameResult, setGameResult] = useState<{
+    won: boolean;
+    grade: string;
+    xpGained: number;
+    stats: { time: number; turns: number; hints: number };
+    newAchievements: { id: string; name: string; icon: string }[];
+    levelUp: boolean;
+    newLevel: number;
+  } | null>(null);
+  const gameStartTime = useRef(Date.now());
+  const turnsUsed = useRef(0);
+  const hintsUsed = useRef(0);
+  const gameEndedRef = useRef(false);
+
   const meta = GAME_META[gameId as GameId] ?? GAME_META['ai-polygraph'];
 
   const aiMessages = useMemo(
@@ -668,6 +687,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isDiscussing) return;
+    turnsUsed.current += 1;
     onSendMessage(input.trim());
     setInput('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
@@ -675,8 +695,40 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
   const sendQuick = (msg: string) => {
     if (isDiscussing) return;
+    turnsUsed.current += 1;
     onSendMessage(msg);
   };
+
+  // ── End game handler ──
+  const endGame = useCallback((won: boolean) => {
+    if (gameEndedRef.current) return;
+    gameEndedRef.current = true;
+    const time = Math.round((Date.now() - gameStartTime.current) / 1000);
+    const turns = turnsUsed.current;
+    const hints = hintsUsed.current;
+    const grade = calculateGrade({ time, maxTime: 300, turns, maxTurns: 20, hints, maxHints: 3, won });
+    const xpGained = calculateXP(won, 1, hints, grade);
+    const { levelUp, newLevel } = addXP(xpGained);
+    boostAbility(gameId, won);
+    addGameRecord({ gameId, result: won ? 'win' : 'lose', grade, xp: xpGained, time, turns, date: new Date().toISOString() });
+    incrementPlayCount();
+    const { newlyUnlocked } = checkAchievements();
+    setGameResult({ won, grade, xpGained, stats: { time, turns, hints }, newAchievements: newlyUnlocked, levelUp, newLevel });
+  }, [gameId]);
+
+  // ── Detect game end from AI messages ──
+  useEffect(() => {
+    if (gameResult !== null || gameEndedRef.current) return;
+    if (aiMessages.length === 0) return;
+    const latest = aiMessages[aiMessages.length - 1]?.content || '';
+    const winPatterns = /축하합니다|승리|성공|모두 찾았습니다|유죄|돌파|ACCESS GRANTED/i;
+    const losePatterns = /게임 종료|패배|실패|모든 기회를 사용|무죄/i;
+    if (winPatterns.test(latest)) {
+      setTimeout(() => endGame(true), 1500);
+    } else if (losePatterns.test(latest)) {
+      setTimeout(() => endGame(false), 1500);
+    }
+  }, [aiMessages, gameResult, endGame]);
 
   const conversationPairs = useMemo(() => {
     const pairs: Array<{ user?: DiscussionMessage; ai?: DiscussionMessage }> = [];
@@ -2179,6 +2231,79 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
       {/* ── Game Content Area ── Cycle 36: Portal entrance animation */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative gp-portal-enter">
         {renderGameContent()}
+
+        {/* ── Post-Game Result Overlay ── */}
+        {gameResult && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm animate-in fade-in duration-500">
+            <div className={cn("w-full max-w-md p-6 rounded-2xl border space-y-5 animate-in zoom-in-95 duration-400",
+              gameResult.won ? 'bg-gradient-to-b from-emerald-950/60 to-slate-900 border-emerald-500/20' : 'bg-gradient-to-b from-red-950/60 to-slate-900 border-red-500/20'
+            )}>
+              {/* Victory/Defeat header */}
+              <div className="text-center">
+                <div className="text-5xl mb-2">{gameResult.won ? '\u{1F3C6}' : '\u{1F480}'}</div>
+                <h2 className="text-2xl font-black text-white">{gameResult.won ? '승리!' : '패배'}</h2>
+                {/* Grade badge */}
+                <div className={cn("inline-block mt-2 px-4 py-1 rounded-lg text-lg font-black", {
+                  'bg-amber-500/20 text-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)]': gameResult.grade === 'S',
+                  'bg-violet-500/20 text-violet-400': gameResult.grade === 'A',
+                  'bg-blue-500/20 text-blue-400': gameResult.grade === 'B',
+                  'bg-slate-500/20 text-slate-400': gameResult.grade === 'C',
+                  'bg-red-500/20 text-red-400': gameResult.grade === 'F',
+                })}>
+                  {gameResult.grade} 등급
+                </div>
+              </div>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center p-3 rounded-xl bg-slate-800/50 border border-slate-700/30">
+                  <div className="text-lg mb-0.5">{'\u23F1\uFE0F'}</div>
+                  <div className="text-[14px] font-bold text-white">{Math.floor(gameResult.stats.time / 60)}:{String(gameResult.stats.time % 60).padStart(2, '0')}</div>
+                  <div className="text-[10px] text-slate-500">시간</div>
+                </div>
+                <div className="text-center p-3 rounded-xl bg-slate-800/50 border border-slate-700/30">
+                  <div className="text-lg mb-0.5">{'\u{1F4AC}'}</div>
+                  <div className="text-[14px] font-bold text-white">{gameResult.stats.turns}턴</div>
+                  <div className="text-[10px] text-slate-500">사용</div>
+                </div>
+                <div className="text-center p-3 rounded-xl bg-slate-800/50 border border-slate-700/30">
+                  <div className="text-lg mb-0.5">{'\u{1F4A1}'}</div>
+                  <div className="text-[14px] font-bold text-white">{gameResult.stats.hints}회</div>
+                  <div className="text-[10px] text-slate-500">힌트</div>
+                </div>
+              </div>
+
+              {/* XP gained */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <span className="text-amber-400 font-bold text-[14px]">{'\u26A1'} +{gameResult.xpGained} XP</span>
+                {gameResult.levelUp && <span className="text-[11px] font-bold text-amber-300 animate-pulse">{'\u{1F389}'} LEVEL UP! Lv.{gameResult.newLevel}</span>}
+              </div>
+
+              {/* New achievements */}
+              {gameResult.newAchievements.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-slate-500 font-semibold">{'\u{1F3C5}'} 새 업적 달성!</p>
+                  {gameResult.newAchievements.map(a => (
+                    <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg bg-violet-500/10 border border-violet-500/20 animate-in fade-in slide-in-from-bottom-2">
+                      <span className="text-base">{a.icon}</span>
+                      <span className="text-[12px] font-semibold text-violet-300">{a.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <button onClick={() => { setGameResult(null); gameEndedRef.current = false; gameStartTime.current = Date.now(); turnsUsed.current = 0; hintsUsed.current = 0; onExit(); }} className="flex-1 py-2.5 rounded-xl bg-slate-700 text-white text-[13px] font-semibold hover:bg-slate-600 transition-all active:scale-95">
+                  {'\u{1F504}'} 재도전
+                </button>
+                <button onClick={onExit} className="flex-1 py-2.5 rounded-xl bg-slate-700 text-white text-[13px] font-semibold hover:bg-slate-600 transition-all active:scale-95">
+                  {'\u{1F3AE}'} 다른 게임
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Input Area ── Cycle 40: Enhanced with accent glow on focus */}
