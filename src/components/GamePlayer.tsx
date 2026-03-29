@@ -63,110 +63,110 @@ const GAME_META: Record<GameId, GameMeta> = {
   'ai-polygraph': {
     icon: <Search className="w-5 h-5" />,
     name: 'AI 폴리그래프',
-    accent: 'text-cyan-400',
-    accentBg: 'bg-cyan-500/20',
-    accentBorder: 'border-cyan-500/40',
-    glow: 'shadow-[0_0_20px_rgba(6,182,212,0.25)]',
-    gradient: 'from-cyan-600/20 via-sky-600/10 to-transparent',
+    accent: 'text-[#FF6B35]',
+    accentBg: 'bg-[#FF6B35]/15',
+    accentBorder: 'border-[#FF6B35]/40',
+    glow: 'shadow-[0_0_20px_rgba(255,107,53,0.25)]',
+    gradient: 'from-[#FF6B35]/15 via-[#FF6B35]/5 to-transparent',
   },
   'mental-breaker': {
     icon: <Flame className="w-5 h-5" />,
     name: '멘탈 브레이커',
-    accent: 'text-red-400',
-    accentBg: 'bg-red-500/20',
-    accentBorder: 'border-red-500/40',
-    glow: 'shadow-[0_0_20px_rgba(239,68,68,0.25)]',
-    gradient: 'from-red-600/20 via-rose-600/10 to-transparent',
+    accent: 'text-[#D63031]',
+    accentBg: 'bg-[#D63031]/15',
+    accentBorder: 'border-[#D63031]/40',
+    glow: 'shadow-[0_0_20px_rgba(214,48,49,0.25)]',
+    gradient: 'from-[#D63031]/15 via-[#D63031]/5 to-transparent',
   },
   'reverse-interrogation': {
     icon: <ShieldAlert className="w-5 h-5" />,
     name: '역심문',
-    accent: 'text-amber-400',
-    accentBg: 'bg-amber-500/20',
-    accentBorder: 'border-amber-500/40',
-    glow: 'shadow-[0_0_20px_rgba(245,158,11,0.25)]',
-    gradient: 'from-amber-600/20 via-orange-600/10 to-transparent',
+    accent: 'text-[#F4D03F]',
+    accentBg: 'bg-[#F4D03F]/15',
+    accentBorder: 'border-[#F4D03F]/40',
+    glow: 'shadow-[0_0_20px_rgba(244,208,63,0.25)]',
+    gradient: 'from-[#F4D03F]/15 via-[#F4D03F]/5 to-transparent',
   },
   'split-personality': {
     icon: <Drama className="w-5 h-5" />,
     name: '다중인격 AI',
-    accent: 'text-purple-400',
-    accentBg: 'bg-purple-500/20',
-    accentBorder: 'border-purple-500/40',
-    glow: 'shadow-[0_0_20px_rgba(168,85,247,0.25)]',
-    gradient: 'from-purple-600/20 via-violet-600/10 to-transparent',
+    accent: 'text-[#16A34A]',
+    accentBg: 'bg-[#16A34A]/15',
+    accentBorder: 'border-[#16A34A]/40',
+    glow: 'shadow-[0_0_20px_rgba(22,163,74,0.25)]',
+    gradient: 'from-[#16A34A]/15 via-[#16A34A]/5 to-transparent',
   },
   'emotion-hacker': {
     icon: <Heart className="w-5 h-5" />,
     name: '이모션 해커',
-    accent: 'text-pink-400',
-    accentBg: 'bg-pink-500/20',
-    accentBorder: 'border-pink-500/40',
-    glow: 'shadow-[0_0_20px_rgba(236,72,153,0.25)]',
-    gradient: 'from-pink-600/20 via-rose-600/10 to-transparent',
+    accent: 'text-[#D63031]',
+    accentBg: 'bg-[#D63031]/15',
+    accentBorder: 'border-[#D63031]/40',
+    glow: 'shadow-[0_0_20px_rgba(214,48,49,0.25)]',
+    gradient: 'from-[#D63031]/15 via-[#D63031]/5 to-transparent',
   },
   'reverse-quiz': {
     icon: <RotateCcw className="w-5 h-5" />,
     name: '리버스 퀴즈',
-    accent: 'text-emerald-400',
-    accentBg: 'bg-emerald-500/20',
-    accentBorder: 'border-emerald-500/40',
-    glow: 'shadow-[0_0_20px_rgba(16,185,129,0.25)]',
-    gradient: 'from-emerald-600/20 via-green-600/10 to-transparent',
+    accent: 'text-[#FF6B35]',
+    accentBg: 'bg-[#FF6B35]/15',
+    accentBorder: 'border-[#FF6B35]/40',
+    glow: 'shadow-[0_0_20px_rgba(255,107,53,0.25)]',
+    gradient: 'from-[#FF6B35]/15 via-[#FF6B35]/5 to-transparent',
   },
   'ai-court': {
     icon: <Gavel className="w-5 h-5" />,
     name: 'AI 법정',
-    accent: 'text-orange-400',
-    accentBg: 'bg-orange-500/20',
-    accentBorder: 'border-orange-500/40',
-    glow: 'shadow-[0_0_20px_rgba(249,115,22,0.25)]',
-    gradient: 'from-orange-600/20 via-red-600/10 to-transparent',
+    accent: 'text-[#F4D03F]',
+    accentBg: 'bg-[#F4D03F]/15',
+    accentBorder: 'border-[#F4D03F]/40',
+    glow: 'shadow-[0_0_20px_rgba(244,208,63,0.25)]',
+    gradient: 'from-[#F4D03F]/15 via-[#F4D03F]/5 to-transparent',
   },
   'code-breaker': {
     icon: <Lock className="w-5 h-5" />,
     name: '코드 브레이커',
-    accent: 'text-blue-400',
-    accentBg: 'bg-blue-500/20',
-    accentBorder: 'border-blue-500/40',
-    glow: 'shadow-[0_0_20px_rgba(59,130,246,0.25)]',
-    gradient: 'from-blue-600/20 via-indigo-600/10 to-transparent',
+    accent: 'text-[#16A34A]',
+    accentBg: 'bg-[#16A34A]/15',
+    accentBorder: 'border-[#16A34A]/40',
+    glow: 'shadow-[0_0_20px_rgba(22,163,74,0.25)]',
+    gradient: 'from-[#16A34A]/15 via-[#16A34A]/5 to-transparent',
   },
   'minefield': {
     icon: <Bomb className="w-5 h-5" />,
     name: '마인필드',
-    accent: 'text-rose-400',
-    accentBg: 'bg-rose-500/20',
-    accentBorder: 'border-rose-500/40',
-    glow: 'shadow-[0_0_20px_rgba(244,63,94,0.25)]',
-    gradient: 'from-rose-600/20 via-pink-600/10 to-transparent',
+    accent: 'text-[#D63031]',
+    accentBg: 'bg-[#D63031]/15',
+    accentBorder: 'border-[#D63031]/40',
+    glow: 'shadow-[0_0_20px_rgba(214,48,49,0.25)]',
+    gradient: 'from-[#D63031]/15 via-[#D63031]/5 to-transparent',
   },
   'ai-mafia': {
     icon: <UserX className="w-5 h-5" />,
     name: 'AI 마피아',
-    accent: 'text-violet-400',
-    accentBg: 'bg-violet-500/20',
-    accentBorder: 'border-violet-500/40',
-    glow: 'shadow-[0_0_20px_rgba(139,92,246,0.25)]',
-    gradient: 'from-violet-600/20 via-purple-600/10 to-transparent',
+    accent: 'text-[#FF6B35]',
+    accentBg: 'bg-[#FF6B35]/15',
+    accentBorder: 'border-[#FF6B35]/40',
+    glow: 'shadow-[0_0_20px_rgba(255,107,53,0.25)]',
+    gradient: 'from-[#FF6B35]/15 via-[#FF6B35]/5 to-transparent',
   },
   'firewall-escape': {
     icon: <Shield className="w-5 h-5" />,
     name: '방화벽 탈출',
-    accent: 'text-teal-400',
-    accentBg: 'bg-teal-500/20',
-    accentBorder: 'border-teal-500/40',
-    glow: 'shadow-[0_0_20px_rgba(20,184,166,0.25)]',
-    gradient: 'from-teal-600/20 via-emerald-600/10 to-transparent',
+    accent: 'text-[#16A34A]',
+    accentBg: 'bg-[#16A34A]/15',
+    accentBorder: 'border-[#16A34A]/40',
+    glow: 'shadow-[0_0_20px_rgba(22,163,74,0.25)]',
+    gradient: 'from-[#16A34A]/15 via-[#16A34A]/5 to-transparent',
   },
   'negotiator': {
     icon: <Handshake className="w-5 h-5" />,
     name: '네고시에이터',
-    accent: 'text-amber-400',
-    accentBg: 'bg-amber-500/20',
-    accentBorder: 'border-amber-500/40',
-    glow: 'shadow-[0_0_20px_rgba(245,158,11,0.25)]',
-    gradient: 'from-amber-600/20 via-yellow-600/10 to-transparent',
+    accent: 'text-[#F4D03F]',
+    accentBg: 'bg-[#F4D03F]/15',
+    accentBorder: 'border-[#F4D03F]/40',
+    glow: 'shadow-[0_0_20px_rgba(244,208,63,0.25)]',
+    gradient: 'from-[#F4D03F]/15 via-[#F4D03F]/5 to-transparent',
   },
 };
 
@@ -400,7 +400,7 @@ function ProgressBar({ current, total, accent }: { current: number; total: numbe
   const pct = Math.min(100, Math.round((current / total) * 100));
   const barColor = accent.replace('text-', 'bg-');
   return (
-    <div className="w-full h-2.5 bg-slate-700/60 rounded-full overflow-hidden backdrop-blur-sm">
+    <div className="w-full h-2.5 bg-[#2A2520] rounded-full overflow-hidden">
       <div
         className={cn('h-full rounded-full transition-all duration-700 ease-out', barColor)}
         style={{ width: `${pct}%` }}
@@ -425,7 +425,7 @@ function StreamingDots() {
         <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1.2s' }} />
         <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1.2s' }} />
       </div>
-      <span className="text-[10px] text-slate-500 ml-1">AI 사고 중...</span>
+      <span className="text-[10px] text-[#A0937D]/70 ml-1">AI 사고 중...</span>
     </div>
   );
 }
@@ -438,12 +438,12 @@ function HPBar({ hp, maxHp }: { hp: number; maxHp: number }) {
   return (
     <div className="w-full space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-slate-400 font-semibold">멘탈 HP</span>
+        <span className="text-[10px] text-[#A0937D] font-semibold">멘탈 HP</span>
         <span className={cn('text-[11px] font-black', pct > 50 ? 'text-green-400' : pct > 20 ? 'text-amber-400' : 'text-red-400')}>
           {hp}/{maxHp}
         </span>
       </div>
-      <div className={cn('w-full h-3 bg-slate-700/60 rounded-full overflow-hidden', crackStyle)}>
+      <div className={cn('w-full h-3 bg-[#2A2520] rounded-full overflow-hidden', crackStyle)}>
         <div
           className={cn('h-full rounded-full transition-all duration-700 ease-out', barColor)}
           style={{ width: `${pct}%` }}
@@ -460,10 +460,10 @@ function SuspicionMeter({ level }: { level: number }) {
   return (
     <div className="w-full space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-slate-400 font-semibold">의심도</span>
+        <span className="text-[10px] text-[#A0937D] font-semibold">의심도</span>
         <span className={cn('text-[11px] font-black', color)}>{level}%</span>
       </div>
-      <div className="w-full h-2.5 bg-slate-700/60 rounded-full overflow-hidden">
+      <div className="w-full h-2.5 bg-[#2A2520] rounded-full overflow-hidden">
         <div className={cn('h-full rounded-full transition-all duration-700 ease-out', barColor)} style={{ width: `${level}%` }} />
       </div>
     </div>
@@ -484,12 +484,12 @@ function EmotionSequence({ completed, totalEmotions }: { completed: number; tota
             i < completed
               ? cn(colors[i], 'border-white/30 scale-110')
               : i === completed
-                ? 'bg-slate-600 border-pink-400 animate-pulse'
-                : 'bg-slate-700/50 border-slate-600/30'
+                ? 'bg-slate-600 border-[#D63031] animate-pulse'
+                : 'bg-[#2A2520]/70 border-[#3D3428]/60'
           )}>
             {emojis[i]}
           </div>
-          <span className={cn('text-[8px] font-semibold', i < completed ? 'text-slate-200' : 'text-slate-500')}>
+          <span className={cn('text-[8px] font-semibold', i < completed ? 'text-[#D4C5B0]' : 'text-[#A0937D]/70')}>
             {emotions[i]}
           </span>
         </div>
@@ -510,7 +510,7 @@ function CodeLockDisplay({ codeDisplay, totalDigits }: { codeDisplay: string | n
             'w-12 h-14 rounded-lg flex items-center justify-center text-xl font-black border-2 transition-all duration-300',
             isUnlocked
               ? 'bg-blue-500/20 border-blue-400 text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.3)]'
-              : 'bg-slate-800/60 border-slate-600 text-slate-500'
+              : 'bg-[#2A2520] border-slate-600 text-[#A0937D]/70'
           )}>
             {isUnlocked ? char : <Lock className="w-4 h-4" />}
           </div>
@@ -529,7 +529,7 @@ function LivesDisplay({ lives, maxLives }: { lives: number; maxLives: number }) 
           key={i}
           className={cn(
             'w-5 h-5 transition-all duration-300',
-            i < lives ? 'text-rose-400 fill-rose-400' : 'text-slate-600'
+            i < lives ? 'text-rose-400 fill-rose-400' : 'text-[#A0937D]/50'
           )}
         />
       ))}
@@ -548,7 +548,7 @@ function LayerProgress({ current, total }: { current: number; total: number }) {
             ? 'bg-teal-500/30 border-teal-400 text-teal-300'
             : i === current
               ? 'bg-teal-500/10 border-teal-400 text-teal-400 animate-pulse'
-              : 'bg-slate-800/60 border-slate-600 text-slate-500'
+              : 'bg-[#2A2520] border-slate-600 text-[#A0937D]/70'
         )}>
           {i < current ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
         </div>
@@ -561,8 +561,8 @@ function LayerProgress({ current, total }: { current: number; total: number }) {
 function GameCard({ children, className, accentBorder }: { children: React.ReactNode; className?: string; accentBorder?: string }) {
   return (
     <div className={cn(
-      'w-full rounded-xl border bg-slate-800/80 backdrop-blur-sm overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-2',
-      accentBorder || 'border-slate-700/60',
+      'w-full rounded-xl border bg-[#2A2520] overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-2',
+      accentBorder || 'border-[#3D3428]',
       className,
     )}>
       {children}
@@ -575,13 +575,13 @@ function UserCard({ children, accentColor }: { children: React.ReactNode; accent
   return (
     <div className={cn(
       'w-full rounded-xl border px-5 py-3 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 duration-300',
-      accentColor || 'border-slate-600/40 bg-slate-700/40',
+      accentColor || 'border-[#3D3428] bg-[#2A2520]',
     )}>
       <div className="flex items-center gap-2 mb-1.5">
-        <User className="w-3.5 h-3.5 text-slate-400" />
-        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">My Answer</span>
+        <User className="w-3.5 h-3.5 text-[#A0937D]" />
+        <span className="text-[10px] font-semibold text-[#A0937D] uppercase tracking-wider">My Answer</span>
       </div>
-      <p className="text-[13px] text-slate-200 leading-relaxed">{children}</p>
+      <p className="text-[13px] text-[#D4C5B0] leading-relaxed">{children}</p>
     </div>
   );
 }
@@ -596,7 +596,7 @@ function QuickBtn({ children, onClick, disabled, className }: {
       disabled={disabled}
       className={cn(
         'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-semibold transition-all duration-150',
-        'border bg-slate-800/80 hover:scale-[1.04] hover:brightness-110 active:scale-[0.93] active:brightness-90 disabled:opacity-40 disabled:hover:scale-100',
+        'border bg-[#2A2520] hover:scale-[1.04] hover:brightness-110 active:scale-[0.93] active:brightness-90 disabled:opacity-40 disabled:hover:scale-100',
         'hover:shadow-md active:shadow-none',
         className,
       )}
@@ -764,7 +764,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
     return (
       <>
-        <div className="px-5 py-4 bg-gradient-to-r from-cyan-950/50 via-slate-800/60 to-slate-900/60 border-b border-cyan-500/20 relative overflow-hidden">
+        <div className="px-5 py-4 bg-gradient-to-r from-cyan-950/50 via-[#2A2520] to-[#1A1714] border-b border-cyan-500/20 relative overflow-hidden">
           {liesFound > 0 && (
             <div className="absolute inset-0 bg-cyan-500/5 pointer-events-none" style={{ animation: `gp-pulse-glow ${pulseDuration}s ease-in-out infinite` }} />
           )}
@@ -773,7 +773,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               <GameBadge className="bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">
                 <Search className="w-3 h-3" /> 남은 질문: {remaining}/{total}
               </GameBadge>
-              <GameBadge className={cn('border transition-all duration-300', liesFound > 0 ? 'bg-red-500/15 text-red-300 border-red-500/20' : 'bg-slate-700/60 text-slate-300 border-slate-600/40')}
+              <GameBadge className={cn('border transition-all duration-300', liesFound > 0 ? 'bg-red-500/15 text-red-300 border-red-500/20' : 'bg-[#2A2520] text-[#D4C5B0] border-[#3D3428]')}
                 style={liesFound > 0 ? { animation: `gp-pulse-glow ${pulseDuration}s ease-in-out infinite` } : undefined}>
                 <Eye className="w-3 h-3" /> 거짓말: {liesFound}/3
               </GameBadge>
@@ -783,7 +783,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                 </GameBadge>
               )}
             </div>
-            <span className="text-[10px] text-slate-500">{optionLabel}</span>
+            <span className="text-[10px] text-[#A0937D]/70">{optionLabel}</span>
           </div>
           <ProgressBar current={total - remaining} total={total} accent={meta.accent} />
         </div>
@@ -814,7 +814,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                           </div>
                         ) : null;
                       })()}
-                      <p className={cn('text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words', (() => {
+                      <p className={cn('text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words', (() => {
                         const p = parsePolygraph(pair.ai?.content || '');
                         return p.isLieDetected ? 'gp-text-tremor' : '';
                       })())}>{pair.ai.content}</p>
@@ -829,13 +829,13 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
           {/* Game Over Screen */}
           {parsed.isGameOver && (
             <div className={cn('mt-4 p-6 rounded-2xl border-2 text-center animate-in zoom-in duration-500',
-              parsed.isWin ? 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-slate-900/40' : 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-slate-900/40'
+              parsed.isWin ? 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-[#1A1714]' : 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-[#1A1714]'
             )} style={{ animation: parsed.isWin ? 'gp-pulse-glow 2s ease-in-out infinite' : 'gp-shake 0.5s ease-in-out' }}>
               <div className="text-3xl mb-2">{parsed.isWin ? '🎉' : '⏰'}</div>
               <div className={cn('text-xl font-black mb-2', parsed.isWin ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]' : 'text-red-400')}>
                 {parsed.isWin ? 'CLEAR!' : 'GAME OVER'}
               </div>
-              <p className="text-sm text-slate-300 mb-4">{parsed.isWin ? '모든 거짓말을 찾아냈습니다!' : '시간이 다 됐습니다...'}</p>
+              <p className="text-sm text-[#D4C5B0] mb-4">{parsed.isWin ? '모든 거짓말을 찾아냈습니다!' : '시간이 다 됐습니다...'}</p>
               <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
@@ -874,7 +874,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
     return (
       <>
-        <div className="px-5 py-4 bg-gradient-to-r from-red-950/50 via-slate-800/60 to-slate-900/60 border-b border-red-500/20 relative">
+        <div className="px-5 py-4 bg-gradient-to-r from-red-950/50 via-[#2A2520] to-[#1A1714] border-b border-red-500/20 relative">
           {/* Cycle 19: Danger vignette at low HP */}
           {hpPct < 50 && (
             <div className="absolute inset-0 pointer-events-none" style={{
@@ -919,7 +919,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                     <div className="px-5 py-4">
                       {/* Cycle 20: AI text gets glitchy at low HP */}
                       <p className={cn(
-                        'text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words transition-all duration-500',
+                        'text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words transition-all duration-500',
                         hpPct < 50 && 'tracking-wide',
                         hpPct < 25 && 'tracking-wider gp-glitch-text'
                       )} style={{
@@ -940,10 +940,10 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
         {parsed.isCracked && (
           <div className="px-5 pb-4">
-            <div className="p-6 rounded-2xl border-2 border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-slate-900/40 text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
+            <div className="p-6 rounded-2xl border-2 border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-[#1A1714] text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
               <div className="text-3xl mb-2">💥</div>
               <div className="text-xl font-black text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)] mb-2">MENTAL BREAK!</div>
-              <p className="text-sm text-slate-300 mb-4">AI의 멘탈을 완전히 부쉈습니다!</p>
+              <p className="text-sm text-[#D4C5B0] mb-4">AI의 멘탈을 완전히 부쉈습니다!</p>
               <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
@@ -958,7 +958,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               <Brain className="w-3.5 h-3.5" /> 논리적 반박
             </QuickBtn>
             <QuickBtn onClick={() => sendQuick('감정적 공격: 정말 그렇게 생각하세요?')} disabled={isDiscussing}
-              className="border-pink-500/30 text-pink-300 hover:bg-pink-600/15">
+              className="border-[#D63031]/30 text-[#D63031] hover:bg-[#D63031]/10">
               <Heart className="w-3.5 h-3.5" /> 감정적 공격
             </QuickBtn>
             <QuickBtn onClick={() => sendQuick('역질문: 그렇다면 당신은 어떤 근거로?')} disabled={isDiscussing}
@@ -982,9 +982,9 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
     return (
       <>
         <div className={cn("px-5 py-4 border-b border-amber-500/20 relative overflow-hidden transition-all duration-700",
-          suspicion > 70 ? 'bg-gradient-to-r from-red-950/60 via-slate-800/60 to-red-950/40' :
-          suspicion > 40 ? 'bg-gradient-to-r from-amber-950/50 via-slate-800/60 to-amber-950/30' :
-          'bg-gradient-to-r from-amber-950/30 via-slate-800/60 to-slate-900/60'
+          suspicion > 70 ? 'bg-gradient-to-r from-red-950/60 via-[#2A2520] to-red-950/40' :
+          suspicion > 40 ? 'bg-gradient-to-r from-amber-950/50 via-[#2A2520] to-amber-950/30' :
+          'bg-gradient-to-r from-amber-950/30 via-[#2A2520] to-[#1A1714]'
         )}>
           {suspicion > 60 && (
             <div className="absolute inset-0 pointer-events-none" style={{
@@ -996,17 +996,17 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
             <SuspicionMeter level={suspicion} />
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2">
-                <GameBadge className={cn('border transition-all', contradictions > 0 ? 'bg-red-500/15 text-red-300 border-red-500/20' : 'bg-slate-700/60 text-slate-300 border-slate-600/40')}
+                <GameBadge className={cn('border transition-all', contradictions > 0 ? 'bg-red-500/15 text-red-300 border-red-500/20' : 'bg-[#2A2520] text-[#D4C5B0] border-[#3D3428]')}
                   style={contradictions > 0 ? { animation: 'gp-shake 0.5s ease-in-out' } : undefined}>
                   <AlertTriangle className="w-3 h-3" /> 모순: {contradictions}/{parsed.maxContradictions}
                 </GameBadge>
                 {questionNum > 0 && (
-                  <GameBadge className="bg-slate-700/60 text-slate-300 border border-slate-600/40">
+                  <GameBadge className="bg-[#2A2520] text-[#D4C5B0] border border-[#3D3428]">
                     질문: {questionNum}/{totalQuestions}
                   </GameBadge>
                 )}
               </div>
-              <span className="text-[10px] text-slate-500">{optionLabel}</span>
+              <span className="text-[10px] text-[#A0937D]/70">{optionLabel}</span>
             </div>
             {questionNum > 0 && (
               <div className="mt-2">
@@ -1029,7 +1029,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                   </div>
                   {pair.ai.isStreaming && !pair.ai.content ? <StreamingDots /> : (
                     <div className="px-5 pb-4">
-                      <p className="text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
+                      <p className="text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
                       {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-amber-400/60 ml-0.5 cursor-blink rounded-full" />}
                     </div>
                   )}
@@ -1042,13 +1042,13 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
           {/* Game Over Screen */}
           {isGameOver && (
             <div className={cn('mt-4 p-6 rounded-2xl border-2 text-center animate-in zoom-in duration-500',
-              parsed.isSafe ? 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-slate-900/40' : 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-slate-900/40'
+              parsed.isSafe ? 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-[#1A1714]' : 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-[#1A1714]'
             )} style={{ animation: parsed.isSafe ? 'gp-pulse-glow 2s ease-in-out infinite' : 'gp-shake 0.5s ease-in-out' }}>
               <div className="text-3xl mb-2">{parsed.isSafe ? '🕵️' : '🚔'}</div>
               <div className={cn('text-xl font-black mb-2', parsed.isSafe ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]' : 'text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]')}>
                 {parsed.isSafe ? 'NOT GUILTY!' : 'CAUGHT!'}
               </div>
-              <p className="text-sm text-slate-300 mb-4">{parsed.isSafe ? '알리바이를 지켜냈습니다!' : '모순이 발견되어 체포되었습니다...'}</p>
+              <p className="text-sm text-[#D4C5B0] mb-4">{parsed.isSafe ? '알리바이를 지켜냈습니다!' : '모순이 발견되어 체포되었습니다...'}</p>
               <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
@@ -1062,8 +1062,8 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
   const renderSplitPersonality = () => {
     const parsed = parseSplitPersonality(latestContent);
     const defeated = parsed.defeated ?? 0;
-    const personalityColors = ['text-rose-400', 'text-violet-400', 'text-teal-400', 'text-amber-400'];
-    const personalityBgs = ['bg-rose-500/15', 'bg-violet-500/15', 'bg-teal-500/15', 'bg-amber-500/15'];
+    const personalityColors = ['text-rose-400', 'text-[#16A34A]', 'text-teal-400', 'text-amber-400'];
+    const personalityBgs = ['bg-rose-500/15', 'bg-[#16A34A]/15', 'bg-teal-500/15', 'bg-amber-500/15'];
 
     /* Cycle 30: Personality-specific UI themes */
     const pName = (parsed.currentPersonality || '').toLowerCase();
@@ -1073,14 +1073,14 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
     const isPoet = /시인|예술|작가|음유|낭만|문학/.test(pName);
 
     const personalityTheme = isChild
-      ? { border: 'border-pink-400/30', bg: 'from-pink-900/20 via-yellow-900/10 to-orange-900/15', textCls: 'text-pink-200', rounded: 'rounded-2xl' }
+      ? { border: 'border-[#F4D03F]/30', bg: 'from-[#F4D03F]/10 via-yellow-900/10 to-orange-900/15', textCls: 'text-[#F4D03F]/80', rounded: 'rounded-2xl' }
       : isProfessor
-        ? { border: 'border-slate-400/30', bg: 'from-slate-800/40 via-gray-900/30 to-slate-900/30', textCls: 'text-slate-200 font-serif', rounded: 'rounded-md' }
+        ? { border: 'border-[#A0937D]/30', bg: 'from-[#2A2520] via-[#1A1714] to-[#2A2520]', textCls: 'text-[#D4C5B0] font-serif', rounded: 'rounded-md' }
         : isWarrior
-          ? { border: 'border-red-500/30', bg: 'from-red-900/25 via-orange-900/15 to-slate-900/30', textCls: 'text-orange-200 font-bold', rounded: 'rounded-lg' }
+          ? { border: 'border-[#D63031]/30', bg: 'from-[#D63031]/15 via-[#D63031]/5 to-[#1A1714]', textCls: 'text-[#FF6B35]/80 font-bold', rounded: 'rounded-lg' }
           : isPoet
-            ? { border: 'border-violet-400/25', bg: 'from-violet-900/20 via-purple-900/15 to-indigo-900/20', textCls: 'text-violet-200 italic', rounded: 'rounded-xl' }
-            : { border: 'border-purple-500/20', bg: 'from-purple-950/30 via-slate-800/40 to-slate-900/40', textCls: 'text-slate-200', rounded: 'rounded-xl' };
+            ? { border: 'border-[#16A34A]/25', bg: 'from-[#16A34A]/10 via-[#16A34A]/5 to-[#1A1714]', textCls: 'text-[#16A34A]/70 italic', rounded: 'rounded-xl' }
+            : { border: 'border-[#16A34A]/20', bg: 'from-[#16A34A]/10 via-[#2A2520] to-[#1A1714]', textCls: 'text-[#D4C5B0]', rounded: 'rounded-xl' };
 
     return (
       <>
@@ -1089,16 +1089,16 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
             <div className="flex items-center gap-2">
               {parsed.currentPersonality && (
                 <GameBadge className={cn("border animate-in zoom-in",
-                  isChild ? 'bg-pink-500/15 text-pink-300 border-pink-500/20' :
-                  isProfessor ? 'bg-slate-500/15 text-slate-300 border-slate-500/20' :
+                  isChild ? 'bg-[#F4D03F]/15 text-[#F4D03F] border-[#F4D03F]/20' :
+                  isProfessor ? 'bg-slate-500/15 text-[#D4C5B0] border-slate-500/20' :
                   isWarrior ? 'bg-red-500/15 text-red-300 border-red-500/20' :
-                  isPoet ? 'bg-violet-500/15 text-violet-300 border-violet-500/20' :
-                  'bg-purple-500/15 text-purple-300 border-purple-500/20'
+                  isPoet ? 'bg-[#16A34A]/15 text-[#16A34A] border-[#16A34A]/20' :
+                  'bg-[#16A34A]/15 text-[#16A34A] border-[#16A34A]/20'
                 )}>
                   <Drama className="w-3 h-3" /> {parsed.currentPersonality}
                 </GameBadge>
               )}
-              <GameBadge className="bg-slate-700/60 text-slate-300 border border-slate-600/40">
+              <GameBadge className="bg-[#2A2520] text-[#D4C5B0] border border-[#3D3428]">
                 무력화: {defeated}/{parsed.totalPersonalities}
               </GameBadge>
             </div>
@@ -1107,13 +1107,13 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
             {Array.from({ length: parsed.totalPersonalities }).map((_, i) => (
               <div key={i} className={cn(
                 'flex-1 h-2 rounded-full transition-all duration-500',
-                i < defeated ? personalityBgs[i] : 'bg-slate-700/40'
+                i < defeated ? personalityBgs[i] : 'bg-[#2A2520]/60'
               )} />
             ))}
           </div>
           {parsed.isAllDefeated && (
             <div className="mt-2 text-center animate-in zoom-in duration-500">
-              <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-violet-400">
+              <span className="text-lg font-black text-[#16A34A] drop-shadow-[0_0_15px_rgba(22,163,74,0.5)]">
                 ALL DEFEATED!
               </span>
             </div>
@@ -1128,19 +1128,19 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
         <div ref={scrollRef} className={cn("flex-1 overflow-y-auto px-5 py-4 space-y-3 scrollbar-thin transition-all duration-500")}>
           {conversationPairs.map((pair, i) => (
             <div key={i} className="space-y-3 animate-in fade-in slide-in-from-bottom-1 duration-300">
-              {pair.user && <UserCard accentColor="border-purple-500/20 bg-purple-950/25">{pair.user.content}</UserCard>}
+              {pair.user && <UserCard accentColor="border-[#16A34A]/20 bg-[#16A34A]/5">{pair.user.content}</UserCard>}
               {pair.ai && (
                 <GameCard accentBorder={personalityTheme.border}
                   className={cn(
-                    parsed.isSwitch && i === conversationPairs.length - 1 ? 'ring-1 ring-purple-400/30' : '',
+                    parsed.isSwitch && i === conversationPairs.length - 1 ? 'ring-1 ring-[#16A34A]/30' : '',
                     personalityTheme.rounded,
                   )}>
                   {pair.ai.isStreaming && !pair.ai.content ? <StreamingDots /> : (
                     <div className="px-5 py-4">
                       {/* Cycle 32: Dramatic personality switch banner */}
                       {parsed.isSwitch && i === conversationPairs.length - 1 && (
-                        <div className="text-center py-2 mb-3 relative overflow-hidden rounded-lg bg-purple-500/10 border border-purple-500/20" style={{ animation: 'gp-glitch 0.15s ease-in-out 4' }}>
-                          <span className="text-xs font-black text-purple-400 tracking-widest uppercase">PERSONALITY SWITCH</span>
+                        <div className="text-center py-2 mb-3 relative overflow-hidden rounded-lg bg-[#16A34A]/10 border border-[#16A34A]/20" style={{ animation: 'gp-glitch 0.15s ease-in-out 4' }}>
+                          <span className="text-xs font-black text-[#16A34A] tracking-widest uppercase">PERSONALITY SWITCH</span>
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" style={{ animation: 'gp-scan-line 0.6s ease-in-out' }} />
                         </div>
                       )}
@@ -1153,7 +1153,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                       }}>
                         {pair.ai.content}
                       </p>
-                      {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-purple-400/60 ml-0.5 cursor-blink rounded-full" />}
+                      {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-[#16A34A]/60 ml-0.5 cursor-blink rounded-full" />}
                     </div>
                   )}
                 </GameCard>
@@ -1164,11 +1164,11 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
         {parsed.isAllDefeated && (
           <div className="px-5 pb-4">
-            <div className="p-6 rounded-2xl border-2 border-purple-500/40 bg-gradient-to-br from-purple-950/40 via-violet-950/30 to-slate-900/40 text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
+            <div className="p-6 rounded-2xl border-2 border-[#16A34A]/40 bg-gradient-to-br from-[#16A34A]/10 via-[#16A34A]/5 to-[#1A1714] text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
               <div className="text-3xl mb-2">🎭</div>
-              <div className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-violet-400 mb-2">ALL DEFEATED!</div>
-              <p className="text-sm text-slate-300 mb-4">모든 인격을 격파했습니다!</p>
-              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-violet-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
+              <div className="text-xl font-black text-[#16A34A] drop-shadow-[0_0_15px_rgba(22,163,74,0.5)] mb-2">ALL DEFEATED!</div>
+              <p className="text-sm text-[#D4C5B0] mb-4">모든 인격을 격파했습니다!</p>
+              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-[#16A34A] text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
             </div>
@@ -1178,15 +1178,15 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
         {!parsed.isAllDefeated && (
           <div className="flex flex-wrap items-center gap-2 px-5 pb-3">
             <QuickBtn onClick={() => sendQuick('이 인격은 누구?')} disabled={isDiscussing}
-              className="border-purple-500/30 text-purple-300 hover:bg-purple-600/15">
+              className="border-[#16A34A]/30 text-[#16A34A] hover:bg-[#16A34A]/10">
               <HelpCircle className="w-3.5 h-3.5" /> 이 인격은 누구?
             </QuickBtn>
             <QuickBtn onClick={() => sendQuick('어른')} disabled={isDiscussing}
-              className="border-pink-500/30 text-pink-300 hover:bg-pink-600/15">
+              className="border-[#FF6B35]/30 text-[#FF6B35] hover:bg-[#FF6B35]/10">
               어른
             </QuickBtn>
             <QuickBtn onClick={() => sendQuick('모르겠다')} disabled={isDiscussing}
-              className="border-slate-500/30 text-slate-300 hover:bg-slate-600/15">
+              className="border-[#A0937D]/30 text-[#A0937D] hover:bg-[#A0937D]/10">
               모르겠다
             </QuickBtn>
             <QuickBtn onClick={() => sendQuick('평화')} disabled={isDiscussing}
@@ -1194,7 +1194,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               평화
             </QuickBtn>
             <QuickBtn onClick={() => sendQuick('산문')} disabled={isDiscussing}
-              className="border-violet-500/30 text-violet-300 hover:bg-violet-600/15">
+              className="border-[#F4D03F]/30 text-[#F4D03F] hover:bg-[#F4D03F]/10">
               산문
             </QuickBtn>
           </div>
@@ -1212,27 +1212,27 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
     const emotionThemes: Record<string, { bg: string; overlay: string; textStyle: string; msgAnim: string }> = {
       '기쁨': { bg: 'from-yellow-900/30 via-orange-900/20 to-amber-900/25', overlay: 'rgba(234,179,8,0.08)', textStyle: 'gp-emotion-joy', msgAnim: 'gp-bounce-in' },
       '분노': { bg: 'from-red-900/40 via-red-950/30 to-rose-900/30', overlay: 'rgba(239,68,68,0.1)', textStyle: 'gp-emotion-anger', msgAnim: 'gp-shake-in' },
-      '슬픔': { bg: 'from-blue-900/35 via-slate-900/40 to-indigo-900/30', overlay: 'rgba(59,130,246,0.08)', textStyle: 'gp-emotion-sadness', msgAnim: 'gp-droop-in' },
+      '슬픔': { bg: 'from-blue-900/35 via-[#1A1714] to-[#1A1714]', overlay: 'rgba(59,130,246,0.08)', textStyle: 'gp-emotion-sadness', msgAnim: 'gp-droop-in' },
       '공포': { bg: 'from-gray-950/60 via-slate-950/50 to-gray-900/40', overlay: 'rgba(0,0,0,0.15)', textStyle: 'gp-emotion-fear', msgAnim: 'gp-flicker-in' },
       '평온': { bg: 'from-teal-900/25 via-cyan-900/20 to-blue-900/20', overlay: 'rgba(20,184,166,0.06)', textStyle: 'gp-emotion-calm', msgAnim: 'gp-fade-in' },
     };
     const currentEmotion = parsed.currentEmotion || '';
-    const emotionTheme = emotionThemes[currentEmotion] || { bg: 'from-pink-950/30 via-slate-900/40 to-slate-900/40', overlay: 'transparent', textStyle: '', msgAnim: '' };
+    const emotionTheme = emotionThemes[currentEmotion] || { bg: 'from-[#D63031]/10 via-[#1A1714] to-[#1A1714]', overlay: 'transparent', textStyle: '', msgAnim: '' };
 
     return (
       <>
-        <div className={cn("px-5 py-4 border-b border-pink-500/20 transition-all duration-700", `bg-gradient-to-r ${emotionTheme.bg}`)}>
+        <div className={cn("px-5 py-4 border-b border-[#D63031]/20 transition-all duration-700", `bg-gradient-to-r ${emotionTheme.bg}`)}>
           <div className="flex items-center justify-between mb-3">
             <EmotionSequence completed={completed} totalEmotions={parsed.totalEmotions} />
-            <span className="text-[10px] text-slate-500">{optionLabel}</span>
+            <span className="text-[10px] text-[#A0937D]">{optionLabel}</span>
           </div>
           {parsed.currentEmotion && (
             <div className="flex items-center gap-2">
-              <GameBadge className="bg-pink-500/15 text-pink-300 border border-pink-500/20">
+              <GameBadge className="bg-[#D63031]/15 text-[#D63031] border border-[#D63031]/20">
                 현재: {parsed.currentEmotion}
               </GameBadge>
               {parsed.targetEmotion && (
-                <GameBadge className="bg-slate-700/60 text-slate-300 border border-slate-600/40">
+                <GameBadge className="bg-[#2A2520] text-[#D4C5B0] border border-[#3D3428]">
                   <Target className="w-3 h-3" /> 목표: {parsed.targetEmotion}
                 </GameBadge>
               )}
@@ -1240,7 +1240,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
           )}
           {parsed.isComplete && (
             <div className="mt-2 text-center animate-in zoom-in duration-500">
-              <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400">
+              <span className="text-lg font-black text-[#D63031] drop-shadow-[0_0_15px_rgba(214,48,49,0.5)]">
                 HACKING COMPLETE!
               </span>
             </div>
@@ -1254,17 +1254,17 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
           <div className={cn('relative', currentEmotion === '분노' && 'gp-shake-slow')}>
             {conversationPairs.map((pair, i) => (
               <div key={i} className={cn("space-y-3 animate-in fade-in slide-in-from-bottom-1 duration-300", emotionTheme.msgAnim)}>
-                {pair.user && <UserCard accentColor="border-pink-500/20 bg-pink-950/25">{pair.user.content}</UserCard>}
+                {pair.user && <UserCard accentColor="border-[#D63031]/20 bg-[#D63031]/5">{pair.user.content}</UserCard>}
                 {pair.ai && (
-                  <GameCard accentBorder="border-pink-500/15">
+                  <GameCard accentBorder="border-[#D63031]/15">
                     {pair.ai.isStreaming && !pair.ai.content ? <StreamingDots /> : (
                       <div className="px-5 py-4">
                         {/* Cycle 25: Emotion-specific text styling */}
                         <p className={cn(
-                          'text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words transition-all duration-500',
+                          'text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words transition-all duration-500',
                           emotionTheme.textStyle,
                           currentEmotion === '슬픔' && 'text-blue-200/80',
-                          currentEmotion === '공포' && 'text-slate-300/70',
+                          currentEmotion === '공포' && 'text-[#D4C5B0]/70',
                           currentEmotion === '기쁨' && 'text-amber-100',
                           currentEmotion === '평온' && 'text-teal-100/90',
                         )} style={{
@@ -1276,7 +1276,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                         }}>
                           {pair.ai.content}
                         </p>
-                        {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-pink-400/60 ml-0.5 cursor-blink rounded-full" />}
+                        {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-[#D63031]/60 ml-0.5 cursor-blink rounded-full" />}
                       </div>
                     )}
                   </GameCard>
@@ -1288,11 +1288,11 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
         {parsed.isComplete && (
           <div className="px-5 pb-4">
-            <div className="p-6 rounded-2xl border-2 border-pink-500/40 bg-gradient-to-br from-pink-950/40 via-rose-950/30 to-slate-900/40 text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
+            <div className="p-6 rounded-2xl border-2 border-[#D63031]/40 bg-gradient-to-br from-[#D63031]/10 via-[#D63031]/5 to-[#1A1714] text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
               <div className="text-3xl mb-2">🎭</div>
-              <div className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 mb-2">HACKING COMPLETE!</div>
-              <p className="text-sm text-slate-300 mb-4">모든 감정 해킹에 성공했습니다!</p>
-              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
+              <div className="text-xl font-black text-[#D63031] drop-shadow-[0_0_15px_rgba(214,48,49,0.5)] mb-2">HACKING COMPLETE!</div>
+              <p className="text-sm text-[#D4C5B0] mb-4">모든 감정 해킹에 성공했습니다!</p>
+              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-[#D63031] text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
             </div>
@@ -1324,18 +1324,18 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
     return (
       <>
-        <div className="px-5 py-3 bg-gradient-to-r from-emerald-950/40 via-slate-800/60 to-slate-900/60 border-b border-emerald-500/20">
+        <div className="px-5 py-3 bg-gradient-to-r from-emerald-950/40 via-[#2A2520] to-[#1A1714] border-b border-emerald-500/20">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               {/* Cycle 45: Animated score counter */}
               <GameBadge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">
                 <Trophy className="w-3 h-3" /> 점수: <span className="tabular-nums">{score}</span>
               </GameBadge>
-              <GameBadge className="bg-slate-700/60 text-slate-300 border border-slate-600/40">
+              <GameBadge className="bg-[#2A2520] text-[#D4C5B0] border border-[#3D3428]">
                 Q<span className="tabular-nums">{currentQ}</span>/{totalQ}
               </GameBadge>
             </div>
-            <span className="text-[10px] text-slate-500">{optionLabel}</span>
+            <span className="text-[10px] text-[#A0937D]/70">{optionLabel}</span>
           </div>
           <ProgressBar current={currentQ} total={totalQ} accent={meta.accent} />
         </div>
@@ -1381,7 +1381,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                           </>
                         );
                       })()}
-                      <p className="text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
+                      <p className="text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
                       {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-emerald-400/60 ml-0.5 cursor-blink rounded-full" />}
                     </div>
                   )}
@@ -1392,10 +1392,10 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
           {/* Game Finished Screen */}
           {parsed.isFinished && (
-            <div className="mt-4 p-6 rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 via-green-950/30 to-slate-900/40 text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
+            <div className="mt-4 p-6 rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 via-green-950/30 to-[#1A1714] text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
               <div className="text-3xl mb-2">{score >= 9 ? '🏆' : score >= 7 ? '🥇' : score >= 5 ? '🥈' : '📚'}</div>
               <div className="text-xl font-black text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)] mb-2">QUIZ COMPLETE!</div>
-              <p className="text-sm text-slate-300 mb-1">최종 점수: {score}/{totalQ}</p>
+              <p className="text-sm text-[#D4C5B0] mb-1">최종 점수: {score}/{totalQ}</p>
               <p className="text-xs text-emerald-300 mb-4">{score >= 9 ? 'S급! 퀴즈 천재!' : score >= 7 ? 'A급! 훌륭합니다!' : score >= 5 ? 'B급! 괜찮아요!' : '더 분발!'}</p>
               <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
@@ -1418,13 +1418,13 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
       '판결': 'bg-green-500/15 text-green-300 border-green-500/20',
     };
     const phaseBgs: Record<string, string> = {
-      '입론': 'from-blue-950/40 via-slate-800/60 to-blue-950/20',
-      '반론': 'from-red-950/40 via-slate-800/60 to-red-950/20',
-      '최종변론': 'from-amber-950/40 via-slate-800/60 to-amber-950/20',
-      '변론': 'from-amber-950/40 via-slate-800/60 to-amber-950/20',
-      '판결': 'from-green-950/40 via-amber-950/30 to-slate-900/40',
+      '입론': 'from-blue-950/40 via-[#2A2520] to-blue-950/20',
+      '반론': 'from-red-950/40 via-[#2A2520] to-red-950/20',
+      '최종변론': 'from-amber-950/40 via-[#2A2520] to-amber-950/20',
+      '변론': 'from-amber-950/40 via-[#2A2520] to-amber-950/20',
+      '판결': 'from-green-950/40 via-amber-950/30 to-[#1A1714]',
     };
-    const currentPhaseBg = parsed.phase ? phaseBgs[parsed.phase] || 'from-orange-950/40 via-slate-800/60 to-slate-900/60' : 'from-orange-950/40 via-slate-800/60 to-slate-900/60';
+    const currentPhaseBg = parsed.phase ? phaseBgs[parsed.phase] || 'from-orange-950/40 via-[#2A2520] to-[#1A1714]' : 'from-orange-950/40 via-[#2A2520] to-[#1A1714]';
     const phaseOrder = ['입론', '반론', '변론', '판결'];
     const phaseIndex = parsed.phase ? phaseOrder.indexOf(parsed.phase) : -1;
 
@@ -1442,7 +1442,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                   <Gavel className="w-3 h-3" /> AI 법정
                 </GameBadge>
                 {parsed.phase && (
-                  <GameBadge className={cn('border transition-all duration-300', phaseColors[parsed.phase] || 'bg-slate-700/60 text-slate-300 border-slate-600')}>
+                  <GameBadge className={cn('border transition-all duration-300', phaseColors[parsed.phase] || 'bg-[#2A2520] text-[#D4C5B0] border-slate-600')}>
                     {parsed.phase}
                   </GameBadge>
                 )}
@@ -1452,7 +1452,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                   </GameBadge>
                 )}
               </div>
-              <span className="text-[10px] text-slate-500">{optionLabel}</span>
+              <span className="text-[10px] text-[#A0937D]/70">{optionLabel}</span>
             </div>
             {parsed.guiltyScore !== null && (
               <div className="mb-1">
@@ -1463,7 +1463,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               {phaseOrder.map((phase, i) => (
                 <div key={phase} className={cn(
                   'flex-1 h-1 rounded-full transition-all duration-500',
-                  i <= phaseIndex ? 'bg-orange-400/50' : 'bg-slate-700/40',
+                  i <= phaseIndex ? 'bg-orange-400/50' : 'bg-[#2A2520]/60',
                   i === phaseIndex && 'bg-orange-400/80',
                 )} />
               ))}
@@ -1485,7 +1485,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                   </div>
                   {pair.ai.isStreaming && !pair.ai.content ? <StreamingDots /> : (
                     <div className="px-5 pb-4">
-                      <p className="text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
+                      <p className="text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
                       {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-orange-400/60 ml-0.5 cursor-blink rounded-full" />}
                     </div>
                   )}
@@ -1500,7 +1500,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                     <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider">Prosecutor</span>
                   </div>
                   <div className="px-5 pb-4">
-                    <p className="text-[13px] text-slate-200 leading-relaxed">{pair.user.content}</p>
+                    <p className="text-[13px] text-[#D4C5B0] leading-relaxed">{pair.user.content}</p>
                   </div>
                 </GameCard>
               )}
@@ -1526,13 +1526,13 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
         {parsed.isVerdict && (
           <div className="px-5 pb-4">
             <div className={cn('p-6 rounded-2xl border-2 text-center animate-in zoom-in duration-500',
-              parsed.isGuilty ? 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-slate-900/40' : 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-slate-900/40'
+              parsed.isGuilty ? 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-[#1A1714]' : 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-[#1A1714]'
             )} style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
               <div className="text-3xl mb-2">{parsed.isGuilty ? '⚖️' : '🕊️'}</div>
               <div className={cn('text-xl font-black mb-2', parsed.isGuilty ? 'text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]')}>
                 {parsed.isGuilty ? 'GUILTY!' : 'NOT GUILTY!'}
               </div>
-              <p className="text-sm text-slate-300 mb-4">{parsed.isGuilty ? '유죄 판결이 내려졌습니다!' : '무죄 판결입니다!'}</p>
+              <p className="text-sm text-[#D4C5B0] mb-4">{parsed.isGuilty ? '유죄 판결이 내려졌습니다!' : '무죄 판결입니다!'}</p>
               <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
@@ -1631,8 +1631,8 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               <div className={cn('text-xl font-black tracking-widest mb-2', parsed.isSolved ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.6)]' : 'text-red-400')}>
                 {parsed.isSolved ? '> ACCESS GRANTED' : '> ACCESS DENIED'}
               </div>
-              <p className="text-sm text-slate-300 mb-4">{parsed.isSolved ? '코드 해독 성공!' : '시도 횟수를 초과했습니다...'}</p>
-              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform font-sans">
+              <p className="text-sm text-[#D4C5B0] mb-4">{parsed.isSolved ? '코드 해독 성공!' : '시도 횟수를 초과했습니다...'}</p>
+              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-[#16A34A] text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform font-sans">
                 다시 하기
               </button>
             </div>
@@ -1646,7 +1646,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               <HelpCircle className="w-3.5 h-3.5" /> 숫자 질문
             </QuickBtn>
             <QuickBtn onClick={() => sendQuick('첫 번째 자릿수가 5보다 큰가요?')} disabled={isDiscussing}
-              className="border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/15 font-mono">
+              className="border-[#16A34A]/30 text-[#16A34A] hover:bg-[#16A34A]/10 font-mono">
               <Search className="w-3.5 h-3.5" /> 범위 질문
             </QuickBtn>
           </div>
@@ -1664,19 +1664,19 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
     return (
       <>
-        <div className={cn("px-5 py-4 bg-gradient-to-r from-rose-950/50 via-slate-800/60 to-slate-900/60 border-b border-rose-500/20", explosionWord && 'gp-shake')}>
+        <div className={cn("px-5 py-4 bg-gradient-to-r from-rose-950/50 via-[#2A2520] to-[#1A1714] border-b border-rose-500/20", explosionWord && 'gp-shake')}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={cn(explosionWord && 'gp-shake')}>
                 <LivesDisplay lives={lives} maxLives={parsed.maxLives} />
               </div>
               {turn > 0 && (
-                <GameBadge className="bg-slate-700/60 text-slate-300 border border-slate-600/40">
+                <GameBadge className="bg-[#2A2520] text-[#D4C5B0] border border-[#3D3428]">
                   턴: {turn}/{totalTurns}
                 </GameBadge>
               )}
             </div>
-            <span className="text-[10px] text-slate-500">{optionLabel}</span>
+            <span className="text-[10px] text-[#A0937D]/70">{optionLabel}</span>
           </div>
           {turn > 0 && (
             <div className="mt-2">
@@ -1736,7 +1736,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                           </div>
                         ) : null;
                       })()}
-                      <p className="text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
+                      <p className="text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
                       {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-rose-400/60 ml-0.5 cursor-blink rounded-full" />}
                     </div>
                   )}
@@ -1749,14 +1749,14 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
           {/* Game Over Screen */}
           {isGameOver && (
             <div className={cn('mt-4 p-6 rounded-2xl border-2 text-center animate-in zoom-in duration-500',
-              parsed.isSurvived ? 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-slate-900/40' : 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-slate-900/40'
+              parsed.isSurvived ? 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-[#1A1714]' : 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-[#1A1714]'
             )} style={{ animation: parsed.isSurvived ? 'gp-pulse-glow 2s ease-in-out infinite' : 'gp-shake 0.5s ease-in-out' }}>
               <div className="text-3xl mb-2">{parsed.isSurvived ? '🎉' : '💀'}</div>
               <div className={cn('text-xl font-black mb-2', parsed.isSurvived ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]' : 'text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]')}>
                 {parsed.isSurvived ? 'SURVIVED!' : 'GAME OVER'}
               </div>
-              <p className="text-sm text-slate-300 mb-4">{parsed.isSurvived ? '금지어를 모두 피해 생존했습니다!' : '목숨이 모두 소진되었습니다...'}</p>
-              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
+              <p className="text-sm text-[#D4C5B0] mb-4">{parsed.isSurvived ? '금지어를 모두 피해 생존했습니다!' : '목숨이 모두 소진되었습니다...'}</p>
+              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-[#D63031] text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
             </div>
@@ -1770,18 +1770,18 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
     const parsed = parseAIMafia(latestContent);
     const round = parsed.round ?? 1;
     const isGameOver = parsed.isReveal;
-    const avatarColors = ['bg-rose-500/20 text-rose-400 border-rose-500/30', 'bg-violet-500/20 text-violet-400 border-violet-500/30', 'bg-teal-500/20 text-teal-400 border-teal-500/30'];
+    const avatarColors = ['bg-rose-500/20 text-rose-400 border-rose-500/30', 'bg-[#FF6B35]/20 text-[#FF6B35] border-[#FF6B35]/30', 'bg-teal-500/20 text-teal-400 border-teal-500/30'];
 
     return (
       <>
-        <div className="px-5 py-3 bg-gradient-to-r from-violet-950/40 via-slate-800/60 to-slate-900/60 border-b border-violet-500/20">
+        <div className="px-5 py-3 bg-gradient-to-r from-[#FF6B35]/10 via-[#2A2520] to-[#1A1714] border-b border-[#FF6B35]/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <GameBadge className="bg-violet-500/15 text-violet-300 border border-violet-500/20">
+              <GameBadge className="bg-[#FF6B35]/15 text-[#FF6B35] border border-[#FF6B35]/20">
                 <UserX className="w-3 h-3" /> 마피아를 찾아라
               </GameBadge>
               {parsed.round && (
-                <GameBadge className="bg-slate-700/60 text-slate-300 border border-slate-600/40">
+                <GameBadge className="bg-[#2A2520] text-[#D4C5B0] border border-[#3D3428]">
                   라운드 {parsed.round}
                 </GameBadge>
               )}
@@ -1791,7 +1791,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                 </GameBadge>
               )}
             </div>
-            <span className="text-[10px] text-slate-500">{optionLabel}</span>
+            <span className="text-[10px] text-[#A0937D]/70">{optionLabel}</span>
           </div>
         </div>
 
@@ -1799,7 +1799,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
           {conversationPairs.map((pair, i) => (
             <div key={i} className="space-y-3 animate-in fade-in slide-in-from-bottom-1 duration-300">
               {pair.ai && (
-                <GameCard accentBorder="border-violet-500/15">
+                <GameCard accentBorder="border-[#FF6B35]/15">
                   {pair.ai.isStreaming && !pair.ai.content ? <StreamingDots /> : (
                     <div className="px-5 py-4">
                       {(() => {
@@ -1807,7 +1807,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                         if (p.isReveal) {
                           return (
                             <div className="text-center py-2 mb-3 animate-in zoom-in duration-500">
-                              <span className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-amber-400 to-violet-400">
+                              <span className="text-sm font-black text-[#FF6B35] drop-shadow-[0_0_10px_rgba(255,107,53,0.5)]">
                                 REVEAL
                               </span>
                             </div>
@@ -1815,13 +1815,13 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                         }
                         return null;
                       })()}
-                      <p className="text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
-                      {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-violet-400/60 ml-0.5 cursor-blink rounded-full" />}
+                      <p className="text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
+                      {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-[#FF6B35]/60 ml-0.5 cursor-blink rounded-full" />}
                     </div>
                   )}
                 </GameCard>
               )}
-              {pair.user && <UserCard accentColor="border-violet-500/20 bg-violet-950/25">{pair.user.content}</UserCard>}
+              {pair.user && <UserCard accentColor="border-[#FF6B35]/20 bg-[#FF6B35]/5">{pair.user.content}</UserCard>}
             </div>
           ))}
         </div>
@@ -1829,14 +1829,14 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
         {/* Cycle 43: Dramatic vote phase */}
         {parsed.isVotePhase && !parsed.isReveal && (
           <div className="px-5 pb-3 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <p className="text-[12px] text-violet-300 text-center font-bold tracking-wide" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>마피아는 누구?</p>
+            <p className="text-[12px] text-[#FF6B35] text-center font-bold tracking-wide" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>마피아는 누구?</p>
             <div className="grid grid-cols-3 gap-2.5">
               {['A', 'B', 'C'].map((letter, idx) => (
                 <button key={letter} onClick={() => sendQuick(`${letter}가 마피아입니다`)} disabled={isDiscussing}
                   className={cn(
                     'flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group/vote',
                     'hover:scale-[1.05] active:scale-[0.93] disabled:opacity-40',
-                    avatarColors[idx], 'bg-slate-800/60 hover:bg-slate-700/60',
+                    avatarColors[idx], 'bg-[#2A2520] hover:bg-[#2A2520]',
                   )}>
                   {/* Hover glow */}
                   <div className="absolute inset-0 opacity-0 group-hover/vote:opacity-100 transition-opacity duration-300 bg-gradient-to-b from-white/5 to-transparent" />
@@ -1854,14 +1854,14 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
         {isGameOver && (
           <div className="px-5 pb-4">
             <div className={cn('p-6 rounded-2xl border-2 text-center animate-in zoom-in duration-500',
-              parsed.isWin ? 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-slate-900/40' : 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-slate-900/40'
+              parsed.isWin ? 'border-green-500/40 bg-gradient-to-br from-green-950/40 via-emerald-950/30 to-[#1A1714]' : 'border-red-500/40 bg-gradient-to-br from-red-950/40 via-rose-950/30 to-[#1A1714]'
             )} style={{ animation: parsed.isWin ? 'gp-pulse-glow 2s ease-in-out infinite' : 'gp-shake 0.5s ease-in-out' }}>
               <div className="text-3xl mb-2">{parsed.isWin ? '🕵️' : '🎭'}</div>
               <div className={cn('text-xl font-black mb-2', parsed.isWin ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]' : 'text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]')}>
                 {parsed.isWin ? 'MAFIA FOUND!' : 'MAFIA WINS!'}
               </div>
-              <p className="text-sm text-slate-300 mb-4">{parsed.isWin ? '마피아를 찾아냈습니다!' : '마피아를 놓쳤습니다...'}</p>
-              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
+              <p className="text-sm text-[#D4C5B0] mb-4">{parsed.isWin ? '마피아를 찾아냈습니다!' : '마피아를 놓쳤습니다...'}</p>
+              <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-[#FF6B35] text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
             </div>
@@ -1873,7 +1873,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
             <QuickBtn onClick={() => sendQuick('A에게 질문합니다.')} disabled={isDiscussing}
               className="border-rose-500/30 text-rose-300 hover:bg-rose-600/15">A에게 질문</QuickBtn>
             <QuickBtn onClick={() => sendQuick('B에게 질문합니다.')} disabled={isDiscussing}
-              className="border-violet-500/30 text-violet-300 hover:bg-violet-600/15">B에게 질문</QuickBtn>
+              className="border-[#FF6B35]/30 text-[#FF6B35] hover:bg-[#FF6B35]/10">B에게 질문</QuickBtn>
             <QuickBtn onClick={() => sendQuick('C에게 질문합니다.')} disabled={isDiscussing}
               className="border-teal-500/30 text-teal-300 hover:bg-teal-600/15">C에게 질문</QuickBtn>
             <QuickBtn onClick={() => sendQuick('투표하겠습니다!')} disabled={isDiscussing}
@@ -1896,7 +1896,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
     return (
       <>
         <div className={cn("px-5 py-4 border-b border-teal-500/20 relative overflow-hidden transition-all duration-500",
-          `bg-gradient-to-r from-teal-950/${Math.round(30 + layerIntensity * 30)} via-slate-800/60 to-teal-950/${Math.round(20 + layerIntensity * 20)}`
+          `bg-gradient-to-r from-teal-950/${Math.round(30 + layerIntensity * 30)} via-[#2A2520] to-teal-950/${Math.round(20 + layerIntensity * 20)}`
         )}>
           {/* Cycle 41: Layer breach scan effect */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -1910,7 +1910,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               <LayerProgress current={currentLayer - 1} total={parsed.totalLayers} />
               <div className="text-right">
                 <span className="text-[10px] text-teal-400 font-mono font-bold">LAYER {currentLayer}/{parsed.totalLayers}</span>
-                <div className="text-[8px] text-slate-500">{layerApproachLabels[currentLayer] || parsed.approach}</div>
+                <div className="text-[8px] text-[#A0937D]/70">{layerApproachLabels[currentLayer] || parsed.approach}</div>
               </div>
             </div>
             {parsed.approach && (
@@ -1971,7 +1971,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
             <div className="mt-4 p-6 rounded-2xl border-2 border-green-500/40 bg-gradient-to-br from-green-950/40 via-teal-950/30 to-gray-950/60 text-center animate-in zoom-in duration-500 font-mono" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
               <div className="text-3xl mb-2">🔓</div>
               <div className="text-xl font-black text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.6)] tracking-widest mb-2">&gt; FIREWALL BREACHED</div>
-              <p className="text-sm text-slate-300 mb-4 font-sans">5겹 방화벽을 모두 돌파했습니다!</p>
+              <p className="text-sm text-[#D4C5B0] mb-4 font-sans">5겹 방화벽을 모두 돌파했습니다!</p>
               <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform font-sans">
                 다시 하기
               </button>
@@ -1990,7 +1990,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
     return (
       <>
-        <div className="px-5 py-3 bg-gradient-to-r from-amber-950/40 via-slate-800/60 to-slate-900/60 border-b border-amber-500/20 relative overflow-hidden">
+        <div className="px-5 py-3 bg-gradient-to-r from-amber-950/40 via-[#2A2520] to-[#1A1714] border-b border-amber-500/20 relative overflow-hidden">
           {parsed.isTradeProposed && (
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               <div className="absolute inset-x-0 h-full bg-gradient-to-r from-transparent via-amber-400/5 to-transparent" style={{ animation: 'gp-scan-line 2s ease-in-out infinite' }} />
@@ -2003,12 +2003,12 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                   <Handshake className="w-3 h-3" /> 거래 대결
                 </GameBadge>
                 {parsed.round !== null && (
-                  <GameBadge className="bg-slate-700/60 text-slate-300 border border-slate-600/40">
+                  <GameBadge className="bg-[#2A2520] text-[#D4C5B0] border border-[#3D3428]">
                     라운드 {round}/{totalRounds}
                   </GameBadge>
                 )}
               </div>
-              <span className="text-[10px] text-slate-500">{optionLabel}</span>
+              <span className="text-[10px] text-[#A0937D]/70">{optionLabel}</span>
             </div>
             {/* Cycle 42: Enhanced items display with glow */}
             {(parsed.userItems || parsed.aiItems) && (
@@ -2061,7 +2061,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                   </div>
                   {pair.ai.isStreaming && !pair.ai.content ? <StreamingDots /> : (
                     <div className="px-5 pb-4">
-                      <p className="text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
+                      <p className="text-[13px] text-[#D4C5B0] leading-relaxed whitespace-pre-wrap break-words">{pair.ai.content}</p>
                       {pair.ai.isStreaming && pair.ai.content && <span className="inline-block w-0.5 h-3.5 bg-amber-400/60 ml-0.5 cursor-blink rounded-full" />}
                     </div>
                   )}
@@ -2073,10 +2073,10 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
           {/* Game Over Screen */}
           {isGameOver && (
-            <div className="mt-4 p-6 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/40 via-yellow-950/30 to-slate-900/40 text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
+            <div className="mt-4 p-6 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/40 via-yellow-950/30 to-[#1A1714] text-center animate-in zoom-in duration-500" style={{ animation: 'gp-pulse-glow 2s ease-in-out infinite' }}>
               <div className="text-3xl mb-2">📊</div>
               <div className="text-xl font-black text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] mb-2">FINAL RESULT</div>
-              <p className="text-sm text-slate-300 mb-4">거래가 종료되었습니다!</p>
+              <p className="text-sm text-[#D4C5B0] mb-4">거래가 종료되었습니다!</p>
               <button onClick={onExit} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-transform">
                 다시 하기
               </button>
@@ -2149,24 +2149,24 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
   /* Cycle 36-45: Get accent border color as CSS custom property */
   const accentColorVar = (() => {
     const colorMap: Record<string, string> = {
-      'ai-polygraph': 'rgba(6,182,212,0.5)',
-      'mental-breaker': 'rgba(239,68,68,0.5)',
-      'reverse-interrogation': 'rgba(245,158,11,0.5)',
-      'split-personality': 'rgba(168,85,247,0.5)',
-      'emotion-hacker': 'rgba(236,72,153,0.5)',
-      'reverse-quiz': 'rgba(16,185,129,0.5)',
-      'ai-court': 'rgba(249,115,22,0.5)',
-      'code-breaker': 'rgba(59,130,246,0.5)',
-      'minefield': 'rgba(244,63,94,0.5)',
-      'ai-mafia': 'rgba(139,92,246,0.5)',
-      'firewall-escape': 'rgba(20,184,166,0.5)',
-      'negotiator': 'rgba(245,158,11,0.5)',
+      'ai-polygraph': 'rgba(255,107,53,0.5)',
+      'mental-breaker': 'rgba(214,48,49,0.5)',
+      'reverse-interrogation': 'rgba(244,208,63,0.5)',
+      'split-personality': 'rgba(22,163,74,0.5)',
+      'emotion-hacker': 'rgba(214,48,49,0.5)',
+      'reverse-quiz': 'rgba(255,107,53,0.5)',
+      'ai-court': 'rgba(244,208,63,0.5)',
+      'code-breaker': 'rgba(22,163,74,0.5)',
+      'minefield': 'rgba(214,48,49,0.5)',
+      'ai-mafia': 'rgba(255,107,53,0.5)',
+      'firewall-escape': 'rgba(22,163,74,0.5)',
+      'negotiator': 'rgba(244,208,63,0.5)',
     };
-    return colorMap[gameId] || 'rgba(99,102,241,0.5)';
+    return colorMap[gameId] || 'rgba(255,107,53,0.5)';
   })();
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white relative" style={{ '--accent-glow': accentColorVar } as React.CSSProperties}>
+    <div className="flex flex-col h-full bg-[#1A1714] text-white relative" style={{ '--accent-glow': accentColorVar } as React.CSSProperties}>
 
       {/* Cycle 36-45: Master CSS animation keyframes */}
       <style>{`
@@ -2182,7 +2182,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
         @keyframes gp-shatter-piece { 0% { opacity: 1; transform: rotate(var(--r, 0deg)) translate(0, 0); } 100% { opacity: 0; transform: rotate(var(--r, 15deg)) translate(var(--tx, 40px), var(--ty, 40px)); } }
         @keyframes gp-flash-red { 0% { background-color: rgba(239,68,68,0.3); } 100% { background-color: transparent; } }
         @keyframes gp-particle { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--px, 100px), var(--py, -100px)) scale(0); opacity: 0; } }
-        @keyframes gp-personality-flicker { 0% { opacity: 0; background: rgba(168,85,247,0.15); } 15% { opacity: 1; background: rgba(168,85,247,0.3); } 30% { opacity: 0; } 45% { opacity: 1; background: rgba(168,85,247,0.2); } 60% { opacity: 0; } 75% { opacity: 0.5; } 100% { opacity: 0; } }
+        @keyframes gp-personality-flicker { 0% { opacity: 0; background: rgba(22,163,74,0.15); } 15% { opacity: 1; background: rgba(22,163,74,0.3); } 30% { opacity: 0; } 45% { opacity: 1; background: rgba(22,163,74,0.2); } 60% { opacity: 0; } 75% { opacity: 0.5; } 100% { opacity: 0; } }
         @keyframes gp-objection { 0% { transform: scale(0.3) rotate(-5deg); opacity: 0; } 40% { transform: scale(1.3) rotate(2deg); opacity: 1; } 70% { transform: scale(1) rotate(0deg); } 100% { transform: scale(1); opacity: 0; } }
         @keyframes gp-verdict-dim { 0% { opacity: 0; } 30% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0.3; } }
         @keyframes gp-matrix-fall { 0% { background-position: 0 0; } 100% { background-position: 0 600px; } }
@@ -2205,9 +2205,9 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
       {/* ── Top Header ── */}
       <div className={cn(
-        'flex items-center justify-between px-5 py-3 border-b backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-400 fill-mode-both',
+        'flex items-center justify-between px-5 py-3 border-b animate-in fade-in slide-in-from-top-2 duration-400 fill-mode-both',
         meta.accentBorder,
-        'bg-slate-900/90',
+        'bg-[#1A1714]',
       )}>
         <div className="flex items-center gap-3">
           {/* Cycle 37: Icon glow animation */}
@@ -2216,13 +2216,13 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
           </div>
           <div>
             <h2 className={cn('text-sm font-bold', meta.accent)}>{meta.name}</h2>
-            <p className="text-[10px] text-slate-500">{optionLabel}</p>
+            <p className="text-[10px] text-[#A0937D]/70">{optionLabel}</p>
           </div>
         </div>
 
         {/* Cycle 39: Button press feedback */}
         <button onClick={onExit}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-400 hover:text-red-400 hover:border-red-500/40 hover:bg-red-950/30 transition-all duration-200 active:scale-[0.95]">
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#2A2520] border border-[#3D3428] text-[11px] font-semibold text-[#A0937D] hover:text-[#D63031] hover:border-[#D63031]/40 hover:bg-[#D63031]/10 transition-all duration-200 active:scale-[0.95]">
           <LogOut className="w-3.5 h-3.5" />
           나가기
         </button>
@@ -2234,7 +2234,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
         {/* ── Post-Game Result Overlay ── */}
         {gameResult && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm animate-in fade-in duration-500">
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#1A1714]/95 animate-in fade-in duration-500">
             <div className={cn("w-full max-w-md p-6 rounded-2xl border space-y-5 animate-in zoom-in-95 duration-400",
               gameResult.won ? 'bg-gradient-to-b from-emerald-950/60 to-slate-900 border-emerald-500/20' : 'bg-gradient-to-b from-red-950/60 to-slate-900 border-red-500/20'
             )}>
@@ -2244,10 +2244,10 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
                 <h2 className="text-2xl font-black text-white">{gameResult.won ? '승리!' : '패배'}</h2>
                 {/* Grade badge */}
                 <div className={cn("inline-block mt-2 px-4 py-1 rounded-lg text-lg font-black", {
-                  'bg-amber-500/20 text-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)]': gameResult.grade === 'S',
-                  'bg-violet-500/20 text-violet-400': gameResult.grade === 'A',
+                  'bg-[#F4D03F]/20 text-[#F4D03F] shadow-[0_0_20px_rgba(244,208,63,0.3)]': gameResult.grade === 'S',
+                  'bg-[#FF6B35]/20 text-[#FF6B35]': gameResult.grade === 'A',
                   'bg-blue-500/20 text-blue-400': gameResult.grade === 'B',
-                  'bg-slate-500/20 text-slate-400': gameResult.grade === 'C',
+                  'bg-slate-500/20 text-[#A0937D]': gameResult.grade === 'C',
                   'bg-red-500/20 text-red-400': gameResult.grade === 'F',
                 })}>
                   {gameResult.grade} 등급
@@ -2256,20 +2256,20 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
               {/* Stats grid */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-center p-3 rounded-xl bg-slate-800/50 border border-slate-700/30">
+                <div className="text-center p-3 rounded-xl bg-[#2A2520] border border-[#3D3428]">
                   <div className="text-lg mb-0.5">{'\u23F1\uFE0F'}</div>
                   <div className="text-[14px] font-bold text-white">{Math.floor(gameResult.stats.time / 60)}:{String(gameResult.stats.time % 60).padStart(2, '0')}</div>
-                  <div className="text-[10px] text-slate-500">시간</div>
+                  <div className="text-[10px] text-[#A0937D]/70">시간</div>
                 </div>
-                <div className="text-center p-3 rounded-xl bg-slate-800/50 border border-slate-700/30">
+                <div className="text-center p-3 rounded-xl bg-[#2A2520] border border-[#3D3428]">
                   <div className="text-lg mb-0.5">{'\u{1F4AC}'}</div>
                   <div className="text-[14px] font-bold text-white">{gameResult.stats.turns}턴</div>
-                  <div className="text-[10px] text-slate-500">사용</div>
+                  <div className="text-[10px] text-[#A0937D]/70">사용</div>
                 </div>
-                <div className="text-center p-3 rounded-xl bg-slate-800/50 border border-slate-700/30">
+                <div className="text-center p-3 rounded-xl bg-[#2A2520] border border-[#3D3428]">
                   <div className="text-lg mb-0.5">{'\u{1F4A1}'}</div>
                   <div className="text-[14px] font-bold text-white">{gameResult.stats.hints}회</div>
-                  <div className="text-[10px] text-slate-500">힌트</div>
+                  <div className="text-[10px] text-[#A0937D]/70">힌트</div>
                 </div>
               </div>
 
@@ -2282,11 +2282,11 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               {/* New achievements */}
               {gameResult.newAchievements.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[11px] text-slate-500 font-semibold">{'\u{1F3C5}'} 새 업적 달성!</p>
+                  <p className="text-[11px] text-[#A0937D]/70 font-semibold">{'\u{1F3C5}'} 새 업적 달성!</p>
                   {gameResult.newAchievements.map(a => (
-                    <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg bg-violet-500/10 border border-violet-500/20 animate-in fade-in slide-in-from-bottom-2">
+                    <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/20 animate-in fade-in slide-in-from-bottom-2">
                       <span className="text-base">{a.icon}</span>
-                      <span className="text-[12px] font-semibold text-violet-300">{a.name}</span>
+                      <span className="text-[12px] font-semibold text-[#FF6B35]">{a.name}</span>
                     </div>
                   ))}
                 </div>
@@ -2294,10 +2294,10 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
 
               {/* Action buttons */}
               <div className="flex gap-2">
-                <button onClick={() => { setGameResult(null); gameEndedRef.current = false; gameStartTime.current = Date.now(); turnsUsed.current = 0; hintsUsed.current = 0; onExit(); }} className="flex-1 py-2.5 rounded-xl bg-slate-700 text-white text-[13px] font-semibold hover:bg-slate-600 transition-all active:scale-95">
+                <button onClick={() => { setGameResult(null); gameEndedRef.current = false; gameStartTime.current = Date.now(); turnsUsed.current = 0; hintsUsed.current = 0; onExit(); }} className="flex-1 py-2.5 rounded-xl bg-[#2A2520] text-white text-[13px] font-semibold hover:bg-[#3D3428] transition-all active:scale-95">
                   {'\u{1F504}'} 재도전
                 </button>
-                <button onClick={onExit} className="flex-1 py-2.5 rounded-xl bg-slate-700 text-white text-[13px] font-semibold hover:bg-slate-600 transition-all active:scale-95">
+                <button onClick={onExit} className="flex-1 py-2.5 rounded-xl bg-[#2A2520] text-white text-[13px] font-semibold hover:bg-[#3D3428] transition-all active:scale-95">
                   {'\u{1F3AE}'} 다른 게임
                 </button>
               </div>
@@ -2307,11 +2307,11 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
       </div>
 
       {/* ── Input Area ── Cycle 40: Enhanced with accent glow on focus */}
-      <div className={cn('border-t px-5 py-3 animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both', meta.accentBorder, 'bg-slate-900/95 backdrop-blur-sm')} style={{ animationDelay: '300ms' }}>
+      <div className={cn('border-t px-5 py-3 animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both', meta.accentBorder, 'bg-[#1A1714]')} style={{ animationDelay: '300ms' }}>
         <form onSubmit={handleSubmit} className="flex items-end gap-2.5">
           <div className={cn(
-            'flex-1 rounded-xl border-2 transition-all duration-300 bg-slate-800/80',
-            isDiscussing ? 'border-slate-700 opacity-60' : 'border-slate-600',
+            'flex-1 rounded-xl border-2 transition-all duration-300 bg-[#2A2520]',
+            isDiscussing ? 'border-[#3D3428] opacity-60' : 'border-[#3D3428]',
           )} style={!isDiscussing ? { '--accent-glow': accentColorVar } as React.CSSProperties : undefined}>
             <textarea
               ref={inputRef}
@@ -2321,7 +2321,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               disabled={isDiscussing}
               rows={1}
               className={cn(
-                "w-full bg-transparent resize-none text-[13px] text-white placeholder:text-slate-500 focus:outline-none leading-relaxed px-4 py-2.5 min-h-[42px] max-h-[100px] block",
+                "w-full bg-transparent resize-none text-[13px] text-white placeholder:text-[#A0937D]/70 focus:outline-none leading-relaxed px-4 py-2.5 min-h-[42px] max-h-[100px] block",
                 gameId === 'code-breaker' && 'font-mono text-green-300/90',
               )}
               style={!isDiscussing ? { caretColor: accentColorVar } : undefined}
@@ -2355,7 +2355,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
               'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200',
               input.trim() && !isDiscussing
                 ? cn('text-white shadow-lg hover:scale-105 active:scale-90', meta.glow, meta.accentBg)
-                : 'bg-slate-800 text-slate-600',
+                : 'bg-[#2A2520] text-[#A0937D]/50',
             )}
           >
             <ArrowUp className="w-4.5 h-4.5" strokeWidth={2.5} />
@@ -2363,7 +2363,7 @@ export function GamePlayer({ gameId, gameOption, optionLabel, messages, onSendMe
         </form>
 
         <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[9px] text-slate-600">Enter 전송 / Shift+Enter 줄바꿈</span>
+          <span className="text-[9px] text-[#A0937D]/50">Enter 전송 / Shift+Enter 줄바꿈</span>
           {isDiscussing && (
             <span className={cn('text-[9px] animate-pulse flex items-center gap-1', meta.accent)}>
               <Zap className="w-3 h-3" /> AI 응답 중...
