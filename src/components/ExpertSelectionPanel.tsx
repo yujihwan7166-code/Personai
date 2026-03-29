@@ -1131,18 +1131,18 @@ function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onS
   };
 
   const gameAccentColors: Record<string, { border: string; bg: string; text: string; glow: string; btn: string }> = {
-    'ai-polygraph': { border: 'border-[#FF6B35]', bg: 'bg-[#FF6B35]/15', text: 'text-[#FF6B35]', glow: 'shadow-[0_0_20px_rgba(255,107,53,0.3)]', btn: 'bg-[#FF6B35]' },
-    'mental-breaker': { border: 'border-[#D63031]', bg: 'bg-[#D63031]/15', text: 'text-[#D63031]', glow: 'shadow-[0_0_20px_rgba(214,48,49,0.3)]', btn: 'bg-[#D63031]' },
-    'reverse-interrogation': { border: 'border-[#F4D03F]', bg: 'bg-[#F4D03F]/15', text: 'text-[#F4D03F]', glow: 'shadow-[0_0_20px_rgba(244,208,63,0.3)]', btn: 'bg-[#F4D03F]' },
-    'split-personality': { border: 'border-[#16A34A]', bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', glow: 'shadow-[0_0_20px_rgba(22,163,74,0.3)]', btn: 'bg-[#16A34A]' },
-    'emotion-hacker': { border: 'border-[#D63031]', bg: 'bg-[#D63031]/15', text: 'text-[#D63031]', glow: 'shadow-[0_0_20px_rgba(214,48,49,0.3)]', btn: 'bg-[#D63031]' },
-    'reverse-quiz': { border: 'border-[#FF6B35]', bg: 'bg-[#FF6B35]/15', text: 'text-[#FF6B35]', glow: 'shadow-[0_0_20px_rgba(255,107,53,0.3)]', btn: 'bg-[#FF6B35]' },
-    'ai-court': { border: 'border-[#F4D03F]', bg: 'bg-[#F4D03F]/15', text: 'text-[#F4D03F]', glow: 'shadow-[0_0_20px_rgba(244,208,63,0.3)]', btn: 'bg-[#F4D03F]' },
-    'code-breaker': { border: 'border-[#16A34A]', bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', glow: 'shadow-[0_0_20px_rgba(22,163,74,0.3)]', btn: 'bg-[#16A34A]' },
-    'minefield': { border: 'border-[#D63031]', bg: 'bg-[#D63031]/15', text: 'text-[#D63031]', glow: 'shadow-[0_0_20px_rgba(214,48,49,0.3)]', btn: 'bg-[#D63031]' },
-    'ai-mafia': { border: 'border-[#FF6B35]', bg: 'bg-[#FF6B35]/15', text: 'text-[#FF6B35]', glow: 'shadow-[0_0_20px_rgba(255,107,53,0.3)]', btn: 'bg-[#FF6B35]' },
-    'firewall-escape': { border: 'border-[#16A34A]', bg: 'bg-[#16A34A]/15', text: 'text-[#16A34A]', glow: 'shadow-[0_0_20px_rgba(22,163,74,0.3)]', btn: 'bg-[#16A34A]' },
-    'negotiator': { border: 'border-[#F4D03F]', bg: 'bg-[#F4D03F]/15', text: 'text-[#F4D03F]', glow: 'shadow-[0_0_20px_rgba(244,208,63,0.3)]', btn: 'bg-[#F4D03F]' },
+    'ai-polygraph': { border: 'border-cyan-400', bg: 'bg-cyan-500/20', text: 'text-cyan-300', glow: 'shadow-[0_0_20px_rgba(6,182,212,0.3)]', btn: 'from-cyan-500 via-sky-500 to-blue-500' },
+    'mental-breaker': { border: 'border-red-400', bg: 'bg-red-500/20', text: 'text-red-300', glow: 'shadow-[0_0_20px_rgba(239,68,68,0.3)]', btn: 'from-red-500 via-rose-500 to-pink-600' },
+    'reverse-interrogation': { border: 'border-amber-400', bg: 'bg-amber-500/20', text: 'text-amber-300', glow: 'shadow-[0_0_20px_rgba(245,158,11,0.3)]', btn: 'from-amber-500 via-orange-500 to-yellow-500' },
+    'split-personality': { border: 'border-purple-400', bg: 'bg-purple-500/20', text: 'text-purple-300', glow: 'shadow-[0_0_20px_rgba(168,85,247,0.3)]', btn: 'from-purple-500 via-violet-500 to-indigo-600' },
+    'emotion-hacker': { border: 'border-pink-400', bg: 'bg-pink-500/20', text: 'text-pink-300', glow: 'shadow-[0_0_20px_rgba(236,72,153,0.3)]', btn: 'from-pink-500 via-rose-500 to-red-500' },
+    'reverse-quiz': { border: 'border-emerald-400', bg: 'bg-emerald-500/20', text: 'text-emerald-300', glow: 'shadow-[0_0_20px_rgba(16,185,129,0.3)]', btn: 'from-emerald-500 via-green-500 to-teal-500' },
+    'ai-court': { border: 'border-orange-400', bg: 'bg-orange-500/20', text: 'text-orange-300', glow: 'shadow-[0_0_20px_rgba(249,115,22,0.3)]', btn: 'from-orange-500 via-red-500 to-rose-600' },
+    'code-breaker': { border: 'border-blue-400', bg: 'bg-blue-500/20', text: 'text-blue-300', glow: 'shadow-[0_0_20px_rgba(59,130,246,0.3)]', btn: 'from-blue-500 via-blue-600 to-indigo-600' },
+    'minefield': { border: 'border-rose-400', bg: 'bg-rose-500/20', text: 'text-rose-300', glow: 'shadow-[0_0_20px_rgba(244,63,94,0.3)]', btn: 'from-rose-500 via-pink-500 to-red-500' },
+    'ai-mafia': { border: 'border-violet-400', bg: 'bg-violet-500/20', text: 'text-violet-300', glow: 'shadow-[0_0_20px_rgba(139,92,246,0.3)]', btn: 'from-violet-500 via-purple-500 to-indigo-500' },
+    'firewall-escape': { border: 'border-teal-400', bg: 'bg-teal-500/20', text: 'text-teal-300', glow: 'shadow-[0_0_20px_rgba(20,184,166,0.3)]', btn: 'from-teal-500 via-emerald-500 to-green-500' },
+    'negotiator': { border: 'border-amber-400', bg: 'bg-amber-500/20', text: 'text-amber-300', glow: 'shadow-[0_0_20px_rgba(245,158,11,0.3)]', btn: 'from-amber-500 via-yellow-500 to-orange-500' },
   };
   const accent = selectedGame ? gameAccentColors[selectedGame.id] : null;
 
@@ -1707,64 +1707,64 @@ ${caseDesc}
   };
 
   const gameGlowColors: Record<string, string> = {
-    'ai-polygraph': 'rgba(255,107,53,0.35)',
-    'mental-breaker': 'rgba(214,48,49,0.35)',
-    'reverse-interrogation': 'rgba(244,208,63,0.35)',
-    'split-personality': 'rgba(22,163,74,0.35)',
-    'emotion-hacker': 'rgba(214,48,49,0.35)',
-    'reverse-quiz': 'rgba(255,107,53,0.35)',
-    'ai-court': 'rgba(244,208,63,0.35)',
-    'code-breaker': 'rgba(22,163,74,0.35)',
-    'minefield': 'rgba(214,48,49,0.35)',
-    'ai-mafia': 'rgba(255,107,53,0.35)',
-    'firewall-escape': 'rgba(22,163,74,0.35)',
-    'negotiator': 'rgba(244,208,63,0.35)',
+    'ai-polygraph': 'rgba(6,182,212,0.35)',
+    'mental-breaker': 'rgba(239,68,68,0.35)',
+    'reverse-interrogation': 'rgba(245,158,11,0.35)',
+    'split-personality': 'rgba(168,85,247,0.35)',
+    'emotion-hacker': 'rgba(236,72,153,0.35)',
+    'reverse-quiz': 'rgba(16,185,129,0.35)',
+    'ai-court': 'rgba(249,115,22,0.35)',
+    'code-breaker': 'rgba(59,130,246,0.35)',
+    'minefield': 'rgba(244,63,94,0.35)',
+    'ai-mafia': 'rgba(139,92,246,0.35)',
+    'firewall-escape': 'rgba(20,184,166,0.35)',
+    'negotiator': 'rgba(245,158,11,0.35)',
   };
 
   const gameIconBg: Record<string, string> = {
-    'ai-polygraph': 'bg-[#FF6B35]/15 text-[#FF6B35]',
-    'mental-breaker': 'bg-[#D63031]/15 text-[#D63031]',
-    'reverse-interrogation': 'bg-[#F4D03F]/15 text-[#F4D03F]',
-    'split-personality': 'bg-[#16A34A]/15 text-[#16A34A]',
-    'emotion-hacker': 'bg-[#D63031]/15 text-[#D63031]',
-    'reverse-quiz': 'bg-[#FF6B35]/15 text-[#FF6B35]',
-    'ai-court': 'bg-[#F4D03F]/15 text-[#F4D03F]',
-    'code-breaker': 'bg-[#16A34A]/15 text-[#16A34A]',
-    'minefield': 'bg-[#D63031]/15 text-[#D63031]',
-    'ai-mafia': 'bg-[#FF6B35]/15 text-[#FF6B35]',
-    'firewall-escape': 'bg-[#16A34A]/15 text-[#16A34A]',
-    'negotiator': 'bg-[#F4D03F]/15 text-[#F4D03F]',
+    'ai-polygraph': 'bg-cyan-500/15 text-cyan-400',
+    'mental-breaker': 'bg-red-500/15 text-red-400',
+    'reverse-interrogation': 'bg-amber-500/15 text-amber-400',
+    'split-personality': 'bg-purple-500/15 text-purple-400',
+    'emotion-hacker': 'bg-pink-500/15 text-pink-400',
+    'reverse-quiz': 'bg-emerald-500/15 text-emerald-400',
+    'ai-court': 'bg-orange-500/15 text-orange-400',
+    'code-breaker': 'bg-blue-500/15 text-blue-400',
+    'minefield': 'bg-rose-500/15 text-rose-400',
+    'ai-mafia': 'bg-violet-500/15 text-violet-400',
+    'firewall-escape': 'bg-teal-500/15 text-teal-400',
+    'negotiator': 'bg-amber-500/15 text-amber-400',
   };
 
   const gameCheckBg: Record<string, string> = {
-    'ai-polygraph': 'bg-[#FF6B35]',
-    'mental-breaker': 'bg-[#D63031]',
-    'reverse-interrogation': 'bg-[#F4D03F]',
-    'split-personality': 'bg-[#16A34A]',
-    'emotion-hacker': 'bg-[#D63031]',
-    'reverse-quiz': 'bg-[#FF6B35]',
-    'ai-court': 'bg-[#F4D03F]',
-    'code-breaker': 'bg-[#16A34A]',
-    'minefield': 'bg-[#D63031]',
-    'ai-mafia': 'bg-[#FF6B35]',
-    'firewall-escape': 'bg-[#16A34A]',
-    'negotiator': 'bg-[#F4D03F]',
+    'ai-polygraph': 'bg-cyan-500',
+    'mental-breaker': 'bg-red-500',
+    'reverse-interrogation': 'bg-amber-500',
+    'split-personality': 'bg-purple-500',
+    'emotion-hacker': 'bg-pink-500',
+    'reverse-quiz': 'bg-emerald-500',
+    'ai-court': 'bg-orange-500',
+    'code-breaker': 'bg-blue-500',
+    'minefield': 'bg-rose-500',
+    'ai-mafia': 'bg-violet-500',
+    'firewall-escape': 'bg-teal-500',
+    'negotiator': 'bg-amber-500',
   };
 
   /* Cycle 1-3: Unique gradient backgrounds per card */
   const gameCardGradients: Record<string, string> = {
-    'ai-polygraph': 'from-[#FF6B35]/10 via-[#2A2520] to-[#FF6B35]/5',
-    'mental-breaker': 'from-[#D63031]/10 via-[#2A2520] to-[#D63031]/5',
-    'reverse-interrogation': 'from-[#F4D03F]/10 via-[#2A2520] to-[#F4D03F]/5',
-    'split-personality': 'from-[#16A34A]/10 via-[#2A2520] to-[#16A34A]/5',
-    'emotion-hacker': 'from-[#D63031]/10 via-[#2A2520] to-[#D63031]/5',
-    'reverse-quiz': 'from-[#FF6B35]/10 via-[#2A2520] to-[#FF6B35]/5',
-    'ai-court': 'from-[#F4D03F]/10 via-[#2A2520] to-[#F4D03F]/5',
-    'code-breaker': 'from-[#16A34A]/10 via-[#2A2520] to-[#16A34A]/5',
-    'minefield': 'from-[#D63031]/10 via-[#2A2520] to-[#D63031]/5',
-    'ai-mafia': 'from-[#FF6B35]/10 via-[#2A2520] to-[#FF6B35]/5',
-    'firewall-escape': 'from-[#16A34A]/10 via-[#2A2520] to-[#16A34A]/5',
-    'negotiator': 'from-[#F4D03F]/10 via-[#2A2520] to-[#F4D03F]/5',
+    'ai-polygraph': 'from-cyan-900/40 via-slate-800/60 to-sky-900/30',
+    'mental-breaker': 'from-red-900/40 via-slate-800/60 to-rose-900/30',
+    'reverse-interrogation': 'from-amber-900/40 via-slate-800/60 to-orange-900/30',
+    'split-personality': 'from-purple-900/40 via-slate-800/60 to-violet-900/30',
+    'emotion-hacker': 'from-pink-900/40 via-slate-800/60 to-rose-900/30',
+    'reverse-quiz': 'from-emerald-900/40 via-slate-800/60 to-green-900/30',
+    'ai-court': 'from-orange-900/40 via-slate-800/60 to-red-900/30',
+    'code-breaker': 'from-blue-900/40 via-slate-800/60 to-indigo-900/30',
+    'minefield': 'from-rose-900/40 via-slate-800/60 to-pink-900/30',
+    'ai-mafia': 'from-violet-900/40 via-slate-800/60 to-purple-900/30',
+    'firewall-escape': 'from-teal-900/40 via-slate-800/60 to-emerald-900/30',
+    'negotiator': 'from-amber-900/40 via-slate-800/60 to-yellow-900/30',
   };
 
   /* Cycle 4-5: Per-card hover icon animation type */
@@ -1858,10 +1858,9 @@ ${caseDesc}
   const top3Games = GAME_CARDS.filter(g => hotGames.has(g.id)).slice(0, 3);
 
   return (
-    <div className="bg-[#1A1714] overflow-hidden" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`, fontFamily: "'Pretendard', sans-serif" }}>
-      {/* CSS animations + fonts */}
+    <div className="bg-slate-950 overflow-hidden">
+      {/* CSS animations */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Pretendard:wght@400;500;600;700;800&display=swap');
         @keyframes lobby-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
         @keyframes lobby-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px) rotate(-2deg); } 75% { transform: translateX(3px) rotate(2deg); } }
         @keyframes lobby-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
@@ -1886,18 +1885,18 @@ ${caseDesc}
           </button>
           <div className="flex items-center gap-2">
             <span className="text-[20px]">🎮</span>
-            <span className="text-[22px] font-extrabold tracking-tight text-[#FF6B35]" style={{ fontFamily: "'Black Han Sans', sans-serif", textShadow: '0 0 20px rgba(255,107,53,0.4)' }}>
+            <span className="text-[18px] font-extrabold tracking-tight bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
               GAME ARENA
             </span>
           </div>
         </div>
         <button onClick={() => setShowProfile(true)} className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-1.5 hover:bg-white/[0.08] transition-all">
-          <div className="w-7 h-7 rounded-lg bg-[#FF6B35] flex items-center justify-center text-[10px] font-bold text-white">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
             Lv
           </div>
           <div className="text-left">
-            <div className="text-[11px] font-semibold text-[#D4C5B0]">Player <span className="text-[9px] text-[#F4D03F] font-semibold">{playerTitle}</span></div>
-            <div className="text-[9px] text-[#A0937D]">Lv.{playerLevel} | {playerXP.toLocaleString()} XP</div>
+            <div className="text-[11px] font-semibold text-slate-200">Player <span className="text-[9px] text-amber-400 font-semibold">{playerTitle}</span></div>
+            <div className="text-[9px] text-slate-500">Lv.{playerLevel} | {playerXP.toLocaleString()} XP</div>
           </div>
         </button>
       </div>
@@ -1907,15 +1906,15 @@ ${caseDesc}
         {/* ── Player Level Badge (top-right) ── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[#A0937D] font-medium">{GAME_CARDS.length}개 게임</span>
+            <span className="text-[10px] text-slate-500 font-medium">{GAME_CARDS.length}개 게임</span>
           </div>
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#2A2520] border border-[#3D3428]">
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/50">
             <span className="text-[11px]">⭐</span>
-            <span className="text-[11px] font-bold text-[#F4D03F]">Lv.{playerLevel}</span>
-            <div className="w-16 h-1.5 bg-[#3D3428] rounded-full overflow-hidden">
-              <div className="h-full bg-[#F4D03F] rounded-full transition-all duration-500" style={{ width: `${(playerXP % 1000) / 10}%` }} />
+            <span className="text-[11px] font-bold text-amber-400">Lv.{playerLevel}</span>
+            <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500" style={{ width: `${(playerXP % 1000) / 10}%` }} />
             </div>
-            <span className="text-[9px] text-[#A0937D] font-medium">{playerXP % 1000}/1000 XP</span>
+            <span className="text-[9px] text-slate-500 font-medium">{playerXP % 1000}/1000 XP</span>
           </div>
         </div>
 
@@ -1929,7 +1928,7 @@ ${caseDesc}
           }}
           className={cn(
             'relative w-full rounded-2xl overflow-hidden border transition-all duration-300 text-left',
-            featuredAccent?.border || 'border-[#3D3428]',
+            featuredAccent?.border || 'border-slate-700/50',
             'hover:scale-[1.01] active:scale-[0.995]'
           )}
           style={{ animation: 'fadeSlideIn 0.5s ease-out both' }}
@@ -1939,15 +1938,15 @@ ${caseDesc}
           <div className="relative px-5 py-5">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider mb-2', featuredAccent?.bg || 'bg-[#FF6B35]/15', featuredAccent?.text || 'text-[#FF6B35]')}>
+                <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider mb-2', featuredAccent?.bg || 'bg-indigo-500/20', featuredAccent?.text || 'text-indigo-400')}>
                   <Sparkles className="w-2.5 h-2.5" /> FEATURED
                 </span>
-                <h3 className="text-[22px] font-black text-white mb-1 tracking-tight" style={{ fontFamily: "'Black Han Sans', sans-serif" }}>{featured.name}</h3>
-                <p className="text-[12px] text-[#A0937D] mb-3 leading-relaxed">{gameDescriptions[featured.id]}</p>
+                <h3 className="text-[20px] font-black text-white mb-1 tracking-tight">{featured.name}</h3>
+                <p className="text-[12px] text-slate-400 mb-3 leading-relaxed">{gameDescriptions[featured.id]}</p>
                 <div className={cn(
                   'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all',
-                  'text-white',
-                  featuredAccent?.btn || 'bg-[#FF6B35]'
+                  'bg-gradient-to-r text-white',
+                  featuredAccent?.btn || 'from-indigo-500 to-purple-500'
                 )}>
                   <Zap className="w-3.5 h-3.5" /> 지금 플레이
                 </div>
@@ -1961,7 +1960,7 @@ ${caseDesc}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   {top3Games.map(g => (
-                    <div key={g.id} className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-sm border border-[#3D3428]', gameIconBg[g.id])}>
+                    <div key={g.id} className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-sm border border-slate-600/40', gameIconBg[g.id])}>
                       {gameIcons[g.id] ? <span className="scale-[0.55]">{gameIcons[g.id]}</span> : g.icon}
                     </div>
                   ))}
@@ -1973,29 +1972,29 @@ ${caseDesc}
 
         {/* ── Stats Bar ── */}
         <div className="grid grid-cols-3 gap-3" style={{ animation: 'fadeSlideIn 0.6s ease-out 0.1s both' }}>
-          <div className="px-3 py-2.5 rounded-lg bg-[#2A2520] border border-[#3D3428]">
+          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="text-[10px]">🟢</span>
-              <span className="text-[10px] text-[#A0937D] font-medium">접속 중</span>
+              <span className="text-[10px] text-slate-500 font-medium">접속 중</span>
             </div>
             <span className="text-[18px] font-black text-white">{randomPlayers}</span>
-            <span className="text-[10px] text-[#A0937D] ml-1">명</span>
+            <span className="text-[10px] text-slate-500 ml-1">명</span>
           </div>
-          <div className="px-3 py-2.5 rounded-lg bg-[#2A2520] border border-[#3D3428]">
+          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="text-[10px]">🎯</span>
-              <span className="text-[10px] text-[#A0937D] font-medium">오늘 플레이</span>
+              <span className="text-[10px] text-slate-500 font-medium">오늘 플레이</span>
             </div>
             <span className="text-[18px] font-black text-white">{todayPlays}</span>
-            <span className="text-[10px] text-[#A0937D] ml-1">판</span>
+            <span className="text-[10px] text-slate-500 ml-1">판</span>
           </div>
-          <div className="px-3 py-2.5 rounded-lg bg-[#2A2520] border border-[#3D3428]">
+          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="text-[10px]">🤖</span>
-              <span className="text-[10px] text-[#A0937D] font-medium">AI 승률</span>
+              <span className="text-[10px] text-slate-500 font-medium">AI 승률</span>
             </div>
             <span className="text-[18px] font-black text-white">62</span>
-            <span className="text-[10px] text-[#A0937D] ml-0.5">%</span>
+            <span className="text-[10px] text-slate-500 ml-0.5">%</span>
           </div>
         </div>
 
@@ -2009,15 +2008,15 @@ ${caseDesc}
                 className={cn(
                   'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all duration-200',
                   activeCategory === cat
-                    ? 'bg-[#FF6B35]/15 text-[#FF6B35] border border-[#FF6B35]/30'
-                    : 'bg-[#2A2520] text-[#A0937D] hover:bg-[#3D3428] hover:text-[#D4C5B0]'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/70 hover:text-slate-300'
                 )}
               >
                 {cat}
               </button>
             ))}
           </div>
-          <span className="text-[11px] text-[#A0937D] font-medium">{filteredGames.length}개 게임</span>
+          <span className="text-[11px] text-slate-500 font-medium">{filteredGames.length}개 게임</span>
         </div>
 
         {/* ── Game Grid - 3 columns ── */}
@@ -2046,15 +2045,15 @@ ${caseDesc}
                 className={cn(
                   'relative text-left rounded-xl border overflow-hidden group transition-all duration-300 ease-out',
                   isSelected
-                    ? `${gameAccentColors[game.id]?.border || 'border-[#FF6B35]'} bg-gradient-to-br ${gameCardGradients[game.id]}`
-                    : 'border-[#3D3428] bg-[#2A2520] hover:border-[#A0937D]/40 hover:bg-[#2A2520]/90 hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]'
+                    ? `${gameAccentColors[game.id]?.border || 'border-indigo-400'} bg-gradient-to-br ${gameCardGradients[game.id]}`
+                    : 'border-slate-700/40 bg-slate-800/50 hover:border-slate-600/70 hover:bg-slate-800/80 hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]'
                 )}
               >
                 {/* Best grade badge */}
                 {(() => {
                   const grade = getBestGrade(game.id);
                   if (!grade) return null;
-                  const gradeColors: Record<string, string> = { S: 'bg-[#F4D03F]/20 text-[#F4D03F]', A: 'bg-[#FF6B35]/20 text-[#FF6B35]', B: 'bg-blue-500/20 text-blue-400', C: 'bg-[#A0937D]/20 text-[#A0937D]', F: 'bg-[#D63031]/20 text-[#D63031]' };
+                  const gradeColors: Record<string, string> = { S: 'bg-amber-500/20 text-amber-400', A: 'bg-violet-500/20 text-violet-400', B: 'bg-blue-500/20 text-blue-400', C: 'bg-slate-600/30 text-slate-400', F: 'bg-red-500/20 text-red-400' };
                   return <span className={cn("absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-black z-10", gradeColors[grade] || '')}>{grade}</span>;
                 })()}
                 {/* HOT badge or first-clear bonus */}
@@ -2074,7 +2073,7 @@ ${caseDesc}
                 {isSelected && (
                   <div className={cn(
                     "absolute top-2 left-2 z-10 w-5 h-5 rounded-full flex items-center justify-center shadow-lg",
-                    gameCheckBg[game.id] || 'bg-[#FF6B35]',
+                    gameCheckBg[game.id] || 'bg-indigo-500',
                   )} style={{ animation: 'lobby-pulse 1.5s ease-in-out infinite' }}>
                     <Check className="w-3 h-3 text-white" strokeWidth={3} />
                   </div>
@@ -2097,10 +2096,10 @@ ${caseDesc}
                   {/* Name */}
                   <h3 className={cn(
                     'text-[14px] font-bold mb-1 tracking-tight transition-colors duration-200',
-                    isSelected ? (gameAccentColors[game.id]?.text || 'text-[#FF6B35]') : 'text-white group-hover:text-[#D4C5B0]'
-                  )} style={{ fontFamily: "'Black Han Sans', sans-serif" }}>{game.name}</h3>
+                    isSelected ? (gameAccentColors[game.id]?.text || 'text-indigo-300') : 'text-white group-hover:text-slate-100'
+                  )}>{game.name}</h3>
                   {/* Description */}
-                  <p className="text-[11px] text-[#A0937D] leading-snug line-clamp-2 mb-3 group-hover:text-[#D4C5B0] transition-colors duration-200">
+                  <p className="text-[11px] text-slate-400 leading-snug line-clamp-2 mb-3 group-hover:text-slate-300 transition-colors duration-200">
                     {gameDescriptions[game.id]}
                   </p>
                   {/* Bottom: mode badge + difficulty dots */}
@@ -2136,19 +2135,19 @@ ${caseDesc}
         {selectedGame && (
           <div data-game-options className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             {/* Rules */}
-            <div className={cn("mb-3 px-4 py-3 rounded-xl border relative overflow-hidden", accent?.bg || 'bg-[#2A2520]', 'border-[#3D3428]')}>
+            <div className={cn("mb-3 px-4 py-3 rounded-xl border relative overflow-hidden", accent?.bg || 'bg-slate-800/80', 'border-slate-700/40')}>
               <div className="absolute inset-0 opacity-20 bg-gradient-to-r" style={{ backgroundImage: `radial-gradient(ellipse at 0% 50%, ${gameGlowColors[selectedGame.id].replace('0.35', '0.15')}, transparent 60%)` }} />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className={cn("text-[10px] font-bold uppercase tracking-wider", accent?.text || 'text-[#FF6B35]')}>Game Rules</span>
-                  <div className="flex-1 h-px bg-gradient-to-r from-[#3D3428] to-transparent" />
+                  <span className={cn("text-[10px] font-bold uppercase tracking-wider", accent?.text || 'text-indigo-400')}>Game Rules</span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-slate-700/50 to-transparent" />
                 </div>
-                <p className="text-[10px] text-[#D4C5B0] leading-relaxed">{selectedGame.rules}</p>
+                <p className="text-[10px] text-slate-300 leading-relaxed">{selectedGame.rules}</p>
               </div>
             </div>
 
             {/* Options */}
-            <p className="text-[10px] text-[#A0937D] font-semibold mb-2 px-1">
+            <p className="text-[10px] text-slate-400 font-semibold mb-2 px-1">
               {gameOptions[selectedGame.id]?.label}
             </p>
             <div className={cn("grid gap-2.5 mb-4", (gameOptions[selectedGame.id]?.options.length || 0) <= 2 ? 'grid-cols-2' : (gameOptions[selectedGame.id]?.options.length || 0) === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
@@ -2159,8 +2158,8 @@ ${caseDesc}
                   className={cn(
                     'flex flex-col items-center gap-1.5 py-3.5 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group/opt',
                     gameOption === opt.id
-                      ? `${accent?.border || 'border-[#FF6B35]'} ${accent?.bg || 'bg-[#FF6B35]/15'} text-white scale-[1.03]`
-                      : 'border-[#3D3428] bg-[#2A2520]/60 text-[#A0937D] hover:border-[#A0937D]/50 hover:text-white hover:bg-[#2A2520] active:scale-[0.97]'
+                      ? `${accent?.border || 'border-indigo-400'} ${accent?.bg || 'bg-indigo-500/20'} text-white scale-[1.03]`
+                      : 'border-slate-600/40 bg-slate-800/30 text-slate-400 hover:border-slate-500 hover:text-white hover:bg-slate-700/50 active:scale-[0.97]'
                   )}
                   style={gameOption === opt.id ? { boxShadow: `0 0 15px ${gameGlowColors[selectedGame.id].replace('0.35', '0.2')}` } : undefined}
                 >
@@ -2178,8 +2177,8 @@ ${caseDesc}
               className={cn(
                 'w-full py-3.5 rounded-xl text-[14px] font-bold transition-all duration-200 flex items-center justify-center gap-2 relative overflow-hidden',
                 gameOption && !isDiscussing
-                  ? `${accent?.btn || 'bg-[#FF6B35]'} text-white hover:scale-[1.01] active:scale-[0.99] hover:brightness-110`
-                  : 'bg-[#2A2520] text-[#A0937D]/50 cursor-not-allowed'
+                  ? `bg-gradient-to-r ${accent?.btn || 'from-indigo-500 via-purple-500 to-pink-500'} text-white hover:scale-[1.01] active:scale-[0.99]`
+                  : 'bg-slate-700 text-slate-500 cursor-not-allowed'
               )}
               style={gameOption && !isDiscussing ? {
                 '--btn-glow': gameGlowColors[selectedGame.id].replace('0.35', '0.4'),
@@ -2197,24 +2196,24 @@ ${caseDesc}
 
         {/* ── Daily Challenge Banner ── */}
         <div
-          className="relative rounded-xl overflow-hidden border border-[#FF6B35]/20 bg-gradient-to-r from-[#FF6B35]/10 via-[#2A2520] to-[#D63031]/10"
+          className="relative rounded-xl overflow-hidden border border-amber-500/20 bg-gradient-to-r from-amber-900/20 via-slate-800/60 to-orange-900/20"
           style={{ animation: 'fadeSlideIn 0.7s ease-out 0.25s both' }}
         >
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 10% 50%, rgba(245,158,11,0.1), transparent 60%)' }} />
           <div className="relative px-4 py-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FF6B35]/15 flex items-center justify-center text-lg shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-lg shrink-0">
               🏆
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-[#FF6B35]">Daily Challenge</span>
-                <span className="text-[9px] font-bold text-[#FF6B35]/70" style={{ animation: 'countdown-pulse 2s ease-in-out infinite' }}>{countdown}</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">Daily Challenge</span>
+                <span className="text-[9px] font-bold text-amber-500/70" style={{ animation: 'countdown-pulse 2s ease-in-out infinite' }}>{countdown}</span>
               </div>
-              <p className="text-[12px] text-[#D4C5B0] font-semibold truncate">{todayChallenge.mission}</p>
+              <p className="text-[12px] text-slate-300 font-semibold truncate">{todayChallenge.mission}</p>
             </div>
             <div className="shrink-0 flex flex-col items-end gap-0.5">
-              <span className="text-[14px] font-black text-[#F4D03F]">+{todayChallenge.xp}</span>
-              <span className="text-[9px] text-[#F4D03F]/70 font-semibold">XP</span>
+              <span className="text-[14px] font-black text-amber-400">+{todayChallenge.xp}</span>
+              <span className="text-[9px] text-amber-500/70 font-semibold">XP</span>
             </div>
           </div>
         </div>
@@ -2223,22 +2222,22 @@ ${caseDesc}
 
       {/* ── Profile Sheet Modal ── */}
       {showProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowProfile(false)}>
-          <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-[#2A2520] border border-[#3D3428] p-5 space-y-4 animate-in zoom-in-95 fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-slate-800/95 border border-slate-700/50 p-5 space-y-4 animate-in zoom-in-95 fade-in duration-300">
             {/* Avatar + Name + Level */}
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-2 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-2xl font-black text-white">
+              <div className="w-16 h-16 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-2xl font-black text-white">
                 {playerLevel}
               </div>
               <h3 className="text-lg font-bold text-white">Player</h3>
-              <p className="text-[11px] text-[#F4D03F] font-semibold">{playerTitle}</p>
+              <p className="text-[11px] text-amber-400 font-semibold">{playerTitle}</p>
               <div className="mt-2 mx-auto max-w-[200px]">
-                <div className="flex justify-between text-[9px] text-[#A0937D] mb-1">
+                <div className="flex justify-between text-[9px] text-slate-500 mb-1">
                   <span>Lv.{playerLevel}</span>
                   <span>{playerXP % 1000}/1,000 XP</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-[#3D3428]">
-                  <div className="h-full rounded-full bg-[#FF6B35] transition-all" style={{ width: `${(playerXP % 1000) / 10}%` }} />
+                <div className="h-1.5 rounded-full bg-slate-700">
+                  <div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${(playerXP % 1000) / 10}%` }} />
                 </div>
               </div>
             </div>
@@ -2255,7 +2254,7 @@ ${caseDesc}
                 <svg viewBox="0 0 160 160" className="w-40 h-40 mx-auto">
                   {[0.25, 0.5, 0.75, 1].map(s => <polygon key={s} points={bgPoints(s)} fill="none" stroke="rgba(148,163,184,0.12)" strokeWidth="0.5" />)}
                   {angles.map((a, i) => <line key={i} x1={cx} y1={cy} x2={cx + r * Math.cos(a)} y2={cy + r * Math.sin(a)} stroke="rgba(148,163,184,0.08)" strokeWidth="0.5" />)}
-                  <polygon points={dataPoints} fill="rgba(255,107,53,0.2)" stroke="#FF6B35" strokeWidth="1.5" />
+                  <polygon points={dataPoints} fill="rgba(139,92,246,0.2)" stroke="#8B5CF6" strokeWidth="1.5" />
                   {labels.map((l, i) => (
                     <text key={i} x={cx + (r + 14) * Math.cos(angles[i])} y={cy + (r + 14) * Math.sin(angles[i])} textAnchor="middle" dominantBaseline="middle" fill="#94A3B8" fontSize="8" fontWeight="600">{l.label}</text>
                   ))}
@@ -2270,9 +2269,9 @@ ${caseDesc}
               const total = records.length;
               return (
                 <div className="flex justify-center gap-4 text-center">
-                  <div><div className="text-[16px] font-bold text-white">{total}</div><div className="text-[10px] text-[#A0937D]">총 게임</div></div>
-                  <div><div className="text-[16px] font-bold text-[#16A34A]">{wins}</div><div className="text-[10px] text-[#A0937D]">승리</div></div>
-                  <div><div className="text-[16px] font-bold text-[#F4D03F]">{total ? Math.round(wins/total*100) : 0}%</div><div className="text-[10px] text-[#A0937D]">승률</div></div>
+                  <div><div className="text-[16px] font-bold text-white">{total}</div><div className="text-[10px] text-slate-500">총 게임</div></div>
+                  <div><div className="text-[16px] font-bold text-emerald-400">{wins}</div><div className="text-[10px] text-slate-500">승리</div></div>
+                  <div><div className="text-[16px] font-bold text-amber-400">{total ? Math.round(wins/total*100) : 0}%</div><div className="text-[10px] text-slate-500">승률</div></div>
                 </div>
               );
             })()}
@@ -2289,7 +2288,7 @@ ${caseDesc}
               ];
               return (
                 <div>
-                  <p className="text-[11px] text-[#A0937D] font-semibold mb-2">업적 ({unlocked.length}/{allAchievements.length})</p>
+                  <p className="text-[11px] text-slate-500 font-semibold mb-2">업적 ({unlocked.length}/{allAchievements.length})</p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     {allAchievements.map(a => (
                       <span key={a.id} className={cn("text-lg transition-all", unlocked.includes(a.id) ? '' : 'opacity-20 grayscale')}>{a.icon}</span>
@@ -2299,7 +2298,7 @@ ${caseDesc}
               );
             })()}
 
-            <button onClick={() => setShowProfile(false)} className="w-full py-2 rounded-xl bg-[#3D3428] text-[#D4C5B0] text-[12px] font-semibold hover:bg-[#A0937D]/30 transition-all">닫기</button>
+            <button onClick={() => setShowProfile(false)} className="w-full py-2 rounded-xl bg-slate-700 text-slate-300 text-[12px] font-semibold hover:bg-slate-600 transition-all">닫기</button>
           </div>
         </div>
       )}
