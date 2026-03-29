@@ -19,6 +19,7 @@ import {
   Users, User, Crown, Star, Gamepad2,
   Flame, ShieldAlert, Heart, RotateCcw, Lock, Bomb, UserX, Shield, Handshake,
   Drama, Gavel,
+  Timer, TrendingUp, CheckCircle, BarChart3, Trophy, ClipboardCheck, Play,
 } from 'lucide-react';
 
 
@@ -1116,6 +1117,7 @@ function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onS
   const [selectedGame, setSelectedGame] = useState<GameCard | null>(null);
   const [gameOption, setGameOption] = useState('');
   const [showProfile, setShowProfile] = useState(false);
+  const gameGridRef = useRef<HTMLDivElement>(null);
 
   const getBestGrade = (gameId: string): string | null => {
     try {
@@ -1676,36 +1678,6 @@ ${caseDesc}
     'negotiator': 'AI 상인과 거래 대결',
   };
 
-  const gameDifficulty: Record<string, { stars: number; label: string }> = {
-    'ai-polygraph': { stars: 2, label: 'Medium' },
-    'mental-breaker': { stars: 3, label: 'Hard' },
-    'reverse-interrogation': { stars: 2, label: 'Medium' },
-    'split-personality': { stars: 3, label: 'Hard' },
-    'emotion-hacker': { stars: 2, label: 'Medium' },
-    'reverse-quiz': { stars: 1, label: 'Easy' },
-    'ai-court': { stars: 3, label: 'Hard' },
-    'code-breaker': { stars: 2, label: 'Medium' },
-    'minefield': { stars: 2, label: 'Medium' },
-    'ai-mafia': { stars: 2, label: 'Medium' },
-    'firewall-escape': { stars: 3, label: 'Hard' },
-    'negotiator': { stars: 2, label: 'Medium' },
-  };
-
-  const gamePlayerType: Record<string, { label: string; isVs: boolean }> = {
-    'ai-polygraph': { label: '1P', isVs: false },
-    'mental-breaker': { label: 'VS AI', isVs: true },
-    'reverse-interrogation': { label: 'VS AI', isVs: true },
-    'split-personality': { label: '1P', isVs: false },
-    'emotion-hacker': { label: '1P', isVs: false },
-    'reverse-quiz': { label: '1P', isVs: false },
-    'ai-court': { label: 'VS AI', isVs: true },
-    'code-breaker': { label: '1P', isVs: false },
-    'minefield': { label: 'VS AI', isVs: true },
-    'ai-mafia': { label: 'VS AI', isVs: true },
-    'firewall-escape': { label: '1P', isVs: false },
-    'negotiator': { label: 'VS AI', isVs: true },
-  };
-
   const gameGlowColors: Record<string, string> = {
     'ai-polygraph': 'rgba(6,182,212,0.35)',
     'mental-breaker': 'rgba(239,68,68,0.35)',
@@ -1721,69 +1693,6 @@ ${caseDesc}
     'negotiator': 'rgba(245,158,11,0.35)',
   };
 
-  const gameIconBg: Record<string, string> = {
-    'ai-polygraph': 'bg-cyan-500/15 text-cyan-400',
-    'mental-breaker': 'bg-red-500/15 text-red-400',
-    'reverse-interrogation': 'bg-amber-500/15 text-amber-400',
-    'split-personality': 'bg-purple-500/15 text-purple-400',
-    'emotion-hacker': 'bg-pink-500/15 text-pink-400',
-    'reverse-quiz': 'bg-emerald-500/15 text-emerald-400',
-    'ai-court': 'bg-orange-500/15 text-orange-400',
-    'code-breaker': 'bg-blue-500/15 text-blue-400',
-    'minefield': 'bg-rose-500/15 text-rose-400',
-    'ai-mafia': 'bg-violet-500/15 text-violet-400',
-    'firewall-escape': 'bg-teal-500/15 text-teal-400',
-    'negotiator': 'bg-amber-500/15 text-amber-400',
-  };
-
-  const gameCheckBg: Record<string, string> = {
-    'ai-polygraph': 'bg-cyan-500',
-    'mental-breaker': 'bg-red-500',
-    'reverse-interrogation': 'bg-amber-500',
-    'split-personality': 'bg-purple-500',
-    'emotion-hacker': 'bg-pink-500',
-    'reverse-quiz': 'bg-emerald-500',
-    'ai-court': 'bg-orange-500',
-    'code-breaker': 'bg-blue-500',
-    'minefield': 'bg-rose-500',
-    'ai-mafia': 'bg-violet-500',
-    'firewall-escape': 'bg-teal-500',
-    'negotiator': 'bg-amber-500',
-  };
-
-  /* Cycle 1-3: Unique gradient backgrounds per card */
-  const gameCardGradients: Record<string, string> = {
-    'ai-polygraph': 'from-cyan-900/40 via-slate-800/60 to-sky-900/30',
-    'mental-breaker': 'from-red-900/40 via-slate-800/60 to-rose-900/30',
-    'reverse-interrogation': 'from-amber-900/40 via-slate-800/60 to-orange-900/30',
-    'split-personality': 'from-purple-900/40 via-slate-800/60 to-violet-900/30',
-    'emotion-hacker': 'from-pink-900/40 via-slate-800/60 to-rose-900/30',
-    'reverse-quiz': 'from-emerald-900/40 via-slate-800/60 to-green-900/30',
-    'ai-court': 'from-orange-900/40 via-slate-800/60 to-red-900/30',
-    'code-breaker': 'from-blue-900/40 via-slate-800/60 to-indigo-900/30',
-    'minefield': 'from-rose-900/40 via-slate-800/60 to-pink-900/30',
-    'ai-mafia': 'from-violet-900/40 via-slate-800/60 to-purple-900/30',
-    'firewall-escape': 'from-teal-900/40 via-slate-800/60 to-emerald-900/30',
-    'negotiator': 'from-amber-900/40 via-slate-800/60 to-yellow-900/30',
-  };
-
-  /* Cycle 4-5: Per-card hover icon animation type */
-  const gameIconAnimation: Record<string, string> = {
-    'ai-polygraph': 'group-hover:animate-[lobby-pulse_1s_ease-in-out_infinite]',
-    'mental-breaker': 'group-hover:animate-[lobby-shake_0.4s_ease-in-out_infinite]',
-    'reverse-interrogation': 'group-hover:animate-[lobby-bounce_0.6s_ease-in-out_infinite]',
-    'split-personality': 'group-hover:animate-[lobby-spin_2s_linear_infinite]',
-    'emotion-hacker': 'group-hover:animate-[lobby-pulse_0.8s_ease-in-out_infinite]',
-    'reverse-quiz': 'group-hover:animate-[lobby-spin_1.5s_linear_infinite]',
-    'ai-court': 'group-hover:animate-[lobby-bounce_0.5s_ease-in-out_infinite]',
-    'code-breaker': 'group-hover:animate-[lobby-shake_0.3s_ease-in-out_infinite]',
-    'minefield': 'group-hover:animate-[lobby-shake_0.5s_ease-in-out_infinite]',
-    'ai-mafia': 'group-hover:animate-[lobby-pulse_1.2s_ease-in-out_infinite]',
-    'firewall-escape': 'group-hover:animate-[lobby-bounce_0.7s_ease-in-out_infinite]',
-    'negotiator': 'group-hover:animate-[lobby-pulse_1s_ease-in-out_infinite]',
-  };
-
-  // ── New: Category system ──
   const gameCategories: Record<string, string> = {
     'ai-polygraph': '추리',
     'mental-breaker': '심리',
@@ -1798,43 +1707,50 @@ ${caseDesc}
     'firewall-escape': '논리',
     'negotiator': '전략',
   };
-  const GAME_CATEGORIES = ['전체', '추리', '심리', '논리', '언어', '전략'];
-  const [activeCategory, setActiveCategory] = useState('전체');
 
-  const filteredGames = activeCategory === '전체'
-    ? GAME_CARDS
-    : GAME_CARDS.filter(g => gameCategories[g.id] === activeCategory);
+  // Game card gradient backgrounds (reference design style)
+  const gameCardGradientCSS: Record<string, string> = {
+    'ai-polygraph': 'linear-gradient(135deg, rgba(8,145,178,0.4) 0%, rgba(8,145,178,0.2) 100%)',
+    'mental-breaker': 'linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(185,28,28,0.2) 100%)',
+    'reverse-interrogation': 'linear-gradient(135deg, rgba(120,53,15,0.4) 0%, rgba(180,83,9,0.2) 100%)',
+    'split-personality': 'linear-gradient(135deg, rgba(6,78,59,0.4) 0%, rgba(5,150,105,0.2) 100%)',
+    'emotion-hacker': 'linear-gradient(135deg, rgba(136,19,55,0.4) 0%, rgba(190,18,60,0.2) 100%)',
+    'reverse-quiz': 'linear-gradient(135deg, rgba(30,58,138,0.4) 0%, rgba(37,99,235,0.2) 100%)',
+    'ai-court': 'linear-gradient(135deg, rgba(124,45,18,0.4) 0%, rgba(194,65,12,0.2) 100%)',
+    'code-breaker': 'linear-gradient(135deg, rgba(17,94,89,0.4) 0%, rgba(13,148,136,0.2) 100%)',
+    'minefield': 'linear-gradient(135deg, rgba(131,24,67,0.4) 0%, rgba(219,39,119,0.2) 100%)',
+    'ai-mafia': 'linear-gradient(135deg, rgba(76,29,149,0.4) 0%, rgba(124,58,237,0.2) 100%)',
+    'firewall-escape': 'linear-gradient(135deg, rgba(20,83,45,0.4) 0%, rgba(22,163,74,0.2) 100%)',
+    'negotiator': 'linear-gradient(135deg, rgba(113,63,18,0.4) 0%, rgba(202,138,4,0.2) 100%)',
+  };
 
-  // ── New: Featured game (rotates daily) ──
+  // ── Featured game (rotates daily) ──
   const featuredIdx = new Date().getDate() % GAME_CARDS.length;
   const featured = GAME_CARDS[featuredIdx];
-  const featuredAccent = gameAccentColors[featured.id];
 
-  // ── New: HOT games ──
-  const hotGames = new Set(['ai-polygraph', 'mental-breaker', 'ai-mafia']);
-
-  // ── New: Stats (localStorage based) ──
-  const totalPlays = parseInt(localStorage.getItem('game-total-plays') || '0');
-  const todayPlays = parseInt(localStorage.getItem(`game-plays-${new Date().toDateString()}`) || '0');
-  const [randomPlayers] = useState(() => Math.floor(Math.random() * 80) + 30);
-
-  // ── New: Player XP ──
+  // ── Player XP & Stats ──
   const playerXP = parseInt(localStorage.getItem('game-player-xp') || '0');
   const playerLevel = Math.floor(playerXP / 1000) + 1;
   const playerTitle = playerLevel >= 20 ? '마스터' : playerLevel >= 10 ? '도전자' : playerLevel >= 5 ? '탐험가' : playerLevel >= 3 ? '초심자' : '뉴비';
+  const totalPlays = parseInt(localStorage.getItem('game-total-plays') || '0');
 
-  // ── New: Daily Challenge ──
+  // ── Daily Challenges ──
   const dailyChallenges = [
-    { game: 'ai-court', mission: 'AI 법정에서 유죄 판결 받기', xp: 500 },
-    { game: 'mental-breaker', mission: '멘탈 브레이커에서 3분 안에 승리', xp: 400 },
-    { game: 'ai-polygraph', mission: 'AI 폴리그래프 연속 3판 승리', xp: 600 },
-    { game: 'reverse-interrogation', mission: '역심문에서 무혐의 달성', xp: 450 },
-    { game: 'ai-mafia', mission: 'AI 마피아에서 마피아 찾기', xp: 350 },
-    { game: 'code-breaker', mission: '코드 브레이커 6자리 클리어', xp: 550 },
-    { game: 'firewall-escape', mission: '방화벽 5층 돌파', xp: 600 },
-    { game: 'negotiator', mission: '네고시에이터에서 승리', xp: 400 },
+    { game: 'ai-court', mission: 'AI 법정에서 유죄 판결 받기', xp: 500, icon: <Gavel className="w-4 h-4" /> },
+    { game: 'mental-breaker', mission: '멘탈 브레이커에서 3분 안에 승리', xp: 400, icon: <Flame className="w-4 h-4" /> },
+    { game: 'ai-polygraph', mission: 'AI 폴리그래프 연속 3판 승리', xp: 600, icon: <Search className="w-4 h-4" /> },
+    { game: 'reverse-interrogation', mission: '역심문에서 무혐의 달성', xp: 450, icon: <ShieldAlert className="w-4 h-4" /> },
+    { game: 'ai-mafia', mission: 'AI 마피아에서 마피아 찾기', xp: 350, icon: <UserX className="w-4 h-4" /> },
+    { game: 'code-breaker', mission: '코드 브레이커 6자리 클리어', xp: 550, icon: <Lock className="w-4 h-4" /> },
+    { game: 'firewall-escape', mission: '방화벽 5층 돌파', xp: 600, icon: <Shield className="w-4 h-4" /> },
+    { game: 'negotiator', mission: '네고시에이터에서 승리', xp: 400, icon: <Handshake className="w-4 h-4" /> },
   ];
-  const todayChallenge = dailyChallenges[new Date().getDate() % dailyChallenges.length];
+  const todayIdx = new Date().getDate() % dailyChallenges.length;
+  const todayQuests = [
+    dailyChallenges[todayIdx],
+    dailyChallenges[(todayIdx + 3) % dailyChallenges.length],
+    dailyChallenges[(todayIdx + 5) % dailyChallenges.length],
+  ];
 
   // countdown to midnight
   const [countdown, setCountdown] = useState('');
@@ -1854,277 +1770,405 @@ ${caseDesc}
     return () => clearInterval(iv);
   }, []);
 
-  // Top 3 game icons for featured banner
-  const top3Games = GAME_CARDS.filter(g => hotGames.has(g.id)).slice(0, 3);
+  // Helper: start featured game
+  const handleFeaturedStart = () => {
+    setSelectedGame(featured);
+    setGameOption('');
+    // Auto-select first option for quick start
+    const opts = gameOptions[featured.id]?.options;
+    if (opts && opts.length > 0) {
+      setGameOption(opts[0].id);
+    }
+    setTimeout(() => {
+      const el = document.querySelector('[data-game-options]');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 150);
+  };
+
+  // Get game records from localStorage
+  const getGameRecords = () => {
+    try {
+      return JSON.parse(localStorage.getItem('game-records') || '[]');
+    } catch { return []; }
+  };
+
+  const records = getGameRecords();
+  const wins = records.filter((r: any) => r.result === 'win').length;
+  const winRate = records.length ? Math.round(wins / records.length * 100) : 0;
+  const lastRecords = records.slice(-5).reverse();
+
+  // Best XP game
+  const bestGame = (() => {
+    let best = { name: '-', xp: 0 };
+    for (const r of records) {
+      if (r.xp && r.xp > best.xp) {
+        const gc = GAME_CARDS.find(g => g.id === r.gameId);
+        best = { name: gc?.name || r.gameId, xp: r.xp };
+      }
+    }
+    return best;
+  })();
 
   return (
-    <div className="bg-slate-950 overflow-hidden">
-      {/* CSS animations */}
+    <div className="bg-[#0a0c16] overflow-hidden" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+      {/* CSS */}
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        .glow-button {
+          box-shadow: 0 0 20px rgba(13, 51, 242, 0.4);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glow-button:hover {
+          box-shadow: 0 0 45px rgba(13, 51, 242, 0.7);
+          transform: translateY(-4px) scale(1.05);
+        }
+        .glow-button:active {
+          transform: translateY(-1px) scale(0.98);
+        }
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .quest-card {
+          transition: all 0.3s ease;
+        }
+        .quest-card:hover {
+          border-color: rgba(13, 51, 242, 0.4);
+          background: rgba(13, 51, 242, 0.08);
+          transform: scale(1.02);
+        }
+        .hero-gradient {
+          background: linear-gradient(0deg, #0a0c16 0%, rgba(10, 12, 22, 0.8) 40%, rgba(10, 12, 22, 0) 100%);
+        }
         @keyframes lobby-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-        @keyframes lobby-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px) rotate(-2deg); } 75% { transform: translateX(3px) rotate(2deg); } }
-        @keyframes lobby-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-        @keyframes lobby-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes lobby-glow-pulse { 0%, 100% { box-shadow: 0 0 8px var(--glow-color); } 50% { box-shadow: 0 0 25px var(--glow-color), 0 0 50px var(--glow-color); } }
-        @keyframes lobby-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         @keyframes lobby-scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
         @keyframes start-btn-glow { 0%, 100% { box-shadow: 0 0 10px var(--btn-glow), 0 4px 15px var(--btn-glow); } 50% { box-shadow: 0 0 25px var(--btn-glow), 0 4px 30px var(--btn-glow); } }
         @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes countdown-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @keyframes hero-glow { 0%, 100% { text-shadow: 0 0 20px rgba(13,51,242,0.4); } 50% { text-shadow: 0 0 40px rgba(13,51,242,0.7), 0 0 80px rgba(13,51,242,0.3); } }
       `}</style>
 
-      {/* GAME ARENA 헤더 — 독립 브랜딩 + 뒤로가기 */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.04]" style={{ animation: 'fadeSlideIn 0.4s ease-out' }}>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onBackToHub?.()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-slate-400 text-[12px] font-medium hover:bg-white/[0.1] hover:text-slate-200 transition-all duration-200 active:scale-95"
-          >
-            <span className="text-[14px]">←</span> AI Hub
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-[20px]">🎮</span>
-            <span className="text-[18px] font-extrabold tracking-tight bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
-              GAME ARENA
+      {/* ============================================================ */}
+      {/* 1. CINEMATIC HERO SECTION                                     */}
+      {/* ============================================================ */}
+      <div className="relative w-full overflow-hidden" style={{ minHeight: '420px' }}>
+        {/* Background gradient */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0a0c16 0%, #0d1230 30%, #0a0c16 70%, #10082a 100%)' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 20%, rgba(13,51,242,0.15), transparent 60%)' }} />
+        {/* Bottom gradient overlay */}
+        <div className="hero-gradient absolute inset-0 pointer-events-none" />
+
+        <div className="relative px-6 pt-5 pb-8 flex flex-col h-full" style={{ minHeight: '420px' }}>
+          {/* Top row: back button + badge + profile */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onBackToHub?.()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 text-[12px] font-medium hover:text-slate-200 transition-all duration-200 active:scale-95"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <span className="text-[14px]">&#8592;</span> AI Hub
+              </button>
+            </div>
+            <button onClick={() => setShowProfile(true)} className="flex items-center gap-2 rounded-xl px-3 py-1.5 hover:bg-white/[0.06] transition-all" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#0d33f2] to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white">
+                Lv
+              </div>
+              <div className="text-left">
+                <div className="text-[11px] font-semibold text-slate-200">Player <span className="text-[9px] text-amber-400 font-semibold">{playerTitle}</span></div>
+                <div className="text-[9px] text-slate-500">Lv.{playerLevel} | {playerXP.toLocaleString()} XP</div>
+              </div>
+            </button>
+          </div>
+
+          {/* Badge */}
+          <div className="mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-[#0d33f2]" style={{ background: 'rgba(13,51,242,0.15)', border: '1px solid rgba(13,51,242,0.3)' }}>
+              <Gamepad2 className="w-3.5 h-3.5" /> 12 GAMES LIVE
             </span>
           </div>
+
+          {/* Giant title */}
+          <div className="flex-1 flex flex-col justify-center">
+            <h1 className="text-[42px] font-bold text-white tracking-tight leading-[1.1] mb-3">
+              AI Game{' '}
+              <span className="text-[#0d33f2]" style={{ animation: 'hero-glow 3s ease-in-out infinite' }}>Arena</span>
+            </h1>
+            <p className="text-[14px] text-slate-400 leading-relaxed max-w-md mb-6">
+              AI와 두뇌 대결, 지금 시작하세요. 12가지 게임이 당신을 기다립니다.
+            </p>
+
+            {/* Buttons */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleFeaturedStart}
+                className="glow-button inline-flex items-center gap-2 px-6 py-3 rounded-xl text-[14px] font-bold text-white"
+                style={{ background: 'linear-gradient(135deg, #0d33f2 0%, #2b5cf6 100%)' }}
+              >
+                <Play className="w-4 h-4" fill="currentColor" /> START BATTLE
+              </button>
+              <button
+                onClick={() => gameGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[14px] font-medium text-slate-300 hover:text-white transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
+              >
+                <Gamepad2 className="w-4 h-4" /> 전체 게임 보기
+              </button>
+            </div>
+          </div>
+
+          {/* Countdown in corner */}
+          <div className="absolute top-5 right-1/2 translate-x-1/2 sm:right-6 sm:translate-x-0 sm:top-auto sm:bottom-6">
+            <div className="flex items-center gap-2 text-[11px] text-slate-500">
+              <Timer className="w-3.5 h-3.5" />
+              <span>Daily Reset: </span>
+              <span className="font-mono text-slate-300" style={{ animation: 'countdown-pulse 2s ease-in-out infinite' }}>{countdown}</span>
+            </div>
+          </div>
         </div>
-        <button onClick={() => setShowProfile(true)} className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-1.5 hover:bg-white/[0.08] transition-all">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
-            Lv
-          </div>
-          <div className="text-left">
-            <div className="text-[11px] font-semibold text-slate-200">Player <span className="text-[9px] text-amber-400 font-semibold">{playerTitle}</span></div>
-            <div className="text-[9px] text-slate-500">Lv.{playerLevel} | {playerXP.toLocaleString()} XP</div>
-          </div>
-        </button>
       </div>
 
-      <div className="px-4 pt-3 pb-5 space-y-4">
-
-        {/* ── Player Level Badge (top-right) ── */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-500 font-medium">{GAME_CARDS.length}개 게임</span>
-          </div>
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/50">
-            <span className="text-[11px]">⭐</span>
-            <span className="text-[11px] font-bold text-amber-400">Lv.{playerLevel}</span>
-            <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500" style={{ width: `${(playerXP % 1000) / 10}%` }} />
-            </div>
-            <span className="text-[9px] text-slate-500 font-medium">{playerXP % 1000}/1000 XP</span>
-          </div>
+      {/* ============================================================ */}
+      {/* 2. DAILY QUESTS                                               */}
+      {/* ============================================================ */}
+      <div className="px-6 py-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Trophy className="w-4 h-4 text-amber-400" />
+          <h2 className="text-[16px] font-bold text-white">Daily Quests</h2>
+          <span className="text-[11px] text-slate-500 ml-auto font-mono">{countdown}</span>
         </div>
-
-        {/* ── Hero / Featured Banner ── */}
-        <button
-          type="button"
-          onClick={(e) => {
-            setSelectedGame(featured);
-            setGameOption('');
-            setTimeout(() => (e.target as HTMLElement).closest('[data-lobby-root]')?.querySelector('[data-game-options]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
-          }}
-          className={cn(
-            'relative w-full rounded-2xl overflow-hidden border transition-all duration-300 text-left',
-            featuredAccent?.border || 'border-slate-700/50',
-            'hover:scale-[1.01] active:scale-[0.995]'
-          )}
-          style={{ animation: 'fadeSlideIn 0.5s ease-out both' }}
-        >
-          <div className={cn('absolute inset-0 bg-gradient-to-br', gameCardGradients[featured.id])} />
-          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 80% 20%, ${gameGlowColors[featured.id].replace('0.35', '0.2')}, transparent 60%)` }} />
-          <div className="relative px-5 py-5">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider mb-2', featuredAccent?.bg || 'bg-indigo-500/20', featuredAccent?.text || 'text-indigo-400')}>
-                  <Sparkles className="w-2.5 h-2.5" /> FEATURED
-                </span>
-                <h3 className="text-[20px] font-black text-white mb-1 tracking-tight">{featured.name}</h3>
-                <p className="text-[12px] text-slate-400 mb-3 leading-relaxed">{gameDescriptions[featured.id]}</p>
-                <div className={cn(
-                  'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all',
-                  'bg-gradient-to-r text-white',
-                  featuredAccent?.btn || 'from-indigo-500 to-purple-500'
-                )}>
-                  <Zap className="w-3.5 h-3.5" /> 지금 플레이
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-2 ml-4">
-                <div className={cn(
-                  'w-14 h-14 rounded-xl flex items-center justify-center text-2xl',
-                  gameIconBg[featured.id]
-                )} style={{ boxShadow: `0 0 20px ${gameGlowColors[featured.id]}` }}>
-                  {gameIcons[featured.id]}
-                </div>
-                <div className="flex items-center gap-1.5 mt-1">
-                  {top3Games.map(g => (
-                    <div key={g.id} className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-sm border border-slate-600/40', gameIconBg[g.id])}>
-                      {gameIcons[g.id] ? <span className="scale-[0.55]">{gameIcons[g.id]}</span> : g.icon}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </button>
-
-        {/* ── Stats Bar ── */}
-        <div className="grid grid-cols-3 gap-3" style={{ animation: 'fadeSlideIn 0.6s ease-out 0.1s both' }}>
-          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-[10px]">🟢</span>
-              <span className="text-[10px] text-slate-500 font-medium">접속 중</span>
-            </div>
-            <span className="text-[18px] font-black text-white">{randomPlayers}</span>
-            <span className="text-[10px] text-slate-500 ml-1">명</span>
-          </div>
-          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-[10px]">🎯</span>
-              <span className="text-[10px] text-slate-500 font-medium">오늘 플레이</span>
-            </div>
-            <span className="text-[18px] font-black text-white">{todayPlays}</span>
-            <span className="text-[10px] text-slate-500 ml-1">판</span>
-          </div>
-          <div className="px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-[10px]">🤖</span>
-              <span className="text-[10px] text-slate-500 font-medium">AI 승률</span>
-            </div>
-            <span className="text-[18px] font-black text-white">62</span>
-            <span className="text-[10px] text-slate-500 ml-0.5">%</span>
-          </div>
-        </div>
-
-        {/* ── Category Filter + Game Count ── */}
-        <div className="flex justify-between items-center" style={{ animation: 'fadeSlideIn 0.6s ease-out 0.15s both' }}>
-          <div className="flex gap-1.5">
-            {GAME_CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => { setActiveCategory(cat); if (selectedGame && cat !== '전체' && gameCategories[selectedGame.id] !== cat) { setSelectedGame(null); setGameOption(''); } }}
-                className={cn(
-                  'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all duration-200',
-                  activeCategory === cat
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/70 hover:text-slate-300'
-                )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {todayQuests.map((quest, qi) => {
+            const progress = (() => { try { return parseInt(localStorage.getItem(`quest-progress-${quest.game}`) || '0'); } catch { return 0; } })();
+            const questColors = ['bg-[#0d33f2]/20 text-[#4d7af7]', 'bg-amber-500/20 text-amber-400', 'bg-emerald-500/20 text-emerald-400'];
+            return (
+              <div
+                key={qi}
+                className="quest-card glass-panel rounded-xl p-4 relative overflow-hidden cursor-pointer"
+                onClick={() => {
+                  const g = GAME_CARDS.find(gc => gc.id === quest.game);
+                  if (g) { setSelectedGame(g); setGameOption(''); setTimeout(() => { const el = document.querySelector('[data-game-options]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150); }
+                }}
+                style={{ animation: `fadeSlideIn 0.5s ease-out ${0.1 * qi}s both` }}
               >
-                {cat}
-              </button>
-            ))}
+                <div className="flex items-start justify-between mb-3">
+                  <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', questColors[qi])}>
+                    {quest.icon}
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-amber-400 bg-amber-400/10">
+                    +{quest.xp} XP
+                  </span>
+                </div>
+                <h4 className="text-[13px] font-semibold text-white mb-1">{GAME_CARDS.find(g => g.id === quest.game)?.name}</h4>
+                <p className="text-[11px] text-slate-400 mb-3 leading-snug">{quest.mission}</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                    <div className="h-full rounded-full bg-[#0d33f2] transition-all duration-500" style={{ width: `${Math.min(progress * 100, 100)}%` }} />
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-500">{progress}/1</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* 3. TWO-COLUMN: Rules + Career | Leaderboard                   */}
+      {/* ============================================================ */}
+      <div className="px-6 pb-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* Left column (4/12) */}
+          <div className="md:col-span-4 space-y-4">
+            {/* Game Rules Card */}
+            <div className="glass-panel rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Scale className="w-4 h-4 text-[#4d7af7]" />
+                <h3 className="text-[13px] font-bold text-white">Game Rules</h3>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  { icon: <Brain className="w-3.5 h-3.5 text-[#4d7af7]" />, text: 'AI가 출제하고 당신이 도전합니다' },
+                  { icon: <ClipboardCheck className="w-3.5 h-3.5 text-[#4d7af7]" />, text: '게임별 고유 규칙이 적용됩니다' },
+                  { icon: <TrendingUp className="w-3.5 h-3.5 text-[#4d7af7]" />, text: '승리하면 XP와 능력치를 획득합니다' },
+                ].map((rule, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <div className="w-6 h-6 rounded-md bg-[#0d33f2]/10 flex items-center justify-center shrink-0 mt-0.5">{rule.icon}</div>
+                    <span className="text-[11px] text-slate-400 leading-relaxed">{rule.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Your Career Card */}
+            <div className="glass-panel rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart3 className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-[13px] font-bold text-white">Your Career</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
+                  <div className="text-[10px] text-slate-500 mb-0.5">Personal Best</div>
+                  <div className="text-[14px] font-bold text-amber-400">{bestGame.xp > 0 ? `${bestGame.xp} XP` : '-'}</div>
+                  <div className="text-[9px] text-slate-600 truncate">{bestGame.name}</div>
+                </div>
+                <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
+                  <div className="text-[10px] text-slate-500 mb-0.5">Total Games</div>
+                  <div className="text-[14px] font-bold text-white">{totalPlays || records.length}</div>
+                </div>
+                <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
+                  <div className="text-[10px] text-slate-500 mb-0.5">Win Rate</div>
+                  <div className="text-[14px] font-bold text-emerald-400">{winRate}%</div>
+                </div>
+                <div className="bg-white/[0.03] rounded-lg p-2.5 text-center">
+                  <div className="text-[10px] text-slate-500 mb-0.5">Level</div>
+                  <div className="text-[14px] font-bold text-[#4d7af7]">Lv.{playerLevel}</div>
+                  <div className="text-[9px] text-slate-600">{playerTitle}</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <span className="text-[11px] text-slate-500 font-medium">{filteredGames.length}개 게임</span>
+
+          {/* Right column (8/12) — Leaderboard / My Records */}
+          <div className="md:col-span-8">
+            <div className="glass-panel rounded-xl p-4 h-full">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircle className="w-4 h-4 text-violet-400" />
+                <h3 className="text-[13px] font-bold text-white">내 기록 (My Records)</h3>
+                <span className="text-[10px] text-slate-500 ml-auto">최근 5게임</span>
+              </div>
+
+              {lastRecords.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-14 h-14 rounded-full bg-white/[0.03] flex items-center justify-center mb-3">
+                    <Gamepad2 className="w-6 h-6 text-slate-600" />
+                  </div>
+                  <p className="text-[13px] text-slate-500 font-medium mb-1">아직 게임 기록이 없습니다</p>
+                  <p className="text-[11px] text-slate-600">게임을 플레이하면 여기에 기록이 표시됩니다</p>
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-lg">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
+                        <th className="text-left py-2 px-3 font-semibold">게임</th>
+                        <th className="text-center py-2 px-3 font-semibold">결과</th>
+                        <th className="text-center py-2 px-3 font-semibold">등급</th>
+                        <th className="text-right py-2 px-3 font-semibold">시간</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lastRecords.map((rec: any, ri: number) => {
+                        const gc = GAME_CARDS.find(g => g.id === rec.gameId);
+                        const gradeColors: Record<string, string> = { S: 'text-amber-400', A: 'text-violet-400', B: 'text-blue-400', C: 'text-slate-400', F: 'text-red-400' };
+                        return (
+                          <tr key={ri} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[13px]">{gc?.icon || '?'}</span>
+                                <span className="text-[12px] text-slate-300 font-medium">{gc?.name || rec.gameId}</span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full', rec.result === 'win' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')}>
+                                {rec.result === 'win' ? 'WIN' : 'LOSE'}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className={cn('text-[13px] font-black', gradeColors[rec.grade] || 'text-slate-400')}>{rec.grade || '-'}</span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span className="text-[11px] text-slate-500">{rec.date ? new Date(rec.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '-'}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* 4. MORE CHALLENGES — Game Grid                                */}
+      {/* ============================================================ */}
+      <div className="px-6 pb-8" ref={gameGridRef}>
+        <div className="flex items-center gap-2 mb-5">
+          <Zap className="w-4 h-4 text-[#4d7af7]" />
+          <h2 className="text-[16px] font-bold text-white">More Challenges</h2>
+          <span className="text-[11px] text-slate-500 ml-auto">{GAME_CARDS.length} Games</span>
         </div>
 
-        {/* ── Game Grid - 3 columns ── */}
-        <div className="grid grid-cols-3 gap-3.5" data-lobby-root>
-          {filteredGames.map((game, idx) => {
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-lobby-root>
+          {GAME_CARDS.map((game, idx) => {
             const isSelected = selectedGame?.id === game.id;
-            const diff = gameDifficulty[game.id];
-            const player = gamePlayerType[game.id];
             const glowColor = gameGlowColors[game.id];
-            const isHot = hotGames.has(game.id);
             return (
               <button
                 key={game.id}
-                onClick={(e) => {
+                type="button"
+                onClick={() => {
                   setSelectedGame(isSelected ? null : game);
                   setGameOption('');
-                  if (!isSelected) setTimeout(() => (e.target as HTMLElement).closest('[data-lobby-root]')?.parentElement?.querySelector('[data-game-options]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+                  if (!isSelected) setTimeout(() => { const el = document.querySelector('[data-game-options]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150);
                 }}
                 style={{
                   animation: `cardIn 0.4s ease-out ${0.05 * idx}s both`,
-                  ...(isSelected ? {
-                    boxShadow: `0 0 20px ${glowColor}, 0 0 40px ${glowColor.replace('0.35', '0.12')}`,
-                    '--glow-color': glowColor,
-                  } as React.CSSProperties : {}),
+                  ...(isSelected ? { boxShadow: `0 0 25px ${glowColor}, 0 0 50px ${glowColor.replace('0.35', '0.12')}` } : {}),
                 }}
                 className={cn(
-                  'relative text-left rounded-xl border overflow-hidden group transition-all duration-300 ease-out',
+                  'relative text-left rounded-xl overflow-hidden group transition-all duration-300 ease-out',
                   isSelected
-                    ? `${gameAccentColors[game.id]?.border || 'border-indigo-400'} bg-gradient-to-br ${gameCardGradients[game.id]}`
-                    : 'border-slate-700/40 bg-slate-800/50 hover:border-slate-600/70 hover:bg-slate-800/80 hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]'
+                    ? 'ring-2 ring-[#0d33f2]/60'
+                    : 'hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(13,51,242,0.15)]',
                 )}
               >
-                {/* Best grade badge */}
-                {(() => {
-                  const grade = getBestGrade(game.id);
-                  if (!grade) return null;
-                  const gradeColors: Record<string, string> = { S: 'bg-amber-500/20 text-amber-400', A: 'bg-violet-500/20 text-violet-400', B: 'bg-blue-500/20 text-blue-400', C: 'bg-slate-600/30 text-slate-400', F: 'bg-red-500/20 text-red-400' };
-                  return <span className={cn("absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-black z-10", gradeColors[grade] || '')}>{grade}</span>;
-                })()}
-                {/* HOT badge or first-clear bonus */}
-                {isHot ? (
-                  <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded bg-red-500 text-[8px] font-black text-white tracking-wider shadow-lg shadow-red-500/30">
-                    HOT
-                  </div>
-                ) : (() => {
-                  try {
-                    const records = JSON.parse(localStorage.getItem('game-records') || '[]');
-                    const played = records.some((r: any) => r.gameId === game.id);
-                    if (!played) return <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-500/20 text-emerald-400 z-10">+200 XP</span>;
-                    return null;
-                  } catch { return null; }
-                })()}
-                {/* Selected check */}
-                {isSelected && (
-                  <div className={cn(
-                    "absolute top-2 left-2 z-10 w-5 h-5 rounded-full flex items-center justify-center shadow-lg",
-                    gameCheckBg[game.id] || 'bg-indigo-500',
-                  )} style={{ animation: 'lobby-pulse 1.5s ease-in-out infinite' }}>
-                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                  </div>
-                )}
-                {/* Hover glow */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
-                  style={{ background: `radial-gradient(circle at 50% 30%, ${glowColor.replace('0.35', '0.12')}, transparent 65%)` }} />
-
-                <div className="p-3.5 relative" style={{ minHeight: '170px' }}>
+                {/* Visual area */}
+                <div
+                  className="relative flex items-center justify-center overflow-hidden"
+                  style={{
+                    height: '140px',
+                    background: gameCardGradientCSS[game.id] || 'linear-gradient(135deg, rgba(30,41,59,0.5), rgba(30,41,59,0.3))',
+                  }}
+                >
+                  {/* Glass overlay */}
+                  <div className="absolute inset-0" style={{ background: 'rgba(255,255,255,0.02)' }} />
+                  {/* Glow */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `radial-gradient(circle at 50% 50%, ${glowColor.replace('0.35', '0.2')}, transparent 70%)` }} />
                   {/* Icon */}
-                  <div className={cn(
-                    'w-11 h-11 rounded-xl flex items-center justify-center mb-2.5 transition-all duration-200',
-                    gameIconBg[game.id],
-                    isSelected ? 'scale-110' : '',
-                  )} style={isSelected ? { boxShadow: `0 0 12px ${glowColor}` } : undefined}>
-                    <span className={cn('transition-transform duration-300', gameIconAnimation[game.id])}>
+                  <div className={cn('relative transition-transform duration-300 group-hover:scale-125', isSelected && 'scale-110')}>
+                    <div className="text-white/80 [&>svg]:w-10 [&>svg]:h-10">
                       {gameIcons[game.id]}
-                    </span>
-                  </div>
-                  {/* Name */}
-                  <h3 className={cn(
-                    'text-[14px] font-bold mb-1 tracking-tight transition-colors duration-200',
-                    isSelected ? (gameAccentColors[game.id]?.text || 'text-indigo-300') : 'text-white group-hover:text-slate-100'
-                  )}>{game.name}</h3>
-                  {/* Description */}
-                  <p className="text-[11px] text-slate-400 leading-snug line-clamp-2 mb-3 group-hover:text-slate-300 transition-colors duration-200">
-                    {gameDescriptions[game.id]}
-                  </p>
-                  {/* Bottom: mode badge + difficulty dots */}
-                  <div className="flex items-center gap-2 mt-auto">
-                    <span className={cn(
-                      'inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-semibold',
-                      player.isVs ? 'bg-rose-500/15 text-rose-400' : 'bg-slate-700/60 text-slate-400'
-                    )}>
-                      {player.isVs ? <Swords className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
-                      {player.label}
-                    </span>
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: 3 }).map((_, di) => (
-                        <div
-                          key={di}
-                          className={cn(
-                            'w-1.5 h-1.5 rounded-full',
-                            di < diff.stars
-                              ? diff.stars === 1 ? 'bg-emerald-400' : diff.stars === 2 ? 'bg-amber-400' : 'bg-red-400'
-                              : 'bg-slate-600'
-                          )}
-                        />
-                      ))}
                     </div>
                   </div>
+                  {/* Best grade badge */}
+                  {(() => {
+                    const grade = getBestGrade(game.id);
+                    if (!grade) return null;
+                    const gradeColors: Record<string, string> = { S: 'bg-amber-500/20 text-amber-400', A: 'bg-violet-500/20 text-violet-400', B: 'bg-blue-500/20 text-blue-400', C: 'bg-slate-600/30 text-slate-400', F: 'bg-red-500/20 text-red-400' };
+                    return <span className={cn("absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-black", gradeColors[grade] || '')}>{grade}</span>;
+                  })()}
+                  {/* Selected check */}
+                  {isSelected && (
+                    <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-[#0d33f2] flex items-center justify-center shadow-lg" style={{ animation: 'lobby-pulse 1.5s ease-in-out infinite' }}>
+                      <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom info */}
+                <div className="p-3.5 glass-panel border-t-0 rounded-b-xl" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className={cn('text-[13px] font-bold tracking-tight', isSelected ? 'text-[#4d7af7]' : 'text-white')}>{game.name}</h3>
+                    <span className="px-1.5 py-0.5 rounded text-[8px] font-semibold bg-white/[0.06] text-slate-500">{gameCategories[game.id]}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">
+                    {gameDescriptions[game.id]}
+                  </p>
                 </div>
               </button>
             );
@@ -2133,21 +2177,21 @@ ${caseDesc}
 
         {/* ── Game Options Panel (when game selected) ── */}
         {selectedGame && (
-          <div data-game-options className="animate-in fade-in slide-in-from-bottom-3 duration-300">
+          <div data-game-options className="mt-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
             {/* Rules */}
-            <div className={cn("mb-3 px-4 py-3 rounded-xl border relative overflow-hidden", accent?.bg || 'bg-slate-800/80', 'border-slate-700/40')}>
-              <div className="absolute inset-0 opacity-20 bg-gradient-to-r" style={{ backgroundImage: `radial-gradient(ellipse at 0% 50%, ${gameGlowColors[selectedGame.id].replace('0.35', '0.15')}, transparent 60%)` }} />
+            <div className="glass-panel rounded-xl mb-3 px-4 py-3 relative overflow-hidden">
+              <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(ellipse at 0% 50%, ${gameGlowColors[selectedGame.id].replace('0.35', '0.15')}, transparent 60%)` }} />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className={cn("text-[10px] font-bold uppercase tracking-wider", accent?.text || 'text-indigo-400')}>Game Rules</span>
-                  <div className="flex-1 h-px bg-gradient-to-r from-slate-700/50 to-transparent" />
+                  <span className={cn("text-[10px] font-bold uppercase tracking-wider", accent?.text || 'text-[#4d7af7]')}>Game Rules</span>
+                  <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.08), transparent)' }} />
                 </div>
-                <p className="text-[10px] text-slate-300 leading-relaxed">{selectedGame.rules}</p>
+                <p className="text-[11px] text-slate-300 leading-relaxed">{selectedGame.rules}</p>
               </div>
             </div>
 
             {/* Options */}
-            <p className="text-[10px] text-slate-400 font-semibold mb-2 px-1">
+            <p className="text-[11px] text-slate-400 font-semibold mb-2 px-1">
               {gameOptions[selectedGame.id]?.label}
             </p>
             <div className={cn("grid gap-2.5 mb-4", (gameOptions[selectedGame.id]?.options.length || 0) <= 2 ? 'grid-cols-2' : (gameOptions[selectedGame.id]?.options.length || 0) === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
@@ -2158,8 +2202,8 @@ ${caseDesc}
                   className={cn(
                     'flex flex-col items-center gap-1.5 py-3.5 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group/opt',
                     gameOption === opt.id
-                      ? `${accent?.border || 'border-indigo-400'} ${accent?.bg || 'bg-indigo-500/20'} text-white scale-[1.03]`
-                      : 'border-slate-600/40 bg-slate-800/30 text-slate-400 hover:border-slate-500 hover:text-white hover:bg-slate-700/50 active:scale-[0.97]'
+                      ? `${accent?.border || 'border-[#0d33f2]'} ${accent?.bg || 'bg-[#0d33f2]/20'} text-white scale-[1.03]`
+                      : 'border-white/[0.08] bg-white/[0.03] text-slate-400 hover:border-white/[0.15] hover:text-white hover:bg-white/[0.06] active:scale-[0.97]'
                   )}
                   style={gameOption === opt.id ? { boxShadow: `0 0 15px ${gameGlowColors[selectedGame.id].replace('0.35', '0.2')}` } : undefined}
                 >
@@ -2177,11 +2221,12 @@ ${caseDesc}
               className={cn(
                 'w-full py-3.5 rounded-xl text-[14px] font-bold transition-all duration-200 flex items-center justify-center gap-2 relative overflow-hidden',
                 gameOption && !isDiscussing
-                  ? `bg-gradient-to-r ${accent?.btn || 'from-indigo-500 via-purple-500 to-pink-500'} text-white hover:scale-[1.01] active:scale-[0.99]`
-                  : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  ? 'text-white hover:scale-[1.01] active:scale-[0.99]'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
               )}
               style={gameOption && !isDiscussing ? {
-                '--btn-glow': gameGlowColors[selectedGame.id].replace('0.35', '0.4'),
+                background: 'linear-gradient(135deg, #0d33f2 0%, #2b5cf6 100%)',
+                '--btn-glow': 'rgba(13,51,242,0.4)',
                 animation: 'start-btn-glow 2s ease-in-out infinite',
               } as React.CSSProperties : undefined}
             >
@@ -2193,40 +2238,15 @@ ${caseDesc}
             </button>
           </div>
         )}
-
-        {/* ── Daily Challenge Banner ── */}
-        <div
-          className="relative rounded-xl overflow-hidden border border-amber-500/20 bg-gradient-to-r from-amber-900/20 via-slate-800/60 to-orange-900/20"
-          style={{ animation: 'fadeSlideIn 0.7s ease-out 0.25s both' }}
-        >
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 10% 50%, rgba(245,158,11,0.1), transparent 60%)' }} />
-          <div className="relative px-4 py-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-lg shrink-0">
-              🏆
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">Daily Challenge</span>
-                <span className="text-[9px] font-bold text-amber-500/70" style={{ animation: 'countdown-pulse 2s ease-in-out infinite' }}>{countdown}</span>
-              </div>
-              <p className="text-[12px] text-slate-300 font-semibold truncate">{todayChallenge.mission}</p>
-            </div>
-            <div className="shrink-0 flex flex-col items-end gap-0.5">
-              <span className="text-[14px] font-black text-amber-400">+{todayChallenge.xp}</span>
-              <span className="text-[9px] text-amber-500/70 font-semibold">XP</span>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* ── Profile Sheet Modal ── */}
       {showProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
-          <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-slate-800/95 border border-slate-700/50 p-5 space-y-4 animate-in zoom-in-95 fade-in duration-300">
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl p-5 space-y-4 animate-in zoom-in-95 fade-in duration-300" style={{ background: 'rgba(15,17,30,0.95)', border: '1px solid rgba(255,255,255,0.08)' }}>
             {/* Avatar + Name + Level */}
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-2xl font-black text-white">
+              <div className="w-16 h-16 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-[#0d33f2] to-indigo-600 flex items-center justify-center text-2xl font-black text-white">
                 {playerLevel}
               </div>
               <h3 className="text-lg font-bold text-white">Player</h3>
@@ -2236,8 +2256,8 @@ ${caseDesc}
                   <span>Lv.{playerLevel}</span>
                   <span>{playerXP % 1000}/1,000 XP</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-slate-700">
-                  <div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${(playerXP % 1000) / 10}%` }} />
+                <div className="h-1.5 rounded-full bg-white/[0.06]">
+                  <div className="h-full rounded-full bg-[#0d33f2] transition-all" style={{ width: `${(playerXP % 1000) / 10}%` }} />
                 </div>
               </div>
             </div>
@@ -2254,7 +2274,7 @@ ${caseDesc}
                 <svg viewBox="0 0 160 160" className="w-40 h-40 mx-auto">
                   {[0.25, 0.5, 0.75, 1].map(s => <polygon key={s} points={bgPoints(s)} fill="none" stroke="rgba(148,163,184,0.12)" strokeWidth="0.5" />)}
                   {angles.map((a, i) => <line key={i} x1={cx} y1={cy} x2={cx + r * Math.cos(a)} y2={cy + r * Math.sin(a)} stroke="rgba(148,163,184,0.08)" strokeWidth="0.5" />)}
-                  <polygon points={dataPoints} fill="rgba(139,92,246,0.2)" stroke="#8B5CF6" strokeWidth="1.5" />
+                  <polygon points={dataPoints} fill="rgba(13,51,242,0.2)" stroke="#0d33f2" strokeWidth="1.5" />
                   {labels.map((l, i) => (
                     <text key={i} x={cx + (r + 14) * Math.cos(angles[i])} y={cy + (r + 14) * Math.sin(angles[i])} textAnchor="middle" dominantBaseline="middle" fill="#94A3B8" fontSize="8" fontWeight="600">{l.label}</text>
                   ))}
@@ -2263,18 +2283,11 @@ ${caseDesc}
             })()}
 
             {/* Stats summary */}
-            {(() => {
-              const records = JSON.parse(localStorage.getItem('game-records') || '[]');
-              const wins = records.filter((r: any) => r.result === 'win').length;
-              const total = records.length;
-              return (
-                <div className="flex justify-center gap-4 text-center">
-                  <div><div className="text-[16px] font-bold text-white">{total}</div><div className="text-[10px] text-slate-500">총 게임</div></div>
-                  <div><div className="text-[16px] font-bold text-emerald-400">{wins}</div><div className="text-[10px] text-slate-500">승리</div></div>
-                  <div><div className="text-[16px] font-bold text-amber-400">{total ? Math.round(wins/total*100) : 0}%</div><div className="text-[10px] text-slate-500">승률</div></div>
-                </div>
-              );
-            })()}
+            <div className="flex justify-center gap-4 text-center">
+              <div><div className="text-[16px] font-bold text-white">{records.length}</div><div className="text-[10px] text-slate-500">총 게임</div></div>
+              <div><div className="text-[16px] font-bold text-emerald-400">{wins}</div><div className="text-[10px] text-slate-500">승리</div></div>
+              <div><div className="text-[16px] font-bold text-amber-400">{winRate}%</div><div className="text-[10px] text-slate-500">승률</div></div>
+            </div>
 
             {/* Achievements */}
             {(() => {
@@ -2298,7 +2311,7 @@ ${caseDesc}
               );
             })()}
 
-            <button onClick={() => setShowProfile(false)} className="w-full py-2 rounded-xl bg-slate-700 text-slate-300 text-[12px] font-semibold hover:bg-slate-600 transition-all">닫기</button>
+            <button onClick={() => setShowProfile(false)} className="w-full py-2 rounded-xl text-slate-300 text-[12px] font-semibold hover:bg-white/[0.06] transition-all" style={{ background: 'rgba(255,255,255,0.05)' }}>닫기</button>
           </div>
         </div>
       )}
