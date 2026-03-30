@@ -48,7 +48,7 @@ interface Props {
   onStartGame?: (gameId: string, option: string, label: string) => void;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'brainstorm_main', 'expert', 'debate', 'assistant', 'player'];
+const mainModes: MainMode[] = ['general', 'multi', 'brainstorm_main', 'expert', 'debate', 'assistant']; // player 잠금
 const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'hearing'];
 
 const mainModeLabels: Record<MainMode, string> = {
@@ -2650,16 +2650,19 @@ export function ExpertSelectionPanel({
         }, 400);
       }, 200);
     } else {
-      // Quick transition for non-player modes
-      setIsTransitioning(true);
+      // Smooth transition for non-player modes
       setPendingMode(m);
+      setIsTransitioning(true);
+      setTransitionPhase(1); // fade out
       setTimeout(() => {
         applyModeChange(m);
-        requestAnimationFrame(() => {
+        setTransitionPhase(3); // fade in
+        setTimeout(() => {
+          setTransitionPhase(0);
           setIsTransitioning(false);
           setPendingMode(null);
-        });
-      }, 150);
+        }, 250);
+      }, 200);
     }
   };
 
@@ -2679,14 +2682,13 @@ export function ExpertSelectionPanel({
         "fixed inset-0 bg-slate-950 pointer-events-none transition-opacity duration-700 ease-out z-10",
         showPlayerBg ? 'opacity-100' : 'opacity-0'
       )} />
-      {/* Hero — 플레이어 모드에서는 높이를 부드럽게 줄여서 모드탭이 자연스럽게 올라감 */}
+      {/* Hero — 모드 전환 시 부드럽게 페이드 */}
       <div className={cn(
         "text-center relative z-0 transition-all ease-out overflow-hidden",
-        // 플레이어 진입: phase 1에서 페이드아웃, phase 2에서 높이 축소
         (isGoingToPlayer && transitionPhase >= 1) || (isPlayerActive && !isLeavingPlayer)
           ? 'opacity-0 max-h-0 py-0 space-y-0 duration-500'
-          : 'opacity-100 max-h-32 py-0 space-y-2 duration-500',
-        // 플레이어 떠날 때: phase 2부터 높이 복원
+          : !contentVisible ? 'opacity-0 scale-[0.98] max-h-32 space-y-2 duration-200'
+          : 'opacity-100 scale-100 max-h-32 py-0 space-y-2 duration-300',
         isLeavingPlayer && transitionPhase >= 2 && 'opacity-100 max-h-32 space-y-2'
       )}>
         <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">

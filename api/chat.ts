@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
-  const { systemPrompt, question, previousResponses } = req.body || {};
+  const { systemPrompt, question, previousResponses, files } = req.body || {};
 
   if (!question || typeof question !== 'string') {
     return res.status(400).json({ error: 'question is required and must be a string' });
@@ -25,22 +25,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Build conversation contents
   const contents: any[] = [];
 
-  // Add previous responses as context
+  // Build user message parts
+  let fullPrompt: string;
   if (previousResponses && previousResponses.length > 0) {
     const context = previousResponses
       .map((r: { name: string; content: string }) => `[${r.name}]: ${r.content}`)
       .join('\n\n');
-    contents.push({ role: 'user', parts: [{ text: `이전 대화:\n${context}\n\n새 질문: ${question}` }] });
+    fullPrompt = `이전 대화:\n${context}\n\n새 질문: ${question}`;
   } else {
-    contents.push({ role: 'user', parts: [{ text: question }] });
+    fullPrompt = question;
   }
+
+  const userParts: any[] = [{ text: fullPrompt }];
+
+  // Add file attachments if present
+  if (files && Array.isArray(files)) {
+    for (const file of files) {
+      if (file.extractedText) {
+        // Word/Excel: add extracted text
+        userParts.push({ text: `\n[첨부 파일: ${file.name}]\n${file.extractedText}` });
+      } else if (file.base64 && file.mimeType) {
+        // Image/PDF: add as inline_data
+        userParts.push({
+          inline_data: {
+            mime_type: file.mimeType,
+            data: file.base64,
+          }
+        });
+      }
+    }
+  }
+
+  contents.push({ role: 'user', parts: userParts });
 
   const model = 'gemini-2.5-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   try {
     const abortCtrl = new AbortController();
-    const timeoutId = setTimeout(() => abortCtrl.abort(), 30000); // 30s timeout
+    const hasFiles = files && Array.isArray(files) && files.length > 0;
+    const timeoutId = setTimeout(() => abortCtrl.abort(), hasFiles ? 60000 : 30000); // 60s for files, 30s otherwise
 
     const geminiRes = await fetch(url, {
       method: 'POST',

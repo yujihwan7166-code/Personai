@@ -9,8 +9,9 @@ import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
-import { saveDiscussionToHistory, DiscussionRecord } from '@/components/DiscussionHistory';
-import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight } from 'lucide-react';
+import { saveDiscussionToHistory, upsertDiscussionHistory, DiscussionRecord } from '@/components/DiscussionHistory';
+import { AttachedFile } from '@/lib/fileProcessor';
+import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, FileText } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -117,18 +118,18 @@ ${p.roles.map(r => `| ${r} | | |`).join('\n')}
 }
 
 async function streamExpert({
-  question, expert, previousResponses, round, onDelta, onDone, signal
+  question, expert, previousResponses, round, onDelta, onDone, signal, files
 
 
 
 
 
 
-}: {question: string;expert: Expert;previousResponses: {name: string;content: string;}[];round: DiscussionRound | 'summary';onDelta: (text: string) => void;onDone: () => void;signal?: AbortSignal;}) {
+}: {question: string;expert: Expert;previousResponses: {name: string;content: string;}[];round: DiscussionRound | 'summary';onDelta: (text: string) => void;onDone: () => void;signal?: AbortSignal;files?: {name: string; mimeType: string; base64: string; extractedText?: string}[];}) {
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + (expert.systemPrompt || PROMPTS[expert.id] || ''), question, previousResponses }),
+    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + (expert.systemPrompt || PROMPTS[expert.id] || ''), question, previousResponses, files: files && files.length > 0 ? files : undefined }),
     signal
   });
 
@@ -215,6 +216,7 @@ const Index = () => {
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingFilesRef = useRef<AttachedFile[]>([]);
 
   useEffect(() => {
     localStorage.setItem('ai-debate-experts-v63', JSON.stringify(experts));
@@ -229,10 +231,13 @@ const Index = () => {
   }, [selectedExpertIds]);
 
   const userScrolledUpRef = useRef(false);
+  // 자동 스크롤: 유저가 위로 스크롤하지 않았을 때만 + 새 메시지 추가 시에만 (스트리밍 중 매 토큰 스크롤 방지)
+  const prevMsgCountRef = useRef(0);
   useEffect(() => {
-    if (!userScrolledUpRef.current) {
+    if (!userScrolledUpRef.current && messages.length !== prevMsgCountRef.current) {
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
+    prevMsgCountRef.current = messages.length;
   }, [messages]);
 
   const toggleExpert = (id: string) => {
@@ -342,6 +347,7 @@ const Index = () => {
     setActiveExpertId(undefined);
     skipClarifyRef.current = false;
     clarifyAttemptsRef.current = 0;
+    sessionIdRef.current = `hist-${Date.now()}`;
     userScrolledUpRef.current = false;
     setChatClarify(null);
   };
@@ -374,6 +380,13 @@ const Index = () => {
     setMessages([]);
     userScrolledUpRef.current = false;
     setClarifyState({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
+    // Grab pending files and clear ref
+    const pendingFiles = pendingFilesRef.current;
+    pendingFilesRef.current = [];
+    const filesToSend = pendingFiles.length > 0 ? pendingFiles.map(f => ({
+      name: f.name, mimeType: f.mimeType, base64: f.base64, extractedText: f.extractedText,
+    })) : undefined;
+
     const allResponses: {name: string;content: string;}[] = [];
     const shouldStop = () => controller.signal.aborted;
     const lengthExtra = debateSettings.responseLength === 'short'
@@ -398,6 +411,7 @@ const Index = () => {
             onDelta: (chunk) => { fullContent += chunk; setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m)); },
             signal: controller.signal,
+            files: filesToSend,
           });
         } catch (err) {
           if ((err as Error).name !== 'AbortError') {
@@ -408,7 +422,7 @@ const Index = () => {
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
+      // 저장은 대화 완료 시 upsert로 처리
       return;
     }
 
@@ -424,14 +438,25 @@ const Index = () => {
             body: JSON.stringify({ message: question, expertName: expert0.nameKo, expertDescription: expert0.description, attempt: clarifyAttemptsRef.current }),
           });
           const clarifyData = await clarifyResp.json();
-          if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
+
+          // 1점: 가정 명시 답변 — 가정을 컨텍스트에 추가하고 바로 답변 진행
+          if (clarifyData.type === 'answer_with_assumption' && clarifyData.assumption) {
+            question = `${question}\n\n[사용자 맥락 가정: ${clarifyData.assumption}]`;
+            // 바로 답변으로 진행 (아래로 fall through)
+          }
+          // 2점+: 부분 답변 + 질문
+          else if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
             // 사용자 메시지 추가 → 채팅 화면으로 전환
             if (messages.length === 0) {
               setMessages([{ id: `user-clarify-${Date.now()}`, expertId: '__user__', content: question }]);
             }
+            // 부분 답변이 있으면 AI 메시지로 먼저 표시
+            if (clarifyData.partialAnswer) {
+              setMessages(prev => [...prev, { id: `partial-${Date.now()}`, expertId: expert0.id, content: clarifyData.partialAnswer }]);
+            }
             setChatClarify({
               show: true, loading: false,
-              message: clarifyData.message || '더 정확한 답변을 위해 몇 가지 확인할게요',
+              message: clarifyData.message || '더 정확한 답변을 위해 확인할게요',
               questions: clarifyData.questions,
               selections: {}, customInputs: {}, currentPage: 0,
               originalQuestion: question,
@@ -480,7 +505,8 @@ const Index = () => {
             previousResponses: [], round: 'initial',
             onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
             onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
-            signal: controller.signal
+            signal: controller.signal,
+            files: filesToSend,
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
@@ -492,7 +518,7 @@ const Index = () => {
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
+      // 저장은 대화 완료 시 upsert로 처리
       return;
     } else if (useMode === 'multi') {
       setMessages((prev) => [...prev, { id: `round-sep-multi-${Date.now()}`, expertId: '__round__', content: '다중 AI 의견 수집', round: 'initial' }]);
@@ -510,7 +536,8 @@ const Index = () => {
             previousResponses: allResponses, round: 'initial',
             onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
             onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
-            signal: controller.signal
+            signal: controller.signal,
+            files: filesToSend,
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
@@ -525,7 +552,7 @@ const Index = () => {
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
+      // 저장은 대화 완료 시 upsert로 처리
       return;
     } else if (useMode === 'standard') {
       // Build issue & purpose context for system prompt
@@ -978,7 +1005,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
-      saveDiscussionToHistory({ question, expertIds: useIds, mode: useMode, messages: [] });
+      // 저장은 대화 완료 시 upsert로 처리
       return;
     }
 
@@ -1106,10 +1133,10 @@ Rules:
     runDiscussion(question, overrideExpertIds, overrideMode);
   }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussion]);
 
-  // Save to history when discussion completes
+  // Save to history when discussion completes — upsert로 중복 방지
   useEffect(() => {
     if (!isDiscussing && messages.length > 0 && currentQuestion) {
-      saveDiscussionToHistory({
+      upsertDiscussionHistory(sessionIdRef.current, {
         question: currentQuestion, mode: discussionMode,
         messages: messages.map((m) => ({ ...m, isStreaming: false })),
         expertIds: selectedExpertIds
@@ -1198,6 +1225,96 @@ Rules:
     return 'default';
   };
 
+  // 대화 요약 기능
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const handleSummarize = useCallback(async () => {
+    if (isSummarizing || messages.length < 3) return;
+    setIsSummarizing(true);
+
+    // 대화 내용 추출
+    const conversationText = messages
+      .filter(m => m.content && m.expertId !== '__system__')
+      .map(m => {
+        const expert = allExperts.find(e => e.id === m.expertId);
+        const role = m.expertId === '__user__' ? '사용자' : (expert?.nameKo || 'AI');
+        return `${role}: ${m.content.slice(0, 500)}`;
+      })
+      .join('\n');
+
+    const summaryPrompt = `지금까지의 대화 내용을 분석하여 아래 형식으로 요약하세요.
+불필요한 수식어 없이 핵심만 간결하게 작성하세요. 마크다운 형식으로 작성하세요.
+
+## 대화 요약
+
+**주제**
+(한 줄)
+
+**핵심 내용**
+- (불릿 3~5개, 각 1~2줄)
+
+**현재 상태**
+(결론 또는 남은 논점, 1~2줄)
+
+---
+
+대화 내용:
+${conversationText}`;
+
+    try {
+      // 요약은 스트리밍이 아닌 clarify API를 활용 (비스트리밍)
+      const resp = await fetch('/api/clarify-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: '__summarize__', expertName: 'System', expertDescription: summaryPrompt }),
+      });
+      const data = await resp.json();
+      // clarify API가 answer를 반환하면 직접 Gemini 호출
+      const geminiResp = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ systemPrompt: '당신은 대화 내용을 정확하게 요약하는 전문가입니다. 한국어로 마크다운 형식으로 작성하세요.', question: summaryPrompt }),
+      });
+      // 스트리밍 응답을 전부 읽기
+      const reader = geminiResp.body?.getReader();
+      const decoder = new TextDecoder();
+      let summaryContent = '';
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          // SSE 파싱: "data: {...}" 줄에서 텍스트 추출
+          for (const line of chunk.split('\n')) {
+            if (line.startsWith('data: ')) {
+              try {
+                const json = JSON.parse(line.slice(6));
+                const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                summaryContent += text;
+              } catch {}
+            }
+          }
+        }
+      }
+      if (!summaryContent) summaryContent = '요약을 생성할 수 없습니다.';
+
+      // 시스템 요약 카드로 메시지에 추가
+      setMessages(prev => [...prev, {
+        id: `summary-${Date.now()}`,
+        expertId: '__summary__',
+        content: summaryContent,
+        isSummary: true,
+      }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        id: `summary-err-${Date.now()}`,
+        expertId: '__summary__',
+        content: '요약 생성에 실패했습니다. 다시 시도해주세요.',
+        isSummary: true,
+      }]);
+    }
+    setIsSummarizing(false);
+  }, [messages, allExperts, isSummarizing]);
+
   // Generate conclusion on demand (다중 AI)
   const generateConclusion = useCallback(async () => {
     if (isDiscussing) return;
@@ -1252,6 +1369,7 @@ Rules:
   // Clarifying questions state (단일 AI)
   const skipClarifyRef = useRef(false);
   const clarifyAttemptsRef = useRef(0);
+  const sessionIdRef = useRef<string>(`hist-${Date.now()}`);
   const MAX_CLARIFY_ATTEMPTS = 2;
   const [chatClarify, setChatClarify] = useState<{
     show: boolean;
@@ -1324,6 +1442,14 @@ Rules:
     if (isDiscussing) return;
     const mode = getMainMode(discussionMode);
 
+    // Grab pending files for follow-up
+    const followUpFiles = pendingFilesRef.current;
+    pendingFilesRef.current = [];
+    const followUpFilesToSend = followUpFiles.length > 0 ? followUpFiles.map(f => ({
+      name: f.name, mimeType: f.mimeType, base64: f.base64, extractedText: f.extractedText,
+    })) : undefined;
+    const followUpFilesBadges = followUpFiles.length > 0 ? followUpFiles.map(f => ({ name: f.name, mimeType: f.mimeType, preview: f.preview })) : undefined;
+
     // 단일 AI / 어시스턴트: 같은 AI에게 이어서 대화
     if (mode === 'general' || discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'player') {
       const expert = activeExperts[0];
@@ -1345,7 +1471,7 @@ Rules:
       const replyId = `${expert.id}-reply-${Date.now()}`;
       const userMsgId = `user-${Date.now()}`;
       setMessages(prev => [...prev,
-        { id: userMsgId, expertId: '__user__', content: question },
+        { id: userMsgId, expertId: '__user__', content: question, attachedFiles: followUpFilesBadges },
         { id: replyId, expertId: expert.id, content: '', isStreaming: true }
       ]);
 
@@ -1357,6 +1483,7 @@ Rules:
           onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: fullContent } : m)); },
           onDone: () => { setMessages(prev => prev.map(m => m.id === replyId ? { ...m, isStreaming: false } : m)); },
           signal: controller.signal,
+          files: followUpFilesToSend,
         });
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
@@ -1378,7 +1505,7 @@ Rules:
         const e = allExperts.find(ex => ex.id === m.expertId);
         return { name: e?.nameKo || '', content: m.content };
       });
-      setMessages(prev => [...prev, { id: `user-multi-${Date.now()}`, expertId: '__user__', content: question, timestamp: Date.now() }]);
+      setMessages(prev => [...prev, { id: `user-multi-${Date.now()}`, expertId: '__user__', content: question, timestamp: Date.now(), attachedFiles: followUpFilesBadges }]);
       setMultiView('overview');
 
       for (const expert of activeExperts) {
@@ -1392,7 +1519,8 @@ Rules:
             previousResponses: prevAll, round: 'initial',
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
-            signal: controller.signal });
+            signal: controller.signal,
+            files: followUpFilesToSend });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
           setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false } : m));
@@ -1415,7 +1543,7 @@ Rules:
         const e = allExperts.find(ex => ex.id === m.expertId);
         return { name: e?.nameKo || '', content: m.content };
       });
-      setMessages(prev => [...prev, { id: `user-debate-followup-${Date.now()}`, expertId: '__user__', content: question }]);
+      setMessages(prev => [...prev, { id: `user-debate-followup-${Date.now()}`, expertId: '__user__', content: question, attachedFiles: followUpFilesBadges }]);
 
       const stanceExtra = discussionMode === 'procon'
         ? (id: string) => proconStances[id] === 'pro'
@@ -1450,7 +1578,8 @@ Rules:
               }
               setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
             },
-            signal: controller.signal });
+            signal: controller.signal,
+            files: followUpFilesToSend });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
           setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false } : m));
@@ -3153,6 +3282,30 @@ Rules:
               ) : activeGame ? null : (
                 /* All other modes: sequential */
                 messages.map((msg, idx) => {
+                  // 대화 요약 카드
+                  if (msg.expertId === '__summary__') {
+                    return (
+                      <div key={msg.id} className="mx-auto max-w-[90%] my-3 animate-in fade-in slide-in-from-bottom-2 duration-400">
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-hidden">
+                          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800/80">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-3.5 h-3.5 text-slate-500" />
+                              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">대화 요약</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => navigator.clipboard.writeText(msg.content)} className="px-2 py-0.5 rounded text-[10px] text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">복사</button>
+                              <button onClick={() => setMessages(prev => prev.filter(m => m.id !== msg.id))} className="px-2 py-0.5 rounded text-[10px] text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">닫기</button>
+                            </div>
+                          </div>
+                          <div className="px-4 py-3">
+                            <div className="text-[12.5px] leading-relaxed text-slate-600 dark:text-slate-300">
+                              <ReactMarkdownInline content={msg.content} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
                   // PPT 다운로드 버튼
                   if (msg.expertId === '__ppt_download__') {
                     let pptData: import('@/lib/pptGenerator').PptData | null = null;
@@ -3198,6 +3351,23 @@ Rules:
                             : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
                         )}>
                           <ReactMarkdownInline content={msg.content} />
+                          {msg.attachedFiles && msg.attachedFiles.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {msg.attachedFiles.map((f, i) => (
+                                <span key={i} className={cn(
+                                  'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
+                                  isMessenger ? 'bg-indigo-400/30 text-indigo-100' : 'bg-slate-50 text-slate-500 border border-slate-200'
+                                )}>
+                                  {f.preview ? (
+                                    <img src={f.preview} alt="" className="w-4 h-4 rounded object-cover" />
+                                  ) : (
+                                    <span className="text-[11px]">{f.mimeType.startsWith('image/') ? '\u{1F5BC}\uFE0F' : f.mimeType === 'application/pdf' ? '\u{1F4C4}' : f.mimeType.includes('wordprocessingml') ? '\u{1F4DD}' : f.mimeType.includes('spreadsheetml') ? '\u{1F4CA}' : '\u{1F4CE}'}</span>
+                                  )}
+                                  {f.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -3267,12 +3437,23 @@ Rules:
                       handleFollowUp(q);
                     }
                   } : startDiscussion}
+                  onSubmitWithFiles={(question, files) => {
+                    pendingFilesRef.current = files;
+                    if (isDone) {
+                      handleFollowUp(question);
+                    } else {
+                      startDiscussion(question);
+                    }
+                  }}
                   disabled={isDiscussing || activeExperts.length < 1 || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)}
                   discussionMode={discussionMode}
                   onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                   showSettings={showDebateSettings}
                   isFollowUp={isDone}
-                  onConclusion={isDone && discussionMode === 'multi' && !messages.some(m => m.isSummary) ? generateConclusion : undefined}
+                  onConclusion={undefined}
+                  onSummarize={handleSummarize}
+                  isSummarizing={isSummarizing}
+                  messageCount={messages.length}
                   externalValue={sampleQuestionValue}
                   onExternalValueConsumed={() => setSampleQuestionValue('')}
                 />

@@ -109,7 +109,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   // ── Messenger (단일 AI) ──
   if (variant === 'messenger') {
     return (
-      <div className="group flex gap-2.5 items-start animate-in fade-in slide-in-from-bottom-1 duration-200">
+      <div className="group flex gap-2.5 items-start animate-in fade-in slide-in-from-bottom-2 duration-400">
         <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
         <div className="flex-1 min-w-0 max-w-[85%]">
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
@@ -197,7 +197,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   // ── Hearing (아이디어 검증) ──
   if (variant === 'hearing') {
     return (
-      <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
+      <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
         <div className="flex items-start gap-2.5">
           <div className="flex flex-col items-center gap-1 pt-0.5 shrink-0">
             <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
@@ -223,7 +223,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   // ── Report (전문가 모드) ──
   if (variant === 'report') {
     return (
-      <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
+      <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
         <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
           <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50/50 border-b border-slate-100">
             <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
@@ -243,7 +243,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
 
   // ── Default (다중AI, 심층토론, 어시스턴트) ──
   return (
-    <div className="group animate-in fade-in slide-in-from-bottom-1 duration-200">
+    <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div className={cn(
         'rounded-xl border transition-all overflow-hidden',
         isSummary ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-lg ring-1 ring-amber-200/50 border-2' : 'border-slate-300 bg-white hover:border-slate-400 hover:shadow-md'

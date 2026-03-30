@@ -332,6 +332,7 @@ export interface DiscussionMessage {
     likes?: number;
     dislikes?: number;
     timestamp?: number;
+    attachedFiles?: { name: string; mimeType: string; preview?: string }[];
 }
 
 // ══════════════════════════════════════════

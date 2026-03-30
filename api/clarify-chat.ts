@@ -19,56 +19,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const isFollowUp = (attempt || 1) >= 2;
 
-  const prompt = `당신은 사용자의 질문 의도를 정확히 파악하는 전문 분석가입니다.
+  const prompt = `당신은 사용자의 의도를 정확히 파악하여 최고 품질의 답변을 제공하기 위한 분석 시스템입니다.
 
 사용자 질문: "${message}"
 답변할 AI: "${expertName}" (${expertDescription})
-${isFollowUp ? '⚠️ 이것은 2차 확인입니다. 이미 1차 선택지를 통해 범위가 좁혀진 질문입니다.' : ''}
+${isFollowUp ? '⚠️ 이것은 2차 확인입니다. 이미 1차 선택지를 통해 범위가 좁혀진 질문입니다. 대부분 바로 답변해야 합니다.' : ''}
 
-## 판단 기준
+## STEP 1: 내부 점수 분석
 
-### 반드시 명확화가 필요한 경우 (질문하세요):
-1. **동음이의어/다의어**: "유가" (석유 가격 vs 儒家), "배" (과일/선박/신체), "사과" (과일/apology)
-2. **범위가 너무 넓은 질문**: "경제 전망", "건강 관리" — 어떤 측면인지 특정 필요
-3. **맥락 의존적 추천**: "좋은 노트북", "투자 어디에" — 용도/예산/수준 모름
-4. **전문 분야 세분화**: "법률 상담" (민사/형사/가족법), "프로그래밍" (언어/분야)
-5. **시간/지역 범위 모호**: "날씨", "부동산" — 언제/어디인지
+아래 5가지 항목을 체크하세요. 해당하면 +1점:
 
-### 명확화 불필요 (바로 답변하세요):
-1. 이미 구체적인 질문: "파이썬으로 정렬 알고리즘 구현", "비트코인 블록체인 원리"
-2. 괄호 등으로 이미 맥락 제공됨: "유가 (국제 유가, 단기)"
-3. 단순 사실/정의: "GDP란?", "지구 둘레"
-4. 인사/잡담: "안녕", "뭐해?"
-5. 감정/의견 표현: "요즘 힘들어", "AI가 무서워"
-${isFollowUp ? '6. 이미 1차에서 범위가 좁혀졌으므로, 추가 질문이 진짜 답변 품질을 크게 바꿀 때만 질문하세요. 대부분은 바로 답변해야 합니다.' : ''}
+| 항목 | 조건 |
+|------|------|
+| 해석 분기 | 요청이 2가지 이상으로 해석 가능한가? |
+| 핵심 정보 누락 | 대상, 목적, 조건 중 하나 이상 빠져 있는가? |
+| 결과물 민감도 | 가정이 틀리면 결과물을 처음부터 다시 만들어야 하는가? |
+| 고비용 작업 | 코드 생성, 긴 글 작성 등 재작업 비용이 큰 작업인가? |
+| 개인화 필요 | 사용자의 상황/선호에 따라 답이 크게 달라지는가? |
 
-## 출력 형식 (JSON만)
+## STEP 2: 점수에 따른 행동
 
-명확화 필요:
+**0점**: 바로 답변 → {"type": "answer"}
+**1점**: 가정 명시 답변 → {"type": "answer_with_assumption", "assumption": "~라고 가정하고 답변합니다. 다른 조건이 있으면 말씀해주세요."}
+**2점 이상**: 부분 답변 + 질문 → clarifying_questions (아래 형식)
+
+${isFollowUp ? '※ 2차에서는 1점 이하가 대부분입니다. 2점 이상이 정말 확실할 때만 질문하세요.' : ''}
+
+## STEP 3: 질문 원칙 (2점 이상일 때만)
+
+1. **임팩트 기반**: "답변이 가장 크게 달라지는" 질문만. 사소한 차이만 만드는 질문 금지.
+2. **가정 제시 + 확인**: 맨땅에 질문하지 말고, 내가 하려던 가정을 기본값으로 보여주세요.
+   나쁜 예: "어떤 언어로 할까요?"
+   좋은 예: 기본값으로 "Python"을 제시하고 다른 걸 원하면 선택하게
+3. **부분 답변 포함**: 확실한 부분은 partialAnswer로 먼저 제공. 사용자가 빈손으로 기다리지 않게.
+4. **질문 개수 제한**: 최대 ${isFollowUp ? '1개' : '2개'}. 1개로 충분하면 1개만.
+
+## 출력 형식 (반드시 JSON만 출력, 다른 텍스트 금지)
+
+### 0점 — 바로 답변:
+{"type": "answer"}
+
+### 1점 — 가정 명시 답변:
+{"type": "answer_with_assumption", "assumption": "가정 내용을 한 문장으로. 예: Python 환경이라고 가정합니다."}
+
+### 2점 이상 — 부분 답변 + 질문:
 {
   "type": "clarifying_questions",
-  "message": "자연스러운 안내 (예: '어떤 유가를 말씀하시는 건지 확인할게요')",
+  "partialAnswer": "확실한 부분에 대한 간단한 설명 (1~2문장). 없으면 빈 문자열.",
+  "message": "자연스러운 전환 문구 (예: '더 정확하게 맞추려면 하나만 확인할게요')",
   "questions": [
     {
       "id": "q1",
-      "question": "핵심 질문 (구체적으로)",
+      "question": "핵심 질문 (가정을 포함해서. 예: 'React 기반인가요? 다른 프레임워크면 알려주세요.')",
       "options": [
-        {"label": "선택지명 (8자 이내)", "value": "구체적 내부값"}
+        {"label": "선택지 (8자 이내)", "value": "구체적 내부값"}
       ]
     }
   ]
 }
 
-불필요: {"type": "answer"}
+## 판단 예시
 
-## 규칙
-- 질문은 최대 ${isFollowUp ? '1개 (2차는 정말 필요한 것만)' : '2개'}
-- 선택지는 2~4개 (가장 가능성 높은 순서로)
-- label은 짧고 직관적 (8자 이내)
-- value는 실제 의미를 담은 구체적 값
-- "기타" 선택지는 꼭 필요할 때만: {"label": "직접 입력", "value": "__custom__"}
-- 한국어로 작성
-- 질문이 모호하지 않다면 반드시 {"type": "answer"} 반환`;
+"투자 어떻게 해?" → 해석분기(주식/부동산/코인)+정보누락(금액/기간)+개인화(상황) = 3점 → clarifying_questions
+"파이썬 정렬 방법" → 0점 → answer
+"이메일 작성해줘" → 해석분기(퇴사/합격/요청)+정보누락(수신인)+결과물민감도 = 3점 → clarifying_questions
+"경제 전망 어때?" → 정보누락(어떤 나라/지표)+개인화 = 2점 → clarifying_questions
+"GPT란 뭐야?" → 0점 → answer
+"코드 리뷰해줘" → 정보누락(어떤 코드?) = 1점 → answer_with_assumption ("공유해주신 코드를 기준으로 리뷰합니다")
+"안녕" → 0점 → answer
+
+한국어로 작성하세요.`;
 
   const model = 'gemini-2.5-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -79,24 +99,30 @@ ${isFollowUp ? '6. 이미 1차에서 범위가 좁혀졌으므로, 추가 질문
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
+        generationConfig: { temperature: 0.2, maxOutputTokens: 600 },
       }),
     });
 
     if (!geminiRes.ok) {
-      return res.status(200).json({ type: 'answer' }); // 실패 시 바로 답변
+      return res.status(200).json({ type: 'answer' });
     }
 
     const data = await geminiRes.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) return res.status(200).json({ type: 'answer' });
 
     const result = JSON.parse(jsonMatch[0]);
+
+    // 유효성 검증: type이 없거나 알 수 없는 타입이면 answer로 fallback
+    if (!result.type || !['answer', 'answer_with_assumption', 'clarifying_questions'].includes(result.type)) {
+      return res.status(200).json({ type: 'answer' });
+    }
+
     return res.status(200).json(result);
   } catch {
-    return res.status(200).json({ type: 'answer' }); // 에러 시 바로 답변
+    return res.status(200).json({ type: 'answer' });
   }
 }

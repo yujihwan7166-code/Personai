@@ -41,6 +41,24 @@ export function getDiscussionHistory(): DiscussionRecord[] {
   } catch { return []; }
 }
 
+export function upsertDiscussionHistory(id: string, record: Omit<DiscussionRecord, 'id' | 'timestamp'>) {
+  try {
+    const existing = getDiscussionHistory();
+    const idx = existing.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      existing[idx] = { ...existing[idx], ...record, messages: record.messages };
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(existing));
+    } else {
+      const newRecord: DiscussionRecord = { ...record, id, timestamp: Date.now() };
+      const updated = [newRecord, ...existing].slice(0, MAX_HISTORY);
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch {
+        const trimmed = updated.slice(0, Math.max(1, updated.length - 5));
+        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed)); } catch {}
+      }
+    }
+  } catch {}
+}
+
 export function deleteDiscussionFromHistory(id: string) {
   try {
     const existing = getDiscussionHistory();
