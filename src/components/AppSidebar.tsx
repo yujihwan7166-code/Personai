@@ -20,6 +20,7 @@ interface Props {
   favoriteIds?: string[];
   onSelectExpert?: (id: string) => void;
   onSidebarToggle?: (isOpen: boolean) => void;
+  onStartChat?: (expertId: string, mode: 'question' | 'greeting', content: string) => void;
 }
 
 interface Project {
@@ -97,7 +98,7 @@ function updateDiscussionTitle(id: string, newTitle: string) {
 export function AppSidebar({
   experts, onLoadHistory, onUpdateExperts,
   discussionMode, onModeChange, isDiscussing, onNewDiscussion,
-  favoriteIds = [], onSelectExpert, onSidebarToggle,
+  favoriteIds = [], onSelectExpert, onSidebarToggle, onStartChat,
 }: Props) {
   const [isOpen, setIsOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,6 +147,7 @@ export function AppSidebar({
   // Bot browser modal state
   const [showBotBrowser, setShowBotBrowser] = useState(false);
   const [botBrowserCat, setBotBrowserCat] = useState('전체');
+  const [selectedBotProfile, setSelectedBotProfile] = useState<string | null>(null);
 
   const editInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -368,31 +370,7 @@ export function AppSidebar({
     // Find the first expert for the avatar icon
     const firstExpert = experts.find(e => record.expertIds?.includes(e.id));
 
-    if (isDeleting) {
-      return (
-        <div key={record.id} className="mx-2 mb-0.5 px-3 py-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm animate-in fade-in duration-150">
-          <div className="flex items-center gap-2 mb-2.5">
-            <Trash2 className="w-4 h-4 text-red-500 shrink-0" />
-            <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300">이 대화를 삭제할까요?</p>
-          </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-3 pl-6 truncate">{record.question}</p>
-          <div className="flex gap-2 justify-end">
-            <button
-              onClick={() => setDeletingId(null)}
-              className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-            >
-              취소
-            </button>
-            <button
-              onClick={() => handleDeleteHistory(record.id)}
-              className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
-            >
-              삭제
-            </button>
-          </div>
-        </div>
-      );
-    }
+    // 삭제 확인은 플로팅 모달로 처리 (아래 별도 렌더)
 
     return (
       <div
@@ -429,9 +407,25 @@ export function AppSidebar({
             className="flex-1 min-w-0 text-[13px] text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 outline-none focus:border-blue-400 dark:focus:border-blue-500"
           />
         ) : (
-          <span className="text-[12px] text-slate-600 dark:text-slate-400 truncate flex-1">
-            {record.question}
-          </span>
+          <div className="flex-1 min-w-0 flex items-center gap-1.5">
+            <span className="text-[12px] text-slate-600 dark:text-slate-400 truncate">
+              {record.question}
+            </span>
+            {record.mode && record.mode !== 'general' && (
+              <span className={cn("shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-full", {
+                'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400': record.mode === 'multi',
+                'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400': record.mode === 'brainstorm',
+                'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400': record.mode === 'standard' || record.mode === 'procon',
+                'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400': record.mode === 'hearing',
+                'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400': record.mode === 'freetalk',
+                'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400': record.mode === 'stakeholder',
+                'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400': record.mode === 'expert',
+                'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400': record.mode === 'assistant',
+              } as Record<string, boolean>)}>
+                {{ multi: '멀티', brainstorm: '브레인', standard: '토론', procon: '찬반', hearing: '검증', freetalk: '자유', stakeholder: 'AI시뮬', expert: '상담', assistant: '어시' }[record.mode] || record.mode}
+              </span>
+            )}
+          </div>
         )}
 
         {/* ⋯ 더보기 메뉴 */}
@@ -733,7 +727,7 @@ export function AppSidebar({
                             <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
                           </button>
                           <button
-                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setShowIconPicker(project.id); }}
+                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setTimeout(() => setShowIconPicker(project.id), 50); }}
                             className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                           >
                             <span className="w-3.5 h-3.5 flex items-center justify-center text-[11px]">{project.icon || '📁'}</span> 아이콘 변경
@@ -792,6 +786,24 @@ export function AppSidebar({
             )}
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        {deletingId && (() => {
+          const record = historyRecords.find(r => r.id === deletingId);
+          return (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setDeletingId(null)}>
+              <div className="absolute inset-0 bg-black/20"></div>
+              <div onClick={e => e.stopPropagation()} className="relative w-72 p-5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+                <p className="text-[14px] font-semibold text-slate-700 dark:text-slate-300 mb-1">대화를 삭제할까요?</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 truncate">{record?.question}</p>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setDeletingId(null)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
+                  <button onClick={() => handleDeleteHistory(deletingId)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Icon Picker Modal */}
         {showIconPicker && showIconPicker !== 'new' && (() => {
@@ -1035,14 +1047,14 @@ export function AppSidebar({
 
       {/* Bot Browser Modal */}
       {showBotBrowser && (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-16" onClick={() => setShowBotBrowser(false)}>
-          <div className="absolute inset-0 bg-black/30" />
+        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-8" onClick={() => { setShowBotBrowser(false); setSelectedBotProfile(null); }}>
+          <div className="absolute inset-0 bg-black/30"></div>
           <div
-            className="relative w-full max-w-[640px] max-h-[70vh] mx-4 rounded-xl bg-white dark:bg-[#1a1a1a] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+            className="relative w-full max-w-[640px] max-h-[85vh] mx-4 rounded-xl bg-white dark:bg-[#1a1a1a] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800">
               <h3 className="text-[15px] font-bold text-slate-800 dark:text-white">AI 봇 둘러보기</h3>
               <button onClick={() => setShowBotBrowser(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <X className="w-5 h-5" />
@@ -1050,7 +1062,7 @@ export function AppSidebar({
             </div>
 
             {/* Category tabs */}
-            <div className="flex gap-1 px-4 py-2 border-b border-slate-100 dark:border-slate-800/50 overflow-x-auto scrollbar-none">
+            <div className="shrink-0 flex gap-1 px-4 py-2 border-b border-slate-100 dark:border-slate-800/50 overflow-x-auto scrollbar-none">
               {['전체', '인기', 'AI 모델', '전문가', '직업', '인물', '캐릭터', '신화', '이념', '철학/종교'].map(cat => (
                 <button key={cat}
                   onClick={() => setBotBrowserCat(cat)}
@@ -1074,15 +1086,13 @@ export function AppSidebar({
                   .map(expert => (
                     <button
                       key={expert.id}
-                      onClick={() => {
-                        setShowBotBrowser(false);
-                        onSelectExpert?.(expert.id);
-                        onNewDiscussion?.();
-                      }}
+                      onClick={() => setSelectedBotProfile(expert.id)}
                       className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700 transition-all text-left group"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[16px] shrink-0 group-hover:scale-110 transition-transform">
-                        {expert.icon}
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[16px] shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
+                        {expert.avatarUrl ? (
+                          <img src={expert.avatarUrl} alt={expert.nameKo} className="w-full h-full object-cover" />
+                        ) : expert.icon}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-slate-800 dark:text-white truncate">{expert.nameKo}</p>
@@ -1092,6 +1102,101 @@ export function AppSidebar({
                   ))}
               </div>
             </div>
+
+          {/* Bot Profile Card Overlay */}
+            {selectedBotProfile && (() => {
+              const bot = experts.find(e => e.id === selectedBotProfile);
+              if (!bot) return null;
+              return (
+                <div className="absolute inset-0 z-10 bg-white dark:bg-[#1a1a1a] flex flex-col animate-in fade-in duration-200">
+                  {/* Back button */}
+                  <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-800">
+                    <button onClick={() => setSelectedBotProfile(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-[13px] font-medium text-slate-500">봇 목록으로</span>
+                  </div>
+
+                  {/* Profile */}
+                  <div className="flex-1 overflow-y-auto px-6 py-6">
+                    <div className="flex flex-col items-center text-center mb-6">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[32px] mb-3 overflow-hidden">
+                        {bot.avatarUrl ? (
+                          <img src={bot.avatarUrl} alt={bot.nameKo} className="w-full h-full object-cover" />
+                        ) : bot.icon}
+                      </div>
+                      <h3 className="text-[18px] font-bold text-slate-800 dark:text-white">{bot.nameKo}</h3>
+                      <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5">{bot.description}</p>
+                      {bot.quote && (
+                        <p className="text-[12px] text-indigo-500 dark:text-indigo-400 font-medium mt-2 italic">"{bot.quote}"</p>
+                      )}
+                    </div>
+
+                    {/* Sample Questions */}
+                    {bot.sampleQuestions && bot.sampleQuestions.length > 0 && (
+                      <div className="mb-6">
+                        <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">추천 질문</p>
+                        <div className="space-y-1.5">
+                          {bot.sampleQuestions.map((q, i) => (
+                            <button
+                              key={i}
+                              onClick={() => {
+                                setShowBotBrowser(false);
+                                setSelectedBotProfile(null);
+                                onStartChat?.(bot.id, 'question', q);
+                              }}
+                              className="w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[12px] text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
+                            >
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Info */}
+                    <div className="space-y-2 mb-6">
+                      {bot.subCategory && (
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400">분야</span>
+                          <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.subCategory}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">카테고리</span>
+                        <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.category}</span>
+                      </div>
+                    </div>
+
+                    {/* Start Chat Button */}
+                    <button
+                      onClick={() => {
+                        const defaultGreetings: Record<string, string> = {
+                          ai: '안녕하세요! 무엇이든 물어보세요.',
+                          specialist: '안녕하세요! 전문 분야에 대해 물어보세요.',
+                          occupation: '안녕하세요! 현장 경험을 바탕으로 답해드릴게요.',
+                          celebrity: '반갑습니다. 어떤 이야기를 나눠볼까요?',
+                          fictional: '어서 오게. 무슨 이야기를 듣고 싶은가?',
+                          mythology: '인간이여, 무엇이 궁금한가?',
+                          ideology: '어떤 주제에 대해 논해볼까요?',
+                          religion: '어떤 질문이든 함께 생각해보겠습니다.',
+                          lifestyle: '안녕하세요! 어떤 고민이 있으세요?',
+                          perspective: '뭐, 한번 들어볼게.',
+                          region: '안녕하세요! 문화에 대해 이야기해볼까요?',
+                        };
+                        const greeting = bot.greeting || defaultGreetings[bot.category] || '안녕하세요! 무엇이 궁금하신가요?';
+                        setShowBotBrowser(false);
+                        setSelectedBotProfile(null);
+                        onStartChat?.(bot.id, 'greeting', greeting);
+                      }}
+                      className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold text-[14px] transition-colors shadow-md"
+                    >
+                      대화 시작하기
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

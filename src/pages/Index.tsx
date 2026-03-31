@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS } from '@/types/expert';
 import { PROMPTS } from '@/data/prompts';
 import { generatePpt, parsePptJson, PPT_SYSTEM_PROMPT } from '@/lib/pptGenerator';
 import { GamePlayer } from '@/components/GamePlayer';
@@ -212,6 +213,7 @@ const Index = () => {
   const [selectedFramework, setSelectedFramework] = useState<ThinkingFramework | null>(null);
   const [discussionIssues, setDiscussionIssues] = useState<DiscussionIssue[]>([]);
   const [debateIntensity, setDebateIntensity] = useState('moderate');
+  const [stakeholderSettings, setStakeholderSettings] = useState<StakeholderSettings>(DEFAULT_STAKEHOLDER_SETTINGS);
   const [, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -340,7 +342,40 @@ const Index = () => {
     abortControllerRef.current?.abort();
   };
 
+  // 브라우저 닫기/새로고침 시 자동 저장
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (messages.length > 0 && (sessionTitleRef.current || currentQuestion)) {
+        upsertDiscussionHistory(sessionIdRef.current, {
+          question: sessionTitleRef.current || currentQuestion,
+          mode: discussionMode,
+          messages: messages.map(m => ({ ...m, isStreaming: false })),
+          expertIds: selectedExpertIds,
+          proconStances,
+        });
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [messages, currentQuestion, discussionMode, selectedExpertIds]);
+
+  // 현재 대화 자동 저장 (나가기 전)
+  const autoSaveCurrentChat = useCallback(() => {
+    if (messages.length > 0 && (sessionTitleRef.current || currentQuestion)) {
+      upsertDiscussionHistory(sessionIdRef.current, {
+        question: sessionTitleRef.current || currentQuestion,
+        mode: discussionMode,
+        messages: messages.map(m => ({ ...m, isStreaming: false })),
+        expertIds: selectedExpertIds,
+        proconStances,
+      });
+    }
+  }, [messages, currentQuestion, discussionMode, selectedExpertIds]);
+
   const handleNewDiscussion = () => {
+    autoSaveCurrentChat();
+    // 진행 중이면 중단
+    if (isDiscussing) { abortControllerRef.current?.abort(); }
     setMessages([]);
     setCurrentQuestion('');
     setIsDiscussing(false);
@@ -348,8 +383,11 @@ const Index = () => {
     skipClarifyRef.current = false;
     clarifyAttemptsRef.current = 0;
     sessionIdRef.current = `hist-${Date.now()}`;
+    sessionTitleRef.current = '';
+    summaryCountRef.current = 0;
     userScrolledUpRef.current = false;
     setChatClarify(null);
+    setBsClarify(null);
   };
 
 
@@ -377,6 +415,7 @@ const Index = () => {
     setStopRequested(false);
     setIsDiscussing(true);
     setCurrentQuestion(question);
+    if (!sessionTitleRef.current) sessionTitleRef.current = displayQuestion || question;
     setMessages([]);
     userScrolledUpRef.current = false;
     setClarifyState({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
@@ -691,6 +730,33 @@ const Index = () => {
         }
       }
     } else if (useMode === 'brainstorm') {
+      // 브레인스토밍 사전 인터뷰 — 주제 구체화
+      if (!skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS) {
+        clarifyAttemptsRef.current++;
+        try {
+          const clarifyResp = await fetch('/api/clarify-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: question, expertName: '브레인스토밍 진행자', expertDescription: '브레인스토밍 세션 준비', attempt: clarifyAttemptsRef.current, mode: 'brainstorm' }),
+          });
+          const clarifyData = await clarifyResp.json();
+          if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
+            setBsClarify({
+              show: true,
+              message: clarifyData.message || '효과적인 세션을 위해 주제를 구체화할게요',
+              questions: clarifyData.questions,
+              selections: {},
+              originalQuestion: question,
+            });
+            setIsDiscussing(false);
+            setStopRequested(false);
+            return;
+          }
+        } catch { /* 실패 시 바로 진행 */ }
+      }
+      skipClarifyRef.current = true;
+      setChatClarify(null);
+
       const bsCreativityMap: Record<string, string> = {
         realistic: '현실적이고 즉시 실행 가능한 아이디어에 집중하세요.',
         balanced: '현실적 아이디어와 혁신적 아이디어를 균형있게 제시하세요.',
@@ -968,6 +1034,275 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           await new Promise(r => setTimeout(r, DELAY_BETWEEN_ROUNDS));
         }
       }
+    } else if (useMode === 'freetalk') {
+      // Freetalk: AI group chat - short flowing messages
+      const maxMessages = debateSettings.freetalkMessageCount || 25;
+      let msgCount = 0;
+
+      // System message
+      setMessages(prev => [...prev, {
+        id: `system-freetalk-${Date.now()}`,
+        expertId: '__round__',
+        content: `💬 자유 토론 시작 · ${discussionExperts.length}명 참여 · 총 ${maxMessages}개 메시지`,
+      }]);
+
+      const freetalkPrompt = `당신은 AI 단톡방에 참여 중입니다.
+
+주제: "${question}"
+
+## 절대 규칙
+1. 반드시 1~3문장으로만 답하세요. 절대 4문장 이상 쓰지 마세요.
+2. 분석하지 말고 대화하세요. 논문 스타일 금지.
+3. 이전 발언자의 말에 직접 반응하세요 (동의/반박/질문/보충).
+4. 자연스러운 구어체. "~인듯", "~아닌가", "오 그거 맞아" 식으로.
+5. 이모지 가끔 사용 OK.
+6. 같은 말 반복 금지. 매번 새로운 각도로.
+7. 한국어로 답변.`;
+
+      while (msgCount < maxMessages && !shouldStop()) {
+        for (const expert of discussionExperts) {
+          if (shouldStop() || msgCount >= maxMessages) break;
+
+          const msgId = `${expert.id}-freetalk-${Date.now()}-${msgCount}`;
+          setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+          setActiveExpertId(expert.id);
+
+          let fullContent = '';
+          const prevAll = allResponses.slice(-20); // last 20 messages for context
+
+          try {
+            await streamExpert({
+              question: msgCount === 0 ? question : `이전 대화를 이어가세요. 주제: "${question}"`,
+              expert: { ...expert, systemPrompt: freetalkPrompt },
+              previousResponses: prevAll,
+              round: 'initial',
+              onDelta: chunk => {
+                fullContent += chunk;
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m));
+              },
+              onDone: () => {
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
+              },
+              signal: controller.signal,
+            });
+          } catch (err) {
+            if ((err as Error).name === 'AbortError') break;
+            fullContent = '...';
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+          }
+
+          allResponses.push({ name: expert.nameKo, content: fullContent });
+          msgCount++;
+
+          // Short delay between messages (typing feel)
+          await new Promise(r => setTimeout(r, 300 + Math.random() * 700));
+        }
+      }
+
+      // Auto summary at the end
+      if (!shouldStop() && allResponses.length > 0) {
+        setActiveExpertId(SUMMARIZER_EXPERT.id);
+        const summaryId = `summary-freetalk-${Date.now()}`;
+        setMessages(prev => [...prev, { id: summaryId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+        let summaryContent = '';
+        try {
+          await streamExpert({
+            question,
+            expert: { ...SUMMARIZER_EXPERT, systemPrompt: `You are a conversation summarizer. Summarize the free-flowing AI group chat about the given topic in Korean. Use this format:
+
+## 💬 자유 토론 정리
+
+### 💡 핵심 결론
+(대화에서 도출된 핵심 결론 2-3문장)
+
+### 📌 주요 논점
+1. **(논점)** — 설명
+2. **(논점)** — 설명
+3. **(논점)** — 설명
+
+### 🎯 흥미로운 의견
+- (눈에 띄는 의견 1)
+- (눈에 띄는 의견 2)
+
+> 💡 **한줄 요약:** (전체 대화를 한 문장으로)
+
+한국어로 작성하세요. 간결하게.` },
+            previousResponses: allResponses,
+            round: 'summary',
+            onDelta: chunk => { summaryContent += chunk; setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            summaryContent = `⚠️ ${err instanceof Error ? err.message : '요약 생성 실패'}`;
+            setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false } : m));
+          }
+        }
+      }
+
+    } else if (useMode === 'stakeholder') {
+      // Stakeholder Simulation mode (scenario-based)
+      const shSettings = stakeholderSettings;
+      const scenario = SIMULATION_SCENARIOS.find(s => s.id === shSettings.scenarioId);
+      const intensity = shSettings.intensity;
+
+      // Build role-expert pairs from roleAssignments
+      const roleExperts: { roleName: string; roleIcon: string; roleFocus: string; expert: Expert }[] = [];
+      if (scenario) {
+        for (const role of scenario.roles) {
+          const expertId = shSettings.roleAssignments[role.name];
+          const expert = expertId ? experts.find(e => e.id === expertId) : null;
+          if (expert) {
+            roleExperts.push({ roleName: role.name, roleIcon: role.icon, roleFocus: role.focus, expert });
+          }
+        }
+      }
+
+      // Fallback: if no scenario or no role assignments, use discussionExperts with generic roles
+      if (roleExperts.length === 0) {
+        for (const expert of discussionExperts) {
+          roleExperts.push({ roleName: '이해관계자', roleIcon: '🎭', roleFocus: '전반적 평가', expert });
+        }
+      }
+
+      const roundCount = debateSettings.rounds || 3;
+      const roundMap: DiscussionRound[] = ['initial', 'rebuttal', 'final', 'final'];
+      // Gauge tracking
+      let gaugeScore = 50; // start at 50%
+
+      for (let ri = 0; ri < roundCount; ri++) {
+        if (shouldStop()) break;
+        const roundLabel = ri === 0
+          ? `1R ${scenario ? scenario.name : '이해관계자'} 반응`
+          : `${ri + 1}R 후속 반응`;
+        setMessages(prev => [...prev, {
+          id: `round-sep-sh-${ri}-${Date.now()}`,
+          expertId: '__round__',
+          content: roundLabel,
+          round: roundMap[ri] || 'final',
+        }]);
+
+        for (const { roleName, roleIcon, roleFocus, expert } of roleExperts) {
+          if (shouldStop()) break;
+
+          const intensityDesc = intensity <= 3 ? '건설적, 가능성 위주'
+            : intensity <= 6 ? '균형잡힌 시각'
+            : '날카로운 질문, 약점 공격';
+
+          const stakeholderPrompt = `당신은 "${roleName}" 역할입니다. ${roleIcon}
+
+## 시뮬레이션
+${scenario ? scenario.description : '이해관계자 시뮬레이션'}
+주제: "${question}"
+
+## 당신의 관심사
+${roleFocus}
+
+## 반응 강도: ${intensity}/10
+${intensityDesc}
+
+## 규칙
+1. "${roleName}" 관점에서만 반응하세요
+2. 주제를 매 답변에서 직접 언급하세요
+3. 다른 이해관계자 발언에 구체적으로 반응하세요
+4. 매 답변 끝에: [SCORE:+N 또는 -N] [ATTITUDE:긍정/중립/부정]
+5. 한국어로 답변` + lengthExtra;
+
+          const msgId = `${expert.id}-sh-${ri}-${Date.now()}`;
+          setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round: roundMap[ri] || 'final' }]);
+          setActiveExpertId(expert.id);
+
+          let fullContent = '';
+          try {
+            await streamExpert({
+              question: ri === 0 ? question : `이전 라운드의 논의를 바탕으로 "${roleName}" 관점에서 추가 반응해주세요.\n\n원래 주제: ${question}`,
+              expert: { ...expert, systemPrompt: stakeholderPrompt },
+              previousResponses: allResponses,
+              round: roundMap[ri] || 'final',
+              onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
+              onDone: () => {
+                // Parse SCORE/ATTITUDE tags from response
+                const scoreMatch = fullContent.match(/\[SCORE:([+-]?\d+)\]/);
+                if (scoreMatch) {
+                  const delta = parseInt(scoreMatch[1]);
+                  gaugeScore = Math.max(0, Math.min(100, gaugeScore + delta * 5));
+                }
+                // Remove tags from displayed content
+                const cleaned = fullContent.replace(/\[SCORE:[+-]?\d+\]/g, '').replace(/\[ATTITUDE:\S+\]/g, '').trim();
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: cleaned, isStreaming: false } : m));
+              },
+              signal: controller.signal,
+            });
+          } catch (err) {
+            if ((err as Error).name === 'AbortError') break;
+            fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+          }
+          // Clean tags for stored response too
+          const cleanedForHistory = fullContent.replace(/\[SCORE:[+-]?\d+\]/g, '').replace(/\[ATTITUDE:\S+\]/g, '').trim();
+          allResponses.push({ name: `${expert.nameKo} (${roleName})`, content: cleanedForHistory });
+          await new Promise(r => setTimeout(r, DELAY_BETWEEN_ROUNDS));
+        }
+      }
+
+      // Auto report generation with verdict
+      if (shSettings.autoReport && !shouldStop()) {
+        const gaugeLabel = scenario?.gaugeLabel || '평가';
+        const verdictOptions = scenario?.verdictOptions || ['긍정', '보류', '부정'];
+        const gaugePercent = Math.round(gaugeScore);
+
+        const reportPrompt = `당신은 시뮬레이션 분석가입니다. 지금까지의 이해관계자 반응을 종합하여 한국어로 피드백 리포트를 작성하세요.
+
+## 🎭 ${scenario ? scenario.name : '시뮬레이션'} 결과 리포트
+
+### 📊 ${gaugeLabel}: ${gaugePercent}%
+(현재 게이지 수치를 기반으로 한 줄 해석)
+
+### 🏷️ 최종 판정
+판정 옵션: ${verdictOptions.join(' / ')}
+(위 옵션 중 하나를 선택하고, 이유를 2~3문장으로 설명)
+
+### 📋 전체 요약
+(2-3문장으로 시뮬레이션 결과 종합)
+
+### 👥 이해관계자별 핵심 반응
+(각 이해관계자의 주요 관심사와 반응 요약)
+
+### ⚠️ 공통 우려사항
+(여러 이해관계자가 공통으로 지적한 문제)
+
+### 💥 충돌 지점
+(이해관계자 간 의견이 대립하는 부분)
+
+### 🎯 다음 단계 제안
+(구체적이고 실행 가능한 액션 아이템)
+
+> **한줄 요약:** (시뮬레이션 결과를 한 문장으로)
+
+모든 이해관계자의 의견을 빠짐없이 반영하세요.`;
+
+        setActiveExpertId(SUMMARIZER_EXPERT.id);
+        const reportId = `stakeholder-report-${Date.now()}`;
+        setMessages(prev => [...prev, { id: reportId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+        let reportContent = '';
+        try {
+          await streamExpert({
+            question,
+            expert: { ...SUMMARIZER_EXPERT, systemPrompt: reportPrompt },
+            previousResponses: allResponses,
+            round: 'summary',
+            onDelta: chunk => { reportContent += chunk; setMessages(prev => prev.map(m => m.id === reportId ? { ...m, content: reportContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === reportId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            reportContent = `⚠️ ${err instanceof Error ? err.message : '리포트 생성에 실패했어요.'}`;
+            setMessages(prev => prev.map(m => m.id === reportId ? { ...m, content: reportContent, isStreaming: false } : m));
+          }
+        }
+      }
     } else if (useMode === 'assistant') {
       // Assistant mode
       const expert = discussionExperts[0];
@@ -1093,7 +1428,7 @@ Rules:
     setActiveExpertId(undefined);
     setIsDiscussing(false);
     setStopRequested(false);
-  }, [experts, selectedExpertIds, discussionMode, debateSettings]);
+  }, [experts, selectedExpertIds, discussionMode, debateSettings, stakeholderSettings]);
 
   // Topic clarification — 토론 모드에서 주제 확인 UI 표시
   const clarifyTopic = useCallback((input: string, mode: DiscussionMode) => {
@@ -1132,8 +1467,8 @@ Rules:
   const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
     if (clarifyState.show) return;
     const useMode = overrideMode || discussionMode;
-    const debateModes = ['standard', 'procon', 'brainstorm', 'hearing'];
-    if (debateModes.includes(useMode)) {
+    const debateModes = ['standard', 'procon', 'brainstorm', 'hearing', 'freetalk'];
+    if (debateModes.includes(useMode) && useMode !== 'brainstorm' && useMode !== 'freetalk') {
       clarifyTopic(question, useMode);
       return;
     }
@@ -1144,20 +1479,29 @@ Rules:
   useEffect(() => {
     if (!isDiscussing && messages.length > 0 && currentQuestion) {
       upsertDiscussionHistory(sessionIdRef.current, {
-        question: currentQuestion, mode: discussionMode,
+        question: sessionTitleRef.current || currentQuestion, mode: discussionMode,
         messages: messages.map((m) => ({ ...m, isStreaming: false })),
-        expertIds: selectedExpertIds
+        expertIds: selectedExpertIds,
+        proconStances
       });
     }
   }, [isDiscussing]);
 
   const loadHistory = useCallback((record: DiscussionRecord) => {
+    autoSaveCurrentChat();
+    if (isDiscussing) { abortControllerRef.current?.abort(); }
     setCurrentQuestion(record.question);
     setMessages(record.messages);
     setDiscussionMode(record.mode);
+    setSelectedExpertIds(record.expertIds || []);
+    setProconStances(record.proconStances || {});
     setIsDiscussing(false);
     setActiveExpertId(undefined);
-  }, []);
+    sessionIdRef.current = record.id;
+    sessionTitleRef.current = record.question;
+    summaryCountRef.current = 0;
+    skipClarifyRef.current = true;
+  }, [autoSaveCurrentChat, isDiscussing]);
 
   const allExperts = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
   const isDone = messages.length > 0 && !isDiscussing;
@@ -1234,31 +1578,65 @@ Rules:
 
   // 대화 요약 기능
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const summaryCountRef = useRef(0);
   const handleSummarize = useCallback(async () => {
-    if (isSummarizing || messages.length < 3) return;
+    const aiMsgCount = messages.filter(m => m.expertId !== '__user__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.content).length;
+    if (isSummarizing || aiMsgCount < 3 || summaryCountRef.current >= 2) return;
+    summaryCountRef.current++;
     setIsSummarizing(true);
 
     const conversationText = messages
-      .filter(m => m.content && m.expertId !== '__system__' && m.expertId !== '__summary__')
-      .slice(-20) // last 20 messages max
+      .filter(m => m.content && m.expertId !== '__system__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.expertId !== '__brainstorm_progress__')
+      .slice(-20)
       .map(m => {
         const expert = allExperts.find(e => e.id === m.expertId);
-        const role = m.expertId === '__user__' ? '사용자' : (expert?.nameKo || 'AI');
-        return `${role}: ${m.content.slice(0, 300)}`;
+        const role = m.expertId === '__user__' ? '질문' : (expert?.nameKo || 'AI');
+        return `[${role}] ${m.content.slice(0, 500)}`;
       })
-      .join('\n');
+      .join('\n\n');
+
+    const summaryPrompt = `아래 대화를 요약하세요.
+
+규칙:
+1. 개괄식으로 작성 — "키워드: 핵심 내용" 형태
+2. 문장형 서술 금지. 쭉 이어지는 문장 금지.
+3. 한 줄에 하나의 불릿만
+4. 각 섹션 제목 앞뒤로 빈 줄 필수
+5. 불릿은 "- " 로 시작
+
+아래 형식을 정확히 따르세요:
+
+## 📌 주제
+
+- (대화 주제)
+
+## 💡 핵심 결론
+
+- 결론 키워드: 핵심 내용
+- 결론 키워드: 핵심 내용
+- (3~5개)
+
+## 📊 주요 수치
+
+- 항목: 수치 (없으면 이 섹션 생략)
+
+## ❓ 남은 논점
+
+- 논점 키워드: 간단 설명
+
+대화 내용:
+${conversationText}`;
 
     try {
       const chatResp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          systemPrompt: '당신은 대화 내용을 정확하게 요약하는 전문가입니다. 마크다운 형식으로 깔끔하게 요약해주세요.',
-          question: `다음 대화를 요약해주세요:\n\n${conversationText}`,
+          systemPrompt: '대화 요약 전문가. 개괄식으로 작성 (문장형 금지, "키워드: 핵심 내용" 형태). 마크다운 구조화. 한국어.',
+          question: summaryPrompt,
         }),
       });
 
-      // Read SSE stream completely
       const reader = chatResp.body?.getReader();
       const decoder = new TextDecoder();
       let fullText = '';
@@ -1280,9 +1658,13 @@ Rules:
             if (jsonStr === '[DONE]') break;
             try {
               const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-              if (content) fullText += content;
-            } catch { /* skip incomplete JSON */ }
+              // Gemini SSE format
+              const geminiText = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+              // OpenAI SSE format
+              const openaiText = parsed.choices?.[0]?.delta?.content;
+              if (geminiText) fullText += geminiText;
+              else if (openaiText) fullText += openaiText;
+            } catch { /* skip */ }
           }
         }
       }
@@ -1360,6 +1742,7 @@ Rules:
   const skipClarifyRef = useRef(false);
   const clarifyAttemptsRef = useRef(0);
   const sessionIdRef = useRef<string>(`hist-${Date.now()}`);
+  const sessionTitleRef = useRef<string>('');
   const MAX_CLARIFY_ATTEMPTS = 2;
   const [chatClarify, setChatClarify] = useState<{
     show: boolean;
@@ -1369,6 +1752,14 @@ Rules:
     selections: Record<string, string>;
     customInputs: Record<string, string>;
     currentPage: number;
+    originalQuestion: string;
+  } | null>(null);
+
+  const [bsClarify, setBsClarify] = useState<{
+    show: boolean;
+    message: string;
+    questions: { id: string; question: string; options: { label: string; value: string }[] }[];
+    selections: Record<string, string>;
     originalQuestion: string;
   } | null>(null);
 
@@ -1717,7 +2108,29 @@ Rules:
           discussionMode={discussionMode}
           onModeChange={handleModeChange}
           isDiscussing={isDiscussing}
-          onNewDiscussion={handleNewDiscussion} />
+          onNewDiscussion={handleNewDiscussion}
+          onStartChat={(expertId, mode, content) => {
+            handleNewDiscussion();
+            setSelectedExpertIds([expertId]);
+            setDiscussionMode('general');
+
+            if (mode === 'question') {
+              setTimeout(() => {
+                runDiscussion(content, [expertId], 'general');
+              }, 100);
+            } else {
+              setTimeout(() => {
+                setMessages([{
+                  id: `greeting-${Date.now()}`,
+                  expertId: expertId,
+                  content: content,
+                  isStreaming: false,
+                }]);
+                setCurrentQuestion('');
+                sessionTitleRef.current = '';
+              }, 100);
+            }
+          }} />
 
 
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
@@ -1763,6 +2176,8 @@ Rules:
                   onBulkSelect={setSelectedExpertIds}
                   onSampleQuestionClick={(q) => setSampleQuestionValue(q)}
                   onStartGame={(id, opt, label) => setActiveGame({ id, option: opt, label })}
+                  stakeholderSettings={stakeholderSettings}
+                  onStakeholderSettingsChange={setStakeholderSettings}
                 />
               )}
 
@@ -1901,6 +2316,90 @@ Rules:
                   </div>
                 );
               })()}
+
+              {/* 브레인스토밍 주제 구체화 — 전용 플로팅 모달 */}
+              {bsClarify?.show && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
+                    {/* 헤더 — 브레인스토밍 테마 */}
+                    <div className="bg-gradient-to-r from-amber-400 to-orange-400 px-5 py-3.5 flex items-center gap-3">
+                      <span className="text-[24px]">💡</span>
+                      <div>
+                        <h3 className="text-[15px] font-bold text-white">브레인스토밍 세션 준비</h3>
+                        <p className="text-[11px] text-white/70">{bsClarify.message}</p>
+                      </div>
+                    </div>
+
+                    {/* 원래 주제 */}
+                    <div className="px-5 pt-4 pb-2">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">입력한 주제</span>
+                      <p className="text-[14px] font-medium text-slate-700 mt-1">{bsClarify.originalQuestion}</p>
+                    </div>
+
+                    {/* 질문들 */}
+                    <div className="px-5 py-3 space-y-4">
+                      {bsClarify.questions.map(q => (
+                        <div key={q.id}>
+                          <p className="text-[13px] font-semibold text-slate-700 mb-2">{q.question}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {q.options.filter(o => o.value !== '__custom__').map(opt => (
+                              <button
+                                key={opt.value}
+                                onClick={() => {
+                                  const newSelections = { ...bsClarify.selections, [q.id]: opt.value };
+                                  setBsClarify({ ...bsClarify, selections: newSelections });
+                                }}
+                                className={cn(
+                                  "px-3.5 py-2 rounded-xl text-[12px] font-medium border transition-all",
+                                  bsClarify.selections[q.id] === opt.value
+                                    ? "bg-amber-500 text-white border-amber-500 shadow-md"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:bg-amber-50"
+                                )}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 하단 버튼 */}
+                    <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
+                      <button
+                        onClick={() => { setBsClarify(null); skipClarifyRef.current = true; runDiscussion(bsClarify.originalQuestion); }}
+                        className="text-[12px] text-slate-400 hover:text-slate-600 font-medium transition-colors"
+                      >
+                        건너뛰기
+                      </button>
+                      <button
+                        onClick={() => {
+                          const answers = bsClarify.questions.map(q => {
+                            const sel = bsClarify.selections[q.id];
+                            const opt = q.options.find(o => o.value === sel);
+                            return opt ? opt.label : sel || '';
+                          }).filter(Boolean);
+                          const enriched = answers.length > 0
+                            ? `${bsClarify.originalQuestion} (${answers.join(', ')})`
+                            : bsClarify.originalQuestion;
+                          setBsClarify(null);
+                          skipClarifyRef.current = true;
+                          runDiscussion(enriched);
+                        }}
+                        disabled={Object.keys(bsClarify.selections).length === 0}
+                        className={cn(
+                          "px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all",
+                          Object.keys(bsClarify.selections).length > 0
+                            ? "bg-amber-500 text-white hover:bg-amber-600 shadow-md"
+                            : "bg-slate-100 text-slate-300 cursor-not-allowed"
+                        )}
+                      >
+                        세션 시작 →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Topic clarification — floating modal */}
               {clarifyState.show && (
@@ -3314,27 +3813,84 @@ Rules:
                     </div>
                   );
                 })()
+              ) : discussionMode === 'freetalk' ? (
+                /* Freetalk: KakaoTalk-style chat bubbles */
+                <div className="space-y-2">
+                  {messages.map((msg) => {
+                    // Round separator
+                    if (msg.expertId === '__round__') {
+                      return (
+                        <div key={msg.id} className="flex justify-center py-2">
+                          <span className="px-3 py-1 rounded-full bg-slate-100 text-[10px] text-slate-400 font-medium">{msg.content}</span>
+                        </div>
+                      );
+                    }
+                    // Summary card
+                    if (msg.isSummary) {
+                      const expert = allExperts.find(e => e.id === msg.expertId);
+                      if (!expert) return null;
+                      return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                    }
+                    // User message
+                    if (msg.expertId === '__user__') {
+                      return (
+                        <div key={msg.id} className="flex justify-end">
+                          <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[13px] shadow-sm">
+                            <ReactMarkdownInline content={msg.content} />
+                          </div>
+                        </div>
+                      );
+                    }
+                    // Skip system IDs
+                    if (msg.expertId === '__summary__' || msg.expertId === '__ppt_download__') return null;
+                    // AI chat bubble
+                    const expert = allExperts.find(e => e.id === msg.expertId);
+                    if (!expert) return null;
+                    const bubbleColors: Record<string, string> = {
+                      gpt: 'bg-blue-100 border-blue-200',
+                      claude: 'bg-violet-100 border-violet-200',
+                      gemini: 'bg-emerald-100 border-emerald-200',
+                      perplexity: 'bg-cyan-100 border-cyan-200',
+                      grok: 'bg-slate-100 border-slate-200',
+                      deepseek: 'bg-indigo-100 border-indigo-200',
+                      qwen: 'bg-teal-100 border-teal-200',
+                    };
+                    const bubbleColor = bubbleColors[expert.id] || 'bg-slate-100 border-slate-200';
+                    return (
+                      <div key={msg.id} className="flex items-start gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                        <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
+                        <div className="max-w-[70%]">
+                          <span className="text-[10px] text-slate-400 font-medium">{expert.nameKo}</span>
+                          <div className={cn('mt-0.5 px-3 py-2 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 leading-relaxed', bubbleColor)}>
+                            {msg.content || (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : activeGame ? null : (
                 /* All other modes: sequential */
                 messages.map((msg, idx) => {
                   // 대화 요약 카드
                   if (msg.expertId === '__summary__') {
                     return (
-                      <div key={msg.id} className="mx-auto max-w-[90%] my-3 animate-in fade-in slide-in-from-bottom-2 duration-400">
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-hidden">
-                          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800/80">
+                      <div key={msg.id} className="my-4 ml-[4%] mr-[8%] animate-in fade-in slide-in-from-bottom-2 duration-400">
+                        <div className="rounded-2xl overflow-hidden shadow-lg border border-emerald-200/60 dark:border-emerald-800/40">
+                          {/* 헤더 */}
+                          <div className="flex items-center justify-between px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500">
                             <div className="flex items-center gap-2">
-                              <FileText className="w-3.5 h-3.5 text-slate-500" />
-                              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">대화 요약</span>
+                              <FileText className="w-4 h-4 text-white/80" />
+                              <span className="text-[14px] font-bold text-white">대화 요약</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => navigator.clipboard.writeText(msg.content)} className="px-2 py-0.5 rounded text-[10px] text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">복사</button>
-                              <button onClick={() => setMessages(prev => prev.filter(m => m.id !== msg.id))} className="px-2 py-0.5 rounded text-[10px] text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">닫기</button>
-                            </div>
+                            <button onClick={() => { navigator.clipboard.writeText(msg.content); }} className="px-2.5 py-1 rounded-md text-[10px] font-medium text-white/60 hover:text-white hover:bg-white/15 transition-colors">
+                              복사
+                            </button>
                           </div>
-                          <div className="px-4 py-3">
-                            <div className="text-[12.5px] leading-relaxed text-slate-600 dark:text-slate-300">
-                              <ReactMarkdownInline content={msg.content} />
+                          {/* 본문 — 섹션별 구분 */}
+                          <div className="bg-emerald-50/50 dark:bg-slate-900 px-5 py-4">
+                            <div className="text-[12.5px] leading-[1.7] text-slate-700 dark:text-slate-300 [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:text-slate-800 [&_h2]:dark:text-slate-200 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2:first-child]:mt-0 [&_ul]:pl-4 [&_ul]:space-y-1 [&_li]:text-[12px] [&_p]:mb-1">
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
                             </div>
                           </div>
                         </div>
@@ -3488,7 +4044,7 @@ Rules:
                   onConclusion={undefined}
                   onSummarize={discussionMode === 'general' ? handleSummarize : undefined}
                   isSummarizing={isSummarizing}
-                  messageCount={messages.length}
+                  messageCount={messages.filter(m => m.expertId !== '__user__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.expertId !== '__brainstorm_progress__').length}
                   externalValue={sampleQuestionValue}
                   onExternalValueConsumed={() => setSampleQuestionValue('')}
                 />

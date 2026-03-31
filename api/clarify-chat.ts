@@ -6,7 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
-  const { message, expertName, expertDescription, previousResponses, attempt } = req.body || {};
+  const { message, expertName, expertDescription, previousResponses, attempt, mode } = req.body || {};
 
   if (!message || typeof message !== 'string') {
     return res.status(200).json({ type: 'answer' });
@@ -17,9 +17,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ type: 'answer' });
   }
 
-  const isFollowUp = (attempt || 1) >= 2;
+  // Stakeholder-context mode: return immediately, context built from scenario data
+  if (mode === 'stakeholder-context') {
+    return res.status(200).json({ type: 'answer' });
+  }
 
-  const prompt = `당신은 사용자의 의도를 정확히 파악하여 최고 품질의 답변을 제공하기 위한 분석 시스템입니다.
+  const isFollowUp = (attempt || 1) >= 2;
+  const isBrainstorm = mode === 'brainstorm';
+
+  const brainstormPrompt = `당신은 브레인스토밍 세션 준비 전문가입니다.
+사용자가 입력한 주제로 효과적인 브레인스토밍을 하려면 반드시 아래 4가지를 알아야 합니다.
+
+사용자 주제: "${message}"
+${isFollowUp ? '⚠️ 2차 확인입니다. 이미 1차에서 일부 답을 받았으므로 남은 것만 물어보세요.' : ''}
+
+## 브레인스토밍에 반드시 필요한 정보 4가지
+1. **구체적 범위**: "마케팅" → "B2B SaaS 마케팅"처럼 범위를 좁혀야 발산이 의미있음
+2. **목표/기대 결과**: 아이디어를 모아서 뭘 하려는지 (신규 사업? 문제 해결? 전략 수립?)
+3. **대상/타겟**: 누구를 위한 건지 (고객? 팀? 투자자?)
+4. **제약 조건**: 예산, 기간, 기술적 제한 등 현실적 제약
+
+## 판단
+위 4가지 중 이미 알 수 있는 건 스킵하고, 모르는 것만 질문하세요.
+4가지 모두 파악 가능하면 → {"type": "answer"}
+
+## 출력 (반드시 JSON만)
+
+{
+  "type": "clarifying_questions",
+  "message": "브레인스토밍 세션을 준비할게요",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "질문 (위 4가지 중 필요한 것)",
+      "options": [
+        {"label": "선택지 (8자 이내)", "value": "구체적 값"}
+      ]
+    }
+  ]
+}
+
+또는: {"type": "answer"}
+
+규칙:
+- 질문 최대 ${isFollowUp ? '2개' : '4개'} (브레인스토밍은 더 많이 물어도 됨)
+- 선택지 3~4개
+- 각 선택지는 브레인스토밍에 실제로 영향을 주는 구체적 값
+- 한국어
+- "유가 변동" 같은 애매한 선택지 금지. "국제 유가 하락이 국내 물가에 미치는 영향" 수준으로 구체적으로`;
+
+  const prompt = isBrainstorm ? brainstormPrompt : `당신은 사용자의 의도를 정확히 파악하여 최고 품질의 답변을 제공하기 위한 분석 시스템입니다.
 
 사용자 질문: "${message}"
 답변할 AI: "${expertName}" (${expertDescription})

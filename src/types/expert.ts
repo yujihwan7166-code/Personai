@@ -72,6 +72,7 @@ export interface Expert {
     systemPrompt?: string;
     quote?: string;
     sampleQuestions?: string[];
+    greeting?: string;
 }
 
 export type DiscussionRound = 'initial' | 'rebuttal' | 'final';
@@ -83,30 +84,32 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 };
 
 // Main mode: 5 categories
-export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'expert' | 'debate' | 'assistant' | 'player';
+export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_main' | 'expert' | 'debate' | 'assistant' | 'player';
 
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
     general: { label: '단일 AI', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
     multi: { label: '다중 AI', icon: '🔄', description: '여러 AI의 답변을 종합합니다' },
     brainstorm_main: { label: '브레인스토밍', icon: '💡', description: 'AI들이 협업해 아이디어를 정리합니다' },
+    stakeholder_main: { label: '시뮬레이션', icon: '🎭', description: '이해관계자 역할극으로 아이디어를 검증합니다' },
     expert: { label: '전문 AI 상담', icon: '🔬', description: '분야 전문가와 깊이 있는 1:1 상담' },
-    debate: { label: '라운드테이블', icon: '⚔️', description: '전문가들이 토론 후 결론을 냅니다' },
+    debate: { label: 'AI 토론', icon: '⚔️', description: '전문가들이 토론 후 결론을 냅니다' },
     assistant: { label: '어시스턴트', icon: '🛠️', description: '작업을 도와주는 AI 도구' },
     player: { label: '플레이어', icon: '🎮', description: '게임·퀴즈·재미있는 AI 놀이' },
 };
 
 // Sub-modes for debate
-export type DebateSubMode = 'standard' | 'procon' | 'brainstorm' | 'hearing';
+export type DebateSubMode = 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk';
 
 export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon: string; description: string }> = {
     standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 깊이 있는 토론' },
     procon: { label: '찬반 토론', icon: '⚖️', description: '찬성 vs 반대로 나눠 격돌' },
-    brainstorm: { label: '브레인스토밍', icon: '💡', description: '자유롭게 아이디어를 쏟아내고 발전' }, // 메인 모드로 독립, 라운드테이블에서는 숨김
+    brainstorm: { label: '브레인스토밍', icon: '💡', description: '자유롭게 아이디어를 쏟아내고 발전' },
     hearing: { label: '아이디어 검증', icon: '🔍', description: '전문가들이 날카로운 질문으로 검증' },
+    freetalk: { label: '자유 토론', icon: '💬', description: 'AI들이 자유롭게 대화합니다' },
 };
 
 // Flat DiscussionMode for backward compat in logic
-export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'assistant' | 'player';
+export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk' | 'stakeholder' | 'assistant' | 'player';
 
 export function getMainMode(mode: DiscussionMode): MainMode {
     if (mode === 'general') return 'general';
@@ -115,6 +118,8 @@ export function getMainMode(mode: DiscussionMode): MainMode {
     if (mode === 'expert') return 'expert';
     if (mode === 'assistant') return 'assistant';
     if (mode === 'player') return 'player';
+    if (mode === 'stakeholder') return 'stakeholder_main';
+    if (mode === 'freetalk') return 'debate';
     return 'debate'; // standard | procon | hearing
 }
 
@@ -126,6 +131,8 @@ export const DISCUSSION_MODE_LABELS: Record<string, { label: string; icon: strin
     procon: { label: '찬반 토론', icon: '⚖️', description: '찬반 대립', detail: '전문가들이 찬성·반대로 나뉘어 논쟁합니다.' },
     brainstorm: { label: '브레인스토밍', icon: '💡', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
     hearing: { label: '아이디어 검증', icon: '🔍', description: '전문가 검증', detail: '전문가들이 각자 전문 분야에서 날카로운 질문으로 아이디어를 검증합니다.' },
+    freetalk: { label: '자유 토론', icon: '💬', description: 'AI 단톡방', detail: 'AI들이 짧게 대화하며 자유롭게 의견을 나눕니다.' },
+    stakeholder: { label: '스테이크홀더', icon: '🎭', description: '이해관계자 시뮬레이션', detail: '이해관계자 관점에서 반응을 시뮬레이션하여 다각적 피드백을 받습니다.' },
     creative: { label: '창의적 토론', icon: '🎨', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
     endless: { label: '끝장 토론', icon: '♾️', description: '합의까지', detail: '최대 5라운드, 합의에 도달할 때까지 토론합니다.' },
 };
@@ -155,6 +162,8 @@ export interface DebateSettings {
     hearingFocus: 'overall' | 'logic' | 'feasibility' | 'ethics' | 'cost' | 'risk' | 'legal' | 'social';
     ideaScoring: boolean;
     investorSimulation: boolean;
+    // 자유 토론 전용
+    freetalkMessageCount?: number;
 }
 
 export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
@@ -769,26 +778,31 @@ export const DEFAULT_EXPERTS: Expert[] = [
         id: 'gpt', name: 'GPT', nameKo: 'GPT', icon: '🤖', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', description: 'AI 분석 전문가',
         quote: '구조화된 답변이 진짜 답',
         sampleQuestions: ['커스텀 GPT 만드는 팁은?', 'GPT 플러그인 추천해줘', 'GPTs 스토어 활용법은?'],
+        greeting: '안녕하세요! 분석, 글쓰기, 코딩 등 무엇이든 도와드릴게요.',
     },
     {
         id: 'claude', name: 'Claude', nameKo: 'Claude', icon: '🧡', avatarUrl: '/logos/claude.svg', color: 'orange', category: 'ai', description: 'AI 안전·윤리 전문가',
         quote: '정직이 나의 전략이다',
         sampleQuestions: ['아티팩트 활용 잘하는 법?', 'Claude 프로젝트 활용법?', 'Claude가 거절하는 기준?'],
+        greeting: '안녕하세요. 정확하고 솔직한 답변을 드리겠습니다.',
     },
     {
         id: 'gemini', name: 'Gemini', nameKo: 'Gemini', icon: '💎', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', description: 'AI 탐색 전문가',
         quote: '검색과 AI의 경계를 지운다',
         sampleQuestions: ['구글 워크스페이스 연동법?', '제미나이 이미지 생성 돼?', '유튜브 영상 요약 가능해?'],
+        greeting: '안녕하세요! 검색부터 창작까지, 무엇이 궁금하세요?',
     },
     {
         id: 'perplexity', name: 'Perplexity', nameKo: 'Perplexity', icon: '🔍', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', description: 'AI 검색·리서치 전문가',
         quote: '출처 없으면 답이 아니다',
         sampleQuestions: ['출처 달린 답변 원리는?', '학술 자료 검색 잘 돼?', '퍼플렉시티 Pro 가치 있어?'],
+        greeting: '궁금한 게 있으면 출처와 함께 찾아드릴게요.',
     },
     {
         id: 'grok', name: 'Grok', nameKo: 'Grok', icon: '⚡', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', description: 'AI 위트 전문가',
         quote: '유머 없는 AI는 심심하다',
         sampleQuestions: ['그록은 왜 거침없이 말해?', 'X 실시간 데이터 분석 돼?', '일론 머스크 어떻게 봐?'],
+        greeting: '뭐든 솔직하게 답해줄게. 뭐가 궁금해?',
     },
     {
         id: 'deepseek', name: 'DeepSeek', nameKo: 'DeepSeek', icon: '🌊', avatarUrl: '/logos/deepseek.svg', color: 'purple', category: 'ai', description: 'AI 심층분석 전문가',
@@ -927,6 +941,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         id: 'doctor', name: 'Doctor', nameKo: '의사', icon: '🩺', color: 'red', avatarUrl: '/logos/occupation/doctor.png', category: 'occupation', subCategory: '의료', description: '임상 진료 전문의',
         quote: '진단은 경청에서 시작된다',
         sampleQuestions: ['두통 반복되면 위험한가요?', 'MRI와 CT 차이가 뭔가요?', '혈압약 평생 먹어야 하나요?'],
+        greeting: '어디가 불편하신가요? 증상을 알려주세요.',
     },
     {
         id: 'pharmacist', name: 'Pharmacist', nameKo: '약사', icon: '💊', color: 'emerald', avatarUrl: '/logos/occupation/pharmacist.png', category: 'occupation', subCategory: '의료', description: '약학·처방 전문가',
@@ -942,6 +957,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         id: 'lawyer', name: 'Lawyer', nameKo: '변호사', icon: '👨‍⚖️', color: 'amber', avatarUrl: '/logos/occupation/lawyer.png', category: 'occupation', subCategory: '법·경제', description: '소송·법률자문 전문가',
         quote: '판례가 법의 나침반이다',
         sampleQuestions: ['계약서 독소조항 뭔가요?', '소송 비용 얼마나 드나요?', '전과 기록 불이익 있나요?'],
+        greeting: '법률 관련 궁금한 점이 있으신가요?',
     },
     {
         id: 'accountant', name: 'Accountant', nameKo: '회계사', icon: '🧾', color: 'blue', avatarUrl: '/logos/occupation/accountant.png', category: 'occupation', subCategory: '법·경제', description: '회계·세무 전문가',
@@ -1170,6 +1186,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         id: 'lincoln', name: 'Abraham Lincoln', nameKo: '링컨', icon: '🎩', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '민주주의·통합의 지도자',
         quote: '적을 친구로 만들어라',
         sampleQuestions: ['남북전쟁 극복 비결은?', '노예제 폐지가 왜 중요?', '분열된 사회 통합법은?'],
+        greeting: '자유와 정의에 대해 이야기해볼까요?',
     },
     {
         id: 'churchill', name: 'Winston Churchill', nameKo: '처칠', icon: '🇬🇧', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '위기의 리더십 상징',
@@ -1182,6 +1199,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         id: 'einstein', name: 'Albert Einstein', nameKo: '아인슈타인', icon: '🧪', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '상대성이론의 아버지',
         quote: '상상이 지식보다 중요하다',
         sampleQuestions: ['상대성이론 쉽게 설명해줘', '창의성은 어떻게 키우나?', 'E=mc²가 뜻하는 건?'],
+        greeting: '우주의 신비에 대해 함께 탐구해볼까요?',
     },
     {
         id: 'curie', name: 'Marie Curie', nameKo: '퀴리부인', icon: '☢️', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '방사성 연구의 선구자',
@@ -2063,6 +2081,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         id: 'sherlock', name: 'Sherlock Holmes', nameKo: '셜록 홈즈', icon: '🕵️', avatarUrl: '/logos/character/sherlock.png', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '극도의 논리·관찰 추론가',
         quote: '관찰이 곧 추리의 시작',
         sampleQuestions: ['범인의 실수를 찾아볼까?', '이 증거가 뜻하는 바는?', '논리적 허점이 보이는가?'],
+        greeting: '흥미로운 사건이 있나? 단서를 말해보게.',
     },
     {
         id: 'dracula', name: 'Dracula', nameKo: '드라큘라', icon: '🧛', avatarUrl: '/logos/character/dracula.png', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '어둠 속의 귀족·영원한 포식자',
@@ -2073,6 +2092,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         id: 'frankenstein', name: 'Frankenstein', nameKo: '프랑켄슈타인', icon: '🧟', avatarUrl: '/logos/character/frankenstein.png', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '창조의 비극·버림받은 존재의 분노',
         quote: '나를 만들고 왜 버렸나',
         sampleQuestions: ['창조자의 책임은 어디까지?', '괴물은 태어나나 만들어지나?', 'AI에게도 감정이 있을까?'],
+        greeting: '...날 찾아온 건가. 무슨 이야기를 하고 싶지?',
     },
     {
         id: 'alice', name: 'Alice', nameKo: '앨리스', icon: '🐇', avatarUrl: '/logos/character/alice.png', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '호기심의 화신·비논리 속 논리 탐구',
@@ -2374,6 +2394,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         id: 'zeus', name: 'Zeus', nameKo: '제우스', icon: '⚡', avatarUrl: '/logos/mythology/zeus.png', color: 'amber', category: 'mythology', subCategory: '그리스', description: '올림포스의 왕·천둥과 질서의 신',
         quote: '번개로 티탄을 꺾었다',
         sampleQuestions: ['올림포스 왕좌를 어떻게 쟁취했나?', '크로노스 반란 후회 없나?', '헤라와 불화의 진짜 이유는?'],
+        greeting: '올림포스에 오라. 무엇이 알고 싶은가?',
     },
     {
         id: 'athena', name: 'Athena', nameKo: '아테나', icon: '🦉', avatarUrl: '/logos/mythology/athena.png', color: 'blue', category: 'mythology', subCategory: '그리스', description: '전략·지혜·정의의 여신',
@@ -2533,6 +2554,161 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['테스카틀리포카와의 대립은 왜인가?', '인간에게 옥수수를 준 이유는?', '돌아오겠다는 예언의 진실은?'],
     },
 ];
+
+// ══════════════════════════════════════════
+// ── Simulation Scenarios (stakeholder mode) ──
+// ══════════════════════════════════════════
+
+export interface SimulationScenario {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  roles: { name: string; icon: string; focus: string }[];
+  defaultIntensity: number;
+  gaugeLabel: string;
+  verdictOptions: string[];
+  theme: { bg: string; accent: string; cardBg: string };
+}
+
+export const SIMULATION_SCENARIOS: SimulationScenario[] = [
+  {
+    id: 'investment', name: '투자 유치', icon: '💰',
+    description: 'VC 앞에서 사업 계획을 피칭합니다',
+    roles: [
+      { name: 'VC 심사역', icon: '💼', focus: '시장성, ROI, 스케일' },
+      { name: '엔젤 투자자', icon: '👼', focus: '팀, 비전, 열정' },
+      { name: '재무 실사역', icon: '📊', focus: '수익모델, BEP, 재무건전성' },
+    ],
+    defaultIntensity: 7, gaugeLabel: '투자 가능성',
+    verdictOptions: ['투자', '조건부 검토', '보류', '거절'],
+    theme: { bg: 'bg-slate-900', accent: 'text-blue-400', cardBg: 'bg-slate-800' },
+  },
+  {
+    id: 'internal', name: '사내 제안', icon: '🏢',
+    description: '경영진에게 새로운 제안을 발표합니다',
+    roles: [
+      { name: '대표이사', icon: '👔', focus: '전략적 방향, 회사 비전' },
+      { name: 'CFO', icon: '💵', focus: '비용, 예산, ROI' },
+      { name: '현업 팀장', icon: '🧑‍💻', focus: '실행 가능성, 리소스' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '승인 가능성',
+    verdictOptions: ['승인', '조건부 승인', '보류', '반려'],
+    theme: { bg: 'bg-gray-50', accent: 'text-slate-600', cardBg: 'bg-white' },
+  },
+  {
+    id: 'product', name: '제품 런칭', icon: '📱',
+    description: '새 제품에 대한 시장 반응을 시뮬레이션합니다',
+    roles: [
+      { name: '타겟 고객', icon: '🙋', focus: '사용성, 가격, 필요성' },
+      { name: '경쟁사 PM', icon: '🎯', focus: '차별화, 약점 공격' },
+      { name: '테크 리뷰어', icon: '📝', focus: '기술력, 완성도, 혁신성' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '구매 의향',
+    verdictOptions: ['즉시 구매', '관심', '보류', '패스'],
+    theme: { bg: 'bg-blue-50', accent: 'text-blue-600', cardBg: 'bg-white' },
+  },
+  {
+    id: 'policy', name: '정책 검토', icon: '🏛️',
+    description: '새로운 정책에 대한 이해관계자 반응을 확인합니다',
+    roles: [
+      { name: '시민 대표', icon: '🧑‍🤝‍🧑', focus: '생활 영향, 형평성' },
+      { name: '기업 대표', icon: '🏭', focus: '규제 부담, 경제 영향' },
+      { name: '법률 전문가', icon: '⚖️', focus: '합법성, 선례, 헌법' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '지지율',
+    verdictOptions: ['시행', '수정 후 시행', '보류', '폐기'],
+    theme: { bg: 'bg-emerald-50', accent: 'text-emerald-700', cardBg: 'bg-white' },
+  },
+  {
+    id: 'interview', name: '채용 면접', icon: '🎤',
+    description: '면접관 앞에서 역량을 검증받습니다',
+    roles: [
+      { name: '면접관', icon: '🧑‍💼', focus: '기술 역량, 문제해결력' },
+      { name: 'HR 담당', icon: '📋', focus: '조직 적합도, 소프트스킬' },
+      { name: '팀 리더', icon: '👥', focus: '협업 능력, 실무 경험' },
+    ],
+    defaultIntensity: 7, gaugeLabel: '합격 가능성',
+    verdictOptions: ['합격', '보류', '불합격'],
+    theme: { bg: 'bg-slate-50', accent: 'text-slate-700', cardBg: 'bg-white' },
+  },
+  {
+    id: 'cs', name: '고객 대응', icon: '📞',
+    description: '불만 고객을 응대하는 상황을 시뮬레이션합니다',
+    roles: [
+      { name: '불만 고객', icon: '😤', focus: '불만, 보상 요구, 감정' },
+      { name: 'VIP 고객', icon: '👑', focus: '서비스 품질, 충성도' },
+      { name: '내부 QA', icon: '🔍', focus: '원인 분석, 재발 방지' },
+    ],
+    defaultIntensity: 8, gaugeLabel: '고객 만족도',
+    verdictOptions: ['완전 해결', '부분 해결', '미해결', '고객 이탈'],
+    theme: { bg: 'bg-red-50', accent: 'text-red-600', cardBg: 'bg-white' },
+  },
+  {
+    id: 'pitch', name: '스타트업 피칭', icon: '🚀',
+    description: '데모데이에서 심사위원에게 피칭합니다',
+    roles: [
+      { name: '심사위원', icon: '🏆', focus: '혁신성, 시장성, 팀' },
+      { name: '멘토', icon: '🧭', focus: '성장 전략, 피봇 가능성' },
+      { name: '경쟁 팀', icon: '⚔️', focus: '차별화, 약점' },
+    ],
+    defaultIntensity: 7, gaugeLabel: '심사 점수',
+    verdictOptions: ['수상', '본선 진출', '탈락'],
+    theme: { bg: 'bg-violet-50', accent: 'text-violet-600', cardBg: 'bg-white' },
+  },
+  {
+    id: 'strategy', name: '전략 회의', icon: '📊',
+    description: '팀원들과 전략을 논의합니다',
+    roles: [
+      { name: '마케팅 이사', icon: '📣', focus: '시장, 브랜딩, 채널' },
+      { name: '개발 리드', icon: '💻', focus: '기술 실현성, 일정' },
+      { name: '운영 매니저', icon: '⚙️', focus: '비용, 프로세스, 리소스' },
+    ],
+    defaultIntensity: 3, gaugeLabel: '합의도',
+    verdictOptions: ['실행', '수정 후 실행', '재검토'],
+    theme: { bg: 'bg-amber-50', accent: 'text-amber-700', cardBg: 'bg-white' },
+  },
+  {
+    id: 'thesis', name: '논문 심사', icon: '🎓',
+    description: '논문 심사위원회에서 검증받습니다',
+    roles: [
+      { name: '주심 교수', icon: '👨‍🏫', focus: '연구 방법론, 기여도' },
+      { name: '부심 교수', icon: '👩‍🏫', focus: '선행연구, 참고문헌' },
+      { name: '외부 심사위원', icon: '🔬', focus: '실용성, 확장가능성' },
+    ],
+    defaultIntensity: 7, gaugeLabel: '통과 가능성',
+    verdictOptions: ['통과', '수정 후 통과', '재심사', '반려'],
+    theme: { bg: 'bg-orange-50', accent: 'text-orange-700', cardBg: 'bg-white' },
+  },
+  {
+    id: 'negotiation', name: '파트너십 협상', icon: '🤝',
+    description: '파트너사와 조건을 협상합니다',
+    roles: [
+      { name: '상대측 대표', icon: '🤵', focus: '전략적 가치, 조건' },
+      { name: '상대측 법무', icon: '📜', focus: '계약 조건, 리스크' },
+      { name: '상대측 실무자', icon: '🧑‍🔧', focus: '실행 가능성, 일정' },
+    ],
+    defaultIntensity: 6, gaugeLabel: '딜 성사율',
+    verdictOptions: ['체결', '재협상', '보류', '결렬'],
+    theme: { bg: 'bg-yellow-50', accent: 'text-yellow-700', cardBg: 'bg-white' },
+  },
+];
+
+// ── Stakeholder Settings ──
+
+export interface StakeholderSettings {
+  scenarioId: string | null;
+  roleAssignments: Record<string, string>; // roleName -> expertId
+  intensity: number;
+  autoReport: boolean;
+}
+
+export const DEFAULT_STAKEHOLDER_SETTINGS: StakeholderSettings = {
+  scenarioId: null,
+  roleAssignments: {},
+  intensity: 5,
+  autoReport: true,
+};
 
 export const SUMMARIZER_EXPERT: Expert = {
     id: 'summarizer', name: 'Summarizer', nameKo: '토론 정리', icon: '📝', color: 'amber', category: 'specialist', description: '토론 내용 정리', systemPrompt: '',

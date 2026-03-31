@@ -109,7 +109,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   // ── Messenger (단일 AI) ──
   if (variant === 'messenger') {
     return (
-      <div className="group flex gap-2.5 items-start animate-in fade-in slide-in-from-bottom-2 duration-400">
+      <div className="group flex gap-2.5 items-start animate-in fade-in slide-in-from-bottom-2 duration-400 ml-3">
         <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
         <div className="flex-1 min-w-0 max-w-[85%]">
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
