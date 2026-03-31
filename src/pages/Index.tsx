@@ -732,10 +732,14 @@ const Index = () => {
           for (const expert of roundExperts) {
             if (shouldStop()) break;
             setActiveExpertId(expert.id);
-            const extra = `\n\n[${fw.nameKo}] ${fwRound.label}\n${fwRound.instruction}` +
+            const extra = `\n\n=== 브레인스토밍 프레임워크: ${fw.nameKo} ===` +
+              `\n방법론: ${fw.detailDescription}` +
+              `\n현재 단계 (${ri + 1}/${fwRounds.length}): ${fwRound.label}` +
+              `\n지시사항: ${fwRound.instruction}` +
               `\n아이디어를 최소 ${debateSettings.ideaCount}개 제시하세요. 간결하게.` +
               (debateSettings.deduplication ? '\n다른 참여자와 중복 피하세요.' : '') +
-              (bsCreativityMap[debateSettings.creativityLevel] || '');
+              `\n${bsCreativityMap[debateSettings.creativityLevel] || ''}` +
+              `\n=== 끝 ===`;
 
             let fullContent = '';
             try {
@@ -867,7 +871,10 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           for (const expert of roundExperts) {
             if (shouldStop()) break;
             setActiveExpertId(expert.id);
-            const extra = `\n\n[${fw.nameKo}] ${fwRound.label}\n${fwRound.instruction}` + bsSettingsExtra;
+            const extra = `\n\n=== 브레인스토밍 프레임워크: ${fw.nameKo} ===` +
+              `\n방법론: ${fw.detailDescription}` +
+              `\n현재 단계 (${ri + 1}/${fwRounds.length}): ${fwRound.label}` +
+              `\n지시사항: ${fwRound.instruction}` + bsSettingsExtra;
             const msgId = `${expert.id}-brainstorm-${ri}-${Date.now()}`;
             setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
             let fullContent = '';
@@ -1231,80 +1238,63 @@ Rules:
     if (isSummarizing || messages.length < 3) return;
     setIsSummarizing(true);
 
-    // 대화 내용 추출
     const conversationText = messages
-      .filter(m => m.content && m.expertId !== '__system__')
+      .filter(m => m.content && m.expertId !== '__system__' && m.expertId !== '__summary__')
+      .slice(-20) // last 20 messages max
       .map(m => {
         const expert = allExperts.find(e => e.id === m.expertId);
         const role = m.expertId === '__user__' ? '사용자' : (expert?.nameKo || 'AI');
-        return `${role}: ${m.content.slice(0, 500)}`;
+        return `${role}: ${m.content.slice(0, 300)}`;
       })
       .join('\n');
 
-    const summaryPrompt = `지금까지의 대화 내용을 분석하여 아래 형식으로 요약하세요.
-불필요한 수식어 없이 핵심만 간결하게 작성하세요. 마크다운 형식으로 작성하세요.
-
-## 대화 요약
-
-**주제**
-(한 줄)
-
-**핵심 내용**
-- (불릿 3~5개, 각 1~2줄)
-
-**현재 상태**
-(결론 또는 남은 논점, 1~2줄)
-
----
-
-대화 내용:
-${conversationText}`;
-
     try {
-      // 요약은 스트리밍이 아닌 clarify API를 활용 (비스트리밍)
-      const resp = await fetch('/api/clarify-chat', {
+      const chatResp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: '__summarize__', expertName: 'System', expertDescription: summaryPrompt }),
+        body: JSON.stringify({
+          systemPrompt: '당신은 대화 내용을 정확하게 요약하는 전문가입니다. 마크다운 형식으로 깔끔하게 요약해주세요.',
+          question: `다음 대화를 요약해주세요:\n\n${conversationText}`,
+        }),
       });
-      const data = await resp.json();
-      // clarify API가 answer를 반환하면 직접 Gemini 호출
-      const geminiResp = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt: '당신은 대화 내용을 정확하게 요약하는 전문가입니다. 한국어로 마크다운 형식으로 작성하세요.', question: summaryPrompt }),
-      });
-      // 스트리밍 응답을 전부 읽기
-      const reader = geminiResp.body?.getReader();
+
+      // Read SSE stream completely
+      const reader = chatResp.body?.getReader();
       const decoder = new TextDecoder();
-      let summaryContent = '';
+      let fullText = '';
+      let textBuffer = '';
+
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          // SSE 파싱: "data: {...}" 줄에서 텍스트 추출
-          for (const line of chunk.split('\n')) {
-            if (line.startsWith('data: ')) {
-              try {
-                const json = JSON.parse(line.slice(6));
-                const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                summaryContent += text;
-              } catch {}
-            }
+          textBuffer += decoder.decode(value, { stream: true });
+          let newlineIndex: number;
+          while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+            let line = textBuffer.slice(0, newlineIndex);
+            textBuffer = textBuffer.slice(newlineIndex + 1);
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue;
+            if (!line.startsWith('data: ')) continue;
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') break;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              if (content) fullText += content;
+            } catch { /* skip incomplete JSON */ }
           }
         }
       }
-      if (!summaryContent) summaryContent = '요약을 생성할 수 없습니다.';
 
-      // 시스템 요약 카드로 메시지에 추가
       setMessages(prev => [...prev, {
         id: `summary-${Date.now()}`,
         expertId: '__summary__',
-        content: summaryContent,
+        content: fullText || '요약을 생성할 수 없습니다.',
         isSummary: true,
       }]);
-    } catch {
+    } catch (err) {
+      console.error('Summary error:', err);
       setMessages(prev => [...prev, {
         id: `summary-err-${Date.now()}`,
         expertId: '__summary__',
@@ -2562,16 +2552,30 @@ ${conversationText}`;
                         '🟩 초록 모자 · 창의': { bg: 'bg-green-100', text: 'text-green-600', label: '창의' },
                         '🟦 파란 모자 · 종합': { bg: 'bg-blue-100', text: 'text-blue-600', label: '종합' },
                       };
+                      const fwIconMap: Record<string, string> = {
+                        free: '💡', swot: '📊', sixhats: '🎩', scamper: '🔧', pmi: '⚖️',
+                        fivewhys: '🔍', moonshot: '🚀', designthinking: '🎨', starbursting: '⭐', reversal: '🔄',
+                      };
+                      const fwIcon = fwIconMap[p.framework] || '💡';
+                      const completedCount = p.completedExperts?.length || 0;
+                      const totalExperts = p.experts?.length || 0;
+                      const isLastStep = p.currentStep >= p.totalSteps - 1;
+                      const phaseDescription = isLastStep
+                        ? '전문가들의 아이디어를 종합 정리하고 있습니다'
+                        : completedCount > 0 && completedCount < totalExperts
+                          ? `전문가들이 아이디어를 발산하고 있습니다 (${completedCount}/${totalExperts}명 완료)`
+                          : '전문가들이 아이디어를 발산하고 있습니다';
                       return (
                         <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-500">
                           {/* 프레임워크 아이콘 */}
                           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[28px] shadow-lg mb-6 animate-pulse">
-                            {p.framework === 'swot' ? '📊' : p.framework === 'sixhats' ? '🎩' : '💡'}
+                            {fwIcon}
                           </div>
 
                           {/* 프레임워크 이름 + 단계 */}
                           <h3 className="text-[16px] font-bold text-slate-800 mb-1">{p.frameworkName}</h3>
-                          <p className="text-[13px] text-violet-600 font-medium mb-6">{p.stepLabel}</p>
+                          <p className="text-[13px] text-violet-600 font-medium mb-2">{p.stepLabel}</p>
+                          <p className="text-[12px] text-slate-500 mb-6">{isLastStep ? '📋' : `${fwIcon}`} {phaseDescription}</p>
 
                           {/* 프로그레스 바 */}
                           <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden mb-4">
@@ -3451,7 +3455,7 @@ ${conversationText}`;
                   showSettings={showDebateSettings}
                   isFollowUp={isDone}
                   onConclusion={undefined}
-                  onSummarize={handleSummarize}
+                  onSummarize={discussionMode === 'general' ? handleSummarize : undefined}
                   isSummarizing={isSummarizing}
                   messageCount={messages.length}
                   externalValue={sampleQuestionValue}

@@ -143,6 +143,10 @@ export function AppSidebar({
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [modalSearchQuery, setModalSearchQuery] = useState('');
 
+  // Bot browser modal state
+  const [showBotBrowser, setShowBotBrowser] = useState(false);
+  const [botBrowserCat, setBotBrowserCat] = useState('전체');
+
   const editInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -594,7 +598,7 @@ export function AppSidebar({
         <nav className={cn("shrink-0 space-y-0.5", isOpen ? 'px-2' : 'px-1')}>
           {[
             { icon: SquarePen, label: '새 채팅', onClick: handleNewDiscussion, highlight: true },
-            { icon: Bot, label: 'AI 봇', onClick: undefined },
+            { icon: Bot, label: 'AI 봇', onClick: () => setShowBotBrowser(true) },
             { icon: Search, label: '검색', onClick: () => { setSearchModalOpen(true); setModalSearchQuery(''); }, active: searchModalOpen },
           ].map(item => (
             <button
@@ -1013,6 +1017,69 @@ export function AppSidebar({
                     </div>
                   ));
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bot Browser Modal */}
+      {showBotBrowser && (
+        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-16" onClick={() => setShowBotBrowser(false)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div
+            className="relative w-full max-w-[640px] max-h-[70vh] mx-4 rounded-xl bg-white dark:bg-[#1a1a1a] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-[15px] font-bold text-slate-800 dark:text-white">AI 봇 둘러보기</h3>
+              <button onClick={() => setShowBotBrowser(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Category tabs */}
+            <div className="flex gap-1 px-4 py-2 border-b border-slate-100 dark:border-slate-800/50 overflow-x-auto scrollbar-none">
+              {['전체', '인기', 'AI 모델', '전문가', '직업', '인물', '캐릭터', '신화', '이념', '철학/종교'].map(cat => (
+                <button key={cat}
+                  onClick={() => setBotBrowserCat(cat)}
+                  className={cn("px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-colors shrink-0",
+                    botBrowserCat === cat ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  )}
+                >{cat}</button>
+              ))}
+            </div>
+
+            {/* Bot grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {experts
+                  .filter(e => {
+                    if (botBrowserCat === '전체') return true;
+                    if (botBrowserCat === '인기') return ['gpt','claude','gemini','sherlock','doctor','lawyer'].includes(e.id);
+                    const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion' };
+                    return e.category === catMap[botBrowserCat];
+                  })
+                  .map(expert => (
+                    <button
+                      key={expert.id}
+                      onClick={() => {
+                        setShowBotBrowser(false);
+                        onSelectExpert?.(expert.id);
+                        onNewDiscussion?.();
+                      }}
+                      className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700 transition-all text-left group"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[16px] shrink-0 group-hover:scale-110 transition-transform">
+                        {expert.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-slate-800 dark:text-white truncate">{expert.nameKo}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{expert.quote || expert.description}</p>
+                      </div>
+                    </button>
+                  ))}
+              </div>
             </div>
           </div>
         </div>

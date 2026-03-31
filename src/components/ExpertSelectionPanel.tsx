@@ -629,6 +629,25 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           </div>
           <Toggle checked={ds.deduplication} onChange={v => update({ deduplication: v })} />
         </div>
+
+        {/* 안내 메시지 + 예시 주제 */}
+        <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-3.5">
+          <p className="text-[12px] font-bold text-amber-800 mb-2">어떤 주제로 브레인스토밍할까요?</p>
+          <div className="space-y-1.5">
+            {[
+              { icon: '🚀', text: '우리 서비스의 신규 기능 아이디어' },
+              { icon: '📈', text: 'Z세대 고객을 위한 마케팅 전략' },
+              { icon: '💡', text: '원격 근무 생산성을 높이는 방법' },
+              { icon: '🎯', text: '올해 매출을 2배로 늘리려면?' },
+            ].map((example, i) => (
+              <p key={i} className="text-[11px] text-amber-700">
+                <span className="mr-1">{example.icon}</span>
+                {example.text}
+              </p>
+            ))}
+          </div>
+          <p className="text-[10px] text-amber-500 mt-2">아래 입력란에 주제를 입력하면 전문가들이 함께 아이디어를 발산합니다</p>
+        </div>
       </div>
     </div>
   );
