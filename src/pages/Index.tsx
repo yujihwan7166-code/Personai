@@ -1496,7 +1496,7 @@ Rules:
         return { name: e?.nameKo || '', content: m.content };
       });
       setMessages(prev => [...prev, { id: `user-multi-${Date.now()}`, expertId: '__user__', content: question, timestamp: Date.now(), attachedFiles: followUpFilesBadges }]);
-      setMultiView('overview');
+      // 뷰 전환 안 함 — 현재 뷰 유지
 
       for (const expert of activeExperts) {
         if (controller.signal.aborted) break;
@@ -1736,6 +1736,7 @@ Rules:
               'mx-auto px-4 sm:px-6 pt-16 pb-6',
               !selectable ? 'max-w-3xl space-y-2.5'
                 : (discussionMode === 'assistant' || discussionMode === 'expert') ? 'max-w-4xl space-y-3'
+                : (discussionMode === 'multi' && messages.length > 0) ? 'max-w-[960px] space-y-3'
                 : 'max-w-2xl space-y-3'
             )}>
 
@@ -2127,18 +2128,12 @@ Rules:
                       {/* 헤더 */}
                       {!isDiscussing && (
                         <div className="space-y-3">
-                          {currentQuestion && multiView === 'overview' && (
-                            <button type="button" onClick={() => setQuestionExpanded(!questionExpanded)}
-                              className="w-full text-left px-4 py-2.5 rounded-t-2xl border border-b-0 border-slate-200 bg-white hover:bg-slate-50 transition-colors">
-                              <p className={cn('text-[13px] text-slate-600 leading-relaxed', !questionExpanded && 'line-clamp-5')}>
-                                {currentQuestion}
-                              </p>
-                              {currentQuestion.length > 200 && (
-                                <span className="text-[10px] text-slate-400 mt-1 block">
-                                  {questionExpanded ? '▲ 접기' : '▼ 더보기'}
-                                </span>
-                              )}
-                            </button>
+                          {currentQuestion && (
+                            <div className="flex justify-end">
+                              <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+                                <p className="text-[13px] leading-relaxed line-clamp-3">{currentQuestion}</p>
+                              </div>
+                            </div>
                           )}
                           {sortedExperts.length > 1 && !isDiscussing && (
                             <div className="flex items-center justify-between">
@@ -2161,65 +2156,94 @@ Rules:
                         </div>
                       )}
 
-                      {/* ── Layer 1: Overview ── */}
-                      {(multiView === 'overview' || isDiscussing) && (
+                      {/* ── Layer 1: Overview — 각 AI별 모든 응답 카드 쌓기 ── */}
+                      {multiView === 'overview' && (
                         <div className={cn('grid gap-3 items-start', sortedExperts.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
                           {sortedExperts.map((expert, ei) => {
-                            const msg = expertMsgs.find(m => m.expertId === expert.id);
-                            if (!msg) return null;
-                            const preview = msg.content.slice(0, 200);
-                            const charCount = msg.content.length;
+                            const allMsgs = getExpertAllMsgs(expert.id);
+                            if (!allMsgs.length) return null;
                             const gradients = [
                               'from-blue-400 to-blue-500', 'from-emerald-400 to-emerald-500',
                               'from-violet-400 to-violet-500', 'from-amber-400 to-amber-500',
                               'from-rose-400 to-rose-500', 'from-cyan-400 to-cyan-500'
                             ];
-                            const bgTints = [
-                              'bg-blue-50/50', 'bg-emerald-50/50', 'bg-violet-50/50',
-                              'bg-amber-50/50', 'bg-rose-50/50', 'bg-cyan-50/50'
-                            ];
                             const gradient = gradients[ei % gradients.length];
-                            const bgTint = bgTints[ei % bgTints.length];
                             return (
-                              <button key={expert.id} type="button"
-                                onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
-                                className={cn(
-                                  'group rounded-2xl border border-slate-200 overflow-hidden transition-all text-left flex flex-col',
-                                  bgTint,
-                                  !isDiscussing && 'hover:shadow-xl hover:-translate-y-1 hover:border-slate-300'
-                                )}>
-                                {/* 헤더 — 연한 그라디언트 */}
-                                <div className={cn('flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r text-white', gradient)}>
-                                  <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
-                                  <div className="flex-1 min-w-0">
+                              <div key={expert.id} className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
+                                {/* 헤더 */}
+                                <button type="button"
+                                  onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
+                                  className={cn('w-full flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r text-white hover:brightness-110 transition-all', gradient)}>
+                                  <ExpertAvatar expert={expert} size="xs" active={allMsgs.some(m => m.isStreaming)} />
+                                  <div className="flex-1 min-w-0 text-left">
                                     <span className="text-[12px] font-bold">{expert.nameKo}</span>
-                                    <span className="text-[9px] text-white/60 ml-1.5">{expert.description}</span>
+                                    <span className="text-[9px] text-white/60 ml-1.5">{allMsgs.length > 1 ? `${allMsgs.length}개 답변` : expert.description}</span>
                                   </div>
-                                  {msg.isStreaming && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /></span>}
-                                </div>
-                                {/* 본문 */}
-                                <div className="px-4 py-3 text-[12px] leading-relaxed text-slate-600 line-clamp-8 min-h-[80px] max-h-[200px] overflow-hidden flex-1">
-                                  {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
-                                  {charCount > 200 && <span className="text-slate-300">...</span>}
+                                  {allMsgs.some(m => m.isStreaming) && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /></span>}
+                                </button>
+                                {/* 응답 카드들 — 질문+답변 쌓임 */}
+                                <div className="divide-y divide-slate-100">
+                                  {allMsgs.map((msg, mi) => {
+                                    const preview = msg.content.slice(0, 200);
+                                    // 이 답변 직전의 유저 질문 찾기
+                                    const msgIdx = messages.findIndex(m => m.id === msg.id);
+                                    let questionText = '';
+                                    if (mi > 0 && msgIdx > 0) {
+                                      for (let i = msgIdx - 1; i >= 0; i--) {
+                                        if (messages[i].expertId === '__user__') {
+                                          questionText = messages[i].content.replace(/^💬\s*\S+에게:\s*/, '');
+                                          break;
+                                        }
+                                      }
+                                    }
+                                    return (
+                                      <div key={msg.id}>
+                                        {mi > 0 && (
+                                          <div className="mx-3 border-t border-slate-300 dark:border-slate-600" />
+                                        )}
+                                        <button type="button"
+                                          onClick={() => { setMultiActiveTab(expert.id); setMultiView('detail'); setTimeout(() => document.getElementById(msg.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
+                                          className="w-full px-4 py-2.5 text-[12px] leading-relaxed text-slate-600 text-left hover:bg-slate-50 transition-colors">
+                                          {mi > 0 && questionText && (
+                                            <p className="text-[10px] text-indigo-400 font-medium mb-1.5 truncate">💬 "{questionText}"</p>
+                                          )}
+                                          <div className="line-clamp-5">
+                                            {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
+                                            {msg.content.length > 200 && <span className="text-slate-300">...</span>}
+                                          </div>
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                                 {/* 푸터 */}
-                                {!msg.isStreaming && charCount > 0 && (
-                                  <div className="px-4 pb-3 pt-0 flex items-center justify-between">
-                                    <span className="text-[10px] font-semibold text-indigo-500 group-hover:text-indigo-600 transition-colors">자세히 보기 →</span>
-                                  </div>
+                                {!allMsgs.some(m => m.isStreaming) && (
+                                  <button type="button"
+                                    onClick={() => { setMultiActiveTab(expert.id); setMultiView('detail'); }}
+                                    className="w-full px-4 py-2 text-left border-t border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <span className="text-[10px] font-semibold text-indigo-500">자세히 보기 →</span>
+                                  </button>
                                 )}
-                              </button>
+                              </div>
                             );
                           })}
                         </div>
                       )}
 
                       {/* ── Layer 2: Detail — AI 컬러 연동 ── */}
-                      {multiView === 'detail' && !isDiscussing && (() => {
+                      {multiView === 'detail' && (() => {
                         const activeMsgs = getExpertAllMsgs(activeTab || '');
                         const activeExp = allExperts.find(e => e.id === activeTab);
                         if (!activeMsgs.length || !activeExp) return null;
-                        const relatedUserMsgs = userMsgs.filter(m => m.content.includes(activeExp.nameKo));
+                        // 각 답변 직전의 유저 메시지를 찾기
+                        const getQuestionBefore = (msgId: string) => {
+                          const idx = messages.findIndex(m => m.id === msgId);
+                          if (idx <= 0) return null;
+                          for (let i = idx - 1; i >= 0; i--) {
+                            if (messages[i].expertId === '__user__') return messages[i];
+                          }
+                          return null;
+                        };
                         // Overview 카드와 동일한 컬러 매핑
                         const detailGradients = [
                           'from-blue-400 to-blue-500', 'from-emerald-400 to-emerald-500',
@@ -2257,12 +2281,19 @@ Rules:
                             {/* 응답 */}
                             <div className="p-4 space-y-3">
                               {activeMsgs.map((msg, i) => (
-                                <div key={msg.id}>
-                                  {i > 0 && relatedUserMsgs[i - 1] && (
-                                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-[11.5px] text-slate-500 mb-2">
-                                      💬 {relatedUserMsgs[i - 1].content}
-                                    </div>
-                                  )}
+                                <div key={msg.id} id={msg.id}>
+                                  {i > 0 && (() => {
+                                    const q = getQuestionBefore(msg.id);
+                                    if (!q) return null;
+                                    const text = q.content.replace(/^💬\s*\S+에게:\s*/, '');
+                                    return (
+                                      <div className="flex justify-end mb-2">
+                                        <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[12px]">
+                                          {text}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                   <DiscussionMessageCard message={msg} expert={activeExp} variant="default"
                                     onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />
                                 </div>
@@ -3397,7 +3428,7 @@ Rules:
           {!activeGame && (messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
               <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
-              <div className="max-w-2xl mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2">
+              <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) ? 'max-w-3xl' : 'max-w-2xl')}>
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
                   <div className="flex items-center gap-3">

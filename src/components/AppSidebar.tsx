@@ -733,24 +733,11 @@ export function AppSidebar({
                             <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
                           </button>
                           <button
-                            onClick={e => { e.stopPropagation(); setShowIconPicker(showIconPicker === project.id ? null : project.id); }}
+                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setShowIconPicker(project.id); }}
                             className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                           >
                             <span className="w-3.5 h-3.5 flex items-center justify-center text-[11px]">{project.icon || '📁'}</span> 아이콘 변경
                           </button>
-                          {showIconPicker === project.id && (
-                            <div className="flex flex-wrap gap-1 px-2 py-1.5 border-t border-slate-100 dark:border-slate-700">
-                              {PROJECT_ICONS.map(icon => (
-                                <button key={icon} onClick={e => {
-                                  e.stopPropagation();
-                                  setProjects(prev => { const updated = prev.map(p => p.id === project.id ? { ...p, icon } : p); saveProjects(updated); return updated; });
-                                  setShowIconPicker(null); setProjectMenuId(null);
-                                }} className={cn("w-6 h-6 rounded flex items-center justify-center text-[13px] hover:bg-slate-200 dark:hover:bg-slate-700", (project.icon || '📁') === icon && 'bg-slate-200 dark:bg-slate-700 ring-1 ring-blue-400')}>
-                                  {icon}
-                                </button>
-                              ))}
-                            </div>
-                          )}
                           <div className="my-0.5 border-t border-slate-100 dark:border-slate-700" />
                           <button
                             onClick={e => { e.stopPropagation(); deleteProject(project.id); }}
@@ -805,6 +792,30 @@ export function AppSidebar({
             )}
           </div>
         )}
+
+        {/* Icon Picker Modal */}
+        {showIconPicker && showIconPicker !== 'new' && (() => {
+          const proj = projects.find(p => p.id === showIconPicker);
+          if (!proj) return null;
+          return (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setShowIconPicker(null)}>
+              <div className="absolute inset-0 bg-black/20" />
+              <div onClick={e => e.stopPropagation()} className="relative w-64 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+                <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-3">{proj.name} 아이콘 선택</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PROJECT_ICONS.map(icon => (
+                    <button key={icon} onClick={() => {
+                      setProjects(prev => { const updated = prev.map(p => p.id === proj.id ? { ...p, icon } : p); saveProjects(updated); return updated; });
+                      setShowIconPicker(null);
+                    }} className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-[18px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors", (proj.icon || '📁') === icon && 'bg-slate-100 dark:bg-slate-700 ring-2 ring-blue-400')}>
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── 4. Conversation List Header ── */}
         {isOpen && <div className="shrink-0 px-2 py-1.5">
