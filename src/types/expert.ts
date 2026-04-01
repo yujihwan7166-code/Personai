@@ -342,6 +342,8 @@ export interface DiscussionMessage {
     dislikes?: number;
     timestamp?: number;
     attachedFiles?: { name: string; mimeType: string; preview?: string }[];
+    simRoleName?: string;  // 시뮬레이션 역할명 (예: "VC 파트너")
+    simRoleIcon?: string;  // 시뮬레이션 역할 아이콘
 }
 
 // ══════════════════════════════════════════
@@ -457,6 +459,23 @@ export const EXPERT_MODE_TEMPLATES: ExpertModeTemplate[] = [
             { id: 'model', expertRole: '사업 전략가', expertIcon: '📐', description: '비즈니스 모델 — 수익 구조 설계', sampleQuestions: ['수익 모델은 무엇인가요? (구독/광고/거래수수료 등)', '초기 고객 확보 채널은?'] },
             { id: 'finance_su', expertRole: '재무 전문가', expertIcon: '💼', description: '재무 모델링 — 번레이트, 손익분기점', sampleQuestions: ['초기 자금은 얼마나 있나요?', '월 예상 비용은?', '투자 유치를 계획하고 있나요?'] },
             { id: 'plan_su', expertRole: '종합 사업계획', expertIcon: '📋', description: 'Executive Summary, 90일 로드맵', sampleQuestions: [] },
+        ],
+    },
+    {
+        id: 'psychology',
+        name: '심리 상담',
+        icon: '🧠',
+        description: '감정 탐색부터 스트레스 관리까지, 전문가팀 심리 상담',
+        color: 'text-pink-600',
+        gradient: 'from-pink-100 to-rose-50',
+        category: 'health',
+        outputFormat: '심리 건강 종합 리포트',
+        phases: [
+            { id: 'emotion', expertRole: '임상심리사', expertIcon: '🧑‍⚕️', description: '감정 상태 평가, 스트레스 요인 탐색', sampleQuestions: ['요즘 가장 힘든 점은 무엇인가요?', '그 감정이 언제부터 시작됐나요?', '감정의 강도를 1~10으로 표현하면?'] },
+            { id: 'relationship', expertRole: '상담심리사', expertIcon: '💬', description: '대인관계, 자존감, 일상 고민 탐색', sampleQuestions: ['주변 사람들과의 관계는 어떤가요?', '혼자 있을 때 어떤 생각이 드나요?', '자신에 대해 어떻게 생각하시나요?'] },
+            { id: 'clinical', expertRole: '정신건강의학 전문의', expertIcon: '🩺', description: '수면, 불안, 우울 증상 감별', sampleQuestions: ['수면 패턴이 최근 변했나요?', '불안하거나 초조한 순간이 자주 있나요?', '식욕이나 체중에 변화가 있었나요?'] },
+            { id: 'mindfulness', expertRole: '마음챙김 코치', expertIcon: '🧘', description: '스트레스 관리법, 이완 기법 안내', sampleQuestions: ['평소 스트레스를 어떻게 해소하시나요?', '명상이나 호흡법을 해보신 적 있나요?'] },
+            { id: 'synthesis_psy', expertRole: '종합 소견', expertIcon: '📋', description: '심리 건강 평가, 권장 관리법, 전문 연계', sampleQuestions: [] },
         ],
     },
 ];
@@ -2564,133 +2583,198 @@ export interface SimulationScenario {
   name: string;
   icon: string;
   description: string;
+  simType: 'roleplay' | 'consultation';
   roles: { name: string; icon: string; focus: string }[];
   defaultIntensity: number;
   gaugeLabel: string;
   verdictOptions: string[];
   theme: { bg: string; accent: string; cardBg: string };
+  userRole: string;
+  prepQuestions: {
+    id: string;
+    question: string;
+    options: { label: string; value: string }[];
+  }[];
+  phases: string[];
+  gradient: string;
+  isPopular?: boolean;
 }
 
 export const SIMULATION_SCENARIOS: SimulationScenario[] = [
   {
-    id: 'investment', name: '투자 유치', icon: '💰',
+    id: 'investment', name: '투자 유치', icon: '💰', gradient: 'from-amber-100 to-orange-50', isPopular: true, simType: 'roleplay',
     description: 'VC 앞에서 사업 계획을 피칭합니다',
     roles: [
-      { name: 'VC 심사역', icon: '💼', focus: '시장성, ROI, 스케일' },
-      { name: '엔젤 투자자', icon: '👼', focus: '팀, 비전, 열정' },
-      { name: '재무 실사역', icon: '📊', focus: '수익모델, BEP, 재무건전성' },
+      { name: 'VC 파트너', icon: '🏦', focus: '시장 규모(TAM), 경쟁 우위, 엑싯 전략' },
+      { name: '재무 심사역', icon: '📊', focus: '번레이트, 유닛 이코노믹스, 밸류에이션' },
+      { name: '업계 전문 심사역', icon: '🔍', focus: '기술 검증, PMF, 경쟁사 대비 차별점' },
     ],
     defaultIntensity: 7, gaugeLabel: '투자 가능성',
     verdictOptions: ['투자', '조건부 검토', '보류', '거절'],
     theme: { bg: 'bg-slate-900', accent: 'text-blue-400', cardBg: 'bg-slate-800' },
-  },
-  {
-    id: 'internal', name: '사내 제안', icon: '🏢',
-    description: '경영진에게 새로운 제안을 발표합니다',
-    roles: [
-      { name: '대표이사', icon: '👔', focus: '전략적 방향, 회사 비전' },
-      { name: 'CFO', icon: '💵', focus: '비용, 예산, ROI' },
-      { name: '현업 팀장', icon: '🧑‍💻', focus: '실행 가능성, 리소스' },
+    userRole: '창업자',
+    prepQuestions: [
+      { id: 'business', question: '어떤 사업인가요?', options: [{label: '요식업', value: '요식업'}, {label: 'IT/앱', value: 'IT/앱'}, {label: '교육', value: '교육'}, {label: '커머스', value: '커머스'}] },
+      { id: 'stage', question: '현재 단계는?', options: [{label: '아이디어', value: '아이디어 단계'}, {label: 'MVP 완성', value: 'MVP 완성'}, {label: '초기 매출', value: '초기 매출 발생'}, {label: '성장기', value: '성장기'}] },
+      { id: 'amount', question: '필요 투자금은?', options: [{label: '1천만원', value: '1천만원'}, {label: '5천만원', value: '5천만원'}, {label: '1~3억', value: '1~3억'}, {label: '3억 이상', value: '3억 이상'}] },
     ],
-    defaultIntensity: 5, gaugeLabel: '승인 가능성',
-    verdictOptions: ['승인', '조건부 승인', '보류', '반려'],
-    theme: { bg: 'bg-gray-50', accent: 'text-slate-600', cardBg: 'bg-white' },
+    phases: ['발표', '질의응답', '최종 판정'],
   },
   {
-    id: 'product', name: '제품 런칭', icon: '📱',
-    description: '새 제품에 대한 시장 반응을 시뮬레이션합니다',
-    roles: [
-      { name: '타겟 고객', icon: '🙋', focus: '사용성, 가격, 필요성' },
-      { name: '경쟁사 PM', icon: '🎯', focus: '차별화, 약점 공격' },
-      { name: '테크 리뷰어', icon: '📝', focus: '기술력, 완성도, 혁신성' },
-    ],
-    defaultIntensity: 5, gaugeLabel: '구매 의향',
-    verdictOptions: ['즉시 구매', '관심', '보류', '패스'],
-    theme: { bg: 'bg-blue-50', accent: 'text-blue-600', cardBg: 'bg-white' },
-  },
-  {
-    id: 'policy', name: '정책 검토', icon: '🏛️',
-    description: '새로운 정책에 대한 이해관계자 반응을 확인합니다',
-    roles: [
-      { name: '시민 대표', icon: '🧑‍🤝‍🧑', focus: '생활 영향, 형평성' },
-      { name: '기업 대표', icon: '🏭', focus: '규제 부담, 경제 영향' },
-      { name: '법률 전문가', icon: '⚖️', focus: '합법성, 선례, 헌법' },
-    ],
-    defaultIntensity: 5, gaugeLabel: '지지율',
-    verdictOptions: ['시행', '수정 후 시행', '보류', '폐기'],
-    theme: { bg: 'bg-emerald-50', accent: 'text-emerald-700', cardBg: 'bg-white' },
-  },
-  {
-    id: 'interview', name: '채용 면접', icon: '🎤',
+    id: 'interview', name: '채용 면접', icon: '🎤', gradient: 'from-amber-100 to-yellow-50', isPopular: true, simType: 'roleplay',
     description: '면접관 앞에서 역량을 검증받습니다',
     roles: [
-      { name: '면접관', icon: '🧑‍💼', focus: '기술 역량, 문제해결력' },
-      { name: 'HR 담당', icon: '📋', focus: '조직 적합도, 소프트스킬' },
-      { name: '팀 리더', icon: '👥', focus: '협업 능력, 실무 경험' },
+      { name: '직무 면접관', icon: '🧑‍💼', focus: '직무 전문성, 문제해결 사례, 실무 역량 검증' },
+      { name: 'HR 담당자', icon: '📋', focus: '조직 적합성, 문화 핏, 동기와 비전, 연봉 기대치' },
+      { name: '팀 리더', icon: '👥', focus: '협업 경험, 갈등 해결, 팀 내 역할 기대치' },
     ],
     defaultIntensity: 7, gaugeLabel: '합격 가능성',
     verdictOptions: ['합격', '보류', '불합격'],
     theme: { bg: 'bg-slate-50', accent: 'text-slate-700', cardBg: 'bg-white' },
-  },
-  {
-    id: 'cs', name: '고객 대응', icon: '📞',
-    description: '불만 고객을 응대하는 상황을 시뮬레이션합니다',
-    roles: [
-      { name: '불만 고객', icon: '😤', focus: '불만, 보상 요구, 감정' },
-      { name: 'VIP 고객', icon: '👑', focus: '서비스 품질, 충성도' },
-      { name: '내부 QA', icon: '🔍', focus: '원인 분석, 재발 방지' },
+    userRole: '지원자',
+    prepQuestions: [
+      { id: 'position', question: '어떤 포지션인가요?', options: [{label: '개발', value: '개발'}, {label: '마케팅', value: '마케팅'}, {label: '디자인', value: '디자인'}, {label: '기획', value: '기획'}] },
+      { id: 'experience', question: '경력은?', options: [{label: '신입', value: '신입'}, {label: '3년 이하', value: '3년 이하'}, {label: '5년 이상', value: '5년 이상'}, {label: '10년 이상', value: '10년 이상'}] },
+      { id: 'strength', question: '핵심 강점은?', options: [{label: '문제해결', value: '문제해결 능력'}, {label: '리더십', value: '리더십'}, {label: '기술력', value: '기술력'}, {label: '소통', value: '소통 능력'}] },
     ],
-    defaultIntensity: 8, gaugeLabel: '고객 만족도',
-    verdictOptions: ['완전 해결', '부분 해결', '미해결', '고객 이탈'],
-    theme: { bg: 'bg-red-50', accent: 'text-red-600', cardBg: 'bg-white' },
+    phases: ['자기소개', '기술 면접', '인성 면접', '실무 면접', '결과'],
   },
   {
-    id: 'pitch', name: '스타트업 피칭', icon: '🚀',
-    description: '데모데이에서 심사위원에게 피칭합니다',
+    id: 'product', name: '제품 런칭', icon: '📱', gradient: 'from-sky-100 to-blue-50', simType: 'roleplay',
+    description: '시장 반응을 미리 검증합니다',
     roles: [
-      { name: '심사위원', icon: '🏆', focus: '혁신성, 시장성, 팀' },
-      { name: '멘토', icon: '🧭', focus: '성장 전략, 피봇 가능성' },
-      { name: '경쟁 팀', icon: '⚔️', focus: '차별화, 약점' },
+      { name: '타겟 고객', icon: '🙋', focus: '실제 필요성, 사용 편의성, 가격 대비 가치' },
+      { name: '경쟁사 PM', icon: '🎯', focus: '기존 솔루션 대비 차별점, 전환 비용, 약점' },
+      { name: '테크 리뷰어', icon: '📝', focus: '기술 완성도, 시장 임팩트, 확장 가능성' },
     ],
-    defaultIntensity: 7, gaugeLabel: '심사 점수',
-    verdictOptions: ['수상', '본선 진출', '탈락'],
-    theme: { bg: 'bg-violet-50', accent: 'text-violet-600', cardBg: 'bg-white' },
+    defaultIntensity: 5, gaugeLabel: '구매 의향',
+    verdictOptions: ['즉시 구매', '관심', '보류', '패스'],
+    theme: { bg: 'bg-blue-50', accent: 'text-blue-600', cardBg: 'bg-white' },
+    userRole: '제품 기획자', prepQuestions: [], phases: [],
   },
   {
-    id: 'strategy', name: '전략 회의', icon: '📊',
+    id: 'policy', name: '정책 검토', icon: '🏛️', gradient: 'from-emerald-100 to-green-50', simType: 'roleplay',
+    description: '이해관계자 반응을 확인합니다',
+    roles: [
+      { name: '시민 대표', icon: '🧑‍🤝‍🧑', focus: '실생활 영향, 형평성, 국민 감정, 여론 반응' },
+      { name: '기업 대표', icon: '🏭', focus: '경제적 영향, 규제 부담, 고용/산업 위축 우려' },
+      { name: '법률 전문가', icon: '⚖️', focus: '합헌성, 법적 리스크, 국내외 선례, 집행 가능성' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '지지율',
+    verdictOptions: ['시행', '수정 후 시행', '보류', '폐기'],
+    theme: { bg: 'bg-emerald-50', accent: 'text-emerald-700', cardBg: 'bg-white' },
+    userRole: '정책 입안자', prepQuestions: [], phases: [],
+  },
+  {
+    id: 'strategy', name: '전략 회의', icon: '📊', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
     description: '팀원들과 전략을 논의합니다',
     roles: [
-      { name: '마케팅 이사', icon: '📣', focus: '시장, 브랜딩, 채널' },
-      { name: '개발 리드', icon: '💻', focus: '기술 실현성, 일정' },
-      { name: '운영 매니저', icon: '⚙️', focus: '비용, 프로세스, 리소스' },
+      { name: '마케팅 이사', icon: '📣', focus: '시장 접근 전략, 고객 세그먼트, 브랜딩 방향' },
+      { name: '개발 리드', icon: '💻', focus: '기술적 실현 가능성, 개발 일정, 기술 부채' },
+      { name: '운영 매니저', icon: '⚙️', focus: '실행력, 리소스 배분, 운영 비용, 프로세스' },
     ],
     defaultIntensity: 3, gaugeLabel: '합의도',
     verdictOptions: ['실행', '수정 후 실행', '재검토'],
     theme: { bg: 'bg-amber-50', accent: 'text-amber-700', cardBg: 'bg-white' },
+    userRole: '전략 책임자', prepQuestions: [], phases: [],
   },
   {
-    id: 'thesis', name: '논문 심사', icon: '🎓',
-    description: '논문 심사위원회에서 검증받습니다',
+    id: 'internal', name: '사내 제안', icon: '🏢', gradient: 'from-slate-100 to-gray-50', simType: 'roleplay',
+    description: '경영진에게 제안을 발표합니다',
     roles: [
-      { name: '주심 교수', icon: '👨‍🏫', focus: '연구 방법론, 기여도' },
-      { name: '부심 교수', icon: '👩‍🏫', focus: '선행연구, 참고문헌' },
-      { name: '외부 심사위원', icon: '🔬', focus: '실용성, 확장가능성' },
+      { name: '대표이사', icon: '👔', focus: '전략적 방향, 회사 비전과의 부합, 장기 가치' },
+      { name: 'CFO', icon: '💵', focus: '비용 대비 효과, 예산 확보 가능성, ROI 분석' },
+      { name: '협업 팀장', icon: '🧑‍💻', focus: '실행 가능성, 필요 리소스, 타 부서 영향' },
     ],
-    defaultIntensity: 7, gaugeLabel: '통과 가능성',
-    verdictOptions: ['통과', '수정 후 통과', '재심사', '반려'],
-    theme: { bg: 'bg-orange-50', accent: 'text-orange-700', cardBg: 'bg-white' },
+    defaultIntensity: 5, gaugeLabel: '승인 가능성',
+    verdictOptions: ['승인', '조건부 승인', '보류', '반려'],
+    theme: { bg: 'bg-gray-50', accent: 'text-slate-600', cardBg: 'bg-white' },
+    userRole: '제안자', prepQuestions: [], phases: [],
+  },
+  // ── 전문가 상담 시나리오 ──
+  {
+    id: 'medical', name: '의학 상담', icon: '🏥', gradient: 'from-red-100 to-rose-50', isPopular: true, simType: 'consultation',
+    description: '증상 분석부터 종합 소견까지',
+    roles: [
+      { name: '접수 간호사', icon: '👩‍⚕️', focus: '주증상 파악, 긴급도 분류' },
+      { name: '전문의', icon: '🩺', focus: '문진 및 병력 확인' },
+      { name: '약사', icon: '💊', focus: '복용 약물, 상호작용' },
+      { name: '영양사', icon: '🥗', focus: '생활습관 평가' },
+    ],
+    defaultIntensity: 3, gaugeLabel: '종합 소견',
+    verdictOptions: ['정밀검사 권고', '생활습관 교정', '경과 관찰', '전문의 연계'],
+    theme: { bg: 'bg-red-50', accent: 'text-red-600', cardBg: 'bg-white' },
+    userRole: '환자', prepQuestions: [], phases: ['접수', '문진', '약물 검토', '생활습관', '종합 소견'],
   },
   {
-    id: 'negotiation', name: '파트너십 협상', icon: '🤝',
-    description: '파트너사와 조건을 협상합니다',
+    id: 'legal_sim', name: '법률 상담', icon: '⚖️', gradient: 'from-amber-100 to-yellow-50', isPopular: true, simType: 'consultation',
+    description: '사건 분석부터 전략 수립까지',
     roles: [
-      { name: '상대측 대표', icon: '🤵', focus: '전략적 가치, 조건' },
-      { name: '상대측 법무', icon: '📜', focus: '계약 조건, 리스크' },
-      { name: '상대측 실무자', icon: '🧑‍🔧', focus: '실행 가능성, 일정' },
+      { name: '수석 변호사', icon: '👨‍⚖️', focus: '사건 유형 분류, 시효 확인' },
+      { name: '사건 담당', icon: '📝', focus: '사실관계, 증거 목록화' },
+      { name: '판례 연구원', icon: '📚', focus: '관련 법조문, 판례 분석' },
+      { name: '리스크 분석', icon: '📊', focus: '승소 가능성, 비용 예측' },
     ],
-    defaultIntensity: 6, gaugeLabel: '딜 성사율',
-    verdictOptions: ['체결', '재협상', '보류', '결렬'],
-    theme: { bg: 'bg-yellow-50', accent: 'text-yellow-700', cardBg: 'bg-white' },
+    defaultIntensity: 5, gaugeLabel: '승소 가능성',
+    verdictOptions: ['소송 권고', '합의 권고', '추가 조사', '소송 부적합'],
+    theme: { bg: 'bg-amber-50', accent: 'text-amber-600', cardBg: 'bg-white' },
+    userRole: '의뢰인', prepQuestions: [], phases: ['접수', '사실관계', '판례 분석', '리스크', '전략'],
+  },
+  {
+    id: 'finance_sim', name: '재무·투자 상담', icon: '💰', gradient: 'from-emerald-100 to-green-50', simType: 'consultation',
+    description: '맞춤형 재무 설계 및 투자 전략',
+    roles: [
+      { name: '재무설계사', icon: '💼', focus: '소득/지출/부채 분석' },
+      { name: '라이프플래너', icon: '📅', focus: '생애주기 재무 이벤트' },
+      { name: '투자 분석가', icon: '📈', focus: '리스크/수익 프로파일' },
+      { name: '세무사', icon: '🧾', focus: '절세 전략 시뮬레이션' },
+    ],
+    defaultIntensity: 3, gaugeLabel: '재무 건강도',
+    verdictOptions: ['적극 투자', '안정 운용', '부채 정리 우선', '재설계 필요'],
+    theme: { bg: 'bg-emerald-50', accent: 'text-emerald-600', cardBg: 'bg-white' },
+    userRole: '고객', prepQuestions: [], phases: ['재무 진단', '생애주기', '투자 성향', '세금', '종합 전략'],
+  },
+  {
+    id: 'realestate_sim', name: '부동산 상담', icon: '🏠', gradient: 'from-blue-100 to-sky-50', simType: 'consultation',
+    description: '시세 분석부터 세금 시뮬레이션까지',
+    roles: [
+      { name: '부동산 컨설턴트', icon: '🏘️', focus: '목적/예산/희망 조건' },
+      { name: '시장 분석가', icon: '📊', focus: '시세 동향, 입주 물량' },
+      { name: '법률 전문가', icon: '📝', focus: '등기, 계약 리스크' },
+      { name: '세무사', icon: '🧾', focus: '취득세/양도세/보유세' },
+    ],
+    defaultIntensity: 3, gaugeLabel: '투자 적합도',
+    verdictOptions: ['매수 적기', '관망 권고', '매도 권고', '재검토'],
+    theme: { bg: 'bg-blue-50', accent: 'text-blue-600', cardBg: 'bg-white' },
+    userRole: '매수 희망자', prepQuestions: [], phases: ['니즈 파악', '시장 분석', '법률 검토', '세금', '종합 판단'],
+  },
+  {
+    id: 'startup_sim', name: '창업 상담', icon: '🚀', gradient: 'from-purple-100 to-violet-50', simType: 'consultation',
+    description: '아이디어 검증부터 IR 덱까지',
+    roles: [
+      { name: '스타트업 멘토', icon: '🧭', focus: 'Lean Canvas, PMF' },
+      { name: '시장 분석가', icon: '🔎', focus: 'TAM/SAM/SOM, 경쟁' },
+      { name: '사업 전략가', icon: '📐', focus: '비즈니스 모델, 수익 구조' },
+      { name: '재무 전문가', icon: '💼', focus: '번레이트, 손익분기점' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '사업 가능성',
+    verdictOptions: ['즉시 실행', '피봇 권고', '추가 검증', '재고 필요'],
+    theme: { bg: 'bg-purple-50', accent: 'text-purple-600', cardBg: 'bg-white' },
+    userRole: '예비 창업자', prepQuestions: [], phases: ['아이디어 검증', '시장 분석', '비즈니스 모델', '재무', '종합 계획'],
+  },
+  {
+    id: 'psychology_sim', name: '심리 상담', icon: '🧠', gradient: 'from-pink-100 to-rose-50', simType: 'consultation',
+    description: '마음 건강을 전문가팀이 분석합니다',
+    roles: [
+      { name: '임상심리사', icon: '🧑‍⚕️', focus: '감정 상태 평가, 스트레스 요인 파악' },
+      { name: '상담심리사', icon: '💬', focus: '대인관계, 자존감, 일상 고민' },
+      { name: '정신건강의학 전문의', icon: '🩺', focus: '증상 감별, 수면/불안/우울 평가' },
+      { name: '마음챙김 코치', icon: '🧘', focus: '스트레스 관리법, 이완 기법 제안' },
+    ],
+    defaultIntensity: 2, gaugeLabel: '심리 건강도',
+    verdictOptions: ['양호', '경미한 스트레스', '전문 상담 권고', '정밀 검사 필요'],
+    theme: { bg: 'bg-pink-50', accent: 'text-pink-600', cardBg: 'bg-white' },
+    userRole: '내담자', prepQuestions: [], phases: ['감정 탐색', '스트레스 평가', '수면/생활 점검', '마음챙김', '종합 소견'],
   },
 ];
 
@@ -2701,6 +2785,7 @@ export interface StakeholderSettings {
   roleAssignments: Record<string, string>; // roleName -> expertId
   intensity: number;
   autoReport: boolean;
+  prepAnswers: Record<string, string>;
 }
 
 export const DEFAULT_STAKEHOLDER_SETTINGS: StakeholderSettings = {
@@ -2708,6 +2793,7 @@ export const DEFAULT_STAKEHOLDER_SETTINGS: StakeholderSettings = {
   roleAssignments: {},
   intensity: 5,
   autoReport: true,
+  prepAnswers: {},
 };
 
 export const SUMMARIZER_EXPERT: Expert = {

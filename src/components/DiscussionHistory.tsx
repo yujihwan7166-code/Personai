@@ -10,6 +10,7 @@ export interface DiscussionRecord {
   messages: DiscussionMessage[];
   expertIds: string[];
   timestamp: number;
+  proconStances?: Record<string, 'pro' | 'con'>;
 }
 
 const HISTORY_KEY = 'ai-debate-history-v1';

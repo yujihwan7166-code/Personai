@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER,
@@ -56,7 +56,7 @@ interface Props {
   onStakeholderSettingsChange?: (s: StakeholderSettings) => void;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'brainstorm_main', 'expert', 'assistant']; // player 잠금
+const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'brainstorm_main', 'assistant']; // player 잠금, expert 시뮬레이션에 통합
 const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'freetalk'];
 
 const mainModeLabels: Record<MainMode, string> = {
@@ -117,7 +117,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 }
 
 // ── Issue Editor (심층토론) ──
-const ISSUE_TEMPLATES = ['경제적 영향', '윤리적 쟁점', '기술적 타당성', '사회적 합의', '법률적 문제', '환경적 영향', '실현 가능성', '장기적 영향'];
+const ISSUE_TEMPLATES = ['경제적 영향', '윤리적 쟁점', '기술적 타당성', '사회적 합의', '법률적 문제', '환경적 영향', '실현 가능성'];
 
 function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign, onAutoAssignChange, onToggle, onModeChange }: {
   issues: DiscussionIssue[];
@@ -175,40 +175,56 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
       </div>
       <div className="p-4 space-y-4">
         {/* Debaters */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-600">토론자</span>
+        <div className="rounded-xl border border-emerald-200 overflow-hidden">
+          <div className="px-3.5 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px]">🎯</span>
+              <span className="text-[11px] font-bold text-emerald-700">토론 참여자</span>
               {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
-                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접 선택</button>
-                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
+                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-white/60 ml-1">
+                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접</button>
+                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
                 </div>
               )}
             </div>
-            {!autoAssign && (selectedExperts.length < 2
-              ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
-              : <span className="text-[10px] text-slate-400">{selectedExperts.length}명 참여</span>)}
+            {!autoAssign && selectedExperts.length > 0 && <span className="text-[10px] font-medium text-slate-400">{selectedExperts.length}/3명</span>}
           </div>
-          {autoAssign ? (
-            <div className="py-3 text-center rounded-lg border border-dashed border-indigo-200 bg-indigo-50/50">
-              <p className="text-[11px] text-indigo-600 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
-            </div>
-          ) : selectedExperts.length > 0 ? (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {selectedExperts.map(e => (
-                <button key={e.id} type="button" onClick={() => onToggle(e.id)}
-                  className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
-                  <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
-                  <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="py-3 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
-              <p className="text-[11px] text-slate-400">위에서 토론에 참여할 전문가를 선택하세요</p>
-            </div>
-          )}
+          <div className="px-3 py-3 bg-white">
+            {autoAssign ? (
+              <div className="text-center py-1">
+                <p className="text-[11px] text-slate-500 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
+              </div>
+            ) : selectedExperts.length > 0 ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3 flex-wrap justify-center">
+                  {selectedExperts.map(e => (
+                    <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                      className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
+                      <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                        <ExpertAvatar expert={e} size="md" />
+                        <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                          <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] text-slate-400">{selectedExperts.length}/3명 선택됨 {selectedExperts.length < 3 ? '· 더 추가하거나 토론을 시작하세요' : '· 토론을 시작하세요'}</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-1">
+                <div className="flex items-center gap-3">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="w-11 h-11 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center">
+                      <Plus className="w-4 h-4 text-slate-300" />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[11px] text-slate-400">위에서 전문가를 선택하세요</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Debate purpose */}
@@ -400,9 +416,11 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                           </button>
                         )) : (
                           <>
-                            <div className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200" />
-                            <div className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200" />
-                            <div className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200" />
+                            {[0,1,2].map(i => (
+                              <div key={i} className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center">
+                                <Plus className="w-5 h-5 text-slate-300" />
+                              </div>
+                            ))}
                           </>
                         )}
                       </div>
@@ -432,12 +450,12 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                   className={cn('rounded-xl border transition-all duration-150 overflow-hidden',
                     isOver && canDrop ? isPro ? 'border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.15)]' : 'border-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]'
                       : isPro ? 'border-blue-200' : 'border-red-200')}>
-                  <div className={cn('px-3 py-2 flex items-center justify-between', isPro ? 'bg-blue-50' : 'bg-red-50')}>
-                    <span className={cn('text-[12px] font-bold', isPro ? 'text-blue-600' : 'text-red-600')}>{isPro ? '찬성' : '반대'}</span>
-                    <span className={cn('text-[10px] font-medium', isPro ? 'text-blue-400' : 'text-red-400')}>{assigned.length}/{MAX_PER_ZONE}</span>
+                  <div className={cn('px-3 py-1.5 flex items-center justify-between', isPro ? 'bg-blue-100/80' : 'bg-red-100/80')}>
+                    <span className={cn('text-[12px] font-bold', isPro ? 'text-blue-700' : 'text-red-700')}>{isPro ? '찬성' : '반대'}</span>
+                    <span className={cn('text-[10px] font-medium', isPro ? 'text-blue-500' : 'text-red-500')}>{assigned.length}/{MAX_PER_ZONE}</span>
                   </div>
-                  <div className={cn('px-3 py-4 bg-white transition-colors', isOver && canDrop && (isPro ? 'bg-blue-50/30' : 'bg-red-50/30'))}>
-                    <div className="flex flex-wrap gap-4 justify-center">
+                  <div className={cn('px-2.5 py-3 bg-white transition-colors', isOver && canDrop && (isPro ? 'bg-blue-50/30' : 'bg-red-50/30'))}>
+                    <div className="flex flex-wrap gap-2.5 justify-center">
                       {assigned.map(id => {
                         const e = experts.find(x => x.id === id);
                         if (!e) return null;
@@ -446,22 +464,22 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                             onClick={() => removeStance(id)}
                             draggable onDragStart={() => setDraggedId(id)} onDragEnd={() => setDraggedId(null)}
                             title="클릭하면 배정 해제"
-                            className="flex flex-col items-center gap-1.5 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot min-w-[56px]">
+                            className="flex flex-col items-center gap-0.5 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot min-w-[48px]">
                             <div className="relative group-hover/slot:opacity-70 transition-opacity">
-                              <ExpertAvatar expert={e} size="lg" />
+                              <ExpertAvatar expert={e} size="md" />
                               <div className="absolute inset-0 rounded-full flex items-center justify-center transition-all">
-                                <X className="w-4 h-4 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
+                                <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
                               </div>
                             </div>
-                            <span className={cn('text-[10px] font-semibold max-w-[64px] truncate text-center transition-colors group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
+                            <span className={cn('text-[9px] font-semibold max-w-[52px] truncate text-center transition-colors group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
                           </button>
                         );
                       })}
                       {/* 빈칸: 아무도 없을 때만 1개 표시 */}
                       {assigned.length === 0 && (
-                        <div className="flex flex-col items-center gap-1">
-                          <div className={cn('w-14 h-14 rounded-full border-2 border-dashed', isPro ? 'border-blue-200 bg-blue-50/30' : 'border-red-200 bg-red-50/30')} />
-                          <span className={cn('text-[10px]', isPro ? 'text-blue-300' : 'text-red-300')}>클릭 또는 드래그</span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <div className={cn('w-10 h-10 rounded-full border-2 border-dashed', isPro ? 'border-blue-200 bg-blue-50/30' : 'border-red-200 bg-red-50/30')} />
+                          <span className={cn('text-[9px]', isPro ? 'text-blue-300' : 'text-red-300')}>드래그</span>
                         </div>
                       )}
                     </div>
@@ -564,53 +582,157 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   onDebateSettingsChange?: (s: DebateSettings) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
+  const [showBotPicker, setShowBotPicker] = useState(false);
+  const [bsCat, setBsCat] = useState('전체');
+  const [bsSearch, setBsSearch] = useState('');
   const ds = debateSettings!;
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
 
   return (
-    <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-visible">
-      <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
-        <span className="text-sm">💡</span>
-        <div className="text-[13px] font-bold text-amber-800">브레인스토밍</div>
-      </div>
-      <div className="p-4 space-y-4">
+    <div className="space-y-3 overflow-visible">
         {/* Participants */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-600">참여자</span>
+        <div className="rounded-xl border border-amber-200 overflow-hidden">
+          <div className="px-3.5 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px]">💡</span>
+              <span className="text-[11px] font-bold text-amber-700">참여자</span>
               {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
-                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접 선택</button>
-                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
+                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-white/60 ml-1">
+                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접</button>
+                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
                 </div>
               )}
             </div>
-            {!autoAssign && (selectedIds.length < 2
-              ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
-              : <span className="text-[10px] text-slate-400">{selectedIds.length}명 참여</span>)}
+            {!autoAssign && selectedIds.length > 0 && <span className="text-[10px] font-medium text-amber-500">{selectedIds.length}명 선택됨</span>}
           </div>
-          {autoAssign ? (
-            <div className="py-3 text-center rounded-lg border border-dashed border-amber-200 bg-amber-50/50">
-              <p className="text-[11px] text-amber-700 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
-            </div>
-          ) : selectedIds.length > 0 ? (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {selectedIds.map(id => {
-                const e = experts.find(x => x.id === id);
-                return e ? (
-                  <button key={id} type="button" onClick={() => onToggle(id)}
-                    className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
-                    <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
-                    <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
+          <div className="px-3 py-3 bg-white">
+            {autoAssign ? (
+              <div className="text-center py-1">
+                <p className="text-[11px] text-amber-600 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
+              </div>
+            ) : selectedIds.length > 0 ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3 flex-wrap justify-center">
+                  {selectedIds.map(id => {
+                    const e = experts.find(x => x.id === id);
+                    return e ? (
+                      <button key={id} type="button" onClick={() => onToggle(id)}
+                        className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
+                        <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                          <ExpertAvatar expert={e} size="md" />
+                          <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                            <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
+                      </button>
+                    ) : null;
+                  })}
+                  {/* Add button */}
+                  <button type="button" onClick={() => { setShowBotPicker(true); setBsCat('전체'); setBsSearch(''); }}
+                    className="flex flex-col items-center gap-1">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors">
+                      <Plus className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <span className="text-[10px] text-amber-400 font-medium">추가</span>
                   </button>
-                ) : null;
-              })}
-            </div>
-          ) : (
-            <div className="py-3 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
-              <p className="text-[11px] text-slate-400">위에서 참여할 전문가/AI를 선택하세요</p>
-            </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-1">
+                <button type="button" onClick={() => { setShowBotPicker(true); setBsCat('전체'); setBsSearch(''); }}
+                  className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
+                  <div className="w-14 h-14 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center bg-amber-50/50">
+                    <Plus className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <span className="text-[11px] text-slate-400">참여할 전문가/AI를 선택하세요</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Bot Picker Modal */}
+          {showBotPicker && createPortal(
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowBotPicker(false)}>
+              <div className="absolute inset-0 bg-black/30" />
+              <div className="relative w-full max-w-[520px] max-h-[70vh] rounded-xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                  <h3 className="text-[14px] font-bold text-slate-800">참여자 추가</h3>
+                  <button onClick={() => setShowBotPicker(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="shrink-0 px-4 py-2 border-b border-slate-100">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input value={bsSearch} onChange={e => setBsSearch(e.target.value)} placeholder="이름으로 검색..."
+                      className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] outline-none focus:border-amber-300 transition-colors" autoFocus />
+                  </div>
+                </div>
+                <div className="shrink-0 flex flex-wrap gap-1 px-4 py-2 border-b border-slate-100">
+                  {['전체', 'AI 모델', '전문가', '직업', '인물', '캐릭터'].map(cat => (
+                    <button key={cat} onClick={() => setBsCat(cat)}
+                      className={cn('px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors',
+                        bsCat === cat ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-100'
+                      )}>{cat}</button>
+                  ))}
+                  <div className="relative group/more">
+                    <button className={cn('px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors',
+                      ['신화','이념','철학/종교','라이프'].includes(bsCat) ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-100'
+                    )}>더보기 ▾</button>
+                    <div className="absolute left-0 top-full mt-1 z-10 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[100px] invisible group-hover/more:visible opacity-0 group-hover/more:opacity-100 transition-all">
+                      {['신화', '이념', '철학/종교', '라이프'].map(cat => (
+                        <button key={cat} onClick={() => setBsCat(cat)}
+                          className={cn('w-full px-3 py-1.5 text-left text-[11px] font-medium transition-colors',
+                            bsCat === cat ? 'bg-amber-50 text-amber-600' : 'text-slate-600 hover:bg-slate-50'
+                          )}>{cat}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3">
+                  {(() => {
+                    const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion', '라이프': 'lifestyle' };
+                    const filtered = experts.filter(e => {
+                      if (bsCat !== '전체' && e.category !== catMap[bsCat]) return false;
+                      if (bsSearch.trim()) {
+                        const q = bsSearch.trim().toLowerCase();
+                        return e.nameKo.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || (e.description || '').toLowerCase().includes(q);
+                      }
+                      return true;
+                    });
+                    return filtered.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {filtered.map(expert => {
+                          const isSelected = selectedIds.includes(expert.id);
+                          return (
+                            <button key={expert.id}
+                              onClick={() => { onToggle?.(expert.id); }}
+                              className={cn('flex items-center gap-2.5 p-2.5 rounded-xl border transition-all text-left group',
+                                isSelected ? 'bg-amber-50 border-amber-300' : 'border-slate-100 hover:bg-slate-50 hover:border-slate-200'
+                              )}>
+                              <div className="shrink-0 group-hover:scale-110 transition-transform">
+                                <ExpertAvatar expert={expert} size="md" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={cn('text-[12px] font-semibold truncate', isSelected ? 'text-amber-700' : 'text-slate-800')}>{expert.nameKo}</p>
+                                <p className="text-[9px] text-slate-400 truncate">{expert.description}</p>
+                              </div>
+                              {isSelected && <Check className="w-4 h-4 text-amber-500 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-[11px] text-slate-400">
+                        {bsSearch ? '검색 결과가 없습니다' : '표시할 봇이 없습니다'}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>,
+            document.body
           )}
         </div>
 
@@ -686,7 +808,6 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           </div>
           <p className="text-[10px] text-amber-500 mt-2">아래 입력란에 주제를 입력하면 전문가들이 함께 아이디어를 발산합니다</p>
         </div>
-      </div>
     </div>
   );
 }
@@ -869,45 +990,57 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
         </button>
       </div>
       <div className="p-4 space-y-4">
-        <p className="text-[12px] text-slate-500">
-          주제를 던지면 AI들이 알아서 짧게 대화합니다. 구경만 해도 OK.
-        </p>
-
         {/* Participants */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-600">참여 AI</span>
+        <div className="rounded-xl border border-cyan-200 overflow-hidden">
+          <div className="px-3.5 py-2 bg-gradient-to-r from-cyan-50 to-sky-50 border-b border-cyan-100 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px]">💬</span>
+              <span className="text-[11px] font-bold text-cyan-700">참여 AI</span>
               {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
-                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접 선택</button>
-                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
+                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-white/60 ml-1">
+                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접</button>
+                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
                 </div>
               )}
             </div>
-            {!autoAssign && (selected.length < 2
-              ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
-              : <span className="text-[10px] text-slate-400">{selected.length}명 참여</span>)}
+            {!autoAssign && selected.length > 0 && <span className="text-[10px] font-medium text-cyan-500">{selected.length}/3명</span>}
           </div>
-          {autoAssign ? (
-            <div className="py-3 text-center rounded-lg border border-dashed border-cyan-200 bg-cyan-50/50">
-              <p className="text-[11px] text-cyan-700 font-medium">질문을 입력하면 적합한 AI가 자동 배정됩니다</p>
-            </div>
-          ) : selected.length > 0 ? (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {selected.map(e => (
-                <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
-                  className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
-                  <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
-                  <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="py-3 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
-              <p className="text-[11px] text-slate-400">위에서 참여할 AI를 선택하세요</p>
-            </div>
-          )}
+          <div className="px-3 py-3 bg-white">
+            {autoAssign ? (
+              <div className="text-center py-1">
+                <p className="text-[11px] text-cyan-600 font-medium">질문을 입력하면 적합한 AI가 자동 배정됩니다</p>
+              </div>
+            ) : selected.length > 0 ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3 flex-wrap justify-center">
+                  {selected.map(e => (
+                    <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
+                      className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
+                      <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                        <ExpertAvatar expert={e} size="md" />
+                        <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                          <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] text-cyan-400">{selected.length}/3명 선택됨 {selected.length < 3 ? '· 더 추가하거나 시작하세요' : '· 시작하세요'}</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-1">
+                <div className="flex items-center gap-3">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="w-11 h-11 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center">
+                      <Plus className="w-4 h-4 text-slate-300" />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[11px] text-slate-400">위에서 참여할 AI를 선택하세요</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Message count */}
@@ -931,33 +1064,46 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
   );
 }
 
-// ── Stakeholder Simulation Settings Panel ──
+// ── Simulation Mode Panel ──
 
-function StakeholderSettingsPanel({ experts, settings, onSettingsChange }: {
+function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, isDiscussing, onSelectExpertTemplate }: {
   experts: Expert[];
   settings: StakeholderSettings;
   onSettingsChange: (s: StakeholderSettings) => void;
+  onSubmit: (question: string) => void;
+  isDiscussing: boolean;
+  onSelectExpertTemplate?: (template: ExpertModeTemplate | null) => void;
 }) {
+  const [selectedScenario, setSelectedScenario] = useState<SimulationScenario | null>(null);
   const [dropdownRole, setDropdownRole] = useState<string | null>(null);
+  const [botPickerCat, setBotPickerCat] = useState('전체');
+  const [botPickerSearch, setBotPickerSearch] = useState('');
+  const [simQuestion, setSimQuestion] = useState('');
+  const [autoAssignRoles, setAutoAssignRoles] = useState(true);
+
   const update = (patch: Partial<StakeholderSettings>) => onSettingsChange({ ...settings, ...patch });
 
-  const selectedScenario = SIMULATION_SCENARIOS.find(s => s.id === settings.scenarioId) || null;
   const assignedExpertIds = new Set(Object.values(settings.roleAssignments));
-
   const intensityLabel = settings.intensity <= 3 ? '건설적' : settings.intensity <= 6 ? '균형' : '날카로운';
 
+  // consultation → ExpertModePanel ID 매핑
+  const consultationToTemplateId: Record<string, string> = {
+    medical: 'medical', legal_sim: 'legal', finance_sim: 'finance',
+    realestate_sim: 'realestate', startup_sim: 'startup', psychology_sim: 'psychology',
+  };
+
   const handleSelectScenario = (scenario: SimulationScenario) => {
-    if (settings.scenarioId === scenario.id) {
-      // Deselect
-      update({ scenarioId: null, roleAssignments: {}, intensity: 5 });
-    } else {
-      update({ scenarioId: scenario.id, roleAssignments: {}, intensity: scenario.defaultIntensity });
+    if (scenario.simType === 'consultation' && onSelectExpertTemplate) {
+      const templateId = consultationToTemplateId[scenario.id];
+      const template = EXPERT_MODE_TEMPLATES.find(t => t.id === templateId);
+      if (template) { onSelectExpertTemplate(template); return; }
     }
+    setSelectedScenario(scenario);
+    update({ scenarioId: scenario.id, roleAssignments: {}, intensity: scenario.defaultIntensity, prepAnswers: {} });
     setDropdownRole(null);
   };
 
   const handleAssignRole = (roleName: string, expertId: string) => {
-    // Remove expert from any other role first
     const newAssignments = { ...settings.roleAssignments };
     for (const [key, val] of Object.entries(newAssignments)) {
       if (val === expertId) delete newAssignments[key];
@@ -976,162 +1122,277 @@ function StakeholderSettingsPanel({ experts, settings, onSettingsChange }: {
   const availableExperts = experts.filter(e => !assignedExpertIds.has(e.id));
 
   return (
-    <div className="border border-orange-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)] overflow-hidden">
-      <div className="px-4 py-2.5 bg-orange-50 border-b border-orange-100 flex items-center gap-2">
-        <span className="text-sm">🎭</span>
-        <div className="text-[13px] font-bold text-orange-800">시뮬레이션 시나리오</div>
+    <>
+      <div>
+        <div className="grid grid-cols-3 gap-3">
+        {SIMULATION_SCENARIOS.filter(s => s.simType === 'roleplay').map(scenario => (
+          <button key={scenario.id}
+            onClick={() => handleSelectScenario(scenario)}
+            className="relative text-left rounded-2xl bg-white border border-slate-200 hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden">
+
+            {/* Gradient side accent */}
+            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${scenario.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+            <div className="px-4 pt-4 pb-3.5">
+              {/* Badge */}
+              {scenario.isPopular && (
+                <span className="absolute top-3 right-3 text-[7px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm">인기</span>
+              )}
+
+              {/* Icon + Title inline */}
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${scenario.gradient} flex items-center justify-center text-2xl shrink-0 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300`}>
+                  {scenario.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[14px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">{scenario.name}</h3>
+                  <p className="text-[10px] text-slate-400 leading-snug mt-0.5 truncate">{scenario.description}</p>
+                </div>
+              </div>
+
+              {/* Role tags */}
+              <div className="flex items-center gap-1 mb-3 justify-center overflow-hidden">
+                {scenario.roles.map(role => (
+                  <span key={role.name} className="text-[8px] px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 font-medium border border-slate-100 shrink-0 whitespace-nowrap">
+                    {role.icon} {role.name}
+                  </span>
+                ))}
+              </div>
+
+              {/* Bottom */}
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[9px] text-slate-400 text-center truncate">
+                  {scenario.userRole && <><span className="text-slate-600 font-semibold">{scenario.userRole}</span> , </>}
+                  {scenario.gaugeLabel}
+                  {scenario.verdictOptions.length > 0 && <> , {scenario.verdictOptions.slice(0, 3).join(' / ')}</>}
+                </p>
+              </div>
+            </div>
+          </button>
+        ))}
+        </div>
       </div>
 
-      <div className="p-4 space-y-4">
-        {/* Scenario Cards Grid */}
-        <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">시나리오 선택</div>
-          <div className="grid grid-cols-5 gap-1.5">
-            {SIMULATION_SCENARIOS.map(scenario => (
-              <button
-                key={scenario.id}
-                onClick={() => handleSelectScenario(scenario)}
-                className={cn(
-                  'flex flex-col items-center gap-1 px-1.5 py-2 rounded-lg text-center transition-all border cursor-pointer',
-                  settings.scenarioId === scenario.id
-                    ? 'bg-orange-600 text-white border-orange-600 shadow-md'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300 hover:bg-orange-50'
-                )}
-              >
-                <span className="text-lg leading-none">{scenario.icon}</span>
-                <span className="text-[9px] font-semibold leading-tight">{scenario.name}</span>
-              </button>
-            ))}
-          </div>
+      <div className="mt-2">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex-1 h-px bg-slate-200" />
+          <span className="text-[12px] font-bold text-slate-500 flex items-center gap-1.5 shrink-0">🔬 전문가 순차 상담</span>
+          <div className="flex-1 h-px bg-slate-200" />
         </div>
+        <div className="grid grid-cols-3 gap-3">
+        {SIMULATION_SCENARIOS.filter(s => s.simType === 'consultation').map(scenario => (
+          <button key={scenario.id}
+            onClick={() => handleSelectScenario(scenario)}
+            className="relative text-left rounded-2xl bg-white border border-slate-200 hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden">
 
-        {/* Selected Scenario Details */}
-        {selectedScenario && (
-          <>
-            {/* Scenario description */}
-            <div className="px-3 py-2 rounded-lg bg-orange-50 border border-orange-100">
-              <p className="text-[11px] text-orange-800 font-medium">{selectedScenario.icon} {selectedScenario.description}</p>
-              <p className="text-[9px] text-orange-500 mt-1">게이지: {selectedScenario.gaugeLabel} | 판정: {selectedScenario.verdictOptions.join(', ')}</p>
+            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${scenario.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+            <div className="px-4 pt-4 pb-3.5">
+              {scenario.isPopular && (
+                <span className="absolute top-3 right-3 text-[7px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm">인기</span>
+              )}
+
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${scenario.gradient} flex items-center justify-center text-2xl shrink-0 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300`}>
+                  {scenario.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[14px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">{scenario.name}</h3>
+                  <p className="text-[10px] text-slate-400 leading-snug mt-0.5 truncate">{scenario.description}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 mb-3 justify-center overflow-hidden">
+                {scenario.roles.map(role => (
+                  <span key={role.name} className="text-[8px] px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 font-medium border border-slate-100 shrink-0 whitespace-nowrap">
+                    {role.icon} {role.name}
+                  </span>
+                ))}
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[9px] text-slate-400 text-center truncate">
+                  {scenario.phases.length}단계 순차 상담 · {scenario.gaugeLabel}
+                </p>
+              </div>
+            </div>
+          </button>
+        ))}
+        </div>
+      </div>
+
+      {/* Floating Modal — Roleplay */}
+      {selectedScenario && selectedScenario.simType === 'roleplay' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-8 px-4 pb-4" onClick={() => setSelectedScenario(null)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-full max-w-[480px] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}>
+
+            {/* Header with gradient */}
+            <div className={`shrink-0 px-5 py-4 bg-gradient-to-br ${selectedScenario.gradient} relative`}>
+              <button onClick={() => setSelectedScenario(null)} className="absolute top-3 right-3 p-1 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-white/50 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{selectedScenario.icon}</span>
+                <div>
+                  <h3 className="text-[16px] font-bold text-slate-800">{selectedScenario.name}</h3>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    {selectedScenario.userRole
+                      ? `당신은 ${selectedScenario.userRole}로서 ${selectedScenario.description}`
+                      : selectedScenario.description}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Role Assignment Slots */}
-            <div>
-              <div className="text-[11px] font-bold text-slate-600 mb-2">역할 배정 ({Object.keys(settings.roleAssignments).length}/{selectedScenario.roles.length})</div>
-              <div className="space-y-2">
-                {selectedScenario.roles.map(role => {
-                  const assignedId = settings.roleAssignments[role.name];
-                  const assignedExpert = assignedId ? experts.find(e => e.id === assignedId) : null;
-                  const isDropdownOpen = dropdownRole === role.name;
-
-                  return (
-                    <div key={role.name} className="relative">
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white">
-                        {/* Role info */}
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="text-base leading-none shrink-0">{role.icon}</span>
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Role list */}
+              <div>
+                <div className="mb-2">
+                  <span className="text-[11px] font-bold text-slate-600">참여 역할</span>
+                </div>
+                <div className="space-y-1.5">
+                  {/* 당신의 역할 */}
+                  {selectedScenario.userRole && (
+                    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 border-indigo-300 bg-indigo-50/30">
+                      <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center text-lg shrink-0">🎭</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] font-bold text-indigo-700">당신의 역할 · {selectedScenario.userRole}</div>
+                      </div>
+                      <span className="text-[9px] font-bold text-indigo-500 px-2 py-0.5 rounded-full bg-indigo-100 shrink-0">YOU</span>
+                    </div>
+                  )}
+                  {selectedScenario.roles.map((role, ri) => {
+                    const roleQuestions: Record<string, string[]> = {
+                      'VC 파트너': ['시장 규모', '엑싯 전략'],
+                      '재무 심사역': ['번레이트', '밸류에이션'],
+                      '업계 전문 심사역': ['기술 검증', 'PMF'],
+                      'CEO': ['전략 방향', '비전'],
+                      'CFO': ['ROI', '예산'],
+                      '실무 팀장': ['실행력', '일정'],
+                      '얼리어답터': ['UX', '가격'],
+                      '경쟁사 PM': ['차별점', '전환비용'],
+                      '테크 저널리스트': ['혁신성', '임팩트'],
+                      '시민단체 대표': ['형평성', '여론'],
+                      '산업계 대표': ['규제비용', '고용'],
+                      '헌법학자': ['위헌소지', '기본권'],
+                      '기술 면접관': ['코딩', '설계'],
+                      'HR 매니저': ['컬처핏', '성장성'],
+                      '팀 리더': ['협업', '갈등해결'],
+                      '마케팅 이사': ['시장전략', '브랜딩'],
+                      '개발 리드': ['기술실현', '일정'],
+                      '운영 매니저': ['리소스', '프로세스'],
+                      '타겟 고객': ['필요성', '가격'],
+                      '경쟁사 PM': ['차별점', '전환비용'],
+                      '테크 리뷰어': ['완성도', '확장성'],
+                      '시민 대표': ['형평성', '여론'],
+                      '기업 대표': ['규제부담', '고용'],
+                      '법률 전문가': ['합헌성', '선례'],
+                      '대표이사': ['전략방향', '비전'],
+                      '협업 팀장': ['실행력', '리소스'],
+                    };
+                    const tags = roleQuestions[role.name] || role.focus.split(',').map(s => s.trim()).slice(0, 2);
+                    const roleDescs: Record<string, string> = {
+                      'VC 파트너': '투자 가치와 성장 잠재력을 평가합니다',
+                      '재무 심사역': '재무 건전성과 수익 구조를 검증합니다',
+                      '업계 전문 심사역': '기술력과 시장 적합성을 분석합니다',
+                      '직무 면접관': '직무 전문성과 문제해결 역량을 검증합니다',
+                      'HR 담당자': '조직 적합성과 성장 가능성을 평가합니다',
+                      '팀 리더': '협업 스타일과 팀 내 역할을 확인합니다',
+                      '타겟 고객': '실제 사용자 관점에서 제품을 평가합니다',
+                      '경쟁사 PM': '기존 대안 대비 차별점을 분석합니다',
+                      '테크 리뷰어': '기술 완성도와 시장 임팩트를 봅니다',
+                      '시민 대표': '정책이 국민 생활에 미치는 영향을 봅니다',
+                      '기업 대표': '산업과 경제에 미치는 영향을 분석합니다',
+                      '법률 전문가': '법적 타당성과 집행 가능성을 검토합니다',
+                      '마케팅 이사': '시장 접근과 고객 획득 전략을 제시합니다',
+                      '개발 리드': '기술적 실현 가능성을 검토합니다',
+                      '운영 매니저': '운영 효율과 리소스 배분을 분석합니다',
+                      '대표이사': '회사 전략과의 부합 여부를 판단합니다',
+                      'CFO': '비용 대비 효과를 분석합니다',
+                      '협업 팀장': '현장 실행 가능성을 검토합니다',
+                    };
+                    const desc = roleDescs[role.name] || role.focus;
+                    return (
+                      <div key={role.name}>
+                        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white">
+                          <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center text-lg shrink-0 border border-slate-100">
+                            {role.icon}
+                          </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-[11px] font-bold text-slate-700">{role.name}</div>
-                            <div className="text-[9px] text-slate-400 truncate">{role.focus}</div>
+                            <div className="text-[9px] text-slate-400 truncate">{desc}</div>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            {tags.map((tag, i) => (
+                              <span key={i} className="text-[8px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">{tag}</span>
+                            ))}
                           </div>
                         </div>
-
-                        {/* Assignment slot */}
-                        {assignedExpert ? (
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <div className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-orange-50 border border-orange-200">
-                              <div className="pointer-events-none"><ExpertAvatar expert={assignedExpert} size="sm" /></div>
-                              <span className="text-[10px] font-medium text-orange-700">{assignedExpert.nameKo}</span>
-                            </div>
-                            <button
-                              onClick={() => handleRemoveRole(role.name)}
-                              className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setDropdownRole(isDropdownOpen ? null : role.name)}
-                            className="px-3 py-1 rounded-md border border-dashed border-orange-300 text-[10px] font-medium text-orange-500 hover:bg-orange-50 transition-colors shrink-0"
-                          >
-                            + AI 배정
-                          </button>
-                        )}
                       </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-                      {/* Dropdown */}
-                      {isDropdownOpen && (
-                        <div className="absolute right-0 top-full mt-1 z-20 w-60 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg">
-                          {availableExperts.length > 0 ? (
-                            availableExperts.map(expert => (
-                              <button
-                                key={expert.id}
-                                onClick={() => handleAssignRole(role.name, expert.id)}
-                                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-orange-50 transition-colors text-left"
-                              >
-                                <div className="pointer-events-none"><ExpertAvatar expert={expert} size="sm" /></div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-[11px] font-semibold text-slate-700">{expert.nameKo}</div>
-                                  <div className="text-[9px] text-slate-400 truncate">{expert.description}</div>
-                                </div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-3 py-3 text-center text-[10px] text-slate-400">
-                              배정 가능한 AI가 없습니다
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              {/* Intensity slider */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold text-slate-600">반응 강도</span>
+                  <span className={cn('text-[10px] font-medium',
+                    settings.intensity <= 3 ? 'text-sky-600' : settings.intensity <= 6 ? 'text-slate-500' : 'text-red-500'
+                  )}>{intensityLabel} ({settings.intensity})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-sky-500 font-medium shrink-0">건설적</span>
+                  <input type="range" min={1} max={10} value={settings.intensity}
+                    onChange={e => update({ intensity: parseInt(e.target.value) })}
+                    className="flex-1 h-1.5 accent-indigo-500" />
+                  <span className="text-[10px] text-red-500 font-medium shrink-0">날카로운</span>
+                </div>
+              </div>
+
+              {/* Auto report toggle */}
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-slate-700">자동 리포트 생성</p>
+                  <p className="text-[9px] text-slate-400">시뮬레이션 후 종합 판정 리포트 자동 생성</p>
+                </div>
+                <Toggle checked={settings.autoReport} onChange={v => update({ autoReport: v })} />
               </div>
             </div>
 
-            {/* Intensity slider */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-slate-600">반응 강도</span>
-                <span className="text-[10px] font-medium text-orange-600">{intensityLabel} ({settings.intensity})</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-emerald-600 font-medium shrink-0">건설적</span>
-                <input type="range" min={1} max={10} value={settings.intensity}
-                  onChange={e => update({ intensity: parseInt(e.target.value) })}
-                  className="flex-1 h-1.5 accent-orange-500" />
-                <span className="text-[10px] text-red-500 font-medium shrink-0">날카로운</span>
-              </div>
+            {/* Start button */}
+            <div className="shrink-0 px-4 py-3 border-t border-slate-200 bg-slate-50">
+              <button
+                onClick={() => {
+                  setSelectedScenario(null);
+                  onSubmit('__SIM_START__');
+                }}
+                className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5"
+              >
+                시뮬레이션 시작 <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
-
-            {/* Auto report toggle */}
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold text-slate-700">자동 리포트 생성</p>
-                <p className="text-[9px] text-slate-400">시뮬레이션 후 종합 판정 리포트 자동 생성</p>
-              </div>
-              <Toggle checked={settings.autoReport} onChange={v => update({ autoReport: v })} />
-            </div>
-          </>
-        )}
-
-        {!selectedScenario && (
-          <div className="py-4 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
-            <p className="text-[11px] text-slate-400">시나리오를 선택하면 역할 배정이 표시됩니다</p>
           </div>
-        )}
-      </div>
-    </div>
+        </div>,
+        document.body
+      )}
+
+    </>
   );
 }
 
 
 // ── Expert Mode Selection Panel ──
-function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscussing }: {
+function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscussing, showCardsGrid = true }: {
   onSelectTemplate: (t: ExpertModeTemplate | null) => void;
   selectedTemplate: ExpertModeTemplate | null;
   onSubmit: (question: string) => void;
   isDiscussing: boolean;
+  showCardsGrid?: boolean;
 }) {
   const [question, setQuestion] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
@@ -1145,7 +1406,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
   return (
     <div className="space-y-4">
       {/* Mode cards grid — 3 per row, information-rich */}
-      <div className="grid grid-cols-3 gap-3">
+      {showCardsGrid && <div className="grid grid-cols-3 gap-3">
         {EXPERT_MODE_TEMPLATES.map(template => {
           const isSelected = selectedTemplate?.id === template.id;
           const corePhases = template.phases.filter(p => p.sampleQuestions.length > 0);
@@ -1217,11 +1478,11 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {/* ── Floating Modal ── */}
-      {selectedTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
+      {selectedTemplate && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
           <div ref={modalRef} className="relative w-full max-w-[640px] max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -1263,6 +1524,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                 finance: { accent: 'from-emerald-500 to-green-500', numBg: 'bg-emerald-500', numText: 'text-white' },
                 realestate: { accent: 'from-blue-500 to-sky-500', numBg: 'bg-blue-500', numText: 'text-white' },
                 startup: { accent: 'from-purple-500 to-violet-500', numBg: 'bg-purple-500', numText: 'text-white' },
+                psychology: { accent: 'from-pink-500 to-rose-500', numBg: 'bg-pink-500', numText: 'text-white' },
               };
               const pc = procColors[selectedTemplate.id] || procColors.medical;
               return (
@@ -1314,6 +1576,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                       finance: { accent: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: 'text-emerald-500' },
                       realestate: { accent: 'from-blue-500 to-sky-500', bg: 'bg-blue-50', text: 'text-blue-700', icon: 'text-blue-500' },
                       startup: { accent: 'from-purple-500 to-violet-500', bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
+                      psychology: { accent: 'from-pink-500 to-rose-500', bg: 'bg-pink-50', text: 'text-pink-700', icon: 'text-pink-500' },
                     };
                     const deliverables: Record<string, { icon: string; label: string }[]> = {
                       medical: [
@@ -1340,6 +1603,11 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                         { icon: '📐', label: 'Lean Canvas' }, { icon: '🔎', label: '시장 규모 분석' },
                         { icon: '💼', label: '재무 모델링' }, { icon: '📊', label: 'IR Pitch Deck' },
                         { icon: '🗓️', label: '90일 로드맵' }, { icon: '📈', label: 'KPI 대시보드' },
+                      ],
+                      psychology: [
+                        { icon: '💭', label: '감정 상태 분석' }, { icon: '📊', label: '스트레스 지수' },
+                        { icon: '😴', label: '수면 패턴 평가' }, { icon: '🧘', label: '이완 기법 가이드' },
+                        { icon: '📋', label: '심리 건강 리포트' }, { icon: '🏥', label: '전문 상담 연계' },
                       ],
                     };
                     const colors = colorMap[selectedTemplate.id] || colorMap.medical;
@@ -1376,99 +1644,20 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
               );
             })()}
 
-            {/* ── Scenario cards + Input ── */}
-            <div className="px-5 pb-5 pt-0 animate-in fade-in slide-in-from-bottom-2 duration-500"
-              style={{ animationDelay: `${800 + selectedTemplate.phases.length * 150 + 1400}ms`, animationFillMode: 'both' }}>
-              {/* Section label */}
-              <div className="flex items-center gap-2 py-5 mb-0">
-                <div className="h-px flex-1 bg-slate-200" />
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[11px] font-semibold text-slate-600">예시 질문</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
-              {/* Scenario example cards — 2x2 grid */}
-              {(() => {
-                const scenarios: Record<string, { title: string; preview: string }[]> = {
-                  medical: [
-                    { title: '만성 두통', preview: '3개월째 오후만 되면 편두통이 반복됩니다. 진통제를 먹어도 일시적이고...' },
-                    { title: '건강검진 해석', preview: '종합검진에서 간수치(AST/ALT)가 정상범위를 초과했다는 결과를 받았습니다...' },
-                    { title: '수면 장애', preview: '최근 한 달간 잠들기 어렵고 새벽에 자주 깨서 일상에 지장이 생기고 있습니다...' },
-                    { title: '허리 통증', preview: '앉아서 일하는 직업인데 최근 허리와 골반 쪽 통증이 점점 심해지고 있어요...' },
-                  ],
-                  legal: [
-                    { title: '전세보증금 반환', preview: '2년 전세 계약이 만료되어 3개월 전부터 집주인에게 이사 가겠다고 통보했습니다...' },
-                    { title: '중고거래 사기', preview: '어제 중고거래 앱에서 노트북을 90만 원에 구매하기로 하고 판매자에게 돈을 입금했습니다...' },
-                    { title: '학교폭력', preview: '중학교 2학년인 제 아들이 같은 반 학생들로부터 지속적인 괴롭힘을 당해왔다는 사실을...' },
-                    { title: '층간소음', preview: '윗집의 층간소음 때문에 1년 넘게 고통받고 있습니다. 단순한 발망치 소리를 넘어...' },
-                  ],
-                  finance: [
-                    { title: '사회초년생 재테크', preview: '월급 280만 원을 받는 사회초년생입니다. 저축과 투자를 어떻게 분배해야...' },
-                    { title: '은퇴 자금 설계', preview: '현재 45세이고 55세에 조기은퇴를 계획하고 있습니다. 현재 자산은...' },
-                    { title: '주식 vs 부동산', preview: '여유자금 5000만 원이 생겼는데 주식 투자와 부동산 투자 중 어디에...' },
-                    { title: '대출 상환 전략', preview: '주택담보대출 2억, 신용대출 3천만 원이 있습니다. 어떤 순서로 갚아야...' },
-                  ],
-                  realestate: [
-                    { title: '아파트 매수 타이밍', preview: '서울 외곽 신축 아파트를 매수하려고 합니다. 현재 시세 대비 적절한 시기인지...' },
-                    { title: '전세 사기 예방', preview: '신혼부부인데 전세로 들어갈 집을 구하고 있습니다. 전세사기가 걱정되어...' },
-                    { title: '재건축 투자', preview: '30년 된 강남 아파트 재건축 투자를 고민하고 있습니다. 현재 시세와 향후...' },
-                    { title: '임대사업 시작', preview: '소형 원룸 건물을 매입해서 임대사업을 시작하려 합니다. 수익률 계산과...' },
-                  ],
-                  startup: [
-                    { title: 'SaaS 사업 검증', preview: 'AI 기반 고객 분석 SaaS를 구상 중입니다. 현재 프로토타입은 완성되었고...' },
-                    { title: '투자 유치 전략', preview: '시드 라운드 투자를 준비 중입니다. MAU 3,000명이고 월 매출 500만 원...' },
-                    { title: '공동창업 계약', preview: '친구와 함께 창업을 준비하고 있는데 지분 배분과 역할 분담 계약서를...' },
-                    { title: '피봇 결정', preview: '6개월간 운영한 서비스의 성장이 정체되어 피봇을 고려하고 있습니다...' },
-                  ],
-                };
-                const items = scenarios[selectedTemplate.id];
-                return items ? (
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    {items.map((ex, i) => (
-                      <button key={i} type="button" onClick={() => setQuestion(ex.preview)}
-                        className="text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all group">
-                        <p className="text-[11px] font-bold text-slate-700 mb-1">{ex.title}</p>
-                        <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-2">{ex.preview}</p>
-                      </button>
-                    ))}
-                  </div>
-                ) : null;
-              })()}
-              {/* Input — matching QuestionInput style */}
-              <div className={cn(
-                'rounded-2xl border-2 transition-all duration-200',
-                question.trim() ? 'border-slate-300 shadow-[0_2px_12px_rgba(0,0,0,0.08)]' : 'border-slate-200'
-              )}>
-                <div className="rounded-[calc(1rem-1px)] bg-white">
-                  <textarea
-                    value={question}
-                    onChange={e => { setQuestion(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && question.trim()) { e.preventDefault(); onSubmit(question); } }}
-                    placeholder={`${selectedTemplate.name} 관련 상황을 설명해주세요...`}
-                    disabled={isDiscussing}
-                    autoFocus
-                    rows={2}
-                    className="w-full px-5 pt-4 pb-2 text-[13px] outline-none resize-none bg-transparent placeholder:text-slate-400 leading-relaxed"
-                  />
-                  <div className="flex items-center justify-between px-4 pb-3">
-                    <span className="text-[9px] text-slate-300">Shift+Enter로 줄바꿈</span>
-                    <button
-                      type="button"
-                      onClick={() => question.trim() && onSubmit(question)}
-                      disabled={!question.trim() || isDiscussing}
-                      className={cn(
-                        'w-8 h-8 rounded-lg flex items-center justify-center transition-all',
-                        question.trim() ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm' : 'bg-slate-100 text-slate-400'
-                      )}
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {/* Start button */}
+            <div className="px-5 pb-5 pt-3">
+              <button
+                type="button"
+                onClick={() => onSelectTemplate(null)}
+                className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5"
+              >
+                상담 시작 <ArrowRight className="w-4 h-4" />
+              </button>
+              <p className="text-[9px] text-slate-400 text-center mt-1.5">확인 후 아래 대화창에서 상황을 입력하세요</p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -2944,7 +3133,7 @@ export function ExpertSelectionPanel({
   // - general/multi: all categories shown, all selectable
   // - brainstorm: all categories shown, all selectable (including AI)
   // - standard/procon: all categories shown, but AI models are grayed/disabled
-  const showExpertGrid = mainMode === 'general' || mainMode === 'multi' || mainMode === 'debate' || mainMode === 'stakeholder_main' || mainMode === 'brainstorm_main';
+  const showExpertGrid = mainMode === 'general' || mainMode === 'multi' || mainMode === 'debate';
   const isDebateMode = mainMode === 'debate';
   const isStandardOrProcon = false; // AI 모델 제한 해제
   const isBrainstorm = discussionMode === 'brainstorm';
@@ -3159,12 +3348,13 @@ export function ExpertSelectionPanel({
       )}>
 
       {/* ── Expert Mode ── */}
-      {mainMode === 'expert' && (
+      {(mainMode === 'expert' || selectedExpertModeTemplate) && (
         <ExpertModePanel
           onSelectTemplate={setSelectedExpertModeTemplate}
           selectedTemplate={selectedExpertModeTemplate}
           onSubmit={onSubmit}
           isDiscussing={isDiscussing}
+          showCardsGrid={mainMode === 'expert'}
         />
       )}
 
@@ -3453,20 +3643,24 @@ export function ExpertSelectionPanel({
       )}
 
       {isStakeholder && stakeholderSettings && onStakeholderSettingsChange && (
-        <StakeholderSettingsPanel
+        <SimulationModePanel
           experts={experts}
-          settings={stakeholderSettings} onSettingsChange={onStakeholderSettingsChange}
+          settings={stakeholderSettings}
+          onSettingsChange={onStakeholderSettingsChange}
+          onSubmit={onSubmit}
+          isDiscussing={isDiscussing}
+          onSelectExpertTemplate={setSelectedExpertModeTemplate}
         />
       )}
 
       {/* Question Input — not shown for expert/assistant/player (they have their own inputs) */}
-      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && (
+      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
           disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2) || (discussionMode === 'procon' && !autoAssign && (!Object.values(proconStances).includes('pro') || !Object.values(proconStances).includes('con')))}
           discussionMode={discussionMode}
           selectedExperts={
-            (isProcon || discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder)
+            (isProcon || discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')
               ? [] : experts.filter(e => selectedIds.includes(e.id))
           }
           onRemoveExpert={isGeneral || isProcon ? undefined : onToggle}
