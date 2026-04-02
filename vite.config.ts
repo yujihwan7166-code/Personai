@@ -18,4 +18,27 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
+              return "react-vendor";
+            }
+            if (id.includes("@radix-ui")) {
+              return "radix-vendor";
+            }
+            if (id.includes("pptxgenjs") || id.includes("xlsx") || id.includes("mammoth")) {
+              return "document-vendor";
+            }
+            if (id.includes("recharts")) {
+              return "chart-vendor";
+            }
+            return "vendor";
+          }
+        },
+      },
+    },
+  },
 }));
