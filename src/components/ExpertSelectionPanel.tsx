@@ -330,21 +330,11 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🎯</span>
               <span className="text-[11px] font-bold text-emerald-700">토론 참여자</span>
-              {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-white/60 ml-1">
-                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접</button>
-                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
-                </div>
-              )}
             </div>
-            {!autoAssign && selectedExperts.length > 0 && <span className="text-[10px] font-medium text-slate-400">{selectedExperts.length}/3명</span>}
+            {selectedExperts.length > 0 && <span className="text-[10px] font-medium text-slate-400">{selectedExperts.length}/3명</span>}
           </div>
           <div className="px-3 py-3 bg-white">
-            {autoAssign ? (
-              <div className="text-center py-1">
-                <p className="text-[11px] text-slate-500 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
-              </div>
-            ) : selectedExperts.length > 0 ? (
+            {selectedExperts.length > 0 ? (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {selectedExperts.map(e => (
@@ -523,84 +513,8 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
         <div>
           <div className="flex items-center gap-2 mb-2.5">
             <span className="text-[11px] font-bold text-slate-600">진영 배정</span>
-            <div className="flex bg-slate-100 rounded-lg p-0.5 gap-0.5">
-              <button onClick={() => setAssignMode('manual')}
-                className={cn('px-2.5 py-1 rounded-md text-[10px] font-medium transition-all',
-                  assignMode === 'manual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
-                수동 배정
-              </button>
-              <button onClick={() => { setAssignMode('auto'); Object.keys(proconStances).forEach(id => removeStance(id)); }}
-                className={cn('px-2.5 py-1 rounded-md text-[10px] font-medium transition-all',
-                  assignMode === 'auto' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
-                자동 배정
-              </button>
-            </div>
           </div>
 
-          {assignMode === 'auto' ? (
-            <div className={cn(
-              'rounded-xl border overflow-hidden transition-all',
-              dragOver ? 'border-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.15)]' : 'border-violet-200'
-            )}
-              onDragOver={e => { e.preventDefault(); setDragOver('pro'); }}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={() => { if (draggedId) assignStance(draggedId, 'pro'); setDragOver(null); setDraggedId(null); }}>
-              <div className="px-3.5 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[13px]">🤖</span>
-                  <span className="text-[11px] font-bold text-violet-700">토론 참여자</span>
-                </div>
-                {(() => {
-                  const count = experts.filter(e => selectedIds.includes(e.id)).length;
-                  return count > 0 ? (
-                    <span className="text-[10px] font-medium text-violet-400">{count}명 선택됨</span>
-                  ) : null;
-                })()}
-              </div>
-              <div className={cn(
-                'px-3 py-4 bg-white transition-colors',
-                dragOver && 'bg-violet-50/30'
-              )}>
-                {(() => {
-                  const autoExperts = experts.filter(e => selectedIds.includes(e.id));
-                  return (
-                    <div className="flex flex-col items-center gap-3">
-                      {/* Circle slots */}
-                      <div className="flex items-center gap-3 flex-wrap justify-center">
-                        {autoExperts.length > 0 ? autoExperts.map(e => (
-                          <button key={e.id} type="button" onClick={() => onToggle(e.id)}
-                            className="flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-75 duration-200 group/auto">
-                            <div className="relative w-14 h-14 rounded-full bg-violet-50 border-2 border-violet-200 flex items-center justify-center shadow-sm group-hover/auto:border-red-300 group-hover/auto:bg-red-50 transition-colors">
-                              <ExpertAvatar expert={e} size="md" />
-                              <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/auto:bg-red-500/10 flex items-center justify-center transition-all">
-                                <X className="w-4 h-4 text-red-500 opacity-0 group-hover/auto:opacity-100 transition-opacity" />
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-semibold text-violet-600 max-w-[64px] truncate text-center group-hover/auto:text-red-500 transition-colors">{e.nameKo}</span>
-                          </button>
-                        )) : (
-                          <>
-                            {[0,1,2].map(i => (
-                              <div key={i} className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center">
-                                <Plus className="w-5 h-5 text-slate-300" />
-                              </div>
-                            ))}
-                          </>
-                        )}
-                      </div>
-                      {/* Helper text */}
-                      <span className={cn('text-[12px] font-medium', autoExperts.length > 0 ? 'text-violet-400' : 'text-slate-400')}>
-                        {autoExperts.length > 0 ? `${autoExperts.length}명 선택됨 · 더 추가하거나 토론을 시작하세요` : '클릭하여 AI를 추가하세요'}
-                      </span>
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="px-3.5 py-1.5 bg-slate-50 border-t border-slate-100">
-                <p className="text-[9px] text-slate-400 text-center">토론 시작 시 AI가 주제를 분석하여 찬성/반대를 자동 배정합니다</p>
-              </div>
-            </div>
-          ) : (
           <div className="grid grid-cols-2 gap-4">
             {(['pro', 'con'] as const).map(zone => {
               const isOver = dragOver === zone;
@@ -659,7 +573,6 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
               );
             })}
           </div>
-          )}
 
           {/* 찬반 AI 선택 플로팅 */}
           {pickerZone && (
@@ -781,21 +694,11 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💡</span>
               <span className="text-[11px] font-bold text-amber-700">참여자</span>
-              {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-white/60 ml-1">
-                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접</button>
-                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
-                </div>
-              )}
             </div>
-            {!autoAssign && selectedIds.length > 0 && <span className="text-[10px] font-medium text-amber-500">{selectedIds.length}명 선택됨</span>}
+            {selectedIds.length > 0 && <span className="text-[10px] font-medium text-amber-500">{selectedIds.length}명 선택됨</span>}
           </div>
           <div className="px-3 py-3 bg-white">
-            {autoAssign ? (
-              <div className="text-center py-1">
-                <p className="text-[11px] text-amber-600 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
-              </div>
-            ) : selectedIds.length > 0 ? (
+            {selectedIds.length > 0 ? (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {selectedIds.map(id => {
@@ -970,22 +873,12 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold text-slate-600">검증 위원</span>
-              {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-slate-100">
-                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접 선택</button>
-                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
-                </div>
-              )}
             </div>
-            {!autoAssign && (selected.length < 2
+            {selected.length < 2
               ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
-              : <span className="text-[10px] text-slate-400">{selected.length}명 위원</span>)}
+              : <span className="text-[10px] text-slate-400">{selected.length}명 위원</span>}
           </div>
-          {autoAssign ? (
-            <div className="py-3 text-center rounded-lg border border-dashed border-emerald-200 bg-emerald-50/50">
-              <p className="text-[11px] text-emerald-700 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
-            </div>
-          ) : selected.length > 0 ? (
+          {selected.length > 0 ? (
             <div className="flex items-center gap-1.5 flex-wrap">
               {selected.map(e => (
                 <button key={e.id} type="button" onClick={() => onToggle(e.id)}
@@ -1103,21 +996,11 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💬</span>
               <span className="text-[11px] font-bold text-cyan-700">참여 AI</span>
-              {onAutoAssignChange && (
-                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-white/60 ml-1">
-                  <button onClick={() => onAutoAssignChange(false)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all', !autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}>직접</button>
-                  <button onClick={() => onAutoAssignChange(true)} className={cn('px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5', autoAssign ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400')}><Zap className="w-2.5 h-2.5" />자동</button>
-                </div>
-              )}
             </div>
-            {!autoAssign && selected.length > 0 && <span className="text-[10px] font-medium text-cyan-500">{selected.length}/3명</span>}
+            {selected.length > 0 && <span className="text-[10px] font-medium text-cyan-500">{selected.length}/3명</span>}
           </div>
           <div className="px-3 py-3 bg-white">
-            {autoAssign ? (
-              <div className="text-center py-1">
-                <p className="text-[11px] text-cyan-600 font-medium">질문을 입력하면 적합한 AI가 자동 배정됩니다</p>
-              </div>
-            ) : selected.length > 0 ? (
+            {selected.length > 0 ? (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {selected.map(e => (
