@@ -307,7 +307,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
       <div className="flex items-stretch bg-[#F4F5F7] rounded-t-xl relative">
         {onModeChange && (
-          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
+          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
             <span className="text-[11px] font-medium text-slate-400">⚖️ 찬반 토론</span>
           </button>
         )}
@@ -315,10 +315,10 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           <span className="text-[11px] font-bold text-emerald-600 block">🎯 심층 토론</span>
         </div>
         {onModeChange && (<>
-          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
+          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
             <span className="text-[11px] font-medium text-slate-400">💬 자유 토론</span>
           </button>
-          <button onClick={() => onModeChange?.('aivsuser')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
+          <button onClick={() => onModeChange?.('aivsuser')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
             <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
           </button>
         </>)}
@@ -371,7 +371,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                     </div>
                   ))}
                 </div>
-                <span className="text-[11px] text-slate-400">위에서 전문가를 선택하세요</span>
+                <span className="text-[11px] text-slate-400">클릭하여 AI를 추가하세요</span>
               </div>
             )}
           </div>
@@ -507,13 +507,13 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
           <span className="text-[11px] font-bold text-violet-600 block">⚖️ 찬반 토론</span>
         </div>
         {onModeChange && (<>
-          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
+          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
             <span className="text-[11px] font-medium text-slate-400">🎯 심층 토론</span>
           </button>
-          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
+          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
             <span className="text-[11px] font-medium text-slate-400">💬 자유 토론</span>
           </button>
-          <button onClick={() => onModeChange?.('aivsuser')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
+          <button onClick={() => onModeChange?.('aivsuser')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
             <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
           </button>
         </>)}
@@ -590,7 +590,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                       </div>
                       {/* Helper text */}
                       <span className={cn('text-[12px] font-medium', autoExperts.length > 0 ? 'text-violet-400' : 'text-slate-400')}>
-                        {autoExperts.length > 0 ? `${autoExperts.length}명 선택됨 · 더 추가하거나 토론을 시작하세요` : '위에서 전문가를 선택하거나 드래그하세요'}
+                        {autoExperts.length > 0 ? `${autoExperts.length}명 선택됨 · 더 추가하거나 토론을 시작하세요` : '클릭하여 AI를 추가하세요'}
                       </span>
                     </div>
                   );
@@ -949,17 +949,17 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
       <div className="flex items-stretch bg-[#F4F5F7] rounded-t-xl relative">
         {onModeChange && (<>
-          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tl-xl">
+          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tl-xl">
             <span className="text-[11px] font-medium text-slate-400">⚖️ 찬반 토론</span>
           </button>
-          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
+          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
             <span className="text-[11px] font-medium text-slate-400">🎯 심층 토론</span>
           </button>
         </>)}
         <div className="flex-1 px-2.5 py-2.5 bg-white flex items-center justify-center cursor-default rounded-t-[10px] relative z-10 border-b border-white border-t-[3px] border-t-amber-500">
           <span className="text-[11px] font-bold text-amber-600 block">🔍 아이디어 검증</span>
         </div>
-        <button className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
+        <button className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
           <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
         </button>
       </div>
@@ -997,7 +997,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
             </div>
           ) : (
             <div onClick={() => setShowPicker(true)} className="py-3 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50 cursor-pointer hover:border-amber-300 hover:bg-amber-50/30 transition-colors">
-              <p className="text-[11px] text-slate-400">위에서 질의할 전문가를 선택하세요</p>
+              <p className="text-[11px] text-slate-400">클릭하여 검증자를 추가하세요</p>
             </div>
           )}
         </div>
@@ -1080,19 +1080,19 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
       <div className="flex items-stretch bg-[#F4F5F7] rounded-t-xl relative">
         {onModeChange && (
-          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tl-xl">
+          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tl-xl">
             <span className="text-[11px] font-medium text-slate-400">⚖️ 찬반 토론</span>
           </button>
         )}
         {onModeChange && (
-          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
+          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
             <span className="text-[11px] font-medium text-slate-400">🎯 심층 토론</span>
           </button>
         )}
         <div className="flex-1 px-2.5 py-2.5 bg-white flex items-center justify-center cursor-default rounded-t-[10px] relative z-10 border-b border-white border-t-[3px] border-t-cyan-500">
           <span className="text-[11px] font-bold text-cyan-600 block">💬 자유 토론</span>
         </div>
-        <button className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
+        <button className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
           <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
         </button>
       </div>
@@ -1144,7 +1144,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     </div>
                   ))}
                 </div>
-                <span className="text-[11px] text-slate-400">위에서 참여할 AI를 선택하세요</span>
+                <span className="text-[11px] text-slate-400">클릭하여 AI를 추가하세요</span>
               </div>
             )}
           </div>
@@ -1192,17 +1192,17 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
       <div className="flex items-stretch bg-[#F4F5F7] rounded-t-xl relative">
         {onModeChange && (
-          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tl-xl">
+          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tl-xl">
             <span className="text-[11px] font-medium text-slate-400">⚖️ 찬반 토론</span>
           </button>
         )}
         {onModeChange && (
-          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
+          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
             <span className="text-[11px] font-medium text-slate-400">🎯 심층 토론</span>
           </button>
         )}
         {onModeChange && (
-          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
+          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent">
             <span className="text-[11px] font-medium text-slate-400">💬 자유 토론</span>
           </button>
         )}
