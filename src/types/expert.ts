@@ -193,6 +193,9 @@ export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
     hearingFocus: 'overall',
     ideaScoring: false,
     investorSimulation: false,
+    aivsUserOpponentCount: 1,
+    aivsUserDifficulty: 'normal',
+    aivsUserStance: 'pro',
 };
 
 

@@ -218,6 +218,11 @@ const Index = () => {
   const [stakeholderSettings, setStakeholderSettings] = useState<StakeholderSettings>(DEFAULT_STAKEHOLDER_SETTINGS);
   const [simChoices, setSimChoices] = useState<{label: string; description: string}[]>([]);
   const [simPhaseIndex, setSimPhaseIndex] = useState(0);
+  // AI vs User debate state
+  const [aivsRound, setAivsRound] = useState(0); // current round (1-based when active)
+  const [aivsJudgments, setAivsJudgments] = useState<any[]>([]); // judgment history
+  const [aivsUserStance, setAivsUserStance] = useState<'pro' | 'con'>('pro');
+  const [aivsTopic, setAivsTopic] = useState('');
   const [, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -520,7 +525,7 @@ ${role.focus} 관점에서 반응하세요.
       ? ['gpt']
       : (overrideExpertIds || selectedExpertIds);
     const discussionExperts = experts.filter((e) => useIds.includes(e.id));
-    if (discussionExperts.length < 1 && useMode !== 'stakeholder') return;
+    if (discussionExperts.length < 1 && useMode !== 'stakeholder' && useMode !== 'aivsuser') return;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -547,6 +552,42 @@ ${role.focus} 관점에서 반응하세요.
       : debateSettings.responseLength === 'long'
       ? '\n답변은 풍부한 근거와 예시를 들어 충분히 상세하게 작성하세요.'
       : '';
+
+    // ═══ AI vs User Debate Mode ═══
+    if (useMode === 'aivsuser') {
+      const totalRounds = debateSettings.rounds || 3;
+      const opponentCount = debateSettings.aivsUserOpponentCount || 1;
+      const difficulty = debateSettings.aivsUserDifficulty || 'normal';
+      let stance = debateSettings.aivsUserStance || 'pro';
+      if (stance === 'random') stance = Math.random() > 0.5 ? 'pro' : 'con';
+      const userStance = stance as 'pro' | 'con';
+      const aiStance = userStance === 'pro' ? 'con' : 'pro';
+      const stanceKo = userStance === 'pro' ? '찬성' : '반대';
+      const aiStanceKo = userStance === 'pro' ? '반대' : '찬성';
+
+      setAivsRound(1);
+      setAivsJudgments([]);
+      setAivsUserStance(userStance);
+      setAivsTopic(question);
+
+      // AI 역할 정의
+      const aiRoles = opponentCount === 1
+        ? [{ name: '토론자', focus: '전방위 반론' }]
+        : opponentCount === 2
+        ? [{ name: '논리 공격수', focus: '논리적 허점 공격, 데이터 반박' }, { name: '감성 수비수', focus: '감정적 호소, 실생활 사례' }]
+        : [{ name: '팩트체커', focus: '사실 확인, 통계 반박' }, { name: '논리학자', focus: '논리적 오류 지적' }, { name: '현실주의자', focus: '실현 가능성 검증' }];
+
+      // 시작 메시지
+      const roleList = aiRoles.map(r => r.name).join(', ');
+      setMessages([
+        { id: `avsu-start-${Date.now()}`, expertId: '__round__', content: `⚔️ AI vs 유저 토론\n\n**주제**: ${question}\n**구도**: 유저(${stanceKo}) vs AI ${opponentCount}명(${aiStanceKo})\n**라운드**: ${totalRounds}R · **난이도**: ${difficulty === 'easy' ? '🌱 초급' : difficulty === 'hard' ? '🔥 고급' : '⚡ 보통'}${opponentCount > 1 ? `\n**AI 역할**: ${roleList}` : ''}` },
+        { id: `avsu-r1-${Date.now()}`, expertId: '__round__', content: `──── 1라운드: 주장 ────` },
+      ]);
+
+      setIsDiscussing(true);
+      setActiveExpertId(undefined);
+      return;
+    }
 
     if (useMode === 'expert') {
       // Expert mode: deep consultation with selected expert
@@ -1532,8 +1573,8 @@ Rules:
   const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
     if (clarifyState.show) return;
     const useMode = overrideMode || discussionMode;
-    const debateModes = ['standard', 'procon', 'brainstorm', 'hearing', 'freetalk'];
-    if (debateModes.includes(useMode) && useMode !== 'brainstorm' && useMode !== 'freetalk') {
+    const debateModes = ['standard', 'procon', 'brainstorm', 'hearing', 'freetalk', 'aivsuser'];
+    if (debateModes.includes(useMode) && useMode !== 'brainstorm' && useMode !== 'freetalk' && useMode !== 'aivsuser') {
       clarifyTopic(question, useMode);
       return;
     }
@@ -1957,6 +1998,155 @@ ${conversationText}`;
       }
       setActiveExpertId(undefined);
       setIsDiscussing(false);
+      return;
+    }
+
+    // ═══ AI vs User — 턴 처리 ═══
+    if (discussionMode === 'aivsuser') {
+      setIsDiscussing(true);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      const totalRounds = debateSettings.rounds || 3;
+      const opponentCount = debateSettings.aivsUserOpponentCount || 1;
+      const difficulty = debateSettings.aivsUserDifficulty || 'normal';
+      const currentRound = aivsRound;
+      const isFinal = currentRound >= totalRounds;
+
+      // Add user message
+      const userMsgId = `avsu-user-${Date.now()}`;
+      setMessages(prev => [...prev, { id: userMsgId, expertId: '__user__', content: question }]);
+
+      // Build conversation history
+      const allMsgs = [...messages, { id: userMsgId, expertId: '__user__', content: question }];
+      const convHistory = allMsgs
+        .filter(m => m.expertId !== '__round__' && m.content)
+        .map(m => m.expertId === '__user__' ? { speaker: '유저', content: m.content } : { speaker: m.simRoleName || 'AI', content: m.content });
+
+      // AI roles
+      const aiRoles = opponentCount === 1
+        ? [{ name: '토론자', focus: '전방위 반론' }]
+        : opponentCount === 2
+        ? [{ name: '논리 공격수', focus: '논리적 허점 공격, 데이터 반박' }, { name: '감성 수비수', focus: '감정적 호소, 실생활 사례' }]
+        : [{ name: '팩트체커', focus: '사실 확인, 통계 반박' }, { name: '논리학자', focus: '논리적 오류 지적' }, { name: '현실주의자', focus: '실현 가능성 검증' }];
+
+      const stanceKo = aivsUserStance === 'pro' ? '찬성' : '반대';
+      const aiStanceKo = aivsUserStance === 'pro' ? '반대' : '찬성';
+      const difficultyDesc = difficulty === 'easy' ? '기본적인 반론. 유저의 주장을 인정하면서 부드럽게 반박.' : difficulty === 'hard' ? '날카로운 압박. 유저의 모든 약점을 파고들고, 강력한 근거로 반박.' : '논리적 반론. 유저의 약점을 지적하되 공정하게.';
+
+      const gemini = experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0];
+      if (!gemini) { setIsDiscussing(false); return; }
+
+      // Generate AI response(s)
+      const aiArguments: { name: string; argument: string }[] = [];
+      for (let ri = 0; ri < aiRoles.length; ri++) {
+        if (controller.signal.aborted) break;
+        const role = aiRoles[ri];
+        const aiPrompt = `당신은 토론자입니다. "${aivsTopic}" 주제에서 "${aiStanceKo}" 입장을 맡고 있습니다.
+
+## 당신의 역할: ${role.name}
+전문 분야: ${role.focus}
+
+## 난이도: ${difficulty}
+${difficultyDesc}
+
+## 현재 상황
+- ${currentRound}라운드 / 총 ${totalRounds}라운드
+- 유저 입장: ${stanceKo}
+- 유저의 이번 주장: "${question}"
+
+## 대화 맥락
+${convHistory.map(m => `[${m.speaker}] ${m.content}`).join('\n')}
+
+## 행동 규칙
+1. 유저의 직전 주장을 구체적으로 인용하며 반박하라
+2. 새로운 논점을 1개 이상 제시하라
+3. 감정이 아닌 논리와 근거로 싸워라
+4. 3~5문장으로 간결하게
+5. 한국어 토론체 ("~라고 하셨는데", "그 부분에 대해서는")
+6. 역할명이나 태그를 본문에 포함하지 마라
+${currentRound === 1 ? '7. 첫 라운드이므로 선제적 주장을 펼쳐라' : `7. ${currentRound}라운드이므로 이전 논쟁 맥락을 이어가라`}`;
+
+        if (ri > 0) await new Promise(r => setTimeout(r, 300));
+        const aiMsgId = `avsu-ai-${ri}-${Date.now()}`;
+        setMessages(prev => [...prev, { id: aiMsgId, expertId: gemini.id, content: '', isStreaming: true, simRoleName: role.name, simRoleIcon: opponentCount === 1 ? '⚔️' : ri === 0 ? '🗡️' : ri === 1 ? '🛡️' : '🔍' }]);
+        setActiveExpertId(gemini.id);
+
+        let aiContent = '';
+        try {
+          await streamExpert({
+            question: `유저의 ${currentRound}라운드 주장에 반론하세요.`,
+            expert: { ...gemini, systemPrompt: aiPrompt },
+            previousResponses: convHistory.map(m => ({ name: m.speaker, content: m.content })),
+            round: 'initial' as any,
+            onDelta: chunk => { aiContent += chunk; setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: aiContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') { setIsDiscussing(false); return; }
+        }
+        aiArguments.push({ name: role.name, argument: aiContent });
+      }
+
+      // Call judge API
+      try {
+        const judgeRes = await fetch('/api/debate-judge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: aivsTopic,
+            round: currentRound,
+            totalRounds,
+            userStance: aivsUserStance,
+            userArgument: question,
+            aiArguments,
+            previousJudgments: aivsJudgments.map((j: any) => j.comment || ''),
+            isFinal,
+          }),
+          signal: controller.signal,
+        });
+        const judgment = await judgeRes.json();
+
+        // Add judgment card as a special message
+        const judgmentContent = isFinal
+          ? JSON.stringify({ ...judgment, type: '__avsu_final__', round: currentRound })
+          : JSON.stringify({ ...judgment, type: '__avsu_judgment__', round: currentRound });
+
+        setMessages(prev => [...prev, {
+          id: `avsu-judge-${Date.now()}`,
+          expertId: '__avsu_judge__',
+          content: judgmentContent,
+        }]);
+
+        setAivsJudgments(prev => [...prev, judgment]);
+
+        if (!isFinal) {
+          // Next round
+          const nextRound = currentRound + 1;
+          setAivsRound(nextRound);
+          const roundLabel = nextRound === totalRounds ? '최종 변론' : '반론';
+          setMessages(prev => [...prev, {
+            id: `avsu-r${nextRound}-${Date.now()}`,
+            expertId: '__round__',
+            content: `──── ${nextRound}라운드: ${roundLabel} ────`,
+          }]);
+        }
+      } catch {
+        // Judge failed — continue anyway
+        if (!isFinal) {
+          const nextRound = currentRound + 1;
+          setAivsRound(nextRound);
+          setMessages(prev => [...prev, {
+            id: `avsu-r${nextRound}-${Date.now()}`,
+            expertId: '__round__',
+            content: `──── ${nextRound}라운드 ────`,
+          }]);
+        }
+      }
+
+      setIsDiscussing(false);
+      setActiveExpertId(undefined);
       return;
     }
 
@@ -5039,6 +5229,99 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       </div>
                     );
                   }
+                  // AI vs User judgment card
+                  if (msg.expertId === '__avsu_judge__') {
+                    try {
+                      const j = JSON.parse(msg.content);
+                      const isFinalJudge = j.type === '__avsu_final__';
+                      const userTotal = j.user_score?.total || 0;
+                      const aiTotal = j.ai_score?.total || 0;
+                      const maxScore = 50;
+                      const userPct = Math.round((userTotal / maxScore) * 100);
+                      const aiPct = Math.round((aiTotal / maxScore) * 100);
+                      const winnerEmoji = j.round_winner === 'user' ? '🏆' : j.round_winner === 'ai' ? '💀' : '🤝';
+                      const winnerText = j.round_winner === 'user' ? '유저 우세' : j.round_winner === 'ai' ? 'AI 우세' : '무승부';
+
+                      if (isFinalJudge) {
+                        const fw = j.final_winner === 'user' ? '🏆 유저 승리!' : j.final_winner === 'ai' ? '💀 AI 승리' : '🤝 무승부';
+                        return (
+                          <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-xl border border-slate-700">
+                              <div className="text-center mb-4">
+                                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">최종 판정</div>
+                                <div className="text-2xl font-black">{fw}</div>
+                              </div>
+                              <div className="flex items-center justify-center gap-6 mb-4">
+                                <div className="text-center">
+                                  <div className="text-[10px] text-slate-400">유저</div>
+                                  <div className="text-2xl font-bold text-blue-400">{j.final_score?.user || userTotal}</div>
+                                </div>
+                                <div className="text-slate-500 text-lg">vs</div>
+                                <div className="text-center">
+                                  <div className="text-[10px] text-slate-400">AI</div>
+                                  <div className="text-2xl font-bold text-red-400">{j.final_score?.ai || aiTotal}</div>
+                                </div>
+                              </div>
+                              {j.overall_comment && <p className="text-[12px] text-slate-300 text-center mb-3 leading-relaxed">{j.overall_comment}</p>}
+                              <div className="grid grid-cols-2 gap-3 mt-3">
+                                {j.user_strengths?.length > 0 && (
+                                  <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/20">
+                                    <div className="text-[10px] font-bold text-blue-400 mb-1.5">💪 강점</div>
+                                    {j.user_strengths.map((s: string, i: number) => <div key={i} className="text-[11px] text-blue-200">• {s}</div>)}
+                                  </div>
+                                )}
+                                {j.user_improvements?.length > 0 && (
+                                  <div className="bg-amber-500/10 rounded-lg p-3 border border-amber-500/20">
+                                    <div className="text-[10px] font-bold text-amber-400 mb-1.5">📝 개선점</div>
+                                    {j.user_improvements.map((s: string, i: number) => <div key={i} className="text-[11px] text-amber-200">• {s}</div>)}
+                                  </div>
+                                )}
+                              </div>
+                              {j.mvp_moment && (
+                                <div className="mt-3 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+                                  <span className="text-[10px] text-yellow-400 font-bold">⭐ MVP 순간</span>
+                                  <p className="text-[11px] text-slate-300 mt-0.5">{j.mvp_moment}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Round judgment card
+                      return (
+                        <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-2.5">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">⚖️ {j.round || ''}라운드 판정</span>
+                              <span className="text-[12px] font-bold">{winnerEmoji} {winnerText}</span>
+                            </div>
+                            <div className="space-y-1.5 mb-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-slate-500 w-8 shrink-0">유저</span>
+                                <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                  <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{width: `${userPct}%`}} />
+                                </div>
+                                <span className="text-[11px] font-bold text-slate-700 w-12 text-right">{userTotal}/50</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-slate-500 w-8 shrink-0">AI</span>
+                                <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                  <div className="bg-red-500 h-full rounded-full transition-all duration-500" style={{width: `${aiPct}%`}} />
+                                </div>
+                                <span className="text-[11px] font-bold text-slate-700 w-12 text-right">{aiTotal}/50</span>
+                              </div>
+                            </div>
+                            {j.comment && <p className="text-[11px] text-slate-600 leading-relaxed">💬 {j.comment}</p>}
+                            {j.user_feedback && <p className="text-[10px] text-indigo-600 mt-1.5 bg-indigo-50 rounded-lg px-2.5 py-1.5">📌 {j.user_feedback}</p>}
+                          </div>
+                        </div>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  }
+
                   if (msg.expertId === '__round__') {
                     const isCollapsed = collapsedRounds.has(msg.id);
                     let roundMsgCount = 0;
@@ -5058,8 +5341,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   if (belongsToCollapsedRound) return null;
 
                   if (msg.expertId === '__user__') {
-                    // Stakeholder: 유저 메시지 — 오른쪽
-                    if (discussionMode === 'stakeholder') {
+                    // AI vs User / Stakeholder: 유저 메시지 — 오른쪽
+                    if (discussionMode === 'stakeholder' || discussionMode === 'aivsuser') {
                       return (
                         <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-2 duration-400 flex justify-end">
                           <div className="max-w-[70%] bg-white border border-slate-200 rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] text-slate-700 leading-relaxed shadow-sm">
@@ -5208,7 +5491,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       startDiscussion(question);
                     }
                   }}
-                  disabled={isDiscussing || (discussionMode !== 'stakeholder' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)}
+                  disabled={isDiscussing || (discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)}
                   discussionMode={discussionMode}
                   onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                   showSettings={showDebateSettings}

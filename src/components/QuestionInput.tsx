@@ -114,6 +114,8 @@ export function QuestionInput({ onSubmit, onSubmitWithFiles, disabled, discussio
       ? '토론자들에게 추가 질문을 해보세요'
       : discussionMode === 'stakeholder'
       ? '답변을 입력하세요...'
+      : discussionMode === 'aivsuser'
+      ? '반론을 입력하세요...'
       : '이어서 질문해보세요')
     : discussionMode === 'general'
     ? '궁금한 것을 물어보세요'
@@ -121,6 +123,8 @@ export function QuestionInput({ onSubmit, onSubmitWithFiles, disabled, discussio
     ? '여러 AI에게 동시에 질문해보세요'
     : discussionMode === 'expert'
     ? '전문가에게 상담할 내용을 입력하세요'
+    : discussionMode === 'aivsuser'
+    ? 'AI와 토론할 주제를 입력하세요'
     : '토론하고 싶은 주제를 입력하세요';
 
   const canSubmit = !!question.trim() && !disabled;
