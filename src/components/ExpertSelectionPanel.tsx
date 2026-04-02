@@ -1288,7 +1288,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                       'CFO': ['ROI', '예산'],
                       '실무 팀장': ['실행력', '일정'],
                       '얼리어답터': ['UX', '가격'],
-                      '경쟁사 PM': ['차별점', '전환비용'],
+                      '제품 경쟁 PM': ['차별점', '전환비용'],
                       '테크 저널리스트': ['혁신성', '임팩트'],
                       '시민단체 대표': ['형평성', '여론'],
                       '산업계 대표': ['규제비용', '고용'],
@@ -3732,9 +3732,9 @@ export function ExpertSelectionPanel({
           }}
         >
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out">
-          <div className="bg-gradient-to-b from-slate-800 to-slate-900 text-white rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.35)] w-48 overflow-hidden border border-white/[0.06]">
-            <div className="px-2.5 pt-2 pb-1 text-center">
-              <p className="text-[12px] font-bold tracking-tight leading-tight">{hoveredExpert.nameKo}</p>
+          <div className="bg-gradient-to-b from-slate-800 to-slate-900 text-white rounded-xl shadow-[0_12px_36px_rgba(0,0,0,0.38)] w-56 overflow-hidden border border-white/[0.06]">
+            <div className="px-3 pt-2.5 pb-1 text-center">
+              <p className="text-[12px] font-bold tracking-tight leading-tight truncate">{hoveredExpert.nameKo}</p>
             </div>
             {/* 액센트 라인 — 이름 아래 */}
             <div className={cn('h-[3px] mx-2 mb-1 rounded-full', {
@@ -3747,18 +3747,18 @@ export function ExpertSelectionPanel({
               'bg-gradient-to-r from-teal-400 via-teal-300 to-teal-400': hoveredExpert.color === 'teal',
               'bg-gradient-to-r from-pink-400 via-pink-300 to-pink-400': hoveredExpert.color === 'pink',
             })} />
-            <div className="px-2.5 pt-0 pb-1.5 text-center">
-              <p className="text-[8.5px] text-slate-300 mt-0.5 leading-tight">{hoveredExpert.description}</p>
+            <div className="px-3 pt-0 pb-2 text-center space-y-1">
+              <p className="text-[10px] text-slate-200 leading-tight truncate">{hoveredExpert.description}</p>
               {hoveredExpert.quote && (
-                <p className="text-[8px] text-amber-400/80 font-medium mt-0.5 leading-tight">"{hoveredExpert.quote}"</p>
+                <p className="text-[9px] text-amber-300 font-medium leading-tight truncate">"{hoveredExpert.quote}"</p>
               )}
             </div>
             {hoveredExpert.sampleQuestions && hoveredExpert.sampleQuestions.length > 0 && (
-              <div className="mx-2 mb-2 mt-1 relative">
-                <div className="rounded border-[1.5px] border-white/20 pt-2 pb-1.5 px-2">
+              <div className="mx-3 mb-3 mt-1 relative">
+                <div className="rounded-lg border border-white/15 bg-white/[0.02] pt-2 pb-1.5 px-2.5">
                 <span className="absolute -top-[5px] left-1/2 -translate-x-1/2 px-1.5 text-[7px] text-slate-400 tracking-wider font-medium" style={{ backgroundColor: '#1a2030' }}>추천 질문</span>
                   {hoveredExpert.sampleQuestions.map((q, qi) => (
-                    <p key={qi} className="text-[8px] text-slate-300 text-center leading-normal py-[2.5px]">
+                    <p key={qi} className="text-[9px] text-slate-300 text-center leading-normal py-1 truncate">
                       {q}
                     </p>
                   ))}

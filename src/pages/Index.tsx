@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS } from '@/types/expert';
 import { PROMPTS } from '@/data/prompts';
 import { generatePpt, parsePptJson, PPT_SYSTEM_PROMPT } from '@/lib/pptGenerator';
+import { applyExpertOverrides } from '@/data/expertOverrides';
 import { GamePlayer } from '@/components/GamePlayer';
 import { QuestionInput } from '@/components/QuestionInput';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
@@ -186,13 +187,13 @@ const Index = () => {
         // Merge: keep saved customizations but add any new default experts
         const savedIds = new Set(parsed.map((e) => e.id));
         const newExperts = DEFAULT_EXPERTS.filter((e) => !savedIds.has(e.id));
-        return [...parsed.map((e) => {
+        return applyExpertOverrides([...parsed.map((e) => {
           const def = DEFAULT_EXPERTS.find(d => d.id === e.id);
           return { ...e, category: e.category || 'ai', icon: e.icon || def?.icon || '', avatarUrl: def?.avatarUrl || e.avatarUrl };
-        }), ...newExperts];
+        }), ...newExperts]);
       }
-      return DEFAULT_EXPERTS;
-    } catch {return DEFAULT_EXPERTS;}
+      return applyExpertOverrides(DEFAULT_EXPERTS);
+    } catch {return applyExpertOverrides(DEFAULT_EXPERTS);}
   });
   const [selectedExpertIds, setSelectedExpertIds] = useState<string[]>(() => {
     try {

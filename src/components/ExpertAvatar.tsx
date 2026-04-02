@@ -24,6 +24,27 @@ const containerClasses = {
   xl: 'w-16 h-16 text-[36px]',
 };
 
+function getCategoryFrame(category: Expert['category']) {
+  switch (category) {
+    case 'ai':
+      return 'bg-slate-100 ring-1 ring-slate-200/80';
+    case 'specialist':
+      return 'bg-emerald-50 ring-1 ring-emerald-100';
+    case 'occupation':
+      return 'bg-blue-50 ring-1 ring-blue-100';
+    case 'perspective':
+      return 'bg-violet-50 ring-1 ring-violet-100';
+    case 'ideology':
+      return 'bg-amber-50 ring-1 ring-amber-100';
+    case 'celebrity':
+    case 'fictional':
+    case 'mythology':
+      return 'bg-pink-50 ring-1 ring-pink-100';
+    default:
+      return 'bg-slate-100 ring-1 ring-slate-200/80';
+  }
+}
+
 function getTwemojiUrl(emoji: string): string | null {
   const parsed = parse(emoji);
   return parsed.length > 0 ? parsed[0].url : null;
@@ -40,6 +61,7 @@ function getFluentEmojiUrl(emoji: string): string | null {
 export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps) {
   const isCompact = size === 'xs' || size === 'sm';
   const roundedClass = isCompact ? 'rounded-lg' : 'rounded-xl';
+  const frameClass = getCategoryFrame(expert.category);
 
   // AI models: local SVG/PNG logos — same container as emoji for consistent sizing
   if (expert.avatarUrl) {
@@ -48,7 +70,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
         'flex items-center justify-center shrink-0 transition-all duration-200',
         roundedClass,
         containerClasses[size],
-        active ? 'bg-white shadow-sm ring-1 ring-slate-200 scale-105' : 'bg-slate-100'
+        active ? 'bg-white shadow-sm ring-2 ring-slate-300 scale-105' : frameClass
       )}>
         <img
           src={expert.avatarUrl}
@@ -69,9 +91,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
           'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
           roundedClass,
           containerClasses[size],
-          active
-            ? 'bg-white shadow-md scale-105'
-            : 'bg-slate-100'
+          active ? 'bg-white shadow-md ring-2 ring-violet-200 scale-105' : frameClass
         )}>
           <img
             src={twemojiUrl}
@@ -93,9 +113,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
           'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
           roundedClass,
           containerClasses[size],
-          active
-            ? 'bg-white shadow-md scale-105'
-            : 'bg-slate-100'
+          active ? 'bg-white shadow-md ring-2 ring-amber-200 scale-105' : frameClass
         )}>
           <img
             src={fluentUrl}
@@ -116,9 +134,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
         'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
         roundedClass,
         containerClasses[size],
-        active
-          ? 'bg-white shadow-md scale-105'
-          : 'bg-slate-100'
+        active ? 'bg-white shadow-md ring-2 ring-slate-300 scale-105' : frameClass
       )}>
         {expert.icon}
       </div>
@@ -136,9 +152,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
       'flex items-center justify-center shrink-0 transition-all duration-200 font-semibold select-none text-slate-500',
       roundedClass,
       containerClasses[size],
-      active
-        ? 'bg-white shadow-sm ring-1 ring-slate-200 scale-105'
-        : 'bg-slate-100'
+      active ? 'bg-white shadow-sm ring-2 ring-slate-300 scale-105' : frameClass
     )}>
       {initials}
     </div>
