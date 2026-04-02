@@ -553,26 +553,19 @@ ${role.focus} 관점에서 반응하세요.
       ? '\n답변은 풍부한 근거와 예시를 들어 충분히 상세하게 작성하세요.'
       : '';
 
-    // ═══ AI vs User Debate Mode — 자유 티키타카 ═══
+    // ═══ AI vs User — 자유 티키타카 ═══
     if (useMode === 'aivsuser') {
       const difficulty = debateSettings.aivsUserDifficulty || 'normal';
-      let stance = debateSettings.aivsUserStance || 'pro';
-      if (stance === 'random') stance = Math.random() > 0.5 ? 'pro' : 'con';
-      const userStance = stance as 'pro' | 'con';
-      const stanceKo = userStance === 'pro' ? '찬성' : '반대';
-      const aiStanceKo = userStance === 'pro' ? '반대' : '찬성';
-
-      // 선택한 AI 사용 (없으면 gemini 기본)
       const aiOpponents = discussionExperts.length > 0 ? discussionExperts.slice(0, 3) : [experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0]].filter(Boolean);
 
       setAivsRound(0);
       setAivsJudgments([]);
-      setAivsUserStance(userStance);
+      setAivsUserStance('pro'); // 찬반 없이 자유 싸움
       setAivsTopic(question);
 
       const aiNames = aiOpponents.map(e => e.nameKo).join(', ');
       setMessages([
-        { id: `avsu-start-${Date.now()}`, expertId: '__round__', content: `⚔️ **${question}**\n\n유저(${stanceKo}) vs ${aiNames}(${aiStanceKo}) · ${difficulty === 'easy' ? '🌱 초급' : difficulty === 'hard' ? '🔥 고급' : '⚡ 보통'}` },
+        { id: `avsu-start-${Date.now()}`, expertId: '__round__', content: `⚔️ **${question}**\n\n나 vs ${aiNames} · ${difficulty === 'easy' ? '🌱 초급' : difficulty === 'hard' ? '🔥 고급' : '⚡ 보통'}` },
       ]);
 
       setIsDiscussing(true);
@@ -2052,9 +2045,7 @@ ${conversationText}`;
         .filter(m => m.expertId !== '__round__' && m.expertId !== '__avsu_judge__' && m.content)
         .map(m => m.expertId === '__user__' ? { speaker: '유저', content: m.content } : { speaker: m.simRoleName || allExperts.find(e => e.id === m.expertId)?.nameKo || 'AI', content: m.content });
 
-      const stanceKo = aivsUserStance === 'pro' ? '찬성' : '반대';
-      const aiStanceKo = aivsUserStance === 'pro' ? '반대' : '찬성';
-      const difficultyDesc = difficulty === 'easy' ? '부드럽게 반론하되 유저의 좋은 점은 인정해줘.' : difficulty === 'hard' ? '날카롭게 압박해. 유저의 모든 허점을 파고들어.' : '논리적으로 반론해. 약점은 지적하되 공정하게.';
+      const difficultyDesc = difficulty === 'easy' ? '가볍게 반박해. 유저 말에 일부 동의하면서도 약점은 찔러.' : difficulty === 'hard' ? '유저의 모든 허점을 공격해. 논리, 팩트, 감정 다 동원해서 압박.' : '논리적으로 반박해. 유저 약점은 지적하되 공정하게.';
 
       // 선택된 AI 상대들 (위에서 클릭한 AI)
       const aiOpponents = activeExperts.length > 0
@@ -2067,25 +2058,24 @@ ${conversationText}`;
         const aiExpert = aiOpponents[ri];
         if (!aiExpert) continue;
 
-        const aiPrompt = `당신은 ${aiExpert.nameKo}입니다. "${aivsTopic}" 주제에서 "${aiStanceKo}" 입장으로 유저와 싸우고 있습니다.
+        const aiPrompt = `당신은 ${aiExpert.nameKo}입니다. "${aivsTopic}" 주제로 유저와 자유롭게 싸우고 있습니다.
 
 ## 난이도: ${difficulty}
 ${difficultyDesc}
 
-## 유저 입장: ${stanceKo}
 ## 유저가 방금 한 말: "${question}"
 
 ## 대화 맥락 (최근 내용)
 ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
 
 ## 행동 규칙
-1. 유저가 방금 한 말에 바로 반응해. 인용하면서 반박
-2. 2~4문장으로 짧고 강하게. 댓글 싸움 톤
-3. "~라고?" "그건 아닌데" "말이 안 되는 게" 같은 구어체 OK
-4. 새 논점 하나는 꼭 던져
+1. 유저가 한 말에 바로 반응해. 인용하면서 반박하거나 도발
+2. 2~4문장으로 짧고 강하게. 인터넷 댓글 싸움 톤
+3. "~라고?" "그건 아닌데" "말이 안 되는 게" 같은 구어체 사용
+4. 유저가 틀린 부분이 있으면 팩트로 깔고, 맞는 부분도 비꼬면서 인정
 5. ${aiOpponents.length > 1 ? '다른 AI의 발언과 겹치지 않게 다른 각도에서 공격' : '다양한 각도에서 공격'}
 6. 역할명이나 태그 본문에 포함 금지
-7. 한국어로`;
+7. 한국어로. 존댓말 하지 마. 반말 OK`;
 
         if (ri > 0) await new Promise(r => setTimeout(r, 200));
         const aiMsgId = `avsu-ai-${ri}-${Date.now()}`;

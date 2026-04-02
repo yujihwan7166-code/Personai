@@ -1101,95 +1101,64 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
         </div>
       </div>
       <div className="p-4 space-y-3">
-        {/* ═══ VS 대결 구도 — 좌우 균등 ═══ */}
-        <div className="relative">
-          <div className="flex gap-0 items-stretch">
-            {/* 왼쪽: 나 */}
-            <div className="flex-1 rounded-l-xl border border-blue-200 border-r-0 bg-gradient-to-br from-blue-50/60 to-white overflow-hidden">
-              <div className="px-3 py-1.5 bg-blue-100/50 border-b border-blue-100 text-center">
-                <span className="text-[10px] font-bold text-blue-500">나</span>
+        {/* ═══ VS 매치업 ═══ */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50/30 p-3">
+          <div className="flex items-center gap-3">
+            {/* 나 */}
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-[22px] shadow-sm ring-2 ring-blue-300 ring-offset-1">
+                🙋
               </div>
-              <div className="p-3 flex flex-col items-center gap-2.5">
-                <div className="w-11 h-11 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center text-[20px] shadow-sm">
-                  🙋
-                </div>
-                {/* 입장 — 가로 배치 */}
-                <div className="flex gap-1 w-full">
-                  {([
-                    { v: 'pro' as const, l: '👍 찬성' },
-                    { v: 'con' as const, l: '👎 반대' },
-                    { v: 'random' as const, l: '🎲 랜덤' },
-                  ]).map(opt => (
-                    <button key={opt.v}
-                      onClick={() => onDebateSettingsChange?.({...ds, aivsUserStance: opt.v})}
-                      className={cn('flex-1 py-1.5 rounded-md text-[9px] font-semibold transition-all text-center',
-                        (ds.aivsUserStance || 'pro') === opt.v
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-white text-slate-400 border border-slate-200 hover:border-blue-300')}>
-                      {opt.l}
-                    </button>
-                  ))}
-                </div>
+              <span className="text-[10px] font-bold text-blue-600">나</span>
+            </div>
+
+            {/* VS */}
+            <div className="shrink-0">
+              <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center shadow">
+                <span className="text-[8px] font-black text-white">VS</span>
               </div>
             </div>
 
-            {/* VS 뱃지 — 절대 위치로 중앙 */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-              <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center shadow-lg border-2 border-white">
-                <span className="text-[9px] font-black text-white tracking-tight">VS</span>
-              </div>
-            </div>
-
-            {/* 오른쪽: 상대 AI */}
-            <div className="flex-1 rounded-r-xl border border-red-200 border-l-0 bg-gradient-to-bl from-red-50/60 to-white overflow-hidden">
-              <div className="px-3 py-1.5 bg-red-100/50 border-b border-red-100 text-center">
-                <span className="text-[10px] font-bold text-red-500">
-                  상대 AI{selected.length > 0 && <span className="text-red-300 ml-1 font-normal">{selected.length}/{maxOpponents}</span>}
-                </span>
-              </div>
-              <div className="p-3 flex flex-col items-center gap-1.5">
-                {selected.length > 0 ? (<>
-                  <div className="flex items-center gap-1.5 justify-center">
-                    {selected.slice(0, maxOpponents).map((e, i) => (
-                      <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
-                        className="flex flex-col items-center gap-0.5 group/ai animate-in fade-in zoom-in-75 duration-200" style={{ animationDelay: `${i * 60}ms` }}>
-                        <div className="relative w-11 h-11 rounded-full bg-red-50 border-2 border-red-200 flex items-center justify-center group-hover/ai:border-red-400 transition-colors">
-                          <ExpertAvatar expert={e} size="md" />
-                          <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                            <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/ai:opacity-100 transition-opacity" />
-                          </div>
-                        </div>
-                        <span className="text-[8px] font-medium text-slate-500 max-w-[44px] truncate group-hover/ai:text-red-500 transition-colors">{e.nameKo}</span>
-                      </button>
-                    ))}
-                    {selected.length < maxOpponents && (
-                      <div className="flex flex-col items-center gap-0.5">
-                        <div className="w-11 h-11 rounded-full bg-red-50/50 border-2 border-dashed border-red-200 flex items-center justify-center">
-                          <Plus className="w-3.5 h-3.5 text-red-300" />
-                        </div>
-                        <span className="text-[8px] text-red-300">추가</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[8px] text-red-400 font-medium">
-                    {selected.length === 1 ? '1:1 맞짱' : selected.length === 2 ? '2:1 협공' : '3:1 포위'}
-                  </span>
-                </>) : (
-                  <div className="flex flex-col items-center gap-1.5 py-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-10 h-10 rounded-full bg-red-50/50 border-2 border-dashed border-red-200 flex items-center justify-center">
-                        <Plus className="w-3.5 h-3.5 text-red-300" />
-                      </div>
+            {/* 상대 AI 슬롯 */}
+            <div className="flex-1 flex items-center gap-2">
+              {selected.slice(0, maxOpponents).map((e, i) => (
+                <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
+                  className="flex flex-col items-center gap-1 group/ai animate-in fade-in zoom-in-75 duration-200" style={{ animationDelay: `${i * 60}ms` }}>
+                  <div className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm ring-2 ring-red-300 ring-offset-1 group-hover/ai:ring-red-500 transition-all">
+                    <ExpertAvatar expert={e} size="md" />
+                    <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/ai:bg-red-500/10 flex items-center justify-center transition-all">
+                      <X className="w-4 h-4 text-red-500 opacity-0 group-hover/ai:opacity-100 transition-opacity" />
                     </div>
-                    <span className="text-[9px] text-red-400">위에서 AI 선택</span>
                   </div>
-                )}
-              </div>
+                  <span className="text-[9px] font-medium text-slate-600 max-w-[52px] truncate group-hover/ai:text-red-500 transition-colors">{e.nameKo}</span>
+                </button>
+              ))}
+              {/* 빈 슬롯 */}
+              {Array.from({ length: Math.max(1, maxOpponents - selected.length) }).map((_, i) => (
+                <div key={`empty-${i}`} className="flex flex-col items-center gap-1">
+                  <div className="w-12 h-12 rounded-full bg-white border-2 border-dashed border-slate-300 flex items-center justify-center">
+                    <Plus className="w-4 h-4 text-slate-300" />
+                  </div>
+                  {selected.length === 0 && i === 0 && (
+                    <span className="text-[9px] text-slate-400">AI 선택</span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
+
+          {/* 매치 요약 */}
+          {selected.length > 0 && (
+            <div className="mt-2 text-center">
+              <span className="text-[9px] font-medium text-slate-400">
+                {selected.length === 1 ? '1:1 맞짱' : selected.length === 2 ? '1 vs 2 협공' : '1 vs 3 포위'}
+                {' · '}{selected.map(e => e.nameKo).join(', ')}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* ═══ 난이도 — 인라인 ═══ */}
+        {/* ═══ 난이도 ═══ */}
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold text-slate-500 shrink-0">난이도</span>
           <div className="flex gap-1.5 flex-1">
