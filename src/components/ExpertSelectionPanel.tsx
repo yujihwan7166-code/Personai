@@ -305,24 +305,6 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
 
   return (
     <div>
-      <div className="flex items-stretch mb-3">
-        {onModeChange && (
-          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">⚖️ 찬반 토론</span>
-          </button>
-        )}
-        <div className="flex-1 px-2.5 py-2.5 bg-emerald-50 flex items-center justify-center cursor-default rounded-lg border border-emerald-200">
-          <span className="text-[11px] font-bold text-emerald-600 block">🎯 심층 토론</span>
-        </div>
-        {onModeChange && (<>
-          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">💬 자유 토론</span>
-          </button>
-          <button onClick={() => onModeChange?.('aivsuser')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
-          </button>
-        </>)}
-      </div>
       {showPicker && <AIPickerModal experts={experts} selectedIds={selectedExperts.map(e => e.id)} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="토론자 선택" accentColor="indigo" maxCount={3} />}
 
       <div className="space-y-3">
@@ -334,7 +316,26 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               <span className="text-[13px]">🎯</span>
               <span className="text-[11px] font-bold text-emerald-700">토론 참여자</span>
             </div>
-            {selectedExperts.length > 0 && <span className="text-[10px] font-medium text-slate-400">{selectedExperts.length}/3명</span>}
+            {onModeChange && (
+              <div className="flex items-center gap-0.5">
+                {[
+                  { mode: 'procon' as const, label: '찬반' },
+                  { mode: 'standard' as const, label: '심층' },
+                  { mode: 'freetalk' as const, label: '자유' },
+                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                ].map(t => (
+                  <button key={t.mode}
+                    onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
+                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                      t.mode === 'standard'
+                        ? 'bg-white/80 text-emerald-700 font-bold shadow-sm cursor-default'
+                        : 'text-emerald-600/50 hover:text-emerald-700 hover:bg-white/30'
+                    )}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 참여자 슬롯 */}
@@ -398,28 +399,28 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               </div>
             ))}
           </div>
-        </div>
 
-        {/* 핵심 논점 */}
-        <div>
-          <div className="text-[11px] font-bold text-slate-700 mb-1.5">핵심 논점 <span className="font-normal text-slate-400">(선택)</span></div>
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {allTemplates.map(t => (
-              <button key={t} onClick={() => toggleIssue(t)}
-                className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all border flex items-center gap-1',
-                  selectedTitle === t ? 'bg-slate-800 text-white border-slate-800' : 'text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50')}>
-                {selectedTitle === t && <Check className="w-3 h-3" />}{t}
+          {/* 핵심 논점 — 카드 하단, 더 연한 배경 */}
+          <div className="px-4 py-3 bg-slate-50/40 border-t border-slate-100/80">
+            <div className="text-[10px] font-semibold text-slate-500 mb-1.5">핵심 논점 <span className="font-normal text-slate-400">(선택)</span></div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {allTemplates.map(t => (
+                <button key={t} onClick={() => toggleIssue(t)}
+                  className={cn('px-2 py-0.5 rounded-md text-[10px] font-medium transition-all border flex items-center gap-1',
+                    selectedTitle === t ? 'bg-slate-700 text-white border-slate-700' : 'text-slate-500 border-slate-200 hover:border-slate-400 hover:bg-white')}>
+                  {selectedTitle === t && <Check className="w-2.5 h-2.5" />}{t}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input value={newIssue} onChange={e => setNewIssue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addCustom(); }}
+                placeholder="직접 논점 추가..." className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-[10px] outline-none focus:border-slate-400 transition-all" />
+              <button onClick={addCustom} disabled={!newIssue.trim()}
+                className="px-2.5 py-1 rounded-md bg-slate-700 text-white text-[9px] font-semibold disabled:opacity-30 hover:bg-slate-600 transition-colors flex items-center gap-1">
+                <Plus className="w-2.5 h-2.5" /> 추가
               </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <input value={newIssue} onChange={e => setNewIssue(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addCustom(); }}
-              placeholder="직접 논점 추가..." className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] outline-none focus:border-slate-400 transition-all" />
-            <button onClick={addCustom} disabled={!newIssue.trim()}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-semibold disabled:opacity-30 hover:bg-slate-700 transition-colors flex items-center gap-1">
-              <Plus className="w-3 h-3" /> 추가
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -474,22 +475,6 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
 
   return (
     <div>
-      <div className="flex items-stretch mb-3">
-        <div className="flex-1 px-2.5 py-2.5 bg-violet-50 flex items-center justify-center cursor-default rounded-lg border border-violet-200">
-          <span className="text-[11px] font-bold text-violet-600 block">⚖️ 찬반 토론</span>
-        </div>
-        {onModeChange && (<>
-          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">🎯 심층 토론</span>
-          </button>
-          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">💬 자유 토론</span>
-          </button>
-          <button onClick={() => onModeChange?.('aivsuser')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
-          </button>
-        </>)}
-      </div>
       {/* 찬반 AI 선택 플로팅 */}
       {pickerZone && (
         <AIPickerModal
@@ -510,9 +495,31 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
         {/* 진영 배정 + 설정 통합 카드 */}
         <div className="rounded-xl border border-violet-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3.5 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center gap-1.5">
-            <span className="text-[13px]">⚖️</span>
-            <span className="text-[11px] font-bold text-violet-700">진영 배정</span>
+          <div className="px-3.5 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px]">⚖️</span>
+              <span className="text-[11px] font-bold text-violet-700">진영 배정</span>
+            </div>
+            {onModeChange && (
+              <div className="flex items-center gap-0.5">
+                {[
+                  { mode: 'procon' as const, label: '찬반' },
+                  { mode: 'standard' as const, label: '심층' },
+                  { mode: 'freetalk' as const, label: '자유' },
+                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                ].map(t => (
+                  <button key={t.mode}
+                    onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
+                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                      t.mode === 'procon'
+                        ? 'bg-white/80 text-violet-700 font-bold shadow-sm cursor-default'
+                        : 'text-violet-600/50 hover:text-violet-700 hover:bg-white/30'
+                    )}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 찬반 드래그 존 */}
@@ -778,103 +785,121 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
 
   return (
     <div>
-      <div className="flex items-stretch mb-3">
-        {onModeChange && (<>
-          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">⚖️ 찬반 토론</span>
-          </button>
-          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">🎯 심층 토론</span>
-          </button>
-        </>)}
-        <div className="flex-1 px-2.5 py-2.5 bg-amber-50 flex items-center justify-center cursor-default rounded-lg border border-amber-200">
-          <span className="text-[11px] font-bold text-amber-600 block">🔍 아이디어 검증</span>
-        </div>
-        <button className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-          <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
-        </button>
-      </div>
-
-      <div className="p-4 space-y-4">
-        {/* Questioners */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-600">검증 위원</span>
+      <div className="space-y-3">
+        {/* 검증 위원 + 설정 통합 카드 */}
+        <div className="rounded-xl border border-amber-200 overflow-hidden">
+          {/* 헤더 */}
+          <div className="px-3.5 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px]">🔍</span>
+              <span className="text-[11px] font-bold text-amber-700">아이디어 검증</span>
             </div>
-            {selected.length < 2
-              ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
-              : <span className="text-[10px] text-slate-400">{selected.length}명 위원</span>}
+            {onModeChange && (
+              <div className="flex items-center gap-0.5">
+                {[
+                  { mode: 'procon' as const, label: '찬반' },
+                  { mode: 'standard' as const, label: '심층' },
+                  { mode: 'hearing' as const, label: '검증' },
+                  { mode: 'freetalk' as const, label: '자유' },
+                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                ].map(t => (
+                  <button key={t.mode}
+                    onClick={t.mode === 'hearing' ? undefined : () => onModeChange(t.mode)}
+                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                      t.mode === 'hearing'
+                        ? 'bg-white/80 text-amber-700 font-bold shadow-sm cursor-default'
+                        : 'text-amber-600/50 hover:text-amber-700 hover:bg-white/30'
+                    )}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {selected.length > 0 ? (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {selected.map(e => (
-                <button key={e.id} type="button" onClick={() => onToggle(e.id)}
-                  className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
-                  <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
-                  <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
-                </button>
-              ))}
+
+          {/* Content */}
+          <div className="p-4 space-y-4">
+            {/* Questioners */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-600">검증 위원</span>
+                </div>
+                {selected.length < 2
+                  ? <span className="text-[10px] text-amber-500 font-medium">2명 이상 선택해주세요</span>
+                  : <span className="text-[10px] text-slate-400">{selected.length}명 위원</span>}
+              </div>
+              {selected.length > 0 ? (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {selected.map(e => (
+                    <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                      className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
+                      <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
+                      <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div onClick={() => setShowPicker(true)} className="py-3 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50 cursor-pointer hover:border-amber-300 hover:bg-amber-50/30 transition-colors">
+                  <p className="text-[11px] text-slate-400">클릭하여 검증자를 추가하세요</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div onClick={() => setShowPicker(true)} className="py-3 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50 cursor-pointer hover:border-amber-300 hover:bg-amber-50/30 transition-colors">
-              <p className="text-[11px] text-slate-400">클릭하여 검증자를 추가하세요</p>
-            </div>
-          )}
-        </div>
 
-        {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="검증자 선택" accentColor="amber" maxCount={3} />}
+            {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="검증자 선택" accentColor="amber" maxCount={3} />}
 
-        {/* Pressure level */}
-        <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">검증 목적</div>
-          <div className="flex gap-2">
-            {pressureOptions.map(opt => (
-              <button key={opt.id} onClick={() => update({ hearingPressure: opt.id })}
-                className={cn('flex-1 px-3 py-2.5 rounded-lg text-center transition-all border',
-                  ds.hearingPressure === opt.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
-                <div className="text-[12px] font-bold">{opt.label}</div>
-                <div className="text-[9px] opacity-70 mt-0.5">{opt.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-
-        {/* Settings toggle */}
-        <button onClick={() => setShowDetail(!showDetail)}
-          className="flex items-center gap-1.5 py-1.5 px-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 transition-all">
-          세부 설정 {showDetail ? '접기 ▲' : '펼치기 ▼'}
-        </button>
-        {showDetail && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0 cursor-help" title="각 전문가 답변의 분량을 조절합니다">답변 길이</span>
-              <div className="flex gap-1 flex-1">
-                {(['short', 'medium', 'long'] as const).map(v => (
-                  <button key={v} onClick={() => update({ responseLength: v })}
-                    className={cn('flex-1 py-1.5 rounded-md text-[10px] font-medium text-center transition-all', ds.responseLength === v ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
-                    {v === 'short' ? '짧게' : v === 'medium' ? '보통' : '길게'}
+            {/* Pressure level */}
+            <div>
+              <div className="text-[11px] font-bold text-slate-600 mb-2">검증 목적</div>
+              <div className="flex gap-2">
+                {pressureOptions.map(opt => (
+                  <button key={opt.id} onClick={() => update({ hearingPressure: opt.id })}
+                    className={cn('flex-1 px-3 py-2.5 rounded-lg text-center transition-all border',
+                      ds.hearingPressure === opt.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
+                    <div className="text-[12px] font-bold">{opt.label}</div>
+                    <div className="text-[9px] opacity-70 mt-0.5">{opt.desc}</div>
                   </button>
                 ))}
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold text-slate-700">아이디어 점수</p>
-                <p className="text-[9px] text-slate-400">실현성·창의성·시장성 점수 평가</p>
+
+
+            {/* Settings toggle */}
+            <button onClick={() => setShowDetail(!showDetail)}
+              className="flex items-center gap-1.5 py-1.5 px-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 transition-all">
+              세부 설정 {showDetail ? '접기 ▲' : '펼치기 ▼'}
+            </button>
+            {showDetail && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-bold text-slate-500 w-16 shrink-0 cursor-help" title="각 전문가 답변의 분량을 조절합니다">답변 길이</span>
+                  <div className="flex gap-1 flex-1">
+                    {(['short', 'medium', 'long'] as const).map(v => (
+                      <button key={v} onClick={() => update({ responseLength: v })}
+                        className={cn('flex-1 py-1.5 rounded-md text-[10px] font-medium text-center transition-all', ds.responseLength === v ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
+                        {v === 'short' ? '짧게' : v === 'medium' ? '보통' : '길게'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-slate-700">아이디어 점수</p>
+                    <p className="text-[9px] text-slate-400">실현성·창의성·시장성 점수 평가</p>
+                  </div>
+                  <Toggle checked={ds.ideaScoring} onChange={v => update({ ideaScoring: v })} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-slate-700">투자자 시뮬레이션</p>
+                    <p className="text-[9px] text-slate-400">투자자 관점에서 투자 여부 판단</p>
+                  </div>
+                  <Toggle checked={ds.investorSimulation} onChange={v => update({ investorSimulation: v })} />
+                </div>
               </div>
-              <Toggle checked={ds.ideaScoring} onChange={v => update({ ideaScoring: v })} />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold text-slate-700">투자자 시뮬레이션</p>
-                <p className="text-[9px] text-slate-400">투자자 관점에서 투자 여부 판단</p>
-              </div>
-              <Toggle checked={ds.investorSimulation} onChange={v => update({ investorSimulation: v })} />
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -899,24 +924,6 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
   return (
     <div>
-      <div className="flex items-stretch mb-3">
-        {onModeChange && (
-          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">⚖️ 찬반 토론</span>
-          </button>
-        )}
-        {onModeChange && (
-          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">🎯 심층 토론</span>
-          </button>
-        )}
-        <div className="flex-1 px-2.5 py-2.5 bg-cyan-50 flex items-center justify-center cursor-default rounded-lg border border-cyan-200">
-          <span className="text-[11px] font-bold text-cyan-600 block">💬 자유 토론</span>
-        </div>
-        <button className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-          <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
-        </button>
-      </div>
       {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="참여 AI 선택" accentColor="indigo" maxCount={3} />}
 
       <div className="space-y-3">
@@ -928,7 +935,26 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               <span className="text-[13px]">💬</span>
               <span className="text-[11px] font-bold text-cyan-700">참여 AI</span>
             </div>
-            {selected.length > 0 && <span className="text-[10px] font-medium text-slate-400">{selected.length}/3명</span>}
+            {onModeChange && (
+              <div className="flex items-center gap-0.5">
+                {[
+                  { mode: 'procon' as const, label: '찬반' },
+                  { mode: 'standard' as const, label: '심층' },
+                  { mode: 'freetalk' as const, label: '자유' },
+                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                ].map(t => (
+                  <button key={t.mode}
+                    onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
+                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                      t.mode === 'freetalk'
+                        ? 'bg-white/80 text-cyan-700 font-bold shadow-sm cursor-default'
+                        : 'text-cyan-600/50 hover:text-cyan-700 hover:bg-white/30'
+                    )}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 참여자 슬롯 */}
@@ -1010,26 +1036,35 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
   return (
     <div>
-      <div className="flex items-stretch mb-3">
-        {onModeChange && (
-          <button onClick={() => onModeChange('procon')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">⚖️ 찬반 토론</span>
-          </button>
-        )}
-        {onModeChange && (
-          <button onClick={() => onModeChange('standard')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">🎯 심층 토론</span>
-          </button>
-        )}
-        {onModeChange && (
-          <button onClick={() => onModeChange('freetalk')} className="flex-1 px-2.5 py-1 flex items-center justify-center hover:bg-slate-100 transition-colors rounded-lg">
-            <span className="text-[11px] font-medium text-slate-400">💬 자유 토론</span>
-          </button>
-        )}
-        <div className="flex-1 px-2.5 py-2.5 bg-rose-50 flex items-center justify-center cursor-default rounded-lg border border-rose-200">
-          <span className="text-[11px] font-bold text-rose-600 block">⚔️ AI vs 유저</span>
-        </div>
-      </div>
+      <div className="space-y-3">
+        <div className="rounded-xl border border-rose-200 overflow-hidden">
+          {/* 헤더 */}
+          <div className="px-3.5 py-2 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px]">⚔️</span>
+              <span className="text-[11px] font-bold text-rose-700">AI vs 유저</span>
+            </div>
+            {onModeChange && (
+              <div className="flex items-center gap-0.5">
+                {[
+                  { mode: 'procon' as const, label: '찬반' },
+                  { mode: 'standard' as const, label: '심층' },
+                  { mode: 'freetalk' as const, label: '자유' },
+                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                ].map(t => (
+                  <button key={t.mode}
+                    onClick={t.mode === 'aivsuser' ? undefined : () => onModeChange(t.mode)}
+                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                      t.mode === 'aivsuser'
+                        ? 'bg-white/80 text-rose-700 font-bold shadow-sm cursor-default'
+                        : 'text-rose-600/50 hover:text-rose-700 hover:bg-white/30'
+                    )}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
       <div className="p-4 space-y-3">
         {/* ═══ VS 매치업 ═══ */}
         <div className="rounded-xl border border-slate-200 bg-slate-50/30 p-3">
@@ -1109,6 +1144,8 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               </button>
             ))}
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
