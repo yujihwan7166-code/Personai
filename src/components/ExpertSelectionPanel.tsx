@@ -119,73 +119,12 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 // ── Issue Editor (심층토론) ──
 const ISSUE_TEMPLATES = ['경제적 영향', '윤리적 쟁점', '기술적 타당성', '사회적 합의', '법률적 문제', '환경적 영향', '실현 가능성'];
 
-// ── 미니 AI 선택 그리드 (설정 패널 내장용) ──
-function MiniExpertPicker({ experts, selectedIds, onToggle, maxCount, proconStances, assignStance, draggedId, setDraggedId }: {
-  experts: Expert[];
-  selectedIds: string[];
-  onToggle: (id: string) => void;
-  maxCount?: number;
-  proconStances?: Record<string, 'pro' | 'con'>;
-  assignStance?: (id: string, stance: 'pro' | 'con') => void;
-  draggedId?: string | null;
-  setDraggedId?: (v: string | null) => void;
-}) {
-  const isProcon = !!proconStances && !!assignStance;
-  const aiExperts = experts.filter(e => e.category === 'ai');
-  const max = maxCount || 6;
-
-  return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      {aiExperts.map(e => {
-        const isSelected = selectedIds.includes(e.id);
-        const stance = proconStances?.[e.id];
-        const atLimit = !isSelected && selectedIds.length >= max;
-        return (
-          <button key={e.id} type="button"
-            disabled={atLimit}
-            draggable={isProcon && isSelected}
-            onDragStart={() => setDraggedId?.(e.id)}
-            onDragEnd={() => setDraggedId?.(null)}
-            onClick={() => {
-              if (isProcon && !isSelected && assignStance) {
-                // 찬반: 선택 안 된 AI 클릭 → 일단 선택 (onToggle로)
-                onToggle(e.id);
-              } else {
-                onToggle(e.id);
-              }
-            }}
-            className={cn(
-              'flex items-center gap-1.5 px-2 py-1.5 rounded-lg border transition-all text-[11px] font-medium',
-              isSelected
-                ? stance === 'pro' ? 'bg-blue-50 border-blue-300 text-blue-700'
-                  : stance === 'con' ? 'bg-red-50 border-red-300 text-red-700'
-                  : 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                : atLimit ? 'border-slate-100 text-slate-300 cursor-not-allowed'
-                : 'border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50'
-            )}>
-            <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0 border border-slate-100">
-              {e.avatarUrl
-                ? <img src={e.avatarUrl} alt="" className="w-4 h-4 object-contain" />
-                : e.icon ? <span className="text-[11px]">{e.icon}</span>
-                : <span className="text-[9px] font-bold">{e.nameKo[0]}</span>
-              }
-            </div>
-            {e.nameKo}
-            {isSelected && <X className="w-3 h-3 opacity-40" />}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, experts, autoAssign, onAutoAssignChange, onToggle, onModeChange }: {
+function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign, onAutoAssignChange, onToggle, onModeChange }: {
   issues: DiscussionIssue[];
   onIssuesChange?: (issues: DiscussionIssue[]) => void;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
   selectedExperts: Expert[];
-  experts: Expert[];
   autoAssign?: boolean;
   onAutoAssignChange?: (v: boolean) => void;
   onToggle?: (id: string) => void;
@@ -255,8 +194,35 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               <div className="text-center py-1">
                 <p className="text-[11px] text-slate-500 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
               </div>
+            ) : selectedExperts.length > 0 ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3 flex-wrap justify-center">
+                  {selectedExperts.map(e => (
+                    <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                      className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
+                      <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                        <ExpertAvatar expert={e} size="md" />
+                        <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                          <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] text-slate-400">{selectedExperts.length}/3명 선택됨 {selectedExperts.length < 3 ? '· 더 추가하거나 토론을 시작하세요' : '· 토론을 시작하세요'}</span>
+              </div>
             ) : (
-              <MiniExpertPicker experts={experts} selectedIds={selectedExperts.map(e => e.id)} onToggle={onToggle!} maxCount={3} />
+              <div className="flex flex-col items-center gap-2 py-1">
+                <div className="flex items-center gap-3">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="w-11 h-11 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center">
+                      <Plus className="w-4 h-4 text-slate-300" />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[11px] text-slate-400">위에서 전문가를 선택하세요</span>
+              </div>
             )}
           </div>
         </div>
@@ -431,15 +397,47 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                 'px-3 py-4 bg-white transition-colors',
                 dragOver && 'bg-violet-50/30'
               )}>
-                <MiniExpertPicker experts={experts} selectedIds={selectedIds} onToggle={onToggle} maxCount={6} />
+                {(() => {
+                  const autoExperts = experts.filter(e => selectedIds.includes(e.id));
+                  return (
+                    <div className="flex flex-col items-center gap-3">
+                      {/* Circle slots */}
+                      <div className="flex items-center gap-3 flex-wrap justify-center">
+                        {autoExperts.length > 0 ? autoExperts.map(e => (
+                          <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                            className="flex flex-col items-center gap-1.5 animate-in fade-in zoom-in-75 duration-200 group/auto">
+                            <div className="relative w-14 h-14 rounded-full bg-violet-50 border-2 border-violet-200 flex items-center justify-center shadow-sm group-hover/auto:border-red-300 group-hover/auto:bg-red-50 transition-colors">
+                              <ExpertAvatar expert={e} size="md" />
+                              <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/auto:bg-red-500/10 flex items-center justify-center transition-all">
+                                <X className="w-4 h-4 text-red-500 opacity-0 group-hover/auto:opacity-100 transition-opacity" />
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-semibold text-violet-600 max-w-[64px] truncate text-center group-hover/auto:text-red-500 transition-colors">{e.nameKo}</span>
+                          </button>
+                        )) : (
+                          <>
+                            {[0,1,2].map(i => (
+                              <div key={i} className="w-14 h-14 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center">
+                                <Plus className="w-5 h-5 text-slate-300" />
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                      {/* Helper text */}
+                      <span className={cn('text-[12px] font-medium', autoExperts.length > 0 ? 'text-violet-400' : 'text-slate-400')}>
+                        {autoExperts.length > 0 ? `${autoExperts.length}명 선택됨 · 더 추가하거나 토론을 시작하세요` : '위에서 전문가를 선택하거나 드래그하세요'}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
               <div className="px-3.5 py-1.5 bg-slate-50 border-t border-slate-100">
                 <p className="text-[9px] text-slate-400 text-center">토론 시작 시 AI가 주제를 분석하여 찬성/반대를 자동 배정합니다</p>
               </div>
             </div>
-          ) : (<>
-          <MiniExpertPicker experts={experts} selectedIds={selectedIds} onToggle={onToggle} maxCount={6} proconStances={proconStances} assignStance={assignStance} draggedId={draggedId} setDraggedId={setDraggedId} />
-          <div className="grid grid-cols-2 gap-4 mt-3">
+          ) : (
+          <div className="grid grid-cols-2 gap-4">
             {(['pro', 'con'] as const).map(zone => {
               const isOver = dragOver === zone;
               const assigned = Object.keys(proconStances).filter(id => proconStances[id] === zone);
@@ -490,7 +488,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
               );
             })}
           </div>
-          </>)}
+          )}
         </div>
 
         {/* Detail settings toggle */}
@@ -584,6 +582,9 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   onDebateSettingsChange?: (s: DebateSettings) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
+  const [showBotPicker, setShowBotPicker] = useState(false);
+  const [bsCat, setBsCat] = useState('전체');
+  const [bsSearch, setBsSearch] = useState('');
   const ds = debateSettings!;
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
 
@@ -609,10 +610,130 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
               <div className="text-center py-1">
                 <p className="text-[11px] text-amber-600 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
               </div>
+            ) : selectedIds.length > 0 ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3 flex-wrap justify-center">
+                  {selectedIds.map(id => {
+                    const e = experts.find(x => x.id === id);
+                    return e ? (
+                      <button key={id} type="button" onClick={() => onToggle(id)}
+                        className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
+                        <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                          <ExpertAvatar expert={e} size="md" />
+                          <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                            <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
+                      </button>
+                    ) : null;
+                  })}
+                  {/* Add button */}
+                  <button type="button" onClick={() => { setShowBotPicker(true); setBsCat('전체'); setBsSearch(''); }}
+                    className="flex flex-col items-center gap-1">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors">
+                      <Plus className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <span className="text-[10px] text-amber-400 font-medium">추가</span>
+                  </button>
+                </div>
+              </div>
             ) : (
-              <MiniExpertPicker experts={experts} selectedIds={selectedIds} onToggle={onToggle!} maxCount={3} />
+              <div className="flex flex-col items-center gap-2 py-1">
+                <button type="button" onClick={() => { setShowBotPicker(true); setBsCat('전체'); setBsSearch(''); }}
+                  className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
+                  <div className="w-14 h-14 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center bg-amber-50/50">
+                    <Plus className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <span className="text-[11px] text-slate-400">참여할 전문가/AI를 선택하세요</span>
+                </button>
+              </div>
             )}
           </div>
+
+          {/* Bot Picker Modal */}
+          {showBotPicker && createPortal(
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowBotPicker(false)}>
+              <div className="absolute inset-0 bg-black/30" />
+              <div className="relative w-full max-w-[520px] max-h-[70vh] rounded-xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                  <h3 className="text-[14px] font-bold text-slate-800">참여자 추가</h3>
+                  <button onClick={() => setShowBotPicker(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="shrink-0 px-4 py-2 border-b border-slate-100">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input value={bsSearch} onChange={e => setBsSearch(e.target.value)} placeholder="이름으로 검색..."
+                      className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] outline-none focus:border-amber-300 transition-colors" autoFocus />
+                  </div>
+                </div>
+                <div className="shrink-0 flex flex-wrap gap-1 px-4 py-2 border-b border-slate-100">
+                  {['전체', 'AI 모델', '전문가', '직업', '인물', '캐릭터'].map(cat => (
+                    <button key={cat} onClick={() => setBsCat(cat)}
+                      className={cn('px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors',
+                        bsCat === cat ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-100'
+                      )}>{cat}</button>
+                  ))}
+                  <div className="relative group/more">
+                    <button className={cn('px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors',
+                      ['신화','이념','철학/종교','라이프'].includes(bsCat) ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-100'
+                    )}>더보기 ▾</button>
+                    <div className="absolute left-0 top-full mt-1 z-10 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[100px] invisible group-hover/more:visible opacity-0 group-hover/more:opacity-100 transition-all">
+                      {['신화', '이념', '철학/종교', '라이프'].map(cat => (
+                        <button key={cat} onClick={() => setBsCat(cat)}
+                          className={cn('w-full px-3 py-1.5 text-left text-[11px] font-medium transition-colors',
+                            bsCat === cat ? 'bg-amber-50 text-amber-600' : 'text-slate-600 hover:bg-slate-50'
+                          )}>{cat}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3">
+                  {(() => {
+                    const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion', '라이프': 'lifestyle' };
+                    const filtered = experts.filter(e => {
+                      if (bsCat !== '전체' && e.category !== catMap[bsCat]) return false;
+                      if (bsSearch.trim()) {
+                        const q = bsSearch.trim().toLowerCase();
+                        return e.nameKo.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || (e.description || '').toLowerCase().includes(q);
+                      }
+                      return true;
+                    });
+                    return filtered.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {filtered.map(expert => {
+                          const isSelected = selectedIds.includes(expert.id);
+                          return (
+                            <button key={expert.id}
+                              onClick={() => { onToggle?.(expert.id); }}
+                              className={cn('flex items-center gap-2.5 p-2.5 rounded-xl border transition-all text-left group',
+                                isSelected ? 'bg-amber-50 border-amber-300' : 'border-slate-100 hover:bg-slate-50 hover:border-slate-200'
+                              )}>
+                              <div className="shrink-0 group-hover:scale-110 transition-transform">
+                                <ExpertAvatar expert={expert} size="md" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={cn('text-[12px] font-semibold truncate', isSelected ? 'text-amber-700' : 'text-slate-800')}>{expert.nameKo}</p>
+                                <p className="text-[9px] text-slate-400 truncate">{expert.description}</p>
+                              </div>
+                              {isSelected && <Check className="w-4 h-4 text-amber-500 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-[11px] text-slate-400">
+                        {bsSearch ? '검색 결과가 없습니다' : '표시할 봇이 없습니다'}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
         </div>
 
         {/* Framework */}
@@ -760,8 +881,20 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
             <div className="py-3 text-center rounded-lg border border-dashed border-emerald-200 bg-emerald-50/50">
               <p className="text-[11px] text-emerald-700 font-medium">질문을 입력하면 적합한 전문가가 자동 배정됩니다</p>
             </div>
+          ) : selected.length > 0 ? (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {selected.map(e => (
+                <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                  className="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors group cursor-pointer">
+                  <div className="pointer-events-none"><ExpertAvatar expert={e} size="sm" /></div>
+                  <span className="text-[11px] font-medium text-slate-700 group-hover:text-red-500 pointer-events-none">{e.nameKo}</span>
+                </button>
+              ))}
+            </div>
           ) : (
-            <MiniExpertPicker experts={experts} selectedIds={selectedIds} onToggle={onToggle!} maxCount={3} />
+            <div className="py-3 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
+              <p className="text-[11px] text-slate-400">위에서 질의할 전문가를 선택하세요</p>
+            </div>
           )}
         </div>
 
@@ -877,8 +1010,35 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               <div className="text-center py-1">
                 <p className="text-[11px] text-cyan-600 font-medium">질문을 입력하면 적합한 AI가 자동 배정됩니다</p>
               </div>
+            ) : selected.length > 0 ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3 flex-wrap justify-center">
+                  {selected.map(e => (
+                    <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
+                      className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
+                      <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                        <ExpertAvatar expert={e} size="md" />
+                        <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                          <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] text-cyan-400">{selected.length}/3명 선택됨 {selected.length < 3 ? '· 더 추가하거나 시작하세요' : '· 시작하세요'}</span>
+              </div>
             ) : (
-              <MiniExpertPicker experts={experts} selectedIds={selectedIds} onToggle={onToggle!} maxCount={3} />
+              <div className="flex flex-col items-center gap-2 py-1">
+                <div className="flex items-center gap-3">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="w-11 h-11 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center">
+                      <Plus className="w-4 h-4 text-slate-300" />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[11px] text-slate-400">위에서 참여할 AI를 선택하세요</span>
+              </div>
             )}
           </div>
         </div>
@@ -960,8 +1120,30 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             </div>
 
             {/* 상대 AI 슬롯 */}
-            <div className="flex-1">
-              <MiniExpertPicker experts={experts} selectedIds={selectedIds} onToggle={onToggle!} maxCount={3} />
+            <div className="flex-1 flex items-center gap-2">
+              {selected.slice(0, maxOpponents).map((e, i) => (
+                <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
+                  className="flex flex-col items-center gap-1 group/ai animate-in fade-in zoom-in-75 duration-200" style={{ animationDelay: `${i * 60}ms` }}>
+                  <div className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm ring-2 ring-red-300 ring-offset-1 group-hover/ai:ring-red-500 transition-all">
+                    <ExpertAvatar expert={e} size="md" />
+                    <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/ai:bg-red-500/10 flex items-center justify-center transition-all">
+                      <X className="w-4 h-4 text-red-500 opacity-0 group-hover/ai:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-medium text-slate-600 max-w-[52px] truncate group-hover/ai:text-red-500 transition-colors">{e.nameKo}</span>
+                </button>
+              ))}
+              {/* 빈 슬롯 */}
+              {Array.from({ length: Math.max(1, maxOpponents - selected.length) }).map((_, i) => (
+                <div key={`empty-${i}`} className="flex flex-col items-center gap-1">
+                  <div className="w-12 h-12 rounded-full bg-white border-2 border-dashed border-slate-300 flex items-center justify-center">
+                    <Plus className="w-4 h-4 text-slate-300" />
+                  </div>
+                  {selected.length === 0 && i === 0 && (
+                    <span className="text-[9px] text-slate-400">AI 선택</span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -3035,7 +3217,7 @@ export function ExpertSelectionPanel({
   // - general/multi: all categories shown, all selectable
   // - brainstorm: all categories shown, all selectable (including AI)
   // - standard/procon: all categories shown, but AI models are grayed/disabled
-  const showExpertGrid = mainMode === 'general' || mainMode === 'multi';
+  const showExpertGrid = mainMode === 'general' || mainMode === 'multi' || mainMode === 'debate';
   const isDebateMode = mainMode === 'debate';
   const isStandardOrProcon = false; // AI 모델 제한 해제
   const isBrainstorm = discussionMode === 'brainstorm';
@@ -3516,7 +3698,6 @@ export function ExpertSelectionPanel({
           issues={discussionIssues} onIssuesChange={onDiscussionIssuesChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           selectedExperts={experts.filter(e => selectedIds.includes(e.id))}
-          experts={experts}
           autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
           onToggle={onToggle}
           onModeChange={onModeChange}
