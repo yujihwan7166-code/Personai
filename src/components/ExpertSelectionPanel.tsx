@@ -377,7 +377,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           </div>
 
           {/* 설정 — 같은 카드 하단, 연한 배경으로 구분 */}
-          <div className="bg-slate-50/70 border-t border-emerald-100">
+          <div className="bg-white border-t border-emerald-100">
             {[
               { label: '목적', options: [{ id: 'mild', l: '탐색' }, { id: 'moderate', l: '분석' }, { id: 'intense', l: '합의' }], value: ds.debateTone, onChange: (v: string) => onDebateSettingsChange?.({ ...ds, debateTone: v as any }) },
               ...(debateSettings && onDebateSettingsChange ? [
@@ -386,12 +386,12 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               ] : []),
             ].map((row, i) => (
               <div key={i} className={cn('flex items-center gap-3 px-4 py-2', i > 0 && 'border-t border-slate-100/80')}>
-                <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">{row.label}</span>
+                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">{row.label}</span>
                 <div className="flex gap-1 flex-1">
                   {row.options.map(opt => (
                     <button key={opt.id} onClick={() => row.onChange(opt.id)}
                       className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                        row.value === opt.id ? 'bg-emerald-100 text-emerald-700 font-semibold' : 'text-slate-500 hover:bg-white')}>
+                        row.value === opt.id ? 'bg-emerald-100 text-emerald-700 font-semibold' : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                       {opt.l}
                     </button>
                   ))}
@@ -401,7 +401,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           </div>
 
           {/* 핵심 논점 — 카드 하단, 더 연한 배경 */}
-          <div className="px-4 py-3 bg-slate-50/40 border-t border-slate-100/80">
+          <div className="px-4 py-3 bg-white border-t border-emerald-100">
             <div className="text-[10px] font-semibold text-slate-500 mb-1.5">핵심 논점 <span className="font-normal text-slate-400">(선택)</span></div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {allTemplates.map(t => (
@@ -577,19 +577,19 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
 
           {/* 설정 — 카드 하단 */}
           {debateSettings && onDebateSettingsChange && (
-            <div className="bg-slate-50/70 border-t border-violet-100">
+            <div className="bg-white border-t border-violet-100">
               {[
                 { label: '강도', options: [{ id: 'mild', l: '온건' }, { id: 'moderate', l: '보통' }, { id: 'intense', l: '격렬' }], value: ds.debateTone, onChange: (v: string) => update({ debateTone: v as any }) },
                 { label: '라운드', options: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }], value: String(ds.rounds), onChange: (v: string) => update({ rounds: Number(v) }) },
                 { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => update({ responseLength: v as any }) },
               ].map((row, i) => (
                 <div key={i} className={cn('flex items-center gap-3 px-4 py-2', i > 0 && 'border-t border-slate-100/80')}>
-                  <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">{row.label}</span>
+                  <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">{row.label}</span>
                   <div className="flex gap-1 flex-1">
                     {row.options.map(opt => (
                       <button key={opt.id} onClick={() => row.onChange(opt.id)}
                         className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                          row.value === opt.id ? 'bg-violet-100 text-violet-700 font-semibold' : 'text-slate-500 hover:bg-white')}>
+                          row.value === opt.id ? 'bg-violet-100 text-violet-700 font-semibold' : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                         {opt.l}
                       </button>
                     ))}
@@ -709,12 +709,12 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           {/* 설정 — 카드 하단 */}
           <div className="bg-white border-t border-amber-100">
             <div className="flex items-center gap-3 px-4 py-2">
-              <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">창의성</span>
+              <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">창의성</span>
               <div className="flex gap-1 flex-1">
                 {[{ id: 'realistic' as const, l: '현실적' }, { id: 'balanced' as const, l: '균형' }, { id: 'radical' as const, l: '창의적' }].map(opt => (
                   <button key={opt.id} onClick={() => update({ creativityLevel: opt.id })}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                      ds.creativityLevel === opt.id ? 'bg-amber-100 text-amber-700 font-semibold' : 'text-slate-500 hover:bg-white')}>
+                      ds.creativityLevel === opt.id ? 'bg-amber-100 text-amber-700 font-semibold' : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                     {opt.l}
                   </button>
                 ))}
@@ -973,9 +973,9 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           </div>
 
           {/* 설정 — 카드 하단 */}
-          <div className="bg-slate-50/70 border-t border-cyan-100">
+          <div className="bg-white border-t border-cyan-100">
             <div className="flex items-center gap-3 px-4 py-2">
-              <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">분량</span>
+              <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">분량</span>
               <div className="flex gap-1 flex-1">
                 {[{v: 15, l: '짧게'}, {v: 25, l: '보통'}, {v: 40, l: '길게'}].map(opt => (
                   <button key={opt.v}
@@ -983,7 +983,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
                       (ds.freetalkMessageCount || 25) === opt.v
                         ? 'bg-cyan-100 text-cyan-700 font-semibold'
-                        : 'text-slate-500 hover:bg-white')}>
+                        : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                     {opt.l}
                   </button>
                 ))}
@@ -1042,9 +1042,9 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               </div>
             )}
           </div>
-      <div className="p-4 space-y-3">
+          <div className="p-3 space-y-3">
         {/* ═══ VS 매치업 ═══ */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50/30 p-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
           <div className="flex items-center gap-3">
             {/* 나 */}
             <div className="flex flex-col items-center gap-1 shrink-0">
@@ -1100,30 +1100,31 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           )}
         </div>
 
-        {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="상대 AI 선택" accentColor="red" maxCount={3} />}
-
-        {/* ═══ 난이도 ═══ */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-slate-500 shrink-0">난이도</span>
-          <div className="flex gap-1.5 flex-1">
-            {([
-              { v: 'easy' as const, l: '🌱 초급' },
-              { v: 'normal' as const, l: '⚡ 보통' },
-              { v: 'hard' as const, l: '🔥 고급' },
-            ]).map(opt => (
-              <button key={opt.v}
-                onClick={() => onDebateSettingsChange?.({...ds, aivsUserDifficulty: opt.v})}
-                className={cn('flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center border transition-all',
-                  (ds.aivsUserDifficulty || 'normal') === opt.v
-                    ? 'bg-rose-100 text-rose-700 font-semibold border-rose-200'
-                    : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300')}>
-                {opt.l}
-              </button>
-            ))}
+          {/* 난이도 — 카드 하단 */}
+          <div className="bg-white border-t border-rose-100">
+            <div className="flex items-center gap-3 px-4 py-2">
+              <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">난이도</span>
+              <div className="flex gap-1 flex-1">
+                {([
+                  { v: 'easy' as const, l: '🌱 초급' },
+                  { v: 'normal' as const, l: '⚡ 보통' },
+                  { v: 'hard' as const, l: '🔥 고급' },
+                ]).map(opt => (
+                  <button key={opt.v}
+                    onClick={() => onDebateSettingsChange?.({...ds, aivsUserDifficulty: opt.v})}
+                    className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                      (ds.aivsUserDifficulty || 'normal') === opt.v
+                        ? 'bg-rose-100 text-rose-700 font-semibold'
+                        : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-        </div>
+
+        {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="상대 AI 선택" accentColor="red" maxCount={3} />}
       </div>
     </div>
   );
