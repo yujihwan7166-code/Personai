@@ -323,9 +323,12 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           </button>
         </>)}
       </div>
-      <div className="p-4 space-y-4">
-        {/* Debaters */}
+      {showPicker && <AIPickerModal experts={experts} selectedIds={selectedExperts.map(e => e.id)} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="토론자 선택" accentColor="indigo" maxCount={3} />}
+
+      <div className="space-y-3">
+        {/* 참여자 + 설정 통합 카드 */}
         <div className="rounded-xl border border-emerald-200 overflow-hidden">
+          {/* 헤더 */}
           <div className="px-3.5 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🎯</span>
@@ -333,24 +336,30 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             </div>
             {selectedExperts.length > 0 && <span className="text-[10px] font-medium text-slate-400">{selectedExperts.length}/3명</span>}
           </div>
+
+          {/* 참여자 슬롯 */}
           <div className="px-3 py-3 bg-white">
             {selectedExperts.length > 0 ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-3 flex-wrap justify-center">
-                  {selectedExperts.map(e => (
-                    <button key={e.id} type="button" onClick={() => onToggle(e.id)}
-                      className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                      <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
-                        <ExpertAvatar expert={e} size="md" />
-                        <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                          <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
-                        </div>
+              <div className="flex items-center gap-3 flex-wrap justify-center">
+                {selectedExperts.map(e => (
+                  <button key={e.id} type="button" onClick={() => onToggle(e.id)}
+                    className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
+                    <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                      <ExpertAvatar expert={e} size="md" />
+                      <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                        <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
                       </div>
-                      <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
-                    </button>
-                  ))}
-                </div>
-                <span className="text-[11px] text-slate-400">{selectedExperts.length}/3명 선택됨 {selectedExperts.length < 3 ? '· 더 추가하거나 토론을 시작하세요' : '· 토론을 시작하세요'}</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
+                  </button>
+                ))}
+                {selectedExperts.length < 3 && (
+                  <button onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors cursor-pointer">
+                      <Plus className="w-4 h-4 text-slate-300" />
+                    </div>
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 py-1">
@@ -365,63 +374,39 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               </div>
             )}
           </div>
-        </div>
 
-        {showPicker && <AIPickerModal experts={experts} selectedIds={selectedExperts.map(e => e.id)} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="토론자 선택" accentColor="indigo" maxCount={3} />}
-
-        {/* ═══ 설정 테이블 ═══ */}
-        <div className="rounded-lg border border-slate-200 overflow-hidden">
-          {[
-            { label: '토론 목적', content: (
-              <div className="flex gap-1 flex-1">
-                {[{ label: '탐색', tone: 'mild' as const }, { label: '분석', tone: 'moderate' as const }, { label: '합의', tone: 'intense' as const }].map(opt => (
-                  <button key={opt.tone} onClick={() => onDebateSettingsChange?.({ ...ds, debateTone: opt.tone })}
-                    className={cn('flex-1 py-1.5 rounded-md text-[11px] font-semibold text-center transition-all',
-                      ds.debateTone === opt.tone ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100')}>
-                    {opt.label}
-                  </button>
-                ))}
+          {/* 설정 — 같은 카드 하단, 연한 배경으로 구분 */}
+          <div className="bg-slate-50/70 border-t border-emerald-100">
+            {[
+              { label: '목적', options: [{ id: 'mild', l: '탐색' }, { id: 'moderate', l: '분석' }, { id: 'intense', l: '합의' }], value: ds.debateTone, onChange: (v: string) => onDebateSettingsChange?.({ ...ds, debateTone: v as any }) },
+              ...(debateSettings && onDebateSettingsChange ? [
+                { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => onDebateSettingsChange({ ...ds, responseLength: v as any }) },
+                { label: '라운드', options: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }], value: String(ds.rounds), onChange: (v: string) => onDebateSettingsChange({ ...ds, rounds: Number(v) }) },
+              ] : []),
+            ].map((row, i) => (
+              <div key={i} className={cn('flex items-center gap-3 px-4 py-2', i > 0 && 'border-t border-slate-100/80')}>
+                <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">{row.label}</span>
+                <div className="flex gap-1 flex-1">
+                  {row.options.map(opt => (
+                    <button key={opt.id} onClick={() => row.onChange(opt.id)}
+                      className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                        row.value === opt.id ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-white')}>
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )},
-            ...(debateSettings && onDebateSettingsChange ? [
-              { label: '답변 길이', content: (
-                <div className="flex gap-1 flex-1">
-                  {(['short', 'medium', 'long'] as const).map(v => (
-                    <button key={v} onClick={() => onDebateSettingsChange({ ...ds, responseLength: v })}
-                      className={cn('flex-1 py-1.5 rounded-md text-[11px] font-semibold text-center transition-all',
-                        ds.responseLength === v ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100')}>
-                      {v === 'short' ? '짧게' : v === 'medium' ? '보통' : '길게'}
-                    </button>
-                  ))}
-                </div>
-              )},
-              { label: '라운드', content: (
-                <div className="flex gap-1 flex-1">
-                  {([2, 3, 4] as const).map(v => (
-                    <button key={v} onClick={() => onDebateSettingsChange({ ...ds, rounds: v })}
-                      className={cn('flex-1 py-1.5 rounded-md text-[11px] font-semibold text-center transition-all',
-                        ds.rounds === v ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100')}>
-                      {v}R
-                    </button>
-                  ))}
-                </div>
-              )},
-            ] : []),
-          ].map((row, i) => (
-            <div key={i} className={cn('flex items-center gap-3 px-3 py-2', i > 0 && 'border-t border-slate-100')}>
-              <span className="text-[11px] font-bold text-slate-700 w-16 shrink-0">{row.label}</span>
-              {row.content}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* 핵심 논점 */}
         <div>
-          <div className="text-[11px] font-bold text-slate-700 mb-1">핵심 논점 <span className="font-normal text-slate-400">(선택)</span></div>
+          <div className="text-[11px] font-bold text-slate-700 mb-1.5">핵심 논점 <span className="font-normal text-slate-400">(선택)</span></div>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {allTemplates.map(t => (
               <button key={t} onClick={() => toggleIssue(t)}
-                className={cn('px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border flex items-center gap-1',
+                className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all border flex items-center gap-1',
                   selectedTitle === t ? 'bg-slate-800 text-white border-slate-800' : 'text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50')}>
                 {selectedTitle === t && <Check className="w-3 h-3" />}{t}
               </button>
@@ -505,118 +490,108 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
           </button>
         </>)}
       </div>
-      <div className="p-4 space-y-4">
-        {/* Assignment mode tabs + Drag zones */}
-        <div>
-          <div className="flex items-center gap-2 mb-2.5">
-            <span className="text-[11px] font-bold text-slate-600">진영 배정</span>
+      {/* 찬반 AI 선택 플로팅 */}
+      {pickerZone && (
+        <AIPickerModal
+          experts={experts}
+          selectedIds={Object.keys(proconStances).filter(id => proconStances[id] === pickerZone)}
+          onToggle={(id) => {
+            if (proconStances[id] === pickerZone) { removeStance(id); }
+            else { assignStance(id, pickerZone); }
+          }}
+          onClose={() => setPickerZone(null)}
+          title={pickerZone === 'pro' ? '찬성 AI 추가' : '반대 AI 추가'}
+          accentColor={pickerZone === 'pro' ? 'blue' : 'red'}
+          maxCount={MAX_PER_ZONE}
+        />
+      )}
+
+      <div className="space-y-3">
+        {/* 진영 배정 + 설정 통합 카드 */}
+        <div className="rounded-xl border border-violet-200 overflow-hidden">
+          {/* 헤더 */}
+          <div className="px-3.5 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center gap-1.5">
+            <span className="text-[13px]">⚖️</span>
+            <span className="text-[11px] font-bold text-violet-700">진영 배정</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {(['pro', 'con'] as const).map(zone => {
-              const isOver = dragOver === zone;
-              const assigned = Object.keys(proconStances).filter(id => proconStances[id] === zone);
-              const isFull = assigned.length >= MAX_PER_ZONE;
-              const isPro = zone === 'pro';
-              const canDrop = !isFull || (draggedId ? proconStances[draggedId] === zone : false);
-              return (
-                <div key={zone} onDragOver={e => { e.preventDefault(); setDragOver(zone); }} onDragLeave={() => setDragOver(null)}
-                  onDrop={() => { if (draggedId) assignStance(draggedId, zone); setDragOver(null); setDraggedId(null); }}
-                  className={cn('rounded-xl border transition-all duration-150 overflow-hidden',
-                    isOver && canDrop ? isPro ? 'border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.15)]' : 'border-red-400 shadow-[0_0_12px_rgba(239,68,68,0.15)]'
-                      : isPro ? 'border-blue-200' : 'border-red-200')}>
-                  <div className={cn('px-3 py-1.5 flex items-center justify-between', isPro ? 'bg-blue-100/80' : 'bg-red-100/80')}>
-                    <span className={cn('text-[12px] font-bold', isPro ? 'text-blue-700' : 'text-red-700')}>{isPro ? '찬성' : '반대'}</span>
-                    <span className={cn('text-[10px] font-medium', isPro ? 'text-blue-500' : 'text-red-500')}>{assigned.length}/{MAX_PER_ZONE}</span>
-                  </div>
-                  <div className={cn('px-2.5 py-3 bg-white transition-colors', isOver && canDrop && (isPro ? 'bg-blue-50/30' : 'bg-red-50/30'))}>
-                    <div className="flex flex-wrap gap-2.5 justify-center">
+          {/* 찬반 드래그 존 */}
+          <div className="p-3 bg-white">
+            <div className="grid grid-cols-2 gap-3">
+              {(['pro', 'con'] as const).map(zone => {
+                const isOver = dragOver === zone;
+                const assigned = Object.keys(proconStances).filter(id => proconStances[id] === zone);
+                const isFull = assigned.length >= MAX_PER_ZONE;
+                const isPro = zone === 'pro';
+                const canDrop = !isFull || (draggedId ? proconStances[draggedId] === zone : false);
+                return (
+                  <div key={zone} onDragOver={e => { e.preventDefault(); setDragOver(zone); }} onDragLeave={() => setDragOver(null)}
+                    onDrop={() => { if (draggedId) assignStance(draggedId, zone); setDragOver(null); setDraggedId(null); }}
+                    className={cn('rounded-lg border-2 border-dashed transition-all duration-150 p-2.5',
+                      isOver && canDrop ? isPro ? 'border-blue-400 bg-blue-50/50' : 'border-red-400 bg-red-50/50'
+                        : isPro ? 'border-blue-200/60 bg-blue-50/20' : 'border-red-200/60 bg-red-50/20')}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={cn('text-[11px] font-bold', isPro ? 'text-blue-600' : 'text-red-600')}>{isPro ? '찬성' : '반대'}</span>
+                      <span className={cn('text-[9px]', isPro ? 'text-blue-400' : 'text-red-400')}>{assigned.length}/{MAX_PER_ZONE}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-center min-h-[48px]">
                       {assigned.map(id => {
                         const e = experts.find(x => x.id === id);
                         if (!e) return null;
                         return (
-                          <button key={id} type="button"
-                            onClick={() => removeStance(id)}
+                          <button key={id} type="button" onClick={() => removeStance(id)}
                             draggable onDragStart={() => setDraggedId(id)} onDragEnd={() => setDraggedId(null)}
-                            title="클릭하면 배정 해제"
-                            className="flex flex-col items-center gap-0.5 cursor-pointer animate-in fade-in zoom-in-75 duration-200 group/slot min-w-[48px]">
+                            className="flex flex-col items-center gap-0.5 group/slot animate-in fade-in zoom-in-75 duration-200">
                             <div className="relative group-hover/slot:opacity-70 transition-opacity">
                               <ExpertAvatar expert={e} size="md" />
-                              <div className="absolute inset-0 rounded-full flex items-center justify-center transition-all">
+                              <div className="absolute inset-0 rounded-full flex items-center justify-center">
                                 <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
                               </div>
                             </div>
-                            <span className={cn('text-[9px] font-semibold max-w-[52px] truncate text-center transition-colors group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
+                            <span className={cn('text-[9px] font-semibold max-w-[48px] truncate group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
                           </button>
                         );
                       })}
-                      {/* 빈칸 — 클릭하면 AI 선택 플로팅 */}
                       {assigned.length < MAX_PER_ZONE && (
-                        <button type="button" onClick={() => setPickerZone(zone)}
-                          className="flex flex-col items-center gap-0.5 group/add">
-                          <div className={cn('w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors',
-                            isPro ? 'border-blue-200 bg-blue-50/30 group-hover/add:border-blue-400 group-hover/add:bg-blue-100/50'
-                              : 'border-red-200 bg-red-50/30 group-hover/add:border-red-400 group-hover/add:bg-red-100/50')}>
-                            <Plus className={cn('w-4 h-4 transition-colors', isPro ? 'text-blue-300 group-hover/add:text-blue-500' : 'text-red-300 group-hover/add:text-red-500')} />
+                        <button type="button" onClick={() => setPickerZone(zone)} className="flex flex-col items-center gap-0.5 group/add">
+                          <div className={cn('w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center transition-colors',
+                            isPro ? 'border-blue-200 group-hover/add:border-blue-400' : 'border-red-200 group-hover/add:border-red-400')}>
+                            <Plus className={cn('w-4 h-4', isPro ? 'text-blue-300' : 'text-red-300')} />
                           </div>
-                          <span className={cn('text-[9px]', isPro ? 'text-blue-300' : 'text-red-300')}>
-                            {assigned.length === 0 ? 'AI 추가' : '+'}
-                          </span>
+                          {assigned.length === 0 && <span className={cn('text-[8px]', isPro ? 'text-blue-300' : 'text-red-300')}>AI 추가</span>}
                         </button>
                       )}
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
-          {/* 찬반 AI 선택 플로팅 */}
-          {pickerZone && (
-            <AIPickerModal
-              experts={experts}
-              selectedIds={Object.keys(proconStances).filter(id => proconStances[id] === pickerZone)}
-              onToggle={(id) => {
-                if (proconStances[id] === pickerZone) { removeStance(id); }
-                else { assignStance(id, pickerZone); }
-              }}
-              onClose={() => setPickerZone(null)}
-              title={pickerZone === 'pro' ? '찬성 AI 추가' : '반대 AI 추가'}
-              accentColor={pickerZone === 'pro' ? 'blue' : 'red'}
-              maxCount={MAX_PER_ZONE}
-            />
+          {/* 설정 — 카드 하단 */}
+          {debateSettings && onDebateSettingsChange && (
+            <div className="bg-slate-50/70 border-t border-violet-100">
+              {[
+                { label: '강도', options: [{ id: 'mild', l: '온건' }, { id: 'moderate', l: '보통' }, { id: 'intense', l: '격렬' }], value: ds.debateTone, onChange: (v: string) => update({ debateTone: v as any }) },
+                { label: '라운드', options: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }], value: String(ds.rounds), onChange: (v: string) => update({ rounds: Number(v) }) },
+                { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => update({ responseLength: v as any }) },
+              ].map((row, i) => (
+                <div key={i} className={cn('flex items-center gap-3 px-4 py-2', i > 0 && 'border-t border-slate-100/80')}>
+                  <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">{row.label}</span>
+                  <div className="flex gap-1 flex-1">
+                    {row.options.map(opt => (
+                      <button key={opt.id} onClick={() => row.onChange(opt.id)}
+                        className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                          row.value === opt.id ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-white')}>
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-
-        {/* Detail settings toggle */}
-        <button onClick={() => setShowDetail(!showDetail)}
-          className="flex items-center gap-1.5 py-1.5 px-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 transition-all">
-          <Sliders className="w-3 h-3" /> 세부 설정 {showDetail ? '접기 ▲' : '펼치기 ▼'}
-        </button>
-
-        {showDetail && debateSettings && onDebateSettingsChange && (
-          <div className="rounded-lg bg-slate-50/80 px-3 py-2.5 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            {[
-              { label: '강도', content: [{ id: 'mild' as const, l: '온건' }, { id: 'moderate' as const, l: '보통' }, { id: 'intense' as const, l: '격렬' }], value: ds.debateTone, onChange: (v: string) => update({ debateTone: v as any }) },
-              { label: '말투', content: [{ id: 'formal' as const, l: '격식체' }, { id: 'casual' as const, l: '구어체' }, { id: 'academic' as const, l: '학술적' }], value: ds.speakingStyle, onChange: (v: string) => update({ speakingStyle: v as any }) },
-              { label: '라운드', content: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }, { id: '5', l: '5R' }], value: String(ds.rounds), onChange: (v: string) => update({ rounds: Number(v) }) },
-              { label: '길이', content: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => update({ responseLength: v as any }) },
-            ].map((row, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">{row.label}</span>
-                <div className="flex gap-1 flex-1">
-                  {row.content.map(opt => (
-                    <button key={opt.id} onClick={() => row.onChange(opt.id)}
-                      className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                        row.value === opt.id ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-100')}>
-                      {opt.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -942,34 +917,43 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
         </button>
       </div>
-      <div className="p-4 space-y-4">
-        {/* Participants */}
+      {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="참여 AI 선택" accentColor="indigo" maxCount={3} />}
+
+      <div className="space-y-3">
+        {/* 참여자 + 설정 통합 카드 */}
         <div className="rounded-xl border border-cyan-200 overflow-hidden">
+          {/* 헤더 */}
           <div className="px-3.5 py-2 bg-gradient-to-r from-cyan-50 to-sky-50 border-b border-cyan-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💬</span>
               <span className="text-[11px] font-bold text-cyan-700">참여 AI</span>
             </div>
-            {selected.length > 0 && <span className="text-[10px] font-medium text-cyan-500">{selected.length}/3명</span>}
+            {selected.length > 0 && <span className="text-[10px] font-medium text-slate-400">{selected.length}/3명</span>}
           </div>
+
+          {/* 참여자 슬롯 */}
           <div className="px-3 py-3 bg-white">
             {selected.length > 0 ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-3 flex-wrap justify-center">
-                  {selected.map(e => (
-                    <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
-                      className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                      <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
-                        <ExpertAvatar expert={e} size="md" />
-                        <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                          <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
-                        </div>
+              <div className="flex items-center gap-3 flex-wrap justify-center">
+                {selected.map(e => (
+                  <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
+                    className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
+                    <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                      <ExpertAvatar expert={e} size="md" />
+                      <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                        <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
                       </div>
-                      <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
-                    </button>
-                  ))}
-                </div>
-                <span className="text-[11px] text-cyan-400">{selected.length}/3명 선택됨 {selected.length < 3 ? '· 더 추가하거나 시작하세요' : '· 시작하세요'}</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
+                  </button>
+                ))}
+                {selected.length < 3 && (
+                  <button onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center hover:border-cyan-300 hover:bg-cyan-50/50 transition-colors cursor-pointer">
+                      <Plus className="w-4 h-4 text-slate-300" />
+                    </div>
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 py-1">
@@ -984,24 +968,24 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               </div>
             )}
           </div>
-        </div>
 
-        {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="참여 AI 선택" accentColor="indigo" maxCount={3} />}
-
-        {/* Message count */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600">대화 분량</span>
-          <div className="flex gap-2 mt-1.5">
-            {[{v: 15, l: '짧게'}, {v: 25, l: '보통'}, {v: 40, l: '길게'}].map(opt => (
-              <button key={opt.v}
-                onClick={() => onDebateSettingsChange?.({...ds, freetalkMessageCount: opt.v})}
-                className={cn('flex-1 py-1.5 rounded-lg text-[11px] font-medium border transition-all',
-                  (ds.freetalkMessageCount || 25) === opt.v
-                    ? 'bg-slate-800 text-white border-slate-800'
-                    : 'text-slate-500 border-slate-200 hover:border-slate-300')}>
-                {opt.l} ({opt.v})
-              </button>
-            ))}
+          {/* 설정 — 카드 하단 */}
+          <div className="bg-slate-50/70 border-t border-cyan-100">
+            <div className="flex items-center gap-3 px-4 py-2">
+              <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">분량</span>
+              <div className="flex gap-1 flex-1">
+                {[{v: 15, l: '짧게'}, {v: 25, l: '보통'}, {v: 40, l: '길게'}].map(opt => (
+                  <button key={opt.v}
+                    onClick={() => onDebateSettingsChange?.({...ds, freetalkMessageCount: opt.v})}
+                    className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                      (ds.freetalkMessageCount || 25) === opt.v
+                        ? 'bg-slate-700 text-white'
+                        : 'text-slate-500 hover:bg-white')}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
