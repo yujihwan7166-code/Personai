@@ -169,7 +169,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             <span className="text-[11px] font-medium text-slate-400">💬 자유 토론</span>
           </button>
           <button className="flex-1 px-2.5 py-2.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
-            <span className="text-[11px] font-medium text-slate-400">🔥 미정 토론2</span>
+            <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
           </button>
         </>)}
       </div>
@@ -350,7 +350,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
             <span className="text-[11px] font-medium text-slate-400">💬 자유 토론</span>
           </button>
           <button className="flex-1 px-2.5 py-2.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
-            <span className="text-[11px] font-medium text-slate-400">🔥 미정 토론2</span>
+            <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
           </button>
         </>)}
       </div>
@@ -856,7 +856,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
           <span className="text-[11px] font-bold text-amber-600 block">🔍 아이디어 검증</span>
         </div>
         <button className="flex-1 px-2.5 py-2.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
-          <span className="text-[11px] font-medium text-slate-400">🔥 미정 토론2</span>
+          <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
         </button>
       </div>
 
@@ -986,7 +986,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           <span className="text-[11px] font-bold text-cyan-600 block">💬 자유 토론</span>
         </div>
         <button className="flex-1 px-2.5 py-2.5 flex items-center justify-center hover:bg-slate-200/50 transition-colors border-b border-slate-200 border-t-[3px] border-t-transparent rounded-tr-xl">
-          <span className="text-[11px] font-medium text-slate-400">🔥 미정 토론2</span>
+          <span className="text-[11px] font-medium text-slate-400">⚔️ AI vs 유저</span>
         </button>
       </div>
       <div className="p-4 space-y-4">
@@ -1080,6 +1080,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
   const [botPickerSearch, setBotPickerSearch] = useState('');
   const [simQuestion, setSimQuestion] = useState('');
   const [autoAssignRoles, setAutoAssignRoles] = useState(true);
+  const [simFilter, setSimFilter] = useState<'all' | 'roleplay' | 'consultation'>('all');
 
   const update = (patch: Partial<StakeholderSettings>) => onSettingsChange({ ...settings, ...patch });
 
@@ -1123,35 +1124,39 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
 
   return (
     <>
-      <div>
-        <div className="grid grid-cols-3 gap-3">
-        {SIMULATION_SCENARIOS.filter(s => s.simType === 'roleplay').map(scenario => (
+
+      {/* Unified grid */}
+      <div className="grid grid-cols-3 gap-2">
+        {(() => {
+          const priorityOrder = ['medical', 'legal_sim', 'investment', 'interview', 'product', 'finance_sim', 'policy', 'realestate_sim', 'strategy', 'startup_sim', 'internal', 'admission', 'psychology_sim'];
+          return [...SIMULATION_SCENARIOS].sort((a, b) => priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id));
+        })().map((scenario, i) => (
           <button key={scenario.id}
             onClick={() => handleSelectScenario(scenario)}
-            className="relative text-left rounded-2xl bg-white border border-slate-200 hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden">
+            style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'both' }}
+            className="relative text-left rounded-2xl bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-400">
 
-            {/* Gradient side accent */}
             <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${scenario.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+            <span className={cn('absolute top-3 right-3 text-[9px] font-medium px-2 py-0.5 rounded-md',
+              scenario.simType === 'roleplay' ? 'bg-slate-100 text-slate-500' : 'bg-slate-100 text-slate-500'
+            )}>{scenario.simType === 'roleplay' ? '시뮬레이션' : '전문가 상담'}</span>
 
-            <div className="px-4 pt-4 pb-3.5">
-              {/* Badge */}
-              {scenario.isPopular && (
-                <span className="absolute top-3 right-3 text-[7px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm">인기</span>
-              )}
+            <div className="px-4 pt-3 pb-2.5">
+              {/* Badges */}
 
-              {/* Icon + Title inline */}
+              {/* Icon + Title */}
               <div className="flex items-center gap-3 mb-2">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${scenario.gradient} flex items-center justify-center text-2xl shrink-0 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300`}>
                   {scenario.icon}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-[14px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">{scenario.name}</h3>
-                  <p className="text-[10px] text-slate-400 leading-snug mt-0.5 truncate">{scenario.description}</p>
+                  <h3 className="text-[15px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">{scenario.name} {scenario.userRole && <span className="text-[11px] font-semibold text-indigo-500">({scenario.userRole})</span>}</h3>
+                  <p className="text-[10px] text-slate-700 leading-snug mt-0.5 truncate">{scenario.description}</p>
                 </div>
               </div>
 
               {/* Role tags */}
-              <div className="flex items-center gap-1 mb-3 justify-center overflow-hidden">
+              <div className="flex items-center gap-1 mb-0 justify-center overflow-hidden">
                 {scenario.roles.map(role => (
                   <span key={role.name} className="text-[8px] px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 font-medium border border-slate-100 shrink-0 whitespace-nowrap">
                     {role.icon} {role.name}
@@ -1159,66 +1164,9 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                 ))}
               </div>
 
-              {/* Bottom */}
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-[9px] text-slate-400 text-center truncate">
-                  {scenario.userRole && <><span className="text-slate-600 font-semibold">{scenario.userRole}</span> , </>}
-                  {scenario.gaugeLabel}
-                  {scenario.verdictOptions.length > 0 && <> , {scenario.verdictOptions.slice(0, 3).join(' / ')}</>}
-                </p>
-              </div>
             </div>
           </button>
         ))}
-        </div>
-      </div>
-
-      <div className="mt-2">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex-1 h-px bg-slate-200" />
-          <span className="text-[12px] font-bold text-slate-500 flex items-center gap-1.5 shrink-0">🔬 전문가 순차 상담</span>
-          <div className="flex-1 h-px bg-slate-200" />
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-        {SIMULATION_SCENARIOS.filter(s => s.simType === 'consultation').map(scenario => (
-          <button key={scenario.id}
-            onClick={() => handleSelectScenario(scenario)}
-            className="relative text-left rounded-2xl bg-white border border-slate-200 hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden">
-
-            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${scenario.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-
-            <div className="px-4 pt-4 pb-3.5">
-              {scenario.isPopular && (
-                <span className="absolute top-3 right-3 text-[7px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm">인기</span>
-              )}
-
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${scenario.gradient} flex items-center justify-center text-2xl shrink-0 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300`}>
-                  {scenario.icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[14px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">{scenario.name}</h3>
-                  <p className="text-[10px] text-slate-400 leading-snug mt-0.5 truncate">{scenario.description}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1 mb-3 justify-center overflow-hidden">
-                {scenario.roles.map(role => (
-                  <span key={role.name} className="text-[8px] px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 font-medium border border-slate-100 shrink-0 whitespace-nowrap">
-                    {role.icon} {role.name}
-                  </span>
-                ))}
-              </div>
-
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-[9px] text-slate-400 text-center truncate">
-                  {scenario.phases.length}단계 순차 상담 · {scenario.gaugeLabel}
-                </p>
-              </div>
-            </div>
-          </button>
-        ))}
-        </div>
       </div>
 
       {/* Floating Modal — Roleplay */}
@@ -1292,6 +1240,9 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                       '법률 전문가': ['합헌성', '선례'],
                       '대표이사': ['전략방향', '비전'],
                       '협업 팀장': ['실행력', '리소스'],
+                      '학과 교수': ['전공적합', '학업계획'],
+                      '입학 사정관': ['진정성', '성장가능'],
+                      '인성 면접관': ['가치관', '리더십'],
                     };
                     const tags = roleQuestions[role.name] || role.focus.split(',').map(s => s.trim()).slice(0, 2);
                     const roleDescs: Record<string, string> = {
@@ -1313,6 +1264,9 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                       '대표이사': '회사 전략과의 부합 여부를 판단합니다',
                       'CFO': '비용 대비 효과를 분석합니다',
                       '협업 팀장': '현장 실행 가능성을 검토합니다',
+                      '학과 교수': '전공 적합성과 학문적 역량을 평가합니다',
+                      '입학 사정관': '활동의 진정성과 성장 가능성을 봅니다',
+                      '인성 면접관': '가치관과 공동체 의식을 확인합니다',
                     };
                     const desc = roleDescs[role.name] || role.focus;
                     return (
@@ -1387,12 +1341,13 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
 
 
 // ── Expert Mode Selection Panel ──
-function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscussing, showCardsGrid = true }: {
+function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscussing, showCardsGrid = true, onSimStart }: {
   onSelectTemplate: (t: ExpertModeTemplate | null) => void;
   selectedTemplate: ExpertModeTemplate | null;
   onSubmit: (question: string) => void;
   isDiscussing: boolean;
   showCardsGrid?: boolean;
+  onSimStart?: (scenarioId: string) => void;
 }) {
   const [question, setQuestion] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
@@ -1471,7 +1426,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
                 {/* Phase count badge */}
                 <div className={cn('mt-2 pt-2 border-t', isSelected ? 'border-indigo-200' : 'border-slate-100')}>
                   <span className={cn('text-[9px] font-bold', isSelected ? 'text-indigo-500' : 'text-slate-500')}>
-                    {template.phases.length}단계 전문가 순차 상담
+                    {template.phases.length}단계 전문가 AI 상담
                   </span>
                 </div>
               </div>
@@ -1648,12 +1603,22 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
             <div className="px-5 pb-5 pt-3">
               <button
                 type="button"
-                onClick={() => onSelectTemplate(null)}
+                onClick={() => {
+                  // template → consultation scenario ID 매핑
+                  const templateToScenario: Record<string, string> = {
+                    medical: 'medical', legal: 'legal_sim', finance: 'finance_sim',
+                    realestate: 'realestate_sim', startup: 'startup_sim', psychology: 'psychology_sim',
+                  };
+                  const scenarioId = selectedTemplate ? templateToScenario[selectedTemplate.id] : null;
+                  onSelectTemplate(null);
+                  if (scenarioId && onSimStart) {
+                    onSimStart(scenarioId);
+                  }
+                }}
                 className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5"
               >
                 상담 시작 <ArrowRight className="w-4 h-4" />
               </button>
-              <p className="text-[9px] text-slate-400 text-center mt-1.5">확인 후 아래 대화창에서 상황을 입력하세요</p>
             </div>
           </div>
         </div>,
@@ -3355,6 +3320,14 @@ export function ExpertSelectionPanel({
           onSubmit={onSubmit}
           isDiscussing={isDiscussing}
           showCardsGrid={mainMode === 'expert'}
+          onSimStart={(scenarioId) => {
+            if (onStakeholderSettingsChange) {
+              onStakeholderSettingsChange({ ...DEFAULT_STAKEHOLDER_SETTINGS, scenarioId });
+              if (onModeChange) onModeChange('stakeholder');
+              // overrideMode로 직접 stakeholder 전달
+              setTimeout(() => onSubmit('__SIM_START__', undefined, 'stakeholder' as any), 200);
+            }
+          }}
         />
       )}
 

@@ -98,7 +98,7 @@ export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; d
 };
 
 // Sub-modes for debate
-export type DebateSubMode = 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk';
+export type DebateSubMode = 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk' | 'aivsuser';
 
 export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon: string; description: string }> = {
     standard: { label: '심층 토론', icon: '🎯', description: '3라운드 구조화된 깊이 있는 토론' },
@@ -106,10 +106,11 @@ export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon
     brainstorm: { label: '브레인스토밍', icon: '💡', description: '자유롭게 아이디어를 쏟아내고 발전' },
     hearing: { label: '아이디어 검증', icon: '🔍', description: '전문가들이 날카로운 질문으로 검증' },
     freetalk: { label: '자유 토론', icon: '💬', description: 'AI들이 자유롭게 대화합니다' },
+    aivsuser: { label: 'AI vs 유저', icon: '⚔️', description: 'AI와 직접 1:1~3:1 토론' },
 };
 
 // Flat DiscussionMode for backward compat in logic
-export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk' | 'stakeholder' | 'assistant' | 'player';
+export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk' | 'aivsuser' | 'stakeholder' | 'assistant' | 'player';
 
 export function getMainMode(mode: DiscussionMode): MainMode {
     if (mode === 'general') return 'general';
@@ -132,6 +133,7 @@ export const DISCUSSION_MODE_LABELS: Record<string, { label: string; icon: strin
     brainstorm: { label: '브레인스토밍', icon: '💡', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
     hearing: { label: '아이디어 검증', icon: '🔍', description: '전문가 검증', detail: '전문가들이 각자 전문 분야에서 날카로운 질문으로 아이디어를 검증합니다.' },
     freetalk: { label: '자유 토론', icon: '💬', description: 'AI 단톡방', detail: 'AI들이 짧게 대화하며 자유롭게 의견을 나눕니다.' },
+    aivsuser: { label: 'AI vs 유저', icon: '⚔️', description: 'AI와 직접 토론', detail: 'AI와 1:1~3:1로 직접 토론하고 판정관이 승패를 가립니다.' },
     stakeholder: { label: '스테이크홀더', icon: '🎭', description: '이해관계자 시뮬레이션', detail: '이해관계자 관점에서 반응을 시뮬레이션하여 다각적 피드백을 받습니다.' },
     creative: { label: '창의적 토론', icon: '🎨', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
     endless: { label: '끝장 토론', icon: '♾️', description: '합의까지', detail: '최대 5라운드, 합의에 도달할 때까지 토론합니다.' },
@@ -164,6 +166,10 @@ export interface DebateSettings {
     investorSimulation: boolean;
     // 자유 토론 전용
     freetalkMessageCount?: number;
+    // AI vs 유저 전용
+    aivsUserOpponentCount?: 1 | 2 | 3;
+    aivsUserDifficulty?: 'easy' | 'normal' | 'hard';
+    aivsUserStance?: 'pro' | 'con' | 'random';
 }
 
 export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
@@ -2691,6 +2697,19 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     theme: { bg: 'bg-gray-50', accent: 'text-slate-600', cardBg: 'bg-white' },
     userRole: '제안자', prepQuestions: [], phases: [],
   },
+  {
+    id: 'admission', name: '입시 면접', icon: '🎓', gradient: 'from-teal-100 to-cyan-50', simType: 'roleplay',
+    description: '대학 입시 면접을 연습합니다',
+    roles: [
+      { name: '학과 교수', icon: '👨‍🏫', focus: '전공 적합성, 학업 계획, 지적 호기심' },
+      { name: '입학 사정관', icon: '📝', focus: '자기소개서 진위, 활동 진정성, 성장 가능성' },
+      { name: '인성 면접관', icon: '🧑‍🎓', focus: '가치관, 공동체 의식, 인성과 리더십' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '합격 가능성',
+    verdictOptions: ['합격', '예비', '불합격'],
+    theme: { bg: 'bg-teal-50', accent: 'text-teal-600', cardBg: 'bg-white' },
+    userRole: '수험생', prepQuestions: [], phases: ['자기소개', '전공 면접', '인성 면접', '결과'],
+  },
   // ── 전문가 상담 시나리오 ──
   {
     id: 'medical', name: '의학 상담', icon: '🏥', gradient: 'from-red-100 to-rose-50', isPopular: true, simType: 'consultation',
@@ -2746,7 +2765,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 3, gaugeLabel: '투자 적합도',
     verdictOptions: ['매수 적기', '관망 권고', '매도 권고', '재검토'],
     theme: { bg: 'bg-blue-50', accent: 'text-blue-600', cardBg: 'bg-white' },
-    userRole: '매수 희망자', prepQuestions: [], phases: ['니즈 파악', '시장 분석', '법률 검토', '세금', '종합 판단'],
+    userRole: '매수자', prepQuestions: [], phases: ['니즈 파악', '시장 분석', '법률 검토', '세금', '종합 판단'],
   },
   {
     id: 'startup_sim', name: '창업 상담', icon: '🚀', gradient: 'from-purple-100 to-violet-50', simType: 'consultation',

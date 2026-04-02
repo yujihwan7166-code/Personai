@@ -217,6 +217,7 @@ const Index = () => {
   const [debateIntensity, setDebateIntensity] = useState('moderate');
   const [stakeholderSettings, setStakeholderSettings] = useState<StakeholderSettings>(DEFAULT_STAKEHOLDER_SETTINGS);
   const [simChoices, setSimChoices] = useState<{label: string; description: string}[]>([]);
+  const [simPhaseIndex, setSimPhaseIndex] = useState(0);
   const [, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -389,6 +390,7 @@ const Index = () => {
     setCurrentQuestion('');
     setProconDebateTopic('');
     setSimChoices([]);
+    setSimPhaseIndex(0);
     setIsDiscussing(false);
     setActiveExpertId(undefined);
     skipClarifyRef.current = false;
@@ -1290,6 +1292,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
       // Fix currentQuestion for history
       setCurrentQuestion(`${scenario.icon} ${scenario.name}`);
       sessionTitleRef.current = `${scenario.icon} ${scenario.name}`;
+      setSimPhaseIndex(0);
 
       // 모든 역할을 Gemini에 자동 배정
       const gemini = experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0];
@@ -1322,43 +1325,44 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
         setActiveExpertId(firstExpert.id);
 
         const intensityDesc = shSettings.intensity <= 3 ? '건설적이고 우호적으로' : shSettings.intensity <= 6 ? '균형 잡힌 톤으로' : '날카롭고 도전적으로';
-        const openingPrompts: Record<string, string> = {
-          investment: `당신은 투자 심사를 위한 "${firstRole.name}"입니다.
-자기소개를 간단히 하고, 창업자에게 어떤 사업을 하는지, 시장 규모와 경쟁 우위는 무엇인지 설명해달라고 요청하세요.
-${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`,
-          interview: `당신은 채용 면접을 진행하는 "${firstRole.name}"입니다.
-자기소개를 간단히 하고, 지원자에게 어느 회사(실제 회사명도 가능)에 어떤 포지션으로 지원하는지, 그리고 본인을 간단히 소개해달라고 요청하세요.
-${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`,
-          product: `당신은 제품 런칭 검증을 위한 "${firstRole.name}"입니다.
-자기소개를 간단히 하고, 어떤 제품을 런칭하려는지, 타겟 고객은 누구인지 설명해달라고 요청하세요.
-${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`,
-          internal: `당신은 사내 제안 심사를 위한 "${firstRole.name}"입니다.
-자기소개를 간단히 하고, 어떤 제안을 준비했는지 설명해달라고 요청하세요.
-${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`,
-          policy: `당신은 정책 검토를 위한 "${firstRole.name}"입니다.
-자기소개를 간단히 하고, 어떤 정책을 제안하는지, 왜 이 정책이 필요한지 설명해달라고 요청하세요.
-${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`,
-          strategy: `당신은 전략 회의에 참석한 "${firstRole.name}"입니다.
-자기소개를 간단히 하고, 어떤 전략적 주제를 논의하려는지 설명해달라고 요청하세요.
-${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`,
+        const fixedOpenings: Record<string, string> = {
+          investment: '반갑습니다. 저는 투자를 검토하는 VC 파트너입니다. 바로 본론으로 들어가죠. 어떤 문제를 해결하는 사업인지, 왜 지금이 적기인지부터 시작해주시겠어요?',
+          interview: '안녕하세요, 오늘 면접은 직무 역량, 조직 적합성, 실무 경험 순으로 진행됩니다. 먼저 어느 회사의 어떤 포지션에 지원하셨고, 왜 이 역할에 관심을 갖게 되었는지 말씀해주세요.',
+          product: '안녕하세요, 오늘 신제품 프레젠테이션을 듣게 된 타겟 고객입니다. 솔직히 기존에 쓰는 것도 있어서, 왜 바꿔야 하는지 확 와닿아야 관심이 갈 것 같아요. 어떤 제품인지 보여주시겠어요?',
+          policy: '안녕하세요, 오늘 정책 검토 공청회를 시작하겠습니다. 이 자리에는 시민, 산업계, 법률 전문가가 참석해 있습니다. 정책 입안자께서 먼저 이 정책의 배경, 목적, 그리고 국민 생활에 어떤 변화가 생기는지 설명해주시기 바랍니다.',
+          strategy: '자, 오늘 전략 회의를 시작하죠. 마케팅, 개발, 운영 담당이 모두 모였으니 각자 관점에서 솔직하게 의견 주세요. 먼저 회의 주제와 현재 상황, 달성하려는 목표를 공유해주시겠습니까?',
+          internal: '네, 제안 발표 시작하시죠. 경영진 세 명이 듣고 있습니다. 시간은 한정되어 있으니 현재 어떤 문제가 있고, 이 제안이 왜 필요한지 핵심부터 말씀해주세요.',
+          admission: '안녕하세요, 오늘 면접을 진행할 학과 교수입니다. 먼저 어느 대학교 어떤 학과에 지원했는지, 그리고 이 학과를 선택하게 된 계기가 있다면 말씀해주세요.',
+          medical: '안녕하세요, 접수를 담당하는 간호사입니다. 오늘 어떤 증상으로 오셨는지 편하게 말씀해주세요.',
+          legal_sim: '안녕하세요, 수석 변호사입니다. 어떤 법적 문제로 상담을 원하시는지 상황을 설명해주세요.',
+          finance_sim: '안녕하세요, 재무설계사입니다. 현재 재무 상황이나 고민을 편하게 말씀해주세요.',
+          realestate_sim: '안녕하세요, 부동산 컨설턴트입니다. 어떤 부동산 관련 상담이 필요하신가요?',
+          startup_sim: '안녕하세요, 스타트업 멘토입니다. 어떤 사업 아이디어를 가지고 계신지 들려주세요.',
+          psychology_sim: '안녕하세요, 편하게 이야기해주세요. 요즘 마음이 힘든 부분이 있으신가요?',
         };
-        const openingPrompt = openingPrompts[scenario.id] || `당신은 "${scenario.name}" 시뮬레이션에서 "${firstRole.name}" 역할입니다.
+
+        const fixedText = fixedOpenings[scenario.id];
+        if (fixedText) {
+          setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fixedText, isStreaming: false } : m));
+        } else {
+          // fallback: AI 생성
+          const openingPrompt = `당신은 "${scenario.name}" 시뮬레이션에서 "${firstRole.name}" 역할입니다.
 핵심 관심사: ${firstRole.focus}
 시뮬레이션이 시작됩니다. ${scenario.userRole}(유저)에게 자기소개를 간단히 하고, 상황에 대해 설명해달라고 요청하세요.
 ${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`;
-
-        let fullContent = '';
-        try {
-          await streamExpert({
-            question: '시뮬레이션을 시작합니다. 첫 인사와 함께 상황 설명을 요청하세요.',
-            expert: { ...firstExpert, systemPrompt: openingPrompt },
-            previousResponses: [],
-            round: 'initial' as any,
-            onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isStreaming: false } : m)); },
-            signal: controller.signal,
-          });
-        } catch { /* ignore */ }
+          let fullContent = '';
+          try {
+            await streamExpert({
+              question: '시뮬레이션을 시작합니다.',
+              expert: { ...firstExpert, systemPrompt: openingPrompt },
+              previousResponses: [],
+              round: 'initial' as any,
+              onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fullContent } : m)); },
+              onDone: () => { setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isStreaming: false } : m)); },
+              signal: controller.signal,
+            });
+          } catch { /* ignore */ }
+        }
       }
 
       setIsDiscussing(false);
@@ -1985,9 +1989,17 @@ ${conversationText}`;
 
       const turnCount = conversationHistory.length;
 
+      // 수동 종료 처리
+      if (question === '__SIM_END__') {
+        // 유저 메시지 제거 (종료 트리거이므로)
+        setMessages(prev => prev.filter(m => m.id !== userMsgId));
+      }
+
       // Call orchestrator
       let orchestration: any;
-      try {
+      if (question === '__SIM_END__') {
+        orchestration = { next_speaker: null, speak_direction: '', follow_up_speaker: null, follow_up_direction: null, phase: 'final', reason: 'User ended simulation' };
+      } else try {
         const orchRes = await fetch('/api/sim-orchestrator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1996,6 +2008,13 @@ ${conversationText}`;
             intensity: shSettings.intensity,
             conversationHistory,
             turnCount,
+            mode: scenario.simType === 'consultation' ? 'consultation' : 'roleplay',
+            currentPhase: scenario.simType === 'consultation' ? {
+              index: simPhaseIndex,
+              totalPhases: scenario.roles.length,
+              name: scenario.phases[simPhaseIndex] || '',
+              role: scenario.roles[simPhaseIndex] || scenario.roles[0],
+            } : undefined,
           }),
           signal: controller.signal,
         });
@@ -2071,8 +2090,33 @@ ${conversationText}`;
           await new Promise(r => setTimeout(r, 300));
         }
 
+        // 결과 카드 — 각 역할의 판정을 파싱하여 표시
+        const verdicts: {roleName: string; roleIcon: string; verdict: string}[] = [];
+        for (const resp of allResponses) {
+          const match = resp.content.match(/\[판정:\s*([^\]]+)\]/);
+          if (match) {
+            const roleInfo = scenario.roles.find(r => resp.name.includes(r.name));
+            if (roleInfo) verdicts.push({ roleName: roleInfo.name, roleIcon: roleInfo.icon, verdict: match[1].trim() });
+          }
+        }
+        if (verdicts.length > 0) {
+          // 종합 판정: 가장 많이 나온 verdict
+          const verdictCounts: Record<string, number> = {};
+          verdicts.forEach(v => { verdictCounts[v.verdict] = (verdictCounts[v.verdict] || 0) + 1; });
+          const overallVerdict = Object.entries(verdictCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+          setMessages(prev => [...prev, {
+            id: `sim-result-${Date.now()}`,
+            expertId: '__sim_result__',
+            content: JSON.stringify({
+              scenarioName: scenario.name, scenarioIcon: scenario.icon,
+              gaugeLabel: scenario.gaugeLabel, verdicts, overallVerdict,
+            }),
+          }]);
+        }
+
         // Generate auto report if enabled
-        if (shSettings.autoReport && !controller.signal.aborted) {
+        if (!controller.signal.aborted) {
           const reportMsgId = `sim-report-${Date.now()}`;
           setMessages(prev => [...prev, { id: reportMsgId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
           setActiveExpertId(SUMMARIZER_EXPERT.id);
@@ -2128,13 +2172,51 @@ ${conversationText}`;
       }
 
       // Normal turn: generate speaker responses
+      const rolePersonalities: Record<string, Record<string, string>> = {
+        '채용 면접': {
+          '직무 면접관': '실무 중심으로 구체적 사례를 요구하라. "구체적으로 어떤 프로젝트였나요?", "결과는?" 식으로 꼬리질문.',
+          'HR 담당자': '부드럽지만 핵심을 찌르라. 동기, 비전, 약점을 자연스럽게. "5년 후 어떤 모습이길 원하세요?"',
+          '팀 리더': '함께 일할 사람 관점. "우리 팀에 오면 첫 달에 뭘 하실 건가요?"',
+        },
+        '제품 런칭': {
+          '타겟 고객': '실제 사용자처럼 감정적으로 반응. "이거 진짜 필요해요!" 또는 "기존 거랑 뭐가 다른지 모르겠어요"',
+          '경쟁사 PM': '날카롭게 약점 공격. "우리 제품도 이거 되는데요", "가격이 너무 비싸요"',
+          '테크 리뷰어': '객관적·분석적. 기술 트렌드 맥락에서 평가.',
+        },
+        '정책 검토': {
+          '시민 대표': '감정과 여론 기반. "국민들이 어떻게 받아들일까요?", "형평성 문제는?"',
+          '기업 대표': '경제 수치와 규제 부담 중심. "추가 비용이 얼마?", "고용 영향은?"',
+          '법률 전문가': '판례와 법 조문 기반. 냉정하고 논리적.',
+        },
+        '전략 회의': {
+          '마케팅 이사': '시장 데이터 기반. 합의적이되 마케팅 리소스 확보에 적극적.',
+          '개발 리드': '기술적 실현과 일정에 집중. "가능하지만 3개월은 필요합니다"',
+          '운영 매니저': '비용과 프로세스 현실. "현재 인력으로 감당이 안 됩니다"',
+        },
+        '사내 제안': {
+          '대표이사': '거시적 판단. "이게 우리 회사 3년 계획과 맞나?"',
+          'CFO': '숫자 중심. "투입 대비 수익이 몇 %?", "기회비용은?"',
+          '협업 팀장': '현장 현실. "우리 팀 인력으로 추가로 가능한가?", "기존 업무 영향은?"',
+        },
+        '입시 면접': {
+          '학과 교수': '전공 관련 지식과 학업 의지를 깊이 파고든다. "이 분야를 왜 선택했나요?", "관련 책을 읽은 적 있나요?"',
+          '입학 사정관': '자기소개서 내용의 진정성을 확인. "여기 적힌 활동을 구체적으로 설명해주세요", "이 경험에서 뭘 배웠나요?"',
+          '인성 면접관': '가치관과 인성을 탐색. "갈등 상황에서 어떻게 해결했나요?", "우리 학교에서 뭘 하고 싶나요?"',
+        },
+      };
+
       const buildRolePrompt = (role: {name: string; icon: string; focus: string}, direction: string) => {
-        const intensityDesc = shSettings.intensity <= 3 ? '건설적이고 우호적으로 반응하세요.' : shSettings.intensity <= 6 ? '장단점을 솔직하게 짚으세요.' : '약점을 날카롭게 파고들고 도전적으로 질문하세요.';
+        const isConsultation = scenario.simType === 'consultation';
+        const intensityDesc = isConsultation
+          ? '부드럽고 공감적으로 상담하세요. 유저의 감정을 존중하며 필요한 정보를 자연스럽게 물어보세요.'
+          : shSettings.intensity <= 3 ? '건설적이고 우호적으로 반응하세요.' : shSettings.intensity <= 6 ? '장단점을 솔직하게 짚으세요.' : '약점을 날카롭게 파고들고 도전적으로 질문하세요.';
+        const personality = rolePersonalities[scenario.name]?.[role.name] || '';
         return `당신은 "${scenario.name}" 시뮬레이션에서 "${role.name}" 역할입니다.
 
 ## 정체성
 - 역할: ${role.name} ${role.icon}
 - 핵심 관심사: ${role.focus}
+${personality ? `\n## 역할 성격\n${personality}` : ''}
 
 ## 반응 강도: ${shSettings.intensity}/10
 ${intensityDesc}
@@ -2214,6 +2296,88 @@ ${direction}`;
                 signal: controller.signal,
               });
             } catch { /* ignore */ }
+          }
+        }
+
+        // Handle consultation phase transition
+        if (scenario.simType === 'consultation' && orchestration.next_phase) {
+          const nextIdx = simPhaseIndex + 1;
+          if (nextIdx < scenario.roles.length) {
+            setSimPhaseIndex(nextIdx);
+            const nextRole = scenario.roles[nextIdx];
+            const nextPhase = scenario.phases[nextIdx];
+
+            // Phase transition message
+            setMessages(prev => [...prev, {
+              id: `phase-transition-${Date.now()}`,
+              expertId: '__round__',
+              content: `📋 ${nextIdx + 1}단계: ${nextPhase}`,
+            }]);
+
+            // Next expert introduces themselves
+            const transitionMsgId = `transition-${Date.now()}`;
+            const gemini = experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0];
+            setMessages(prev => [...prev, { id: transitionMsgId, expertId: gemini.id, content: '', isStreaming: true, simRoleName: nextRole.name, simRoleIcon: nextRole.icon }]);
+            setActiveExpertId(gemini.id);
+
+            const transitionPrompt = `당신은 "${scenario.name}" 상담에서 "${nextRole.name}" 역할입니다.
+핵심 관심사: ${nextRole.focus}
+이전 단계에서 수집된 정보를 참조하여, 당신의 전문 영역에서 추가로 필요한 정보를 부드럽게 물어보세요.
+"이전 단계 내용을 확인했습니다"로 시작하고, 당신의 관심사에 맞는 구체적 질문 1~2개를 하세요.
+2~3문장. 한국어. 상담 톤. 공감적.`;
+
+            let transContent = '';
+            try {
+              await streamExpert({
+                question: '다음 단계를 시작해주세요.',
+                expert: { ...gemini, systemPrompt: transitionPrompt },
+                previousResponses: allResponses || conversationHistory.map((m: any) => ({ name: m.speaker, content: m.content })),
+                round: 'initial' as any,
+                onDelta: chunk => { transContent += chunk; setMessages(prev => prev.map(m => m.id === transitionMsgId ? { ...m, content: transContent } : m)); },
+                onDone: () => { setMessages(prev => prev.map(m => m.id === transitionMsgId ? { ...m, isStreaming: false } : m)); },
+                signal: controller.signal,
+              });
+            } catch { /* ignore */ }
+          } else {
+            // Last phase done — generate final deliverable
+            setMessages(prev => [...prev, {
+              id: `consult-final-${Date.now()}`,
+              expertId: '__round__',
+              content: '📋 상담 완료 — 결과물을 생성합니다',
+            }]);
+
+            const outputPrompts: Record<string, string> = {
+              medical: `전체 상담 내용을 바탕으로 SOAP Note를 작성하세요.\n\n## S (Subjective) — 주관적 호소\n환자가 호소한 증상, 발병 시기, 악화/완화 요인\n\n## O (Objective) — 객관적 소견\n문진 결과, 약물 복용 현황, 생활습관 평가\n\n## A (Assessment) — 평가\n감별진단 목록, 위험도 평가\n\n## P (Plan) — 계획\n권장 검사, 생활 교정, 추적 관찰 일정, 전문의 연계`,
+              legal_sim: `전체 상담 내용을 바탕으로 법률의견서를 작성하세요.\n\n## 1. 사건 개요\n## 2. 법적 쟁점 분석\n## 3. 관련 법조문 및 판례\n## 4. 승소 가능성 평가\n## 5. 권고 전략\n## 6. 예상 비용 및 기간`,
+              finance_sim: `전체 상담 내용을 바탕으로 개인재무보고서를 작성하세요.\n\n## 1. 재무 건강 진단\n## 2. 생애주기 재무 이벤트\n## 3. 투자 성향 프로파일\n## 4. 절세 전략\n## 5. 포트폴리오 설계\n## 6. 90일 액션플랜`,
+              realestate_sim: `전체 상담 내용을 바탕으로 부동산 투자분석보고서를 작성하세요.\n\n## 1. 매수 목적 및 조건\n## 2. 시세 분석 및 전망\n## 3. 법률 리스크 체크\n## 4. 세금 시뮬레이션\n## 5. 매수/관망/매도 판정\n## 6. 실행 체크리스트`,
+              startup_sim: `전체 상담 내용을 바탕으로 사업계획서를 작성하세요.\n\n## 1. Executive Summary\n## 2. 문제 정의 및 솔루션\n## 3. 시장 분석 (TAM/SAM/SOM)\n## 4. 비즈니스 모델\n## 5. 재무 계획\n## 6. 90일 로드맵`,
+              psychology_sim: `전체 상담 내용을 바탕으로 심리 건강 리포트를 작성하세요.\n\n## 1. 감정 상태 평가\n## 2. 스트레스 요인 분석\n## 3. 수면/생활 패턴\n## 4. 권장 관리법\n## 5. 종합 소견\n## 6. 전문 상담 연계 권고`,
+            };
+
+            const outputPrompt = outputPrompts[scenario.id] || '전체 상담 내용을 바탕으로 종합 리포트를 작성하세요.';
+            const reportMsgId = `consult-report-${Date.now()}`;
+            const gemini = experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0];
+            setMessages(prev => [...prev, { id: reportMsgId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+            setActiveExpertId(SUMMARIZER_EXPERT.id);
+
+            let reportContent = '';
+            const allResp = conversationHistory.map((m: any) => ({ name: m.speaker, content: m.content }));
+            try {
+              await streamExpert({
+                question: '결과물을 작성해주세요.',
+                expert: { ...SUMMARIZER_EXPERT, systemPrompt: outputPrompt + '\n\n한국어. 마크다운 형식. 상담 내용을 구체적으로 인용.' },
+                previousResponses: allResp,
+                round: 'summary' as any,
+                onDelta: chunk => { reportContent += chunk; setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, content: reportContent } : m)); },
+                onDone: () => { setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, isStreaming: false } : m)); },
+                signal: controller.signal,
+              });
+            } catch { /* ignore */ }
+
+            setIsDiscussing(false);
+            setActiveExpertId(undefined);
+            return;
           }
         }
       }
@@ -2322,7 +2486,7 @@ ${direction}`;
 
     // 다른 모드: 새 토론 시작
     startDiscussion(question);
-  }, [isDiscussing, discussionMode, activeExperts, messages, allExperts, proconStances, startDiscussion, stakeholderSettings, experts, debateSettings, currentQuestion]);
+  }, [isDiscussing, discussionMode, activeExperts, messages, allExperts, proconStances, startDiscussion, stakeholderSettings, experts, debateSettings, currentQuestion, simPhaseIndex]);
 
   // Export discussion as markdown
 
@@ -2494,7 +2658,19 @@ ${direction}`;
           <div ref={scrollRef} className={cn("flex-1 overflow-y-auto scrollbar-thin relative", discussionMode === 'player' && 'bg-gradient-to-b from-slate-900 to-slate-800')} onScroll={handleScroll}>
             {/* Simulation wrapper — 헤더 + 대화 영역을 하나의 흰색 카드로 */}
             {!selectable && discussionMode === 'stakeholder' && (() => {
-              const scenario = SIMULATION_SCENARIOS.find(s => s.id === stakeholderSettings.scenarioId);
+              const scenario = SIMULATION_SCENARIOS.find(s => s.id === stakeholderSettings.scenarioId)
+                || (() => {
+                  // 히스토리에서 불러왔을 때: briefing 메시지에서 시나리오 복원
+                  const briefingMsg = messages.find(m => m.expertId === '__sim_briefing__');
+                  if (briefingMsg) {
+                    try {
+                      const b = JSON.parse(briefingMsg.content);
+                      return SIMULATION_SCENARIOS.find(s => s.name === b.scenarioName) || null;
+                    } catch { return null; }
+                  }
+                  // briefing 없으면 currentQuestion에서 시나리오 추정
+                  return SIMULATION_SCENARIOS.find(s => currentQuestion.includes(s.name)) || null;
+                })();
               return scenario ? (
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[calc(100vh-200px)] flex flex-col">
@@ -2505,18 +2681,68 @@ ${direction}`;
                         <span className="text-[14px] font-extrabold text-slate-800">{scenario.name}</span>
                         <span className="text-[11px] text-slate-400 font-medium">· AI 시뮬레이션</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {scenario.roles.map(r => (
-                          <span key={r.name} className="text-[11px] text-slate-600 font-medium flex items-center gap-1">
-                            <span>{r.icon}</span> {r.name}
-                          </span>
-                        ))}
+                      <div className="flex items-center gap-2">
+                        {scenario.roles.map((r, ri) => {
+                          const isConsult = scenario.simType === 'consultation';
+                          const isCurrent = isConsult && ri === simPhaseIndex;
+                          const isDone = isConsult && ri < simPhaseIndex;
+                          return (
+                            <span key={r.name} className={cn('text-[10px] font-medium flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all',
+                              isCurrent ? 'bg-indigo-100 text-indigo-700 font-bold' :
+                              isDone ? 'text-slate-400' :
+                              'text-slate-500'
+                            )}>
+                              <span>{r.icon}</span> {r.name}
+                              {isDone && <span className="text-[8px]">✓</span>}
+                            </span>
+                          );
+                        })}
+                        {messages.filter(m => m.expertId === '__user__').length >= 2 && !isDiscussing && (
+                          <button
+                            onClick={() => {
+                              // 직접 final 처리 트리거
+                              handleFollowUp('__SIM_END__');
+                            }}
+                            className="text-[10px] text-slate-400 hover:text-red-500 font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors ml-2"
+                          >
+                            종료
+                          </button>
+                        )}
                       </div>
                     </div>
                     {/* 대화 영역 */}
                     <div className="flex-1 p-5 space-y-2.5">
                       {messages.map((msg, idx) => {
                         if (msg.expertId === '__sim_briefing__') return null;
+                        if (msg.expertId === '__sim_result__') {
+                          let result: any = {};
+                          try { result = JSON.parse(msg.content); } catch {}
+                          const vList = result.verdicts || [];
+                          return (
+                            <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500 my-4">
+                              <div className="rounded-xl border border-slate-200 overflow-hidden shadow-md">
+                                <div className="bg-slate-800 px-5 py-3 flex items-center gap-2">
+                                  <span className="text-[16px]">{result.scenarioIcon}</span>
+                                  <span className="text-[14px] font-bold text-white">시뮬레이션 결과</span>
+                                </div>
+                                <div className="bg-white p-4 space-y-2">
+                                  {vList.map((v: any, i: number) => (
+                                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50">
+                                      <span className="text-[12px] font-medium text-slate-700 flex items-center gap-1.5">
+                                        <span className="text-[14px]">{v.roleIcon}</span> {v.roleName}
+                                      </span>
+                                      <span className="text-[12px] font-bold text-slate-800">{v.verdict}</span>
+                                    </div>
+                                  ))}
+                                  <div className="pt-2 border-t border-slate-200 text-center">
+                                    <span className="text-[10px] text-slate-400">{result.gaugeLabel}</span>
+                                    <div className="text-[16px] font-bold text-slate-800 mt-0.5">{result.overallVerdict}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
                         if (msg.expertId === '__round__') {
                           return (
                             <div key={msg.id} className="flex justify-center py-2">
@@ -2574,7 +2800,87 @@ ${direction}`;
                     </div>
                   </div>
                 </div>
-              ) : null;
+              ) : (
+                // scenario 못 찾았을 때 fallback — simRoleName 기반으로 렌더링
+                <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[calc(100vh-200px)] flex flex-col">
+                    <div className="flex-1 p-5 space-y-2.5">
+                      {messages.map((msg, idx) => {
+                        if (msg.expertId === '__sim_briefing__' || msg.expertId === '__round__') {
+                          if (msg.expertId === '__round__') return (
+                            <div key={msg.id} className="flex justify-center py-2">
+                              <span className="px-3 py-1 rounded-full bg-slate-100 text-[10px] text-slate-400 font-medium">{msg.content}</span>
+                            </div>
+                          );
+                          return null;
+                        }
+                        if (msg.expertId === '__sim_result__') {
+                          let result: any = {};
+                          try { result = JSON.parse(msg.content); } catch {}
+                          const vList = result.verdicts || [];
+                          return (
+                            <div key={msg.id} className="my-4">
+                              <div className="rounded-xl border border-slate-200 overflow-hidden shadow-md">
+                                <div className="bg-slate-800 px-5 py-3"><span className="text-[14px] font-bold text-white">📋 시뮬레이션 결과</span></div>
+                                <div className="bg-white p-4 space-y-2">
+                                  {vList.map((v: any, i: number) => (
+                                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50">
+                                      <span className="text-[12px] font-medium text-slate-700">{v.roleIcon} {v.roleName}</span>
+                                      <span className="text-[12px] font-bold text-slate-800">{v.verdict}</span>
+                                    </div>
+                                  ))}
+                                  {result.overallVerdict && <div className="pt-2 border-t text-center"><div className="text-[16px] font-bold">{result.overallVerdict}</div></div>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        if (msg.expertId === '__user__') {
+                          return (
+                            <div key={msg.id} className="flex justify-end mt-4">
+                              <div className="max-w-[70%] bg-slate-100 rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] text-slate-700 leading-relaxed">
+                                <ReactMarkdownInline content={msg.content} />
+                              </div>
+                            </div>
+                          );
+                        }
+                        if (msg.isSummary) {
+                          const expert = allExperts.find(e => e.id === msg.expertId);
+                          if (!expert) return null;
+                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                        }
+                        const expert = allExperts.find(e => e.id === msg.expertId);
+                        if (!expert) return null;
+                        const rName = msg.simRoleName;
+                        const rIcon = msg.simRoleIcon;
+                        const roleIdx = rName ? Math.abs([...rName].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)) % 4 : -1;
+                        const roleStyles = [
+                          { iconBg: 'bg-blue-100', bubble: 'bg-blue-100/50 border-blue-200' },
+                          { iconBg: 'bg-amber-100', bubble: 'bg-amber-100/50 border-amber-200' },
+                          { iconBg: 'bg-emerald-100', bubble: 'bg-emerald-100/50 border-emerald-200' },
+                          { iconBg: 'bg-violet-100', bubble: 'bg-violet-100/50 border-violet-200' },
+                        ];
+                        const style = roleIdx >= 0 ? roleStyles[roleIdx] : { iconBg: 'bg-slate-100', bubble: 'bg-slate-50 border-slate-200' };
+                        const prevMsg = idx > 0 ? messages[idx - 1] : null;
+                        const isContinuation = prevMsg && prevMsg.simRoleName === msg.simRoleName && msg.simRoleName && prevMsg.expertId !== '__user__';
+                        return (
+                          <div key={msg.id} className={cn('flex items-start gap-2.5 max-w-[80%]', isContinuation ? 'mt-1' : 'mt-4')}>
+                            {isContinuation ? <div className="w-9 shrink-0" /> : (
+                              <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-[16px] shrink-0 mt-0.5', style.iconBg)}>{rIcon || '🤖'}</div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              {!isContinuation && <span className="text-[11px] font-bold text-slate-600">{rName || expert.nameKo}</span>}
+                              <div className={cn('px-3.5 py-2.5 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 leading-relaxed', style.bubble, !isContinuation && 'mt-1')}>
+                                {msg.content ? <ReactMarkdown>{msg.content}</ReactMarkdown> : ''}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
             })()}
 
             <div className={cn(
@@ -4486,13 +4792,14 @@ ${direction}`;
                   const expert = allExperts.find(e => e.id === msg.expertId);
                   if (!expert) return null;
 
-                  // Stakeholder mode: 역할별 메시지 (히스토리에서 불러올 때도 simRoleName 사용)
-                  if (discussionMode === 'stakeholder') {
+                  // Stakeholder mode: 역할별 메시지 (simRoleName 기반 — 히스토리 복원 시에도 작동)
+                  if (discussionMode === 'stakeholder' && (msg.simRoleName || stakeholderSettings.scenarioId)) {
                     const simScenario = SIMULATION_SCENARIOS.find(s => s.id === stakeholderSettings.scenarioId);
-                    if (simScenario) {
-                      const rName = msg.simRoleName || Object.entries(stakeholderSettings.roleAssignments).find(([_, eid]) => eid === expert.id)?.[0];
-                      const rIcon = msg.simRoleIcon || simScenario.roles.find(r => r.name === rName)?.icon;
-                      const roleIdx = rName ? simScenario.roles.findIndex(r => r.name === rName) : -1;
+                    {
+                      const rName = msg.simRoleName || (simScenario ? Object.entries(stakeholderSettings.roleAssignments).find(([_, eid]) => eid === expert.id)?.[0] : undefined);
+                      const rIcon = msg.simRoleIcon || (simScenario ? simScenario.roles.find(r => r.name === rName)?.icon : undefined);
+                      // 역할 이름 해시로 안정적 색상 인덱스
+                      const roleIdx = rName ? Math.abs([...rName].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)) % 4 : -1;
                       const roleStyles = [
                         { iconBg: 'bg-blue-100', name: 'text-blue-700', bubble: 'bg-blue-50 border-blue-100' },
                         { iconBg: 'bg-amber-100', name: 'text-amber-700', bubble: 'bg-amber-50 border-amber-100' },
@@ -4519,8 +4826,7 @@ ${direction}`;
                           </div>
                         </div>
                       );
-                    }
-                  }
+                    }}
 
                   return (
                     <DiscussionMessageCard

@@ -6,10 +6,73 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
-  const { scenario, intensity, conversationHistory, turnCount } = req.body || {};
+  const { scenario, intensity, conversationHistory, turnCount, mode, currentPhase } = req.body || {};
 
   if (!scenario || !conversationHistory) {
     return res.status(400).json({ error: 'scenario and conversationHistory required' });
+  }
+
+  // Consultation 모드: 순차 상담 전용 프롬프트
+  if (mode === 'consultation' && currentPhase) {
+    const consultPrompt = `당신은 "${scenario.name}" 순차 상담의 진행 관리자입니다.
+
+## 현재 상태
+- 현재 단계: ${currentPhase.index + 1}/${currentPhase.totalPhases} (${currentPhase.name})
+- 현재 담당 전문가: ${currentPhase.role.name}
+- 전문가 관심사: ${currentPhase.role.focus}
+
+## 대화 기록
+${conversationHistory.map((m: any) => `[${m.speaker}] ${m.content}`).join('\n')}
+
+## 판단 지시
+현재 전문가(${currentPhase.role.name})가 유저로부터 충분한 정보를 수집했는지 판단하세요.
+
+반드시 순수 JSON만 출력:
+{
+  "next_speaker": "${currentPhase.role.name}",
+  "speak_direction": "이 전문가가 다음에 물어볼 구체적 질문 방향",
+  "next_phase": true 또는 false,
+  "phase": "ongoing",
+  "reason": "판단 근거"
+}
+
+## 판단 기준
+- 유저가 이 단계에서 2회 이상 답변했고, 핵심 정보(증상/상황/수치 등)를 충분히 제공했으면 → next_phase: true
+- 아직 핵심 정보가 부족하면 → next_phase: false, 부족한 부분을 구체적으로 speak_direction에 명시
+- 유저가 "모르겠다", "없다"라고 답한 항목은 스킵 가능
+- 상담 톤이므로 부드럽고 공감적인 질문 방향을 제시하라`;
+
+    const model = 'gemini-2.5-flash-lite';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    try {
+      const res2 = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: consultPrompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
+        }),
+      });
+      if (!res2.ok) {
+        return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '추가 질문을 해주세요.', next_phase: false, phase: 'ongoing', reason: 'API error' });
+      }
+      const data = await res2.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '추가 정보를 물어보세요.', next_phase: false, phase: 'ongoing', reason: 'parse error' });
+      }
+      const result = JSON.parse(jsonMatch[0]);
+      result.next_speaker = result.next_speaker || currentPhase.role.name;
+      result.speak_direction = result.speak_direction || '추가 질문을 해주세요.';
+      result.next_phase = result.next_phase === true;
+      result.phase = result.phase || 'ongoing';
+      return res.status(200).json(result);
+    } catch {
+      return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '추가 질문을 해주세요.', next_phase: false, phase: 'ongoing', reason: 'exception' });
+    }
   }
 
   const roleNames = scenario.roles.map((r: any) => r.name).join(', ');
@@ -69,10 +132,19 @@ ${conversationHistory.map((m: any) => `[${m.speaker}] ${m.content}`).join('\n')}
 8. ${turnCount >= 16 ? 'wrapping_up 단계입니다. 각 역할이 최종 입장을 밝히도록 유도하세요.' : ''}
 9. wrapping_up에서 모든 역할이 최종 입장을 밝혔으면 → phase를 final로 전환
 
-## 대화 흐름 가이드
-- 초반(1~4턴): 사업 개요, 시장 규모, 핵심 가치 제안에 집중
-- 중반(5~10턴): 수익 모델, 경쟁 우위, 팀 구성, 재무 계획 심화
-- 후반(11~15턴): 리스크, 엑싯 전략, 밸류에이션 검증
+## 대화 흐름 가이드 (이 시나리오에 맞게 따르라)
+${(() => {
+  const guides: Record<string, string> = {
+    '투자 유치': '- 초반(1~4턴): 사업 개요, 시장 규모(TAM/SAM/SOM), 핵심 가치 제안\n- 중반(5~10턴): 수익 모델, 경쟁 우위, 팀 구성, 재무 계획\n- 후반(11~15턴): 리스크, 엑싯 전략, 밸류에이션 검증',
+    '채용 면접': '- 초반(1~4턴): 자기소개, 지원 동기, 회사/포지션 이해도\n- 중반(5~10턴): 직무 역량 검증 (기술 질문, 문제해결 사례, 프로젝트 경험)\n- 후반(11~15턴): 조직 적합성, 팀워크, 성장 비전, 연봉 협상\n- 특수: 압박 질문 1~2회 포함 (예: "왜 이전 회사를 나왔나요?", "본인의 약점은?")',
+    '제품 런칭': '- 초반(1~4턴): 제품 소개, 타겟 고객, 해결하는 문제\n- 중반(5~10턴): 기존 대안 대비 차별점, 가격 정책, UX/기술 완성도\n- 후반(11~15턴): 시장 진입 전략, 경쟁 대응, 확장 계획\n- 특수: 타겟 고객은 감정적("이거 필요해!"), 경쟁사 PM은 공격적',
+    '정책 검토': '- 초반(1~4턴): 정책 배경과 목적, 현재 문제, 핵심 내용\n- 중반(5~10턴): 이해관계자별 영향 (시민 생활, 기업 비용, 법적 쟁점)\n- 후반(11~15턴): 대안/보완책, 시행 로드맵, 부작용 최소화\n- 특수: 시민=감정+여론, 기업=수치, 법률=판례',
+    '전략 회의': '- 초반(1~4턴): 전략 주제 소개, 현황 분석, 목표 설정\n- 중반(5~10턴): 부서별 관점에서 검토 (마케팅/기술/운영)\n- 후반(11~15턴): 우선순위, 일정/예산 합의, 실행 계획\n- 특수: 대립보다 합의 지향. "이건 좋은데 일정이..." 식으로',
+    '사내 제안': '- 초반(1~4턴): 제안 배경, 현재 문제점, 핵심 내용\n- 중반(5~10턴): 비용/예산, ROI, 실행 가능성, 타 부서 영향\n- 후반(11~15턴): 리스크, 대안 비교, 승인 조건\n- 특수: 대표=거시적, CFO=숫자, 팀장=현장 현실',
+    '입시 면접': '- 초반(1~4턴): 자기소개, 지원 동기, 학과 선택 이유\n- 중반(5~10턴): 전공 적합성 (관련 경험, 독서, 학업 계획), 자기소개서 내용 검증\n- 후반(11~15턴): 인성 (가치관, 리더십, 공동체), 학교생활 포부\n- 특수: 교수는 학문적 깊이, 사정관은 진정성, 인성면접관은 가치관',
+  };
+  return guides[scenario.name] || '- 초반: 상황 파악과 핵심 질문\n- 중반: 심화 검증\n- 후반: 최종 판단';
+})()}
 - 마무리(16턴~): 최종 입장 정리
 
 ## speak_direction 작성 규칙
