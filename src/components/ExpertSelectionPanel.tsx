@@ -315,7 +315,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🎯</span>
               <span className="text-[11px] font-bold text-emerald-700">토론 참여자</span>
-              <span className="text-[9px] text-emerald-400 font-medium">· 심층 토론</span>
+              <span className="text-[11px] text-emerald-500 font-bold">심층 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -500,7 +500,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚖️</span>
               <span className="text-[11px] font-bold text-violet-700">진영 배정</span>
-              <span className="text-[9px] text-violet-400 font-medium">· 찬반 토론</span>
+              <span className="text-[11px] text-violet-500 font-bold">찬반 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -677,79 +677,56 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           </div>
 
           {showBotPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowBotPicker(false)} title="참여자 추가" accentColor="amber" maxCount={3} />}
-        </div>
 
-        {/* Framework */}
-        <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">사고 프레임워크</div>
-          <div className="grid grid-cols-5 gap-1.5">
-            {THINKING_FRAMEWORKS.map((fw) => (
-              <div key={fw.id} className="relative group/fw">
-                <button onClick={() => onFrameworkChange?.(selectedFramework?.id === fw.id ? null : fw)}
-                  className={cn('relative w-full px-2 py-2 rounded-lg text-center transition-all duration-150',
-                    selectedFramework?.id === fw.id ? `bg-gradient-to-br ${fw.color} ring-2 ring-slate-300` : 'bg-slate-50 hover:bg-slate-100')}>
-                  {selectedFramework?.id === fw.id && (
-                    <span className="absolute top-1 right-1 w-3 h-3 bg-slate-700 rounded-full flex items-center justify-center">
-                      <Check className="w-2 h-2 text-white" />
-                    </span>
-                  )}
-                  <div className="text-[13px]">{fw.icon}</div>
-                  <div className="text-[9px] font-semibold text-slate-700 mt-0.5 leading-tight">{fw.nameKo}</div>
-                </button>
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 p-3 rounded-xl bg-slate-800 text-white text-[10px] leading-relaxed shadow-xl opacity-0 invisible group-hover/fw:opacity-100 group-hover/fw:visible transition-all duration-200 z-[9999] pointer-events-none">
-                  <div className="font-bold text-[11px] mb-1">{fw.icon} {fw.nameKo}</div>
-                  <p className="text-slate-300 mb-2">{fw.detailDescription}</p>
-                  <div className="space-y-0.5">{fw.rounds.map((r, i) => (
-                    <div key={i} className="text-[9px] text-slate-400"><span className="text-slate-200">{i + 1}.</span> {r.label}</div>
-                  ))}</div>
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-slate-800 rotate-45 -mt-1" />
+          {/* 프레임워크 — 카드 안 */}
+          <div className="px-3.5 py-3 border-t border-amber-100">
+            <div className="text-[10px] font-semibold text-slate-600 mb-2">사고 프레임워크</div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {THINKING_FRAMEWORKS.map((fw) => (
+                <div key={fw.id} className="relative group/fw">
+                  <button onClick={() => onFrameworkChange?.(selectedFramework?.id === fw.id ? null : fw)}
+                    className={cn('relative w-full px-2 py-2 rounded-lg text-center transition-all duration-150',
+                      selectedFramework?.id === fw.id ? `bg-gradient-to-br ${fw.color} ring-2 ring-slate-300` : 'bg-slate-50 hover:bg-slate-100')}>
+                    {selectedFramework?.id === fw.id && (
+                      <span className="absolute top-1 right-1 w-3 h-3 bg-slate-700 rounded-full flex items-center justify-center">
+                        <Check className="w-2 h-2 text-white" />
+                      </span>
+                    )}
+                    <div className="text-[13px]">{fw.icon}</div>
+                    <div className="text-[9px] font-semibold text-slate-700 mt-0.5 leading-tight">{fw.nameKo}</div>
+                  </button>
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 p-3 rounded-xl bg-slate-800 text-white text-[10px] leading-relaxed shadow-xl opacity-0 invisible group-hover/fw:opacity-100 group-hover/fw:visible transition-all duration-200 z-[9999] pointer-events-none">
+                    <div className="font-bold text-[11px] mb-1">{fw.icon} {fw.nameKo}</div>
+                    <p className="text-slate-300 mb-2">{fw.detailDescription}</p>
+                    <div className="space-y-0.5">{fw.rounds.map((r, i) => (
+                      <div key={i} className="text-[9px] text-slate-400"><span className="text-slate-200">{i + 1}.</span> {r.label}</div>
+                    ))}</div>
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-slate-800 rotate-45 -mt-1" />
+                  </div>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 설정 — 카드 하단, 연한 배경 */}
+          <div className="bg-slate-50/70 border-t border-amber-100">
+            <div className="flex items-center gap-3 px-4 py-2">
+              <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">창의성</span>
+              <div className="flex gap-1 flex-1">
+                {[{ id: 'realistic' as const, l: '현실적' }, { id: 'balanced' as const, l: '균형' }, { id: 'radical' as const, l: '창의적' }].map(opt => (
+                  <button key={opt.id} onClick={() => update({ creativityLevel: opt.id })}
+                    className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                      ds.creativityLevel === opt.id ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-white')}>
+                    {opt.l}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+            <div className="flex items-center justify-between px-4 py-2 border-t border-slate-100/80">
+              <span className="text-[10px] font-semibold text-slate-500">중복 필터링</span>
+              <Toggle checked={ds.deduplication} onChange={v => update({ deduplication: v })} />
+            </div>
           </div>
-        </div>
-
-        {/* 창의성 수준 */}
-        <div>
-          <div className="text-[11px] font-bold text-slate-600 mb-2">창의성</div>
-          <div className="flex gap-2">
-            {[{ id: 'realistic' as const, label: '현실적', desc: '실용적 아이디어 중심' }, { id: 'balanced' as const, label: '균형', desc: '현실+창의 조합' }, { id: 'radical' as const, label: '창의적', desc: '파격적 발상 허용' }].map(opt => (
-              <button key={opt.id} onClick={() => update({ creativityLevel: opt.id })}
-                className={cn('flex-1 px-3 py-2.5 rounded-lg text-center transition-all border',
-                  ds.creativityLevel === opt.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
-                <div className="text-[12px] font-bold">{opt.label}</div>
-                <div className="text-[9px] opacity-70 mt-0.5">{opt.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 중복 필터링 */}
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-700">중복 필터링</p>
-            <p className="text-[9px] text-slate-400">유사한 아이디어 자동 제거</p>
-          </div>
-          <Toggle checked={ds.deduplication} onChange={v => update({ deduplication: v })} />
-        </div>
-
-        {/* 안내 메시지 + 예시 주제 */}
-        <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 p-3.5">
-          <p className="text-[12px] font-bold text-amber-800 mb-2">어떤 주제로 브레인스토밍할까요?</p>
-          <div className="space-y-1.5">
-            {[
-              { icon: '🚀', text: '우리 서비스의 신규 기능 아이디어' },
-              { icon: '📈', text: 'Z세대 고객을 위한 마케팅 전략' },
-              { icon: '💡', text: '원격 근무 생산성을 높이는 방법' },
-              { icon: '🎯', text: '올해 매출을 2배로 늘리려면?' },
-            ].map((example, i) => (
-              <p key={i} className="text-[11px] text-amber-700">
-                <span className="mr-1">{example.icon}</span>
-                {example.text}
-              </p>
-            ))}
-          </div>
-          <p className="text-[10px] text-amber-500 mt-2">아래 입력란에 주제를 입력하면 전문가들이 함께 아이디어를 발산합니다</p>
         </div>
     </div>
   );
@@ -795,7 +772,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🔍</span>
               <span className="text-[11px] font-bold text-amber-700">아이디어 검증</span>
-              <span className="text-[9px] text-amber-400 font-medium">· 아이디어 검증</span>
+              <span className="text-[11px] text-amber-500 font-bold">아이디어 검증</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -937,7 +914,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💬</span>
               <span className="text-[11px] font-bold text-cyan-700">참여 AI</span>
-              <span className="text-[9px] text-cyan-400 font-medium">· 자유 토론</span>
+              <span className="text-[11px] text-cyan-500 font-bold">자유 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -1047,7 +1024,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚔️</span>
               <span className="text-[11px] font-bold text-rose-700">AI vs 유저</span>
-              <span className="text-[9px] text-rose-400 font-medium">· AI vs 유저</span>
+              <span className="text-[11px] text-rose-500 font-bold">AI vs 유저</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
