@@ -315,21 +315,22 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🎯</span>
               <span className="text-[11px] font-bold text-emerald-700">토론 참여자</span>
+              <span className="text-[9px] text-emerald-400 font-medium">· 심층 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
                 {[
-                  { mode: 'procon' as const, label: '찬반' },
-                  { mode: 'standard' as const, label: '심층' },
-                  { mode: 'freetalk' as const, label: '자유' },
-                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  { mode: 'procon' as const, label: '⚖️ 찬반' },
+                  { mode: 'standard' as const, label: '🎯 심층' },
+                  { mode: 'freetalk' as const, label: '💬 자유' },
+                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
                 ].map(t => (
                   <button key={t.mode}
                     onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
                       t.mode === 'standard'
-                        ? 'bg-white/80 text-emerald-700 font-bold shadow-sm cursor-default'
-                        : 'text-emerald-600/50 hover:text-emerald-700 hover:bg-white/30'
+                        ? 'bg-emerald-500 text-white shadow-sm cursor-default'
+                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
                     )}>
                     {t.label}
                   </button>
@@ -499,21 +500,22 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚖️</span>
               <span className="text-[11px] font-bold text-violet-700">진영 배정</span>
+              <span className="text-[9px] text-violet-400 font-medium">· 찬반 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
                 {[
-                  { mode: 'procon' as const, label: '찬반' },
-                  { mode: 'standard' as const, label: '심층' },
-                  { mode: 'freetalk' as const, label: '자유' },
-                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  { mode: 'procon' as const, label: '⚖️ 찬반' },
+                  { mode: 'standard' as const, label: '🎯 심층' },
+                  { mode: 'freetalk' as const, label: '💬 자유' },
+                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
                 ].map(t => (
                   <button key={t.mode}
                     onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
                       t.mode === 'procon'
-                        ? 'bg-white/80 text-violet-700 font-bold shadow-sm cursor-default'
-                        : 'text-violet-600/50 hover:text-violet-700 hover:bg-white/30'
+                        ? 'bg-violet-500 text-white shadow-sm cursor-default'
+                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
                     )}>
                     {t.label}
                   </button>
@@ -793,22 +795,23 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🔍</span>
               <span className="text-[11px] font-bold text-amber-700">아이디어 검증</span>
+              <span className="text-[9px] text-amber-400 font-medium">· 아이디어 검증</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
                 {[
-                  { mode: 'procon' as const, label: '찬반' },
-                  { mode: 'standard' as const, label: '심층' },
-                  { mode: 'hearing' as const, label: '검증' },
-                  { mode: 'freetalk' as const, label: '자유' },
-                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  { mode: 'procon' as const, label: '⚖️ 찬반' },
+                  { mode: 'standard' as const, label: '🎯 심층' },
+                  { mode: 'hearing' as const, label: '🔍 검증' },
+                  { mode: 'freetalk' as const, label: '💬 자유' },
+                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
                 ].map(t => (
                   <button key={t.mode}
                     onClick={t.mode === 'hearing' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
                       t.mode === 'hearing'
-                        ? 'bg-white/80 text-amber-700 font-bold shadow-sm cursor-default'
-                        : 'text-amber-600/50 hover:text-amber-700 hover:bg-white/30'
+                        ? 'bg-amber-500 text-white shadow-sm cursor-default'
+                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
                     )}>
                     {t.label}
                   </button>
@@ -934,21 +937,22 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💬</span>
               <span className="text-[11px] font-bold text-cyan-700">참여 AI</span>
+              <span className="text-[9px] text-cyan-400 font-medium">· 자유 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
                 {[
-                  { mode: 'procon' as const, label: '찬반' },
-                  { mode: 'standard' as const, label: '심층' },
-                  { mode: 'freetalk' as const, label: '자유' },
-                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  { mode: 'procon' as const, label: '⚖️ 찬반' },
+                  { mode: 'standard' as const, label: '🎯 심층' },
+                  { mode: 'freetalk' as const, label: '💬 자유' },
+                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
                 ].map(t => (
                   <button key={t.mode}
                     onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
                       t.mode === 'freetalk'
-                        ? 'bg-white/80 text-cyan-700 font-bold shadow-sm cursor-default'
-                        : 'text-cyan-600/50 hover:text-cyan-700 hover:bg-white/30'
+                        ? 'bg-cyan-500 text-white shadow-sm cursor-default'
+                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
                     )}>
                     {t.label}
                   </button>
@@ -1043,21 +1047,22 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚔️</span>
               <span className="text-[11px] font-bold text-rose-700">AI vs 유저</span>
+              <span className="text-[9px] text-rose-400 font-medium">· AI vs 유저</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
                 {[
-                  { mode: 'procon' as const, label: '찬반' },
-                  { mode: 'standard' as const, label: '심층' },
-                  { mode: 'freetalk' as const, label: '자유' },
-                  { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  { mode: 'procon' as const, label: '⚖️ 찬반' },
+                  { mode: 'standard' as const, label: '🎯 심층' },
+                  { mode: 'freetalk' as const, label: '💬 자유' },
+                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
                 ].map(t => (
                   <button key={t.mode}
                     onClick={t.mode === 'aivsuser' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all',
+                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
                       t.mode === 'aivsuser'
-                        ? 'bg-white/80 text-rose-700 font-bold shadow-sm cursor-default'
-                        : 'text-rose-600/50 hover:text-rose-700 hover:bg-white/30'
+                        ? 'bg-rose-500 text-white shadow-sm cursor-default'
+                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
                     )}>
                     {t.label}
                   </button>
