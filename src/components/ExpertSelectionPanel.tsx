@@ -541,7 +541,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                       <span className={cn('text-[11px] font-bold', isPro ? 'text-blue-600' : 'text-red-600')}>{isPro ? '찬성' : '반대'}</span>
                       <span className={cn('text-[9px]', isPro ? 'text-blue-400' : 'text-red-400')}>{assigned.length}/{MAX_PER_ZONE}</span>
                     </div>
-                    <div className="flex flex-wrap gap-2 justify-center min-h-[48px]">
+                    <div className="flex flex-wrap gap-2 justify-center min-h-[80px] items-center">
                       {assigned.map(id => {
                         const e = experts.find(x => x.id === id);
                         if (!e) return null;
@@ -1125,6 +1125,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
         </div>
 
         {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="상대 AI 선택" accentColor="red" maxCount={3} />}
+      </div>
       </div>
     </div>
   );
