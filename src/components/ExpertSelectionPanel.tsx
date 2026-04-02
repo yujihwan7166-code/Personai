@@ -309,7 +309,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
 
       <div className="space-y-3">
         {/* 참여자 + 설정 통합 카드 */}
-        <div className="rounded-xl border border-emerald-200 overflow-hidden">
+        <div className="rounded-xl border border-emerald-200 overflow-hidden flex flex-col">
           {/* 헤더 */}
           <div className="px-3.5 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -377,7 +377,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           </div>
 
           {/* 설정 — 같은 카드 하단, 연한 배경으로 구분 */}
-          <div className="bg-white border-t border-emerald-100">
+          <div className="bg-white border-t border-emerald-100 order-2">
             {[
               { label: '목적', options: [{ id: 'mild', l: '탐색' }, { id: 'moderate', l: '분석' }, { id: 'intense', l: '합의' }], value: ds.debateTone, onChange: (v: string) => onDebateSettingsChange?.({ ...ds, debateTone: v as any }) },
               ...(debateSettings && onDebateSettingsChange ? [
@@ -386,7 +386,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               ] : []),
             ].map((row, i) => (
               <div key={i} className={cn('flex items-center gap-3 px-4 py-2', i > 0 && 'border-t border-slate-100/80')}>
-                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">{row.label}</span>
+                <span className="text-[12px] font-semibold text-slate-600 w-16 shrink-0 tracking-tight text-center border-r border-slate-100 pr-3 mr-1">{row.label}</span>
                 <div className="flex gap-1 flex-1">
                   {row.options.map(opt => (
                     <button key={opt.id} onClick={() => row.onChange(opt.id)}
@@ -401,7 +401,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           </div>
 
           {/* 핵심 논점 — 카드 하단, 더 연한 배경 */}
-          <div className="px-4 py-3 bg-white border-t border-emerald-100">
+          <div className="px-4 py-3 bg-white border-t border-emerald-100 order-1">
             <div className="text-[10px] font-semibold text-slate-500 mb-1.5">핵심 논점 <span className="font-normal text-slate-400">(선택)</span></div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {allTemplates.map(t => (
@@ -584,7 +584,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                 { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => update({ responseLength: v as any }) },
               ].map((row, i) => (
                 <div key={i} className={cn('flex items-center gap-3 px-4 py-2', i > 0 && 'border-t border-slate-100/80')}>
-                  <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">{row.label}</span>
+                  <span className="text-[12px] font-semibold text-slate-600 w-16 shrink-0 tracking-tight text-center border-r border-slate-100 pr-3 mr-1">{row.label}</span>
                   <div className="flex gap-1 flex-1">
                     {row.options.map(opt => (
                       <button key={opt.id} onClick={() => row.onChange(opt.id)}
@@ -708,7 +708,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
 
           {/* 설정 — 카드 하단 */}
           <div className="bg-white border-t border-amber-100">
-            <div className="flex items-center gap-3 px-4 py-2">
+            <div className="flex items-center gap-3 px-4 py-2 [&>span]:text-[12px] [&>span]:font-semibold [&>span]:text-slate-600 [&>span]:w-16 [&>span]:tracking-tight">
               <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">창의성</span>
               <div className="flex gap-1 flex-1">
                 {[{ id: 'realistic' as const, l: '현실적' }, { id: 'balanced' as const, l: '균형' }, { id: 'radical' as const, l: '창의적' }].map(opt => (
@@ -974,7 +974,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
           {/* 설정 — 카드 하단 */}
           <div className="bg-white border-t border-cyan-100">
-            <div className="flex items-center gap-3 px-4 py-2">
+            <div className="flex items-center gap-3 px-4 py-2 [&>span]:text-[12px] [&>span]:font-semibold [&>span]:text-slate-600 [&>span]:w-16 [&>span]:tracking-tight">
               <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">분량</span>
               <div className="flex gap-1 flex-1">
                 {[{v: 15, l: '짧게'}, {v: 25, l: '보통'}, {v: 40, l: '길게'}].map(opt => (
