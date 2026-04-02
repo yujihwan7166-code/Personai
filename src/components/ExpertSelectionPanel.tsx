@@ -314,8 +314,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           <div className="px-3.5 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🎯</span>
-              <span className="text-[11px] font-bold text-emerald-700">토론 참여자</span>
-              <span className="text-[11px] text-emerald-500 font-bold">심층 토론</span>
+              <span className="text-[12px] font-bold text-emerald-700">심층 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -392,7 +391,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                   {row.options.map(opt => (
                     <button key={opt.id} onClick={() => row.onChange(opt.id)}
                       className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                        row.value === opt.id ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-white')}>
+                        row.value === opt.id ? 'bg-emerald-100 text-emerald-700 font-semibold' : 'text-slate-500 hover:bg-white')}>
                       {opt.l}
                     </button>
                   ))}
@@ -408,7 +407,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               {allTemplates.map(t => (
                 <button key={t} onClick={() => toggleIssue(t)}
                   className={cn('px-2 py-0.5 rounded-md text-[10px] font-medium transition-all border flex items-center gap-1',
-                    selectedTitle === t ? 'bg-slate-700 text-white border-slate-700' : 'text-slate-500 border-slate-200 hover:border-slate-400 hover:bg-white')}>
+                    selectedTitle === t ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'text-slate-500 border-slate-200 hover:border-slate-400 hover:bg-white')}>
                   {selectedTitle === t && <Check className="w-2.5 h-2.5" />}{t}
                 </button>
               ))}
@@ -416,9 +415,9 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             <div className="flex items-center gap-2">
               <input value={newIssue} onChange={e => setNewIssue(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addCustom(); }}
-                placeholder="직접 논점 추가..." className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-[10px] outline-none focus:border-slate-400 transition-all" />
+                placeholder="직접 논점 추가..." className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-[10px] outline-none focus:border-emerald-300 transition-all" />
               <button onClick={addCustom} disabled={!newIssue.trim()}
-                className="px-2.5 py-1 rounded-md bg-slate-700 text-white text-[9px] font-semibold disabled:opacity-30 hover:bg-slate-600 transition-colors flex items-center gap-1">
+                className="px-2.5 py-1 rounded-md bg-emerald-500 text-white text-[9px] font-semibold disabled:opacity-30 hover:bg-emerald-600 transition-colors flex items-center gap-1">
                 <Plus className="w-2.5 h-2.5" /> 추가
               </button>
             </div>
@@ -499,8 +498,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
           <div className="px-3.5 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚖️</span>
-              <span className="text-[11px] font-bold text-violet-700">진영 배정</span>
-              <span className="text-[11px] text-violet-500 font-bold">찬반 토론</span>
+              <span className="text-[12px] font-bold text-violet-700">찬반 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -591,7 +589,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                     {row.options.map(opt => (
                       <button key={opt.id} onClick={() => row.onChange(opt.id)}
                         className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                          row.value === opt.id ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-white')}>
+                          row.value === opt.id ? 'bg-violet-100 text-violet-700 font-semibold' : 'text-slate-500 hover:bg-white')}>
                         {opt.l}
                       </button>
                     ))}
@@ -708,15 +706,15 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
             </div>
           </div>
 
-          {/* 설정 — 카드 하단, 연한 배경 */}
-          <div className="bg-slate-50/70 border-t border-amber-100">
+          {/* 설정 — 카드 하단 */}
+          <div className="bg-white border-t border-amber-100">
             <div className="flex items-center gap-3 px-4 py-2">
               <span className="text-[10px] font-semibold text-slate-500 w-12 shrink-0">창의성</span>
               <div className="flex gap-1 flex-1">
                 {[{ id: 'realistic' as const, l: '현실적' }, { id: 'balanced' as const, l: '균형' }, { id: 'radical' as const, l: '창의적' }].map(opt => (
                   <button key={opt.id} onClick={() => update({ creativityLevel: opt.id })}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                      ds.creativityLevel === opt.id ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-white')}>
+                      ds.creativityLevel === opt.id ? 'bg-amber-100 text-amber-700 font-semibold' : 'text-slate-500 hover:bg-white')}>
                     {opt.l}
                   </button>
                 ))}
@@ -771,8 +769,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
           <div className="px-3.5 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🔍</span>
-              <span className="text-[11px] font-bold text-amber-700">아이디어 검증</span>
-              <span className="text-[11px] text-amber-500 font-bold">아이디어 검증</span>
+              <span className="text-[12px] font-bold text-amber-700">아이디어 검증</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -835,7 +832,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
                 {pressureOptions.map(opt => (
                   <button key={opt.id} onClick={() => update({ hearingPressure: opt.id })}
                     className={cn('flex-1 px-3 py-2.5 rounded-lg text-center transition-all border',
-                      ds.hearingPressure === opt.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
+                      ds.hearingPressure === opt.id ? 'bg-amber-100 text-amber-700 font-semibold border-amber-200' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
                     <div className="text-[12px] font-bold">{opt.label}</div>
                     <div className="text-[9px] opacity-70 mt-0.5">{opt.desc}</div>
                   </button>
@@ -856,7 +853,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
                   <div className="flex gap-1 flex-1">
                     {(['short', 'medium', 'long'] as const).map(v => (
                       <button key={v} onClick={() => update({ responseLength: v })}
-                        className={cn('flex-1 py-1.5 rounded-md text-[10px] font-medium text-center transition-all', ds.responseLength === v ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
+                        className={cn('flex-1 py-1.5 rounded-md text-[10px] font-medium text-center transition-all', ds.responseLength === v ? 'bg-amber-100 text-amber-700 font-semibold' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
                         {v === 'short' ? '짧게' : v === 'medium' ? '보통' : '길게'}
                       </button>
                     ))}
@@ -913,8 +910,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           <div className="px-3.5 py-2 bg-gradient-to-r from-cyan-50 to-sky-50 border-b border-cyan-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💬</span>
-              <span className="text-[11px] font-bold text-cyan-700">참여 AI</span>
-              <span className="text-[11px] text-cyan-500 font-bold">자유 토론</span>
+              <span className="text-[12px] font-bold text-cyan-700">자유 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -986,7 +982,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     onClick={() => onDebateSettingsChange?.({...ds, freetalkMessageCount: opt.v})}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
                       (ds.freetalkMessageCount || 25) === opt.v
-                        ? 'bg-slate-700 text-white'
+                        ? 'bg-cyan-100 text-cyan-700 font-semibold'
                         : 'text-slate-500 hover:bg-white')}>
                     {opt.l}
                   </button>
@@ -1023,8 +1019,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           <div className="px-3.5 py-2 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚔️</span>
-              <span className="text-[11px] font-bold text-rose-700">AI vs 유저</span>
-              <span className="text-[11px] text-rose-500 font-bold">AI vs 유저</span>
+              <span className="text-[12px] font-bold text-rose-700">AI vs 유저</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
@@ -1120,7 +1115,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 onClick={() => onDebateSettingsChange?.({...ds, aivsUserDifficulty: opt.v})}
                 className={cn('flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center border transition-all',
                   (ds.aivsUserDifficulty || 'normal') === opt.v
-                    ? 'bg-slate-800 text-white border-slate-800'
+                    ? 'bg-rose-100 text-rose-700 font-semibold border-rose-200'
                     : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300')}>
                 {opt.l}
               </button>
