@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER,
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,

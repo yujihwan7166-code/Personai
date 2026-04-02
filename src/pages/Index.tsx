@@ -232,7 +232,7 @@ const Index = () => {
   const pendingSimQuestionRef = useRef<string>('');
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v63', JSON.stringify(experts));
+    localStorage.setItem('ai-debate-experts-v63', JSON.stringify(applyExpertOverrides(experts)));
   }, [experts]);
 
   useEffect(() => {
