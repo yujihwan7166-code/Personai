@@ -237,6 +237,8 @@ export function AppSidebar({
   const handleDeleteHistory = (id: string) => {
     deleteDiscussionFromHistory(id);
     setHistoryRecords(prev => prev.filter(r => r.id !== id));
+    // 프로젝트 매핑에서도 제거 (카운트 갱신)
+    if (projectMap[id]) removeFromProject(id);
     setDeletingId(null);
     if (activeRecordId === id) setActiveRecordId(null);
   };

@@ -304,7 +304,7 @@ export function QuestionInput({ onSubmit, onSubmitWithFiles, disabled, discussio
             {onConclusion && (
               <button type="button" onClick={onConclusion}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium text-amber-600 hover:bg-amber-50 transition-all">
-                🎯 종합 결론
+                {discussionMode === 'aivsuser' ? '⚖️ 판정 요청' : '🎯 종합 결론'}
               </button>
             )}
           </div>

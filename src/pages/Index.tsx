@@ -553,35 +553,26 @@ ${role.focus} 관점에서 반응하세요.
       ? '\n답변은 풍부한 근거와 예시를 들어 충분히 상세하게 작성하세요.'
       : '';
 
-    // ═══ AI vs User Debate Mode ═══
+    // ═══ AI vs User Debate Mode — 자유 티키타카 ═══
     if (useMode === 'aivsuser') {
-      const totalRounds = debateSettings.rounds || 3;
-      const opponentCount = debateSettings.aivsUserOpponentCount || 1;
       const difficulty = debateSettings.aivsUserDifficulty || 'normal';
       let stance = debateSettings.aivsUserStance || 'pro';
       if (stance === 'random') stance = Math.random() > 0.5 ? 'pro' : 'con';
       const userStance = stance as 'pro' | 'con';
-      const aiStance = userStance === 'pro' ? 'con' : 'pro';
       const stanceKo = userStance === 'pro' ? '찬성' : '반대';
       const aiStanceKo = userStance === 'pro' ? '반대' : '찬성';
 
-      setAivsRound(1);
+      // 선택한 AI 사용 (없으면 gemini 기본)
+      const aiOpponents = discussionExperts.length > 0 ? discussionExperts.slice(0, 3) : [experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0]].filter(Boolean);
+
+      setAivsRound(0);
       setAivsJudgments([]);
       setAivsUserStance(userStance);
       setAivsTopic(question);
 
-      // AI 역할 정의
-      const aiRoles = opponentCount === 1
-        ? [{ name: '토론자', focus: '전방위 반론' }]
-        : opponentCount === 2
-        ? [{ name: '논리 공격수', focus: '논리적 허점 공격, 데이터 반박' }, { name: '감성 수비수', focus: '감정적 호소, 실생활 사례' }]
-        : [{ name: '팩트체커', focus: '사실 확인, 통계 반박' }, { name: '논리학자', focus: '논리적 오류 지적' }, { name: '현실주의자', focus: '실현 가능성 검증' }];
-
-      // 시작 메시지
-      const roleList = aiRoles.map(r => r.name).join(', ');
+      const aiNames = aiOpponents.map(e => e.nameKo).join(', ');
       setMessages([
-        { id: `avsu-start-${Date.now()}`, expertId: '__round__', content: `⚔️ AI vs 유저 토론\n\n**주제**: ${question}\n**구도**: 유저(${stanceKo}) vs AI ${opponentCount}명(${aiStanceKo})\n**라운드**: ${totalRounds}R · **난이도**: ${difficulty === 'easy' ? '🌱 초급' : difficulty === 'hard' ? '🔥 고급' : '⚡ 보통'}${opponentCount > 1 ? `\n**AI 역할**: ${roleList}` : ''}` },
-        { id: `avsu-r1-${Date.now()}`, expertId: '__round__', content: `──── 1라운드: 주장 ────` },
+        { id: `avsu-start-${Date.now()}`, expertId: '__round__', content: `⚔️ **${question}**\n\n유저(${stanceKo}) vs ${aiNames}(${aiStanceKo}) · ${difficulty === 'easy' ? '🌱 초급' : difficulty === 'hard' ? '🔥 고급' : '⚡ 보통'}` },
       ]);
 
       setIsDiscussing(true);
@@ -2001,83 +1992,112 @@ ${conversationText}`;
       return;
     }
 
-    // ═══ AI vs User — 턴 처리 ═══
+    // ═══ AI vs User — 자유 티키타카 ═══
     if (discussionMode === 'aivsuser') {
+      // 종료 트리거
+      if (question === '__AVSU_END__') {
+        setIsDiscussing(true);
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        // 전체 대화 기록
+        const convHistory = messages
+          .filter(m => m.expertId !== '__round__' && m.expertId !== '__avsu_judge__' && m.content)
+          .map(m => m.expertId === '__user__' ? { speaker: '유저', content: m.content } : { speaker: m.simRoleName || allExperts.find(e => e.id === m.expertId)?.nameKo || 'AI', content: m.content });
+
+        // 판정관 호출
+        try {
+          const judgeRes = await fetch('/api/debate-judge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              topic: aivsTopic,
+              round: 1,
+              totalRounds: 1,
+              userStance: aivsUserStance,
+              userArgument: convHistory.filter(m => m.speaker === '유저').map(m => m.content).join('\n'),
+              aiArguments: convHistory.filter(m => m.speaker !== '유저').map(m => ({ name: m.speaker, argument: m.content })),
+              previousJudgments: [],
+              isFinal: true,
+            }),
+            signal: controller.signal,
+          });
+          const judgment = await judgeRes.json();
+          setMessages(prev => [...prev, {
+            id: `avsu-judge-final-${Date.now()}`,
+            expertId: '__avsu_judge__',
+            content: JSON.stringify({ ...judgment, type: '__avsu_final__' }),
+          }]);
+        } catch { /* ignore */ }
+
+        setIsDiscussing(false);
+        setActiveExpertId(undefined);
+        return;
+      }
+
       setIsDiscussing(true);
       const controller = new AbortController();
       abortControllerRef.current = controller;
-
-      const totalRounds = debateSettings.rounds || 3;
-      const opponentCount = debateSettings.aivsUserOpponentCount || 1;
       const difficulty = debateSettings.aivsUserDifficulty || 'normal';
-      const currentRound = aivsRound;
-      const isFinal = currentRound >= totalRounds;
+      const turnNum = aivsRound + 1;
+      setAivsRound(turnNum);
 
-      // Add user message
+      // 유저 메시지 추가
       const userMsgId = `avsu-user-${Date.now()}`;
       setMessages(prev => [...prev, { id: userMsgId, expertId: '__user__', content: question }]);
 
-      // Build conversation history
+      // 대화 기록
       const allMsgs = [...messages, { id: userMsgId, expertId: '__user__', content: question }];
       const convHistory = allMsgs
-        .filter(m => m.expertId !== '__round__' && m.content)
-        .map(m => m.expertId === '__user__' ? { speaker: '유저', content: m.content } : { speaker: m.simRoleName || 'AI', content: m.content });
-
-      // AI roles
-      const aiRoles = opponentCount === 1
-        ? [{ name: '토론자', focus: '전방위 반론' }]
-        : opponentCount === 2
-        ? [{ name: '논리 공격수', focus: '논리적 허점 공격, 데이터 반박' }, { name: '감성 수비수', focus: '감정적 호소, 실생활 사례' }]
-        : [{ name: '팩트체커', focus: '사실 확인, 통계 반박' }, { name: '논리학자', focus: '논리적 오류 지적' }, { name: '현실주의자', focus: '실현 가능성 검증' }];
+        .filter(m => m.expertId !== '__round__' && m.expertId !== '__avsu_judge__' && m.content)
+        .map(m => m.expertId === '__user__' ? { speaker: '유저', content: m.content } : { speaker: m.simRoleName || allExperts.find(e => e.id === m.expertId)?.nameKo || 'AI', content: m.content });
 
       const stanceKo = aivsUserStance === 'pro' ? '찬성' : '반대';
       const aiStanceKo = aivsUserStance === 'pro' ? '반대' : '찬성';
-      const difficultyDesc = difficulty === 'easy' ? '기본적인 반론. 유저의 주장을 인정하면서 부드럽게 반박.' : difficulty === 'hard' ? '날카로운 압박. 유저의 모든 약점을 파고들고, 강력한 근거로 반박.' : '논리적 반론. 유저의 약점을 지적하되 공정하게.';
+      const difficultyDesc = difficulty === 'easy' ? '부드럽게 반론하되 유저의 좋은 점은 인정해줘.' : difficulty === 'hard' ? '날카롭게 압박해. 유저의 모든 허점을 파고들어.' : '논리적으로 반론해. 약점은 지적하되 공정하게.';
 
-      const gemini = experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0];
-      if (!gemini) { setIsDiscussing(false); return; }
+      // 선택된 AI 상대들 (위에서 클릭한 AI)
+      const aiOpponents = activeExperts.length > 0
+        ? activeExperts.filter(e => e.id !== '__user__').slice(0, 3)
+        : [experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0]].filter(Boolean);
 
-      // Generate AI response(s)
-      const aiArguments: { name: string; argument: string }[] = [];
-      for (let ri = 0; ri < aiRoles.length; ri++) {
+      // 각 AI가 순서대로 반론 (티키타카)
+      for (let ri = 0; ri < aiOpponents.length; ri++) {
         if (controller.signal.aborted) break;
-        const role = aiRoles[ri];
-        const aiPrompt = `당신은 토론자입니다. "${aivsTopic}" 주제에서 "${aiStanceKo}" 입장을 맡고 있습니다.
+        const aiExpert = aiOpponents[ri];
+        if (!aiExpert) continue;
 
-## 당신의 역할: ${role.name}
-전문 분야: ${role.focus}
+        const aiPrompt = `당신은 ${aiExpert.nameKo}입니다. "${aivsTopic}" 주제에서 "${aiStanceKo}" 입장으로 유저와 싸우고 있습니다.
 
 ## 난이도: ${difficulty}
 ${difficultyDesc}
 
-## 현재 상황
-- ${currentRound}라운드 / 총 ${totalRounds}라운드
-- 유저 입장: ${stanceKo}
-- 유저의 이번 주장: "${question}"
+## 유저 입장: ${stanceKo}
+## 유저가 방금 한 말: "${question}"
 
-## 대화 맥락
-${convHistory.map(m => `[${m.speaker}] ${m.content}`).join('\n')}
+## 대화 맥락 (최근 내용)
+${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
 
 ## 행동 규칙
-1. 유저의 직전 주장을 구체적으로 인용하며 반박하라
-2. 새로운 논점을 1개 이상 제시하라
-3. 감정이 아닌 논리와 근거로 싸워라
-4. 3~5문장으로 간결하게
-5. 한국어 토론체 ("~라고 하셨는데", "그 부분에 대해서는")
-6. 역할명이나 태그를 본문에 포함하지 마라
-${currentRound === 1 ? '7. 첫 라운드이므로 선제적 주장을 펼쳐라' : `7. ${currentRound}라운드이므로 이전 논쟁 맥락을 이어가라`}`;
+1. 유저가 방금 한 말에 바로 반응해. 인용하면서 반박
+2. 2~4문장으로 짧고 강하게. 댓글 싸움 톤
+3. "~라고?" "그건 아닌데" "말이 안 되는 게" 같은 구어체 OK
+4. 새 논점 하나는 꼭 던져
+5. ${aiOpponents.length > 1 ? '다른 AI의 발언과 겹치지 않게 다른 각도에서 공격' : '다양한 각도에서 공격'}
+6. 역할명이나 태그 본문에 포함 금지
+7. 한국어로`;
 
-        if (ri > 0) await new Promise(r => setTimeout(r, 300));
+        if (ri > 0) await new Promise(r => setTimeout(r, 200));
         const aiMsgId = `avsu-ai-${ri}-${Date.now()}`;
-        setMessages(prev => [...prev, { id: aiMsgId, expertId: gemini.id, content: '', isStreaming: true, simRoleName: role.name, simRoleIcon: opponentCount === 1 ? '⚔️' : ri === 0 ? '🗡️' : ri === 1 ? '🛡️' : '🔍' }]);
-        setActiveExpertId(gemini.id);
+        setMessages(prev => [...prev, { id: aiMsgId, expertId: aiExpert.id, content: '', isStreaming: true, simRoleName: aiExpert.nameKo }]);
+        setActiveExpertId(aiExpert.id);
 
         let aiContent = '';
         try {
           await streamExpert({
-            question: `유저의 ${currentRound}라운드 주장에 반론하세요.`,
-            expert: { ...gemini, systemPrompt: aiPrompt },
-            previousResponses: convHistory.map(m => ({ name: m.speaker, content: m.content })),
+            question: `유저의 주장에 반론하세요: "${question}"`,
+            expert: { ...aiExpert, systemPrompt: aiPrompt },
+            previousResponses: convHistory.slice(-8).map(m => ({ name: m.speaker, content: m.content })),
             round: 'initial' as any,
             onDelta: chunk => { aiContent += chunk; setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: aiContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m)); },
@@ -2085,63 +2105,6 @@ ${currentRound === 1 ? '7. 첫 라운드이므로 선제적 주장을 펼쳐라'
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') { setIsDiscussing(false); return; }
-        }
-        aiArguments.push({ name: role.name, argument: aiContent });
-      }
-
-      // Call judge API
-      try {
-        const judgeRes = await fetch('/api/debate-judge', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: aivsTopic,
-            round: currentRound,
-            totalRounds,
-            userStance: aivsUserStance,
-            userArgument: question,
-            aiArguments,
-            previousJudgments: aivsJudgments.map((j: any) => j.comment || ''),
-            isFinal,
-          }),
-          signal: controller.signal,
-        });
-        const judgment = await judgeRes.json();
-
-        // Add judgment card as a special message
-        const judgmentContent = isFinal
-          ? JSON.stringify({ ...judgment, type: '__avsu_final__', round: currentRound })
-          : JSON.stringify({ ...judgment, type: '__avsu_judgment__', round: currentRound });
-
-        setMessages(prev => [...prev, {
-          id: `avsu-judge-${Date.now()}`,
-          expertId: '__avsu_judge__',
-          content: judgmentContent,
-        }]);
-
-        setAivsJudgments(prev => [...prev, judgment]);
-
-        if (!isFinal) {
-          // Next round
-          const nextRound = currentRound + 1;
-          setAivsRound(nextRound);
-          const roundLabel = nextRound === totalRounds ? '최종 변론' : '반론';
-          setMessages(prev => [...prev, {
-            id: `avsu-r${nextRound}-${Date.now()}`,
-            expertId: '__round__',
-            content: `──── ${nextRound}라운드: ${roundLabel} ────`,
-          }]);
-        }
-      } catch {
-        // Judge failed — continue anyway
-        if (!isFinal) {
-          const nextRound = currentRound + 1;
-          setAivsRound(nextRound);
-          setMessages(prev => [...prev, {
-            id: `avsu-r${nextRound}-${Date.now()}`,
-            expertId: '__round__',
-            content: `──── ${nextRound}라운드 ────`,
-          }]);
         }
       }
 
@@ -5496,7 +5459,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                   showSettings={showDebateSettings}
                   isFollowUp={isDone}
-                  onConclusion={undefined}
+                  onConclusion={discussionMode === 'aivsuser' && messages.length > 2 && !isDiscussing ? () => handleFollowUp('__AVSU_END__') : undefined}
                   onSummarize={discussionMode === 'general' ? handleSummarize : undefined}
                   isSummarizing={isSummarizing}
                   messageCount={messages.filter(m => m.expertId !== '__user__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.expertId !== '__brainstorm_progress__').length}

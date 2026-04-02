@@ -1066,12 +1066,17 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
 // ── AI vs User Settings Panel ──
 
-function AIvsUserSettingsPanel({ debateSettings, onDebateSettingsChange, onModeChange }: {
+function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, onToggle, onModeChange }: {
   onModeChange?: (mode: DiscussionMode) => void;
+  experts: Expert[];
+  selectedIds: string[];
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
+  onToggle?: (id: string) => void;
 }) {
   const ds = debateSettings!;
+  const selected = experts.filter(e => selectedIds.includes(e.id));
+  const maxOpponents = 3;
 
   return (
     <div className="border border-slate-200 rounded-xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
@@ -1095,95 +1100,130 @@ function AIvsUserSettingsPanel({ debateSettings, onDebateSettingsChange, onModeC
           <span className="text-[11px] font-bold text-rose-600 block">⚔️ AI vs 유저</span>
         </div>
       </div>
-      <div className="p-4 space-y-4">
-        {/* 상대 AI 수 */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600">상대 AI 수</span>
-          <div className="flex gap-2 mt-1.5">
-            {([1, 2, 3] as const).map(n => (
-              <button key={n}
-                onClick={() => onDebateSettingsChange?.({...ds, aivsUserOpponentCount: n})}
-                className={cn('flex-1 py-2.5 rounded-lg text-center border transition-all',
-                  (ds.aivsUserOpponentCount || 1) === n
-                    ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
-                    : 'text-slate-500 border-slate-200 hover:border-rose-300')}>
-                <div className="text-[13px] font-bold">{n}:{1}</div>
-                <div className="text-[9px] mt-0.5 opacity-70">
-                  {n === 1 ? '1:1 정면 대결' : n === 2 ? '2명이 협공' : '3명이 포위'}
+      <div className="p-4 space-y-3">
+        {/* ═══ VS 대결 구도 ═══ */}
+        <div className="flex gap-2.5 items-stretch">
+          {/* 왼쪽: 나 */}
+          <div className="w-[90px] shrink-0 rounded-xl border border-blue-200 bg-gradient-to-b from-blue-50/80 to-white overflow-hidden flex flex-col">
+            <div className="px-2 py-1.5 bg-blue-100/60 border-b border-blue-100 text-center">
+              <span className="text-[10px] font-bold text-blue-500">나</span>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center p-2 gap-2">
+              <div className="w-12 h-12 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center text-[22px]">
+                🙋
+              </div>
+              {/* 입장 선택 */}
+              <div className="flex flex-col gap-1 w-full">
+                {([
+                  { v: 'pro' as const, l: '👍 찬성' },
+                  { v: 'con' as const, l: '👎 반대' },
+                  { v: 'random' as const, l: '🎲 랜덤' },
+                ]).map(opt => (
+                  <button key={opt.v}
+                    onClick={() => onDebateSettingsChange?.({...ds, aivsUserStance: opt.v})}
+                    className={cn('w-full py-1 rounded-md text-[9px] font-semibold transition-all',
+                      (ds.aivsUserStance || 'pro') === opt.v
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white text-slate-400 border border-slate-200 hover:border-blue-300')}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* VS 뱃지 */}
+          <div className="flex items-center shrink-0">
+            <div className="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center shadow-lg">
+              <span className="text-[9px] font-black text-white">VS</span>
+            </div>
+          </div>
+
+          {/* 오른쪽: 상대 AI — 위에서 클릭하여 추가 */}
+          <div className="flex-1 rounded-xl border border-red-200 bg-gradient-to-b from-red-50/80 to-white overflow-hidden">
+            <div className="px-3 py-1.5 bg-red-100/60 border-b border-red-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-red-500">상대 AI</span>
+              {selected.length > 0 && <span className="text-[9px] font-medium text-red-400">{selected.length}/{maxOpponents}</span>}
+            </div>
+            <div className="p-2.5">
+              {selected.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    {selected.slice(0, maxOpponents).map((e, i) => (
+                      <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
+                        className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/ai" style={{ animationDelay: `${i * 60}ms` }}>
+                        <div className="relative w-11 h-11 rounded-full bg-red-50 border-2 border-red-200 flex items-center justify-center group-hover/ai:border-red-400 group-hover/ai:bg-red-100 transition-colors">
+                          <ExpertAvatar expert={e} size="md" />
+                          <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                            <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/ai:opacity-100 transition-opacity" />
+                          </div>
+                        </div>
+                        <span className="text-[8px] font-semibold text-slate-500 max-w-[48px] truncate text-center group-hover/ai:text-red-500 transition-colors">{e.nameKo}</span>
+                      </button>
+                    ))}
+                    {selected.length < maxOpponents && (
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="w-11 h-11 rounded-full bg-red-50 border-2 border-dashed border-red-200 flex items-center justify-center">
+                          <Plus className="w-4 h-4 text-red-300" />
+                        </div>
+                        <span className="text-[8px] text-red-300">추가</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[9px] text-center text-red-400">
+                    {selected.length === 1 ? '1:1 정면 대결' : selected.length === 2 ? '2:1 협공' : '3:1 포위'}
+                  </span>
                 </div>
-              </button>
-            ))}
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-3">
+                  <div className="flex items-center gap-2">
+                    {[0, 1, 2].map(i => (
+                      <div key={i} className="w-10 h-10 rounded-full bg-red-50 border-2 border-dashed border-red-200 flex items-center justify-center">
+                        <Plus className="w-3.5 h-3.5 text-red-300" />
+                      </div>
+                    ))}
+                  </div>
+                  <span className="text-[9px] text-red-400">위에서 상대 AI를 선택하세요</span>
+                  <span className="text-[8px] text-slate-400">1~3명 선택 가능</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* 내 입장 */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600">내 입장</span>
-          <div className="flex gap-2 mt-1.5">
-            {([
-              { v: 'pro' as const, l: '찬성', icon: '👍', color: 'blue' },
-              { v: 'con' as const, l: '반대', icon: '👎', color: 'red' },
-              { v: 'random' as const, l: '랜덤', icon: '🎲', color: 'slate' },
-            ]).map(opt => (
-              <button key={opt.v}
-                onClick={() => onDebateSettingsChange?.({...ds, aivsUserStance: opt.v})}
-                className={cn('flex-1 py-2 rounded-lg text-[11px] font-semibold border transition-all flex items-center justify-center gap-1',
-                  (ds.aivsUserStance || 'pro') === opt.v
-                    ? 'bg-slate-800 text-white border-slate-800'
-                    : 'text-slate-500 border-slate-200 hover:border-slate-300')}>
-                <span>{opt.icon}</span> {opt.l}
-              </button>
-            ))}
+        {/* ═══ 세부 설정 ═══ */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+          <div className="px-3 py-1.5 bg-slate-100/80 border-b border-slate-200 flex items-center gap-1.5">
+            <Sliders className="w-3 h-3 text-slate-400" />
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">세부 설정</span>
           </div>
-        </div>
+          <div className="p-3 space-y-3">
+            {/* 난이도 */}
+            <div>
+              <span className="text-[10px] font-bold text-slate-500">난이도</span>
+              <div className="flex gap-1.5 mt-1">
+                {([
+                  { v: 'easy' as const, l: '초급', desc: '부드러운 반론', icon: '🌱' },
+                  { v: 'normal' as const, l: '보통', desc: '균형 잡힌 반론', icon: '⚡' },
+                  { v: 'hard' as const, l: '고급', desc: '날카로운 압박', icon: '🔥' },
+                ]).map(opt => (
+                  <button key={opt.v}
+                    onClick={() => onDebateSettingsChange?.({...ds, aivsUserDifficulty: opt.v})}
+                    className={cn('flex-1 py-2 rounded-lg text-center border transition-all',
+                      (ds.aivsUserDifficulty || 'normal') === opt.v
+                        ? opt.v === 'hard' ? 'bg-red-500 text-white border-red-500'
+                          : opt.v === 'easy' ? 'bg-emerald-500 text-white border-emerald-500'
+                          : 'bg-slate-700 text-white border-slate-700'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300')}>
+                    <div className="text-[11px]">{opt.icon}</div>
+                    <div className="text-[10px] font-bold">{opt.l}</div>
+                    <div className="text-[7px] mt-0.5 opacity-60">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* 난이도 */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600">난이도</span>
-          <div className="flex gap-2 mt-1.5">
-            {([
-              { v: 'easy' as const, l: '초급', desc: '부드러운 반론', icon: '🌱' },
-              { v: 'normal' as const, l: '보통', desc: '균형 잡힌 반론', icon: '⚡' },
-              { v: 'hard' as const, l: '고급', desc: '날카로운 압박', icon: '🔥' },
-            ]).map(opt => (
-              <button key={opt.v}
-                onClick={() => onDebateSettingsChange?.({...ds, aivsUserDifficulty: opt.v})}
-                className={cn('flex-1 py-2.5 rounded-lg text-center border transition-all',
-                  (ds.aivsUserDifficulty || 'normal') === opt.v
-                    ? opt.v === 'hard' ? 'bg-red-500 text-white border-red-500 shadow-sm'
-                      : opt.v === 'easy' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
-                      : 'bg-slate-800 text-white border-slate-800 shadow-sm'
-                    : 'text-slate-500 border-slate-200 hover:border-slate-300')}>
-                <div className="text-[12px]">{opt.icon}</div>
-                <div className="text-[11px] font-bold mt-0.5">{opt.l}</div>
-                <div className="text-[8px] mt-0.5 opacity-70">{opt.desc}</div>
-              </button>
-            ))}
           </div>
-        </div>
-
-        {/* 라운드 수 */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600">라운드</span>
-          <div className="flex gap-2 mt-1.5">
-            {[3, 4, 5].map(r => (
-              <button key={r}
-                onClick={() => onDebateSettingsChange?.({...ds, rounds: r})}
-                className={cn('flex-1 py-1.5 rounded-lg text-[11px] font-medium border transition-all',
-                  (ds.rounds || 3) === r
-                    ? 'bg-slate-800 text-white border-slate-800'
-                    : 'text-slate-500 border-slate-200 hover:border-slate-300')}>
-                {r}R
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 안내 */}
-        <div className="bg-rose-50 rounded-lg px-3.5 py-2.5 border border-rose-100">
-          <p className="text-[10px] text-rose-600 leading-relaxed">
-            주제를 입력하면 토론이 시작됩니다. 각 라운드마다 판정관이 점수를 매기고, 마지막에 최종 승패를 가립니다.
-          </p>
         </div>
       </div>
     </div>
@@ -3743,8 +3783,11 @@ export function ExpertSelectionPanel({
 
       {discussionMode === 'aivsuser' && (
         <AIvsUserSettingsPanel
+          experts={experts}
+          selectedIds={selectedIds}
           debateSettings={debateSettings}
           onDebateSettingsChange={onDebateSettingsChange}
+          onToggle={onToggle}
           onModeChange={onModeChange}
         />
       )}
