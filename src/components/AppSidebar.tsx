@@ -147,6 +147,7 @@ export function AppSidebar({
   // Bot browser modal state
   const [showBotBrowser, setShowBotBrowser] = useState(false);
   const [botBrowserCat, setBotBrowserCat] = useState('전체');
+  const [botMoreOpen, setBotMoreOpen] = useState(false);
   const [selectedBotProfile, setSelectedBotProfile] = useState<string | null>(null);
 
   const editInputRef = useRef<HTMLInputElement>(null);
@@ -1064,8 +1065,8 @@ export function AppSidebar({
             </div>
 
             {/* Category tabs */}
-            <div className="shrink-0 flex gap-1 px-4 py-2 border-b border-slate-100 dark:border-slate-800/50 overflow-x-auto scrollbar-none">
-              {['전체', '인기', 'AI 모델', '전문가', '직업', '인물', '캐릭터', '신화', '이념', '철학/종교'].map(cat => (
+            <div className="shrink-0 flex gap-1 px-4 py-2 border-b border-slate-100 dark:border-slate-800/50 flex-wrap">
+              {['전체', '인기', 'AI 모델', '전문가', '직업', '인물', '캐릭터'].map(cat => (
                 <button key={cat}
                   onClick={() => setBotBrowserCat(cat)}
                   className={cn("px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-colors shrink-0",
@@ -1073,6 +1074,29 @@ export function AppSidebar({
                   )}
                 >{cat}</button>
               ))}
+              {/* 더보기 드롭다운 */}
+              <div className="relative">
+                <button
+                  onClick={() => setBotMoreOpen(!botMoreOpen)}
+                  className={cn("px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-colors shrink-0",
+                    ['라이프스타일','페르소나','신화','이념','철학/종교'].includes(botBrowserCat)
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
+                      : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  )}
+                >
+                  {['라이프스타일','페르소나','신화','이념','철학/종교'].includes(botBrowserCat) ? botBrowserCat : '더보기'} ▾
+                </button>
+                {botMoreOpen && (
+                  <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg py-1 min-w-[120px] animate-in fade-in slide-in-from-top-1 duration-150">
+                    {['라이프스타일', '페르소나', '신화', '이념', '철학/종교'].map(cat => (
+                      <button key={cat} onClick={() => { setBotBrowserCat(cat); setBotMoreOpen(false); }}
+                        className="w-full px-3 py-1.5 text-left text-[12px] font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Bot grid */}
@@ -1082,7 +1106,7 @@ export function AppSidebar({
                   .filter(e => {
                     if (botBrowserCat === '전체') return true;
                     if (botBrowserCat === '인기') return ['gpt','claude','gemini','sherlock','doctor','lawyer'].includes(e.id);
-                    const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion' };
+                    const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '라이프스타일': 'lifestyle', '페르소나': 'perspective', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion' };
                     return e.category === catMap[botBrowserCat];
                   })
                   .map(expert => (
