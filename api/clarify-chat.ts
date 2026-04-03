@@ -1,10 +1,186 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+type ClarifyOption = {
+  label: string;
+  value: string;
+};
+
+type ClarifyQuestion = {
+  id: string;
+  question: string;
+  options: ClarifyOption[];
+};
+
+type ClarifyResult =
+  | { type: 'answer' }
+  | { type: 'answer_with_assumption'; assumption: string }
+  | {
+      type: 'clarifying_questions';
+      partialAnswer?: string;
+      message?: string;
+      questions: ClarifyQuestion[];
+    };
+
+const MODEL = 'gemini-2.5-flash-lite';
+
+function normalizeLabel(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function normalizeQuestions(rawQuestions: unknown, maxQuestions: number): ClarifyQuestion[] {
+  if (!Array.isArray(rawQuestions)) return [];
+
+  return rawQuestions
+    .map((item, index) => {
+      const question = normalizeLabel((item as { question?: unknown })?.question);
+      const rawOptions = Array.isArray((item as { options?: unknown[] })?.options)
+        ? ((item as { options?: unknown[] }).options as unknown[])
+        : [];
+
+      const options = rawOptions
+        .map((opt, optionIndex) => {
+          const label = normalizeLabel((opt as { label?: unknown })?.label);
+          const value = normalizeLabel((opt as { value?: unknown })?.value) || label || `option_${optionIndex + 1}`;
+          if (!label) return null;
+
+          return {
+            label: label.slice(0, 40),
+            value: value.slice(0, 60),
+          };
+        })
+        .filter((opt): opt is ClarifyOption => Boolean(opt))
+        .slice(0, 4);
+
+      if (!question || options.length < 2) return null;
+
+      return {
+        id: `q${index + 1}`,
+        question: question.slice(0, 120),
+        options,
+      };
+    })
+    .filter((item): item is ClarifyQuestion => Boolean(item))
+    .slice(0, maxQuestions);
+}
+
+function buildBrainstormPrompt(message: string, isFollowUp: boolean) {
+  return `너는 브레인스토밍 세션을 준비하는 숙련된 퍼실리테이터다.
+
+사용자 주제: "${message}"
+${isFollowUp ? '이번은 2차 확인이다. 이미 한 번 좁혀졌으니 꼭 필요한 질문만 1~2개만 남겨라.' : ''}
+
+목표:
+- 사용자가 어떤 문제를 풀고 싶은지
+- 아이디어를 누구에게 쓰려는지
+- 어느 정도 현실성/제약을 갖고 싶은지
+- 결과물을 어떤 형태로 원하고 있는지
+를 빠르게 파악한다.
+
+판단 규칙:
+1. 바로 브레인스토밍을 시작해도 충분히 구체적이면 {"type":"answer"}.
+2. 약간만 비어 있으면 묻지 말고 기본 가정을 세워 {"type":"answer_with_assumption"}.
+3. 정말 결과 방향이 크게 달라질 때만 {"type":"clarifying_questions"}.
+
+질문 품질 규칙:
+- 질문은 최대 ${isFollowUp ? '2개' : '3개'}.
+- 각 질문은 실제 아이디어 방향을 크게 바꾸는 것만 묻는다.
+- 선택지는 3~4개, 짧고 구체적으로 만든다.
+- "기타"는 절대 넣지 않는다.
+- 추상적인 라벨 대신 바로 선택 가능한 표현을 쓴다.
+
+반드시 JSON만 출력:
+{
+  "type": "answer" | "answer_with_assumption" | "clarifying_questions",
+  "assumption": "필요할 때만",
+  "message": "필요할 때만",
+  "partialAnswer": "필요할 때만",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "질문",
+      "options": [
+        { "label": "선택지", "value": "choice_1" }
+      ]
+    }
+  ]
+}`;
+}
+
+function buildGeneralPrompt(params: {
+  message: string;
+  expertName: string;
+  expertDescription: string;
+  isFollowUp: boolean;
+}) {
+  const { message, expertName, expertDescription, isFollowUp } = params;
+
+  return `너는 사용자의 의도를 빨리 파악해서, 불필요한 되물음을 줄이고 필요한 경우에만 날카롭게 확인하는 AI 질의 분석기다.
+
+사용자 질문: "${message}"
+답변 AI: "${expertName}"
+AI 설명: "${expertDescription}"
+${isFollowUp ? '이번은 2차 확인이다. 이미 한 번 확인했으니, 진짜로 결과가 달라질 때만 한 개 정도만 묻는다.' : ''}
+
+먼저 이 질문을 평가하라.
+
+평가 기준:
+- 범위가 여러 방향으로 갈릴 수 있는가
+- 핵심 조건(기간, 지역, 대상, 예산, 목표, 형식)이 빠졌는가
+- 빠진 조건 때문에 답이 크게 달라지는가
+- 일단 답하면 엉뚱한 답이 될 가능성이 높은가
+
+행동 규칙:
+1. 바로 답해도 충분히 괜찮으면 {"type":"answer"}.
+2. 작은 모호함만 있으면 되묻지 말고 기본 가정을 한 줄로 붙여 {"type":"answer_with_assumption"}.
+3. 답이 크게 달라질 때만 {"type":"clarifying_questions"}.
+
+명확화 질문 규칙:
+- 질문은 최대 ${isFollowUp ? '1개' : '2개'}.
+- 질문은 "결과를 가장 크게 바꾸는 축"부터 묻는다.
+- 질문 문장에는 기본 가정이나 선택 축이 드러나야 한다.
+- 선택지는 3~4개, 서로 겹치지 않게 만든다.
+- 추상적인 라벨 금지. 예: "기술", "경제", "사회" 같은 넓은 말은 금지.
+- 질문 예시는 구체적이어야 한다. 예: 유가 전망이면 "기간", "지역", "기준유종" 같은 축을 묻는다.
+- 필요하면 "partialAnswer"에 지금 당장 말해줄 수 있는 핵심 한두 문장을 넣는다.
+
+좋은 질문 예시:
+- "어느 기간의 유가 전망을 원하시나요?" + 단기/중기/장기
+- "한국 주식 기준으로 볼까요, 미국 주식 기준으로 볼까요?" + 한국/미국/글로벌
+- "실행용 코드가 필요하신가요, 개념 설명이 필요하신가요?" + 실행 코드/설명/비교
+
+나쁜 질문 예시:
+- "좀 더 자세히 말해주세요"
+- "무슨 뜻인가요?"
+- "어떤 걸 원하시나요?"
+
+반드시 JSON만 출력:
+{
+  "type": "answer" | "answer_with_assumption" | "clarifying_questions",
+  "assumption": "필요할 때만",
+  "partialAnswer": "필요할 때만",
+  "message": "필요할 때만",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "질문",
+      "options": [
+        { "label": "선택지", "value": "choice_1" }
+      ]
+    }
+  ]
+}`;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
 
   const { message, expertName, expertDescription, previousResponses, attempt, mode } = req.body || {};
 
@@ -12,133 +188,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ type: 'answer' });
   }
 
-  // 이전 대화가 있으면 (이어가기 중) 명확화 불필요
-  if (previousResponses && previousResponses.length > 0) {
+  if (Array.isArray(previousResponses) && previousResponses.length > 0) {
     return res.status(200).json({ type: 'answer' });
   }
 
-  // Stakeholder-context mode: return immediately, context built from scenario data
   if (mode === 'stakeholder-context') {
     return res.status(200).json({ type: 'answer' });
   }
 
-  const isFollowUp = (attempt || 1) >= 2;
+  const isFollowUp = Number(attempt || 1) >= 2;
   const isBrainstorm = mode === 'brainstorm';
+  const prompt = isBrainstorm
+    ? buildBrainstormPrompt(message, isFollowUp)
+    : buildGeneralPrompt({
+        message,
+        expertName: typeof expertName === 'string' ? expertName : 'AI',
+        expertDescription: typeof expertDescription === 'string' ? expertDescription : '',
+        isFollowUp,
+      });
 
-  const brainstormPrompt = `당신은 브레인스토밍 세션 준비 전문가입니다.
-사용자가 입력한 주제로 효과적인 브레인스토밍을 하려면 반드시 아래 4가지를 알아야 합니다.
-
-사용자 주제: "${message}"
-${isFollowUp ? '⚠️ 2차 확인입니다. 이미 1차에서 일부 답을 받았으므로 남은 것만 물어보세요.' : ''}
-
-## 브레인스토밍에 반드시 필요한 정보 4가지
-1. **구체적 범위**: "마케팅" → "B2B SaaS 마케팅"처럼 범위를 좁혀야 발산이 의미있음
-2. **목표/기대 결과**: 아이디어를 모아서 뭘 하려는지 (신규 사업? 문제 해결? 전략 수립?)
-3. **대상/타겟**: 누구를 위한 건지 (고객? 팀? 투자자?)
-4. **제약 조건**: 예산, 기간, 기술적 제한 등 현실적 제약
-
-## 판단
-위 4가지 중 이미 알 수 있는 건 스킵하고, 모르는 것만 질문하세요.
-4가지 모두 파악 가능하면 → {"type": "answer"}
-
-## 출력 (반드시 JSON만)
-
-{
-  "type": "clarifying_questions",
-  "message": "브레인스토밍 세션을 준비할게요",
-  "questions": [
-    {
-      "id": "q1",
-      "question": "질문 (위 4가지 중 필요한 것)",
-      "options": [
-        {"label": "선택지 (8자 이내)", "value": "구체적 값"}
-      ]
-    }
-  ]
-}
-
-또는: {"type": "answer"}
-
-규칙:
-- 질문 최대 ${isFollowUp ? '2개' : '4개'} (브레인스토밍은 더 많이 물어도 됨)
-- 선택지 3~4개
-- 각 선택지는 브레인스토밍에 실제로 영향을 주는 구체적 값
-- 한국어
-- "유가 변동" 같은 애매한 선택지 금지. "국제 유가 하락이 국내 물가에 미치는 영향" 수준으로 구체적으로`;
-
-  const prompt = isBrainstorm ? brainstormPrompt : `당신은 사용자의 의도를 정확히 파악하여 최고 품질의 답변을 제공하기 위한 분석 시스템입니다.
-
-사용자 질문: "${message}"
-답변할 AI: "${expertName}" (${expertDescription})
-${isFollowUp ? '⚠️ 이것은 2차 확인입니다. 이미 1차 선택지를 통해 범위가 좁혀진 질문입니다. 대부분 바로 답변해야 합니다.' : ''}
-
-## STEP 1: 내부 점수 분석
-
-아래 5가지 항목을 체크하세요. 해당하면 +1점:
-
-| 항목 | 조건 |
-|------|------|
-| 해석 분기 | 요청이 2가지 이상으로 해석 가능한가? |
-| 핵심 정보 누락 | 대상, 목적, 조건 중 하나 이상 빠져 있는가? |
-| 결과물 민감도 | 가정이 틀리면 결과물을 처음부터 다시 만들어야 하는가? |
-| 고비용 작업 | 코드 생성, 긴 글 작성 등 재작업 비용이 큰 작업인가? |
-| 개인화 필요 | 사용자의 상황/선호에 따라 답이 크게 달라지는가? |
-
-## STEP 2: 점수에 따른 행동
-
-**0점**: 바로 답변 → {"type": "answer"}
-**1점**: 가정 명시 답변 → {"type": "answer_with_assumption", "assumption": "~라고 가정하고 답변합니다. 다른 조건이 있으면 말씀해주세요."}
-**2점 이상**: 부분 답변 + 질문 → clarifying_questions (아래 형식)
-
-${isFollowUp ? '※ 2차에서는 1점 이하가 대부분입니다. 2점 이상이 정말 확실할 때만 질문하세요.' : ''}
-
-## STEP 3: 질문 원칙 (2점 이상일 때만)
-
-1. **임팩트 기반**: "답변이 가장 크게 달라지는" 질문만. 사소한 차이만 만드는 질문 금지.
-2. **가정 제시 + 확인**: 맨땅에 질문하지 말고, 내가 하려던 가정을 기본값으로 보여주세요.
-   나쁜 예: "어떤 언어로 할까요?"
-   좋은 예: 기본값으로 "Python"을 제시하고 다른 걸 원하면 선택하게
-3. **부분 답변 포함**: 확실한 부분은 partialAnswer로 먼저 제공. 사용자가 빈손으로 기다리지 않게.
-4. **질문 개수 제한**: 최대 ${isFollowUp ? '1개' : '2개'}. 1개로 충분하면 1개만.
-
-## 출력 형식 (반드시 JSON만 출력, 다른 텍스트 금지)
-
-### 0점 — 바로 답변:
-{"type": "answer"}
-
-### 1점 — 가정 명시 답변:
-{"type": "answer_with_assumption", "assumption": "가정 내용을 한 문장으로. 예: Python 환경이라고 가정합니다."}
-
-### 2점 이상 — 부분 답변 + 질문:
-{
-  "type": "clarifying_questions",
-  "partialAnswer": "확실한 부분에 대한 간단한 설명 (1~2문장). 없으면 빈 문자열.",
-  "message": "자연스러운 전환 문구 (예: '더 정확하게 맞추려면 하나만 확인할게요')",
-  "questions": [
-    {
-      "id": "q1",
-      "question": "핵심 질문 (가정을 포함해서. 예: 'React 기반인가요? 다른 프레임워크면 알려주세요.')",
-      "options": [
-        {"label": "선택지 (8자 이내)", "value": "구체적 내부값"}
-      ]
-    }
-  ]
-}
-
-## 판단 예시
-
-"투자 어떻게 해?" → 해석분기(주식/부동산/코인)+정보누락(금액/기간)+개인화(상황) = 3점 → clarifying_questions
-"파이썬 정렬 방법" → 0점 → answer
-"이메일 작성해줘" → 해석분기(퇴사/합격/요청)+정보누락(수신인)+결과물민감도 = 3점 → clarifying_questions
-"경제 전망 어때?" → 정보누락(어떤 나라/지표)+개인화 = 2점 → clarifying_questions
-"GPT란 뭐야?" → 0점 → answer
-"코드 리뷰해줘" → 정보누락(어떤 코드?) = 1점 → answer_with_assumption ("공유해주신 코드를 기준으로 리뷰합니다")
-"안녕" → 0점 → answer
-
-한국어로 작성하세요.`;
-
-  const model = 'gemini-2.5-flash-lite';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
 
   try {
     const geminiRes = await fetch(url, {
@@ -146,7 +215,7 @@ ${isFollowUp ? '※ 2차에서는 1점 이하가 대부분입니다. 2점 이상
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 600 },
+        generationConfig: { temperature: 0.15, maxOutputTokens: 700 },
       }),
     });
 
@@ -159,16 +228,52 @@ ${isFollowUp ? '※ 2차에서는 1점 이하가 대부분입니다. 2점 이상
     const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
 
-    if (!jsonMatch) return res.status(200).json({ type: 'answer' });
-
-    const result = JSON.parse(jsonMatch[0]);
-
-    // 유효성 검증: type이 없거나 알 수 없는 타입이면 answer로 fallback
-    if (!result.type || !['answer', 'answer_with_assumption', 'clarifying_questions'].includes(result.type)) {
+    if (!jsonMatch) {
       return res.status(200).json({ type: 'answer' });
     }
 
-    return res.status(200).json(result);
+    const parsed = JSON.parse(jsonMatch[0]) as Partial<ClarifyResult> & {
+      questions?: unknown;
+      assumption?: unknown;
+      partialAnswer?: unknown;
+      message?: unknown;
+    };
+
+    if (!parsed.type || !['answer', 'answer_with_assumption', 'clarifying_questions'].includes(parsed.type)) {
+      return res.status(200).json({ type: 'answer' });
+    }
+
+    if (parsed.type === 'answer') {
+      return res.status(200).json({ type: 'answer' });
+    }
+
+    if (parsed.type === 'answer_with_assumption') {
+      const assumption = normalizeLabel(parsed.assumption);
+      if (!assumption) {
+        return res.status(200).json({ type: 'answer' });
+      }
+
+      return res.status(200).json({
+        type: 'answer_with_assumption',
+        assumption: assumption.slice(0, 180),
+      });
+    }
+
+    const maxQuestions = isBrainstorm ? (isFollowUp ? 2 : 3) : (isFollowUp ? 1 : 2);
+    const questions = normalizeQuestions(parsed.questions, maxQuestions);
+
+    if (questions.length === 0) {
+      return res.status(200).json({ type: 'answer' });
+    }
+
+    return res.status(200).json({
+      type: 'clarifying_questions',
+      partialAnswer: normalizeLabel(parsed.partialAnswer).slice(0, 280),
+      message:
+        normalizeLabel(parsed.message).slice(0, 100) ||
+        (isBrainstorm ? '세션 방향을 더 잘 맞추기 위해 몇 가지만 확인할게요.' : '더 정확한 답변을 위해 핵심 조건만 짧게 확인할게요.'),
+      questions,
+    });
   } catch {
     return res.status(200).json({ type: 'answer' });
   }

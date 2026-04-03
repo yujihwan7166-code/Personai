@@ -100,7 +100,7 @@ export function AppSidebar({
   discussionMode, onModeChange, isDiscussing, onNewDiscussion,
   favoriteIds = [], onSelectExpert, onSidebarToggle, onStartChat,
 }: Props) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchVisible, setSearchVisible] = useState(false);
   const [historyRecords, setHistoryRecords] = useState<DiscussionRecord[]>(() => getDiscussionHistory());

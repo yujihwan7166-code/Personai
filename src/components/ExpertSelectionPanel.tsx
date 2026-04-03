@@ -449,8 +449,6 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
   onDebateSettingsChange?: (s: DebateSettings) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
-  const [proSlotCount, setProSlotCount] = useState(1);
-  const [conSlotCount, setConSlotCount] = useState(1);
   const [pickerZone, setPickerZone] = useState<'pro' | 'con' | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const ds = debateSettings!;
@@ -468,10 +466,6 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
 
   const proAssigned = Object.keys(proconStances).filter(id => proconStances[id] === 'pro').length;
   const conAssigned = Object.keys(proconStances).filter(id => proconStances[id] === 'con').length;
-  const effectiveProSlots = Math.max(proSlotCount, proAssigned);
-  const effectiveConSlots = Math.max(conSlotCount, conAssigned);
-
-
 
   return (
     <div>
@@ -527,8 +521,11 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
             <div className="grid grid-cols-2 gap-3">
               {(['pro', 'con'] as const).map(zone => {
                 const isOver = dragOver === zone;
-                const assigned = Object.keys(proconStances).filter(id => proconStances[id] === zone);
-                const isFull = assigned.length >= MAX_PER_ZONE;
+                const assignedIds = Object.keys(proconStances).filter(id => proconStances[id] === zone);
+                const assignedExperts = assignedIds
+                  .map(id => experts.find(x => x.id === id))
+                  .filter((expert): expert is Expert => Boolean(expert));
+                const isFull = assignedIds.length >= MAX_PER_ZONE;
                 const isPro = zone === 'pro';
                 const canDrop = !isFull || (draggedId ? proconStances[draggedId] === zone : false);
                 return (
@@ -539,35 +536,42 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                         : isPro ? 'border-blue-200/60 bg-blue-50/20' : 'border-red-200/60 bg-red-50/20')}>
                     <div className="flex items-center justify-between">
                       <span className={cn('text-[11px] font-bold', isPro ? 'text-blue-600' : 'text-red-600')}>{isPro ? '찬성' : '반대'}</span>
-                      <span className={cn('text-[9px]', isPro ? 'text-blue-400' : 'text-red-400')}>{assigned.length}/{MAX_PER_ZONE}</span>
+                      <span className={cn('text-[9px]', isPro ? 'text-blue-400' : 'text-red-400')}>{assignedIds.length}/{MAX_PER_ZONE}</span>
                     </div>
-                    <div className="flex flex-wrap gap-2 justify-center flex-1 items-center">
-                      {assigned.map(id => {
-                        const e = experts.find(x => x.id === id);
-                        if (!e) return null;
-                        return (
-                          <button key={id} type="button" onClick={() => removeStance(id)}
-                            draggable onDragStart={() => setDraggedId(id)} onDragEnd={() => setDraggedId(null)}
-                            className="flex flex-col items-center gap-0.5 group/slot animate-in fade-in zoom-in-75 duration-200">
-                            <div className="relative group-hover/slot:opacity-70 transition-opacity">
-                              <ExpertAvatar expert={e} size="md" />
-                              <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                                <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                      <div className="flex flex-wrap gap-2 justify-center items-start min-h-[56px]">
+                      {Array.from({ length: MAX_PER_ZONE }, (_, index) => {
+                        const expert = assignedExperts[index];
+                        if (expert) {
+                          return (
+                            <button key={expert.id} type="button" onClick={() => removeStance(expert.id)}
+                              draggable onDragStart={() => setDraggedId(expert.id)} onDragEnd={() => setDraggedId(null)}
+                              className="w-[48px] min-h-[56px] flex flex-col items-center gap-0.5 group/slot animate-in fade-in zoom-in-75 duration-200">
+                              <div className="relative group-hover/slot:opacity-70 transition-opacity">
+                                <ExpertAvatar expert={expert} size="md" />
+                                <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                                  <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/slot:opacity-100 transition-opacity" />
+                                </div>
                               </div>
+                              <span className={cn('text-[9px] font-semibold max-w-[48px] truncate group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{expert.nameKo}</span>
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button key={`${zone}-empty-${index}`} type="button" onClick={() => setPickerZone(zone)} className="w-[48px] min-h-[56px] flex flex-col items-center gap-0.5 group/add [&>span]:hidden">
+                            <div className={cn('w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center transition-colors',
+                              isPro ? 'border-blue-200 group-hover/add:border-blue-400' : 'border-red-200 group-hover/add:border-red-400')}>
+                              <Plus className={cn('w-4 h-4', isPro ? 'text-blue-300' : 'text-red-300')} />
                             </div>
-                            <span className={cn('text-[9px] font-semibold max-w-[48px] truncate group-hover/slot:text-red-500', isPro ? 'text-blue-600' : 'text-red-600')}>{e.nameKo}</span>
+                            {assignedIds.length === 0 && index === 0 && <span className={cn('text-[8px]', isPro ? 'text-blue-300' : 'text-red-300')}>AI 추가</span>}
                           </button>
                         );
                       })}
-                      {assigned.length < MAX_PER_ZONE && (
-                        <button type="button" onClick={() => setPickerZone(zone)} className="flex flex-col items-center gap-0.5 group/add">
-                          <div className={cn('w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center transition-colors',
-                            isPro ? 'border-blue-200 group-hover/add:border-blue-400' : 'border-red-200 group-hover/add:border-red-400')}>
-                            <Plus className={cn('w-4 h-4', isPro ? 'text-blue-300' : 'text-red-300')} />
-                          </div>
-                          {assigned.length === 0 && <span className={cn('text-[8px]', isPro ? 'text-blue-300' : 'text-red-300')}>AI 추가</span>}
-                        </button>
-                      )}
+                      </div>
+                      <div className={cn('mt-1 h-4 text-[10px] font-semibold text-center', assignedIds.length === 0 ? (isPro ? 'text-blue-400' : 'text-red-400') : 'text-transparent select-none')}>
+                        AI 추가
+                      </div>
                     </div>
                   </div>
                 );
@@ -1073,14 +1077,15 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-2.5 min-h-[56px]">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="flex items-start justify-center gap-2.5 min-h-[68px]">
                     {visibleOpponentSlots.map((expert, i) => (
                       expert ? (
                         <button
                           key={expert.id}
                           type="button"
                           onClick={() => onToggle?.(expert.id)}
-                          className="flex flex-col items-center gap-1 group/ai animate-in fade-in zoom-in-75 duration-200"
+                          className="w-[56px] min-h-[68px] flex flex-col items-center gap-1 group/ai animate-in fade-in zoom-in-75 duration-200"
                           style={{ animationDelay: `${i * 60}ms` }}
                         >
                           <div className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm ring-2 ring-red-300 ring-offset-1 group-hover/ai:ring-red-500 transition-all">
@@ -1098,7 +1103,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                           key={`empty-${i}`}
                           type="button"
                           onClick={() => setShowPicker(true)}
-                          className="flex flex-col items-center gap-1"
+                          className="w-[56px] min-h-[68px] flex flex-col items-center gap-1 [&>span]:hidden"
                         >
                           <div className="w-12 h-12 rounded-full bg-white border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-red-300 hover:bg-red-50/50 transition-colors">
                             <Plus className="w-4 h-4 text-slate-300" />
@@ -1109,6 +1114,10 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                         </button>
                       )
                     ))}
+                  </div>
+                  <div className={cn('mt-1 h-4 text-[10px] font-semibold text-center', selected.length === 0 ? 'text-slate-500' : 'text-transparent select-none')}>
+                    AI 선택
+                  </div>
                 </div>
               </div>
             </div>
@@ -3117,6 +3126,35 @@ export function ExpertSelectionPanel({
 
   const MAX_PER_ZONE = debateSettings?.proconTeamSize || 3;
   const mainMode = getMainMode(discussionMode);
+  const proconProCount = Object.values(proconStances).filter((stance) => stance === 'pro').length;
+  const proconConCount = Object.values(proconStances).filter((stance) => stance === 'con').length;
+  const isProconTeamComplete = proconProCount === MAX_PER_ZONE && proconConCount === MAX_PER_ZONE;
+
+  useEffect(() => {
+    if (!isProcon) return;
+
+    const nextStances = { ...proconStances };
+    const overflowIds: string[] = [];
+
+    (['pro', 'con'] as const).forEach((stance) => {
+      const orderedIds = [
+        ...selectedIds.filter((id) => proconStances[id] === stance),
+        ...Object.keys(proconStances).filter((id) => proconStances[id] === stance && !selectedIds.includes(id)),
+      ];
+
+      orderedIds.slice(MAX_PER_ZONE).forEach((id) => {
+        delete nextStances[id];
+        overflowIds.push(id);
+      });
+    });
+
+    if (overflowIds.length === 0) return;
+
+    onProconStancesChange?.(nextStances);
+    overflowIds.forEach((id) => {
+      if (selectedIds.includes(id)) onToggle(id);
+    });
+  }, [MAX_PER_ZONE, isProcon, onProconStancesChange, onToggle, proconStances, selectedIds]);
 
   // 자동 배정: 질문 키워드 기반 적합한 전문가 선택
   const autoPickExperts = (question: string): string[] => {
@@ -3764,7 +3802,7 @@ export function ExpertSelectionPanel({
       {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
-          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2) || (discussionMode === 'procon' && !autoAssign && (!Object.values(proconStances).includes('pro') || !Object.values(proconStances).includes('con'))) || (discussionMode === 'freetalk' && selectedIds.length < 1)}
+          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (discussionMode === 'freetalk' && selectedIds.length < 1)}
           discussionMode={discussionMode}
           selectedExperts={
             (isProcon || discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')

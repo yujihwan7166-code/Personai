@@ -347,6 +347,7 @@ export interface DiscussionMessage {
     content: string;
     isStreaming?: boolean;
     isSummary?: boolean;
+    isDirectFollowUp?: boolean;
     round?: DiscussionRound;
     likes?: number;
     dislikes?: number;

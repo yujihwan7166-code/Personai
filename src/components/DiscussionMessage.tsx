@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { DiscussionMessage as DiscussionMessageType, Expert, ROUND_LABELS } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { LazyMarkdown } from './LazyMarkdown';
+import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { cn } from '@/lib/utils';
 import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 
-export type ChatVariant = 'default' | 'messenger' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
+export type ChatVariant = 'default' | 'messenger' | 'general-card' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
 
 interface Props {
   message: DiscussionMessageType;
@@ -85,9 +86,10 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   const [showRebuttal, setShowRebuttal] = useState(false);
   const [rebuttalText, setRebuttalText] = useState('');
   const isSummary = message.isSummary;
+  const displayContent = stripSpeakerPrefix(message.content, expert.nameKo);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
+    navigator.clipboard.writeText(displayContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -107,6 +109,27 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   );
 
   // ── Messenger (단일 AI) ──
+  if (variant === 'general-card') {
+    return (
+      <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)] overflow-hidden transition-all hover:border-slate-300 hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]">
+          <div className="flex items-center gap-2 px-4 py-3">
+            <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
+            <span className="text-[13px] font-semibold text-slate-700">{expert.nameKo}</span>
+            {!message.isStreaming && message.content && (
+              <CopyBtn className="ml-auto text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 sm:opacity-40 sm:group-hover:opacity-100" />
+            )}
+          </div>
+          <div className="px-4 pb-4 pt-0">
+            <div className={cn('text-[13px] leading-relaxed text-slate-600', proseClasses, 'prose-p:text-[13px] prose-li:text-[13px] prose-headings:text-[15px] prose-headings:font-bold prose-strong:text-slate-800')}>
+              <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (variant === 'messenger') {
     return (
       <div className="group flex gap-2.5 items-start animate-in fade-in slide-in-from-bottom-2 duration-400 ml-3">
@@ -115,7 +138,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
           <div className="bg-white border border-slate-100 border-l-[4px] border-l-indigo-400 rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
-              <MessageContent content={message.content} isStreaming={message.isStreaming} noCollapse />
+              <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
             </div>
             {!message.isStreaming && message.content && (
               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-2 pt-2 border-t border-slate-100">
@@ -145,7 +168,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <span className="text-[11px] font-semibold text-slate-600">{expert.nameKo}</span>
         </div>
         <div className={cn('text-[12px] leading-relaxed text-slate-600 max-h-[140px] overflow-hidden', proseClasses)}>
-          <MessageContent content={message.content} isStreaming={message.isStreaming} />
+          <MessageContent content={displayContent} isStreaming={message.isStreaming} />
         </div>
         {!message.isStreaming && message.content && (
           <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-200/50 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -154,7 +177,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
               {(message.likes ?? 0) > 0 && <span>{message.likes}</span>}
             </button>
             {onDevelop && (
-              <button onClick={() => onDevelop(message.content)} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-violet-500 transition-colors">
+              <button onClick={() => onDevelop(displayContent)} className="flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-violet-500 transition-colors">
                 <Zap className="w-3 h-3" /> 발전
               </button>
             )}
@@ -187,7 +210,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         </div>
         <div className="px-3.5 py-3">
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
-            <MessageContent content={message.content} isStreaming={message.isStreaming} />
+            <MessageContent content={displayContent} isStreaming={message.isStreaming} />
           </div>
         </div>
       </div>
@@ -211,7 +234,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
             </div>
             <div className="bg-white border border-slate-100 rounded-lg px-3.5 py-2.5 shadow-sm">
               <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
-                <MessageContent content={message.content} isStreaming={message.isStreaming} />
+                <MessageContent content={displayContent} isStreaming={message.isStreaming} />
               </div>
             </div>
           </div>
@@ -233,7 +256,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           </div>
           <div className="px-4 py-3.5">
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
-              <MessageContent content={message.content} isStreaming={message.isStreaming} />
+              <MessageContent content={displayContent} isStreaming={message.isStreaming} />
             </div>
           </div>
         </div>
@@ -271,7 +294,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         {/* Content */}
         <div className="px-3.5 pb-3 pt-0">
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
-            <MessageContent content={message.content} isStreaming={message.isStreaming} noCollapse={isSummary} />
+            <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse={isSummary} />
           </div>
         </div>
 
