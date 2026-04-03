@@ -289,6 +289,9 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
   const [showDetail, setShowDetail] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const ds = debateSettings!;
+  const maxParticipants = 3;
+  const visibleParticipantSlotCount = Math.min(maxParticipants, Math.max(1, selectedExperts.length + 1));
+  const visibleParticipants = Array.from({ length: visibleParticipantSlotCount }, (_, index) => selectedExperts[index] ?? null);
 
   const allTemplates = [...ISSUE_TEMPLATES, ...customIssues.filter(c => !ISSUE_TEMPLATES.includes(c))];
   const selectedTitle = issues.length > 0 ? issues[0].title : null;
@@ -345,9 +348,9 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
 
           {/* 참여자 슬롯 */}
           <div className="px-3 py-3 bg-white">
-            {selectedExperts.length > 0 ? (
+            <div className="flex flex-col items-center gap-2 py-1">
               <div className="flex items-center gap-3 flex-wrap justify-center">
-                {selectedExperts.map(e => (
+                {visibleParticipants.filter(Boolean).map(e => (
                   <button key={e.id} type="button" onClick={() => onToggle(e.id)}
                     className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
                     <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
@@ -359,26 +362,18 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                     <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
                   </button>
                 ))}
-                {selectedExperts.length < 3 && (
-                  <button onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
+                {Array.from({ length: visibleParticipantSlotCount - selectedExperts.length }).map((_, i) => (
+                  <button key={`empty-standard-${i}`} type="button" onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
                     <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors cursor-pointer">
                       <Plus className="w-4 h-4 text-slate-300" />
                     </div>
                   </button>
-                )}
+                ))}
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 py-1">
-                <div className="flex items-center gap-3">
-                  {[0,1,2].map(i => (
-                    <div key={i} onClick={() => setShowPicker(true)} className="w-11 h-11 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors">
-                      <Plus className="w-4 h-4 text-slate-300" />
-                    </div>
-                  ))}
-                </div>
+              {selectedExperts.length === 0 && (
                 <span className="text-[11px] text-slate-400">클릭하여 AI를 추가하세요</span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* 설정 — 같은 카드 하단, 연한 배경으로 구분 */}
@@ -407,7 +402,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
 
           {/* 핵심 논점 — 카드 하단, 더 연한 배경 */}
           <div className="px-4 py-3 bg-white border-t border-emerald-100 order-1">
-            <div className="text-[10px] font-semibold text-slate-500 mb-1.5">핵심 논점 <span className="font-normal text-slate-400">(선택)</span></div>
+            <div className="text-[11px] font-semibold text-slate-600 mb-1.5">핵심 논점 <span className="text-[10px] font-normal text-slate-400">(선택)</span></div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {allTemplates.map(t => (
                 <button key={t} onClick={() => toggleIssue(t)}
@@ -500,7 +495,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
         {/* 진영 배정 + 설정 통합 카드 */}
         <div className="rounded-xl border border-violet-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3.5 py-2 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
+          <div className="px-3.5 py-1.5 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚖️</span>
               <span className="text-[12px] font-bold text-violet-700">찬반 토론</span>
@@ -903,6 +898,9 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
   const [showPicker, setShowPicker] = useState(false);
   const ds = debateSettings!;
   const selected = experts.filter(e => selectedIds.includes(e.id));
+  const maxParticipants = 3;
+  const visibleParticipantSlotCount = Math.min(maxParticipants, Math.max(1, selected.length + 1));
+  const visibleParticipants = Array.from({ length: visibleParticipantSlotCount }, (_, index) => selected[index] ?? null);
 
   return (
     <div>
@@ -941,9 +939,9 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
           {/* 참여자 슬롯 */}
           <div className="px-3 py-3 bg-white">
-            {selected.length > 0 ? (
+            <div className="flex flex-col items-center gap-2 py-1">
               <div className="flex items-center gap-3 flex-wrap justify-center">
-                {selected.map(e => (
+                {visibleParticipants.filter(Boolean).map(e => (
                   <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
                     className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
                     <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
@@ -955,26 +953,18 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
                   </button>
                 ))}
-                {selected.length < 3 && (
-                  <button onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
+                {Array.from({ length: visibleParticipantSlotCount - selected.length }).map((_, i) => (
+                  <button key={`empty-freetalk-${i}`} type="button" onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
                     <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center hover:border-cyan-300 hover:bg-cyan-50/50 transition-colors cursor-pointer">
                       <Plus className="w-4 h-4 text-slate-300" />
                     </div>
                   </button>
-                )}
+                ))}
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 py-1">
-                <div className="flex items-center gap-3">
-                  {[0,1,2].map(i => (
-                    <div key={i} onClick={() => setShowPicker(true)} className="w-11 h-11 rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-cyan-300 hover:bg-cyan-50/50 transition-colors">
-                      <Plus className="w-4 h-4 text-slate-300" />
-                    </div>
-                  ))}
-                </div>
+              {selected.length === 0 && (
                 <span className="text-[11px] text-slate-400">클릭하여 AI를 추가하세요</span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* 설정 — 카드 하단 */}
@@ -1013,14 +1003,19 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const ds = debateSettings!;
-  const selected = experts.filter(e => selectedIds.includes(e.id));
-  const maxOpponents = 3;
+  const opponentCount = ds.aivsUserOpponentCount || 1;
+  const selected = experts.filter(e => selectedIds.includes(e.id)).slice(0, opponentCount);
+  const visibleOpponentSlots = Array.from({ length: opponentCount }, (_, index) => selected[index] ?? null);
+
+  useEffect(() => {
+    if (!onToggle || selectedIds.length <= opponentCount) return;
+    selectedIds.slice(opponentCount).forEach(id => onToggle(id));
+  }, [onToggle, opponentCount, selectedIds]);
 
   return (
     <div>
-      <div className="space-y-3">
+      <div>
         <div className="rounded-xl border border-rose-200 overflow-hidden">
-          {/* 헤더 */}
           <div className="px-3.5 py-2 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚔️</span>
@@ -1034,103 +1029,155 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   { mode: 'freetalk' as const, label: '💬 자유' },
                   { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
                 ].map(t => (
-                  <button key={t.mode}
+                  <button
+                    key={t.mode}
                     onClick={t.mode === 'aivsuser' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
+                    className={cn(
+                      'px-2 py-1 rounded-md text-[9px] font-medium transition-all',
                       t.mode === 'aivsuser'
                         ? 'bg-rose-500 text-white shadow-sm cursor-default'
                         : 'text-slate-500 hover:bg-white hover:text-slate-700'
-                    )}>
+                    )}
+                  >
                     {t.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <div className="p-3 space-y-3">
-        {/* ═══ VS 매치업 ═══ */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <div className="flex items-center gap-3">
-            {/* 나 */}
-            <div className="flex flex-col items-center gap-1 shrink-0">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-[22px] shadow-sm ring-2 ring-blue-300 ring-offset-1">
-                🙋
-              </div>
-              <span className="text-[10px] font-bold text-blue-600">나</span>
-            </div>
 
-            {/* VS */}
-            <div className="shrink-0">
-              <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center shadow">
-                <span className="text-[8px] font-black text-white">VS</span>
+          <div className="bg-white">
+            <div className="px-4 py-5">
+              <div className="min-h-[16px] flex items-center justify-center">
+                {selected.length > 0 && (
+                  <span className="text-[9px] font-medium text-slate-400">
+                    {selected.length === 1 ? '1:1 맞짱' : selected.length === 2 ? '1 vs 2 협공' : '1 vs 3 포위'}
+                    {' · '}
+                    {selected.map(e => e.nameKo).join(', ')}
+                  </span>
+                )}
               </div>
-            </div>
 
-            {/* 상대 AI 슬롯 */}
-            <div className="flex-1 flex items-center gap-2">
-              {selected.slice(0, maxOpponents).map((e, i) => (
-                <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
-                  className="flex flex-col items-center gap-1 group/ai animate-in fade-in zoom-in-75 duration-200" style={{ animationDelay: `${i * 60}ms` }}>
-                  <div className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm ring-2 ring-red-300 ring-offset-1 group-hover/ai:ring-red-500 transition-all">
-                    <ExpertAvatar expert={e} size="md" />
-                    <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/ai:bg-red-500/10 flex items-center justify-center transition-all">
-                      <X className="w-4 h-4 text-red-500 opacity-0 group-hover/ai:opacity-100 transition-opacity" />
-                    </div>
+              <div className="mt-2 flex items-center justify-center gap-4">
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-[22px] shadow-sm ring-2 ring-blue-300 ring-offset-1">
+                    🙋
                   </div>
-                  <span className="text-[9px] font-medium text-slate-600 max-w-[52px] truncate group-hover/ai:text-red-500 transition-colors">{e.nameKo}</span>
-                </button>
-              ))}
-              {/* 빈 슬롯 */}
-              {Array.from({ length: Math.max(1, maxOpponents - selected.length) }).map((_, i) => (
-                <div key={`empty-${i}`} className="flex flex-col items-center gap-1 cursor-pointer" onClick={() => setShowPicker(true)}>
-                  <div className="w-12 h-12 rounded-full bg-white border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-red-300 hover:bg-red-50/50 transition-colors">
-                    <Plus className="w-4 h-4 text-slate-300" />
-                  </div>
-                  {selected.length === 0 && i === 0 && (
-                    <span className="text-[9px] text-slate-400">AI 선택</span>
-                  )}
+                  <span className="text-[10px] font-bold text-blue-600">나</span>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* 매치 요약 */}
-          {selected.length > 0 && (
-            <div className="mt-2 text-center">
-              <span className="text-[9px] font-medium text-slate-400">
-                {selected.length === 1 ? '1:1 맞짱' : selected.length === 2 ? '1 vs 2 협공' : '1 vs 3 포위'}
-                {' · '}{selected.map(e => e.nameKo).join(', ')}
-              </span>
-            </div>
-          )}
-        </div>
+                <div className="shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center shadow">
+                    <span className="text-[8px] font-black text-white">VS</span>
+                  </div>
+                </div>
 
-          {/* 난이도 — 카드 하단 */}
-          <div className="bg-white border-t border-rose-100">
-            <div className="flex items-center gap-3 px-4 py-2">
-              <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">난이도</span>
-              <div className="flex gap-1 flex-1">
-                {([
-                  { v: 'easy' as const, l: '🌱 초급' },
-                  { v: 'normal' as const, l: '⚡ 보통' },
-                  { v: 'hard' as const, l: '🔥 고급' },
-                ]).map(opt => (
-                  <button key={opt.v}
-                    onClick={() => onDebateSettingsChange?.({...ds, aivsUserDifficulty: opt.v})}
-                    className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                      (ds.aivsUserDifficulty || 'normal') === opt.v
-                        ? 'bg-rose-100 text-rose-700 font-semibold'
-                        : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
-                    {opt.l}
-                  </button>
-                ))}
+                <div className="flex items-center justify-center gap-2.5 min-h-[56px]">
+                    {visibleOpponentSlots.map((expert, i) => (
+                      expert ? (
+                        <button
+                          key={expert.id}
+                          type="button"
+                          onClick={() => onToggle?.(expert.id)}
+                          className="flex flex-col items-center gap-1 group/ai animate-in fade-in zoom-in-75 duration-200"
+                          style={{ animationDelay: `${i * 60}ms` }}
+                        >
+                          <div className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm ring-2 ring-red-300 ring-offset-1 group-hover/ai:ring-red-500 transition-all">
+                            <ExpertAvatar expert={expert} size="md" />
+                            <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/ai:bg-red-500/10 flex items-center justify-center transition-all">
+                              <X className="w-4 h-4 text-red-500 opacity-0 group-hover/ai:opacity-100 transition-opacity" />
+                            </div>
+                          </div>
+                          <span className="text-[9px] font-medium text-slate-600 max-w-[52px] truncate group-hover/ai:text-red-500 transition-colors">
+                            {expert.nameKo}
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          key={`empty-${i}`}
+                          type="button"
+                          onClick={() => setShowPicker(true)}
+                          className="flex flex-col items-center gap-1"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-white border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-red-300 hover:bg-red-50/50 transition-colors">
+                            <Plus className="w-4 h-4 text-slate-300" />
+                          </div>
+                          {selected.length === 0 && i === 0 && (
+                            <span className="text-[9px] text-slate-400">AI 선택</span>
+                          )}
+                        </button>
+                      )
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-rose-100">
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
+                <span className="text-[11px] font-semibold text-slate-500 w-14 shrink-0 tracking-tight text-center border-r border-slate-100 pr-3 mr-1">
+                  대전
+                </span>
+                <div className="flex gap-1 flex-1">
+                  {([
+                    { v: 1 as const, l: '1:1' },
+                    { v: 2 as const, l: '1:2' },
+                    { v: 3 as const, l: '1:3' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.v}
+                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserOpponentCount: opt.v })}
+                      className={cn(
+                        'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                        (ds.aivsUserOpponentCount || 1) === opt.v
+                          ? 'bg-rose-100 text-rose-700 font-semibold'
+                          : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
+                      )}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2">
+                <span className="text-[11px] font-semibold text-slate-500 w-14 shrink-0 tracking-tight text-center border-r border-slate-100 pr-3 mr-1">
+                  난이도
+                </span>
+                <div className="flex gap-1 flex-1">
+                  {([
+                    { v: 'easy' as const, l: '🌱 초급' },
+                    { v: 'normal' as const, l: '⚡ 보통' },
+                    { v: 'hard' as const, l: '🔥 고급' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.v}
+                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserDifficulty: opt.v })}
+                      className={cn(
+                        'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                        (ds.aivsUserDifficulty || 'normal') === opt.v
+                          ? 'bg-rose-100 text-rose-700 font-semibold'
+                          : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
+                      )}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {showPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowPicker(false)} title="상대 AI 선택" accentColor="red" maxCount={3} />}
-      </div>
+        {showPicker && (
+          <AIPickerModal
+            experts={experts}
+            selectedIds={selectedIds.slice(0, opponentCount)}
+            onToggle={onToggle!}
+            onClose={() => setShowPicker(false)}
+            title="상대 AI 선택"
+            accentColor="red"
+            maxCount={opponentCount}
+          />
+        )}
       </div>
     </div>
   );
