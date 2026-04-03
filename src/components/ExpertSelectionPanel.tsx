@@ -534,14 +534,14 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                 return (
                   <div key={zone} onDragOver={e => { e.preventDefault(); setDragOver(zone); }} onDragLeave={() => setDragOver(null)}
                     onDrop={() => { if (draggedId) assignStance(draggedId, zone); setDragOver(null); setDraggedId(null); }}
-                    className={cn('rounded-lg border-2 border-dashed transition-all duration-150 p-2.5',
+                    className={cn('rounded-lg border-2 border-dashed transition-all duration-150 p-2.5 flex flex-col',
                       isOver && canDrop ? isPro ? 'border-blue-400 bg-blue-50/50' : 'border-red-400 bg-red-50/50'
                         : isPro ? 'border-blue-200/60 bg-blue-50/20' : 'border-red-200/60 bg-red-50/20')}>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between">
                       <span className={cn('text-[11px] font-bold', isPro ? 'text-blue-600' : 'text-red-600')}>{isPro ? '찬성' : '반대'}</span>
                       <span className={cn('text-[9px]', isPro ? 'text-blue-400' : 'text-red-400')}>{assigned.length}/{MAX_PER_ZONE}</span>
                     </div>
-                    <div className="flex flex-wrap gap-2 justify-center min-h-[80px] items-center">
+                    <div className="flex flex-wrap gap-2 justify-center flex-1 items-center">
                       {assigned.map(id => {
                         const e = experts.find(x => x.id === id);
                         if (!e) return null;
@@ -579,6 +579,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
           {debateSettings && onDebateSettingsChange && (
             <div className="bg-white border-t border-violet-100">
               {[
+                { label: '인원', options: [{ id: '1', l: '1:1' }, { id: '2', l: '2:2' }, { id: '3', l: '3:3' }], value: String(ds.proconTeamSize || 3), onChange: (v: string) => update({ proconTeamSize: Number(v) as 1 | 2 | 3 }) },
                 { label: '강도', options: [{ id: 'mild', l: '온건' }, { id: 'moderate', l: '보통' }, { id: 'intense', l: '격렬' }], value: ds.debateTone, onChange: (v: string) => update({ debateTone: v as DebateSettings['debateTone'] }) },
                 { label: '라운드', options: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }], value: String(ds.rounds), onChange: (v: string) => update({ rounds: Number(v) }) },
                 { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => update({ responseLength: v as DebateSettings['responseLength'] }) },
@@ -677,7 +678,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           {showBotPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowBotPicker(false)} title="참여자 추가" accentColor="amber" maxCount={3} />}
 
           {/* 프레임워크 — 카드 안 */}
-          <div className="px-3.5 py-3 border-t border-amber-100">
+          <div className="px-3.5 py-3 bg-white border-t border-amber-100">
             <div className="text-[10px] font-semibold text-slate-600 mb-2">사고 프레임워크</div>
             <div className="grid grid-cols-5 gap-1.5">
               {THINKING_FRAMEWORKS.map((fw) => (
@@ -1114,8 +1115,8 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
             <div className="border-t border-rose-100">
               <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
-                <span className="text-[11px] font-semibold text-slate-500 w-14 shrink-0 tracking-tight text-center border-r border-slate-100 pr-3 mr-1">
-                  대전
+                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
+                  참여 인원
                 </span>
                 <div className="flex gap-1 flex-1">
                   {([
@@ -1139,14 +1140,14 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 </div>
               </div>
               <div className="flex items-center gap-3 px-4 py-2">
-                <span className="text-[11px] font-semibold text-slate-500 w-14 shrink-0 tracking-tight text-center border-r border-slate-100 pr-3 mr-1">
-                  난이도
+                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
+                  말투
                 </span>
                 <div className="flex gap-1 flex-1">
                   {([
-                    { v: 'easy' as const, l: '🌱 초급' },
-                    { v: 'normal' as const, l: '⚡ 보통' },
-                    { v: 'hard' as const, l: '🔥 고급' },
+                    { v: 'easy' as const, l: '😊 친근' },
+                    { v: 'normal' as const, l: '🤝 논리적' },
+                    { v: 'hard' as const, l: '🔥 공격적' },
                   ]).map(opt => (
                     <button
                       key={opt.v}
@@ -3113,7 +3114,7 @@ export function ExpertSelectionPanel({
     setTipPos(null);
   }, []);
 
-  const MAX_PER_ZONE = 3;
+  const MAX_PER_ZONE = debateSettings?.proconTeamSize || 3;
   const mainMode = getMainMode(discussionMode);
 
   // 자동 배정: 질문 키워드 기반 적합한 전문가 선택
@@ -3762,7 +3763,7 @@ export function ExpertSelectionPanel({
       {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
-          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2) || (discussionMode === 'procon' && !autoAssign && (!Object.values(proconStances).includes('pro') || !Object.values(proconStances).includes('con')))}
+          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2) || (discussionMode === 'procon' && !autoAssign && (!Object.values(proconStances).includes('pro') || !Object.values(proconStances).includes('con'))) || (discussionMode === 'freetalk' && selectedIds.length < 1)}
           discussionMode={discussionMode}
           selectedExperts={
             (isProcon || discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')

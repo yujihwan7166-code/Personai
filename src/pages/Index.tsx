@@ -586,7 +586,7 @@ ${role.focus} 관점에서 반응하세요.
 
       const aiNames = aiOpponents.map(e => e.nameKo).join(', ');
       setMessages([
-        { id: `avsu-start-${Date.now()}`, expertId: '__round__', content: `⚔️ **${question}**\n\n유저(${stanceKo}) vs ${aiNames}(${aiStanceKo}) · ${difficulty === 'easy' ? '🌱 초급' : difficulty === 'hard' ? '🔥 고급' : '⚡ 보통'}` },
+        { id: `avsu-start-${Date.now()}`, expertId: '__round__', content: `⚔️ **${question}**\n\n유저(${stanceKo}) vs ${aiNames}(${aiStanceKo}) · ${difficulty === 'easy' ? '😊 친근' : difficulty === 'hard' ? '🔥 공격적' : '🤝 논리적'}` },
       ]);
 
       setIsDiscussing(true);
@@ -2068,7 +2068,7 @@ ${conversationText}`;
 
       const stanceKo = aivsUserStance === 'pro' ? '찬성' : '반대';
       const aiStanceKo = aivsUserStance === 'pro' ? '반대' : '찬성';
-      const difficultyDesc = difficulty === 'easy' ? '부드럽게 반론하되 유저의 좋은 점은 인정해줘.' : difficulty === 'hard' ? '날카롭게 압박해. 유저의 모든 허점을 파고들어.' : '논리적으로 반론해. 약점은 지적하되 공정하게.';
+      const difficultyDesc = difficulty === 'easy' ? '친근하고 편안한 말투로 대화해. 유저의 좋은 점은 인정하면서 부드럽게 반론해.' : difficulty === 'hard' ? '공격적이고 날카롭게 말해. 유저의 모든 허점을 파고들고, 비꼬기도 해.' : '논리적이고 차분한 말투로 반론해. 근거 기반으로 약점을 지적하되 공정하게.';
 
       // 선택된 AI 상대들 (위에서 클릭한 AI)
       const aiOpponents = activeExperts.length > 0
@@ -2083,7 +2083,7 @@ ${conversationText}`;
 
         const aiPrompt = `당신은 ${aiExpert.nameKo}입니다. "${aivsTopic}" 주제에서 "${aiStanceKo}" 입장으로 유저와 싸우고 있습니다.
 
-## 난이도: ${difficulty}
+## 말투: ${difficulty === 'easy' ? '친근' : difficulty === 'hard' ? '공격적' : '논리적'}
 ${difficultyDesc}
 
 ## 유저 입장: ${stanceKo}

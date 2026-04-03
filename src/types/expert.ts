@@ -145,6 +145,7 @@ export interface DebateSettings {
     rounds: 2 | 3 | 4 | 5;
     includeConclusion: boolean;
     // 찬반 토론 전용
+    proconTeamSize?: 1 | 2 | 3;
     debateTone: 'mild' | 'moderate' | 'intense';
     speakingStyle: 'formal' | 'casual' | 'academic';
     debateFormat: 'alternating' | 'free' | 'opening-rebuttal';
