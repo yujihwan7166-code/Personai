@@ -3446,7 +3446,7 @@ export function ExpertSelectionPanel({
               onStakeholderSettingsChange({ ...DEFAULT_STAKEHOLDER_SETTINGS, scenarioId });
               if (onModeChange) onModeChange('stakeholder');
               // overrideMode로 직접 stakeholder 전달
-              setTimeout(() => onSubmit('__SIM_START__', undefined, 'stakeholder'), 200);
+              setTimeout(() => onSubmit('__SIM_START__:' + scenarioId, undefined, 'stakeholder'), 300);
             }
           }}
         />

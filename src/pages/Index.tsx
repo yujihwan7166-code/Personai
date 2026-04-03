@@ -1332,8 +1332,13 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
 
     } else if (useMode === 'stakeholder') {
       const shSettings = stakeholderSettings;
-      const scenario = SIMULATION_SCENARIOS.find(s => s.id === shSettings.scenarioId);
+      // question에서 scenarioId 추출 (타이밍 문제 방지)
+      const simStartMatch = question.match(/^__SIM_START__:(.+)$/);
+      const effectiveScenarioId = simStartMatch?.[1] || shSettings.scenarioId;
+      const scenario = SIMULATION_SCENARIOS.find(s => s.id === effectiveScenarioId);
       if (!scenario) { setActiveExpertId(undefined); setIsDiscussing(false); return; }
+      // scenarioId를 settings에도 반영
+      if (simStartMatch) setStakeholderSettings(prev => ({ ...prev, scenarioId: effectiveScenarioId }));
 
       // Fix currentQuestion for history
       setCurrentQuestion(`${scenario.icon} ${scenario.name}`);
