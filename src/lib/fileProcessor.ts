@@ -1,6 +1,3 @@
-import mammoth from 'mammoth';
-import * as XLSX from 'xlsx';
-
 export interface AttachedFile {
   id: string;
   name: string;
@@ -14,6 +11,26 @@ export interface AttachedFile {
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
 const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20MB total
 const MAX_FILES = 5;
+
+let mammothModulePromise: Promise<typeof import('mammoth')> | null = null;
+let xlsxModulePromise: Promise<typeof import('xlsx')> | null = null;
+
+function loadMammoth() {
+  if (!mammothModulePromise) {
+    mammothModulePromise = import('mammoth');
+  }
+
+  return mammothModulePromise;
+}
+
+function loadXlsx() {
+  if (!xlsxModulePromise) {
+    xlsxModulePromise = import('xlsx');
+  }
+
+  return xlsxModulePromise;
+}
+
 const SUPPORTED_TYPES = [
   'image/png', 'image/jpeg', 'image/gif', 'image/webp',
   'application/pdf',
@@ -54,6 +71,7 @@ export async function processFile(file: File): Promise<AttachedFile> {
   if (file.type.includes('wordprocessingml')) {
     try {
       const arrayBuffer = await file.arrayBuffer();
+      const mammoth = await loadMammoth();
       const { value } = await mammoth.extractRawText({ arrayBuffer });
       result.extractedText = value.slice(0, 15000); // limit text length
       result.base64 = ''; // don't send binary, just text
@@ -64,6 +82,7 @@ export async function processFile(file: File): Promise<AttachedFile> {
   if (file.type.includes('spreadsheetml')) {
     try {
       const arrayBuffer = await file.arrayBuffer();
+      const XLSX = await loadXlsx();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       let text = '';
       for (const sheetName of workbook.SheetNames.slice(0, 3)) { // max 3 sheets

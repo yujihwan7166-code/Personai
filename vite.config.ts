@@ -59,12 +59,6 @@ export default defineConfig(({ mode }) => ({
             if (id.includes("pptxgenjs")) {
               return "ppt-vendor";
             }
-            if (id.includes("xlsx")) {
-              return "spreadsheet-vendor";
-            }
-            if (id.includes("mammoth")) {
-              return "docx-vendor";
-            }
             if (id.includes("recharts")) {
               return "chart-vendor";
             }
