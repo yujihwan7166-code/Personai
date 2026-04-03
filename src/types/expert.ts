@@ -177,6 +177,7 @@ export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
     responseLength: 'medium',
     rounds: 3,
     includeConclusion: true,
+    proconTeamSize: 2,
     debateTone: 'moderate',
     speakingStyle: 'formal',
     debateFormat: 'alternating',

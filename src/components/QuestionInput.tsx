@@ -1,8 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowUp, Square, Wrench, Paperclip, X, FileText } from 'lucide-react';
+import { ArrowUp, FolderPlus, Paperclip, Plus, Square, X } from 'lucide-react';
 import { DiscussionMode, Expert } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import type { AttachedFile } from '@/lib/fileProcessor';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type FileProcessorModule = typeof import('@/lib/fileProcessor');
 
@@ -17,11 +23,11 @@ function loadFileProcessor() {
 }
 
 function getInlineFileIcon(mimeType: string): string {
-  if (mimeType.startsWith('image/')) return '\u{1F5BC}\uFE0F';
-  if (mimeType === 'application/pdf') return '\u{1F4C4}';
-  if (mimeType.includes('wordprocessingml')) return '\u{1F4DD}';
-  if (mimeType.includes('spreadsheetml')) return '\u{1F4CA}';
-  return '\u{1F4CE}';
+  if (mimeType.startsWith('image/')) return '🖼️';
+  if (mimeType === 'application/pdf') return '📄';
+  if (mimeType.includes('wordprocessingml')) return '📝';
+  if (mimeType.includes('spreadsheetml')) return '📊';
+  return '📎';
 }
 
 function formatInlineFileSize(bytes: number): string {
@@ -51,6 +57,24 @@ interface Props {
   embedded?: boolean;
 }
 
+function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: DiscussionMode | undefined) {
+  if (isFollowUp) {
+    if (discussionMode === 'brainstorm') return '추가 방향이나 아이디어를 적어보세요';
+    if (discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'hearing') {
+      return '토론자에게 추가 질문을 해보세요';
+    }
+    if (discussionMode === 'stakeholder') return '응답을 입력해보세요';
+    if (discussionMode === 'aivsuser') return '반론을 입력해보세요';
+    return '이어서 질문해보세요';
+  }
+
+  if (discussionMode === 'general') return '궁금한 것을 물어보세요';
+  if (discussionMode === 'multi') return '여러 AI에게 동시에 질문해보세요';
+  if (discussionMode === 'expert') return '전문가에게 상담할 내용을 입력해보세요';
+  if (discussionMode === 'aivsuser') return 'AI와 토론할 주제를 입력해보세요';
+  return '토론하고 싶은 주제를 입력해보세요';
+}
+
 export function QuestionInput({
   onSubmit,
   onSubmitWithFiles,
@@ -61,12 +85,7 @@ export function QuestionInput({
   selectedExperts,
   onRemoveExpert,
   onToggleSettings,
-  showSettings,
   isFollowUp,
-  onConclusion,
-  onSummarize,
-  isSummarizing,
-  messageCount = 0,
   externalValue,
   onExternalValueConsumed,
   embedded = false,
@@ -80,15 +99,18 @@ export function QuestionInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setTimeout(() => textareaRef.current?.focus(), 100);
+    const timer = setTimeout(() => textareaRef.current?.focus(), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (externalValue) {
-      setQuestion(externalValue);
-      onExternalValueConsumed?.();
-      setTimeout(() => textareaRef.current?.focus(), 50);
-    }
+    if (!externalValue) return;
+
+    setQuestion(externalValue);
+    onExternalValueConsumed?.();
+
+    const timer = setTimeout(() => textareaRef.current?.focus(), 50);
+    return () => clearTimeout(timer);
   }, [externalValue, onExternalValueConsumed]);
 
   useEffect(() => {
@@ -103,9 +125,10 @@ export function QuestionInput({
     setFileError(null);
     const { validateFile, processFile } = await loadFileProcessor();
 
-    for (let i = 0; i < files.length; i++) {
+    for (let i = 0; i < files.length; i += 1) {
       const file = files[i];
-      const error = validateFile(file, attachedFiles);
+      const currentFiles = i === 0 ? attachedFiles : [...attachedFiles];
+      const error = validateFile(file, currentFiles);
 
       if (error) {
         setFileError(error);
@@ -129,10 +152,12 @@ export function QuestionInput({
     e.preventDefault();
     if (!question.trim() || disabled || isStreaming) return;
 
+    const trimmedQuestion = question.trim();
+
     if (onSubmitWithFiles && attachedFiles.length > 0) {
-      onSubmitWithFiles(question.trim(), attachedFiles);
+      onSubmitWithFiles(trimmedQuestion, attachedFiles);
     } else {
-      onSubmit(question.trim());
+      onSubmit(trimmedQuestion);
     }
 
     setQuestion('');
@@ -160,29 +185,13 @@ export function QuestionInput({
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
-    if (!disabled && !isStreaming) handleFileSelect(e.dataTransfer.files);
+
+    if (!disabled && !isStreaming) {
+      handleFileSelect(e.dataTransfer.files);
+    }
   };
 
-  const placeholder = isFollowUp
-    ? discussionMode === 'brainstorm'
-      ? '추가 방향을 덧붙여 보세요'
-      : discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'hearing'
-        ? '토론자에게 추가 질문을 해보세요'
-        : discussionMode === 'stakeholder'
-          ? '답변을 입력해보세요'
-          : discussionMode === 'aivsuser'
-            ? '반론을 입력해보세요'
-            : '이어서 질문해보세요'
-    : discussionMode === 'general'
-      ? '궁금한 것을 물어보세요'
-      : discussionMode === 'multi'
-        ? '여러 AI에게 동시에 질문해보세요'
-        : discussionMode === 'expert'
-          ? '전문가에게 상담할 내용을 입력해보세요'
-          : discussionMode === 'aivsuser'
-            ? 'AI와 토론할 주제를 입력해보세요'
-            : '토론하고 싶은 주제를 입력해보세요';
-
+  const placeholder = getPlaceholder(isFollowUp, discussionMode);
   const canSubmit = !!question.trim() && !disabled && !isStreaming;
   const canUseTools = !disabled && !isStreaming;
 
@@ -195,7 +204,7 @@ export function QuestionInput({
           isDragOver
             ? embedded
               ? 'rounded-b-2xl bg-blue-50/30'
-              : 'border-blue-400 shadow-[0_2px_20px_rgba(59,130,246,0.15)] bg-blue-50/30'
+              : 'border-blue-400 bg-blue-50/30 shadow-[0_2px_20px_rgba(59,130,246,0.15)]'
             : disabled
               ? embedded
                 ? 'opacity-75'
@@ -203,7 +212,7 @@ export function QuestionInput({
               : focused
                 ? embedded
                   ? 'bg-transparent'
-                  : 'border-violet-300 shadow-[0_2px_20px_rgba(139,92,246,0.10)] bg-white'
+                  : 'border-violet-300 bg-white shadow-[0_2px_20px_rgba(139,92,246,0.10)]'
                 : embedded
                   ? 'bg-transparent'
                   : 'border-slate-200 bg-slate-50 shadow-sm hover:border-violet-300'
@@ -212,15 +221,17 @@ export function QuestionInput({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <div className={cn(
-          'transition-all duration-200',
-          embedded ? 'rounded-none bg-transparent' : 'rounded-[calc(1rem-2px)] bg-white'
-        )}>
+        <div
+          className={cn(
+            'transition-all duration-200',
+            embedded ? 'rounded-none bg-transparent' : 'rounded-[calc(1rem-2px)] bg-white'
+          )}
+        >
           {!isFollowUp && selectedExperts && selectedExperts.length > 0 && (
-            (discussionMode === 'standard' || discussionMode === 'brainstorm') ? (
-              <div className="flex items-center gap-2.5 px-5 pt-3 pb-1">
-                <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold tracking-wide">
-                  {discussionMode === 'standard' ? '토론자' : '참여자'}
+            discussionMode === 'standard' || discussionMode === 'brainstorm' ? (
+              <div className="flex items-center gap-2.5 px-5 pb-1 pt-3">
+                <span className="inline-flex items-center rounded bg-slate-700 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
+                  {discussionMode === 'standard' ? '토론' : '참여자'}
                 </span>
                 <div className="flex items-center gap-1.5">
                   {selectedExperts.map((expert, index) => (
@@ -232,29 +243,33 @@ export function QuestionInput({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-1 px-4 pt-3 pb-1 flex-wrap">
+              <div className="flex flex-wrap items-center gap-1 px-4 pb-1 pt-3">
                 {selectedExperts.map((expert) => (
                   onRemoveExpert ? (
                     <button
                       key={expert.id}
                       type="button"
                       onClick={() => onRemoveExpert(expert.id)}
-                      className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] text-indigo-600 font-medium hover:bg-red-50 hover:border-red-100 hover:text-red-400 transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-indigo-600 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-400"
                     >
-                      {expert.avatarUrl
-                        ? <img src={expert.avatarUrl} alt="" className="w-3.5 h-3.5 object-contain pointer-events-none" />
-                        : expert.icon && <span className="text-[12px] pointer-events-none">{expert.icon}</span>}
+                      {expert.avatarUrl ? (
+                        <img src={expert.avatarUrl} alt="" className="h-3.5 w-3.5 object-contain pointer-events-none" />
+                      ) : expert.icon ? (
+                        <span className="pointer-events-none text-[12px]">{expert.icon}</span>
+                      ) : null}
                       {expert.nameKo}
                       <span className="text-[9px] opacity-60">×</span>
                     </button>
                   ) : (
                     <span
                       key={expert.id}
-                      className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] text-indigo-600 font-medium"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-indigo-600"
                     >
-                      {expert.avatarUrl
-                        ? <img src={expert.avatarUrl} alt="" className="w-3.5 h-3.5 object-contain" />
-                        : expert.icon && <span className="text-[12px]">{expert.icon}</span>}
+                      {expert.avatarUrl ? (
+                        <img src={expert.avatarUrl} alt="" className="h-3.5 w-3.5 object-contain" />
+                      ) : expert.icon ? (
+                        <span className="text-[12px]">{expert.icon}</span>
+                      ) : null}
                       {expert.nameKo}
                     </span>
                   )
@@ -264,25 +279,26 @@ export function QuestionInput({
           )}
 
           {attachedFiles.length > 0 && (
-            <div className="flex items-center gap-1.5 px-4 pt-3 pb-1 flex-wrap">
+            <div className="flex flex-wrap items-center gap-1.5 px-4 pb-1 pt-3">
               {attachedFiles.map((file) => (
                 <div
                   key={file.id}
-                  className="inline-flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 max-w-[180px]"
+                  className="inline-flex max-w-[220px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 py-1 pl-2 pr-1 text-[11px] text-slate-600"
                 >
                   {file.preview ? (
-                    <img src={file.preview} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                    <img src={file.preview} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
                   ) : (
-                    <span className="text-[14px] shrink-0">{getInlineFileIcon(file.mimeType)}</span>
+                    <span className="shrink-0 text-[14px]">{getInlineFileIcon(file.mimeType)}</span>
                   )}
                   <span className="truncate">{file.name}</span>
-                  <span className="text-slate-400 text-[9px] shrink-0">{formatInlineFileSize(file.size)}</span>
+                  <span className="shrink-0 text-[9px] text-slate-400">{formatInlineFileSize(file.size)}</span>
                   <button
                     type="button"
                     onClick={() => removeFile(file.id)}
-                    className="ml-0.5 p-0.5 rounded hover:bg-red-50 hover:text-red-400 transition-colors shrink-0"
+                    className="ml-0.5 shrink-0 rounded p-0.5 transition-colors hover:bg-red-50 hover:text-red-400"
+                    aria-label={`${file.name} 제거`}
                   >
-                    <X className="w-3 h-3" />
+                    <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
@@ -290,7 +306,7 @@ export function QuestionInput({
           )}
 
           {fileError && (
-            <div className="px-5 pt-2 pb-0 text-[11px] text-red-500">{fileError}</div>
+            <div className="px-5 pt-2 text-[11px] text-red-500">{fileError}</div>
           )}
 
           <input
@@ -314,8 +330,8 @@ export function QuestionInput({
             placeholder={placeholder}
             disabled={disabled}
             className={cn(
-              'w-full bg-transparent resize-none text-[14px] text-foreground placeholder:text-slate-400 focus:outline-none leading-relaxed max-h-[140px] block',
-              embedded ? 'px-5 pt-4 pb-3 min-h-[76px]' : 'px-5 pt-4 pb-2 min-h-[44px]'
+              'block w-full max-h-[140px] resize-none bg-transparent text-[14px] leading-relaxed text-foreground placeholder:text-slate-400 focus:outline-none',
+              embedded ? 'min-h-[76px] px-5 pb-3 pt-4' : 'min-h-[44px] px-5 pb-2 pt-4'
             )}
             rows={embedded ? 2 : 1}
             onKeyDown={(e) => {
@@ -331,100 +347,76 @@ export function QuestionInput({
             }}
           />
 
-          <div className={cn(
-            'flex items-center justify-between px-3',
-            embedded ? 'py-2.5' : 'py-1.5'
-          )}>
+          <div className={cn('flex items-center justify-between px-3', embedded ? 'py-2.5' : 'py-1.5')}>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={!canUseTools}
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center justify-center w-7 h-7 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-40 disabled:hover:bg-transparent"
-                title="파일 첨부"
-              >
-                <Paperclip className="w-3.5 h-3.5" strokeWidth={2} />
-              </button>
-
-              <button
-                type="button"
-                disabled={!canUseTools}
-                onClick={onToggleSettings}
-                className={cn(
-                  'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all disabled:opacity-40',
-                  showSettings
-                    ? 'bg-slate-800 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                )}
-              >
-                <Wrench className="w-3 h-3" strokeWidth={1.8} />
-                {!showSettings && '설정'}
-                {showSettings && '닫기'}
-              </button>
-
-              {onSummarize && (
-                <div className="relative group/summary">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    onClick={messageCount >= 3 ? onSummarize : undefined}
-                    disabled={isSummarizing || messageCount < 3}
-                    className={cn(
-                      'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all',
-                      isSummarizing
-                        ? 'text-slate-400 bg-slate-100'
-                        : messageCount < 3
-                          ? 'text-slate-300 cursor-not-allowed'
-                          : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                    )}
+                    disabled={!canUseTools}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-40 disabled:hover:bg-white"
+                    aria-label="추가 메뉴"
+                    title="추가 메뉴"
                   >
-                    <FileText className="w-3 h-3" strokeWidth={1.8} />
-                    {isSummarizing ? '요약 중...' : '요약하기'}
+                    <Plus className="h-4 w-4" strokeWidth={2.2} />
                   </button>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] whitespace-nowrap opacity-0 group-hover/summary:opacity-100 transition-opacity pointer-events-none shadow-lg">
-                    {messageCount < 3 ? '대화가 조금 더 쌓이면 사용할 수 있어요' : '지금까지의 대화를 AI가 요약합니다'}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
-                  </div>
-                </div>
-              )}
-
-              {onConclusion && (
-                <button
-                  type="button"
-                  onClick={onConclusion}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium text-amber-600 hover:bg-amber-50 transition-all"
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  side="top"
+                  className="w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.12)]"
                 >
-                  {discussionMode === 'aivsuser' ? '최종 판정 요청' : '종합 결론'}
-                </button>
-              )}
+                  <DropdownMenuItem
+                    disabled={!canUseTools}
+                    onSelect={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium text-slate-700"
+                  >
+                    <Paperclip className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    파일 추가
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canUseTools || !onToggleSettings}
+                    onSelect={() => onToggleSettings?.()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium text-slate-700"
+                  >
+                    <FolderPlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    프로젝트에 추가
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div className="flex items-center gap-1.5">
               {!disabled && !isStreaming && (
-                <span className="text-[9px] text-slate-300 mr-1 hidden sm:inline">Enter 전송 · Shift+Enter 줄바꿈</span>
+                <span className="mr-1 hidden text-[9px] text-slate-300 sm:inline">
+                  Enter 전송 · Shift+Enter 줄바꿈
+                </span>
               )}
 
-          {isStreaming ? (
-            <button
-              type="button"
-              onClick={onStop}
-              aria-label="중지"
-              title="중지"
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150 bg-indigo-500 text-white hover:bg-indigo-600 shadow-md"
-            >
-              <Square className="w-3.5 h-3.5" strokeWidth={2.5} />
-            </button>
-          ) : (
+              {isStreaming ? (
+                <button
+                  type="button"
+                  onClick={onStop}
+                  aria-label="중지"
+                  title="중지"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-md transition-all duration-150 hover:bg-indigo-600"
+                >
+                  <Square className="h-3.5 w-3.5" strokeWidth={2.5} />
+                </button>
+              ) : (
                 <button
                   type="submit"
                   disabled={!canSubmit}
                   className={cn(
-                    'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150',
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-150',
                     canSubmit
-                      ? 'bg-indigo-500 text-white hover:bg-indigo-600 shadow-md'
+                      ? 'bg-indigo-500 text-white shadow-md hover:bg-indigo-600'
                       : 'bg-slate-100 text-slate-300'
                   )}
+                  aria-label="전송"
+                  title="전송"
                 >
-                  <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
+                  <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
                 </button>
               )}
             </div>

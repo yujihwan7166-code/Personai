@@ -563,6 +563,11 @@ ${role.focus} 관점에서 반응하세요.
     const filesToSend = pendingFiles.length > 0 ? pendingFiles.map(f => ({
       name: f.name, mimeType: f.mimeType, base64: f.base64, extractedText: f.extractedText,
     })) : undefined;
+    const filesBadges = pendingFiles.length > 0 ? pendingFiles.map((f) => ({
+      name: f.name,
+      mimeType: f.mimeType,
+      preview: f.preview,
+    })) : undefined;
 
     const allResponses: {name: string;content: string;}[] = [];
     const shouldStop = () => controller.signal.aborted;
@@ -652,12 +657,19 @@ ${role.focus} 관점에서 반응하세요.
           else if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
             // 사용자 메시지 추가 → 채팅 화면으로 전환
             if (messages.length === 0) {
-              setMessages([{ id: `user-clarify-${Date.now()}`, expertId: '__user__', content: question }]);
+              setMessages([{
+                id: `user-clarify-${Date.now()}`,
+                expertId: '__user__',
+                content: displayQuestion || question,
+                attachedFiles: filesBadges,
+              }]);
             }
             // 부분 답변이 있으면 AI 메시지로 먼저 표시
             if (clarifyData.partialAnswer) {
               setMessages(prev => [...prev, { id: `partial-${Date.now()}`, expertId: expert0.id, content: clarifyData.partialAnswer }]);
             }
+            // 명확화 질문을 거친 뒤에도 실제 답변 요청 시 첨부가 유지되도록 보존
+            pendingFilesRef.current = pendingFiles;
             setChatClarify({
               show: true, loading: false,
               message: clarifyData.message || '더 정확한 답변을 위해 확인할게요',
@@ -673,6 +685,16 @@ ${role.focus} 관점에서 반응하세요.
       }
       skipClarifyRef.current = true;
       setChatClarify(null);
+
+      if (useMode === 'general' && filesBadges && filesBadges.length > 0) {
+        setMessages((prev) => [...prev, {
+          id: `user-general-${Date.now()}`,
+          expertId: '__user__',
+          content: displayQuestion || question,
+          attachedFiles: filesBadges,
+        }]);
+      }
+
       // Smart router: auto-select best AI
       let expertsToRun = discussionExperts;
       if (useIds.includes('router')) {
@@ -1684,6 +1706,8 @@ Rules:
   // Mode-specific chat variant
   const getChatVariant = (msg: DiscussionMessage): ChatVariant => {
     const mainMode = getMainMode(discussionMode);
+    // Keep general mode aligned with DiscussionMessage's `general-card` variant.
+    // If this is changed back to `messenger`, the single-AI card design appears to "roll back".
     if (mainMode === 'general') return 'general-card';
     if (discussionMode === 'brainstorm') return 'postit';
     if (discussionMode === 'hearing') return 'hearing';
@@ -3549,40 +3573,43 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         )}
                       </div>
 
-                      {/* 선택지 — 깔끔한 리스트 */}
-                      <div className="px-3 pb-2">
-                        {q.options.filter(o => o.value !== '__custom__').map((opt, oi) => {
-                          const isSelected = chatClarify.selections[q.id] === opt.value;
-                          return (
-                            <button key={oi} onClick={() => handleSelect(opt.value)}
-                              className={cn('w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left mb-1',
+                        {/* 선택지 — 깔끔한 리스트 */}
+                        <div className="px-3 pb-3">
+                          {q.options.filter(o => o.value !== '__custom__').map((opt, oi) => {
+                            const isSelected = chatClarify.selections[q.id] === opt.value;
+                            return (
+                              <button key={oi} onClick={() => handleSelect(opt.value)}
+                                className={cn('w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left mb-1',
                                 isSelected ? 'bg-indigo-50' : 'hover:bg-slate-50')}>
                               <span className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0',
                                 isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-400')}>{oi + 1}</span>
                               <span className={cn('text-[13px] font-medium flex-1', isSelected ? 'text-indigo-600' : 'text-slate-700')}>{opt.label}</span>
                               {isSelected && <span className="text-indigo-400 text-[14px]">→</span>}
-                            </button>
-                          );
-                        })}
+                              </button>
+                            );
+                          })}
 
-                        {/* 기타 직접 입력 옵션 */}
-                        {q.options.some(o => o.value === '__custom__') && (
-                          <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-slate-50 transition-all mb-1">
-                            <span className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-[13px] text-slate-400 shrink-0">✎</span>
-                            {chatClarify.selections[q.id] === '__custom__' ? (
-                              <div className="flex-1 flex gap-2">
-                                <input type="text" value={chatClarify.customInputs[q.id] || ''} autoFocus
-                                  onChange={e => setChatClarify({ ...chatClarify, customInputs: { ...chatClarify.customInputs, [q.id]: e.target.value } })}
-                                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                                  placeholder="직접 입력..." onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit(); }} />
-                                <button onClick={handleCustomSubmit} className="px-3 py-1.5 rounded-lg bg-indigo-500 text-white text-[11px] font-semibold">확인</button>
-                              </div>
-                            ) : (
-                              <button onClick={() => handleSelect('__custom__')} className="text-[13px] font-medium text-slate-400 hover:text-slate-600">기타</button>
-                            )}
+                          <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                            <p className="mb-2 text-[11px] font-medium text-slate-500">직접 답하고 싶다면 아래에 적어주세요</p>
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-[13px] text-slate-400 shadow-sm">✎</span>
+                              <input
+                                type="text"
+                                value={chatClarify.customInputs[q.id] || ''}
+                                onChange={e => setChatClarify({ ...chatClarify, customInputs: { ...chatClarify.customInputs, [q.id]: e.target.value } })}
+                                className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                placeholder="직접 입력..."
+                                onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit(); }}
+                              />
+                              <button
+                                onClick={handleCustomSubmit}
+                                className="rounded-lg bg-indigo-500 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-indigo-600"
+                              >
+                                확인
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
 
                       {/* AI 표시 — 상단 바 스타일 */}
                     </div>

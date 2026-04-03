@@ -319,29 +319,32 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
         {/* 참여자 + 설정 통합 카드 */}
         <div className="rounded-xl border border-emerald-200 overflow-hidden flex flex-col">
           {/* 헤더 */}
-          <div className="px-3.5 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
+          <div className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🎯</span>
               <span className="text-[12px] font-bold text-emerald-700">심층 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
-                {[
-                  { mode: 'procon' as const, label: '⚖️ 찬반' },
-                  { mode: 'standard' as const, label: '🎯 심층' },
-                  { mode: 'freetalk' as const, label: '💬 자유' },
-                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
-                ].map(t => (
-                  <button key={t.mode}
-                    onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
-                      t.mode === 'standard'
-                        ? 'bg-emerald-500 text-white shadow-sm cursor-default'
-                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
-                    )}>
-                    {t.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/80 bg-white/85 px-2 py-1 shadow-sm backdrop-blur-sm">
+                <span className="text-[10.5px] font-semibold text-slate-500 shrink-0">모드 선택</span>
+                <div className="flex items-center gap-0.5 rounded-lg bg-slate-100/80 p-0.5 shadow-inner">
+                  {[
+                    { mode: 'procon' as const, label: '찬반토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  ].map(t => (
+                    <button key={t.mode}
+                      onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
+                      className={cn('px-2.5 py-1 rounded-md text-[9.5px] font-semibold transition-all',
+                        t.mode === 'standard'
+                          ? 'bg-emerald-500 text-white shadow-sm cursor-default'
+                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
+                      )}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -495,23 +498,26 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
               <span className="text-[12px] font-bold text-violet-700">찬반 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
-                {[
-                  { mode: 'procon' as const, label: '⚖️ 찬반' },
-                  { mode: 'standard' as const, label: '🎯 심층' },
-                  { mode: 'freetalk' as const, label: '💬 자유' },
-                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
-                ].map(t => (
-                  <button key={t.mode}
-                    onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
-                      t.mode === 'procon'
-                        ? 'bg-violet-500 text-white shadow-sm cursor-default'
-                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
-                    )}>
-                    {t.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/80 bg-white/85 px-2 py-1 shadow-sm backdrop-blur-sm">
+                <span className="text-[10.5px] font-semibold text-slate-500 shrink-0">모드 선택</span>
+                <div className="flex items-center gap-0.5 rounded-lg bg-slate-100/80 p-0.5 shadow-inner">
+                  {[
+                    { mode: 'procon' as const, label: '찬반토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  ].map(t => (
+                    <button key={t.mode}
+                      onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
+                      className={cn('px-2.5 py-1 rounded-md text-[9.5px] font-semibold transition-all',
+                        t.mode === 'procon'
+                          ? 'bg-violet-500 text-white shadow-sm cursor-default'
+                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
+                      )}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -915,29 +921,32 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
         {/* 참여자 + 설정 통합 카드 */}
         <div className="rounded-xl border border-cyan-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3.5 py-2 bg-gradient-to-r from-cyan-50 to-sky-50 border-b border-cyan-100 flex items-center justify-between">
+          <div className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-50 to-sky-50 border-b border-cyan-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💬</span>
               <span className="text-[12px] font-bold text-cyan-700">자유 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
-                {[
-                  { mode: 'procon' as const, label: '⚖️ 찬반' },
-                  { mode: 'standard' as const, label: '🎯 심층' },
-                  { mode: 'freetalk' as const, label: '💬 자유' },
-                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
-                ].map(t => (
-                  <button key={t.mode}
-                    onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
-                      t.mode === 'freetalk'
-                        ? 'bg-cyan-500 text-white shadow-sm cursor-default'
-                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
-                    )}>
-                    {t.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/80 bg-white/85 px-2 py-1 shadow-sm backdrop-blur-sm">
+                <span className="text-[10.5px] font-semibold text-slate-500 shrink-0">모드 선택</span>
+                <div className="flex items-center gap-0.5 rounded-lg bg-slate-100/80 p-0.5 shadow-inner">
+                  {[
+                    { mode: 'procon' as const, label: '찬반토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  ].map(t => (
+                    <button key={t.mode}
+                      onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
+                      className={cn('px-2.5 py-1 rounded-md text-[9.5px] font-semibold transition-all',
+                        t.mode === 'freetalk'
+                          ? 'bg-cyan-500 text-white shadow-sm cursor-default'
+                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
+                      )}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1021,44 +1030,45 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
     <div>
       <div>
         <div className="rounded-xl border border-rose-200 overflow-hidden">
-          <div className="px-3.5 py-2 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
+          <div className="px-3.5 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚔️</span>
               <span className="text-[12px] font-bold text-rose-700">AI vs 유저</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
-                {[
-                  { mode: 'procon' as const, label: '⚖️ 찬반' },
-                  { mode: 'standard' as const, label: '🎯 심층' },
-                  { mode: 'freetalk' as const, label: '💬 자유' },
-                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
-                ].map(t => (
-                  <button
-                    key={t.mode}
-                    onClick={t.mode === 'aivsuser' ? undefined : () => onModeChange(t.mode)}
-                    className={cn(
-                      'px-2 py-1 rounded-md text-[9px] font-medium transition-all',
-                      t.mode === 'aivsuser'
-                        ? 'bg-rose-500 text-white shadow-sm cursor-default'
-                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
-                    )}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/80 bg-white/85 px-2 py-1 shadow-sm backdrop-blur-sm">
+                <span className="text-[10.5px] font-semibold text-slate-500 shrink-0">모드 선택</span>
+                <div className="flex items-center gap-0.5 rounded-lg bg-slate-100/80 p-0.5 shadow-inner">
+                  {[
+                    { mode: 'procon' as const, label: '찬반토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  ].map(t => (
+                    <button
+                      key={t.mode}
+                      onClick={t.mode === 'aivsuser' ? undefined : () => onModeChange(t.mode)}
+                      className={cn(
+                        'px-2.5 py-1 rounded-md text-[9.5px] font-semibold transition-all',
+                        t.mode === 'aivsuser'
+                          ? 'bg-rose-500 text-white shadow-sm cursor-default'
+                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
+                      )}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
           <div className="bg-white">
             <div className="px-4 py-5">
-              <div className="min-h-[16px] flex items-center justify-center">
+              <div className="min-h-[20px] flex items-center justify-center">
                 {selected.length > 0 && (
-                  <span className="text-[9px] font-medium text-slate-400">
+                  <span className="text-[11px] font-semibold text-slate-500">
                     {selected.length === 1 ? '1:1 맞짱' : selected.length === 2 ? '1 vs 2 협공' : '1 vs 3 포위'}
-                    {' · '}
-                    {selected.map(e => e.nameKo).join(', ')}
                   </span>
                 )}
               </div>
@@ -1077,8 +1087,8 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center">
-                  <div className="flex items-start justify-center gap-2.5 min-h-[68px]">
+                <div className={cn('relative flex items-center justify-center px-1', selected.length === 0 ? 'min-h-[84px] pb-4' : 'min-h-[72px] pb-0')}>
+                  <div className="flex items-center justify-center gap-2.5 min-h-[68px]">
                     {visibleOpponentSlots.map((expert, i) => (
                       expert ? (
                         <button
@@ -1115,7 +1125,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                       )
                     ))}
                   </div>
-                  <div className={cn('mt-1 h-4 text-[10px] font-semibold text-center', selected.length === 0 ? 'text-slate-500' : 'text-transparent select-none')}>
+                  <div className={cn('pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-4 text-[10px] font-semibold text-center', selected.length === 0 ? 'text-slate-500' : 'text-transparent select-none')}>
                     AI 선택
                   </div>
                 </div>

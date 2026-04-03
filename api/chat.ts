@@ -29,6 +29,51 @@ interface ChatRequestBody {
   files?: UploadedFilePayload[];
 }
 
+function buildPrompt(question: string, previousResponses?: PreviousResponse[]) {
+  if (!previousResponses || previousResponses.length === 0) {
+    return question;
+  }
+
+  const context = previousResponses
+    .map((response) => `[${response.name}]: ${response.content}`)
+    .join('\n\n');
+
+  return `이전 대화\n${context}\n\n새 질문: ${question}`;
+}
+
+function buildFileParts(files?: UploadedFilePayload[]): UserPart[] {
+  if (!files || files.length === 0) {
+    return [];
+  }
+
+  const parts: UserPart[] = [
+    {
+      text: '\n[첨부 안내]\n질문과 관련이 있다면 아래 첨부 파일 내용을 우선 참고해서 답변하세요.',
+    },
+  ];
+
+  for (const file of files) {
+    if (file.extractedText) {
+      parts.push({
+        text: `\n[첨부 파일: ${file.name}]\n${file.extractedText}`,
+      });
+      continue;
+    }
+
+    if (file.base64 && file.mimeType) {
+      parts.push({ text: `\n[첨부 파일: ${file.name}]` });
+      parts.push({
+        inline_data: {
+          mime_type: file.mimeType,
+          data: file.base64,
+        },
+      });
+    }
+  }
+
+  return parts;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -45,53 +90,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!question || typeof question !== 'string') {
     return res.status(400).json({ error: 'question is required and must be a string' });
   }
+
   if (question.length > 10000) {
     return res.status(400).json({ error: 'question is too long' });
   }
 
-  // Build conversation contents
-  const contents: Array<{ role: 'user'; parts: UserPart[] }> = [];
-
-  // Build user message parts
-  let fullPrompt: string;
-  if (previousResponses && previousResponses.length > 0) {
-    const context = previousResponses
-      .map((r: { name: string; content: string }) => `[${r.name}]: ${r.content}`)
-      .join('\n\n');
-    fullPrompt = `이전 대화:\n${context}\n\n새 질문: ${question}`;
-  } else {
-    fullPrompt = question;
-  }
-
-  const userParts: UserPart[] = [{ text: fullPrompt }];
-
-  // Add file attachments if present
-  if (files && Array.isArray(files)) {
-    for (const file of files) {
-      if (file.extractedText) {
-        // Word/Excel: add extracted text
-        userParts.push({ text: `\n[첨부 파일: ${file.name}]\n${file.extractedText}` });
-      } else if (file.base64 && file.mimeType) {
-        // Image/PDF: add as inline_data
-        userParts.push({
-          inline_data: {
-            mime_type: file.mimeType,
-            data: file.base64,
-          }
-        });
-      }
-    }
-  }
-
-  contents.push({ role: 'user', parts: userParts });
+  const contents: Array<{ role: 'user'; parts: UserPart[] }> = [
+    {
+      role: 'user',
+      parts: [{ text: buildPrompt(question, previousResponses) }, ...buildFileParts(files)],
+    },
+  ];
 
   const model = 'gemini-2.5-flash-lite';
   const url = buildGeminiUrl(model, apiKey, true);
 
   try {
     const abortCtrl = new AbortController();
-    const hasFiles = files && Array.isArray(files) && files.length > 0;
-    const timeoutId = setTimeout(() => abortCtrl.abort(), hasFiles ? 60000 : 30000); // 60s for files, 30s otherwise
+    const hasFiles = Array.isArray(files) && files.length > 0;
+    const timeoutId = setTimeout(() => abortCtrl.abort(), hasFiles ? 60000 : 30000);
 
     const geminiRes = await fetch(url, {
       method: 'POST',
@@ -112,12 +129,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!geminiRes.ok) {
       const errorText = await geminiRes.text();
       if (geminiRes.status === 429) {
-        return res.status(429).json({ error: 'API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.' });
+        return res.status(429).json({ error: 'API 요청 한도를 초과했어요. 잠시 후 다시 시도해주세요.' });
       }
       return res.status(geminiRes.status).json({ error: errorText });
     }
 
-    // Stream SSE response
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -140,7 +156,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       buffer = parsed.remainder;
 
       for (const text of parsed.texts) {
-        // Convert to OpenAI-compatible SSE format (frontend expects this)
         res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
       }
 
@@ -155,6 +170,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if ((err as Error).name === 'AbortError') {
       return res.status(504).json({ error: 'Upstream model request timed out' });
     }
+
     return res.status(500).json({ error: String(err) });
   }
 }
