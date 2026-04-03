@@ -1,4 +1,33 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { buildGeminiUrl, parseGeminiStreamBuffer } from './_lib/gemini';
+
+interface PreviousResponse {
+  name: string;
+  content: string;
+}
+
+interface UploadedFilePayload {
+  name: string;
+  mimeType?: string;
+  base64?: string;
+  extractedText?: string;
+}
+
+type UserPart =
+  | { text: string }
+  | {
+      inline_data: {
+        mime_type: string;
+        data: string;
+      };
+    };
+
+interface ChatRequestBody {
+  systemPrompt?: string;
+  question?: string;
+  previousResponses?: PreviousResponse[];
+  files?: UploadedFilePayload[];
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -10,20 +39,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
-  const { systemPrompt, question, previousResponses, files } = req.body || {};
+  const { question, previousResponses, files } = (req.body || {}) as ChatRequestBody;
+  const systemPrompt = typeof req.body?.systemPrompt === 'string' ? req.body.systemPrompt : '';
 
   if (!question || typeof question !== 'string') {
     return res.status(400).json({ error: 'question is required and must be a string' });
-  }
-  if (typeof systemPrompt !== 'string') {
-    return res.status(400).json({ error: 'systemPrompt must be a string' });
   }
   if (question.length > 10000) {
     return res.status(400).json({ error: 'question is too long' });
   }
 
   // Build conversation contents
-  const contents: any[] = [];
+  const contents: Array<{ role: 'user'; parts: UserPart[] }> = [];
 
   // Build user message parts
   let fullPrompt: string;
@@ -36,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     fullPrompt = question;
   }
 
-  const userParts: any[] = [{ text: fullPrompt }];
+  const userParts: UserPart[] = [{ text: fullPrompt }];
 
   // Add file attachments if present
   if (files && Array.isArray(files)) {
@@ -59,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   contents.push({ role: 'user', parts: userParts });
 
   const model = 'gemini-2.5-flash-lite';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const url = buildGeminiUrl(model, apiKey, true);
 
   try {
     const abortCtrl = new AbortController();
@@ -109,30 +136,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+      const parsed = parseGeminiStreamBuffer(buffer);
+      buffer = parsed.remainder;
 
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const jsonStr = line.slice(6).trim();
-        if (!jsonStr || jsonStr === '[DONE]') continue;
+      for (const text of parsed.texts) {
+        // Convert to OpenAI-compatible SSE format (frontend expects this)
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+      }
 
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            // Convert to OpenAI-compatible SSE format (frontend expects this)
-            res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-          }
-        } catch {
-          // Skip unparseable lines
-        }
+      if (parsed.done) {
+        break;
       }
     }
 
     res.write('data: [DONE]\n\n');
     res.end();
   } catch (err) {
+    if ((err as Error).name === 'AbortError') {
+      return res.status(504).json({ error: 'Upstream model request timed out' });
+    }
     return res.status(500).json({ error: String(err) });
   }
 }

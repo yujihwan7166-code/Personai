@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { DiscussionMessage as DiscussionMessageType, Expert, ROUND_LABELS } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
+import { LazyMarkdown } from './LazyMarkdown';
 import { cn } from '@/lib/utils';
-import ReactMarkdown from 'react-markdown';
 import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 
 export type ChatVariant = 'default' | 'messenger' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
@@ -65,7 +65,7 @@ function MessageContent({ content, isStreaming, noCollapse }: { content: string;
     const displayContent = isLong && !expanded ? content.slice(0, COLLAPSE_THRESHOLD) + '...' : content;
     return (
       <>
-        <ReactMarkdown>{displayContent}</ReactMarkdown>
+        <LazyMarkdown content={displayContent} />
         {isStreaming && <StreamingCursor />}
         {isLong && (
           <button onClick={() => setExpanded(!expanded)}

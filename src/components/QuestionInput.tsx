@@ -3,7 +3,33 @@ import { ArrowUp, Plus, Wrench, Mic, Paperclip, X, FileText } from 'lucide-react
 import { DiscussionMode, Expert } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
-import { AttachedFile, validateFile, processFile, getFileIcon, formatFileSize } from '@/lib/fileProcessor';
+import type { AttachedFile } from '@/lib/fileProcessor';
+
+type FileProcessorModule = typeof import('@/lib/fileProcessor');
+
+let fileProcessorModulePromise: Promise<FileProcessorModule> | null = null;
+
+function loadFileProcessor() {
+  if (!fileProcessorModulePromise) {
+    fileProcessorModulePromise = import('@/lib/fileProcessor');
+  }
+
+  return fileProcessorModulePromise;
+}
+
+function getInlineFileIcon(mimeType: string): string {
+  if (mimeType.startsWith('image/')) return '\u{1F5BC}\uFE0F';
+  if (mimeType === 'application/pdf') return '\u{1F4C4}';
+  if (mimeType.includes('wordprocessingml')) return '\u{1F4DD}';
+  if (mimeType.includes('spreadsheetml')) return '\u{1F4CA}';
+  return '\u{1F4CE}';
+}
+
+function formatInlineFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
 
 interface Props {
   onSubmit: (question: string) => void;
@@ -42,7 +68,7 @@ export function QuestionInput({ onSubmit, onSubmitWithFiles, disabled, discussio
       onExternalValueConsumed?.();
       setTimeout(() => textareaRef.current?.focus(), 50);
     }
-  }, [externalValue]);
+  }, [externalValue, onExternalValueConsumed]);
 
   // Clear file error after 3 seconds
   useEffect(() => {
@@ -55,6 +81,8 @@ export function QuestionInput({ onSubmit, onSubmitWithFiles, disabled, discussio
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setFileError(null);
+    const { validateFile, processFile } = await loadFileProcessor();
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const error = validateFile(file, attachedFiles);
@@ -200,10 +228,10 @@ export function QuestionInput({ onSubmit, onSubmitWithFiles, disabled, discussio
                 {f.preview ? (
                   <img src={f.preview} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
                 ) : (
-                  <span className="text-[14px] shrink-0">{getFileIcon(f.mimeType)}</span>
+                  <span className="text-[14px] shrink-0">{getInlineFileIcon(f.mimeType)}</span>
                 )}
                 <span className="truncate">{f.name}</span>
-                <span className="text-slate-400 text-[9px] shrink-0">{formatFileSize(f.size)}</span>
+                <span className="text-slate-400 text-[9px] shrink-0">{formatInlineFileSize(f.size)}</span>
                 <button
                   type="button"
                   onClick={() => removeFile(f.id)}

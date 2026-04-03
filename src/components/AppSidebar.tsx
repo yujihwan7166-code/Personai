@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Expert, DiscussionMode } from '@/types/expert';
-import { DiscussionRecord, getDiscussionHistory, deleteDiscussionFromHistory } from '@/components/DiscussionHistory';
+import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { cn } from '@/lib/utils';
 import {
   PanelLeft, SquarePen, Bot, Search,

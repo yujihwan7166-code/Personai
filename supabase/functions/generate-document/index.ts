@@ -1,5 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+interface GenerateDocumentExpert {
+  nameKo: string;
+  description: string;
+}
+
+interface GenerateDocumentRequest {
+  question: string;
+  experts?: GenerateDocumentExpert[];
+  discussionContext?: string;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -9,16 +20,16 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { question, experts, discussionContext } = await req.json();
+    const { question, experts, discussionContext } = await req.json() as GenerateDocumentRequest;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const expertInfo = experts?.length
-      ? `\n\n참여 전문가 관점:\n${experts.map((e: any) => `- ${e.nameKo} (${e.description})`).join('\n')}`
+      ? `\n\n李몄뿬 ?꾨Ц媛 愿??\n${experts.map((expert) => `- ${expert.nameKo} (${expert.description})`).join('\n')}`
       : '';
 
     const discussionInfo = discussionContext
-      ? `\n\n이전 토론 내용을 참고하여 문서를 작성해주세요:\n${discussionContext}`
+      ? `\n\n?댁쟾 ?좊줎 ?댁슜??李멸퀬?섏뿬 臾몄꽌瑜??묒꽦?댁＜?몄슂:\n${discussionContext}`
       : '';
 
     const systemPrompt = `You are a professional document/presentation generator. Create structured, visually appealing slide content in Korean.
@@ -46,7 +57,7 @@ Use the generate_document function to return the structured data.${expertInfo}${
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `다음 주제로 프레젠테이션 문서를 만들어주세요: ${question}` },
+          { role: "user", content: `?ㅼ쓬 二쇱젣濡??꾨젅?좏뀒?댁뀡 臾몄꽌瑜?留뚮뱾?댁＜?몄슂: ${question}` },
         ],
         tools: [
           {
@@ -99,18 +110,18 @@ Use the generate_document function to return the structured data.${expertInfo}${
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }), {
+        return new Response(JSON.stringify({ error: "?붿껌???덈Т 留롮뒿?덈떎. ?좎떆 ???ㅼ떆 ?쒕룄?댁＜?몄슂." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "크레딧이 부족합니다." }), {
+        return new Response(JSON.stringify({ error: "?щ젅?㏃씠 遺議깊빀?덈떎." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI 게이트웨이 오류" }), {
+      return new Response(JSON.stringify({ error: "AI 寃뚯씠?몄썾???ㅻ쪟" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -118,7 +129,7 @@ Use the generate_document function to return the structured data.${expertInfo}${
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      return new Response(JSON.stringify({ error: "문서 생성 실패" }), {
+      return new Response(JSON.stringify({ error: "臾몄꽌 ?앹꽦 ?ㅽ뙣" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

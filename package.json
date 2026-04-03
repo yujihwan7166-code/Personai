@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:core": "vitest run src/test/expertOverrides.test.ts src/test/discussionHistoryStore.test.ts src/test/geminiHelpers.test.ts",
+    "verify": "npm run lint && npm run test:core && npm run build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -46,6 +48,8 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@supabase/supabase-js": "^2.98.0",
     "@tanstack/react-query": "^5.83.0",
+    "baseline-browser-mapping": "^2.10.13",
+    "caniuse-lite": "^1.0.30001784",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

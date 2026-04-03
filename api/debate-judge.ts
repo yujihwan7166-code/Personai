@@ -1,4 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { buildGeminiUrl, extractGeminiText, extractJsonObject } from './_lib/gemini';
+
+interface DebateArgument {
+  name: string;
+  argument: string;
+}
+
+interface DebateJudgeResult {
+  user_score?: { logic?: number; evidence?: number; persuasion?: number; rebuttal?: number; expression?: number; total?: number };
+  ai_score?: { logic?: number; evidence?: number; persuasion?: number; rebuttal?: number; expression?: number; total?: number };
+  round_winner?: 'user' | 'ai' | 'draw';
+  comment?: string;
+  user_feedback?: string;
+  final_winner?: 'user' | 'ai' | 'draw';
+  final_score?: { user: number; ai: number };
+  overall_comment?: string;
+  user_strengths?: string[];
+  user_improvements?: string[];
+  mvp_moment?: string;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -15,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const stanceLabel = userStance === 'pro' ? '찬성' : '반대';
   const aiStanceLabel = userStance === 'pro' ? '반대' : '찬성';
 
-  const aiArgStr = (aiArguments || []).map((a: any) => `[${a.name}] ${a.argument}`).join('\n');
+  const aiArgStr = ((aiArguments || []) as DebateArgument[]).map((a) => `[${a.name}] ${a.argument}`).join('\n');
   const prevJudgStr = (previousJudgments || []).map((j: string, i: number) => `${i + 1}라운드: ${j}`).join('\n');
 
   let prompt: string;
@@ -109,7 +129,7 @@ ${prevJudgStr ? `## 이전 라운드 판정\n${prevJudgStr}` : ''}
   }
 
   const model = 'gemini-2.5-flash-lite';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = buildGeminiUrl(model, apiKey);
 
   try {
     const geminiRes = await fetch(url, {
@@ -126,20 +146,17 @@ ${prevJudgStr ? `## 이전 라운드 판정\n${prevJudgStr}` : ''}
     }
 
     const data = await geminiRes.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    const result = extractJsonObject<DebateJudgeResult>(extractGeminiText(data));
 
-    if (!jsonMatch) {
+    if (!result) {
       return res.status(200).json(fallbackJudgment(isFinal));
     }
 
-    const result = JSON.parse(jsonMatch[0]);
-
     // Validate scores
     for (const key of ['user_score', 'ai_score']) {
-      if (!result[key]) result[key] = { logic: 5, evidence: 5, persuasion: 5, rebuttal: 5, expression: 5, total: 25 };
-      result[key].total = (result[key].logic || 0) + (result[key].evidence || 0) + (result[key].persuasion || 0) + (result[key].rebuttal || 0) + (result[key].expression || 0);
+      const scoreKey = key as 'user_score' | 'ai_score';
+      if (!result[scoreKey]) result[scoreKey] = { logic: 5, evidence: 5, persuasion: 5, rebuttal: 5, expression: 5, total: 25 };
+      result[scoreKey]!.total = (result[scoreKey]!.logic || 0) + (result[scoreKey]!.evidence || 0) + (result[scoreKey]!.persuasion || 0) + (result[scoreKey]!.rebuttal || 0) + (result[scoreKey]!.expression || 0);
     }
     result.round_winner = result.round_winner || 'draw';
     result.comment = result.comment || '양측 모두 좋은 주장을 펼쳤습니다.';

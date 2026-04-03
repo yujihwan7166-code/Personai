@@ -1,117 +1,151 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+interface SimulationRole {
+  name: string;
+  focus: string;
+}
+
+interface SimulationScenarioRequest {
+  name: string;
+  userRole: string;
+  roles: SimulationRole[];
+  gaugeLabel: string;
+  verdictOptions: string[];
+}
+
+interface ConversationEntry {
+  speaker: string;
+  content: string;
+}
+
+interface CurrentPhase {
+  index: number;
+  totalPhases: number;
+  name: string;
+  role: SimulationRole;
+}
+
+interface SimOrchestratorRequestBody {
+  scenario?: SimulationScenarioRequest;
+  intensity?: number;
+  conversationHistory?: ConversationEntry[];
+  turnCount?: number;
+  mode?: string;
+  currentPhase?: CurrentPhase;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
-  const { scenario, intensity, conversationHistory, turnCount, mode, currentPhase } = req.body || {};
+  const { scenario, intensity, conversationHistory, turnCount, mode, currentPhase } = (req.body || {}) as SimOrchestratorRequestBody;
 
   if (!scenario || !conversationHistory) {
     return res.status(400).json({ error: 'scenario and conversationHistory required' });
   }
 
-  // Consultation 모드: 순차 상담 전용 프롬프트
+  // Consultation 紐⑤뱶: ?쒖감 ?곷떞 ?꾩슜 ?꾨＼?꾪듃
   if (mode === 'consultation' && currentPhase) {
-    // 시나리오별 단계별 수집 체크리스트
+    // ?쒕굹由ъ삤蹂??④퀎蹂??섏쭛 泥댄겕由ъ뒪??
     const phaseChecklists: Record<string, Record<string, string[]>> = {
-      '의학 상담': {
-        '접수 간호사': ['주 증상 (무엇이 불편한지)', '발병 시기 (언제부터)', '증상 정도 (1~10 통증 수준)', '긴급도 (일상 지장 여부)'],
-        '전문의': ['과거 병력', '가족력', '증상 악화/완화 요인', '동반 증상'],
-        '약사': ['현재 복용 약물', '알레르기 여부', '건강보조식품/한약'],
-        '영양사': ['식습관 (끼니 횟수, 식단)', '음주/흡연', '운동 습관', '수면 패턴'],
+      '?섑븰 ?곷떞': {
+        '?묒닔 媛꾪샇??: ['二?利앹긽 (臾댁뾿??遺덊렪?쒖?)', '諛쒕퀝 ?쒓린 (?몄젣遺??', '利앹긽 ?뺣룄 (1~10 ?듭쬆 ?섏?)', '湲닿툒??(?쇱긽 吏???щ?)'],
+        '?꾨Ц??: ['怨쇨굅 蹂묐젰', '媛議깅젰', '利앹긽 ?낇솕/?꾪솕 ?붿씤', '?숇컲 利앹긽'],
+        '?쎌궗': ['?꾩옱 蹂듭슜 ?쎈Ъ', '?뚮젅瑜닿린 ?щ?', '嫄닿컯蹂댁“?앺뭹/?쒖빟'],
+        '?곸뼇??: ['?앹뒿愿 (?쇰땲 ?잛닔, ?앸떒)', '?뚯＜/?≪뿰', '?대룞 ?듦?', '?섎㈃ ?⑦꽩'],
       },
-      '법률 상담': {
-        '수석 변호사': ['사건 유형 (민사/형사/행정)', '분쟁 상대방', '시효 관련 날짜', '긴급 조치 필요 여부'],
-        '사건 담당': ['사건 경위 (시간순)', '당사자 관계', '현재까지 조치', '보유 증거 목록'],
-        '판례 연구원': ['핵심 법적 쟁점', '상대방 주장 근거', '유사 경험 여부'],
-        '리스크 분석': ['원하는 결과', '감수 가능한 비용/기간', '합의 의향'],
+      '踰뺣쪧 ?곷떞': {
+        '?섏꽍 蹂?몄궗': ['?ш굔 ?좏삎 (誘쇱궗/?뺤궗/?됱젙)', '遺꾩웳 ?곷?諛?, '?쒗슚 愿???좎쭨', '湲닿툒 議곗튂 ?꾩슂 ?щ?'],
+        '?ш굔 ?대떦': ['?ш굔 寃쎌쐞 (?쒓컙??', '?뱀궗??愿怨?, '?꾩옱源뚯? 議곗튂', '蹂댁쑀 利앷굅 紐⑸줉'],
+        '?먮? ?곌뎄??: ['?듭떖 踰뺤쟻 ?곸젏', '?곷?諛?二쇱옣 洹쇨굅', '?좎궗 寃쏀뿕 ?щ?'],
+        '由ъ뒪??遺꾩꽍': ['?먰븯??寃곌낵', '媛먯닔 媛?ν븳 鍮꾩슜/湲곌컙', '?⑹쓽 ?섑뼢'],
       },
-      '재무·투자 상담': {
-        '재무설계사': ['월 소득/지출', '보유 자산 (예적금/부동산)', '부채 현황', '재무 목표'],
-        '라이프플래너': ['연령대', '결혼/출산 계획', '주택 마련 계획', '은퇴 시기'],
-        '투자 분석가': ['투자 경험', '리스크 수용도', '투자 가능 금액', '관심 투자 분야'],
-        '세무사': ['소득 유형 (근로/사업/기타)', '현재 절세 전략', '연말정산 관련'],
+      '?щТ쨌?ъ옄 ?곷떞': {
+        '?щТ?ㅺ퀎??: ['???뚮뱷/吏異?, '蹂댁쑀 ?먯궛 (?덉쟻湲?遺?숈궛)', '遺梨??꾪솴', '?щТ 紐⑺몴'],
+        '?쇱씠?꾪뵆?섎꼫': ['?곕졊?', '寃고샎/異쒖궛 怨꾪쉷', '二쇳깮 留덈젴 怨꾪쉷', '????쒓린'],
+        '?ъ옄 遺꾩꽍媛': ['?ъ옄 寃쏀뿕', '由ъ뒪???섏슜??, '?ъ옄 媛??湲덉븸', '愿???ъ옄 遺꾩빞'],
+        '?몃Т??: ['?뚮뱷 ?좏삎 (洹쇰줈/?ъ뾽/湲고?)', '?꾩옱 ?덉꽭 ?꾨왂', '?곕쭚?뺤궛 愿??],
       },
-      '부동산 상담': {
-        '부동산 컨설턴트': ['매수/매도/임대 목적', '예산 범위', '희망 지역', '입주 시기'],
-        '시장 분석가': ['관심 매물 유형 (아파트/오피스텔/토지)', '투자/실거주', '대출 가능 여부'],
-        '법률 전문가': ['기존 부동산 보유 현황', '공동명의 여부', '특수 계약 조건'],
-        '세무사': ['보유 주택 수', '취득 시기', '양도 계획'],
+      '遺?숈궛 ?곷떞': {
+        '遺?숈궛 而⑥꽕?댄듃': ['留ㅼ닔/留ㅻ룄/?꾨? 紐⑹쟻', '?덉궛 踰붿쐞', '?щ쭩 吏??, '?낆＜ ?쒓린'],
+        '?쒖옣 遺꾩꽍媛': ['愿??留ㅻЪ ?좏삎 (?꾪뙆???ㅽ뵾?ㅽ뀛/?좎?)', '?ъ옄/?ㅺ굅二?, '?異?媛???щ?'],
+        '踰뺣쪧 ?꾨Ц媛': ['湲곗〈 遺?숈궛 蹂댁쑀 ?꾪솴', '怨듬룞紐낆쓽 ?щ?', '?뱀닔 怨꾩빟 議곌굔'],
+        '?몃Т??: ['蹂댁쑀 二쇳깮 ??, '痍⑤뱷 ?쒓린', '?묐룄 怨꾪쉷'],
       },
-      '창업 상담': {
-        '스타트업 멘토': ['사업 아이디어 핵심', '해결하려는 문제', '타겟 고객', '현재 진행 단계'],
-        '시장 분석가': ['시장 규모 추정', '경쟁사/대안', '차별화 포인트'],
-        '사업 전략가': ['수익 모델', '가격 정책', '초기 진입 전략', '핵심 지표(KPI)'],
-        '재무 전문가': ['초기 자금 현황', '번레이트 예상', '투자 유치 계획', '손익분기 목표'],
+      '李쎌뾽 ?곷떞': {
+        '?ㅽ??몄뾽 硫섑넗': ['?ъ뾽 ?꾩씠?붿뼱 ?듭떖', '?닿껐?섎젮??臾몄젣', '?寃?怨좉컼', '?꾩옱 吏꾪뻾 ?④퀎'],
+        '?쒖옣 遺꾩꽍媛': ['?쒖옣 洹쒕え 異붿젙', '寃쎌웳?????, '李⑤퀎???ъ씤??],
+        '?ъ뾽 ?꾨왂媛': ['?섏씡 紐⑤뜽', '媛寃??뺤콉', '珥덇린 吏꾩엯 ?꾨왂', '?듭떖 吏??KPI)'],
+        '?щТ ?꾨Ц媛': ['珥덇린 ?먭툑 ?꾪솴', '踰덈젅?댄듃 ?덉긽', '?ъ옄 ?좎튂 怨꾪쉷', '?먯씡遺꾧린 紐⑺몴'],
       },
-      '심리 상담': {
-        '임상심리사': ['현재 가장 힘든 점', '지속 기간', '일상 영향도', '과거 상담 경험'],
-        '상담심리사': ['대인관계 상황', '직장/학교 스트레스', '자존감 관련', '지지체계 (가족/친구)'],
-        '정신건강의학 전문의': ['수면 패턴 (입면/각성)', '식욕 변화', '불안/우울 빈도', '신체 증상'],
-        '마음챙김 코치': ['현재 스트레스 관리법', '취미/이완 활동', '운동 습관', '명상/호흡 경험'],
+      '?щ━ ?곷떞': {
+        '?꾩긽?щ━??: ['?꾩옱 媛???섎뱺 ??, '吏??湲곌컙', '?쇱긽 ?곹뼢??, '怨쇨굅 ?곷떞 寃쏀뿕'],
+        '?곷떞?щ━??: ['??멸?怨??곹솴', '吏곸옣/?숆탳 ?ㅽ듃?덉뒪', '?먯〈媛?愿??, '吏吏泥닿퀎 (媛議?移쒓뎄)'],
+        '?뺤떊嫄닿컯?섑븰 ?꾨Ц??: ['?섎㈃ ?⑦꽩 (?낅㈃/媛곸꽦)', '?앹슃 蹂??, '遺덉븞/?곗슱 鍮덈룄', '?좎껜 利앹긽'],
+        '留덉쓬梨숆? 肄붿튂': ['?꾩옱 ?ㅽ듃?덉뒪 愿由щ쾿', '痍⑤?/?댁셿 ?쒕룞', '?대룞 ?듦?', '紐낆긽/?명씉 寃쏀뿕'],
       },
     };
 
     const checklist = phaseChecklists[scenario.name]?.[currentPhase.role.name] || [];
     const checklistStr = checklist.length > 0
-      ? `\n## 이 단계에서 반드시 수집해야 할 정보\n${checklist.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}\n\n대화 기록에서 위 항목 중 이미 확인된 것과 아직 미확인인 것을 구분하세요.`
+      ? `\n## ???④퀎?먯꽌 諛섎뱶???섏쭛?댁빞 ???뺣낫\n${checklist.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}\n\n???湲곕줉?먯꽌 ????ぉ 以??대? ?뺤씤??寃껉낵 ?꾩쭅 誘명솗?몄씤 寃껋쓣 援щ텇?섏꽭??`
       : '';
 
-    // 현재 단계에서의 대화만 추출 (이전 단계 대화는 요약으로)
-    const phaseMessages = conversationHistory.filter((m: any) => {
-      // __round__ 메시지 이후의 대화만 (현재 단계)
-      return true; // 전체 전달하되 프롬프트에서 구분하도록
+    // ?꾩옱 ?④퀎?먯꽌????붾쭔 異붿텧 (?댁쟾 ?④퀎 ??붾뒗 ?붿빟?쇰줈)
+    const phaseMessages = conversationHistory.filter((message) => {
+      // __round__ 硫붿떆吏 ?댄썑????붾쭔 (?꾩옱 ?④퀎)
+      return true; // ?꾩껜 ?꾨떖?섎릺 ?꾨＼?꾪듃?먯꽌 援щ텇?섎룄濡?
     });
 
-    const consultPrompt = `당신은 "${scenario.name}" 순차 상담의 진행 관리자입니다.
+    const consultPrompt = `?뱀떊? "${scenario.name}" ?쒖감 ?곷떞??吏꾪뻾 愿由ъ옄?낅땲??
 
-## 현재 상태
-- 전체 진행: ${currentPhase.index + 1}/${currentPhase.totalPhases}단계 (${currentPhase.name})
-- 현재 담당 전문가: ${currentPhase.role.name}
-- 전문가 관심사: ${currentPhase.role.focus}
-- 남은 단계: ${currentPhase.totalPhases - currentPhase.index - 1}개
+## ?꾩옱 ?곹깭
+- ?꾩껜 吏꾪뻾: ${currentPhase.index + 1}/${currentPhase.totalPhases}?④퀎 (${currentPhase.name})
+- ?꾩옱 ?대떦 ?꾨Ц媛: ${currentPhase.role.name}
+- ?꾨Ц媛 愿?ъ궗: ${currentPhase.role.focus}
+- ?⑥? ?④퀎: ${currentPhase.totalPhases - currentPhase.index - 1}媛?
 ${checklistStr}
 
-## 전체 대화 기록
-${conversationHistory.map((m: any) => `[${m.speaker}] ${m.content}`).join('\n')}
+## ?꾩껜 ???湲곕줉
+${conversationHistory.map((message) => `[${message.speaker}] ${message.content}`).join('\n')}
 
-## 판단 지시
-현재 전문가(${currentPhase.role.name})가 유저로부터 충분한 정보를 수집했는지 판단하세요.
+## ?먮떒 吏??
+?꾩옱 ?꾨Ц媛(${currentPhase.role.name})媛 ?좎?濡쒕???異⑸텇???뺣낫瑜??섏쭛?덈뒗吏 ?먮떒?섏꽭??
 
-반드시 순수 JSON만 출력:
+諛섎뱶???쒖닔 JSON留?異쒕젰:
 {
   "next_speaker": "${currentPhase.role.name}",
-  "speak_direction": "이 전문가가 다음에 물어볼 구체적 질문 (체크리스트 중 미확인 항목 기반)",
-  "next_phase": true 또는 false,
+  "speak_direction": "???꾨Ц媛媛 ?ㅼ쓬??臾쇱뼱蹂?援ъ껜??吏덈Ц (泥댄겕由ъ뒪??以?誘명솗????ぉ 湲곕컲)",
+  "next_phase": true ?먮뒗 false,
   "phase": "ongoing",
-  "phase_summary": "이 단계에서 파악된 핵심 정보 1~2줄 요약 (next_phase가 true일 때만)",
-  "reason": "판단 근거 — 체크리스트 중 확인된/미확인 항목 명시"
+  "phase_summary": "???④퀎?먯꽌 ?뚯븙???듭떖 ?뺣낫 1~2以??붿빟 (next_phase媛 true???뚮쭔)",
+  "reason": "?먮떒 洹쇨굅 ??泥댄겕由ъ뒪??以??뺤씤??誘명솗????ぉ 紐낆떆"
 }
 
-## 전환 판단 기준 (이 순서대로 판단하라)
+## ?꾪솚 ?먮떒 湲곗? (???쒖꽌?濡??먮떒?섎씪)
 
-### 1. 체크리스트 기반 판단 (최우선)
-- 체크리스트 항목의 **70% 이상**이 확인되었으면 → next_phase: true
-- 유저가 "모르겠다", "없다", "해당없다"라고 답한 항목은 **확인된 것으로 간주**
-- 아직 핵심 항목이 미확인이면 → next_phase: false
+### 1. 泥댄겕由ъ뒪??湲곕컲 ?먮떒 (理쒖슦??
+- 泥댄겕由ъ뒪????ぉ??**70% ?댁긽**???뺤씤?섏뿀?쇰㈃ ??next_phase: true
+- ?좎?媛 "紐⑤Ⅴ寃좊떎", "?녿떎", "?대떦?녿떎"?쇨퀬 ?듯븳 ??ぉ? **?뺤씤??寃껋쑝濡?媛꾩＜**
+- ?꾩쭅 ?듭떖 ??ぉ??誘명솗?몄씠硫???next_phase: false
 
-### 2. 대화 횟수 기반 보조 판단
-- 이 단계에서 유저가 **3회 이상** 답변했으면 → 체크리스트 달성률이 50% 이상이면 전환 허용
-- 이 단계에서 유저가 **4회 이상** 답변했으면 → 무조건 전환 (질질 끄는 것 방지)
-- 첫 답변에서 전환하지 마라 (최소 1회 후속 질문 필요)
+### 2. ????잛닔 湲곕컲 蹂댁“ ?먮떒
+- ???④퀎?먯꽌 ?좎?媛 **3???댁긽** ?듬??덉쑝硫???泥댄겕由ъ뒪???ъ꽦瑜좎씠 50% ?댁긽?대㈃ ?꾪솚 ?덉슜
+- ???④퀎?먯꽌 ?좎?媛 **4???댁긽** ?듬??덉쑝硫???臾댁“嫄??꾪솚 (吏덉쭏 ?꾨뒗 寃?諛⑹?)
+- 泥??듬??먯꽌 ?꾪솚?섏? 留덈씪 (理쒖냼 1???꾩냽 吏덈Ц ?꾩슂)
 
-### 3. speak_direction 작성 규칙
-- 체크리스트에서 **아직 미확인인 구체적 항목**을 지목하라
-- 예시: "복용 중인 약물이 있는지, 알레르기 반응 경험이 있는지 물어보세요" (O)
-- 예시: "추가 질문을 해주세요" (X — 이렇게 쓰지 마라)
-- 유저가 이전에 언급한 내용을 참조하여 후속 질문 방향을 잡아라
-- 상담 톤: 공감 → 질문 순서로 ("그렇군요, 그러면 혹시...")
+### 3. speak_direction ?묒꽦 洹쒖튃
+- 泥댄겕由ъ뒪?몄뿉??**?꾩쭅 誘명솗?몄씤 援ъ껜????ぉ**??吏紐⑺븯??
+- ?덉떆: "蹂듭슜 以묒씤 ?쎈Ъ???덈뒗吏, ?뚮젅瑜닿린 諛섏쓳 寃쏀뿕???덈뒗吏 臾쇱뼱蹂댁꽭?? (O)
+- ?덉떆: "異붽? 吏덈Ц???댁＜?몄슂" (X ???대젃寃??곗? 留덈씪)
+- ?좎?媛 ?댁쟾???멸툒???댁슜??李몄“?섏뿬 ?꾩냽 吏덈Ц 諛⑺뼢???≪븘??
+- ?곷떞 ?? 怨듦컧 ??吏덈Ц ?쒖꽌濡?("洹몃젃援곗슂, 洹몃윭硫??뱀떆...")
 
-### 4. phase_summary 작성 (전환 시)
-- 다음 전문가에게 넘길 핵심 정보를 1~2줄로 요약
-- 예: "환자: 30대 여성, 2주간 두통+어지러움, 긴급도 중, 일상 지장 있음"`;
+### 4. phase_summary ?묒꽦 (?꾪솚 ??
+- ?ㅼ쓬 ?꾨Ц媛?먭쾶 ?섍만 ?듭떖 ?뺣낫瑜?1~2以꾨줈 ?붿빟
+- ?? "?섏옄: 30? ?ъ꽦, 2二쇨컙 ?먰넻+?댁??ъ?, 湲닿툒??以? ?쇱긽 吏???덉쓬"`;
 
     const model = 'gemini-2.5-flash-lite';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -126,101 +160,101 @@ ${conversationHistory.map((m: any) => `[${m.speaker}] ${m.content}`).join('\n')}
         }),
       });
       if (!res2.ok) {
-        return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '추가 질문을 해주세요.', next_phase: false, phase: 'ongoing', reason: 'API error' });
+        return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '異붽? 吏덈Ц???댁＜?몄슂.', next_phase: false, phase: 'ongoing', reason: 'API error' });
       }
       const data = await res2.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '추가 정보를 물어보세요.', next_phase: false, phase: 'ongoing', reason: 'parse error' });
+        return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '異붽? ?뺣낫瑜?臾쇱뼱蹂댁꽭??', next_phase: false, phase: 'ongoing', reason: 'parse error' });
       }
       const result = JSON.parse(jsonMatch[0]);
       result.next_speaker = result.next_speaker || currentPhase.role.name;
-      result.speak_direction = result.speak_direction || '추가 질문을 해주세요.';
+      result.speak_direction = result.speak_direction || '異붽? 吏덈Ц???댁＜?몄슂.';
       result.next_phase = result.next_phase === true;
       result.phase = result.phase || 'ongoing';
       return res.status(200).json(result);
     } catch {
-      return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '추가 질문을 해주세요.', next_phase: false, phase: 'ongoing', reason: 'exception' });
+      return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '異붽? 吏덈Ц???댁＜?몄슂.', next_phase: false, phase: 'ongoing', reason: 'exception' });
     }
   }
 
-  const roleNames = scenario.roles.map((r: any) => r.name).join(', ');
-  const roleFocusDetail = scenario.roles.map((r: any) => `- ${r.name}: ${r.focus}`).join('\n');
+  const roleNames = scenario.roles.map((role) => role.name).join(', ');
+  const roleFocusDetail = scenario.roles.map((role) => `- ${role.name}: ${role.focus}`).join('\n');
 
-  const prompt = `당신은 "${scenario.name}" 시뮬레이션의 진행자(오케스트레이터)입니다.
-유저에게 직접 말하지 않습니다. 대화 흐름만 관리합니다.
+  const prompt = `?뱀떊? "${scenario.name}" ?쒕??덉씠?섏쓽 吏꾪뻾???ㅼ??ㅽ듃?덉씠???낅땲??
+?좎??먭쾶 吏곸젒 留먰븯吏 ?딆뒿?덈떎. ????먮쫫留?愿由ы빀?덈떎.
 
-## 시나리오 정보
-- 시나리오: ${scenario.name}
-- 유저 역할: ${scenario.userRole}
-- 이해관계자: ${roleNames}
-- 각 역할의 관심사:
+## ?쒕굹由ъ삤 ?뺣낫
+- ?쒕굹由ъ삤: ${scenario.name}
+- ?좎? ??븷: ${scenario.userRole}
+- ?댄빐愿怨꾩옄: ${roleNames}
+- 媛???븷??愿?ъ궗:
 ${roleFocusDetail}
-- 평가 지표: ${scenario.gaugeLabel}
-- 최종 판정 옵션: ${scenario.verdictOptions.join(' / ')}
-- 반응 강도: ${intensity}/10 (높을수록 날카로움)
+- ?됯? 吏?? ${scenario.gaugeLabel}
+- 理쒖쥌 ?먯젙 ?듭뀡: ${scenario.verdictOptions.join(' / ')}
+- 諛섏쓳 媛뺣룄: ${intensity}/10 (?믪쓣?섎줉 ?좎뭅濡쒖?)
 
-## 현재 대화 기록 (${turnCount}턴)
-${conversationHistory.map((m: any) => `[${m.speaker}] ${m.content}`).join('\n')}
+## ?꾩옱 ???湲곕줉 (${turnCount}??
+${conversationHistory.map((message) => `[${message.speaker}] ${message.content}`).join('\n')}
 
-## 지시사항
-대화 기록을 분석하여 다음 JSON을 반환하세요. 반드시 순수 JSON만 출력하세요.
+## 吏?쒖궗??
+???湲곕줉??遺꾩꽍?섏뿬 ?ㅼ쓬 JSON??諛섑솚?섏꽭?? 諛섎뱶???쒖닔 JSON留?異쒕젰?섏꽭??
 
 {
-  "next_speaker": "역할명 (${roleNames} 중 하나)",
-  "speak_direction": "이 역할이 어떤 방향으로 말해야 하는지 구체적 한줄 지시",
-  "follow_up_speaker": "연달아 발언할 두 번째 역할. 없으면 null",
-  "follow_up_direction": "두 번째 역할의 발언 방향. 없으면 null",
-  "phase": "ongoing 또는 wrapping_up 또는 final",
-  "reason": "왜 이 판단을 했는지 내부 메모"
+  "next_speaker": "??븷紐?(${roleNames} 以??섎굹)",
+  "speak_direction": "????븷???대뼡 諛⑺뼢?쇰줈 留먰빐???섎뒗吏 援ъ껜???쒖쨪 吏??,
+  "follow_up_speaker": "?곕떖??諛쒖뼵????踰덉㎏ ??븷. ?놁쑝硫?null",
+  "follow_up_direction": "??踰덉㎏ ??븷??諛쒖뼵 諛⑺뼢. ?놁쑝硫?null",
+  "phase": "ongoing ?먮뒗 wrapping_up ?먮뒗 final",
+  "reason": "?????먮떒???덈뒗吏 ?대? 硫붾え"
 }
 
-## 핵심 판단 기준 (이 순서대로 판단하라)
+## ?듭떖 ?먮떒 湲곗? (???쒖꽌?濡??먮떒?섎씪)
 
-### 1. 역할 교체 (최우선 — 반드시 지켜라)
-- **같은 역할이 2턴 연속 발언했으면 → 반드시 다른 역할로 교체하라.** 이것은 절대 규칙이다.
-- 유저가 답변했으면 대부분의 경우 다른 역할이 새 관점에서 질문해야 한다.
-- 같은 역할이 연속하는 것은 유저 답변이 극도로 불충분할 때만 허용. 극도로 불충분한 기준: "네", "아니오", "ㅇㅇ", "ㅎ", 이모지만, 또는 질문과 전혀 관계없는 답변. 1~2문장이라도 내용이 있으면 충분한 것으로 판단하라.
-- 대화 기록에서 마지막 AI 발언자를 확인하고, 가능하면 다른 역할을 next_speaker로 선택하라.
+### 1. ??븷 援먯껜 (理쒖슦????諛섎뱶??吏耳쒕씪)
+- **媛숈? ??븷??2???곗냽 諛쒖뼵?덉쑝硫???諛섎뱶???ㅻⅨ ??븷濡?援먯껜?섎씪.** ?닿쾬? ?덈? 洹쒖튃?대떎.
+- ?좎?媛 ?듬??덉쑝硫??遺遺꾩쓽 寃쎌슦 ?ㅻⅨ ??븷????愿?먯뿉??吏덈Ц?댁빞 ?쒕떎.
+- 媛숈? ??븷???곗냽?섎뒗 寃껋? ?좎? ?듬???洹밸룄濡?遺덉땐遺꾪븷 ?뚮쭔 ?덉슜. 洹밸룄濡?遺덉땐遺꾪븳 湲곗?: "??, "?꾨땲??, "?뉎뀋", "??, ?대え吏留? ?먮뒗 吏덈Ц怨??꾪? 愿怨꾩뾾???듬?. 1~2臾몄옣?대씪???댁슜???덉쑝硫?異⑸텇??寃껋쑝濡??먮떒?섎씪.
+- ???湲곕줉?먯꽌 留덉?留?AI 諛쒖뼵?먮? ?뺤씤?섍퀬, 媛?ν븯硫??ㅻⅨ ??븷??next_speaker濡??좏깮?섎씪.
 
-### 2. 정보 충분성 판단
-유저의 마지막 답변이 현재 질문에 대해 충분한 정보를 제공했는가?
-- **부족함** → 다른 역할이 같은 주제를 다른 각도에서 물어본다 (같은 역할이 또 묻지 않는다).
-  - 예: VC가 시장 규모를 물었고 유저가 모호하게 답했으면 → 재무 심사역이 "구체적 수치로 말씀해주시겠어요?" 라고 다른 각도에서 파고듦
-- **충분함** → 다른 역할이 완전히 새 주제로 전환.
+### 2. ?뺣낫 異⑸텇???먮떒
+?좎???留덉?留??듬????꾩옱 吏덈Ц?????異⑸텇???뺣낫瑜??쒓났?덈뒗媛?
+- **遺議깊븿** ???ㅻⅨ ??븷??媛숈? 二쇱젣瑜??ㅻⅨ 媛곷룄?먯꽌 臾쇱뼱蹂몃떎 (媛숈? ??븷????臾살? ?딅뒗??.
+  - ?? VC媛 ?쒖옣 洹쒕え瑜?臾쇱뿀怨??좎?媛 紐⑦샇?섍쾶 ?듯뻽?쇰㈃ ???щТ ?ъ궗??씠 "援ъ껜???섏튂濡?留먯??댁＜?쒓쿋?댁슂?" ?쇨퀬 ?ㅻⅨ 媛곷룄?먯꽌 ?뚭퀬??
+- **異⑸텇??* ???ㅻⅨ ??븷???꾩쟾????二쇱젣濡??꾪솚.
 
 ### 3. follow_up_speaker
-- 기본값은 null.
-- 유저가 풍부한 답변을 해서 다른 역할이 즉시 반응할 내용이 있을 때만 사용.
-- 짧은 답변 뒤에는 절대 2명이 나오지 않는다.
+- 湲곕낯媛믪? null.
+- ?좎?媛 ?띾????듬????댁꽌 ?ㅻⅨ ??븷??利됱떆 諛섏쓳???댁슜???덉쓣 ?뚮쭔 ?ъ슜.
+- 吏㏃? ?듬? ?ㅼ뿉???덈? 2紐낆씠 ?섏삤吏 ?딅뒗??
 
-### 4. 기타
-- 각 역할이 골고루 발언하도록 배분. 대화 기록에서 각 역할의 발언 횟수를 세고 적게 발언한 역할을 우선.
-- 유저가 잘 답변하면 우호적 반응 가능 ("오 그거 좋은데요")
-7. ${turnCount >= 12 ? '대화가 충분히 진행되었습니다. 마무리를 고려하세요. phase를 wrapping_up으로 전환할 수 있습니다.' : '아직 초중반입니다. phase는 ongoing으로 유지하세요.'}
-8. ${turnCount >= 16 ? 'wrapping_up 단계입니다. 각 역할이 최종 입장을 밝히도록 유도하세요.' : ''}
-9. wrapping_up에서 모든 역할이 최종 입장을 밝혔으면 → phase를 final로 전환
+### 4. 湲고?
+- 媛???븷??怨④퀬猷?諛쒖뼵?섎룄濡?諛곕텇. ???湲곕줉?먯꽌 媛???븷??諛쒖뼵 ?잛닔瑜??멸퀬 ?곴쾶 諛쒖뼵????븷???곗꽑.
+- ?좎?媛 ???듬??섎㈃ ?고샇??諛섏쓳 媛??("??洹멸굅 醫뗭??곗슂")
+7. ${turnCount >= 12 ? '??붽? 異⑸텇??吏꾪뻾?섏뿀?듬땲?? 留덈Т由щ? 怨좊젮?섏꽭?? phase瑜?wrapping_up?쇰줈 ?꾪솚?????덉뒿?덈떎.' : '?꾩쭅 珥덉쨷諛섏엯?덈떎. phase??ongoing?쇰줈 ?좎??섏꽭??'}
+8. ${turnCount >= 16 ? 'wrapping_up ?④퀎?낅땲?? 媛???븷??理쒖쥌 ?낆옣??諛앺엳?꾨줉 ?좊룄?섏꽭??' : ''}
+9. wrapping_up?먯꽌 紐⑤뱺 ??븷??理쒖쥌 ?낆옣??諛앺삍?쇰㈃ ??phase瑜?final濡??꾪솚
 
-## 대화 흐름 가이드 (이 시나리오에 맞게 따르라)
+## ????먮쫫 媛?대뱶 (???쒕굹由ъ삤??留욊쾶 ?곕Ⅴ??
 ${(() => {
   const guides: Record<string, string> = {
-    '투자 유치': '- 초반(1~4턴): 사업 개요, 시장 규모(TAM/SAM/SOM), 핵심 가치 제안\n- 중반(5~10턴): 수익 모델, 경쟁 우위, 팀 구성, 재무 계획\n- 후반(11~15턴): 리스크, 엑싯 전략, 밸류에이션 검증',
-    '채용 면접': '- 초반(1~4턴): 자기소개, 지원 동기, 회사/포지션 이해도\n- 중반(5~10턴): 직무 역량 검증 (기술 질문, 문제해결 사례, 프로젝트 경험)\n- 후반(11~15턴): 조직 적합성, 팀워크, 성장 비전, 연봉 협상\n- 특수: 압박 질문 1~2회 포함 (예: "왜 이전 회사를 나왔나요?", "본인의 약점은?")',
-    '제품 런칭': '- 초반(1~4턴): 제품 소개, 타겟 고객, 해결하는 문제\n- 중반(5~10턴): 기존 대안 대비 차별점, 가격 정책, UX/기술 완성도\n- 후반(11~15턴): 시장 진입 전략, 경쟁 대응, 확장 계획\n- 특수: 타겟 고객은 감정적("이거 필요해!"), 경쟁사 PM은 공격적',
-    '정책 검토': '- 초반(1~4턴): 정책 배경과 목적, 현재 문제, 핵심 내용\n- 중반(5~10턴): 이해관계자별 영향 (시민 생활, 기업 비용, 법적 쟁점)\n- 후반(11~15턴): 대안/보완책, 시행 로드맵, 부작용 최소화\n- 특수: 시민=감정+여론, 기업=수치, 법률=판례',
-    '전략 회의': '- 초반(1~4턴): 전략 주제 소개, 현황 분석, 목표 설정\n- 중반(5~10턴): 부서별 관점에서 검토 (마케팅/기술/운영)\n- 후반(11~15턴): 우선순위, 일정/예산 합의, 실행 계획\n- 특수: 대립보다 합의 지향. "이건 좋은데 일정이..." 식으로',
-    '사내 제안': '- 초반(1~4턴): 제안 배경, 현재 문제점, 핵심 내용\n- 중반(5~10턴): 비용/예산, ROI, 실행 가능성, 타 부서 영향\n- 후반(11~15턴): 리스크, 대안 비교, 승인 조건\n- 특수: 대표=거시적, CFO=숫자, 팀장=현장 현실',
-    '입시 면접': '- 초반(1~4턴): 자기소개, 지원 동기, 학과 선택 이유\n- 중반(5~10턴): 전공 적합성 (관련 경험, 독서, 학업 계획), 자기소개서 내용 검증\n- 후반(11~15턴): 인성 (가치관, 리더십, 공동체), 학교생활 포부\n- 특수: 교수는 학문적 깊이, 사정관은 진정성, 인성면접관은 가치관',
+    '?ъ옄 ?좎튂': '- 珥덈컲(1~4??: ?ъ뾽 媛쒖슂, ?쒖옣 洹쒕え(TAM/SAM/SOM), ?듭떖 媛移??쒖븞\n- 以묐컲(5~10??: ?섏씡 紐⑤뜽, 寃쎌웳 ?곗쐞, ? 援ъ꽦, ?щТ 怨꾪쉷\n- ?꾨컲(11~15??: 由ъ뒪?? ?묒떙 ?꾨왂, 諛몃쪟?먯씠??寃利?,
+    '梨꾩슜 硫댁젒': '- 珥덈컲(1~4??: ?먭린?뚭컻, 吏???숆린, ?뚯궗/?ъ????댄빐??n- 以묐컲(5~10??: 吏곷Т ??웾 寃利?(湲곗닠 吏덈Ц, 臾몄젣?닿껐 ?щ?, ?꾨줈?앺듃 寃쏀뿕)\n- ?꾨컲(11~15??: 議곗쭅 ?곹빀?? ??뚰겕, ?깆옣 鍮꾩쟾, ?곕큺 ?묒긽\n- ?뱀닔: ?뺣컯 吏덈Ц 1~2???ы븿 (?? "???댁쟾 ?뚯궗瑜??섏솕?섏슂?", "蹂몄씤???쎌젏??")',
+    '?쒗뭹 ?곗묶': '- 珥덈컲(1~4??: ?쒗뭹 ?뚭컻, ?寃?怨좉컼, ?닿껐?섎뒗 臾몄젣\n- 以묐컲(5~10??: 湲곗〈 ????鍮?李⑤퀎?? 媛寃??뺤콉, UX/湲곗닠 ?꾩꽦??n- ?꾨컲(11~15??: ?쒖옣 吏꾩엯 ?꾨왂, 寃쎌웳 ??? ?뺤옣 怨꾪쉷\n- ?뱀닔: ?寃?怨좉컼? 媛먯젙??"?닿굅 ?꾩슂??"), 寃쎌웳??PM? 怨듦꺽??,
+    '?뺤콉 寃??: '- 珥덈컲(1~4??: ?뺤콉 諛곌꼍怨?紐⑹쟻, ?꾩옱 臾몄젣, ?듭떖 ?댁슜\n- 以묐컲(5~10??: ?댄빐愿怨꾩옄蹂??곹뼢 (?쒕? ?앺솢, 湲곗뾽 鍮꾩슜, 踰뺤쟻 ?곸젏)\n- ?꾨컲(11~15??: ???蹂댁셿梨? ?쒗뻾 濡쒕뱶留? 遺?묒슜 理쒖냼??n- ?뱀닔: ?쒕?=媛먯젙+?щ줎, 湲곗뾽=?섏튂, 踰뺣쪧=?먮?',
+    '?꾨왂 ?뚯쓽': '- 珥덈컲(1~4??: ?꾨왂 二쇱젣 ?뚭컻, ?꾪솴 遺꾩꽍, 紐⑺몴 ?ㅼ젙\n- 以묐컲(5~10??: 遺?쒕퀎 愿?먯뿉??寃??(留덉???湲곗닠/?댁쁺)\n- ?꾨컲(11~15??: ?곗꽑?쒖쐞, ?쇱젙/?덉궛 ?⑹쓽, ?ㅽ뻾 怨꾪쉷\n- ?뱀닔: ?由쎈낫???⑹쓽 吏?? "?닿굔 醫뗭????쇱젙??.." ?앹쑝濡?,
+    '?щ궡 ?쒖븞': '- 珥덈컲(1~4??: ?쒖븞 諛곌꼍, ?꾩옱 臾몄젣?? ?듭떖 ?댁슜\n- 以묐컲(5~10??: 鍮꾩슜/?덉궛, ROI, ?ㅽ뻾 媛?μ꽦, ? 遺???곹뼢\n- ?꾨컲(11~15??: 由ъ뒪?? ???鍮꾧탳, ?뱀씤 議곌굔\n- ?뱀닔: ???嫄곗떆?? CFO=?レ옄, ????꾩옣 ?꾩떎',
+    '?낆떆 硫댁젒': '- 珥덈컲(1~4??: ?먭린?뚭컻, 吏???숆린, ?숆낵 ?좏깮 ?댁쑀\n- 以묐컲(5~10??: ?꾧났 ?곹빀??(愿??寃쏀뿕, ?낆꽌, ?숈뾽 怨꾪쉷), ?먭린?뚭컻???댁슜 寃利?n- ?꾨컲(11~15??: ?몄꽦 (媛移섍?, 由щ뜑?? 怨듬룞泥?, ?숆탳?앺솢 ?щ?\n- ?뱀닔: 援먯닔???숇Ц??源딆씠, ?ъ젙愿? 吏꾩젙?? ?몄꽦硫댁젒愿? 媛移섍?',
   };
-  return guides[scenario.name] || '- 초반: 상황 파악과 핵심 질문\n- 중반: 심화 검증\n- 후반: 최종 판단';
+  return guides[scenario.name] || '- 珥덈컲: ?곹솴 ?뚯븙怨??듭떖 吏덈Ц\n- 以묐컲: ?ы솕 寃利?n- ?꾨컲: 理쒖쥌 ?먮떒';
 })()}
-- 마무리(16턴~): 최종 입장 정리
+- 留덈Т由?16??): 理쒖쥌 ?낆옣 ?뺣━
 
-## speak_direction 작성 규칙
-- 추상적이지 말고 구체적으로 작성 (예: "유저의 TAM 수치가 과대 추정인지 근거를 물어라" O, "시장에 대해 물어보세요" X)
-- 이전 대화에서 언급된 구체적 내용을 참조하라 (예: "유저가 말한 월 매출 500만원의 성장률에 대해 파고들어라")`;
+## speak_direction ?묒꽦 洹쒖튃
+- 異붿긽?곸씠吏 留먭퀬 援ъ껜?곸쑝濡??묒꽦 (?? "?좎???TAM ?섏튂媛 怨쇰? 異붿젙?몄? 洹쇨굅瑜?臾쇱뼱?? O, "?쒖옣?????臾쇱뼱蹂댁꽭?? X)
+- ?댁쟾 ??붿뿉???멸툒??援ъ껜???댁슜??李몄“?섎씪 (?? "?좎?媛 留먰븳 ??留ㅼ텧 500留뚯썝???깆옣瑜좎뿉 ????뚭퀬?ㅼ뼱??)`;
 
   const model = 'gemini-2.5-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -238,7 +272,7 @@ ${(() => {
     if (!geminiRes.ok) {
       return res.status(200).json({
         next_speaker: scenario.roles[0]?.name || '',
-        speak_direction: '유저의 답변에 대해 질문하세요.',
+        speak_direction: '?좎????듬??????吏덈Ц?섏꽭??',
         follow_up_speaker: null,
         follow_up_direction: null,
         user_choices: [],
@@ -255,7 +289,7 @@ ${(() => {
     if (!jsonMatch) {
       return res.status(200).json({
         next_speaker: scenario.roles[0]?.name || '',
-        speak_direction: '유저의 답변에 대해 후속 질문을 하세요.',
+        speak_direction: '?좎????듬???????꾩냽 吏덈Ц???섏꽭??',
         follow_up_speaker: null,
         follow_up_direction: null,
         user_choices: [],
@@ -269,7 +303,7 @@ ${(() => {
     // Validate required fields
     if (!result.next_speaker || !result.speak_direction) {
       result.next_speaker = result.next_speaker || scenario.roles[0]?.name || '';
-      result.speak_direction = result.speak_direction || '유저의 답변에 반응하세요.';
+      result.speak_direction = result.speak_direction || '?좎????듬???諛섏쓳?섏꽭??';
     }
     result.follow_up_speaker = result.follow_up_speaker || null;
     result.follow_up_direction = result.follow_up_direction || null;
@@ -280,7 +314,7 @@ ${(() => {
   } catch {
     return res.status(200).json({
       next_speaker: scenario.roles[0]?.name || '',
-      speak_direction: '유저의 답변에 대해 질문하세요.',
+      speak_direction: '?좎????듬??????吏덈Ц?섏꽭??',
       follow_up_speaker: null,
       follow_up_direction: null,
       user_choices: [],
@@ -289,3 +323,4 @@ ${(() => {
     });
   }
 }
+

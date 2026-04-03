@@ -1,4 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { buildGeminiUrl, extractGeminiText, extractJsonObject } from './_lib/gemini';
+
+interface ExpertAssignmentCandidate {
+  id: string;
+  nameKo: string;
+  description: string;
+}
+
+interface ProconStanceResult {
+  debateTopic: string;
+  analysis: string;
+  assignments: Array<{
+    expertId: string;
+    stance: 'pro' | 'con';
+    reason: string;
+  }>;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -35,11 +52,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 사용자 주제: "${question}"
 
 전문가 목록:
-${experts.map((e: any) => `- ID: ${e.id}, 이름: ${e.nameKo}, 설명: ${e.description}`).join('\n')}
+${(experts as ExpertAssignmentCandidate[]).map((e) => `- ID: ${e.id}, 이름: ${e.nameKo}, 설명: ${e.description}`).join('\n')}
 
 다음 JSON 형식으로만 답변하세요 (다른 텍스트 없이 순수 JSON만):
 {
-  "debateTopic": "변환된 찬반 명제 (\"~해야 한다\" 형태)",
+  "debateTopic": "변환된 찬반 명제 ("~해야 한다" 형태)",
   "analysis": "주제에 대한 간단한 분석 (1-2문장)",
   "assignments": [
     {"expertId": "id값", "stance": "pro 또는 con", "reason": "이 전문가가 해당 입장인 이유 (1문장)"}
@@ -53,7 +70,7 @@ ${experts.map((e: any) => `- ID: ${e.id}, 이름: ${e.nameKo}, 설명: ${e.descr
 - 반드시 모든 전문가에게 입장을 배정하세요.`;
 
   const model = 'gemini-2.5-flash-lite';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = buildGeminiUrl(model, apiKey);
 
   try {
     const geminiRes = await fetch(url, {
@@ -74,16 +91,11 @@ ${experts.map((e: any) => `- ID: ${e.id}, 이름: ${e.nameKo}, 설명: ${e.descr
     }
 
     const data = await geminiRes.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const result = extractJsonObject<ProconStanceResult>(extractGeminiText(data));
 
-    // Parse JSON from response (handle markdown code blocks)
-    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    if (!result) {
       return res.status(500).json({ error: 'Failed to parse stance assignments' });
     }
-
-    const result = JSON.parse(jsonMatch[0]);
     return res.status(200).json(result);
   } catch (err) {
     return res.status(500).json({ error: String(err) });

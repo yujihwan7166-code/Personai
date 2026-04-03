@@ -1,25 +1,33 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { lazy, Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS } from '@/types/expert';
-import { PROMPTS } from '@/data/prompts';
-import { generatePpt, parsePptJson, PPT_SYSTEM_PROMPT } from '@/lib/pptGenerator';
 import { applyExpertOverrides } from '@/data/expertOverrides';
-import { GamePlayer } from '@/components/GamePlayer';
-import { QuestionInput } from '@/components/QuestionInput';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
-import { AppSidebar } from '@/components/AppSidebar';
-import { ExpertSelectionPanel } from '@/components/ExpertSelectionPanel';
-import { saveDiscussionToHistory, upsertDiscussionHistory, DiscussionRecord } from '@/components/DiscussionHistory';
-import { PomodoroTimer } from '@/components/PomodoroTimer';
-import { AttachedFile } from '@/lib/fileProcessor';
+import { LazyMarkdown } from '@/components/LazyMarkdown';
+import { DiscussionRecord, saveDiscussionToHistory, upsertDiscussionHistory } from '@/lib/discussionHistoryStore';
+import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
+import type { AttachedFile } from '@/lib/fileProcessor';
 import { Copy, Check, Square, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, FileText } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 const CHAT_URL = '/api/chat';
+const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
+const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
+const LazyGamePlayer = lazy(() => import('@/components/GamePlayer').then((module) => ({ default: module.GamePlayer })));
+const LazyQuestionInput = lazy(() => import('@/components/QuestionInput').then((module) => ({ default: module.QuestionInput })));
+const LazyPomodoroTimer = lazy(() => import('@/components/PomodoroTimer').then((module) => ({ default: module.PomodoroTimer })));
+let pptGeneratorPromise: Promise<typeof import('@/lib/pptGenerator')> | null = null;
+
+async function loadPptGenerator() {
+  if (!pptGeneratorPromise) {
+    pptGeneratorPromise = import('@/lib/pptGenerator');
+  }
+
+  return pptGeneratorPromise;
+}
 
 // Timing constants
 const DELAY_BETWEEN_EXPERTS = 300; // ms between expert responses
@@ -129,10 +137,11 @@ async function streamExpert({
 
 
 }: {question: string;expert: Expert;previousResponses: {name: string;content: string;}[];round: DiscussionRound | 'summary';onDelta: (text: string) => void;onDone: () => void;signal?: AbortSignal;files?: {name: string; mimeType: string; base64: string; extractedText?: string}[];}) {
+  const basePrompt = await getExpertPrompt(expert);
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + (expert.systemPrompt || PROMPTS[expert.id] || ''), question, previousResponses, files: files && files.length > 0 ? files : undefined }),
+    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + basePrompt, question, previousResponses, files: files && files.length > 0 ? files : undefined }),
     signal
   });
 
@@ -334,7 +343,7 @@ const Index = () => {
       abortControllerRef.current = controller;
       await streamExpert({
         question: currentQuestion,
-        expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n사용자가 당신의 의견에 반박했습니다. 사용자의 반박에 대해 정중하지만 논리적으로 응답해주세요. 동의할 부분은 인정하고, 반대할 부분은 근거를 들어 설명해주세요. 2문단 이내로 답변해주세요.' },
+        expert: await buildExpertWithPrompt(expert, '\n\n사용자가 당신의 의견에 반박했습니다. 사용자의 반박에 대해 정중하지만 논리적으로 응답해주세요. 동의할 부분은 인정하고, 반대할 부분은 근거를 들어 설명해주세요. 2문단 이내로 답변해주세요.'),
         previousResponses: allResponses, round: 'rebuttal',
         onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, content: fullContent } : m));},
         onDone: () => {setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, isStreaming: false } : m));},
@@ -596,7 +605,7 @@ ${role.focus} 관점에서 반응하세요.
         const expertExtra = `\n\n=== 전문가 상담 모드 ===\n당신은 해당 분야의 최고 전문가입니다. 사용자의 질문에 대해 깊이 있고 실용적인 전문 상담을 제공하세요.\n- 전문 용어를 사용하되 쉽게 설명해주세요\n- 구체적인 사례, 수치, 근거를 포함하세요\n- 단계별 실행 방안이 있다면 제시하세요\n- 주의사항이나 리스크도 언급하세요\n마크다운 형식으로 구조화하여 답변하세요.`;
         try {
           await streamExpert({
-            question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + expertExtra },
+            question, expert: await buildExpertWithPrompt(expert, expertExtra),
             previousResponses: [], round: 'initial',
             onDelta: (chunk) => { fullContent += chunk; setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -722,7 +731,7 @@ ${role.focus} 관점에서 반응하세요.
         try {
           await streamExpert({
             question,
-            expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n빠른 토론 모드입니다. 핵심만 1문단(3-4문장)으로 간결하게 답변해주세요.' },
+            expert: await buildExpertWithPrompt(expert, '\n\n빠른 토론 모드입니다. 핵심만 1문단(3-4문장)으로 간결하게 답변해주세요.'),
             previousResponses: allResponses, round: 'initial',
             onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
             onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
@@ -772,7 +781,7 @@ ${role.focus} 관점에서 반응하세요.
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + issueContext + lengthExtra }, previousResponses: allResponses, round,
+            await streamExpert({ question, expert: await buildExpertWithPrompt(expert, issueContext + lengthExtra), previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal });
@@ -868,7 +877,7 @@ ${role.focus} 관점에서 반응하세요.
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + extra }, previousResponses: allResponses, round,
+            await streamExpert({ question, expert: await buildExpertWithPrompt(expert, extra), previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal });
@@ -961,7 +970,7 @@ ${role.focus} 관점에서 반응하세요.
 
             let fullContent = '';
             try {
-              await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + extra + lengthExtra },
+              await streamExpert({ question, expert: await buildExpertWithPrompt(expert, extra + lengthExtra),
                 previousResponses: allResponses, round,
                 onDelta: (chunk) => { fullContent += chunk; },
                 onDone: () => {},
@@ -1097,7 +1106,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
             setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
             let fullContent = '';
             try {
-              await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + extra + lengthExtra }, previousResponses: allResponses, round,
+              await streamExpert({ question, expert: await buildExpertWithPrompt(expert, extra + lengthExtra), previousResponses: allResponses, round,
                 onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
                 onDone: () => {
                   const ideas = fullContent.split('---IDEA---').map(s => s.replace(/---END---/g, '').trim()).filter(s => s.length > 0);
@@ -1171,7 +1180,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           try {
             await streamExpert({
               question,
-              expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n' + instruction + lengthExtra },
+              expert: await buildExpertWithPrompt(expert, '\n\n' + instruction + lengthExtra),
               previousResponses: allResponses, round: phase.round,
               onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
               onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -1199,8 +1208,8 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
       }]);
 
       // 각 봇별 자유토론 프롬프트 생성 (기존 systemPrompt 위에 얹기)
-      const buildFreetalkPrompt = (expert: Expert) => {
-        const basePrompt = expert.systemPrompt || PROMPTS[expert.id] || '';
+      const buildFreetalkPrompt = async (expert: Expert) => {
+        const basePrompt = await getExpertPrompt(expert);
         return `${basePrompt}
 
 ## 자유 토론 모드
@@ -1252,7 +1261,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           try {
             await streamExpert({
               question: questionForAI,
-              expert: { ...expert, systemPrompt: buildFreetalkPrompt(expert) },
+              expert: { ...expert, systemPrompt: await buildFreetalkPrompt(expert) },
               previousResponses: prevAll,
               round: 'initial',
               onDelta: chunk => {
@@ -1411,7 +1420,8 @@ ${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`;
       if (expert) {
         // PPT 어시스턴트인 경우 프롬프트 오버라이드
         const isPpt = expert.id === 'ppt' || expert.name?.toLowerCase().includes('ppt');
-        const effectiveExpert = isPpt ? { ...expert, systemPrompt: PPT_SYSTEM_PROMPT } : expert;
+        const pptTools = isPpt ? await loadPptGenerator() : null;
+        const effectiveExpert = isPpt ? { ...expert, systemPrompt: pptTools?.PPT_SYSTEM_PROMPT } : expert;
 
         setActiveExpertId(expert.id);
         const msgId = `${expert.id}-assistant-${Date.now()}`;
@@ -1426,8 +1436,8 @@ ${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`;
             onDone: () => {
               setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));
               // PPT인 경우 JSON 파싱 시도 → 다운로드 버튼 메시지 추가
-              if (isPpt) {
-                const pptData = parsePptJson(fullContent);
+              if (pptTools) {
+                const pptData = pptTools.parsePptJson(fullContent);
                 if (pptData) {
                   const btnId = `ppt-download-${Date.now()}`;
                   setMessages((prev) => [...prev, {
@@ -1881,7 +1891,6 @@ ${conversationText}`;
       skipClarifyRef.current = true;
       startDiscussion(q);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simPrepDone]);
 
   // Multi AI view state
@@ -1925,7 +1934,7 @@ ${conversationText}`;
     setMessages(prev => [...prev, { id: `user-followup-${Date.now()}`, expertId: '__user__', content: `💬 ${expert.nameKo}에게: ${followUpQ}` }, { id: msgId, expertId, content: '', isStreaming: true }]);
     let fullContent = '';
     try {
-      await streamExpert({ question: followUpQ, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n이전에 이 주제에 대해 답변한 적이 있습니다. 사용자의 추가 질문에 이전 답변을 바탕으로 더 깊이 답변해주세요.' },
+      await streamExpert({ question: followUpQ, expert: await buildExpertWithPrompt(expert, '\n\n이전에 이 주제에 대해 답변한 적이 있습니다. 사용자의 추가 질문에 이전 답변을 바탕으로 더 깊이 답변해주세요.'),
         previousResponses: prevResponses, round: 'initial',
         onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
         onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -2875,7 +2884,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, timestamp: Date.now() }]);
         let fullContent = '';
         try {
-          await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + '\n\n이전 대화 맥락을 참고하여 후속 질문에 답변하세요.' },
+          await streamExpert({ question, expert: await buildExpertWithPrompt(expert, '\n\n이전 대화 맥락을 참고하여 후속 질문에 답변하세요.'),
             previousResponses: prevAll, round: 'initial',
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
@@ -2920,7 +2929,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
         let fullContent = '';
         try {
-          await streamExpert({ question, expert: { ...expert, systemPrompt: (expert.systemPrompt || PROMPTS[expert.id] || '') + stanceExtra(expert.id) },
+          await streamExpert({ question, expert: await buildExpertWithPrompt(expert, stanceExtra(expert.id)),
             previousResponses: prevAll, round: 'initial',
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => {
@@ -3080,36 +3089,39 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             </div>
           );
         })()}
-        <AppSidebar
-          experts={experts}
-          onLoadHistory={loadHistory}
-          onUpdateExperts={setExperts}
-          discussionMode={discussionMode}
-          onModeChange={handleModeChange}
-          isDiscussing={isDiscussing}
-          onNewDiscussion={handleNewDiscussion}
-          onStartChat={(expertId, mode, content) => {
-            handleNewDiscussion();
-            setSelectedExpertIds([expertId]);
-            setDiscussionMode('general');
+        <Suspense fallback={null}>
+          <LazyAppSidebar
+            experts={experts}
+            onLoadHistory={loadHistory}
+            onUpdateExperts={setExperts}
+            discussionMode={discussionMode}
+            onModeChange={handleModeChange}
+            isDiscussing={isDiscussing}
+            onNewDiscussion={handleNewDiscussion}
+            onStartChat={(expertId, mode, content) => {
+              handleNewDiscussion();
+              setSelectedExpertIds([expertId]);
+              setDiscussionMode('general');
 
-            if (mode === 'question') {
-              setTimeout(() => {
-                runDiscussion(content, [expertId], 'general');
-              }, 100);
-            } else {
-              setTimeout(() => {
-                setMessages([{
-                  id: `greeting-${Date.now()}`,
-                  expertId: expertId,
-                  content: content,
-                  isStreaming: false,
-                }]);
-                setCurrentQuestion('');
-                sessionTitleRef.current = '';
-              }, 100);
-            }
-          }} />
+              if (mode === 'question') {
+                setTimeout(() => {
+                  runDiscussion(content, [expertId], 'general');
+                }, 100);
+              } else {
+                setTimeout(() => {
+                  setMessages([{
+                    id: `greeting-${Date.now()}`,
+                    expertId: expertId,
+                    content: content,
+                    isStreaming: false,
+                  }]);
+                  setCurrentQuestion('');
+                  sessionTitleRef.current = '';
+                }, 100);
+              }
+            }}
+          />
+        </Suspense>
 
 
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
@@ -3259,7 +3271,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             <div className="min-w-0 flex-1">
                               {!isContinuation && <span className="text-[11px] font-bold text-slate-600">{roleName || expert.nameKo}</span>}
                               <div className={cn('px-3.5 py-2.5 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 leading-relaxed', style.bubble, !isContinuation && 'mt-1')}>
-                                {msg.content ? <ReactMarkdown>{msg.content}</ReactMarkdown> : (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
+                                {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
                               </div>
                             </div>
                           </div>
@@ -3339,7 +3351,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             <div className="min-w-0 flex-1">
                               {!isContinuation && <span className="text-[11px] font-bold text-slate-600">{rName || expert.nameKo}</span>}
                               <div className={cn('px-3.5 py-2.5 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 leading-relaxed', style.bubble, !isContinuation && 'mt-1')}>
-                                {msg.content ? <ReactMarkdown>{msg.content}</ReactMarkdown> : ''}
+                                {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : ''}
                               </div>
                             </div>
                           </div>
@@ -3361,45 +3373,49 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             )}>
 
               {selectable && (
-                <ExpertSelectionPanel
-                  experts={experts}
-                  selectedIds={selectedExpertIds}
-                  onToggle={toggleExpert}
-                  discussionMode={discussionMode}
-                  onModeChange={handleModeChange}
-                  isDiscussing={isDiscussing}
-                  onSubmit={startDiscussion}
-                  proconStances={proconStances}
-                  onProconStancesChange={setProconStances}
-                  debateSettings={debateSettings}
-                  onDebateSettingsChange={setDebateSettings}
-                  showDebateSettings={showDebateSettings}
-                  selectedFramework={selectedFramework}
-                  onFrameworkChange={setSelectedFramework}
-                  discussionIssues={discussionIssues}
-                  onDiscussionIssuesChange={setDiscussionIssues}
-                  debateIntensity={debateIntensity}
-                  onDebateIntensityChange={setDebateIntensity}
-                  onBulkSelect={setSelectedExpertIds}
-                  onSampleQuestionClick={(q) => setSampleQuestionValue(q)}
-                  onStartGame={(id, opt, label) => setActiveGame({ id, option: opt, label })}
-                  stakeholderSettings={stakeholderSettings}
-                  onStakeholderSettingsChange={setStakeholderSettings}
-                />
+                <Suspense fallback={null}>
+                  <LazyExpertSelectionPanel
+                    experts={experts}
+                    selectedIds={selectedExpertIds}
+                    onToggle={toggleExpert}
+                    discussionMode={discussionMode}
+                    onModeChange={handleModeChange}
+                    isDiscussing={isDiscussing}
+                    onSubmit={startDiscussion}
+                    proconStances={proconStances}
+                    onProconStancesChange={setProconStances}
+                    debateSettings={debateSettings}
+                    onDebateSettingsChange={setDebateSettings}
+                    showDebateSettings={showDebateSettings}
+                    selectedFramework={selectedFramework}
+                    onFrameworkChange={setSelectedFramework}
+                    discussionIssues={discussionIssues}
+                    onDiscussionIssuesChange={setDiscussionIssues}
+                    debateIntensity={debateIntensity}
+                    onDebateIntensityChange={setDebateIntensity}
+                    onBulkSelect={setSelectedExpertIds}
+                    onSampleQuestionClick={(q) => setSampleQuestionValue(q)}
+                    onStartGame={(id, opt, label) => setActiveGame({ id, option: opt, label })}
+                    stakeholderSettings={stakeholderSettings}
+                    onStakeholderSettingsChange={setStakeholderSettings}
+                  />
+                </Suspense>
               )}
 
               {/* Game Player — 게임 전용 UI */}
               {activeGame && discussionMode === 'player' && (
                 <div className="animate-in fade-in zoom-in-95 duration-500 ease-out fill-mode-both">
-                <GamePlayer
-                  gameId={activeGame.id}
-                  gameOption={activeGame.option}
-                  optionLabel={activeGame.label}
-                  messages={messages}
-                  onSendMessage={(msg) => handleFollowUp(msg)}
-                  onExit={() => { setActiveGame(null); handleNewDiscussion(); }}
-                  isDiscussing={isDiscussing}
-                />
+                  <Suspense fallback={null}>
+                    <LazyGamePlayer
+                      gameId={activeGame.id}
+                      gameOption={activeGame.option}
+                      optionLabel={activeGame.label}
+                      messages={messages}
+                      onSendMessage={(msg) => handleFollowUp(msg)}
+                      onExit={() => { setActiveGame(null); handleNewDiscussion(); }}
+                      isDiscussing={isDiscussing}
+                    />
+                  </Suspense>
                 </div>
               )}
 
@@ -5173,7 +5189,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           {/* 본문 — 섹션별 구분 */}
                           <div className="bg-emerald-50/50 dark:bg-slate-900 px-5 py-4">
                             <div className="text-[12.5px] leading-[1.7] text-slate-700 dark:text-slate-300 [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:text-slate-800 [&_h2]:dark:text-slate-200 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2:first-child]:mt-0 [&_ul]:pl-4 [&_ul]:space-y-1 [&_li]:text-[12px] [&_p]:mb-1">
-                              <ReactMarkdown>{msg.content}</ReactMarkdown>
+                              <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} />
                             </div>
                           </div>
                         </div>
@@ -5188,7 +5204,12 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     return (
                       <div key={msg.id} className="flex justify-center py-3">
                         <button
-                          onClick={() => generatePpt(pptData!, `presentation-${Date.now()}.pptx`)}
+                          onClick={() => {
+                            void (async () => {
+                              const pptTools = await loadPptGenerator();
+                              await pptTools.generatePpt(pptData!, `presentation-${Date.now()}.pptx`);
+                            })();
+                          }}
                           className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-[13px] shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
                         >
                           <span className="text-[18px]">📊</span>
@@ -5382,7 +5403,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           <div className="min-w-0 flex-1">
                             {!isContinuation && <span className={cn('text-[11px] font-bold', style.name)}>{rName || expert.nameKo}</span>}
                             <div className={cn('px-3.5 py-2.5 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 leading-relaxed', style.bubble, !isContinuation && 'mt-1')}>
-                              {msg.content ? <ReactMarkdown>{msg.content}</ReactMarkdown> : (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
+                              {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
                             </div>
                           </div>
                         </div>
@@ -5442,41 +5463,45 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     ))}
                   </div>
                 )}
-                <QuestionInput
-                  onSubmit={isDone ? (q: string) => {
-                    if (['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode)) {
-                      const target = followUpTarget || activeExperts[0]?.id;
-                      if (target) askSingleAI(target, q);
-                    } else {
-                      handleFollowUp(q);
-                    }
-                  } : startDiscussion}
-                  onSubmitWithFiles={(question, files) => {
-                    pendingFilesRef.current = files;
-                    if (isDone) {
-                      handleFollowUp(question);
-                    } else {
-                      startDiscussion(question);
-                    }
-                  }}
-                  disabled={isDiscussing || (discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)}
-                  discussionMode={discussionMode}
-                  onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
-                  showSettings={showDebateSettings}
-                  isFollowUp={isDone}
-                  onConclusion={discussionMode === 'aivsuser' && messages.length > 2 && !isDiscussing ? () => handleFollowUp('__AVSU_END__') : undefined}
-                  onSummarize={discussionMode === 'general' ? handleSummarize : undefined}
-                  isSummarizing={isSummarizing}
-                  messageCount={messages.filter(m => m.expertId !== '__user__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.expertId !== '__brainstorm_progress__').length}
-                  externalValue={sampleQuestionValue}
-                  onExternalValueConsumed={() => setSampleQuestionValue('')}
-                />
+                <Suspense fallback={null}>
+                  <LazyQuestionInput
+                    onSubmit={isDone ? (q: string) => {
+                      if (['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode)) {
+                        const target = followUpTarget || activeExperts[0]?.id;
+                        if (target) askSingleAI(target, q);
+                      } else {
+                        handleFollowUp(q);
+                      }
+                    } : startDiscussion}
+                    onSubmitWithFiles={(question, files) => {
+                      pendingFilesRef.current = files;
+                      if (isDone) {
+                        handleFollowUp(question);
+                      } else {
+                        startDiscussion(question);
+                      }
+                    }}
+                    disabled={isDiscussing || (discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)}
+                    discussionMode={discussionMode}
+                    onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
+                    showSettings={showDebateSettings}
+                    isFollowUp={isDone}
+                    onConclusion={discussionMode === 'aivsuser' && messages.length > 2 && !isDiscussing ? () => handleFollowUp('__AVSU_END__') : undefined}
+                    onSummarize={discussionMode === 'general' ? handleSummarize : undefined}
+                    isSummarizing={isSummarizing}
+                    messageCount={messages.filter(m => m.expertId !== '__user__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.expertId !== '__brainstorm_progress__').length}
+                    externalValue={sampleQuestionValue}
+                    onExternalValueConsumed={() => setSampleQuestionValue('')}
+                  />
+                </Suspense>
               </div>
             </div>
           )}
         </div>
       </div>
-      <PomodoroTimer />
+      <Suspense fallback={null}>
+        <LazyPomodoroTimer />
+      </Suspense>
     </SidebarProvider>);
 
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER,
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
@@ -23,11 +24,16 @@ import {
 } from 'lucide-react';
 
 
-export type ProconStance = 'pro' | 'con';
+type ProconStance = 'pro' | 'con';
+type SubmitDiscussion = (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => void;
 
-// Re-export from expert.ts for backward compatibility
-export type { StakeholderSettings } from '@/types/expert';
-export { DEFAULT_STAKEHOLDER_SETTINGS } from '@/types/expert';
+interface GameRecord {
+  gameId: string;
+  grade?: string;
+  result?: 'win' | 'lose';
+  xp?: number;
+  date?: string;
+}
 
 interface Props {
   experts: Expert[];
@@ -36,7 +42,7 @@ interface Props {
   discussionMode: DiscussionMode;
   onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
-  onSubmit: (question: string) => void;
+  onSubmit: SubmitDiscussion;
   proconStances?: Record<string, ProconStance>;
   onProconStancesChange?: (stances: Record<string, ProconStance>) => void;
   debateSettings?: DebateSettings;
@@ -378,9 +384,9 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           {/* 설정 — 같은 카드 하단, 연한 배경으로 구분 */}
           <div className="bg-white border-t border-emerald-100 order-2">
             {[
-              { label: '목적', options: [{ id: 'mild', l: '탐색' }, { id: 'moderate', l: '분석' }, { id: 'intense', l: '합의' }], value: ds.debateTone, onChange: (v: string) => onDebateSettingsChange?.({ ...ds, debateTone: v as any }) },
+              { label: '목적', options: [{ id: 'mild', l: '탐색' }, { id: 'moderate', l: '분석' }, { id: 'intense', l: '합의' }], value: ds.debateTone, onChange: (v: string) => onDebateSettingsChange?.({ ...ds, debateTone: v as DebateSettings['debateTone'] }) },
               ...(debateSettings && onDebateSettingsChange ? [
-                { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => onDebateSettingsChange({ ...ds, responseLength: v as any }) },
+                { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => onDebateSettingsChange({ ...ds, responseLength: v as DebateSettings['responseLength'] }) },
                 { label: '라운드', options: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }], value: String(ds.rounds), onChange: (v: string) => onDebateSettingsChange({ ...ds, rounds: Number(v) }) },
               ] : []),
             ].map((row, i) => (
@@ -578,9 +584,9 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
           {debateSettings && onDebateSettingsChange && (
             <div className="bg-white border-t border-violet-100">
               {[
-                { label: '강도', options: [{ id: 'mild', l: '온건' }, { id: 'moderate', l: '보통' }, { id: 'intense', l: '격렬' }], value: ds.debateTone, onChange: (v: string) => update({ debateTone: v as any }) },
+                { label: '강도', options: [{ id: 'mild', l: '온건' }, { id: 'moderate', l: '보통' }, { id: 'intense', l: '격렬' }], value: ds.debateTone, onChange: (v: string) => update({ debateTone: v as DebateSettings['debateTone'] }) },
                 { label: '라운드', options: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }], value: String(ds.rounds), onChange: (v: string) => update({ rounds: Number(v) }) },
-                { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => update({ responseLength: v as any }) },
+                { label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: ds.responseLength, onChange: (v: string) => update({ responseLength: v as DebateSettings['responseLength'] }) },
               ].map((row, i) => (
                 <div key={i} className={cn('flex items-center gap-3 px-4 py-2', i > 0 && 'border-t border-slate-100/80')}>
                   <span className="text-[12px] font-semibold text-slate-600 w-16 shrink-0 tracking-tight text-center border-r border-slate-100 pr-3 mr-1">{row.label}</span>
@@ -1136,7 +1142,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
   experts: Expert[];
   settings: StakeholderSettings;
   onSettingsChange: (s: StakeholderSettings) => void;
-  onSubmit: (question: string) => void;
+  onSubmit: SubmitDiscussion;
   isDiscussing: boolean;
   onSelectExpertTemplate?: (template: ExpertModeTemplate | null) => void;
 }) {
@@ -1410,7 +1416,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
 function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscussing, showCardsGrid = true, onSimStart }: {
   onSelectTemplate: (t: ExpertModeTemplate | null) => void;
   selectedTemplate: ExpertModeTemplate | null;
-  onSubmit: (question: string) => void;
+  onSubmit: SubmitDiscussion;
   isDiscussing: boolean;
   showCardsGrid?: boolean;
   onSimStart?: (scenarioId: string) => void;
@@ -1695,7 +1701,7 @@ function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscu
 }
 
 // ── Player Lobby (Game Mode) ──
-function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onSubmit: (question: string) => void; isDiscussing: boolean; onStartGame?: (gameId: string, option: string, label: string) => void; onBackToHub?: () => void }) {
+function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onSubmit: SubmitDiscussion; isDiscussing: boolean; onStartGame?: (gameId: string, option: string, label: string) => void; onBackToHub?: () => void }) {
   const [selectedGame, setSelectedGame] = useState<GameCard | null>(null);
   const [gameOption, setGameOption] = useState('');
   const [showProfile, setShowProfile] = useState(false);
@@ -1703,12 +1709,13 @@ function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onS
 
   const getBestGrade = (gameId: string): string | null => {
     try {
-      const records = JSON.parse(localStorage.getItem('game-records') || '[]');
-      const gameRecords = records.filter((r: any) => r.gameId === gameId);
+      const records = JSON.parse(localStorage.getItem('game-records') || '[]') as GameRecord[];
+      const gameRecords = records.filter((record) => record.gameId === gameId);
       const gradeOrder = ['S', 'A', 'B', 'C', 'F'];
       let best: string | null = null;
-      for (const r of gameRecords) {
-        if (!best || gradeOrder.indexOf(r.grade) < gradeOrder.indexOf(best)) best = r.grade;
+      for (const record of gameRecords) {
+        if (!record.grade) continue;
+        if (!best || gradeOrder.indexOf(record.grade) < gradeOrder.indexOf(best)) best = record.grade;
       }
       return best;
     } catch { return null; }
@@ -2354,12 +2361,12 @@ ${caseDesc}
   // Get game records from localStorage
   const getGameRecords = () => {
     try {
-      return JSON.parse(localStorage.getItem('game-records') || '[]');
+      return JSON.parse(localStorage.getItem('game-records') || '[]') as GameRecord[];
     } catch { return []; }
   };
 
   const records = getGameRecords();
-  const wins = records.filter((r: any) => r.result === 'win').length;
+  const wins = records.filter((record) => record.result === 'win').length;
   const winRate = records.length ? Math.round(wins / records.length * 100) : 0;
   const lastRecords = records.slice(-5).reverse();
 
@@ -2650,27 +2657,27 @@ ${caseDesc}
                     </tr>
                   </thead>
                   <tbody>
-                    {lastRecords.map((rec: any, ri: number) => {
-                      const gc = GAME_CARDS.find(g => g.id === rec.gameId);
+                    {lastRecords.map((record, ri: number) => {
+                      const gc = GAME_CARDS.find(g => g.id === record.gameId);
                       const gradeColors: Record<string, string> = { S: '#fbbf24', A: '#a78bfa', B: '#60a5fa', C: '#94a3b8', F: '#f87171' };
                       return (
                         <tr key={ri} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3">
                               <span className="text-base">{gc?.icon || '?'}</span>
-                              <span className="text-sm font-medium text-white">{gc?.name || rec.gameId}</span>
+                              <span className="text-sm font-medium text-white">{gc?.name || record.gameId}</span>
                             </div>
                           </td>
                           <td className="py-4 px-6 text-center">
-                            <span className="text-xs font-bold px-3 py-1 rounded-full" style={rec.result === 'win' ? { background: 'rgba(16,185,129,0.1)', color: '#34d399' } : { background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
-                              {rec.result === 'win' ? 'WIN' : 'LOSE'}
+                            <span className="text-xs font-bold px-3 py-1 rounded-full" style={record.result === 'win' ? { background: 'rgba(16,185,129,0.1)', color: '#34d399' } : { background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                              {record.result === 'win' ? 'WIN' : 'LOSE'}
                             </span>
                           </td>
                           <td className="py-4 px-6 text-center">
-                            <span className="text-base font-black" style={{ color: gradeColors[rec.grade] || '#94a3b8' }}>{rec.grade || '-'}</span>
+                            <span className="text-base font-black" style={{ color: gradeColors[record.grade || ''] || '#94a3b8' }}>{record.grade || '-'}</span>
                           </td>
                           <td className="py-4 px-6 text-right">
-                            <span className="text-xs" style={{ color: '#64748b' }}>{rec.date ? new Date(rec.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '-'}</span>
+                            <span className="text-xs" style={{ color: '#64748b' }}>{record.date ? new Date(record.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '-'}</span>
                           </td>
                         </tr>
                       );
@@ -2900,7 +2907,7 @@ ${caseDesc}
 
 // ── Assistant Cards Panel ──
 function AssistantCardsPanel({ onSubmit, isDiscussing }: {
-  onSubmit: (question: string) => void;
+  onSubmit: SubmitDiscussion;
   isDiscussing: boolean;
 }) {
   const [selectedCard, setSelectedCard] = useState<AssistantCard | null>(null);
@@ -3391,7 +3398,7 @@ export function ExpertSelectionPanel({
               onStakeholderSettingsChange({ ...DEFAULT_STAKEHOLDER_SETTINGS, scenarioId });
               if (onModeChange) onModeChange('stakeholder');
               // overrideMode로 직접 stakeholder 전달
-              setTimeout(() => onSubmit('__SIM_START__', undefined, 'stakeholder' as any), 200);
+              setTimeout(() => onSubmit('__SIM_START__', undefined, 'stakeholder'), 200);
             }
           }}
         />

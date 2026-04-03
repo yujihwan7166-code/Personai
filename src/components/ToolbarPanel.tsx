@@ -4,12 +4,12 @@ import {
   Table2, BookOpen, ListChecks, Globe, Sparkles
 } from 'lucide-react';
 
-export type ToolType =
+type ToolType =
   | 'image' | 'document' | 'presentation' | 'table'
   | 'search' | 'brainstorm' | 'summary' | 'compare'
   | 'checklist' | 'translate';
 
-export interface ToolItem {
+interface ToolItem {
   id: ToolType;
   label: string;
   icon: React.ReactNode;
@@ -19,7 +19,7 @@ export interface ToolItem {
   prefix: string;
 }
 
-export const TOOLS: ToolItem[] = [
+const TOOLS: ToolItem[] = [
   { id: 'image', label: '이미지', icon: <Image className="w-3.5 h-3.5" />, color: 'hsl(35 90% 55%)', iconColor: 'hsl(0 0% 100%)', description: 'AI 이미지 생성', prefix: '[이미지 생성] ' },
   { id: 'document', label: '보고서', icon: <FileText className="w-3.5 h-3.5" />, color: 'hsl(210 80% 55%)', iconColor: 'hsl(0 0% 100%)', description: '보고서 작성', prefix: '[보고서 작성] ' },
   { id: 'presentation', label: '프레젠테이션', icon: <Presentation className="w-3.5 h-3.5" />, color: 'hsl(0 70% 55%)', iconColor: 'hsl(0 0% 100%)', description: 'PPT 스타일 문서', prefix: '[프레젠테이션] ' },

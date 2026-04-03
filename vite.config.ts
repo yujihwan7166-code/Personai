@@ -29,11 +29,41 @@ export default defineConfig(({ mode }) => ({
             if (id.includes("@radix-ui")) {
               return "radix-vendor";
             }
-            if (id.includes("pptxgenjs") || id.includes("xlsx") || id.includes("mammoth")) {
-              return "document-vendor";
+            if (id.includes("lucide-react")) {
+              return "icons-vendor";
+            }
+            if (id.includes("@tanstack/react-query") || id.includes("@lovable.dev/cloud-auth-js")) {
+              return "query-vendor";
+            }
+            if (id.includes("react-markdown") || id.includes("remark-") || id.includes("rehype-") || id.includes("unified") || id.includes("micromark") || id.includes("mdast") || id.includes("hast")) {
+              return "markdown-vendor";
+            }
+            if (id.includes("@supabase")) {
+              return "supabase-vendor";
+            }
+            if (id.includes("@dnd-kit")) {
+              return "dnd-vendor";
+            }
+            if (id.includes("twemoji-parser") || id.includes("fluentui-emoji-js")) {
+              return "emoji-vendor";
+            }
+            if (id.includes("react-hook-form") || id.includes("@hookform") || id.includes("zod")) {
+              return "forms-vendor";
+            }
+            if (id.includes("pptxgenjs")) {
+              return "ppt-vendor";
+            }
+            if (id.includes("xlsx")) {
+              return "spreadsheet-vendor";
+            }
+            if (id.includes("mammoth")) {
+              return "docx-vendor";
             }
             if (id.includes("recharts")) {
               return "chart-vendor";
+            }
+            if (id.includes("sonner") || id.includes("next-themes") || id.includes("vaul") || id.includes("react-day-picker") || id.includes("embla-carousel-react") || id.includes("react-resizable-panels")) {
+              return "ui-vendor";
             }
             return "vendor";
           }

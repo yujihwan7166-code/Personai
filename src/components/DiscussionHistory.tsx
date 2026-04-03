@@ -1,71 +1,8 @@
 import { useState } from 'react';
-import { DiscussionMessage, DiscussionMode, DISCUSSION_MODE_LABELS } from '@/types/expert';
+import { DISCUSSION_MODE_LABELS } from '@/types/expert';
 import { cn } from '@/lib/utils';
+import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { History, X, Trash2, Clock } from 'lucide-react';
-
-export interface DiscussionRecord {
-  id: string;
-  question: string;
-  mode: DiscussionMode;
-  messages: DiscussionMessage[];
-  expertIds: string[];
-  timestamp: number;
-  proconStances?: Record<string, 'pro' | 'con'>;
-}
-
-const HISTORY_KEY = 'ai-debate-history-v1';
-const MAX_HISTORY = 20;
-
-export function saveDiscussionToHistory(record: Omit<DiscussionRecord, 'id' | 'timestamp'>) {
-  try {
-    const existing = getDiscussionHistory();
-    const newRecord: DiscussionRecord = {
-      ...record,
-      id: `hist-${Date.now()}`,
-      timestamp: Date.now(),
-    };
-    let updated = [newRecord, ...existing].slice(0, MAX_HISTORY);
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-    } catch {
-      // QuotaExceeded — trim older records and retry
-      updated = updated.slice(0, Math.max(1, updated.length - 5));
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch { /* give up */ }
-    }
-  } catch { /* ignore */ }
-}
-
-export function getDiscussionHistory(): DiscussionRecord[] {
-  try {
-    const saved = localStorage.getItem(HISTORY_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch { return []; }
-}
-
-export function upsertDiscussionHistory(id: string, record: Omit<DiscussionRecord, 'id' | 'timestamp'>) {
-  try {
-    const existing = getDiscussionHistory();
-    const idx = existing.findIndex(r => r.id === id);
-    if (idx !== -1) {
-      existing[idx] = { ...existing[idx], ...record, messages: record.messages };
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(existing));
-    } else {
-      const newRecord: DiscussionRecord = { ...record, id, timestamp: Date.now() };
-      const updated = [newRecord, ...existing].slice(0, MAX_HISTORY);
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch {
-        const trimmed = updated.slice(0, Math.max(1, updated.length - 5));
-        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed)); } catch {}
-      }
-    }
-  } catch {}
-}
-
-export function deleteDiscussionFromHistory(id: string) {
-  try {
-    const existing = getDiscussionHistory();
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(existing.filter(r => r.id !== id)));
-  } catch { /* ignore */ }
-}
 
 interface Props {
   onLoad: (record: DiscussionRecord) => void;

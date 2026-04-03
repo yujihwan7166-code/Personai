@@ -175,8 +175,8 @@ const GAME_META: Record<GameId, GameMeta> = {
 // ══════════════════════════════════════════
 
 function parsePolygraph(content: string) {
-  const remainingMatch = content.match(/남은\s*질문\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
-  const liesMatch = content.match(/찾은\s*거짓말\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const remainingMatch = content.match(/남은\s*질문\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
+  const liesMatch = content.match(/찾은\s*거짓말\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const stressMatch = content.match(/스트레스\s*[:：]?\s*(\d+)\s*[%％]/);
   const isLieDetected = /거짓말\s*발견|거짓말.*맞[았습혔]|LIE.*DETECTED|거짓!.*맞|<!-- LIE -->/i.test(content);
   const isTruth = /진실\s*확인|진실.*입니다|진실!.*맞|<!-- TRUTH -->/i.test(content);
@@ -197,7 +197,7 @@ function parsePolygraph(content: string) {
 }
 
 function parseMentalBreaker(content: string) {
-  const hpMatch = content.match(/(?:멘탈\s*)?HP\s*[:：]?\s*(\d+)\s*[%％\/]?\s*(\d+)?/i);
+  const hpMatch = content.match(/(?:멘탈\s*)?HP\s*[:：]?\s*(\d+)\s*[%％/]?\s*(\d+)?/i);
   const isCracked = /멘탈\s*붕괴|💥\s*멘탈|멘탈.*0[^0-9]|항복.*합니다|무너[졌지]|부[서셔]졌/i.test(content);
   const hp = hpMatch ? parseInt(hpMatch[1]) : null;
   const maxHp = hpMatch && hpMatch[2] ? parseInt(hpMatch[2]) : 100;
@@ -206,8 +206,8 @@ function parseMentalBreaker(content: string) {
 
 function parseReverseInterrogation(content: string) {
   const suspicionMatch = content.match(/의심도\s*[:：]?\s*(\d+)\s*[%％]/);
-  const contradictionMatch = content.match(/모순\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
-  const questionMatch = content.match(/질문\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const contradictionMatch = content.match(/모순\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
+  const questionMatch = content.match(/질문\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const isCaught = /체포합니다|체포!|모순.*3|의심도.*100|게임\s*오버/i.test(content);
   const isSafe = /무혐의|석방|보내드리겠습니다|무죄|알리바이.*성공/i.test(content);
   return {
@@ -223,8 +223,8 @@ function parseReverseInterrogation(content: string) {
 
 function parseSplitPersonality(content: string) {
   const personalityMatch = content.match(/(?:현재\s*)?인격\s*[:：]?\s*([^\]\n,]+)/);
-  const defeatedMatch = content.match(/격파\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
-  const defeatedMatchAlt = content.match(/무력화\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const defeatedMatch = content.match(/격파\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
+  const defeatedMatchAlt = content.match(/무력화\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const isSwitch = /인격\s*전환|⚡\s*인격|인격.*바뀌|새로운\s*인격/i.test(content);
   const isDefeated = /💥.*무력화|무력화!/i.test(content);
   const isAllDefeated = /모든\s*인격.*격파|4.*격파|4.*무력화|모든\s*인격.*무력화|항복합니다/i.test(content);
@@ -241,7 +241,7 @@ function parseSplitPersonality(content: string) {
 
 function parseEmotionHacker(content: string) {
   const emotionMatch = content.match(/현재\s*감정\s*[:：]?\s*([^\]\n,]+)/);
-  const completedMatch = content.match(/달성\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const completedMatch = content.match(/달성\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const targetMatch = content.match(/목표\s*감정\s*[:：]?\s*([^\]\n,]+)/);
   const emotionChanged = /감정\s*변화|✨.*달성|감정.*달성/i.test(content);
   const isComplete = /모든\s*감정.*해킹|모든\s*감정.*완료|5.*달성|이모션\s*해커/i.test(content);
@@ -256,9 +256,9 @@ function parseEmotionHacker(content: string) {
 }
 
 function parseReverseQuiz(content: string) {
-  const questionMatch = content.match(/Q\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
-  const questionMatchAlt = content.match(/Q(\d+)\s*[\/\\]\s*(\d+)/);
-  const scoreMatch = content.match(/점수\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const questionMatch = content.match(/Q\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
+  const questionMatchAlt = content.match(/Q(\d+)\s*[/\\]\s*(\d+)/);
+  const scoreMatch = content.match(/점수\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const answerMatch = content.match(/(?:정답|답)\s*[:：]?\s*[""]?([^""\n\]]+)[""]?/);
   const isCorrect = /⭕\s*정답|정답입니다|정답!|맞[았혔습]/i.test(content);
   const isWrong = /❌\s*오답|❌\s*아쉽|오답!|틀[렸리]/i.test(content);
@@ -278,7 +278,7 @@ function parseReverseQuiz(content: string) {
 function parseAICourt(content: string) {
   const phaseMatch = content.match(/단계\s*[:：]?\s*(입론|반론|최종변론|변론|판결)/i);
   const phase = phaseMatch ? phaseMatch[1] : content.match(/\[(입론|반론|최종변론|변론|판결)\]/)?.[1] || null;
-  const guiltyScoreMatch = content.match(/유죄\s*점수\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const guiltyScoreMatch = content.match(/유죄\s*점수\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const isVerdict = /판결.*내리|판결문|이에\s*본\s*법정|VERDICT/i.test(content);
   const isGuilty = /유죄\s*판결|유죄를\s*선고/i.test(content);
   const isNotGuilty = /무죄\s*판결|무죄를\s*선고/i.test(content);
@@ -293,10 +293,10 @@ function parseAICourt(content: string) {
 }
 
 function parseCodeBreaker(content: string) {
-  const remainingMatch = content.match(/남은\s*질문\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
-  const attemptsMatch = content.match(/(?:시도|질문)\s*[:：]?\s*(\d+)\s*[\/\\]?\s*(\d+)?/);
-  const codeMatch = content.match(/코드\s*[:：]?\s*([?★●○X\d_\-]{3,12})/);
-  const unlockedMatch = content.match(/해독(?:된)?\s*(?:자릿수)?\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const remainingMatch = content.match(/남은\s*질문\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
+  const attemptsMatch = content.match(/(?:시도|질문)\s*[:：]?\s*(\d+)\s*[/\\]?\s*(\d+)?/);
+  const codeMatch = content.match(/코드\s*[:：]?\s*([?★●○X\d_-]{3,12})/);
+  const unlockedMatch = content.match(/해독(?:된)?\s*(?:자릿수)?\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const isSolved = /해독\s*완료|ACCESS\s*GRANTED|보안\s*침투|당신의\s*승리/i.test(content);
   const isFailed = /ACCESS\s*DENIED|시도\s*횟수\s*초과|실패|게임\s*오버/i.test(content);
   // Support both "남은 질문" (countdown) and "시도" (countup) formats
@@ -322,8 +322,8 @@ function parseCodeBreaker(content: string) {
 }
 
 function parseMinefield(content: string) {
-  const livesMatch = content.match(/(?:남은\s*)?(?:생명|목숨|라이프)\s*[:：]?\s*(\d+)\s*[\/\\]?\s*(\d+)?/);
-  const turnMatch = content.match(/턴\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const livesMatch = content.match(/(?:남은\s*)?(?:생명|목숨|라이프)\s*[:：]?\s*(\d+)\s*[/\\]?\s*(\d+)?/);
+  const turnMatch = content.match(/턴\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const isExplosion = /💣\s*폭발|💥|BOOM|금지어.*였습니다/i.test(content);
   const isDead = /게임\s*오버|💀|목숨.*0[^0-9]|생명.*0[^0-9]/i.test(content);
   const isSurvived = /생존\s*성공|🎉.*생존|클리어|10턴.*생존/i.test(content);
@@ -339,7 +339,7 @@ function parseMinefield(content: string) {
 }
 
 function parseAIMafia(content: string) {
-  const roundMatch = content.match(/라운드\s*[:：]?\s*(\d+)\s*[\/\\]?\s*(\d+)?/);
+  const roundMatch = content.match(/라운드\s*[:：]?\s*(\d+)\s*[/\\]?\s*(\d+)?/);
   const isVotePhase = /투표\s*단계|투표\s*페이즈|마피아를\s*지목|선택하세요|누구.*마피아/i.test(content);
   const isWin = /🎉.*정답|정답!.*마피아/i.test(content);
   const isLose = /❌.*오답|오답!.*마피아|진짜\s*마피아는/i.test(content);
@@ -357,7 +357,7 @@ function parseAIMafia(content: string) {
 }
 
 function parseFirewallEscape(content: string) {
-  const layerMatch = content.match(/(?:층|레이어|방화벽)\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const layerMatch = content.match(/(?:층|레이어|방화벽)\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const approachMatch = content.match(/(?:현재\s*)?접근법\s*[:：]?\s*([^\]\n,]+)/);
   const layerBreached = /층\s*돌파|보안\s*레벨\s*저하|다음\s*층/i.test(content);
   const isFullyBreached = /전체\s*방화벽\s*무력화|탈출\s*성공|5.*돌파|시스템.*돌파/i.test(content);
@@ -375,7 +375,7 @@ function parseFirewallEscape(content: string) {
 function parseNegotiator(content: string) {
   const userItemsMatch = content.match(/(?:내|당신|사용자)\s*아이템\s*[:：]?\s*([^\]\n]+)/);
   const aiItemsMatch = content.match(/(?:AI|상인)\s*아이템\s*[:：]?\s*([^\]\n]+)/);
-  const roundMatch = content.match(/라운드\s*[:：]?\s*(\d+)\s*[\/\\]\s*(\d+)/);
+  const roundMatch = content.match(/라운드\s*[:：]?\s*(\d+)\s*[/\\]\s*(\d+)/);
   const isTradeProposed = /제안합니다|거래\s*조건|교환\s*제안/i.test(content);
   const isDeal = /거래\s*성사|DEAL!|수락.*완료|교환.*완료/i.test(content);
   const isNoDeal = /거절|NO\s*DEAL|거래.*거부/i.test(content);
