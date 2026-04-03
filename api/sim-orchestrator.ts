@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { buildGeminiUrl, extractGeminiText, extractJsonObject } from './_lib/gemini';
 
 interface SimulationRole {
   name: string;
@@ -34,293 +35,249 @@ interface SimOrchestratorRequestBody {
   currentPhase?: CurrentPhase;
 }
 
+interface OrchestratorResult {
+  next_speaker: string | null;
+  speak_direction: string;
+  follow_up_speaker: string | null;
+  follow_up_direction: string | null;
+  user_choices: string[];
+  phase: 'ongoing' | 'wrapping_up' | 'final';
+  next_phase?: boolean;
+  phase_summary?: string;
+  reason?: string;
+}
+
+const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
 
-  const { scenario, intensity, conversationHistory, turnCount, mode, currentPhase } = (req.body || {}) as SimOrchestratorRequestBody;
+  const { scenario, intensity, conversationHistory, turnCount, mode, currentPhase } =
+    (req.body || {}) as SimOrchestratorRequestBody;
 
-  if (!scenario || !conversationHistory) {
+  if (!scenario || !Array.isArray(conversationHistory)) {
     return res.status(400).json({ error: 'scenario and conversationHistory required' });
   }
 
-  // Consultation 紐⑤뱶: ?쒖감 ?곷떞 ?꾩슜 ?꾨＼?꾪듃
-  if (mode === 'consultation' && currentPhase) {
-    // ?쒕굹由ъ삤蹂??④퀎蹂??섏쭛 泥댄겕由ъ뒪??
-    const phaseChecklists: Record<string, Record<string, string[]>> = {
-      '?섑븰 ?곷떞': {
-        '?묒닔 媛꾪샇??: ['二?利앹긽 (臾댁뾿??遺덊렪?쒖?)', '諛쒕퀝 ?쒓린 (?몄젣遺??', '利앹긽 ?뺣룄 (1~10 ?듭쬆 ?섏?)', '湲닿툒??(?쇱긽 吏???щ?)'],
-        '?꾨Ц??: ['怨쇨굅 蹂묐젰', '媛議깅젰', '利앹긽 ?낇솕/?꾪솕 ?붿씤', '?숇컲 利앹긽'],
-        '?쎌궗': ['?꾩옱 蹂듭슜 ?쎈Ъ', '?뚮젅瑜닿린 ?щ?', '嫄닿컯蹂댁“?앺뭹/?쒖빟'],
-        '?곸뼇??: ['?앹뒿愿 (?쇰땲 ?잛닔, ?앸떒)', '?뚯＜/?≪뿰', '?대룞 ?듦?', '?섎㈃ ?⑦꽩'],
-      },
-      '踰뺣쪧 ?곷떞': {
-        '?섏꽍 蹂?몄궗': ['?ш굔 ?좏삎 (誘쇱궗/?뺤궗/?됱젙)', '遺꾩웳 ?곷?諛?, '?쒗슚 愿???좎쭨', '湲닿툒 議곗튂 ?꾩슂 ?щ?'],
-        '?ш굔 ?대떦': ['?ш굔 寃쎌쐞 (?쒓컙??', '?뱀궗??愿怨?, '?꾩옱源뚯? 議곗튂', '蹂댁쑀 利앷굅 紐⑸줉'],
-        '?먮? ?곌뎄??: ['?듭떖 踰뺤쟻 ?곸젏', '?곷?諛?二쇱옣 洹쇨굅', '?좎궗 寃쏀뿕 ?щ?'],
-        '由ъ뒪??遺꾩꽍': ['?먰븯??寃곌낵', '媛먯닔 媛?ν븳 鍮꾩슜/湲곌컙', '?⑹쓽 ?섑뼢'],
-      },
-      '?щТ쨌?ъ옄 ?곷떞': {
-        '?щТ?ㅺ퀎??: ['???뚮뱷/吏異?, '蹂댁쑀 ?먯궛 (?덉쟻湲?遺?숈궛)', '遺梨??꾪솴', '?щТ 紐⑺몴'],
-        '?쇱씠?꾪뵆?섎꼫': ['?곕졊?', '寃고샎/異쒖궛 怨꾪쉷', '二쇳깮 留덈젴 怨꾪쉷', '????쒓린'],
-        '?ъ옄 遺꾩꽍媛': ['?ъ옄 寃쏀뿕', '由ъ뒪???섏슜??, '?ъ옄 媛??湲덉븸', '愿???ъ옄 遺꾩빞'],
-        '?몃Т??: ['?뚮뱷 ?좏삎 (洹쇰줈/?ъ뾽/湲고?)', '?꾩옱 ?덉꽭 ?꾨왂', '?곕쭚?뺤궛 愿??],
-      },
-      '遺?숈궛 ?곷떞': {
-        '遺?숈궛 而⑥꽕?댄듃': ['留ㅼ닔/留ㅻ룄/?꾨? 紐⑹쟻', '?덉궛 踰붿쐞', '?щ쭩 吏??, '?낆＜ ?쒓린'],
-        '?쒖옣 遺꾩꽍媛': ['愿??留ㅻЪ ?좏삎 (?꾪뙆???ㅽ뵾?ㅽ뀛/?좎?)', '?ъ옄/?ㅺ굅二?, '?異?媛???щ?'],
-        '踰뺣쪧 ?꾨Ц媛': ['湲곗〈 遺?숈궛 蹂댁쑀 ?꾪솴', '怨듬룞紐낆쓽 ?щ?', '?뱀닔 怨꾩빟 議곌굔'],
-        '?몃Т??: ['蹂댁쑀 二쇳깮 ??, '痍⑤뱷 ?쒓린', '?묐룄 怨꾪쉷'],
-      },
-      '李쎌뾽 ?곷떞': {
-        '?ㅽ??몄뾽 硫섑넗': ['?ъ뾽 ?꾩씠?붿뼱 ?듭떖', '?닿껐?섎젮??臾몄젣', '?寃?怨좉컼', '?꾩옱 吏꾪뻾 ?④퀎'],
-        '?쒖옣 遺꾩꽍媛': ['?쒖옣 洹쒕え 異붿젙', '寃쎌웳?????, '李⑤퀎???ъ씤??],
-        '?ъ뾽 ?꾨왂媛': ['?섏씡 紐⑤뜽', '媛寃??뺤콉', '珥덇린 吏꾩엯 ?꾨왂', '?듭떖 吏??KPI)'],
-        '?щТ ?꾨Ц媛': ['珥덇린 ?먭툑 ?꾪솴', '踰덈젅?댄듃 ?덉긽', '?ъ옄 ?좎튂 怨꾪쉷', '?먯씡遺꾧린 紐⑺몴'],
-      },
-      '?щ━ ?곷떞': {
-        '?꾩긽?щ━??: ['?꾩옱 媛???섎뱺 ??, '吏??湲곌컙', '?쇱긽 ?곹뼢??, '怨쇨굅 ?곷떞 寃쏀뿕'],
-        '?곷떞?щ━??: ['??멸?怨??곹솴', '吏곸옣/?숆탳 ?ㅽ듃?덉뒪', '?먯〈媛?愿??, '吏吏泥닿퀎 (媛議?移쒓뎄)'],
-        '?뺤떊嫄닿컯?섑븰 ?꾨Ц??: ['?섎㈃ ?⑦꽩 (?낅㈃/媛곸꽦)', '?앹슃 蹂??, '遺덉븞/?곗슱 鍮덈룄', '?좎껜 利앹긽'],
-        '留덉쓬梨숆? 肄붿튂': ['?꾩옱 ?ㅽ듃?덉뒪 愿由щ쾿', '痍⑤?/?댁셿 ?쒕룞', '?대룞 ?듦?', '紐낆긽/?명씉 寃쏀뿕'],
-      },
-    };
+  const fallback =
+    mode === 'consultation' && currentPhase
+      ? buildConsultationFallback(currentPhase, conversationHistory)
+      : buildRoleplayFallback(scenario, conversationHistory, turnCount ?? conversationHistory.length);
 
-    const checklist = phaseChecklists[scenario.name]?.[currentPhase.role.name] || [];
-    const checklistStr = checklist.length > 0
-      ? `\n## ???④퀎?먯꽌 諛섎뱶???섏쭛?댁빞 ???뺣낫\n${checklist.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}\n\n???湲곕줉?먯꽌 ????ぉ 以??대? ?뺤씤??寃껉낵 ?꾩쭅 誘명솗?몄씤 寃껋쓣 援щ텇?섏꽭??`
-      : '';
-
-    // ?꾩옱 ?④퀎?먯꽌????붾쭔 異붿텧 (?댁쟾 ?④퀎 ??붾뒗 ?붿빟?쇰줈)
-    const phaseMessages = conversationHistory.filter((message) => {
-      // __round__ 硫붿떆吏 ?댄썑????붾쭔 (?꾩옱 ?④퀎)
-      return true; // ?꾩껜 ?꾨떖?섎릺 ?꾨＼?꾪듃?먯꽌 援щ텇?섎룄濡?
-    });
-
-    const consultPrompt = `?뱀떊? "${scenario.name}" ?쒖감 ?곷떞??吏꾪뻾 愿由ъ옄?낅땲??
-
-## ?꾩옱 ?곹깭
-- ?꾩껜 吏꾪뻾: ${currentPhase.index + 1}/${currentPhase.totalPhases}?④퀎 (${currentPhase.name})
-- ?꾩옱 ?대떦 ?꾨Ц媛: ${currentPhase.role.name}
-- ?꾨Ц媛 愿?ъ궗: ${currentPhase.role.focus}
-- ?⑥? ?④퀎: ${currentPhase.totalPhases - currentPhase.index - 1}媛?
-${checklistStr}
-
-## ?꾩껜 ???湲곕줉
-${conversationHistory.map((message) => `[${message.speaker}] ${message.content}`).join('\n')}
-
-## ?먮떒 吏??
-?꾩옱 ?꾨Ц媛(${currentPhase.role.name})媛 ?좎?濡쒕???異⑸텇???뺣낫瑜??섏쭛?덈뒗吏 ?먮떒?섏꽭??
-
-諛섎뱶???쒖닔 JSON留?異쒕젰:
-{
-  "next_speaker": "${currentPhase.role.name}",
-  "speak_direction": "???꾨Ц媛媛 ?ㅼ쓬??臾쇱뼱蹂?援ъ껜??吏덈Ц (泥댄겕由ъ뒪??以?誘명솗????ぉ 湲곕컲)",
-  "next_phase": true ?먮뒗 false,
-  "phase": "ongoing",
-  "phase_summary": "???④퀎?먯꽌 ?뚯븙???듭떖 ?뺣낫 1~2以??붿빟 (next_phase媛 true???뚮쭔)",
-  "reason": "?먮떒 洹쇨굅 ??泥댄겕由ъ뒪??以??뺤씤??誘명솗????ぉ 紐낆떆"
-}
-
-## ?꾪솚 ?먮떒 湲곗? (???쒖꽌?濡??먮떒?섎씪)
-
-### 1. 泥댄겕由ъ뒪??湲곕컲 ?먮떒 (理쒖슦??
-- 泥댄겕由ъ뒪????ぉ??**70% ?댁긽**???뺤씤?섏뿀?쇰㈃ ??next_phase: true
-- ?좎?媛 "紐⑤Ⅴ寃좊떎", "?녿떎", "?대떦?녿떎"?쇨퀬 ?듯븳 ??ぉ? **?뺤씤??寃껋쑝濡?媛꾩＜**
-- ?꾩쭅 ?듭떖 ??ぉ??誘명솗?몄씠硫???next_phase: false
-
-### 2. ????잛닔 湲곕컲 蹂댁“ ?먮떒
-- ???④퀎?먯꽌 ?좎?媛 **3???댁긽** ?듬??덉쑝硫???泥댄겕由ъ뒪???ъ꽦瑜좎씠 50% ?댁긽?대㈃ ?꾪솚 ?덉슜
-- ???④퀎?먯꽌 ?좎?媛 **4???댁긽** ?듬??덉쑝硫???臾댁“嫄??꾪솚 (吏덉쭏 ?꾨뒗 寃?諛⑹?)
-- 泥??듬??먯꽌 ?꾪솚?섏? 留덈씪 (理쒖냼 1???꾩냽 吏덈Ц ?꾩슂)
-
-### 3. speak_direction ?묒꽦 洹쒖튃
-- 泥댄겕由ъ뒪?몄뿉??**?꾩쭅 誘명솗?몄씤 援ъ껜????ぉ**??吏紐⑺븯??
-- ?덉떆: "蹂듭슜 以묒씤 ?쎈Ъ???덈뒗吏, ?뚮젅瑜닿린 諛섏쓳 寃쏀뿕???덈뒗吏 臾쇱뼱蹂댁꽭?? (O)
-- ?덉떆: "異붽? 吏덈Ц???댁＜?몄슂" (X ???대젃寃??곗? 留덈씪)
-- ?좎?媛 ?댁쟾???멸툒???댁슜??李몄“?섏뿬 ?꾩냽 吏덈Ц 諛⑺뼢???≪븘??
-- ?곷떞 ?? 怨듦컧 ??吏덈Ц ?쒖꽌濡?("洹몃젃援곗슂, 洹몃윭硫??뱀떆...")
-
-### 4. phase_summary ?묒꽦 (?꾪솚 ??
-- ?ㅼ쓬 ?꾨Ц媛?먭쾶 ?섍만 ?듭떖 ?뺣낫瑜?1~2以꾨줈 ?붿빟
-- ?? "?섏옄: 30? ?ъ꽦, 2二쇨컙 ?먰넻+?댁??ъ?, 湲닿툒??以? ?쇱긽 吏???덉쓬"`;
-
-    const model = 'gemini-2.5-flash-lite';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-    try {
-      const res2 = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: consultPrompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
-        }),
-      });
-      if (!res2.ok) {
-        return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '異붽? 吏덈Ц???댁＜?몄슂.', next_phase: false, phase: 'ongoing', reason: 'API error' });
-      }
-      const data = await res2.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '異붽? ?뺣낫瑜?臾쇱뼱蹂댁꽭??', next_phase: false, phase: 'ongoing', reason: 'parse error' });
-      }
-      const result = JSON.parse(jsonMatch[0]);
-      result.next_speaker = result.next_speaker || currentPhase.role.name;
-      result.speak_direction = result.speak_direction || '異붽? 吏덈Ц???댁＜?몄슂.';
-      result.next_phase = result.next_phase === true;
-      result.phase = result.phase || 'ongoing';
-      return res.status(200).json(result);
-    } catch {
-      return res.status(200).json({ next_speaker: currentPhase.role.name, speak_direction: '異붽? 吏덈Ц???댁＜?몄슂.', next_phase: false, phase: 'ongoing', reason: 'exception' });
-    }
-  }
-
-  const roleNames = scenario.roles.map((role) => role.name).join(', ');
-  const roleFocusDetail = scenario.roles.map((role) => `- ${role.name}: ${role.focus}`).join('\n');
-
-  const prompt = `?뱀떊? "${scenario.name}" ?쒕??덉씠?섏쓽 吏꾪뻾???ㅼ??ㅽ듃?덉씠???낅땲??
-?좎??먭쾶 吏곸젒 留먰븯吏 ?딆뒿?덈떎. ????먮쫫留?愿由ы빀?덈떎.
-
-## ?쒕굹由ъ삤 ?뺣낫
-- ?쒕굹由ъ삤: ${scenario.name}
-- ?좎? ??븷: ${scenario.userRole}
-- ?댄빐愿怨꾩옄: ${roleNames}
-- 媛???븷??愿?ъ궗:
-${roleFocusDetail}
-- ?됯? 吏?? ${scenario.gaugeLabel}
-- 理쒖쥌 ?먯젙 ?듭뀡: ${scenario.verdictOptions.join(' / ')}
-- 諛섏쓳 媛뺣룄: ${intensity}/10 (?믪쓣?섎줉 ?좎뭅濡쒖?)
-
-## ?꾩옱 ???湲곕줉 (${turnCount}??
-${conversationHistory.map((message) => `[${message.speaker}] ${message.content}`).join('\n')}
-
-## 吏?쒖궗??
-???湲곕줉??遺꾩꽍?섏뿬 ?ㅼ쓬 JSON??諛섑솚?섏꽭?? 諛섎뱶???쒖닔 JSON留?異쒕젰?섏꽭??
-
-{
-  "next_speaker": "??븷紐?(${roleNames} 以??섎굹)",
-  "speak_direction": "????븷???대뼡 諛⑺뼢?쇰줈 留먰빐???섎뒗吏 援ъ껜???쒖쨪 吏??,
-  "follow_up_speaker": "?곕떖??諛쒖뼵????踰덉㎏ ??븷. ?놁쑝硫?null",
-  "follow_up_direction": "??踰덉㎏ ??븷??諛쒖뼵 諛⑺뼢. ?놁쑝硫?null",
-  "phase": "ongoing ?먮뒗 wrapping_up ?먮뒗 final",
-  "reason": "?????먮떒???덈뒗吏 ?대? 硫붾え"
-}
-
-## ?듭떖 ?먮떒 湲곗? (???쒖꽌?濡??먮떒?섎씪)
-
-### 1. ??븷 援먯껜 (理쒖슦????諛섎뱶??吏耳쒕씪)
-- **媛숈? ??븷??2???곗냽 諛쒖뼵?덉쑝硫???諛섎뱶???ㅻⅨ ??븷濡?援먯껜?섎씪.** ?닿쾬? ?덈? 洹쒖튃?대떎.
-- ?좎?媛 ?듬??덉쑝硫??遺遺꾩쓽 寃쎌슦 ?ㅻⅨ ??븷????愿?먯뿉??吏덈Ц?댁빞 ?쒕떎.
-- 媛숈? ??븷???곗냽?섎뒗 寃껋? ?좎? ?듬???洹밸룄濡?遺덉땐遺꾪븷 ?뚮쭔 ?덉슜. 洹밸룄濡?遺덉땐遺꾪븳 湲곗?: "??, "?꾨땲??, "?뉎뀋", "??, ?대え吏留? ?먮뒗 吏덈Ц怨??꾪? 愿怨꾩뾾???듬?. 1~2臾몄옣?대씪???댁슜???덉쑝硫?異⑸텇??寃껋쑝濡??먮떒?섎씪.
-- ???湲곕줉?먯꽌 留덉?留?AI 諛쒖뼵?먮? ?뺤씤?섍퀬, 媛?ν븯硫??ㅻⅨ ??븷??next_speaker濡??좏깮?섎씪.
-
-### 2. ?뺣낫 異⑸텇???먮떒
-?좎???留덉?留??듬????꾩옱 吏덈Ц?????異⑸텇???뺣낫瑜??쒓났?덈뒗媛?
-- **遺議깊븿** ???ㅻⅨ ??븷??媛숈? 二쇱젣瑜??ㅻⅨ 媛곷룄?먯꽌 臾쇱뼱蹂몃떎 (媛숈? ??븷????臾살? ?딅뒗??.
-  - ?? VC媛 ?쒖옣 洹쒕え瑜?臾쇱뿀怨??좎?媛 紐⑦샇?섍쾶 ?듯뻽?쇰㈃ ???щТ ?ъ궗??씠 "援ъ껜???섏튂濡?留먯??댁＜?쒓쿋?댁슂?" ?쇨퀬 ?ㅻⅨ 媛곷룄?먯꽌 ?뚭퀬??
-- **異⑸텇??* ???ㅻⅨ ??븷???꾩쟾????二쇱젣濡??꾪솚.
-
-### 3. follow_up_speaker
-- 湲곕낯媛믪? null.
-- ?좎?媛 ?띾????듬????댁꽌 ?ㅻⅨ ??븷??利됱떆 諛섏쓳???댁슜???덉쓣 ?뚮쭔 ?ъ슜.
-- 吏㏃? ?듬? ?ㅼ뿉???덈? 2紐낆씠 ?섏삤吏 ?딅뒗??
-
-### 4. 湲고?
-- 媛???븷??怨④퀬猷?諛쒖뼵?섎룄濡?諛곕텇. ???湲곕줉?먯꽌 媛???븷??諛쒖뼵 ?잛닔瑜??멸퀬 ?곴쾶 諛쒖뼵????븷???곗꽑.
-- ?좎?媛 ???듬??섎㈃ ?고샇??諛섏쓳 媛??("??洹멸굅 醫뗭??곗슂")
-7. ${turnCount >= 12 ? '??붽? 異⑸텇??吏꾪뻾?섏뿀?듬땲?? 留덈Т由щ? 怨좊젮?섏꽭?? phase瑜?wrapping_up?쇰줈 ?꾪솚?????덉뒿?덈떎.' : '?꾩쭅 珥덉쨷諛섏엯?덈떎. phase??ongoing?쇰줈 ?좎??섏꽭??'}
-8. ${turnCount >= 16 ? 'wrapping_up ?④퀎?낅땲?? 媛???븷??理쒖쥌 ?낆옣??諛앺엳?꾨줉 ?좊룄?섏꽭??' : ''}
-9. wrapping_up?먯꽌 紐⑤뱺 ??븷??理쒖쥌 ?낆옣??諛앺삍?쇰㈃ ??phase瑜?final濡??꾪솚
-
-## ????먮쫫 媛?대뱶 (???쒕굹由ъ삤??留욊쾶 ?곕Ⅴ??
-${(() => {
-  const guides: Record<string, string> = {
-    '?ъ옄 ?좎튂': '- 珥덈컲(1~4??: ?ъ뾽 媛쒖슂, ?쒖옣 洹쒕え(TAM/SAM/SOM), ?듭떖 媛移??쒖븞\n- 以묐컲(5~10??: ?섏씡 紐⑤뜽, 寃쎌웳 ?곗쐞, ? 援ъ꽦, ?щТ 怨꾪쉷\n- ?꾨컲(11~15??: 由ъ뒪?? ?묒떙 ?꾨왂, 諛몃쪟?먯씠??寃利?,
-    '梨꾩슜 硫댁젒': '- 珥덈컲(1~4??: ?먭린?뚭컻, 吏???숆린, ?뚯궗/?ъ????댄빐??n- 以묐컲(5~10??: 吏곷Т ??웾 寃利?(湲곗닠 吏덈Ц, 臾몄젣?닿껐 ?щ?, ?꾨줈?앺듃 寃쏀뿕)\n- ?꾨컲(11~15??: 議곗쭅 ?곹빀?? ??뚰겕, ?깆옣 鍮꾩쟾, ?곕큺 ?묒긽\n- ?뱀닔: ?뺣컯 吏덈Ц 1~2???ы븿 (?? "???댁쟾 ?뚯궗瑜??섏솕?섏슂?", "蹂몄씤???쎌젏??")',
-    '?쒗뭹 ?곗묶': '- 珥덈컲(1~4??: ?쒗뭹 ?뚭컻, ?寃?怨좉컼, ?닿껐?섎뒗 臾몄젣\n- 以묐컲(5~10??: 湲곗〈 ????鍮?李⑤퀎?? 媛寃??뺤콉, UX/湲곗닠 ?꾩꽦??n- ?꾨컲(11~15??: ?쒖옣 吏꾩엯 ?꾨왂, 寃쎌웳 ??? ?뺤옣 怨꾪쉷\n- ?뱀닔: ?寃?怨좉컼? 媛먯젙??"?닿굅 ?꾩슂??"), 寃쎌웳??PM? 怨듦꺽??,
-    '?뺤콉 寃??: '- 珥덈컲(1~4??: ?뺤콉 諛곌꼍怨?紐⑹쟻, ?꾩옱 臾몄젣, ?듭떖 ?댁슜\n- 以묐컲(5~10??: ?댄빐愿怨꾩옄蹂??곹뼢 (?쒕? ?앺솢, 湲곗뾽 鍮꾩슜, 踰뺤쟻 ?곸젏)\n- ?꾨컲(11~15??: ???蹂댁셿梨? ?쒗뻾 濡쒕뱶留? 遺?묒슜 理쒖냼??n- ?뱀닔: ?쒕?=媛먯젙+?щ줎, 湲곗뾽=?섏튂, 踰뺣쪧=?먮?',
-    '?꾨왂 ?뚯쓽': '- 珥덈컲(1~4??: ?꾨왂 二쇱젣 ?뚭컻, ?꾪솴 遺꾩꽍, 紐⑺몴 ?ㅼ젙\n- 以묐컲(5~10??: 遺?쒕퀎 愿?먯뿉??寃??(留덉???湲곗닠/?댁쁺)\n- ?꾨컲(11~15??: ?곗꽑?쒖쐞, ?쇱젙/?덉궛 ?⑹쓽, ?ㅽ뻾 怨꾪쉷\n- ?뱀닔: ?由쎈낫???⑹쓽 吏?? "?닿굔 醫뗭????쇱젙??.." ?앹쑝濡?,
-    '?щ궡 ?쒖븞': '- 珥덈컲(1~4??: ?쒖븞 諛곌꼍, ?꾩옱 臾몄젣?? ?듭떖 ?댁슜\n- 以묐컲(5~10??: 鍮꾩슜/?덉궛, ROI, ?ㅽ뻾 媛?μ꽦, ? 遺???곹뼢\n- ?꾨컲(11~15??: 由ъ뒪?? ???鍮꾧탳, ?뱀씤 議곌굔\n- ?뱀닔: ???嫄곗떆?? CFO=?レ옄, ????꾩옣 ?꾩떎',
-    '?낆떆 硫댁젒': '- 珥덈컲(1~4??: ?먭린?뚭컻, 吏???숆린, ?숆낵 ?좏깮 ?댁쑀\n- 以묐컲(5~10??: ?꾧났 ?곹빀??(愿??寃쏀뿕, ?낆꽌, ?숈뾽 怨꾪쉷), ?먭린?뚭컻???댁슜 寃利?n- ?꾨컲(11~15??: ?몄꽦 (媛移섍?, 由щ뜑?? 怨듬룞泥?, ?숆탳?앺솢 ?щ?\n- ?뱀닔: 援먯닔???숇Ц??源딆씠, ?ъ젙愿? 吏꾩젙?? ?몄꽦硫댁젒愿? 媛移섍?',
-  };
-  return guides[scenario.name] || '- 珥덈컲: ?곹솴 ?뚯븙怨??듭떖 吏덈Ц\n- 以묐컲: ?ы솕 寃利?n- ?꾨컲: 理쒖쥌 ?먮떒';
-})()}
-- 留덈Т由?16??): 理쒖쥌 ?낆옣 ?뺣━
-
-## speak_direction ?묒꽦 洹쒖튃
-- 異붿긽?곸씠吏 留먭퀬 援ъ껜?곸쑝濡??묒꽦 (?? "?좎???TAM ?섏튂媛 怨쇰? 異붿젙?몄? 洹쇨굅瑜?臾쇱뼱?? O, "?쒖옣?????臾쇱뼱蹂댁꽭?? X)
-- ?댁쟾 ??붿뿉???멸툒??援ъ껜???댁슜??李몄“?섎씪 (?? "?좎?媛 留먰븳 ??留ㅼ텧 500留뚯썝???깆옣瑜좎뿉 ????뚭퀬?ㅼ뼱??)`;
-
-  const model = 'gemini-2.5-flash-lite';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const prompt =
+    mode === 'consultation' && currentPhase
+      ? buildConsultationPrompt(scenario, currentPhase, conversationHistory, intensity ?? 5)
+      : buildRoleplayPrompt(scenario, conversationHistory, turnCount ?? conversationHistory.length, intensity ?? 5);
 
   try {
-    const geminiRes = await fetch(url, {
+    const geminiRes = await fetch(buildGeminiUrl(DEFAULT_MODEL, apiKey), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+        generationConfig: {
+          temperature: 0.35,
+          maxOutputTokens: 1024,
+        },
       }),
     });
 
     if (!geminiRes.ok) {
-      return res.status(200).json({
-        next_speaker: scenario.roles[0]?.name || '',
-        speak_direction: '?좎????듬??????吏덈Ц?섏꽭??',
-        follow_up_speaker: null,
-        follow_up_direction: null,
-        user_choices: [],
-        phase: 'ongoing',
-        reason: 'API error fallback',
-      });
+      return res.status(200).json({ ...fallback, reason: 'upstream error' });
     }
 
-    const data = await geminiRes.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    const payload = await geminiRes.json();
+    const rawText = extractGeminiText(payload);
+    const parsed = extractJsonObject<Partial<OrchestratorResult>>(rawText);
 
-    if (!jsonMatch) {
-      return res.status(200).json({
-        next_speaker: scenario.roles[0]?.name || '',
-        speak_direction: '?좎????듬???????꾩냽 吏덈Ц???섏꽭??',
-        follow_up_speaker: null,
-        follow_up_direction: null,
-        user_choices: [],
-        phase: 'ongoing',
-        reason: 'Parse error fallback',
-      });
+    if (!parsed) {
+      return res.status(200).json({ ...fallback, reason: 'parse error' });
     }
 
-    const result = JSON.parse(jsonMatch[0]);
-
-    // Validate required fields
-    if (!result.next_speaker || !result.speak_direction) {
-      result.next_speaker = result.next_speaker || scenario.roles[0]?.name || '';
-      result.speak_direction = result.speak_direction || '?좎????듬???諛섏쓳?섏꽭??';
-    }
-    result.follow_up_speaker = result.follow_up_speaker || null;
-    result.follow_up_direction = result.follow_up_direction || null;
-    result.user_choices = result.user_choices || [];
-    result.phase = result.phase || 'ongoing';
-
-    return res.status(200).json(result);
+    return res.status(200).json(normalizeResult(parsed, fallback));
   } catch {
-    return res.status(200).json({
-      next_speaker: scenario.roles[0]?.name || '',
-      speak_direction: '?좎????듬??????吏덈Ц?섏꽭??',
-      follow_up_speaker: null,
-      follow_up_direction: null,
-      user_choices: [],
-      phase: 'ongoing',
-      reason: 'Exception fallback',
-    });
+    return res.status(200).json({ ...fallback, reason: 'exception' });
   }
 }
 
+function normalizeResult(
+  parsed: Partial<OrchestratorResult>,
+  fallback: OrchestratorResult,
+): OrchestratorResult {
+  const phase =
+    parsed.phase === 'final' || parsed.phase === 'wrapping_up' || parsed.phase === 'ongoing'
+      ? parsed.phase
+      : fallback.phase;
+
+  return {
+    next_speaker:
+      typeof parsed.next_speaker === 'string' || parsed.next_speaker === null
+        ? parsed.next_speaker
+        : fallback.next_speaker,
+    speak_direction:
+      typeof parsed.speak_direction === 'string' && parsed.speak_direction.trim()
+        ? parsed.speak_direction.trim()
+        : fallback.speak_direction,
+    follow_up_speaker:
+      typeof parsed.follow_up_speaker === 'string' || parsed.follow_up_speaker === null
+        ? parsed.follow_up_speaker
+        : fallback.follow_up_speaker,
+    follow_up_direction:
+      typeof parsed.follow_up_direction === 'string' || parsed.follow_up_direction === null
+        ? parsed.follow_up_direction
+        : fallback.follow_up_direction,
+    user_choices: Array.isArray(parsed.user_choices)
+      ? parsed.user_choices.filter((choice): choice is string => typeof choice === 'string')
+      : fallback.user_choices,
+    phase,
+    next_phase: typeof parsed.next_phase === 'boolean' ? parsed.next_phase : fallback.next_phase,
+    phase_summary:
+      typeof parsed.phase_summary === 'string' && parsed.phase_summary.trim()
+        ? parsed.phase_summary.trim()
+        : fallback.phase_summary,
+    reason:
+      typeof parsed.reason === 'string' && parsed.reason.trim() ? parsed.reason.trim() : fallback.reason,
+  };
+}
+
+function buildConsultationFallback(
+  currentPhase: CurrentPhase,
+  conversationHistory: ConversationEntry[],
+): OrchestratorResult {
+  const roleTurns = conversationHistory.filter((entry) => entry.speaker === currentPhase.role.name).length;
+  const userTurns = Math.max(0, conversationHistory.length - roleTurns);
+  const enoughInfo = roleTurns >= 1 && userTurns >= 2;
+
+  return {
+    next_speaker: currentPhase.role.name,
+    speak_direction: enoughInfo
+      ? '지금까지 들은 내용을 짧게 정리하고, 다음 단계로 넘길지 판단해 주세요.'
+      : `${currentPhase.role.focus} 관점에서 가장 중요한 확인 질문을 한두 가지 해주세요.`,
+    follow_up_speaker: null,
+    follow_up_direction: null,
+    user_choices: [],
+    phase: 'ongoing',
+    next_phase: enoughInfo,
+    phase_summary: enoughInfo
+      ? `${currentPhase.role.name} 단계에서 필요한 핵심 정보를 대체로 확인했습니다.`
+      : '',
+    reason: enoughInfo ? 'fallback phase advance' : 'fallback continue current phase',
+  };
+}
+
+function buildRoleplayFallback(
+  scenario: SimulationScenarioRequest,
+  conversationHistory: ConversationEntry[],
+  turnCount: number,
+): OrchestratorResult {
+  const roleNames = scenario.roles.map((role) => role.name);
+  const lastRoleSpeaker = [...conversationHistory]
+    .reverse()
+    .find((entry) => roleNames.includes(entry.speaker))?.speaker;
+  const lastIndex = lastRoleSpeaker ? roleNames.indexOf(lastRoleSpeaker) : -1;
+  const nextIndex = roleNames.length > 0 ? (lastIndex + 1 + roleNames.length) % roleNames.length : 0;
+  const phase: OrchestratorResult['phase'] =
+    turnCount >= 12 ? 'final' : turnCount >= 8 ? 'wrapping_up' : 'ongoing';
+
+  return {
+    next_speaker: phase === 'final' ? null : roleNames[nextIndex] ?? null,
+    speak_direction:
+      phase === 'wrapping_up'
+        ? '지금까지의 흐름을 바탕으로 핵심 평가와 최종 의견에 가까운 발언을 해주세요.'
+        : '직전 대화에 자연스럽게 반응하면서, 자신의 관점에서 가장 중요한 질문이나 피드백을 말해주세요.',
+    follow_up_speaker: null,
+    follow_up_direction: null,
+    user_choices: [],
+    phase,
+    reason: 'fallback round robin',
+  };
+}
+
+function buildConsultationPrompt(
+  scenario: SimulationScenarioRequest,
+  currentPhase: CurrentPhase,
+  conversationHistory: ConversationEntry[],
+  intensity: number,
+) {
+  return `You are an orchestrator for a Korean consultation simulation.
+
+Return JSON only.
+
+Scenario: ${scenario.name}
+User role: ${scenario.userRole}
+Current phase: ${currentPhase.index + 1}/${currentPhase.totalPhases} - ${currentPhase.name}
+Current expert: ${currentPhase.role.name}
+Current expert focus: ${currentPhase.role.focus}
+Intensity: ${intensity}/10
+
+Conversation history:
+${formatConversation(conversationHistory)}
+
+Decide whether the current expert has enough information to move to the next phase.
+If not, keep the same expert speaking and ask for the most useful next question.
+If yes, set next_phase to true and write a short phase_summary.
+
+Respond with JSON:
+{
+  "next_speaker": "${currentPhase.role.name}",
+  "speak_direction": "the next question or wrap-up direction in Korean",
+  "follow_up_speaker": null,
+  "follow_up_direction": null,
+  "user_choices": [],
+  "phase": "ongoing",
+  "next_phase": false,
+  "phase_summary": "short Korean summary",
+  "reason": "short reason"
+}`;
+}
+
+function buildRoleplayPrompt(
+  scenario: SimulationScenarioRequest,
+  conversationHistory: ConversationEntry[],
+  turnCount: number,
+  intensity: number,
+) {
+  return `You are an orchestrator for a Korean multi-party roleplay simulation.
+
+Return JSON only.
+
+Scenario: ${scenario.name}
+User role: ${scenario.userRole}
+Participants: ${scenario.roles.map((role) => `${role.name}(${role.focus})`).join(', ')}
+Intensity: ${intensity}/10
+Turn count: ${turnCount}
+
+Conversation history:
+${formatConversation(conversationHistory)}
+
+Choose the next AI role who should speak.
+Avoid repeating the exact same role unless it is clearly necessary.
+Use phase="ongoing" for normal progress, "wrapping_up" when the discussion is nearing conclusion,
+and "final" only when the discussion should move to final verdicts.
+
+Respond with JSON:
+{
+  "next_speaker": "one of ${scenario.roles.map((role) => role.name).join(', ')} or null",
+  "speak_direction": "the next speaking direction in Korean",
+  "follow_up_speaker": null,
+  "follow_up_direction": null,
+  "user_choices": [],
+  "phase": "ongoing",
+  "reason": "short reason"
+}`;
+}
+
+function formatConversation(conversationHistory: ConversationEntry[]) {
+  if (conversationHistory.length === 0) {
+    return '(no conversation yet)';
+  }
+
+  return conversationHistory.map((entry) => `[${entry.speaker}] ${entry.content}`).join('\n');
+}
