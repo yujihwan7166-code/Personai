@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { buildGeminiUrl, extractGeminiText, extractJsonObject } from './_lib/gemini';
+import { buildGeminiUrl, extractGeminiText, extractJsonObject } from './_lib/gemini.js';
 
 interface SimulationRole {
   name: string;

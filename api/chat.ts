@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { buildGeminiUrl, parseGeminiStreamBuffer } from './_lib/gemini';
+import { buildGeminiUrl, parseGeminiStreamBuffer } from './_lib/gemini.js';
 
 interface PreviousResponse {
   name: string;
