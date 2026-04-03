@@ -1442,8 +1442,9 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
             <div className="shrink-0 px-4 py-3 border-t border-slate-200 bg-slate-50">
               <button
                 onClick={() => {
+                  const scenarioId = selectedScenario.id;
                   setSelectedScenario(null);
-                  onSubmit('__SIM_START__');
+                  onSubmit(`__SIM_START__:${scenarioId}`, undefined, 'stakeholder');
                 }}
                 className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5"
               >

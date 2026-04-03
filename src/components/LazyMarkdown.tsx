@@ -13,7 +13,13 @@ export function LazyMarkdown({ content, className, fallback }: LazyMarkdownProps
 
   return (
     <Suspense fallback={fallback ?? <div className={className}>{content}</div>}>
-      <MarkdownRenderer className={className}>{content}</MarkdownRenderer>
+      {className ? (
+        <div className={className}>
+          <MarkdownRenderer>{content}</MarkdownRenderer>
+        </div>
+      ) : (
+        <MarkdownRenderer>{content}</MarkdownRenderer>
+      )}
     </Suspense>
   );
 }
