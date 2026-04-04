@@ -326,9 +326,8 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               <span className="text-[12px] font-bold text-emerald-700">심층 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-2 rounded-lg border border-white/80 bg-white/85 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
-                <span className="text-[10px] font-semibold text-slate-500 shrink-0">모드 선택</span>
-                <div className="flex items-center gap-0.5 rounded-md bg-slate-100/80 p-0.5 shadow-inner">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+                <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
@@ -338,7 +337,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2 py-0.5 rounded-md text-[9px] font-semibold transition-all',
+                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
                         t.mode === 'standard'
                           ? 'bg-emerald-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
@@ -498,9 +497,8 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
               <span className="text-[12px] font-bold text-violet-700">찬반 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-2 rounded-lg border border-white/80 bg-white/85 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
-                <span className="text-[10px] font-semibold text-slate-500 shrink-0">모드 선택</span>
-                <div className="flex items-center gap-0.5 rounded-md bg-slate-100/80 p-0.5 shadow-inner">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+                <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
@@ -510,7 +508,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2 py-0.5 rounded-md text-[9px] font-semibold transition-all',
+                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
                         t.mode === 'procon'
                           ? 'bg-violet-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
@@ -644,9 +642,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
               <span className="text-[12px] font-bold text-amber-700">브레인스토밍</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-2 rounded-lg border border-white/80 bg-white/85 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
-                <span className="text-[10px] font-semibold text-slate-500 shrink-0">모드 선택</span>
-                <div className="flex items-center gap-0.5 rounded-md bg-slate-100/80 p-0.5 shadow-inner">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+                <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
@@ -656,7 +653,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'brainstorm' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2 py-0.5 rounded-md text-[9px] font-semibold transition-all',
+                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
                         t.mode === 'brainstorm'
                           ? 'bg-amber-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
@@ -952,9 +949,8 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               <span className="text-[12px] font-bold text-cyan-700">자유 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-2 rounded-lg border border-white/80 bg-white/85 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
-                <span className="text-[10px] font-semibold text-slate-500 shrink-0">모드 선택</span>
-                <div className="flex items-center gap-0.5 rounded-md bg-slate-100/80 p-0.5 shadow-inner">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+                <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
@@ -964,7 +960,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2 py-0.5 rounded-md text-[9px] font-semibold transition-all',
+                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
                         t.mode === 'freetalk'
                           ? 'bg-cyan-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
@@ -1103,9 +1099,8 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               <span className="text-[12px] font-bold text-rose-700">AI vs 유저</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-2 rounded-lg border border-white/80 bg-white/85 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
-                <span className="text-[10px] font-semibold text-slate-500 shrink-0">모드 선택</span>
-                <div className="flex items-center gap-0.5 rounded-md bg-slate-100/80 p-0.5 shadow-inner">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+                <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
@@ -1117,7 +1112,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                       key={t.mode}
                       onClick={t.mode === 'aivsuser' ? undefined : () => onModeChange(t.mode)}
                       className={cn(
-                        'px-2 py-0.5 rounded-md text-[9px] font-semibold transition-all',
+                        'px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
                         t.mode === 'aivsuser'
                           ? 'bg-rose-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'

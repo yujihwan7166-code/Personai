@@ -55,6 +55,7 @@ interface Props {
   externalValue?: string;
   onExternalValueConsumed?: () => void;
   embedded?: boolean;
+  placeholderOverride?: string;
 }
 
 function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: DiscussionMode | undefined) {
@@ -97,6 +98,7 @@ export function QuestionInput({
   externalValue,
   onExternalValueConsumed,
   embedded = false,
+  placeholderOverride,
 }: Props) {
   const [question, setQuestion] = useState('');
   const [focused, setFocused] = useState(false);
@@ -256,7 +258,7 @@ export function QuestionInput({
     }
   };
 
-  const placeholder = getPlaceholder(isFollowUp, discussionMode);
+  const placeholder = placeholderOverride || getPlaceholder(isFollowUp, discussionMode);
   const canSubmit = !!question.trim() && !disabled && !isStreaming;
   const showSelectionAccent =
     !embedded &&
