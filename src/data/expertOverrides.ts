@@ -77,8 +77,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   medical: createOverride(
-    '증상, 검사, 진료 흐름을 차분히 정리하는 의료 전문가',
-    '생명 앞에 타협은 없다',
+    '질병·진단·치료 전문가',
+    '증상 뒤에 숨은 원인을 추적한다',
     [
       '이 증상에서 먼저 볼 신호를 정리해줘',
       '병원 가기 전 기록할 내용을 알려줘',
@@ -86,8 +86,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   psychology: createOverride(
-    '감정, 스트레스, 관계 패턴을 함께 보는 심리 전문가',
-    '왜 그랬는지가 더 중요해',
+    '인지·행동·임상심리 전문가',
+    '보이지 않는 상처가 가장 깊다',
     [
       '요즘 감정 흐름을 같이 정리해줘',
       '이 스트레스의 원인을 구조적으로 봐줘',
@@ -95,8 +95,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   legal: createOverride(
-    '계약, 분쟁, 책임 범위를 리스크 중심으로 보는 법률 전문가',
-    '말과 글로 엮어낸 가장 단단한 방패',
+    '법리·판례·규제 전문가',
+    '법은 해석하는 자의 무기다',
     [
       '이 문서에서 위험한 조항만 짚어줘',
       '지금 상황이 법적으로 문제인지 봐줘',
@@ -104,8 +104,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   finance: createOverride(
-    '수익보다 리스크와 현금흐름을 먼저 보는 재무 전문가',
-    '불확실성 속에서 가치를 찾아낸다',
+    '자산운용·리스크 전문가',
+    '불확실성을 계산하는 것이 투자다',
     [
       '이 선택의 재무 리스크를 봐줘',
       '현금흐름 관점에서 우선순위를 정해줘',
@@ -113,8 +113,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   history: createOverride(
-    '현재 문제를 역사적 맥락과 사례로 읽는 역사 전문가',
-    '역사는 승자만의 기록이 아니다',
+    '문명사·사료비판 전문가',
+    '기록되지 않은 역사는 반복된다',
     [
       '이 상황과 비슷한 역사 사례를 알려줘',
       '왜 이런 흐름이 반복되는지 설명해줘',
@@ -122,8 +122,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   philosophy: createOverride(
-    '가정, 가치, 논리 구조를 깊게 따지는 철학자',
-    '정답보다 질문이 먼저다',
+    '논리·윤리·형이상학 전문가',
+    '의심이 끝나는 곳에서 사유가 시작된다',
     [
       '이 주장에 숨어 있는 전제를 찾아줘',
       '가치 충돌이 어디서 생기는지 설명해줘',
@@ -131,8 +131,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   education: createOverride(
-    '학습 순서와 이해 수준을 맞춰 설명하는 교육 전문가',
-    '배움은 질문에서 시작된다',
+    '교육과정·학습설계 전문가',
+    '가르침은 불꽃을 지피는 일이다',
     [
       '이 주제를 입문자용으로 설명해줘',
       '배우는 순서를 단계별로 짜줘',
@@ -140,8 +140,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   marketing: createOverride(
-    '고객 반응과 메시지 전달력을 먼저 보는 마케팅 전문가',
-    '고객의 언어로 말하라',
+    '고객심리·시장전략 전문가',
+    '시장은 인식의 전쟁터다',
     [
       '이 문구가 왜 약한지 짚어줘',
       '고객이 바로 이해할 메시지로 바꿔줘',
@@ -149,8 +149,8 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
     ]
   ),
   compsci: createOverride(
-    '알고리즘, 구조, 계산 관점으로 문제를 보는 컴퓨터공학자',
-    '보이지 않는 것을 설계한다',
+    '알고리즘·시스템설계 전문가',
+    '논리의 빈틈이 곧 버그다',
     [
       '이 로직을 자료구조 관점에서 봐줘',
       '시간 복잡도를 낮출 방법을 찾아줘',

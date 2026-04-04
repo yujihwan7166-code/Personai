@@ -191,7 +191,7 @@ async function streamExpert({
 const Index = () => {
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
-      const saved = localStorage.getItem('ai-debate-experts-v64');
+      const saved = localStorage.getItem('ai-debate-experts-v65');
       if (saved) {
         const parsed = JSON.parse(saved) as Expert[];
         // Merge: keep saved customizations but add any new default experts
@@ -242,7 +242,7 @@ const Index = () => {
   const pendingSimQuestionRef = useRef<string>('');
 
   useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v64', JSON.stringify(applyExpertOverrides(experts)));
+    localStorage.setItem('ai-debate-experts-v65', JSON.stringify(applyExpertOverrides(experts)));
   }, [experts]);
 
   useEffect(() => {

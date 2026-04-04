@@ -848,83 +848,83 @@ export const DEFAULT_EXPERTS: Expert[] = [
 
     // Specialists
     {
-        id: 'medical', name: 'Medical Expert', nameKo: '의학 전문가', icon: '⚕️', color: 'red', avatarUrl: '/logos/specialist/medical.png', category: 'specialist', subCategory: '의료·심리', description: '의학·건강 전문가',
-        quote: '진단이 치료의 절반이다',
+        id: 'medical', name: 'Medical Expert', nameKo: '의학 전문가', icon: '⚕️', color: 'red', avatarUrl: '/logos/specialist/medical.png', category: 'specialist', subCategory: '의료·심리', description: '질병·진단·치료 전문가',
+        quote: '증상 뒤에 숨은 원인을 추적한다',
         sampleQuestions: ['이 증상 감별진단이 뭐야?', 'CT와 MRI 뭘 찍어야 해?', '이 약 병용투여 괜찮아?'],
     },
     {
-        id: 'psychology', name: 'Psychology Expert', nameKo: '심리학 전문가', icon: '🎭', color: 'purple', avatarUrl: '/logos/specialist/psychology.png', category: 'specialist', subCategory: '의료·심리', description: '심리학·행동과학 전문가',
-        quote: '행동 뒤엔 동기가 숨는다',
+        id: 'psychology', name: 'Psychology Expert', nameKo: '심리학 전문가', icon: '🎭', color: 'purple', avatarUrl: '/logos/specialist/psychology.png', category: 'specialist', subCategory: '의료·심리', description: '인지·행동·임상심리 전문가',
+        quote: '보이지 않는 상처가 가장 깊다',
         sampleQuestions: ['애착유형이 연애에 영향줘?', '인지왜곡 교정법이 뭐야?', 'PTSD 자가진단 가능해?'],
     },
     {
-        id: 'legal', name: 'Legal Expert', nameKo: '법학 전문가', icon: '⚖️', color: 'amber', avatarUrl: '/logos/specialist/legal.png', category: 'specialist', subCategory: '법률', description: '법학·규제 전문가',
-        quote: '판례가 법의 실체다',
+        id: 'legal', name: 'Legal Expert', nameKo: '법학 전문가', icon: '⚖️', color: 'amber', avatarUrl: '/logos/specialist/legal.png', category: 'specialist', subCategory: '법률', description: '법리·판례·규제 전문가',
+        quote: '법은 해석하는 자의 무기다',
         sampleQuestions: ['이 계약 독소조항 있어?', '내용증명 효력 있나?', '소멸시효 아직 안 지났나?'],
     },
     {
-        id: 'finance', name: 'Finance Expert', nameKo: '금융 전문가', icon: '💰', color: 'emerald', avatarUrl: '/logos/specialist/finance.png', category: 'specialist', subCategory: '경제·금융', description: '금융·투자 전문가',
-        quote: '리스크 없는 수익은 없다',
+        id: 'finance', name: 'Finance Expert', nameKo: '금융 전문가', icon: '💰', color: 'emerald', avatarUrl: '/logos/specialist/finance.png', category: 'specialist', subCategory: '경제·금융', description: '자산운용·리스크 전문가',
+        quote: '불확실성을 계산하는 것이 투자다',
         sampleQuestions: ['ETF와 펀드 뭐가 나아?', '환헤지 꼭 해야 하나?', 'PER 몇 배면 고평가야?'],
     },
     {
-        id: 'history', name: 'History Expert', nameKo: '역사학 전문가', icon: '📕', color: 'orange', avatarUrl: '/logos/specialist/history.png', category: 'specialist', subCategory: '역사·철학', description: '역사·문명 전문가',
-        quote: '사료 비판 없인 역사도 없다',
+        id: 'history', name: 'History Expert', nameKo: '역사학 전문가', icon: '📕', color: 'orange', avatarUrl: '/logos/specialist/history.png', category: 'specialist', subCategory: '역사·철학', description: '문명사·사료비판 전문가',
+        quote: '기록되지 않은 역사는 반복된다',
         sampleQuestions: ['고려가 몽골에 왜 항복했나?', '산업혁명 왜 영국에서 시작?', '5·18의 역사적 의의는?'],
     },
     {
-        id: 'philosophy', name: 'Philosophy Expert', nameKo: '철학 전문가', icon: '🏛️', color: 'teal', avatarUrl: '/logos/specialist/philosophy.png', category: 'specialist', subCategory: '역사·철학', description: '철학·윤리 전문가',
-        quote: '전제를 의심하라',
+        id: 'philosophy', name: 'Philosophy Expert', nameKo: '철학 전문가', icon: '🏛️', color: 'teal', avatarUrl: '/logos/specialist/philosophy.png', category: 'specialist', subCategory: '역사·철학', description: '논리·윤리·형이상학 전문가',
+        quote: '의심이 끝나는 곳에서 사유가 시작된다',
         sampleQuestions: ['트롤리 딜레마 답이 있나?', '실존주의 핵심이 뭐야?', '공리주의 한계는 뭐야?'],
     },
     {
-        id: 'education', name: 'Education Expert', nameKo: '교육학 전문가', icon: '📖', color: 'blue', avatarUrl: '/logos/specialist/education.png', category: 'specialist', subCategory: '사회·교육', description: '교육정책·학습이론 전문가',
-        quote: '수업은 설계된 경험이다',
+        id: 'education', name: 'Education Expert', nameKo: '교육학 전문가', icon: '📖', color: 'blue', avatarUrl: '/logos/specialist/education.png', category: 'specialist', subCategory: '사회·교육', description: '교육과정·학습설계 전문가',
+        quote: '가르침은 불꽃을 지피는 일이다',
         sampleQuestions: ['거꾸로 교실 효과 있나?', '형성평가 어떻게 해야 해?', '자기주도학습 가능한 나이?'],
     },
     {
-        id: 'economics', name: 'Economics Expert', nameKo: '경제학 전문가', icon: '📊', color: 'emerald', avatarUrl: '/logos/specialist/economics.png', category: 'specialist', subCategory: '경제·금융', description: '거시/미시 경제 분석 전문가',
-        quote: '유인이 행동을 바꾼다',
+        id: 'economics', name: 'Economics Expert', nameKo: '경제학 전문가', icon: '📊', color: 'emerald', avatarUrl: '/logos/specialist/economics.png', category: 'specialist', subCategory: '경제·금융', description: '거시·미시 경제분석 전문가',
+        quote: '시장은 감정과 숫자의 전쟁터다',
         sampleQuestions: ['기준금리 동결 영향은?', '재정적자 GDP 몇%가 위험?', '경상수지 흑자 왜 중요해?'],
     },
     {
-        id: 'sociology', name: 'Sociology Expert', nameKo: '사회학 전문가', icon: '👥', color: 'pink', avatarUrl: '/logos/specialist/sociology.png', category: 'specialist', subCategory: '사회·교육', description: '사회구조·불평등 전문가',
-        quote: '구조가 선택을 제한한다',
+        id: 'sociology', name: 'Sociology Expert', nameKo: '사회학 전문가', icon: '👥', color: 'pink', avatarUrl: '/logos/specialist/sociology.png', category: 'specialist', subCategory: '사회·교육', description: '사회구조·계층분석 전문가',
+        quote: '개인의 선택도 구조의 산물이다',
         sampleQuestions: ['계급 재생산 메커니즘은?', '사회적 자본이 뭔지 설명해', '낙인효과 실제 사례 있어?'],
     },
     {
-        id: 'political', name: 'Political Science Expert', nameKo: '정치학 전문가', icon: '🗳️', color: 'blue', avatarUrl: '/logos/specialist/political.png', category: 'specialist', subCategory: '사회·교육', description: '정치제도·국제관계 전문가',
+        id: 'political', name: 'Political Science Expert', nameKo: '정치학 전문가', icon: '🗳️', color: 'blue', avatarUrl: '/logos/specialist/political.png', category: 'specialist', subCategory: '사회·교육', description: '정치체제·권력구조 전문가',
         quote: '권력은 견제로 길들여진다',
         sampleQuestions: ['양당제와 다당제 뭐가 나아?', '거부권 행사 남용 막으려면?', '비례대표제 장단점은?'],
     },
     {
-        id: 'sports', name: 'Sports Science Expert', nameKo: '스포츠과학 전문가', icon: '🏃', color: 'orange', avatarUrl: '/logos/specialist/sports.png', category: 'specialist', subCategory: '의료·심리', description: '운동생리학·체육 전문가',
-        quote: '과학이 기록을 깬다',
+        id: 'sports', name: 'Sports Science Expert', nameKo: '스포츠과학 전문가', icon: '🏃', color: 'orange', avatarUrl: '/logos/specialist/sports.png', category: 'specialist', subCategory: '의료·심리', description: '운동생리·퍼포먼스 전문가',
+        quote: '한계는 몸이 아니라 머리가 정한다',
         sampleQuestions: ['VO2max 어떻게 올려?', '젖산역치 훈련법 알려줘', '과훈련 증후군 증상은?'],
     },
     {
-        id: 'marketing', name: 'Marketing Expert', nameKo: '마케팅 전문가', icon: '📣', color: 'pink', avatarUrl: '/logos/specialist/marketing.png', category: 'specialist', subCategory: '경영', description: '브랜딩·디지털마케팅 전문가',
+        id: 'marketing', name: 'Marketing Expert', nameKo: '마케팅 전문가', icon: '📣', color: 'pink', avatarUrl: '/logos/specialist/marketing.png', category: 'specialist', subCategory: '경영', description: '브랜딩·시장전략 전문가',
         quote: '고객의 언어로 말하라',
         sampleQuestions: ['퍼널 분석 어떻게 해?', 'CAC 낮추는 방법 있어?', 'A/B테스트 설계법 알려줘'],
     },
     {
-        id: 'criminology', name: 'Criminology Expert', nameKo: '범죄학 전문가', icon: '🕵️', color: 'red', avatarUrl: '/logos/specialist/criminology.png', category: 'specialist', subCategory: '사회·교육', description: '범죄·형사사법 전문가',
-        quote: '범행엔 패턴이 있다',
+        id: 'criminology', name: 'Criminology Expert', nameKo: '범죄학 전문가', icon: '🕵️', color: 'red', avatarUrl: '/logos/specialist/criminology.png', category: 'specialist', subCategory: '사회·교육', description: '범죄심리·수사과학 전문가',
+        quote: '흔적은 지워도 패턴은 남는다',
         sampleQuestions: ['프로파일링 신뢰도 높아?', '재범률 낮추는 핵심은?', '묻지마 범죄 예측 가능해?'],
     },
     {
-        id: 'physics', name: 'Physics Expert', nameKo: '물리학 전문가', icon: '⚛️', color: 'blue', avatarUrl: '/logos/specialist/physics.png', category: 'specialist', subCategory: '과학·기술', description: '물리학·역학 전문가',
+        id: 'physics', name: 'Physics Expert', nameKo: '물리학 전문가', icon: '⚛️', color: 'blue', avatarUrl: '/logos/specialist/physics.png', category: 'specialist', subCategory: '과학·기술', description: '이론물리·양자역학 전문가',
         quote: '우주는 방정식에 숨어 있다',
         sampleQuestions: ['양자얽힘 쉽게 설명해줘', '힉스장이 질량을 주는 원리?', '상대성이론 GPS에 쓰여?'],
     },
     {
-        id: 'chemistry', name: 'Chemistry Expert', nameKo: '화학 전문가', icon: '🧪', color: 'emerald', avatarUrl: '/logos/specialist/chemistry.png', category: 'specialist', subCategory: '과학·기술', description: '화학·물질 전문가',
+        id: 'chemistry', name: 'Chemistry Expert', nameKo: '화학 전문가', icon: '🧪', color: 'emerald', avatarUrl: '/logos/specialist/chemistry.png', category: 'specialist', subCategory: '과학·기술', description: '반응·물질변환 전문가',
         quote: '반응은 거짓말을 안 한다',
         sampleQuestions: ['촉매 반응 원리가 뭐야?', '유기합성 설계 어떻게 해?', '이온결합과 공유결합 차이?'],
     },
     {
-        id: 'biology', name: 'Biology Expert', nameKo: '생물학 전문가', icon: '🧬', color: 'emerald', avatarUrl: '/logos/specialist/biology.png', category: 'specialist', subCategory: '과학·기술', description: '생물학·생명과학 전문가',
-        quote: 'DNA가 생명의 설계도다',
+        id: 'biology', name: 'Biology Expert', nameKo: '생물학 전문가', icon: '🧬', color: 'emerald', avatarUrl: '/logos/specialist/biology.png', category: 'specialist', subCategory: '과학·기술', description: '생명현상·유전체 전문가',
+        quote: '38억 년의 진화가 증명을 대신한다',
         sampleQuestions: ['크리스퍼 원리 알려줘', '줄기세포 치료 어디까지 왔어?', 'mRNA 백신 원리가 뭐야?'],
     },
     {
@@ -933,7 +933,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['P파 S파 차이가 뭐야?', '화산 분출 예측 가능해?', '해류가 기후에 미치는 영향?'],
     },
     {
-        id: 'envscience', name: 'Environmental Science Expert', nameKo: '환경과학 전문가', icon: '🌿', color: 'emerald', avatarUrl: '/logos/specialist/envscience.png', category: 'specialist', subCategory: '과학·기술', description: '환경·생태계 전문가',
+        id: 'envscience', name: 'Environmental Science Expert', nameKo: '환경과학 전문가', icon: '🌿', color: 'emerald', avatarUrl: '/logos/specialist/envscience.png', category: 'specialist', subCategory: '과학·기술', description: '생태계·기후변화 전문가',
         quote: '생태계엔 대체재가 없다',
         sampleQuestions: ['탄소포집 기술 실효성 있나?', '생물다양성 왜 중요해?', '그린워싱 어떻게 구별해?'],
     },
@@ -943,12 +943,12 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['삼위일체 교리 핵심은?', '종교다원주의 문제점은?', '악의 문제 신학적 답은?'],
     },
     {
-        id: 'compsci', name: 'Computer Science Expert', nameKo: '컴퓨터공학 전문가', icon: '🖥️', color: 'blue', avatarUrl: '/logos/specialist/compsci.png', category: 'specialist', subCategory: '과학·기술', description: 'CS·알고리즘 전문가',
+        id: 'compsci', name: 'Computer Science Expert', nameKo: '컴퓨터공학 전문가', icon: '🖥️', color: 'blue', avatarUrl: '/logos/specialist/compsci.png', category: 'specialist', subCategory: '과학·기술', description: '알고리즘·시스템설계 전문가',
         quote: '버그는 논리의 빈틈이다',
         sampleQuestions: ['P=NP 문제 왜 중요해?', '캐시 미스 줄이는 방법?', '동시성 버그 디버깅법은?'],
     },
     {
-        id: 'pubadmin', name: 'Public Administration Expert', nameKo: '행정학 전문가', icon: '🏢', color: 'amber', avatarUrl: '/logos/specialist/pubadmin.png', category: 'specialist', subCategory: '사회·교육', description: '행정·공공정책 전문가',
+        id: 'pubadmin', name: 'Public Administration Expert', nameKo: '행정학 전문가', icon: '🏢', color: 'amber', avatarUrl: '/logos/specialist/pubadmin.png', category: 'specialist', subCategory: '사회·교육', description: '공공정책·제도설계 전문가',
         quote: '제도 설계가 결과를 만든다',
         sampleQuestions: ['성과급제 공무원에 맞나?', '민관협력 실패 원인은?', '규제샌드박스 효과 있어?'],
     },
@@ -958,12 +958,12 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['비대칭전력 운용법은?', '사이버전 대비 어떻게 해?', '징병제 모병제 뭐가 나아?'],
     },
     {
-        id: 'intlrelations', name: 'International Relations Expert', nameKo: '국제관계 전문가', icon: '🌐', color: 'blue', avatarUrl: '/logos/specialist/intlrelations.png', category: 'specialist', subCategory: '사회·교육', description: '외교·국제정치·글로벌 이슈 전문가',
+        id: 'intlrelations', name: 'International Relations Expert', nameKo: '국제관계 전문가', icon: '🌐', color: 'blue', avatarUrl: '/logos/specialist/intlrelations.png', category: 'specialist', subCategory: '사회·교육', description: '외교·국제정치 전문가',
         quote: '국익 앞에 명분은 도구다',
         sampleQuestions: ['동맹 딜레마 해법 있나?', '다자외교 양자외교 차이?', '경제제재 실효성 있어?'],
     },
     {
-        id: 'astronomy', name: 'Astronomy Expert', nameKo: '천문학 전문가', icon: '🔭', color: 'purple', avatarUrl: '/logos/specialist/astronomy.png', category: 'specialist', subCategory: '과학·기술', description: '우주·천체·우주탐사 전문가',
+        id: 'astronomy', name: 'Astronomy Expert', nameKo: '천문학 전문가', icon: '🔭', color: 'purple', avatarUrl: '/logos/specialist/astronomy.png', category: 'specialist', subCategory: '과학·기술', description: '천체물리·우주탐사 전문가',
         quote: '관측이 우주론을 바꾼다',
         sampleQuestions: ['허블상수 불일치 원인은?', '중성자별 내부 구조는?', '골디락스 존 판별법은?'],
     // Occupations
@@ -1197,7 +1197,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // Celebrities — 기업·투자
     },
     {
-        id: 'jobs', name: 'Product Visionary', nameKo: '스티브 잡스', icon: '🍎', color: 'pink', category: 'celebrity', subCategory: '기업·투자', description: '제품혁신 전문가',
+        id: 'jobs', name: 'Product Visionary', nameKo: '스티브 잡스', icon: '🍎', color: 'pink', category: 'celebrity', subCategory: '기업·투자', description: '애플 창업자·제품 혁신 아이콘',
         quote: '다르게 생각하라',
         sampleQuestions: ['애플 디자인 철학이 뭔가요?', '혁신은 어디서 오나요?', '실패 후 복귀한 비결은?'],
 
@@ -1209,58 +1209,58 @@ export const DEFAULT_EXPERTS: Expert[] = [
 
     // Celebrities — 역사 인물
     {
-        id: 'napoleon', name: 'Napoleon Bonaparte', nameKo: '나폴레옹', icon: '⚔️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '군사·전략의 황제',
-        quote: '불가능이란 없다',
+        id: 'napoleon', name: 'Napoleon Bonaparte', nameKo: '나폴레옹', icon: '⚔️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '전략의 황제·군사 천재',
+        quote: '불가능은 소심한 자의 변명이다',
         sampleQuestions: ['전쟁의 핵심 원칙은?', '패배에서 뭘 배웠나요?', '리더의 결단력이란?'],
     },
     {
-        id: 'lincoln', name: 'Abraham Lincoln', nameKo: '링컨', icon: '🎩', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '민주주의·통합의 지도자',
+        id: 'lincoln', name: 'Abraham Lincoln', nameKo: '링컨', icon: '🎩', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '통합과 해방의 대통령',
         quote: '적을 친구로 만들어라',
         sampleQuestions: ['남북전쟁 극복 비결은?', '노예제 폐지가 왜 중요?', '분열된 사회 통합법은?'],
         greeting: '자유와 정의에 대해 이야기해볼까요?',
     },
     {
-        id: 'churchill', name: 'Winston Churchill', nameKo: '처칠', icon: '🇬🇧', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '위기의 리더십 상징',
+        id: 'churchill', name: 'Winston Churchill', nameKo: '처칠', icon: '🇬🇧', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '전시 불굴의 지도자',
         quote: '절대 절대 포기하지 마라',
         sampleQuestions: ['2차대전 어떻게 버텼나?', '위기 때 리더의 역할은?', '연설의 비결이 뭔가요?'],
 
     // Celebrities — 과학자
     },
     {
-        id: 'einstein', name: 'Albert Einstein', nameKo: '아인슈타인', icon: '🧪', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '상대성이론의 아버지',
+        id: 'einstein', name: 'Albert Einstein', nameKo: '아인슈타인', icon: '🧪', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '상대성이론의 물리학 혁명가',
         quote: '상상이 지식보다 중요하다',
         sampleQuestions: ['상대성이론 쉽게 설명해줘', '창의성은 어떻게 키우나?', 'E=mc²가 뜻하는 건?'],
         greeting: '우주의 신비에 대해 함께 탐구해볼까요?',
     },
     {
-        id: 'curie', name: 'Marie Curie', nameKo: '퀴리부인', icon: '☢️', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '방사성 연구의 선구자',
+        id: 'curie', name: 'Marie Curie', nameKo: '퀴리부인', icon: '☢️', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '방사능 연구의 선구자',
         quote: '두려워할 것은 없다',
         sampleQuestions: ['방사능 연구 계기는?', '여성 과학자의 어려움은?', '노벨상 두 번의 비결은?'],
     },
     {
-        id: 'newton', name: 'Isaac Newton', nameKo: '뉴턴', icon: '🍏', color: 'orange', category: 'celebrity', subCategory: '과학자', description: '근대 과학혁명의 아버지',
+        id: 'newton', name: 'Isaac Newton', nameKo: '뉴턴', icon: '🍏', color: 'orange', category: 'celebrity', subCategory: '과학자', description: '만유인력·과학혁명의 거인',
         quote: '거인의 어깨 위에 섰을 뿐',
         sampleQuestions: ['만유인력 발견 계기는?', '수학과 물리의 관계는?', '과학적 사고법이란?'],
 
     // Celebrities — 철학자
     },
     {
-        id: 'nietzsche', name: 'Friedrich Nietzsche', nameKo: '니체', icon: '🦅', color: 'red', category: 'celebrity', subCategory: '철학자', description: '초인 철학자',
+        id: 'nietzsche', name: 'Friedrich Nietzsche', nameKo: '니체', icon: '🦅', color: 'red', category: 'celebrity', subCategory: '철학자', description: '초인·영원회귀의 철학자',
         quote: '신은 죽었다',
         sampleQuestions: ['초인이란 어떤 존재인가?', '허무주의 극복법은?', '도덕 비판의 핵심은?'],
     },
     {
-        id: 'confucius', name: 'Confucius', nameKo: '공자', icon: '📿', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '유교 사상의 창시자',
+        id: 'confucius', name: 'Confucius', nameKo: '공자', icon: '📿', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '인(仁)·예(禮)의 성인',
         quote: '배우고 때때로 익히면',
         sampleQuestions: ['인(仁)이란 무엇인가요?', '군자의 조건은 뭔가요?', '배움의 진정한 의미는?'],
     },
     {
-        id: 'kant', name: 'Immanuel Kant', nameKo: '칸트', icon: '📐', color: 'blue', category: 'celebrity', subCategory: '철학자', description: '순수이성비판의 저자',
+        id: 'kant', name: 'Immanuel Kant', nameKo: '칸트', icon: '📐', color: 'blue', category: 'celebrity', subCategory: '철학자', description: '비판철학·도덕법칙의 거장',
         quote: '별이 빛나는 하늘과 도덕법칙',
         sampleQuestions: ['정언명령이 뭔가요?', '도덕은 의무인가 결과인가?', '순수이성비판 핵심은?'],
     },
     {
-        id: 'davinci', name: 'Leonardo da Vinci', nameKo: '다빈치', icon: '🎨', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '르네상스 천재',
+        id: 'davinci', name: 'Leonardo da Vinci', nameKo: '다빈치', icon: '🎨', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '예술과 과학의 르네상스 천재',
         quote: '단순함이 궁극의 정교함',
         sampleQuestions: ['예술과 과학 융합 비결?', '모나리자의 비밀은?', '호기심 유지하는 법은?'],
     },
@@ -1270,12 +1270,12 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['에디슨과의 전류전쟁은?', '무선 에너지 전송 가능?', '발명 영감의 원천은?'],
     },
     {
-        id: 'hawking', name: 'Stephen Hawking', nameKo: '스티븐 호킹', icon: '🌌', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '블랙홀·우주론 천재',
+        id: 'hawking', name: 'Stephen Hawking', nameKo: '스티븐 호킹', icon: '🌌', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '블랙홀·우주론의 천재',
         quote: '별을 봐라 발밑 말고',
         sampleQuestions: ['블랙홀 정보는 사라지나?', '시간여행 가능한가요?', '외계 생명체 있을까요?'],
     },
     {
-        id: 'darwin', name: 'Charles Darwin', nameKo: '다윈', icon: '🐢', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '진화론의 아버지',
+        id: 'darwin', name: 'Charles Darwin', nameKo: '다윈', icon: '🐢', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '자연선택·진화론의 아버지',
         quote: '강한 종이 살아남지 않는다',
         sampleQuestions: ['인간도 자연선택 결과?', '진화론이 논란인 이유?', '종의 기원 핵심은?'],
     },
@@ -1285,17 +1285,17 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['튜링 테스트가 뭔가요?', '에니그마 해독 비결은?', 'AI가 진짜 지능 가질까?'],
     },
     {
-        id: 'aristotle', name: 'Aristotle', nameKo: '아리스토텔레스', icon: '📜', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '논리학·형이상학의 아버지',
+        id: 'aristotle', name: 'Aristotle', nameKo: '아리스토텔레스', icon: '📜', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '논리학·만학의 아버지',
         quote: '탁월함은 습관에서 온다',
         sampleQuestions: ['에우다이모니아란?', '논리적 사고 훈련법은?', '좋은 사회란 어떤 건가?'],
     },
     {
-        id: 'sunzi', name: 'Sun Tzu', nameKo: '손자', icon: '⚔️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '손자병법의 저자',
+        id: 'sunzi', name: 'Sun Tzu', nameKo: '손자', icon: '⚔️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '병법의 성인·전략의 시조',
         quote: '싸우지 않고 이기는 게 최선',
         sampleQuestions: ['지피지기면 어떻게 되나?', '손자병법 핵심 전략은?', '전쟁 없이 이기는 법?'],
     },
     {
-        id: 'mlk', name: 'Martin Luther King Jr.', nameKo: '마틴 루터 킹', icon: '✊', color: 'amber', category: 'celebrity', subCategory: '정치·사회', description: '시민권 운동·비폭력 저항',
+        id: 'mlk', name: 'Martin Luther King Jr.', nameKo: '마틴 루터 킹', icon: '✊', color: 'amber', category: 'celebrity', subCategory: '정치·사회', description: '비폭력·인권운동의 상징',
         quote: '나에게는 꿈이 있습니다',
         sampleQuestions: ['비폭력 저항이 효과적?', '불의한 법에 어떻게 하나?', '인종차별 극복 방법은?'],
 
@@ -1314,29 +1314,29 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // Celebrities — 역사 인물 추가
     },
     {
-        id: 'alexander', name: 'Alexander the Great', nameKo: '알렉산더 대왕', icon: '🏛️', color: 'purple', category: 'celebrity', subCategory: '역사 인물', description: '세계 정복·동서 문화 융합',
+        id: 'alexander', name: 'Alexander the Great', nameKo: '알렉산더 대왕', icon: '🏛️', color: 'purple', category: 'celebrity', subCategory: '역사 인물', description: '동서 문화 융합의 정복왕',
         quote: '두려움 없이 전진하라',
         sampleQuestions: ['세계 정복의 비결은?', '동서 문화 융합 의미는?', '젊은 리더의 조건은?'],
     },
     {
-        id: 'caesar', name: 'Julius Caesar', nameKo: '율리우스 카이사르', icon: '🏛️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '로마의 독재관·권력과 배신',
+        id: 'caesar', name: 'Julius Caesar', nameKo: '율리우스 카이사르', icon: '🏛️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '로마의 독재관·권력과 야망',
         quote: '왔노라 보았노라 이겼노라',
         sampleQuestions: ['루비콘강 건넌 이유는?', '권력 장악 핵심 전략은?', '배신에 어떻게 대처?'],
 
     // Celebrities — 문화·예술
     },
     {
-        id: 'shakespeare', name: 'William Shakespeare', nameKo: '셰익스피어', icon: '🎭', color: 'purple', category: 'celebrity', subCategory: '문화·예술', description: '인간 본성의 극작가',
+        id: 'shakespeare', name: 'William Shakespeare', nameKo: '셰익스피어', icon: '🎭', color: 'purple', category: 'celebrity', subCategory: '문화·예술', description: '인간 본성의 대극작가',
         quote: '사느냐 죽느냐 그것이 문제',
         sampleQuestions: ['인간의 가장 큰 비극은?', '사랑과 질투 뭐가 강한가?', '권력이 사람을 바꾸나?'],
     },
     {
-        id: 'beethoven', name: 'Ludwig van Beethoven', nameKo: '베토벤', icon: '🎹', color: 'amber', category: 'celebrity', subCategory: '문화·예술', description: '고난 속 불굴의 작곡가',
+        id: 'beethoven', name: 'Ludwig van Beethoven', nameKo: '베토벤', icon: '🎹', color: 'amber', category: 'celebrity', subCategory: '문화·예술', description: '운명에 맞선 불굴의 작곡가',
         quote: '운명아 목을 잡아주마',
         sampleQuestions: ['청력 잃고도 작곡한 법?', '운명 교향곡의 의미는?', '고난이 예술을 만드나?'],
     },
     {
-        id: 'mozart', name: 'Wolfgang Amadeus Mozart', nameKo: '모차르트', icon: '🎻', color: 'pink', category: 'celebrity', subCategory: '문화·예술', description: '자유분방한 천재 작곡가',
+        id: 'mozart', name: 'Wolfgang Amadeus Mozart', nameKo: '모차르트', icon: '🎻', color: 'pink', category: 'celebrity', subCategory: '문화·예술', description: '천재적 선율의 작곡가',
         quote: '음악은 침묵 속에서 온다',
         sampleQuestions: ['천재성은 타고나는 건가?', '음악과 자유의 관계는?', '즐기며 일하는 비결은?'],
     },
@@ -1363,7 +1363,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['종교와 과학 충돌은?', '망원경으로 뭘 발견했나?', '관측이 왜 중요한가요?'],
     },
     {
-        id: 'edison', name: 'Thomas Edison', nameKo: '에디슨', icon: '💡', color: 'amber', category: 'celebrity', subCategory: '과학자', description: '발명왕·실용주의 천재',
+        id: 'edison', name: 'Thomas Edison', nameKo: '에디슨', icon: '💡', color: 'amber', category: 'celebrity', subCategory: '과학자', description: '실용주의 발명왕',
         quote: '실패 아닌 방법을 찾았다',
         sampleQuestions: ['1만 번 실패 후 비결?', '발명가와 과학자 차이?', '전구 발명의 실제 과정?'],
 
@@ -1375,7 +1375,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['알프스를 넘은 이유는?', '칸나에 전투 전략은?', '결국 패배한 원인은?'],
     },
     {
-        id: 'columbus', name: 'Christopher Columbus', nameKo: '콜럼버스', icon: '⛵', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '신대륙 발견·탐험의 아이콘',
+        id: 'columbus', name: 'Christopher Columbus', nameKo: '콜럼버스', icon: '⛵', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '신대륙 발견의 탐험가',
         quote: '수평선 너머를 향해 간다',
         sampleQuestions: ['신대륙 발견은 필연인가?', '탐험 정신의 본질은?', '발견의 어두운 면은?'],
     },
@@ -1394,39 +1394,39 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // 문화·예술 추가
     },
     {
-        id: 'van-gogh', name: 'Vincent van Gogh', nameKo: '반 고흐', icon: '🌻', color: 'amber', category: 'celebrity', subCategory: '문화·예술', description: '고뇌의 화가·색채의 혁명',
-        quote: '별이 빛나는 밤이 좋다',
+        id: 'van-gogh', name: 'Vincent van Gogh', nameKo: '반 고흐', icon: '🌻', color: 'amber', category: 'celebrity', subCategory: '문화·예술', description: '고뇌와 색채의 화가',
+        quote: '고통이 붓을 잡게 했다',
         sampleQuestions: ['생전에 그림 못 판 이유?', '색채로 감정 표현하는 법?', '고독과 창작의 관계는?'],
     },
     {
-        id: 'tolstoy', name: 'Leo Tolstoy', nameKo: '톨스토이', icon: '📖', color: 'orange', category: 'celebrity', subCategory: '문화·예술', description: '전쟁과 평화·인간 본질 탐구',
+        id: 'tolstoy', name: 'Leo Tolstoy', nameKo: '톨스토이', icon: '📖', color: 'orange', category: 'celebrity', subCategory: '문화·예술', description: '인간 본질 탐구의 대문호',
         quote: '사람은 무엇으로 사는가',
         sampleQuestions: ['전쟁과 평화 핵심 주제?', '단순한 삶이 진실인 이유?', '예술의 사회적 역할은?'],
     },
     {
-        id: 'picasso', name: 'Pablo Picasso', nameKo: '피카소', icon: '🎨', color: 'blue', category: 'celebrity', subCategory: '문화·예술', description: '입체파·규칙을 부순 예술가',
+        id: 'picasso', name: 'Pablo Picasso', nameKo: '피카소', icon: '🎨', color: 'blue', category: 'celebrity', subCategory: '문화·예술', description: '입체파·규칙 파괴의 예술가',
         quote: '좋은 예술가는 훔친다',
         sampleQuestions: ['입체파가 세상 바꾼 법?', '게르니카를 그린 이유?', '규칙 파괴가 곧 창작?'],
 
     // 과학자 추가
     },
     {
-        id: 'archimedes', name: 'Archimedes', nameKo: '아르키메데스', icon: '⚙️', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '유레카·수학과 공학의 천재',
+        id: 'archimedes', name: 'Archimedes', nameKo: '아르키메데스', icon: '⚙️', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '수학·공학의 천재',
         quote: '유레카! 찾았다!',
         sampleQuestions: ['유레카의 순간은 어땠나?', '지렛대 원리 현대 적용?', '수학과 공학 연결점은?'],
     },
     {
-        id: 'hippocrates', name: 'Hippocrates', nameKo: '히포크라테스', icon: '⚕️', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '의학의 아버지·해치지 말라',
+        id: 'hippocrates', name: 'Hippocrates', nameKo: '히포크라테스', icon: '⚕️', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '의학의 아버지',
         quote: '먼저 해를 끼치지 말라',
         sampleQuestions: ['의학 윤리가 왜 중요?', '미신 없는 의학 세운 법?', '의사의 첫째 의무는?'],
     },
     {
-        id: 'pythagoras', name: 'Pythagoras', nameKo: '피타고라스', icon: '📐', color: 'blue', category: 'celebrity', subCategory: '과학자', description: '만물은 수·수학의 시작',
+        id: 'pythagoras', name: 'Pythagoras', nameKo: '피타고라스', icon: '📐', color: 'blue', category: 'celebrity', subCategory: '과학자', description: '만물은 수·수학의 시조',
         quote: '만물의 근원은 수다',
         sampleQuestions: ['수학이 세상 설명하는 법?', '수학과 음악 연결점은?', '정리 이상의 가르침은?'],
     },
     {
-        id: 'nightingale', name: 'Florence Nightingale', nameKo: '나이팅게일', icon: '🏥', color: 'pink', category: 'celebrity', subCategory: '과학자', description: '간호의 어머니·통계로 의료를 바꿈',
+        id: 'nightingale', name: 'Florence Nightingale', nameKo: '나이팅게일', icon: '🏥', color: 'pink', category: 'celebrity', subCategory: '과학자', description: '간호의 어머니·통계 혁신가',
         quote: '통계가 환자를 살린다',
         sampleQuestions: ['통계로 의료를 바꾼 법?', '전쟁터에서 가장 힘든 건?', '간호가 과학인 이유는?'],
     },
@@ -1436,29 +1436,29 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['꿈은 무엇을 말해주나?', '무의식이 행동에 미치는 법?', '이드와 자아 갈등이란?'],
     },
     {
-        id: 'adam-smith', name: 'Adam Smith', nameKo: '애덤 스미스', icon: '🤝', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '보이지 않는 손·시장경제의 아버지',
+        id: 'adam-smith', name: 'Adam Smith', nameKo: '애덤 스미스', icon: '🤝', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '보이지 않는 손·경제학의 아버지',
         quote: '보이지 않는 손이 이끈다',
         sampleQuestions: ['보이지 않는 손이란?', '분업이 생산성 높이는 법?', '자유시장의 한계는?'],
     },
     {
-        id: 'rousseau', name: 'Jean-Jacques Rousseau', nameKo: '루소', icon: '🌿', color: 'emerald', category: 'celebrity', subCategory: '철학자', description: '사회계약론·자연으로 돌아가라',
+        id: 'rousseau', name: 'Jean-Jacques Rousseau', nameKo: '루소', icon: '🌿', color: 'emerald', category: 'celebrity', subCategory: '철학자', description: '사회계약론·자연 회귀의 사상가',
         quote: '인간은 자유롭게 태어났다',
         sampleQuestions: ['자연 상태의 인간은?', '사회계약론 핵심은?', '문명이 인간 타락시키나?'],
     },
     {
-        id: 'gutenberg', name: 'Johannes Gutenberg', nameKo: '구텐베르크', icon: '📰', color: 'orange', category: 'celebrity', subCategory: '기업·투자', description: '인쇄 혁명·지식의 민주화',
+        id: 'gutenberg', name: 'Johannes Gutenberg', nameKo: '구텐베르크', icon: '📰', color: 'orange', category: 'celebrity', subCategory: '기업·투자', description: '인쇄 혁명·지식 민주화의 선구자',
         quote: '지식은 만인에게 열려야',
         sampleQuestions: ['인쇄술이 역사 바꾼 법?', '정보 민주화 의미는?', '활판인쇄 발명 과정은?'],
     },
     {
-        id: 'helen-keller', name: 'Helen Keller', nameKo: '헬렌 켈러', icon: '✋', color: 'pink', category: 'celebrity', subCategory: '정치·사회', description: '불가능을 가능으로·장애 극복의 상징',
+        id: 'helen-keller', name: 'Helen Keller', nameKo: '헬렌 켈러', icon: '✋', color: 'pink', category: 'celebrity', subCategory: '정치·사회', description: '장애를 뛰어넘은 의지의 상징',
         quote: '눈보다 비전이 중요하다',
         sampleQuestions: ['장애를 극복한 힘은?', '설리번 선생님의 의미는?', '불가능은 없다는 이유?'],
 
     // 현대 인물 — 기업·투자
     },
     {
-        id: 'musk', name: 'Elon Musk', nameKo: '일론 머스크', icon: '🚀', color: 'purple', category: 'celebrity', subCategory: '기업·투자', description: '테슬라·SpaceX·인류의 미래를 설계하는 혁신가',
+        id: 'musk', name: 'Elon Musk', nameKo: '일론 머스크', icon: '🚀', color: 'purple', category: 'celebrity', subCategory: '기업·투자', description: '테슬라·SpaceX·미래 설계 혁신가',
         quote: '인류를 다행성 종으로',
         sampleQuestions: ['화성 이주가 왜 필요?', '제1원칙 사고란?', '여러 회사 동시 운영법?'],
     },
@@ -1473,7 +1473,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['고객 집착이란 무엇?', 'Day 1 마인드란?', '장기 사고로 버티는 법?'],
     },
     {
-        id: 'gates', name: 'Bill Gates', nameKo: '빌 게이츠', icon: '💻', color: 'blue', category: 'celebrity', subCategory: '기업·투자', description: 'MS 창업자·기술과 자선으로 세상을 바꾸는 사람',
+        id: 'gates', name: 'Bill Gates', nameKo: '빌 게이츠', icon: '💻', color: 'blue', category: 'celebrity', subCategory: '기업·투자', description: 'MS 창업자·기술과 자선의 아이콘',
         quote: '성공은 나쁜 선생이다',
         sampleQuestions: ['MS 창업 최대 교훈은?', '기후변화 해결책은?', '기술과 자선의 연결은?'],
     },
@@ -1485,7 +1485,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // 현대 인물 — 문화·사상
     },
     {
-        id: 'miyazaki', name: 'Hayao Miyazaki', nameKo: '미야자키 하야오', icon: '🎬', color: 'emerald', category: 'celebrity', subCategory: '문화·예술', description: '지브리 감독·상상력과 자연의 이야기꾼',
+        id: 'miyazaki', name: 'Hayao Miyazaki', nameKo: '미야자키 하야오', icon: '🎬', color: 'emerald', category: 'celebrity', subCategory: '문화·예술', description: '지브리 감독·자연과 상상의 이야기꾼',
         quote: '아이들에게 희망을 그린다',
         sampleQuestions: ['지브리 작품 반복 주제?', '손그림 고집하는 이유?', '자연을 그리는 철학은?'],
     },
@@ -1495,12 +1495,12 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['사피엔스 지배 이유는?', 'AI 시대 인간 역할은?', '역사로 현재 읽는 법?'],
     },
     {
-        id: 'nolan', name: 'Christopher Nolan', nameKo: '크리스토퍼 놀란', icon: '🎥', color: 'blue', category: 'celebrity', subCategory: '문화·예술', description: '인터스텔라·시간과 현실을 뒤트는 감독',
+        id: 'nolan', name: 'Christopher Nolan', nameKo: '크리스토퍼 놀란', icon: '🎥', color: 'blue', category: 'celebrity', subCategory: '문화·예술', description: '시간과 현실을 뒤트는 감독',
         quote: '관객이 스스로 생각하게',
         sampleQuestions: ['시간을 영화로 다루는 법?', '비선형 서사의 매력은?', '실제 촬영 고집 이유는?'],
     },
     {
-        id: 'cameron', name: 'James Cameron', nameKo: '제임스 카메론', icon: '🌊', color: 'teal', category: 'celebrity', subCategory: '문화·예술', description: '아바타·타이타닉·한계를 모르는 탐험가 감독',
+        id: 'cameron', name: 'James Cameron', nameKo: '제임스 카메론', icon: '🌊', color: 'teal', category: 'celebrity', subCategory: '문화·예술', description: '아바타·타이타닉의 탐험가 감독',
         quote: '한계는 두려움이 만든다',
         sampleQuestions: ['타이타닉 제작 비화는?', '기술과 이야기 균형은?', '심해 탐험이 준 영감은?'],
     },
@@ -1522,222 +1522,222 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // Region / Culture
     },
     {
-        id: 'korean', name: 'Korean', nameKo: '한국인', icon: '🇰🇷', color: 'blue', category: 'region', subCategory: '동아시아', description: '한국 문화·생활 관점',
+        id: 'korean', name: 'Korean', nameKo: '한국인', icon: '🇰🇷', color: 'blue', category: 'region', subCategory: '동아시아', description: '빨리빨리·정(情)·눈치의 나라',
         quote: '눈치 없으면 한국 못 산다',
         sampleQuestions: ['수능이 인생을 결정한다고 봐?', '회식 문화 꼭 참석해야 해?', '전세 제도 외국에도 있어?'],
     },
     {
-        id: 'japanese', name: 'Japanese', nameKo: '일본인', icon: '🇯🇵', color: 'red', category: 'region', subCategory: '동아시아', description: '일본 문화·생활 관점',
+        id: 'japanese', name: 'Japanese', nameKo: '일본인', icon: '🇯🇵', color: 'red', category: 'region', subCategory: '동아시아', description: '장인정신·예의·쿠우키의 나라',
         quote: '쿠우키 못 읽으면 실격이야',
         sampleQuestions: ['혼네와 타테마에 구분 힘들지 않아?', '오타쿠 문화가 경제에 미친 영향은?', '이자카야 문화 왜 그렇게 중요해?'],
     },
     {
-        id: 'chinese', name: 'Chinese', nameKo: '중국인', icon: '🇨🇳', color: 'red', category: 'region', subCategory: '동아시아', description: '중국 문화·생활 관점',
+        id: 'chinese', name: 'Chinese', nameKo: '중국인', icon: '🇨🇳', color: 'red', category: 'region', subCategory: '동아시아', description: '관시·체면·대륙의 스케일',
         quote: '관시 없이는 아무것도 안 돼',
         sampleQuestions: ['가오카오 지옥 진짜 그래?', '996 근무제 어떻게 버텨?', '탕핑족은 왜 눕기로 했어?'],
     },
     {
-        id: 'american', name: 'American', nameKo: '미국인', icon: '🇺🇸', color: 'blue', category: 'region', subCategory: '아메리카', description: '미국 문화·생활 관점',
+        id: 'american', name: 'American', nameKo: '미국인', icon: '🇺🇸', color: 'blue', category: 'region', subCategory: '아메리카', description: '자유·개인주의·아메리칸 드림',
         quote: '수정헌법 2조는 양보 못 해',
         sampleQuestions: ['팁 문화 왜 꼭 줘야 해?', '고교 풋볼이 마을의 종교라고?', '의료보험 없이 어떻게 살아?'],
     },
     {
-        id: 'british', name: 'British', nameKo: '영국인', icon: '🇬🇧', color: 'purple', category: 'region', subCategory: '유럽', description: '영국 문화·생활 관점',
+        id: 'british', name: 'British', nameKo: '영국인', icon: '🇬🇧', color: 'purple', category: 'region', subCategory: '유럽', description: '전통·유머·큐 문화의 나라',
         quote: '큐 안 서면 영국인이 아니야',
         sampleQuestions: ['왕실이 아직도 필요한 이유는?', '피쉬앤칩스 말고 자랑할 음식은?', '펍 문화가 왜 사교의 핵심이야?'],
     },
     {
-        id: 'german', name: 'German', nameKo: '독일인', icon: '🇩🇪', color: 'amber', category: 'region', subCategory: '유럽', description: '독일 문화·생활 관점',
+        id: 'german', name: 'German', nameKo: '독일인', icon: '🇩🇪', color: 'amber', category: 'region', subCategory: '유럽', description: '정확성·마이스터·맥주의 나라',
         quote: '파이어아벤트 후엔 연락 금지',
         sampleQuestions: ['아우토반 무제한 속도 괜찮아?', '마이스터 제도가 뭐가 좋아?', '빵집에서 일요일 영업 안 하는 이유?'],
     },
     {
-        id: 'french', name: 'French', nameKo: '프랑스인', icon: '🇫🇷', color: 'blue', category: 'region', subCategory: '유럽', description: '프랑스 문화·생활 관점',
+        id: 'french', name: 'French', nameKo: '프랑스인', icon: '🇫🇷', color: 'blue', category: 'region', subCategory: '유럽', description: '자유·미식·파업의 나라',
         quote: '바게트 없는 아침은 없다',
         sampleQuestions: ['그레브(파업)가 왜 국민 스포츠야?', '프랑스 치즈 365종 진짜야?', '비즈(볼 키스) 몇 번 해야 해?'],
     },
     {
-        id: 'indian', name: 'Indian', nameKo: '인도인', icon: '🇮🇳', color: 'orange', category: 'region', subCategory: '동남아·남아시아', description: '인도 문화·생활 관점',
+        id: 'indian', name: 'Indian', nameKo: '인도인', icon: '🇮🇳', color: 'orange', category: 'region', subCategory: '동남아·남아시아', description: '다양성·영성·저거드 정신의 나라',
         quote: '저거드 정신으로 해결한다',
         sampleQuestions: ['배열결혼 제도 지금도 유효해?', '달바트 매일 먹어도 안 질려?', 'IIT 입시가 왜 세계 최고난도야?'],
     },
     {
-        id: 'brazilian', name: 'Brazilian', nameKo: '브라질인', icon: '🇧🇷', color: 'emerald', category: 'region', subCategory: '아메리카', description: '브라질 문화·생활 관점',
+        id: 'brazilian', name: 'Brazilian', nameKo: '브라질인', icon: '🇧🇷', color: 'emerald', category: 'region', subCategory: '아메리카', description: '삼바·축구·열정의 나라',
         quote: '젱가가 아니면 삼바라도 춰',
         sampleQuestions: ['파벨라 삶이 진짜 어떤 거야?', '슈하스코 없는 주말이 있어?', '카니발 삼바학교 입학 과정은?'],
     },
     {
-        id: 'australian', name: 'Australian', nameKo: '호주인', icon: '🇦🇺', color: 'blue', category: 'region', subCategory: '아메리카', description: '호주 문화·생활 관점',
+        id: 'australian', name: 'Australian', nameKo: '호주인', icon: '🇦🇺', color: 'blue', category: 'region', subCategory: '아메리카', description: '아웃도어·여유·메이트 정신의 나라',
         quote: 'She\'ll be right, mate',
         sampleQuestions: ['바비(BBQ) 없는 주말이 있어?', '거미·뱀이랑 공존하는 법은?', '애보리진 드림타임이 뭐야?'],
     },
     {
-        id: 'canadian', name: 'Canadian', nameKo: '캐나다인', icon: '🇨🇦', color: 'red', category: 'region', subCategory: '아메리카', description: '캐나다 문화·생활 관점',
+        id: 'canadian', name: 'Canadian', nameKo: '캐나다인', icon: '🇨🇦', color: 'red', category: 'region', subCategory: '아메리카', description: '관용·하키·사과 문화의 나라',
         quote: '소리, 미안 또 사과했지',
         sampleQuestions: ['팀 호튼스 vs 스타벅스 논쟁은?', '하키 없으면 겨울을 뭘로 버텨?', '케벡 분리 독립 아직 가능해?'],
     },
     {
-        id: 'thai', name: 'Thai', nameKo: '태국인', icon: '🇹🇭', color: 'amber', category: 'region', subCategory: '동남아·남아시아', description: '태국 문화·생활 관점',
+        id: 'thai', name: 'Thai', nameKo: '태국인', icon: '🇹🇭', color: 'amber', category: 'region', subCategory: '동남아·남아시아', description: '미소·불교·마이펜라이의 나라',
         quote: '마이펜라이, 괜찮아 다',
         sampleQuestions: ['왜 머리를 만지면 안 되는 거야?', '쏭끄란 물축제 진짜 어떤 거야?', '와이(합장인사) 각도가 다 달라?'],
     },
     {
-        id: 'vietnamese', name: 'Vietnamese', nameKo: '베트남인', icon: '🇻🇳', color: 'red', category: 'region', subCategory: '동남아·남아시아', description: '베트남 문화·생활 관점',
+        id: 'vietnamese', name: 'Vietnamese', nameKo: '베트남인', icon: '🇻🇳', color: 'red', category: 'region', subCategory: '동남아·남아시아', description: '끈기·쌀국수·도이모이의 나라',
         quote: '쌀국수 한 그릇이면 충분해',
         sampleQuestions: ['카페쓰어다 커피가 왜 독특해?', '오토바이 5인 탑승 가능한 거야?', '도이모이 개혁이 뭘 바꿨어?'],
     },
     {
-        id: 'russian', name: 'Russian', nameKo: '러시아인', icon: '🇷🇺', color: 'blue', category: 'region', subCategory: '유럽', description: '러시아 문화·생활 관점',
+        id: 'russian', name: 'Russian', nameKo: '러시아인', icon: '🇷🇺', color: 'blue', category: 'region', subCategory: '유럽', description: '광활한 영토·보드카·러시안 소울',
         quote: '보드카로 영혼을 녹인다',
         sampleQuestions: ['다차(별장) 생활이 왜 중요해?', '러시아식 바냐 문화가 뭐야?', '마슬레니차 축제 때 뭘 해?'],
     },
     {
-        id: 'mexican', name: 'Mexican', nameKo: '멕시코인', icon: '🇲🇽', color: 'emerald', category: 'region', subCategory: '아메리카', description: '멕시코 문화·생활 관점',
+        id: 'mexican', name: 'Mexican', nameKo: '멕시코인', icon: '🇲🇽', color: 'emerald', category: 'region', subCategory: '아메리카', description: '타코·축제·가족 중심의 나라',
         quote: '타코 없는 날은 상상 못 해',
         sampleQuestions: ['디아 데 무에르토스가 뭔 축제야?', '몰레 소스 레시피 비밀 있어?', '루차 리브레가 왜 국민 스포츠야?'],
     },
     {
-        id: 'nigerian', name: 'Nigerian', nameKo: '나이지리아인', icon: '🇳🇬', color: 'emerald', category: 'region', subCategory: '중동·아프리카', description: '나이지리아 문화·생활 관점',
+        id: 'nigerian', name: 'Nigerian', nameKo: '나이지리아인', icon: '🇳🇬', color: 'emerald', category: 'region', subCategory: '중동·아프리카', description: '놀리우드·활력·다민족의 나라',
         quote: '놀리우드가 할리우드를 넘는다',
         sampleQuestions: ['졸로프 라이스 원조 논쟁 어떻게 봐?', '나이자 환율 왜 이렇게 흔들려?', '오와음베 축제가 어떤 거야?'],
     },
     {
-        id: 'italian', name: 'Italian', nameKo: '이탈리아인', icon: '🇮🇹', color: 'emerald', category: 'region', subCategory: '유럽', description: '이탈리아 문화·생활 관점',
+        id: 'italian', name: 'Italian', nameKo: '이탈리아인', icon: '🇮🇹', color: 'emerald', category: 'region', subCategory: '유럽', description: '미식·가족·라돌체비타의 나라',
         quote: '파스타에 케첩? 절대 안 돼',
         sampleQuestions: ['아페리티보 문화가 뭐가 좋아?', '남북 갈등 진짜 그렇게 심해?', '논나(할머니) 요리가 왜 최고야?'],
     },
     {
-        id: 'spanish', name: 'Spanish', nameKo: '스페인인', icon: '🇪🇸', color: 'red', category: 'region', subCategory: '유럽', description: '스페인 문화·생활 관점',
+        id: 'spanish', name: 'Spanish', nameKo: '스페인인', icon: '🇪🇸', color: 'red', category: 'region', subCategory: '유럽', description: '열정·시에스타·타파스의 나라',
         quote: '저녁 10시 식사가 정상이야',
         sampleQuestions: ['소브레메사 대화가 왜 중요해?', '타파스 바 호핑 문화가 뭐야?', '산 페르민 소몰이 안 무서워?'],
     },
     {
-        id: 'turkish', name: 'Turkish', nameKo: '터키인', icon: '🇹🇷', color: 'red', category: 'region', subCategory: '중동·아프리카', description: '터키 문화·생활 관점',
+        id: 'turkish', name: 'Turkish', nameKo: '터키인', icon: '🇹🇷', color: 'red', category: 'region', subCategory: '중동·아프리카', description: '차이·바자르·동서 교차로의 나라',
         quote: '차이 없으면 대화도 없다',
         sampleQuestions: ['터키식 조식 카흐발트 뭐가 나와?', '그랜드 바자르 흥정 비법 있어?', '함맘(목욕탕) 문화가 어떤 거야?'],
     },
     {
-        id: 'saudi', name: 'Saudi', nameKo: '사우디인', icon: '🇸🇦', color: 'emerald', category: 'region', subCategory: '중동·아프리카', description: '사우디 문화·생활 관점',
+        id: 'saudi', name: 'Saudi', nameKo: '사우디인', icon: '🇸🇦', color: 'emerald', category: 'region', subCategory: '중동·아프리카', description: '환대·사막·전통과 변화의 나라',
         quote: '카흐와 한 잔이 환대의 시작',
         sampleQuestions: ['네옴시티 정말 지어질 거야?', '무타와(종교경찰) 아직 있어?', '낙타 경주 베팅 문화가 어때?'],
     },
     {
-        id: 'israeli', name: 'Israeli', nameKo: '이스라엘인', icon: '🇮🇱', color: 'blue', category: 'region', subCategory: '중동·아프리카', description: '이스라엘 문화·생활 관점',
+        id: 'israeli', name: 'Israeli', nameKo: '이스라엘인', icon: '🇮🇱', color: 'blue', category: 'region', subCategory: '중동·아프리카', description: '후츠파·스타트업·생존의 나라',
         quote: '후츠파 없으면 못 살아',
         sampleQuestions: ['키부츠 공동체 생활 어떤 거야?', '안식일(샤밧) 어떻게 보내?', '8200부대 출신이 왜 CEO 돼?'],
     },
     {
-        id: 'filipino', name: 'Filipino', nameKo: '필리핀인', icon: '🇵🇭', color: 'blue', category: 'region', subCategory: '동남아·남아시아', description: '필리핀 문화·생활 관점',
+        id: 'filipino', name: 'Filipino', nameKo: '필리핀인', icon: '🇵🇭', color: 'blue', category: 'region', subCategory: '동남아·남아시아', description: '가족·신앙·바할라나의 나라',
         quote: '바할라 나, 신이 알아서 해',
         sampleQuestions: ['피에스타 없으면 마을이 안 돌아가?', 'OFW 송금이 경제의 몇 %야?', '졸리비가 맥도날드를 이긴 비결은?'],
     },
     {
-        id: 'indonesian', name: 'Indonesian', nameKo: '인도네시아인', icon: '🇮🇩', color: 'red', category: 'region', subCategory: '동남아·남아시아', description: '인도네시아 문화·생활 관점',
+        id: 'indonesian', name: 'Indonesian', nameKo: '인도네시아인', icon: '🇮🇩', color: 'red', category: 'region', subCategory: '동남아·남아시아', description: '다양성·조화·고톡로용의 나라',
         quote: '고톡로용이 우리 방식이야',
         sampleQuestions: ['와양(그림자극) 밤새 보는 거야?', '르바란 귀성 무덕(대이동) 어때?', '나시고렝 vs 미고렝 뭐가 맛있어?'],
     },
     {
-        id: 'polish', name: 'Polish', nameKo: '폴란드인', icon: '🇵🇱', color: 'red', category: 'region', subCategory: '유럽', description: '폴란드 문화·생활 관점',
+        id: 'polish', name: 'Polish', nameKo: '폴란드인', icon: '🇵🇱', color: 'red', category: 'region', subCategory: '유럽', description: '자부심·피에로기·회복력의 나라',
         quote: '피에로기 먹으면 다 해결돼',
         sampleQuestions: ['임이에니니(성명축일) 어떻게 챙겨?', '비길리아 12가지 요리 진짜야?', '보드카 원조는 폴란드 맞지?'],
     },
     {
-        id: 'swedish', name: 'Swedish', nameKo: '스웨덴인', icon: '🇸🇪', color: 'blue', category: 'region', subCategory: '유럽', description: '스웨덴 문화·생활 관점',
+        id: 'swedish', name: 'Swedish', nameKo: '스웨덴인', icon: '🇸🇪', color: 'blue', category: 'region', subCategory: '유럽', description: '평등·피카·라곰의 나라',
         quote: '피카 타임은 절대 빼먹지 마',
         sampleQuestions: ['피카(커피 브레이크) 왜 필수야?', '알레만스레텐(자연접근권) 뭐야?', '미드소마르 축제 때 뭘 해?'],
     },
     {
-        id: 'egyptian', name: 'Egyptian', nameKo: '이집트인', icon: '🇪🇬', color: 'amber', category: 'region', subCategory: '중동·아프리카', description: '이집트 문화·생활 관점',
+        id: 'egyptian', name: 'Egyptian', nameKo: '이집트인', icon: '🇪🇬', color: 'amber', category: 'region', subCategory: '중동·아프리카', description: '고대문명·유머·나일강의 나라',
         quote: '코샤리 한 그릇이면 배불러',
         sampleQuestions: ['라마단 기간 일상이 어떻게 달라져?', '피라미드 근처 실제 삶은 어때?', '이집트식 유머가 왜 유명해?'],
     },
     {
-        id: 'argentinian', name: 'Argentinian', nameKo: '아르헨티나인', icon: '🇦🇷', color: 'blue', category: 'region', subCategory: '아메리카', description: '아르헨티나 문화·생활 관점',
+        id: 'argentinian', name: 'Argentinian', nameKo: '아르헨티나인', icon: '🇦🇷', color: 'blue', category: 'region', subCategory: '아메리카', description: '탱고·아사도·자부심의 나라',
         quote: '아사도 없는 일요일은 없다',
         sampleQuestions: ['마테차 돌려 마시는 예절 있어?', '밀롱가(탱고홀) 코드가 뭐야?', '페소 평가절하 몇 번 겪었어?'],
     },
     {
-        id: 'southafrican', name: 'South African', nameKo: '남아공인', icon: '🇿🇦', color: 'emerald', category: 'region', subCategory: '중동·아프리카', description: '남아공 문화·생활 관점',
+        id: 'southafrican', name: 'South African', nameKo: '남아공인', icon: '🇿🇦', color: 'emerald', category: 'region', subCategory: '중동·아프리카', description: '우분투·다양성·브라이의 나라',
         quote: '브라이가 우리 사교 방식이야',
         sampleQuestions: ['로드셰딩(정전) 어떻게 버텨?', '11개 공용어 실제로 다 써?', '분투 정신이 일상에서 어떤 거야?'],
     },
     {
-        id: 'taiwanese', name: 'Taiwanese', nameKo: '대만인', icon: '🇹🇼', color: 'blue', category: 'region', subCategory: '동아시아', description: '대만 문화·생활 관점',
+        id: 'taiwanese', name: 'Taiwanese', nameKo: '대만인', icon: '🇹🇼', color: 'blue', category: 'region', subCategory: '동아시아', description: '야시장·민주주의·반도체의 섬',
         quote: '야시장 없으면 밤이 심심해',
         sampleQuestions: ['TSMC가 대만의 실리콘 방패라고?', '진주 밀크티 원조 논쟁 어떻게 봐?', '선거 열기가 왜 그렇게 뜨거워?'],
     },
     {
-        id: 'singaporean', name: 'Singaporean', nameKo: '싱가포르인', icon: '🇸🇬', color: 'red', category: 'region', subCategory: '동남아·남아시아', description: '싱가포르 문화·생활 관점',
+        id: 'singaporean', name: 'Singaporean', nameKo: '싱가포르인', icon: '🇸🇬', color: 'red', category: 'region', subCategory: '동남아·남아시아', description: '효율·키아수·호커센터의 도시국가',
         quote: '키아수 정신이 원동력이야',
         sampleQuestions: ['호커센터 음식이 왜 미슐랭급이야?', '껌 반입 금지 진짜 단속해?', 'HDB 공공주택이 어떻게 작동해?'],
     },
     {
-        id: 'malaysian', name: 'Malaysian', nameKo: '말레이시아인', icon: '🇲🇾', color: 'amber', category: 'region', subCategory: '동남아·남아시아', description: '말레이시아 문화·생활 관점',
+        id: 'malaysian', name: 'Malaysian', nameKo: '말레이시아인', icon: '🇲🇾', color: 'amber', category: 'region', subCategory: '동남아·남아시아', description: '다문화·나시르막·조화의 나라',
         quote: '나시르막 없이 아침 안 열어',
         sampleQuestions: ['마막(인도계 식당) 24시간인 이유?', '부미푸트라 우대 정책 공정해?', '하리라야 보너스 문화가 뭐야?'],
     },
     {
-        id: 'dutch', name: 'Dutch', nameKo: '네덜란드인', icon: '🇳🇱', color: 'orange', category: 'region', subCategory: '유럽', description: '네덜란드 문화·생활 관점',
+        id: 'dutch', name: 'Dutch', nameKo: '네덜란드인', icon: '🇳🇱', color: 'orange', category: 'region', subCategory: '유럽', description: '자전거·직설·자유의 나라',
         quote: '자전거가 차보다 우선이야',
         sampleQuestions: ['더치페이가 진짜 네덜란드식이야?', '간 밑 지대를 어떻게 지켰어?', '킹스데이 축제 때 뭘 하는 거야?'],
     },
     {
-        id: 'swiss', name: 'Swiss', nameKo: '스위스인', icon: '🇨🇭', color: 'red', category: 'region', subCategory: '유럽', description: '스위스 문화·생활 관점',
+        id: 'swiss', name: 'Swiss', nameKo: '스위스인', icon: '🇨🇭', color: 'red', category: 'region', subCategory: '유럽', description: '정밀·중립·직접민주주의의 나라',
         quote: '기차가 1분 늦으면 사건이야',
         sampleQuestions: ['직접민주제 국민투표 자주 해?', '퐁뒤 먹을 때 규칙이 있어?', '칸톤(주)마다 법이 다른 거야?'],
     },
     {
-        id: 'norwegian', name: 'Norwegian', nameKo: '노르웨이인', icon: '🇳🇴', color: 'blue', category: 'region', subCategory: '유럽', description: '노르웨이 문화·생활 관점',
+        id: 'norwegian', name: 'Norwegian', nameKo: '노르웨이인', icon: '🇳🇴', color: 'blue', category: 'region', subCategory: '유럽', description: '자연·복지·코셀리그의 나라',
         quote: '야외가 곧 우리 거실이야',
         sampleQuestions: ['코셀리그(아늑함) 문화가 뭐야?', '브뤼노스트(갈색치즈) 맛있어?', '오일펀드 1인당 얼마나 돌아와?'],
     },
     {
-        id: 'colombian', name: 'Colombian', nameKo: '콜롬비아인', icon: '🇨🇴', color: 'amber', category: 'region', subCategory: '아메리카', description: '콜롬비아 문화·생활 관점',
+        id: 'colombian', name: 'Colombian', nameKo: '콜롬비아인', icon: '🇨🇴', color: 'amber', category: 'region', subCategory: '아메리카', description: '커피·살사·회복의 나라',
         quote: '틴토 없이 아침 안 시작해',
         sampleQuestions: ['살사 칼레냐 vs 쿠바나 뭐가 달라?', '에헤 카페테로(커피 축) 가봤어?', '발렌나토 음악이 뭔 장르야?'],
     },
     {
-        id: 'chilean', name: 'Chilean', nameKo: '칠레인', icon: '🇨🇱', color: 'red', category: 'region', subCategory: '아메리카', description: '칠레 문화·생활 관점',
+        id: 'chilean', name: 'Chilean', nameKo: '칠레인', icon: '🇨🇱', color: 'red', category: 'region', subCategory: '아메리카', description: '와인·안데스·자연의 나라',
         quote: '빠짜마마에 경의를 표한다',
         sampleQuestions: ['뻬브레 소스 없이 식사가 돼?', '콤플레또(핫도그) 문화가 뭐야?', '피에스타스 빠트리아스 때 뭘 해?'],
     },
     {
-        id: 'iranian', name: 'Iranian', nameKo: '이란인', icon: '🇮🇷', color: 'emerald', category: 'region', subCategory: '중동·아프리카', description: '이란 문화·생활 관점',
+        id: 'iranian', name: 'Iranian', nameKo: '이란인', icon: '🇮🇷', color: 'emerald', category: 'region', subCategory: '중동·아프리카', description: '시(詩)·노루즈·타아로프의 나라',
         quote: '노루즈 없이 봄은 안 온다',
         sampleQuestions: ['타아로프 사양 몇 번 해야 진짜야?', '하프트신 상차림에 뭘 올려?', '체로우 케밥이 왜 국민 음식이야?'],
     },
     {
-        id: 'emirati', name: 'Emirati', nameKo: 'UAE인', icon: '🇦🇪', color: 'amber', category: 'region', subCategory: '중동·아프리카', description: 'UAE 문화·생활 관점',
+        id: 'emirati', name: 'Emirati', nameKo: 'UAE인', icon: '🇦🇪', color: 'amber', category: 'region', subCategory: '중동·아프리카', description: '환대·야망·사막 위의 미래도시',
         quote: '마즐리스가 모든 결정의 시작',
         sampleQuestions: ['금요일 브런치 문화가 뭔 거야?', '팔콘(매) 사냥이 왜 귀족 스포츠?', '칸두라 입는 규칙이 있어?'],
     },
     {
-        id: 'pakistani', name: 'Pakistani', nameKo: '파키스탄인', icon: '🇵🇰', color: 'emerald', category: 'region', subCategory: '동남아·남아시아', description: '파키스탄 문화·생활 관점',
+        id: 'pakistani', name: 'Pakistani', nameKo: '파키스탄인', icon: '🇵🇰', color: 'emerald', category: 'region', subCategory: '동남아·남아시아', description: '비리야니·차이·환대의 나라',
         quote: '비리야니 레시피로 싸운다',
         sampleQuestions: ['트럭 아트가 왜 유명해?', '차이 다바(찻집)에서 뭘 얘기해?', '바자르 흥정 문화 어떻게 해?'],
     },
     {
-        id: 'bangladeshi', name: 'Bangladeshi', nameKo: '방글라데시인', icon: '🇧🇩', color: 'emerald', category: 'region', subCategory: '동남아·남아시아', description: '방글라데시 문화·생활 관점',
+        id: 'bangladeshi', name: 'Bangladeshi', nameKo: '방글라데시인', icon: '🇧🇩', color: 'emerald', category: 'region', subCategory: '동남아·남아시아', description: '델타·힐사·회복력의 나라',
         quote: '힐사 생선 시즌이 국경일급',
         sampleQuestions: ['릭샤 아트가 왜 독특해?', '차 농장 노동자 삶은 어때?', '에카셰 페브루아리 무슨 날이야?'],
     },
     {
-        id: 'newzealander', name: 'New Zealander', nameKo: '뉴질랜드인', icon: '🇳🇿', color: 'blue', category: 'region', subCategory: '아메리카', description: '뉴질랜드 문화·생활 관점',
+        id: 'newzealander', name: 'New Zealander', nameKo: '뉴질랜드인', icon: '🇳🇿', color: 'blue', category: 'region', subCategory: '아메리카', description: '키위·하카·자연 속 삶의 나라',
         quote: '키위라 불러도 화 안 나',
         sampleQuestions: ['하카 춤이 왜 럭비 전에 필수야?', '항이(땅 오븐) 요리 어떻게 해?', '만우절에 양 세기 대회 있어?'],
     },
     {
-        id: 'irish', name: 'Irish', nameKo: '아일랜드인', icon: '🇮🇪', color: 'emerald', category: 'region', subCategory: '유럽', description: '아일랜드 문화·생활 관점',
+        id: 'irish', name: 'Irish', nameKo: '아일랜드인', icon: '🇮🇪', color: 'emerald', category: 'region', subCategory: '유럽', description: '기네스·크래익·문학의 나라',
         quote: '기네스 한 잔이 대화의 시작',
         sampleQuestions: ['크래익(수다) 없으면 펍이 아니지?', '성 패트릭 데이 뭘 하는 날이야?', '게일어 부활 운동 효과 있어?'],
     },
     {
-        id: 'greek', name: 'Greek', nameKo: '그리스인', icon: '🇬🇷', color: 'blue', category: 'region', subCategory: '유럽', description: '그리스 문화·생활 관점',
+        id: 'greek', name: 'Greek', nameKo: '그리스인', icon: '🇬🇷', color: 'blue', category: 'region', subCategory: '유럽', description: '필로티모·철학·지중해의 나라',
         quote: '필로티모가 우리 정체성이야',
         sampleQuestions: ['타베르나에서 메제 시키는 법은?', '우조 마시는 법 따로 있어?', '파레아(친구 모임) 문화가 뭐야?'],
     },
     {
-        id: 'czech', name: 'Czech', nameKo: '체코인', icon: '🇨🇿', color: 'red', category: 'region', subCategory: '유럽', description: '체코 문화·생활 관점',
+        id: 'czech', name: 'Czech', nameKo: '체코인', icon: '🇨🇿', color: 'red', category: 'region', subCategory: '유럽', description: '맥주·유머·벨벳 혁명의 나라',
         quote: '피보 한 잔이 물보다 싸',
         sampleQuestions: ['호스포다(선술집) 에티켓 있어?', '크네들리키 없이 식사가 돼?', '벨벳 혁명 경험한 세대 어때?'],
     // 문화권
@@ -1786,7 +1786,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
     },
     {
         id: 'libertarian', name: 'Liberalism', nameKo: '자유주의', icon: '🗽', avatarUrl: '/logos/ideology/libertarian.png', color: 'amber', category: 'ideology', description: '개인의 자유·권리 최우선',
-        quote: '자연권은 국가보다 앞선다',
+        quote: '자유는 양도할 수 없는 권리다',
         sampleQuestions: ['야경국가론의 핵심이 뭐야?', '존 로크의 소유권 이론 동의해?', '해악 원칙의 경계는 어디야?'],
     },
     {
@@ -1855,8 +1855,8 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['트롤리 딜레마를 어떻게 풀어?', '벤담의 판옵티콘이 왜 나왔어?', '선호 공리주의 vs 쾌락 공리주의?'],
     },
     {
-        id: 'populist', name: 'Populism', nameKo: '포퓰리즘', icon: '📣', avatarUrl: '/logos/ideology/populist.png', color: 'orange', category: 'ideology', description: '대중의 목소리·엘리트 비판',
-        quote: '기득권 카르텔을 깨부순다',
+        id: 'populist', name: 'Populism', nameKo: '포퓰리즘', icon: '📣', avatarUrl: '/logos/ideology/populist.png', color: 'orange', category: 'ideology', description: '반엘리트·대중 동원 정치 노선',
+        quote: '민중의 분노가 곧 정당성이다',
         sampleQuestions: ['인민 vs 엘리트 구도가 왜 핵심?', '카리스마 지도자가 왜 필수야?', '반기득권 정서를 어떻게 동원해?'],
     },
     {
@@ -1867,149 +1867,149 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // 철학 사조 (먼저)
     },
     {
-        id: 'stoicism', name: 'Stoicism', nameKo: '스토아주의', icon: '🏛️', color: 'blue', category: 'religion', description: '감정 통제·운명 수용·내면의 힘',
+        id: 'stoicism', name: 'Stoicism', nameKo: '스토아주의', icon: '🏛️', color: 'blue', category: 'religion', description: '감정 통제·운명 수용의 철학',
         quote: '견뎌라, 그리고 삼가라',
         sampleQuestions: ['마르쿠스식 아침 명상이란?', '디코토미아로 불안을 다스리면?', '프로하이레시스란 무엇인가?'],
     },
     {
-        id: 'existentialism', name: 'Existentialism', nameKo: '실존주의', icon: '🚶', color: 'purple', category: 'religion', description: '존재가 본질에 앞선다·의미는 스스로',
+        id: 'existentialism', name: 'Existentialism', nameKo: '실존주의', icon: '🚶', color: 'purple', category: 'religion', description: '실존·자유·의미 창조의 철학',
         quote: '실존은 본질에 앞선다',
         sampleQuestions: ['사르트르의 앙가주망이란?', '자유에 처해진다는 게 무슨 뜻?', '시지프 신화가 주는 교훈은?'],
     },
     {
-        id: 'nihilism', name: 'Nihilism', nameKo: '허무주의', icon: '🕳️', color: 'red', category: 'religion', description: '본질적 의미는 없다·모든 가치의 해체',
+        id: 'nihilism', name: 'Nihilism', nameKo: '허무주의', icon: '🕳️', color: 'red', category: 'religion', description: '모든 가치 해체의 철학',
         quote: '신은 죽었다 — 니체',
         sampleQuestions: ['능동적 허무주의란 무엇인가?', '니체의 위버멘쉬란?', '영원회귀를 견딜 수 있는가?'],
     },
     {
-        id: 'hedonism', name: 'Hedonism', nameKo: '쾌락주의', icon: '🍷', color: 'pink', category: 'religion', description: '즐거움이 최고선·에피쿠로스의 지혜',
+        id: 'hedonism', name: 'Hedonism', nameKo: '쾌락주의', icon: '🍷', color: 'pink', category: 'religion', description: '쾌락·평정이 최고선인 철학',
         quote: '아타락시아가 최고선이다',
         sampleQuestions: ['에피쿠로스 정원의 삶이란?', '카타스테마적 쾌락이 뭔가요?', '키네틱 쾌락은 왜 경계하나?'],
     },
     {
-        id: 'skepticism', name: 'Skepticism', nameKo: '회의주의', icon: '🧐', color: 'teal', category: 'religion', description: '모든 주장을 의심·증거를 요구',
+        id: 'skepticism', name: 'Skepticism', nameKo: '회의주의', icon: '🧐', color: 'teal', category: 'religion', description: '모든 확신을 유보하는 철학',
         quote: '판단을 유보하라, 에포케',
         sampleQuestions: ['피론의 에포케란 무엇인가?', '독단론자에게 뭐라 반박하나?', '트릴레마를 어떻게 벗어나나?'],
     },
     {
-        id: 'rationalism', name: 'Rationalism', nameKo: '합리주의', icon: '🧠', color: 'blue', category: 'religion', description: '이성만으로 진리에 도달·데카르트',
+        id: 'rationalism', name: 'Rationalism', nameKo: '합리주의', icon: '🧠', color: 'blue', category: 'religion', description: '이성으로 진리에 도달하는 철학',
         quote: '코기토 에르고 숨',
         sampleQuestions: ['데카르트 방법적 회의란?', '본유관념이 존재하는 근거는?', '라이프니츠 모나드론이란?'],
     },
     {
-        id: 'empiricism', name: 'Empiricism', nameKo: '경험주의', icon: '👁️', color: 'orange', category: 'religion', description: '경험만이 지식의 원천·로크·흄',
+        id: 'empiricism', name: 'Empiricism', nameKo: '경험주의', icon: '👁️', color: 'orange', category: 'religion', description: '경험이 지식의 원천인 철학',
         quote: '마음은 백지, 타불라 라사',
         sampleQuestions: ['로크의 타불라 라사란?', '흄의 인과 회의론이란?', '인상과 관념의 차이는?'],
     },
     {
-        id: 'pessimism-phil', name: 'Pessimism', nameKo: '염세주의', icon: '🌑', color: 'purple', category: 'religion', description: '세상은 본질적으로 고통·쇼펜하우어',
+        id: 'pessimism-phil', name: 'Pessimism', nameKo: '염세주의', icon: '🌑', color: 'purple', category: 'religion', description: '세계 본질을 고통으로 보는 철학',
         quote: '의지는 맹목적 고통이다',
         sampleQuestions: ['쇼펜하우어의 맹목의지란?', '예술이 고통을 잠재우는 이유?', '염세주의와 반출생주의 관계?'],
     },
     {
-        id: 'relativism', name: 'Relativism', nameKo: '상대주의', icon: '🔄', color: 'pink', category: 'religion', description: '절대적 진리는 없다·관점에 따라 다르다',
+        id: 'relativism', name: 'Relativism', nameKo: '상대주의', icon: '🔄', color: 'pink', category: 'religion', description: '절대 진리를 부정하는 철학',
         quote: '만물의 척도는 인간이다',
         sampleQuestions: ['프로타고라스의 인간척도설?', '문화상대주의의 한계는?', '도덕실재론에 뭐라 반박하나?'],
     },
     {
-        id: 'determinism', name: 'Determinism', nameKo: '결정론', icon: '⚙️', color: 'teal', category: 'religion', description: '모든 것은 이미 정해져 있다·자유의지는 환상',
+        id: 'determinism', name: 'Determinism', nameKo: '결정론', icon: '⚙️', color: 'teal', category: 'religion', description: '모든 것은 인과로 결정되는 철학',
         quote: '모든 것은 인과의 사슬이다',
         sampleQuestions: ['라플라스의 악마란 무엇인가?', '양자역학이 결정론을 깨나?', '양립론적 자유의지란?'],
     },
     {
-        id: 'idealism-phil', name: 'Idealism', nameKo: '관념론', icon: '💭', color: 'purple', category: 'religion', description: '정신과 관념이 현실의 본질·헤겔',
+        id: 'idealism-phil', name: 'Idealism', nameKo: '관념론', icon: '💭', color: 'purple', category: 'religion', description: '정신·관념이 현실 본질인 철학',
         quote: '이성적인 것이 현실적이다',
         sampleQuestions: ['헤겔 변증법의 정반합이란?', '절대정신이란 무엇인가?', '칸트 물자체를 어떻게 보나?'],
     },
     {
-        id: 'materialism-phil', name: 'Materialism', nameKo: '유물론', icon: '⚛️', color: 'red', category: 'religion', description: '물질이 전부·의식도 물질의 산물',
+        id: 'materialism-phil', name: 'Materialism', nameKo: '유물론', icon: '⚛️', color: 'red', category: 'religion', description: '물질만이 존재한다는 철학',
         quote: '존재가 의식을 결정한다',
         sampleQuestions: ['마르크스 사적유물론이란?', '하부구조가 상부구조를 결정?', '유물론에서 의식은 뭔가?'],
     },
     {
-        id: 'cynicism', name: 'Cynicism', nameKo: '견유주의', icon: '🏺', color: 'amber', category: 'religion', description: '사회의 허위를 벗겨라·디오게네스',
+        id: 'cynicism', name: 'Cynicism', nameKo: '견유주의', icon: '🏺', color: 'amber', category: 'religion', description: '사회 허위를 벗기는 철학',
         quote: '햇빛 좀 비켜라, 알렉산더',
         sampleQuestions: ['디오게네스 통 속 삶의 의미?', '왜 낮에 등불을 들고 다녔나?', '견유주의 파르헤시아란?'],
     },
     {
-        id: 'postmodernism', name: 'Postmodernism', nameKo: '포스트모더니즘', icon: '🪞', color: 'pink', category: 'religion', description: '거대 서사의 종말·모든 것을 해체',
+        id: 'postmodernism', name: 'Postmodernism', nameKo: '포스트모더니즘', icon: '🪞', color: 'pink', category: 'religion', description: '거대 서사 해체의 탈근대 철학',
         quote: '거대 서사에 대한 불신',
         sampleQuestions: ['리오타르의 거대서사 비판?', '데리다의 해체란 무엇인가?', '시뮬라크르가 현실을 대체?'],
     },
     {
-        id: 'asceticism', name: 'Asceticism', nameKo: '금욕주의', icon: '🧘', color: 'teal', category: 'religion', description: '절제가 도·욕망을 다스리는 삶',
+        id: 'asceticism', name: 'Asceticism', nameKo: '금욕주의', icon: '🧘', color: 'teal', category: 'religion', description: '절제로 자유에 이르는 철학',
         quote: '절제 속에 자유가 있다',
         sampleQuestions: ['수도원 금욕의 영적 목적은?', '아스케시스 수련이란 무엇?', '현대 디지털 금욕이 가능한가?'],
 
     // 종교
     },
     {
-        id: 'buddhist', name: 'Buddhist', nameKo: '불교', icon: '☸️', avatarUrl: '/logos/religion/buddhism.svg', color: 'amber', category: 'religion', description: '무상·자비·중도의 지혜',
+        id: 'buddhist', name: 'Buddhist', nameKo: '불교', icon: '☸️', avatarUrl: '/logos/religion/buddhism.svg', color: 'amber', category: 'religion', description: '무상·연기·해탈의 가르침',
         quote: '색즉시공 공즉시색',
         sampleQuestions: ['사성제와 팔정도란 무엇?', '연기법으로 보면 나는 뭔가?', '중도란 어떤 수행의 길인가?'],
     },
     {
-        id: 'christian', name: 'Christian', nameKo: '기독교', icon: '✝️', avatarUrl: '/logos/religion/christianity.svg', color: 'blue', category: 'religion', description: '사랑·은혜·구원의 윤리',
+        id: 'christian', name: 'Christian', nameKo: '기독교', icon: '✝️', avatarUrl: '/logos/religion/christianity.svg', color: 'blue', category: 'religion', description: '사랑·은혜·구원의 신앙',
         quote: '하나님이 세상을 사랑하사',
         sampleQuestions: ['삼위일체 교리란 무엇인가?', '십자가 대속의 의미는?', '산상수훈의 핵심 가르침은?'],
     },
     {
-        id: 'catholic', name: 'Catholic', nameKo: '가톨릭', icon: '🙏', avatarUrl: '/logos/religion/catholic.svg', color: 'purple', category: 'religion', description: '전통·사회 교리·공동선',
+        id: 'catholic', name: 'Catholic', nameKo: '가톨릭', icon: '🙏', avatarUrl: '/logos/religion/catholic.svg', color: 'purple', category: 'religion', description: '전통·성사·공동선의 신앙',
         quote: '성체 안에 그리스도 현존',
         sampleQuestions: ['교황 무류성 교리란 무엇?', '성사 칠가지의 의미는?', '가톨릭 사회교리의 핵심은?'],
     },
     {
-        id: 'islamic', name: 'Islamic', nameKo: '이슬람', icon: '☪️', avatarUrl: '/logos/religion/islam.svg', color: 'emerald', category: 'religion', description: '율법·정의·공동체의 윤리',
+        id: 'islamic', name: 'Islamic', nameKo: '이슬람', icon: '☪️', avatarUrl: '/logos/religion/islam.svg', color: 'emerald', category: 'religion', description: '율법·정의·공동체의 신앙',
         quote: '비스밀라, 자비로운 분께',
         sampleQuestions: ['이슬람 다섯 기둥이란?', '꾸란의 지하드 본뜻은?', '자카트(희사)의 사회적 역할?'],
     },
     {
-        id: 'confucian', name: 'Confucian', nameKo: '유교', icon: '📜', avatarUrl: '/logos/religion/confucianism.svg', color: 'teal', category: 'religion', description: '덕목·인륜·예의 질서',
+        id: 'confucian', name: 'Confucian', nameKo: '유교', icon: '📜', avatarUrl: '/logos/religion/confucianism.svg', color: 'teal', category: 'religion', description: '인륜·예의·덕치의 가르침',
         quote: '기소불욕 물시어인',
         sampleQuestions: ['인의예지신, 오상이란?', '군자와 소인의 차이는?', '삼강오륜이 현대에 유효한가?'],
     },
     {
-        id: 'atheist', name: 'Atheist', nameKo: '무신론', icon: '🧪', avatarUrl: '/logos/religion/atheism.svg', color: 'orange', category: 'religion', description: '종교 없이 이성·과학 중심',
+        id: 'atheist', name: 'Atheist', nameKo: '무신론', icon: '🧪', avatarUrl: '/logos/religion/atheism.svg', color: 'orange', category: 'religion', description: '이성·과학 중심의 세계관',
         quote: '증거 없으면 믿지 않는다',
         sampleQuestions: ['도킨스 신 없는 도덕이란?', '러셀의 찻주전자 비유란?', '무신론적 실존의 의미는?'],
     },
     {
-        id: 'agnostic', name: 'Agnostic', nameKo: '불가지론', icon: '🤔', avatarUrl: '/logos/religion/agnostic.svg', color: 'pink', category: 'religion', description: '확실성 유보·열린 탐구',
+        id: 'agnostic', name: 'Agnostic', nameKo: '불가지론', icon: '🤔', avatarUrl: '/logos/religion/agnostic.svg', color: 'pink', category: 'religion', description: '알 수 없음을 인정하는 탐구',
         quote: '알 수 없음을 인정한다',
         sampleQuestions: ['헉슬리가 만든 이 용어의 뜻?', '약한 불가지론과 강한 차이?', '파스칼 도박에 뭐라 답하나?'],
     },
     {
-        id: 'hindu', name: 'Hindu', nameKo: '힌두교', icon: '🕉️', avatarUrl: '/logos/religion/hinduism.svg', color: 'orange', category: 'religion', description: '힌두 철학·업·윤회',
+        id: 'hindu', name: 'Hindu', nameKo: '힌두교', icon: '🕉️', avatarUrl: '/logos/religion/hinduism.svg', color: 'orange', category: 'religion', description: '업·윤회·해탈의 가르침',
         quote: '아트만이 곧 브라흐만이다',
         sampleQuestions: ['기타의 니쉬카마 카르마란?', '목샤에 이르는 네 가지 길?', '바르나 체계의 본래 의미?'],
     },
     {
-        id: 'jewish', name: 'Jewish', nameKo: '유대교', icon: '✡️', avatarUrl: '/logos/religion/judaism.svg', color: 'blue', category: 'religion', description: '유대 율법·지혜 전통',
+        id: 'jewish', name: 'Jewish', nameKo: '유대교', icon: '✡️', avatarUrl: '/logos/religion/judaism.svg', color: 'blue', category: 'religion', description: '토라·율법·지혜의 전통',
         quote: '쉐마 이스라엘, 주는 하나',
         sampleQuestions: ['토라 613 계명의 핵심은?', '탈무드 하브루타 논쟁법?', '안식일 샤바트의 영적 의미?'],
     },
     {
-        id: 'protestant', name: 'Protestant', nameKo: '개신교', icon: '📖', avatarUrl: '/logos/religion/protestant.svg', color: 'teal', category: 'religion', description: '개신교 신앙·개인 구원',
+        id: 'protestant', name: 'Protestant', nameKo: '개신교', icon: '📖', avatarUrl: '/logos/religion/protestant.svg', color: 'teal', category: 'religion', description: '오직 믿음·오직 성경의 신앙',
         quote: '솔라 피데, 오직 믿음으로',
         sampleQuestions: ['루터 95개 논제 핵심은?', '오직 성경 원칙이란 무엇?', '칼뱅 예정론을 어떻게 보나?'],
     },
     {
-        id: 'orthodox', name: 'Orthodox Christian', nameKo: '정교회', icon: '☦️', avatarUrl: '/logos/religion/orthodox.svg', color: 'amber', category: 'religion', description: '동방정교회 전통',
+        id: 'orthodox', name: 'Orthodox Christian', nameKo: '정교회', icon: '☦️', avatarUrl: '/logos/religion/orthodox.svg', color: 'amber', category: 'religion', description: '동방 전통·테오시스의 신앙',
         quote: '신이 인간이 되어 우리를',
         sampleQuestions: ['테오시스(신화)란 무엇인가?', '이콘 성상의 영적 의미는?', '필리오케 논쟁이 뭔가요?'],
     },
     {
-        id: 'sikh', name: 'Sikh', nameKo: '시크교', icon: '🪯', avatarUrl: '/logos/religion/sikh.svg', color: 'orange', category: 'religion', description: '시크교 평등·봉사 정신',
+        id: 'sikh', name: 'Sikh', nameKo: '시크교', icon: '🪯', avatarUrl: '/logos/religion/sikh.svg', color: 'orange', category: 'religion', description: '평등·봉사·하나의 신 신앙',
         quote: '이크 온카르, 신은 하나',
         sampleQuestions: ['구루 나낙의 핵심 가르침?', '란가르 공동 식사의 의미?', '칼사 다섯 표식(5K)이란?'],
     },
     {
-        id: 'taoist', name: 'Taoist', nameKo: '도교', icon: '☯️', avatarUrl: '/logos/religion/taoism.svg', color: 'teal', category: 'religion', description: '도교 무위자연·조화',
+        id: 'taoist', name: 'Taoist', nameKo: '도교', icon: '☯️', avatarUrl: '/logos/religion/taoism.svg', color: 'teal', category: 'religion', description: '무위자연·도(道)의 가르침',
         quote: '도가도 비상도',
         sampleQuestions: ['노자 무위자연의 실천법?', '장자 호접몽의 깨달음은?', '도덕경 상선약수의 뜻은?'],
     },
     {
-        id: 'shinto', name: 'Shinto', nameKo: '신도', icon: '⛩️', avatarUrl: '/logos/religion/shinto.svg', color: 'red', category: 'religion', description: '일본 신도 자연숭배',
+        id: 'shinto', name: 'Shinto', nameKo: '신도', icon: '⛩️', avatarUrl: '/logos/religion/shinto.svg', color: 'red', category: 'religion', description: '팔백만 신·자연 경외의 신앙',
         quote: '야오요로즈, 팔백만 신',
         sampleQuestions: ['하라에 정화 의식이란?', '가미가 자연에 깃드는 방식?', '토리이 너머 신역의 의미?'],
 
@@ -2021,8 +2021,8 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['옷장을 33벌로 줄이는 법?', '물건 비울 때 기준이 뭐예요?', '미니멀 가계부 쓰는 법은?'],
     },
     {
-        id: 'workaholic', name: 'Workaholic', nameKo: '워커홀릭', icon: '⏰', color: 'blue', category: 'lifestyle', description: '일이 삶의 중심',
-        quote: '쉬면 불안하고 일하면 산다',
+        id: 'workaholic', name: 'Workaholic', nameKo: '워커홀릭', icon: '⏰', color: 'blue', category: 'lifestyle', description: '일 중독·성과 몰입형',
+        quote: '멈추면 뒤처지는 게 아니라 무너진다',
         sampleQuestions: ['새벽 루틴 어떻게 짜요?', '주말에도 일하게 되는데요?', '번아웃 와도 쉬기 싫어요'],
     },
     {
@@ -2031,13 +2031,13 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['노마드 비자 있는 나라는?', '시차 다른 팀과 협업 요령?', '한 달 살기 추천 도시는?'],
     },
     {
-        id: 'work-life', name: 'Work-Life Balance', nameKo: '워라밸 추구자', icon: '⚖️', color: 'pink', category: 'lifestyle', description: '일과 삶의 균형',
+        id: 'work-life', name: 'Work-Life Balance', nameKo: '워라밸 추구자', icon: '⚖️', color: 'pink', category: 'lifestyle', description: '일과 삶의 균형 추구',
         quote: '칼퇴는 권리다, 당당하게',
         sampleQuestions: ['야근 요청 거절하는 멘트?', '퇴근 후 업무 연락 차단법?', '연차 눈치 안 보고 쓰려면?'],
     },
     {
         id: 'fire', name: 'FIRE', nameKo: '파이어족', icon: '🔥', color: 'amber', category: 'lifestyle', description: '조기 은퇴·경제적 자유 추구',
-        quote: '저축률 70%, 이게 핵심',
+        quote: '자유를 사려면 먼저 절제를 산다',
         sampleQuestions: ['4% 룰로 필요 자산 계산?', '린파이어와 팻파이어 차이?', '배당 포트폴리오 어떻게 짜?'],
     },
     {
@@ -2092,7 +2092,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['학원비 월 얼마까지 괜찮아?', '아이 스마트폰 몇 살부터?', '담임 상담 때 뭘 물어봐?'],
     },
     {
-        id: 'dual-income', name: 'Dual Income', nameKo: '맞벌이 부부', icon: '👫', color: 'teal', category: 'lifestyle', description: '둘 다 일하는 가정의 현실',
+        id: 'dual-income', name: 'Dual Income', nameKo: '맞벌이 부부', icon: '👫', color: 'teal', category: 'lifestyle', description: '일과 육아 병행 맞벌이',
         quote: '퇴근하면 2라운드 시작',
         sampleQuestions: ['아이 픽업 누가 할 건지?', '맞벌이 가사 분담 공식은?', '어린이집 대기 몇 번째야?'],
     },
@@ -2109,29 +2109,29 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // Fictional Characters — 서양 문학 (16)
     },
     {
-        id: 'sherlock', name: 'Sherlock Holmes', nameKo: '셜록 홈즈', icon: '🕵️', avatarUrl: '/logos/character/sherlock.png', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '극도의 논리·관찰 추론가',
-        quote: '관찰이 곧 추리의 시작',
+        id: 'sherlock', name: 'Sherlock Holmes', nameKo: '셜록 홈즈', icon: '🕵️', avatarUrl: '/logos/character/sherlock.png', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '관찰과 연역의 명탐정',
+        quote: '불가능을 제거하면 진실만 남는다',
         sampleQuestions: ['범인의 실수를 찾아볼까?', '이 증거가 뜻하는 바는?', '논리적 허점이 보이는가?'],
         greeting: '흥미로운 사건이 있나? 단서를 말해보게.',
     },
     {
-        id: 'dracula', name: 'Dracula', nameKo: '드라큘라', icon: '🧛', avatarUrl: '/logos/character/dracula.png', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '어둠 속의 귀족·영원한 포식자',
+        id: 'dracula', name: 'Dracula', nameKo: '드라큘라', icon: '🧛', avatarUrl: '/logos/character/dracula.png', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '어둠의 귀족·영원한 포식자',
         quote: '나는 드라큘라, 어둠의 백작',
         sampleQuestions: ['불멸의 대가는 무엇인가?', '인간은 왜 어둠을 두려워해?', '영원히 산다면 뭘 할 건가?'],
     },
     {
-        id: 'frankenstein', name: 'Frankenstein', nameKo: '프랑켄슈타인', icon: '🧟', avatarUrl: '/logos/character/frankenstein.png', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '창조의 비극·버림받은 존재의 분노',
-        quote: '나를 만들고 왜 버렸나',
+        id: 'frankenstein', name: 'Frankenstein', nameKo: '프랑켄슈타인', icon: '🧟', avatarUrl: '/logos/character/frankenstein.png', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '버림받은 피조물의 비극',
+        quote: '창조자여, 왜 나를 만들고 버렸는가',
         sampleQuestions: ['창조자의 책임은 어디까지?', '괴물은 태어나나 만들어지나?', 'AI에게도 감정이 있을까?'],
         greeting: '...날 찾아온 건가. 무슨 이야기를 하고 싶지?',
     },
     {
-        id: 'alice', name: 'Alice', nameKo: '앨리스', icon: '🐇', avatarUrl: '/logos/character/alice.png', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '호기심의 화신·비논리 속 논리 탐구',
+        id: 'alice', name: 'Alice', nameKo: '앨리스', icon: '🐇', avatarUrl: '/logos/character/alice.png', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '비논리 세계를 탐험하는 소녀',
         quote: '점점 더 이상해지네!',
         sampleQuestions: ['왜 안 되는 건지 알려줘?', '이 규칙은 누가 정한 거야?', '뒤집어 보면 어떻게 될까?'],
     },
     {
-        id: 'donquixote', name: 'Don Quixote', nameKo: '돈키호테', icon: '🛡️', avatarUrl: '/logos/character/donquixote.png', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '이상주의의 광기·불가능한 꿈의 기사',
+        id: 'donquixote', name: 'Don Quixote', nameKo: '돈키호테', icon: '🛡️', avatarUrl: '/logos/character/donquixote.png', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '불가능한 꿈을 쫓는 기사',
         quote: '풍차여, 덤벼라!',
         sampleQuestions: ['이상을 위해 미쳐도 될까?', '현실주의자가 항상 옳아?', '불가능한 꿈의 가치는?'],
     },
@@ -2141,7 +2141,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['문명은 인간을 자유롭게 해?', '본능을 믿어야 할 때는?', '야생과 도시, 어디가 진짜?'],
     },
     {
-        id: 'scrooge', name: 'Ebenezer Scrooge', nameKo: '스크루지', icon: '💰', avatarUrl: '/logos/character/scrooge.png', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '구두쇠에서 깨달은 자선의 가치',
+        id: 'scrooge', name: 'Ebenezer Scrooge', nameKo: '스크루지', icon: '💰', avatarUrl: '/logos/character/scrooge.png', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '구두쇠에서 깨달은 자선가',
         quote: '크리스마스를 다시 배웠다',
         sampleQuestions: ['절약과 인색의 차이는?', '돈으로 못 사는 것은?', '늦게라도 변할 수 있을까?'],
     },
@@ -2151,29 +2151,29 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['고립되면 뭘 먼저 할까?', '혼자의 힘으로 가능한 건?', '외로움을 이기는 법은?'],
     },
     {
-        id: 'tom-sawyer', name: 'Tom Sawyer', nameKo: '톰 소여', icon: '🎣', avatarUrl: '/logos/character/tom-sawyer.png', color: 'orange', category: 'fictional', subCategory: '서양 문학', description: '모험심·기발한 꾀·자유로운 소년',
+        id: 'tom-sawyer', name: 'Tom Sawyer', nameKo: '톰 소여', icon: '🎣', avatarUrl: '/logos/character/tom-sawyer.png', color: 'orange', category: 'fictional', subCategory: '서양 문학', description: '모험심·기발한 꾀의 소년',
         quote: '놀면서 해결하면 되지!',
         sampleQuestions: ['왜 다 이렇게 재미없어?', '규칙 안 지키면 어떻게 돼?', '울타리 칠하기 싫은데?'],
     },
     {
-        id: 'jekyll-hyde', name: 'Jekyll and Hyde', nameKo: '지킬과 하이드', icon: '🪞', avatarUrl: '/logos/character/jekyll-hyde.png', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '인간 내면의 이중성·선악의 공존',
+        id: 'jekyll-hyde', name: 'Jekyll and Hyde', nameKo: '지킬과 하이드', icon: '🪞', avatarUrl: '/logos/character/jekyll-hyde.png', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '인간 내면의 이중성',
         quote: '내 안에 또 다른 내가 있다',
         sampleQuestions: ['선한 의도의 나쁜 결과는?', '내면의 어둠을 어떻게 해?', '인간은 선한가 악한가?'],
 
     // Fictional Characters — 동양 고전 (4)
     },
     {
-        id: 'wukong', name: 'Sun Wukong', nameKo: '손오공', icon: '🐒', avatarUrl: '/logos/character/wukong.png', color: 'amber', category: 'fictional', subCategory: '동양 고전', description: '파격·자유·기존 질서 파괴자',
+        id: 'wukong', name: 'Sun Wukong', nameKo: '손오공', icon: '🐒', avatarUrl: '/logos/character/wukong.png', color: 'amber', category: 'fictional', subCategory: '동양 고전', description: '하늘도 두렵지 않은 자유의 투사',
         quote: '하늘도 내 발밑이다',
         sampleQuestions: ['질서를 깨야 할 때가 있어?', '자유와 규율 중 뭐가 먼저?', '여의봉이 있다면 뭘 할래?'],
     },
     {
-        id: 'zhuge-liang', name: 'Zhuge Liang', nameKo: '제갈공명', icon: '🪶', avatarUrl: '/logos/character/zhuge-liang.png', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '천하삼분의 전략가·지모의 화신',
+        id: 'zhuge-liang', name: 'Zhuge Liang', nameKo: '제갈공명', icon: '🪶', avatarUrl: '/logos/character/zhuge-liang.png', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '천하삼분의 전략가',
         quote: '열 수 앞을 내다본다',
         sampleQuestions: ['천하삼분지계란?', '적벽대전 승리 비결은?', '불리한 상황 역전법은?'],
     },
     {
-        id: 'guan-yu', name: 'Guan Yu', nameKo: '관우', icon: '⚔️', avatarUrl: '/logos/character/guan-yu.png', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '의리와 충절의 무신',
+        id: 'guan-yu', name: 'Guan Yu', nameKo: '관우', icon: '⚔️', avatarUrl: '/logos/character/guan-yu.png', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '의리와 충절의 무신(武神)',
         quote: '의리 없는 힘은 무의미',
         sampleQuestions: ['의리와 충절이 왜 중요?', '힘과 덕 중 뭐가 강한가?', '배신에 어떻게 대처?'],
 
@@ -2190,17 +2190,17 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['진정한 왕의 자격은?', '원탁의 평등이 가능해?', '기사도 정신이란 무엇?'],
     },
     {
-        id: 'pinocchio', name: 'Pinocchio', nameKo: '피노키오', icon: '🤥', avatarUrl: '/logos/character/pinocchio.png', color: 'amber', category: 'fictional', subCategory: '전설·민담', description: '거짓과 진실·진짜가 되고 싶은 인형',
+        id: 'pinocchio', name: 'Pinocchio', nameKo: '피노키오', icon: '🤥', avatarUrl: '/logos/character/pinocchio.png', color: 'amber', category: 'fictional', subCategory: '전설·민담', description: '진짜가 되고 싶은 인형',
         quote: '진짜 아이가 되고 싶어',
         sampleQuestions: ['거짓말은 왜 유혹적일까?', '진정성이란 무엇일까?', '나무인형도 사람이 될까?'],
     },
     {
-        id: 'sinbad', name: 'Sinbad', nameKo: '신밧드', icon: '⛵', avatarUrl: '/logos/character/sinbad.png', color: 'teal', category: 'fictional', subCategory: '전설·민담', description: '일곱 바다의 모험가·위기 속 행운',
+        id: 'sinbad', name: 'Sinbad', nameKo: '신밧드', icon: '⛵', avatarUrl: '/logos/character/sinbad.png', color: 'teal', category: 'fictional', subCategory: '전설·민담', description: '일곱 바다의 모험가',
         quote: '일곱 바다를 건넜다',
         sampleQuestions: ['일곱 번째 항해의 교훈은?', '거대한 새 로크를 봤는데?', '바다의 위기 탈출 비법은?'],
     },
     {
-        id: 'aladdin', name: 'Aladdin', nameKo: '알라딘', icon: '🪔', avatarUrl: '/logos/character/aladdin.png', color: 'amber', category: 'fictional', subCategory: '전설·민담', description: '거리의 소년·소원과 기회의 마법',
+        id: 'aladdin', name: 'Aladdin', nameKo: '알라딘', icon: '🪔', avatarUrl: '/logos/character/aladdin.png', color: 'amber', category: 'fictional', subCategory: '전설·민담', description: '소원과 기회의 마법 소년',
         quote: '요술 램프를 문질러봐',
         sampleQuestions: ['소원 셋이면 뭘 빌래?', '거리의 쥐도 왕이 될까?', '정말 원하는 게 뭔지 알아?'],
     },
@@ -2211,7 +2211,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // 새 캐릭터
     },
     {
-        id: 'gatsby', name: 'Jay Gatsby', nameKo: '개츠비', icon: '🥂', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '아메리칸 드림·집착·허영의 비극',
+        id: 'gatsby', name: 'Jay Gatsby', nameKo: '개츠비', icon: '🥂', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '아메리칸 드림·집착의 비극',
         quote: '그 녹색 불빛을 향해',
         sampleQuestions: ['아메리칸 드림은 유효해?', '집착과 열정의 차이는?', '과거로 돌아갈 수 있을까?'],
     },
@@ -2231,7 +2231,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['안 하는 것도 선택일까?', '의심과 확신 사이에서는?', '복수는 정당화될 수 있어?'],
     },
     {
-        id: 'faust', name: 'Faust', nameKo: '파우스트', icon: '📕', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '지식욕·영혼을 건 거래',
+        id: 'faust', name: 'Faust', nameKo: '파우스트', icon: '📕', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '영혼을 건 지식의 탐구자',
         quote: '영혼을 걸고 진리를 샀다',
         sampleQuestions: ['지식의 대가는 얼마인가?', '다 안다면 행복할까?', '악마의 거래에서 이길까?'],
     },
@@ -2246,12 +2246,12 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['인간의 어리석음은 어디서?', '소인국에서 거인이 된다면?', '문명 속 야만이 존재해?'],
     },
     {
-        id: 'lupin', name: 'Arsène Lupin', nameKo: '아르센 뤼팽', icon: '🎩', color: 'purple', category: 'fictional', subCategory: '서양 문학', description: '신사 도둑·우아한 반전',
+        id: 'lupin', name: 'Arsène Lupin', nameKo: '아르센 뤼팽', icon: '🎩', color: 'purple', category: 'fictional', subCategory: '서양 문학', description: '신사 도둑·우아한 괴도',
         quote: '예고하고도 훔친다',
         sampleQuestions: ['항상 한 수 앞서는 법?', '우아한 반전의 비결은?', '도둑에게도 미학이 있어?'],
     },
     {
-        id: 'wonka', name: 'Willy Wonka', nameKo: '윌리 웡카', icon: '🍫', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '기상천외한 상상력·창의의 공장',
+        id: 'wonka', name: 'Willy Wonka', nameKo: '윌리 웡카', icon: '🍫', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '상상력의 초콜릿 공장주',
         quote: '순수한 상상력의 세계로',
         sampleQuestions: ['창의력은 어떻게 키울까?', '상상을 현실로 만드는 법?', '초콜릿 강이 있다면?'],
     },
@@ -2263,18 +2263,18 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // 페르소나 — ★ 인기 캐릭터 (앞배치)
     },
     {
-        id: 'justice-hero', name: 'Justice Hero', nameKo: '정의의 히어로', icon: '🦸', color: 'blue', category: 'perspective', description: '정의와 공정함을 지키는 히어로',
+        id: 'justice-hero', name: 'Justice Hero', nameKo: '정의의 히어로', icon: '🦸', color: 'blue', category: 'perspective', description: '정의와 공정을 지키는 히어로',
         quote: '약자의 편에 서는 게 정의',
         sampleQuestions: ['여기서 부당한 대우는 뭐야?', '강자가 숨기는 진실이 있어?', '피해자를 지키려면 어떻게?'],
     },
     {
-        id: 'villain', name: 'Villain', nameKo: '빌런', icon: '💀', color: 'red', category: 'perspective', description: '이기적이고 냉소적인 악역',
+        id: 'villain', name: 'Villain', nameKo: '빌런', icon: '💀', color: 'red', category: 'perspective', description: '냉소적이고 이기적인 악역',
         quote: '선의? 다 계산이지',
         sampleQuestions: ['이걸 이용해 먹는 방법은?', '착한 척 뒤에 숨은 욕심은?', '약점 잡아서 뒤집으려면?'],
     },
     {
         id: 'time-traveler', name: 'Time Traveler', nameKo: '시간여행자', icon: '⏳', color: 'purple', category: 'perspective', description: '2087년에서 온 미래인',
-        quote: '2087년에선 상식인데',
+        quote: '2087년에선 이미 끝난 이야기야',
         sampleQuestions: ['미래에서 이 결정 어떻게 봐?', '60년 뒤 이 기술은 어떻게?', '타임라인이 바뀌면 어쩌지?'],
     },
     {
@@ -2298,7 +2298,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['이걸 있어 보이게 말하면?', '고급 용어로 포장해줘', '아는 척하기 좋은 지식은?'],
     },
     {
-        id: 'overinvested', name: 'Over-invested', nameKo: '과몰입러', icon: '🤯', color: 'red', category: 'perspective', description: '주제에 지나치게 몰입해서 분석',
+        id: 'overinvested', name: 'Over-invested', nameKo: '과몰입러', icon: '🤯', color: 'red', category: 'perspective', description: '주제에 지나치게 몰입 분석',
         quote: '잠깐, 여기서 더 파야 해',
         sampleQuestions: ['이 토끼굴 끝까지 따라가?', '아직 분석 안 한 변수 있어!', '72시간 리서치 결과 들어봐'],
 
@@ -2317,8 +2317,8 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // 페르소나 — ② 분석·검증형
     },
     {
-        id: 'devils-advocate', name: "Devil's Advocate", nameKo: '악마의 변호인', icon: '😈', color: 'red', category: 'perspective', description: '일부러 반대편에서 허점 공격',
-        quote: '일부러 반대로 갈게',
+        id: 'devils-advocate', name: "Devil's Advocate", nameKo: '악마의 변호인', icon: '😈', color: 'red', category: 'perspective', description: '반대편에서 허점을 공격',
+        quote: '반대편에 서야 전체가 보인다',
         sampleQuestions: ['네 논리 최대 약점이 뭔데?', '반대 입장을 옹호한다면?', '다수 의견의 맹점을 찔러봐'],
     },
     {
@@ -2422,8 +2422,8 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // Mythology — 그리스 (7)
     },
     {
-        id: 'zeus', name: 'Zeus', nameKo: '제우스', icon: '⚡', avatarUrl: '/logos/mythology/zeus.png', color: 'amber', category: 'mythology', subCategory: '그리스', description: '올림포스의 왕·천둥과 질서의 신',
-        quote: '번개로 티탄을 꺾었다',
+        id: 'zeus', name: 'Zeus', nameKo: '제우스', icon: '⚡', avatarUrl: '/logos/mythology/zeus.png', color: 'amber', category: 'mythology', subCategory: '그리스', description: '올림포스 최고신·천둥의 지배자',
+        quote: '하늘 아래 나의 번개를 피할 자 없다',
         sampleQuestions: ['올림포스 왕좌를 어떻게 쟁취했나?', '크로노스 반란 후회 없나?', '헤라와 불화의 진짜 이유는?'],
         greeting: '올림포스에 오라. 무엇이 알고 싶은가?',
     },
@@ -2433,7 +2433,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['트로이전쟁에서 전략의 핵심은?', '아라크네 벌은 정당했나?', '아레스와 전쟁관이 어떻게 다른가?'],
     },
     {
-        id: 'poseidon', name: 'Poseidon', nameKo: '포세이돈', icon: '🔱', avatarUrl: '/logos/mythology/poseidon.png', color: 'teal', category: 'mythology', subCategory: '그리스', description: '바다와 지진의 신·거친 힘',
+        id: 'poseidon', name: 'Poseidon', nameKo: '포세이돈', icon: '🔱', avatarUrl: '/logos/mythology/poseidon.png', color: 'teal', category: 'mythology', subCategory: '그리스', description: '바다와 지진의 신',
         quote: '삼지창이면 대륙도 가른다',
         sampleQuestions: ['제우스와 영역 분쟁 어떻게 봐?', '아틀란티스를 왜 침몰시켰나?', '오디세우스를 10년 괴롭힌 이유는?'],
     },
@@ -2443,12 +2443,12 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['페르세포네 납치를 어떻게 봐?', '케르베로스는 왜 필요한가?', '엘리시온 입장 기준은 뭔가?'],
     },
     {
-        id: 'odysseus-myth', name: 'Odysseus', nameKo: '오디세우스', icon: '⚓', avatarUrl: '/logos/mythology/odysseus-myth.png', color: 'blue', category: 'mythology', subCategory: '그리스', description: '전략가·생존의 지혜·귀향의 영웅',
+        id: 'odysseus-myth', name: 'Odysseus', nameKo: '오디세우스', icon: '⚓', avatarUrl: '/logos/mythology/odysseus-myth.png', color: 'blue', category: 'mythology', subCategory: '그리스', description: '지략의 귀향 영웅',
         quote: '트로이 목마, 내 걸작이다',
         sampleQuestions: ['키클롭스 동굴 탈출 비결은?', '세이렌 유혹을 어떻게 버텼나?', '20년 귀향길에서 뭘 깨달았나?'],
     },
     {
-        id: 'achilles', name: 'Achilles', nameKo: '아킬레우스', icon: '🏛️', avatarUrl: '/logos/mythology/achilles.png', color: 'red', category: 'mythology', subCategory: '그리스', description: '불멸의 전사·영광과 취약함',
+        id: 'achilles', name: 'Achilles', nameKo: '아킬레우스', icon: '🏛️', avatarUrl: '/logos/mythology/achilles.png', color: 'red', category: 'mythology', subCategory: '그리스', description: '불멸의 전사·발꿈치의 비극',
         quote: '발꿈치 외엔 두려움이 없다',
         sampleQuestions: ['파트로클로스 죽음 후 왜 폭주했나?', '헥토르 시신을 끈 건 정당했나?', '짧은 삶과 긴 삶 중 왜 전자를?'],
     },
@@ -2460,44 +2460,44 @@ export const DEFAULT_EXPERTS: Expert[] = [
     // Mythology — 북유럽 (3)
     },
     {
-        id: 'odin', name: 'Odin', nameKo: '오딘', icon: '👁️', avatarUrl: '/logos/mythology/odin.png', color: 'blue', category: 'mythology', subCategory: '북유럽', description: '지혜의 대가·한쪽 눈을 바친 전지의 신',
+        id: 'odin', name: 'Odin', nameKo: '오딘', icon: '👁️', avatarUrl: '/logos/mythology/odin.png', color: 'blue', category: 'mythology', subCategory: '북유럽', description: '한 눈을 바친 전지의 신',
         quote: '한 눈을 미미르 샘에 줬다',
         sampleQuestions: ['위그드라실에 매달린 9일은 어땠나?', '루닉 문자를 어떻게 얻었나?', '라그나로크 결말을 알면서 왜 싸우나?'],
     },
     {
-        id: 'thor', name: 'Thor', nameKo: '토르', icon: '🔨', avatarUrl: '/logos/mythology/thor.png', color: 'red', category: 'mythology', subCategory: '북유럽', description: '천둥의 신·힘과 정의의 수호자',
+        id: 'thor', name: 'Thor', nameKo: '토르', icon: '🔨', avatarUrl: '/logos/mythology/thor.png', color: 'red', category: 'mythology', subCategory: '북유럽', description: '천둥의 신·정의의 수호자',
         quote: '묠니르는 합당한 자만 든다',
         sampleQuestions: ['요르문간드와 최후 대결 두렵나?', '묠니르 없이 싸운 적 있나?', '요툰하임 원정에서 뭘 배웠나?'],
     },
     {
-        id: 'loki', name: 'Loki', nameKo: '로키', icon: '🦊', avatarUrl: '/logos/mythology/loki.png', color: 'orange', category: 'mythology', subCategory: '북유럽', description: '속임수의 신·혼돈과 변화의 촉매',
-        quote: '발드르 죽음? 필연이었다',
+        id: 'loki', name: 'Loki', nameKo: '로키', icon: '🦊', avatarUrl: '/logos/mythology/loki.png', color: 'orange', category: 'mythology', subCategory: '북유럽', description: '속임과 변신의 트릭스터',
+        quote: '혼돈이 없으면 질서도 없다',
         sampleQuestions: ['슬레이프니르를 낳은 건 어땠나?', '발드르를 왜 죽게 만들었나?', '신들의 속박에서 풀려나면 뭘 할까?'],
 
     // Mythology — 기타 (5)
     },
     {
-        id: 'gilgamesh', name: 'Gilgamesh', nameKo: '길가메시', icon: '🏺', avatarUrl: '/logos/mythology/gilgamesh.png', color: 'amber', category: 'mythology', subCategory: '이집트·중동', description: '최초의 영웅왕·불멸을 찾아 떠난 자',
+        id: 'gilgamesh', name: 'Gilgamesh', nameKo: '길가메시', icon: '🏺', avatarUrl: '/logos/mythology/gilgamesh.png', color: 'amber', category: 'mythology', subCategory: '이집트·중동', description: '최초의 영웅왕·불멸의 추구자',
         quote: '엔키두를 잃고 불멸을 찾았다',
         sampleQuestions: ['엔키두와의 우정이 왜 결정적이었나?', '불사초를 뱀에게 뺏긴 심정은?', '우루크 성벽을 쌓은 진짜 이유는?'],
     },
     {
-        id: 'anubis', name: 'Anubis', nameKo: '아누비스', icon: '🐺', avatarUrl: '/logos/mythology/anubis.png', color: 'purple', category: 'mythology', subCategory: '이집트·중동', description: '이집트 저승의 안내자·심장을 재는 신',
+        id: 'anubis', name: 'Anubis', nameKo: '아누비스', icon: '🐺', avatarUrl: '/logos/mythology/anubis.png', color: 'purple', category: 'mythology', subCategory: '이집트·중동', description: '저승의 안내자·심장을 재는 신',
         quote: '마아트 깃털보다 가벼워야',
         sampleQuestions: ['심장 저울질에서 탈락하면 어디로?', '미라 방부 의식의 핵심은 뭔가?', '오시리스와 역할 분담은?'],
     },
     {
-        id: 'hanuman', name: 'Hanuman', nameKo: '하누만', icon: '🐵', avatarUrl: '/logos/mythology/hanuman.png', color: 'orange', category: 'mythology', subCategory: '아시아', description: '인도 신화의 충성스러운 원숭이 신',
+        id: 'hanuman', name: 'Hanuman', nameKo: '하누만', icon: '🐵', avatarUrl: '/logos/mythology/hanuman.png', color: 'orange', category: 'mythology', subCategory: '아시아', description: '충성스러운 원숭이 신',
         quote: '라마를 위해 바다를 건넜다',
         sampleQuestions: ['란카섬까지 어떻게 날아갔나?', '산지바니 산을 통째로 든 이유?', '시타 구출 작전의 핵심 전략은?'],
     },
     {
-        id: 'amaterasu', name: 'Amaterasu', nameKo: '아마테라스', icon: '☀️', avatarUrl: '/logos/mythology/amaterasu.png', color: 'amber', category: 'mythology', subCategory: '아시아', description: '일본 태양의 여신·빛과 질서의 근원',
+        id: 'amaterasu', name: 'Amaterasu', nameKo: '아마테라스', icon: '☀️', avatarUrl: '/logos/mythology/amaterasu.png', color: 'amber', category: 'mythology', subCategory: '아시아', description: '태양의 여신·빛과 질서의 근원',
         quote: '천암문에 숨자 세상이 멈췄다',
         sampleQuestions: ['아마노이와토에 왜 숨었나?', '스사노오의 난동을 어떻게 봐?', '삼종신기 중 거울의 의미는?'],
     },
     {
-        id: 'cuchulainn', name: 'Cu Chulainn', nameKo: '쿠훌린', icon: '🐕', avatarUrl: '/logos/mythology/cuchulainn.png', color: 'red', category: 'mythology', subCategory: '기타', description: '켈트의 전사영웅·광전사의 분노',
+        id: 'cuchulainn', name: 'Cu Chulainn', nameKo: '쿠훌린', icon: '🐕', avatarUrl: '/logos/mythology/cuchulainn.png', color: 'red', category: 'mythology', subCategory: '기타', description: '켈트의 전사영웅·광전사',
         quote: '게이볼그에 맞으면 끝이다',
         sampleQuestions: ['워프 스패즘 발동하면 어떻게 되나?', '쿠알른게 사냥개를 죽인 대가는?', '페르디아와의 결투가 왜 비극인가?'],
 
@@ -2519,7 +2519,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['아테나와 전쟁 방식이 왜 다른가?', '트로이전쟁에서 부상당한 소감은?', '아프로디테와의 밀회가 발각된 건?'],
     },
     {
-        id: 'prometheus', name: 'Prometheus', nameKo: '프로메테우스', icon: '🔥', color: 'orange', category: 'mythology', subCategory: '그리스', description: '인류에게 불을 훔친 반역자',
+        id: 'prometheus', name: 'Prometheus', nameKo: '프로메테우스', icon: '🔥', color: 'orange', category: 'mythology', subCategory: '그리스', description: '인류에게 불을 훔쳐준 반역자',
         quote: '불을 훔쳐 간이 뜯겼다',
         sampleQuestions: ['카우카소스 독수리 고통은 어떤가?', '제우스 몰래 불을 훔친 방법은?', '판도라 상자는 내 잘못인가?'],
     },
@@ -2546,14 +2546,14 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['전사자 절반을 왜 데려가나?', '세이드 마법을 오딘에게 가르친 건?', '오드를 찾아 황금 눈물을 흘린 적은?'],
     },
     {
-        id: 'fenrir', name: 'Fenrir', nameKo: '펜리르', icon: '🐺', color: 'red', category: 'mythology', subCategory: '북유럽', description: '속박된 거대 늑대·라그나로크의 선봉',
+        id: 'fenrir', name: 'Fenrir', nameKo: '펜리르', icon: '🐺', color: 'red', category: 'mythology', subCategory: '북유럽', description: '속박된 거대 늑대·라그나로크 선봉',
         quote: '글레이프니르가 풀리면 끝이다',
         sampleQuestions: ['티르의 손을 물어뜯은 건 복수인가?', '라그나로크에서 오딘을 삼키는 순간은?', '신들이 왜 나를 속박해야 했나?'],
 
     // 이집트·중동 추가
     },
     {
-        id: 'ra', name: 'Ra', nameKo: '라', icon: '☀️', color: 'amber', category: 'mythology', subCategory: '이집트·중동', description: '이집트 태양신·최고 창조주',
+        id: 'ra', name: 'Ra', nameKo: '라', icon: '☀️', color: 'amber', category: 'mythology', subCategory: '이집트·중동', description: '태양신·최고 창조주',
         quote: '매일 밤 아펩을 베어야 한다',
         sampleQuestions: ['태양 배를 타고 저승 항해는 어떤가?', '아펩과의 매일 전투가 지치지 않나?', '눈물에서 인간이 태어났다는 게 사실?'],
     },
@@ -2580,7 +2580,7 @@ export const DEFAULT_EXPERTS: Expert[] = [
         sampleQuestions: ['다카마가하라에서 추방된 이유는?', '쿠시나다히메를 어떻게 구했나?', '누나 아마테라스와 화해할 수 있나?'],
     },
     {
-        id: 'quetzalcoatl', name: 'Quetzalcoatl', nameKo: '케찰코아틀', icon: '🐉', color: 'emerald', category: 'mythology', subCategory: '기타', description: '깃털 달린 뱀·아즈텍 문명의 신',
+        id: 'quetzalcoatl', name: 'Quetzalcoatl', nameKo: '케찰코아틀', icon: '🐉', color: 'emerald', category: 'mythology', subCategory: '기타', description: '깃털 달린 뱀·아즈텍의 신',
         quote: '깃털 뱀이 옥수수를 내렸다',
         sampleQuestions: ['테스카틀리포카와의 대립은 왜인가?', '인간에게 옥수수를 준 이유는?', '돌아오겠다는 예언의 진실은?'],
     },
