@@ -52,8 +52,6 @@ interface Props {
   onFrameworkChange?: (fw: ThinkingFramework | null) => void;
   discussionIssues?: DiscussionIssue[];
   onDiscussionIssuesChange?: (issues: DiscussionIssue[]) => void;
-  debateIntensity?: string;
-  onDebateIntensityChange?: (v: string) => void;
   onBulkSelect?: (ids: string[]) => void;
   onSampleQuestionClick?: (question: string) => void;
   onStartGame?: (gameId: string, option: string, label: string) => void;
@@ -446,8 +444,6 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
   assignStance: (id: string, stance: 'pro' | 'con') => void;
   removeStance: (id: string) => void;
   MAX_PER_ZONE: number;
-  debateIntensity?: string;
-  onDebateIntensityChange?: (v: string) => void;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
 }) {
@@ -983,7 +979,48 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
           {/* 설정 — 카드 하단 */}
           <div className="bg-white border-t border-cyan-100">
-            <div className="flex items-center gap-3 px-4 py-2 [&>span]:text-[12px] [&>span]:font-semibold [&>span]:text-slate-600 [&>span]:w-16 [&>span]:tracking-tight">
+            {/* upgraded freetalk controls */}
+            <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
+              <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">최대 대화 수</span>
+              <div className="flex gap-1 flex-1">
+                {[{ v: 20, l: '20회' }, { v: 40, l: '40회' }, { v: 60, l: '60회' }].map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => onDebateSettingsChange?.({ ...ds, freetalkMessageCount: opt.v })}
+                    className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                      (ds.freetalkMessageCount || 40) === opt.v
+                        ? 'bg-cyan-100 text-cyan-700 font-semibold'
+                        : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
+              <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">말투</span>
+              <div className="flex gap-1 flex-1">
+                {[
+                  { v: 'ultra-polite' as const, l: '극존칭' },
+                  { v: 'polite' as const, l: '정중' },
+                  { v: 'natural' as const, l: '자연스럽게' },
+                  { v: 'direct' as const, l: '직설적' },
+                  { v: 'aggressive' as const, l: '공격적' },
+                ].map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => onDebateSettingsChange?.({ ...ds, freetalkTone: opt.v })}
+                    className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                      (ds.freetalkTone || 'natural') === opt.v
+                        ? 'bg-cyan-100 text-cyan-700 font-semibold'
+                        : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="hidden items-center gap-3 px-4 py-2 [&>span]:text-[12px] [&>span]:font-semibold [&>span]:text-slate-600 [&>span]:w-16 [&>span]:tracking-tight">
               <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">분량</span>
               <div className="flex gap-1 flex-1">
                 {[{v: 15, l: '짧게'}, {v: 25, l: '보통'}, {v: 40, l: '길게'}].map(opt => (
@@ -1135,6 +1172,42 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             <div className="border-t border-rose-100">
               <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
                 <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
+                  주제
+                </span>
+                <input
+                  value={ds.aivsUserTopic || ''}
+                  onChange={e => onDebateSettingsChange?.({ ...ds, aivsUserTopic: e.target.value })}
+                  placeholder="미리 정한 주제로 대결을 시작하세요"
+                  className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-[10px] text-slate-700 outline-none focus:border-rose-300 transition-all"
+                />
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
+                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
+                  내 입장
+                </span>
+                <div className="flex gap-1 flex-1">
+                  {([
+                    { v: 'pro' as const, l: '찬성' },
+                    { v: 'con' as const, l: '반대' },
+                    { v: 'random' as const, l: '자동' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.v}
+                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserStance: opt.v })}
+                      className={cn(
+                        'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                        (ds.aivsUserStance || 'pro') === opt.v
+                          ? 'bg-rose-100 text-rose-700 font-semibold'
+                          : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
+                      )}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
+                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
                   참여 인원
                 </span>
                 <div className="flex gap-1 flex-1">
@@ -1158,7 +1231,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-4 py-2">
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
                 <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
                   말투
                 </span>
@@ -1174,6 +1247,30 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                       className={cn(
                         'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
                         (ds.aivsUserDifficulty || 'normal') === opt.v
+                          ? 'bg-rose-100 text-rose-700 font-semibold'
+                          : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
+                      )}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2">
+                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
+                  승패 판정
+                </span>
+                <div className="flex gap-1 flex-1">
+                  {([
+                    { v: 'none' as const, l: '없음' },
+                    { v: 'final' as const, l: '마지막 판정' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.v}
+                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserVerdict: opt.v })}
+                      className={cn(
+                        'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
+                        (ds.aivsUserVerdict || 'final') === opt.v
                           ? 'bg-rose-100 text-rose-700 font-semibold'
                           : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
                       )}
@@ -3089,7 +3186,6 @@ export function ExpertSelectionPanel({
   debateSettings, onDebateSettingsChange, showDebateSettings,
   selectedFramework, onFrameworkChange,
   discussionIssues = [], onDiscussionIssuesChange,
-  debateIntensity = 'moderate', onDebateIntensityChange,
   onBulkSelect,
   onSampleQuestionClick,
   onStartGame,

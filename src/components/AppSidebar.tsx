@@ -30,10 +30,49 @@ interface Project {
   createdAt: number;
 }
 
+type SettingsSection = 'general' | 'notifications' | 'models' | 'personal' | 'data';
+
+type SidebarSettings = {
+  theme: 'light' | 'dark' | 'system';
+  language: 'ko' | 'en' | 'auto';
+  defaultModel: 'auto' | 'gpt' | 'gemini' | 'claude' | 'manus' | 'genspark';
+  notificationsEnabled: boolean;
+  soundEnabled: boolean;
+  responseStyle: 'concise' | 'balanced' | 'detailed';
+  compactUi: boolean;
+  saveHistory: boolean;
+};
+
 const PROJECT_ICONS = ['📁', '💼', '📊', '📚', '🎯', '💡', '🔬', '🎨', '🏠', '✈️', '💰', '🎮', '📝', '🔧', '🌍', '❤️'];
 
 const PROJECTS_KEY = 'ai-projects';
 const PROJECT_MAP_KEY = 'ai-project-map';
+const SIDEBAR_SETTINGS_KEY = 'personai-sidebar-settings-v1';
+
+function getDefaultSidebarSettings(): SidebarSettings {
+  const savedTheme = typeof window !== 'undefined' ? (localStorage.getItem('theme') as SidebarSettings['theme'] | null) : null;
+  return {
+    theme: savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system' ? savedTheme : 'system',
+    language: 'ko',
+    defaultModel: 'auto',
+    notificationsEnabled: false,
+    soundEnabled: true,
+    responseStyle: 'balanced',
+    compactUi: false,
+    saveHistory: true,
+  };
+}
+
+function loadSidebarSettings(): SidebarSettings {
+  if (typeof window === 'undefined') return getDefaultSidebarSettings();
+  try {
+    const raw = localStorage.getItem(SIDEBAR_SETTINGS_KEY);
+    if (!raw) return getDefaultSidebarSettings();
+    return { ...getDefaultSidebarSettings(), ...JSON.parse(raw) };
+  } catch {
+    return getDefaultSidebarSettings();
+  }
+}
 
 function getProjects(): Project[] {
   try { return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '[]'); } catch { return []; }
@@ -136,6 +175,7 @@ export function AppSidebar({
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editProjectName, setEditProjectName] = useState('');
   const [projectMenuId, setProjectMenuId] = useState<string | null>(null);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [showProjectPicker, setShowProjectPicker] = useState<string | null>(null);
   const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -146,9 +186,12 @@ export function AppSidebar({
 
   // Bot browser modal state
   const [showBotBrowser, setShowBotBrowser] = useState(false);
-  const [botBrowserCat, setBotBrowserCat] = useState('전체');
+  const [botBrowserCat, setBotBrowserCat] = useState('인기');
   const [botMoreOpen, setBotMoreOpen] = useState(false);
   const [selectedBotProfile, setSelectedBotProfile] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('general');
+  const [sidebarSettings, setSidebarSettings] = useState<SidebarSettings>(() => loadSidebarSettings());
 
   const editInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -228,10 +271,34 @@ export function AppSidebar({
       if (e.key === 'Escape' && searchModalOpen) {
         setSearchModalOpen(false);
       }
+      if (e.key === 'Escape' && settingsOpen) {
+        setSettingsOpen(false);
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [searchModalOpen]);
+  }, [searchModalOpen, settingsOpen]);
+
+  useEffect(() => {
+    const handleOpenSettings = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: SettingsSection }>).detail;
+      setSettingsSection(detail?.section ?? 'general');
+      setSettingsOpen(true);
+    };
+
+    const handleOpenProjects = () => {
+      setIsOpen(true);
+      setProjectsExpanded(true);
+    };
+
+    window.addEventListener('personai:open-settings', handleOpenSettings as EventListener);
+    window.addEventListener('personai:open-projects', handleOpenProjects);
+
+    return () => {
+      window.removeEventListener('personai:open-settings', handleOpenSettings as EventListener);
+      window.removeEventListener('personai:open-projects', handleOpenProjects);
+    };
+  }, []);
 
   const toggleSidebar = () => setIsOpen(prev => !prev);
 
@@ -277,9 +344,39 @@ export function AppSidebar({
     refreshHistory();
   };
 
+  const applyThemeSetting = useCallback((theme: SidebarSettings['theme']) => {
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    const shouldUseDark =
+      theme === 'dark' ||
+      (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (shouldUseDark) root.classList.add('dark');
+    localStorage.setItem('theme', theme);
+  }, []);
+
+  const updateSidebarSettings = useCallback((patch: Partial<SidebarSettings>) => {
+    setSidebarSettings(prev => {
+      const next = { ...prev, ...patch };
+      localStorage.setItem(SIDEBAR_SETTINGS_KEY, JSON.stringify(next));
+      if (patch.theme) applyThemeSetting(next.theme);
+      return next;
+    });
+  }, [applyThemeSetting]);
+
   const toggleDarkMode = () => {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    const nextTheme = sidebarSettings.theme === 'dark' ? 'light' : 'dark';
+    updateSidebarSettings({ theme: nextTheme });
+  };
+
+  const handleNotificationToggle = async (enabled: boolean) => {
+    if (enabled && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        updateSidebarSettings({ notificationsEnabled: false });
+        return;
+      }
+    }
+    updateSidebarSettings({ notificationsEnabled: enabled });
   };
 
   const toggleSearch = () => {
@@ -311,6 +408,7 @@ export function AppSidebar({
     });
     if (activeProjectId === id) setActiveProjectId(null);
     setProjectMenuId(null);
+    setDeletingProjectId(null);
   };
 
   const renameProject = (id: string) => {
@@ -363,6 +461,41 @@ export function AppSidebar({
       .filter(label => groups[label]?.length)
       .map(label => ({ label, items: groups[label] }));
   })();
+
+  const settingsNav = [
+    { id: 'general' as const, label: '일반', icon: Settings },
+    { id: 'notifications' as const, label: '알림', icon: MessageSquare },
+    { id: 'models' as const, label: 'AI 모델', icon: Bot },
+    { id: 'personal' as const, label: '개인 맞춤', icon: SlidersHorizontal },
+    { id: 'data' as const, label: '데이터 제어', icon: FolderOpen },
+  ];
+
+  const themeOptions: Array<{ value: SidebarSettings['theme']; label: string }> = [
+    { value: 'light', label: '라이트' },
+    { value: 'dark', label: '다크' },
+    { value: 'system', label: '시스템' },
+  ];
+
+  const languageOptions: Array<{ value: SidebarSettings['language']; label: string }> = [
+    { value: 'ko', label: '한국어' },
+    { value: 'en', label: 'English' },
+    { value: 'auto', label: '자동 감지' },
+  ];
+
+  const modelOptions: Array<{ value: SidebarSettings['defaultModel']; label: string }> = [
+    { value: 'auto', label: '자동' },
+    { value: 'gpt', label: 'GPT' },
+    { value: 'gemini', label: 'Gemini' },
+    { value: 'claude', label: 'Claude' },
+    { value: 'manus', label: 'Manus' },
+    { value: 'genspark', label: 'Genspark' },
+  ];
+
+  const responseStyleOptions: Array<{ value: SidebarSettings['responseStyle']; label: string }> = [
+    { value: 'concise', label: '간결하게' },
+    { value: 'balanced', label: '균형 있게' },
+    { value: 'detailed', label: '자세하게' },
+  ];
 
   const renderConversationItem = (record: DiscussionRecord) => {
     const isActive = activeRecordId === record.id;
@@ -595,7 +728,7 @@ export function AppSidebar({
         <nav className={cn("shrink-0 space-y-0.5", isOpen ? 'px-2' : 'px-1')}>
           {[
             { icon: SquarePen, label: '새 채팅', onClick: handleNewDiscussion, highlight: true },
-            { icon: Bot, label: 'AI 봇', onClick: () => setShowBotBrowser(true) },
+            { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('인기'); setShowBotBrowser(true); } },
             { icon: Search, label: '검색', onClick: () => { setSearchModalOpen(true); setModalSearchQuery(''); }, active: searchModalOpen },
           ].map(item => (
             <button
@@ -625,19 +758,19 @@ export function AppSidebar({
           <div className="shrink-0 px-1.5">
             {/* Header */}
             <div className="flex items-center justify-between px-2 py-1.5">
-              <button
+              {false && <button
                 onClick={() => setProjectsExpanded(!projectsExpanded)}
                 className="flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
                 <ChevronRight className={cn("w-3 h-3 transition-transform", projectsExpanded && "rotate-90")} />
                 프로젝트
-              </button>
-              <button
+              </button>}
+              {false && <button
                 onClick={() => { setCreatingProject(true); setNewProjectName(''); }}
                 className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-              </button>
+              </button>}
             </div>
 
             {/* Project creation input */}
@@ -730,14 +863,14 @@ export function AppSidebar({
                             <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
                           </button>
                           <button
-                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setTimeout(() => setShowIconPicker(project.id), 50); }}
+                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setShowIconPicker(project.id); }}
                             className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                           >
                             <span className="w-3.5 h-3.5 flex items-center justify-center text-[11px]">{project.icon || '📁'}</span> 아이콘 변경
                           </button>
                           <div className="my-0.5 border-t border-slate-100 dark:border-slate-700" />
                           <button
-                            onClick={e => { e.stopPropagation(); deleteProject(project.id); }}
+                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setDeletingProjectId(project.id); }}
                             className="w-full px-3 py-1.5 text-left text-[12px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" /> 삭제
@@ -802,6 +935,24 @@ export function AppSidebar({
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setDeletingId(null)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
                   <button onClick={() => handleDeleteHistory(deletingId)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {deletingProjectId && (() => {
+          const project = projects.find(p => p.id === deletingProjectId);
+          if (!project) return null;
+          return (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setDeletingProjectId(null)}>
+              <div className="absolute inset-0 bg-black/20"></div>
+              <div onClick={e => e.stopPropagation()} className="relative w-72 p-5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+                <p className="text-[14px] font-semibold text-slate-700 dark:text-slate-300 mb-1">프로젝트를 삭제할까요?</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 truncate">{project.icon || '📁'} {project.name}</p>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setDeletingProjectId(null)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
+                  <button onClick={() => deleteProject(deletingProjectId)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
                 </div>
               </div>
             </div>
@@ -914,7 +1065,7 @@ export function AppSidebar({
         {/* ── 6. Bottom Section — 마누스 스타일 ── */}
         <div className="shrink-0 border-t border-slate-200 dark:border-slate-800">
           <div className={cn("flex items-center", isOpen ? 'px-2 py-2 justify-between' : 'px-1 py-2 flex-col gap-1 justify-center')}>
-            <button className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" title="설정">
+            <button onClick={() => { setSettingsSection('general'); setSettingsOpen(true); }} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" title="설정">
               <Settings className="w-[18px] h-[18px]" />
             </button>
             <button onClick={toggleDarkMode} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" title="다크모드">
@@ -927,6 +1078,300 @@ export function AppSidebar({
           </div>
         </div>
       </aside>
+
+      {settingsOpen && (
+        <div className="fixed inset-0 z-[205] flex items-center justify-center p-4" onClick={() => setSettingsOpen(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div
+            className="relative w-full max-w-[760px] h-[540px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#101217]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex h-full">
+              <div className="flex w-[174px] shrink-0 flex-col border-r border-slate-200 bg-slate-50/90 p-2.5 dark:border-slate-800 dark:bg-slate-950/70">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[17px] font-bold text-slate-900 dark:text-white">설정</p>
+                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Personai 작업 환경을 정리합니다</p>
+                  </div>
+                  <button
+                    onClick={() => setSettingsOpen(false)}
+                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  {settingsNav.map(item => {
+                    const Icon = item.icon;
+                    const active = settingsSection === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setSettingsSection(item.id)}
+                        className={cn(
+                          'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-colors',
+                          active
+                            ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:text-white dark:ring-slate-700'
+                            : 'text-slate-500 hover:bg-white/70 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-900/60 dark:hover:text-slate-200',
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="text-[12px] font-medium">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-auto rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900/80">
+                  <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">간단 기능만 실제 저장</p>
+                  <p className="mt-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+                    테마, 알림, 기본 모델, 응답 스타일, 기록 저장은 바로 반영됩니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col bg-white dark:bg-[#101217]">
+                <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                  <p className="text-[17px] font-bold text-slate-900 dark:text-white">
+                    {settingsNav.find(item => item.id === settingsSection)?.label}
+                  </p>
+                  <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
+                    {settingsSection === 'general' && '기본 환경, 언어, 화면 표시 방식을 조정합니다.'}
+                    {settingsSection === 'notifications' && '브라우저 알림과 소리 알림 방식을 관리합니다.'}
+                    {settingsSection === 'models' && 'GPT, Gemini, Claude, Manus, Genspark 기본 우선순위를 정합니다.'}
+                    {settingsSection === 'personal' && '답변 스타일과 인터페이스 밀도를 조정합니다.'}
+                    {settingsSection === 'data' && '대화 기록 저장과 데이터 보관 방식을 관리합니다.'}
+                  </p>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+                  {settingsSection === 'general' && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">화면 테마</p>
+                        <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">GPT, Claude처럼 작업할 때 가장 편한 색상 모드를 고릅니다.</p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {themeOptions.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => updateSidebarSettings({ theme: option.value })}
+                              className={cn(
+                                'rounded-full px-4 py-2 text-[13px] font-medium transition-colors',
+                                sidebarSettings.theme === option.value
+                                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                                  : 'border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
+                              )}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">언어</p>
+                        <div className="mt-4 space-y-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">인터페이스 언어</span>
+                            <div className="flex gap-2">
+                              {languageOptions.map(option => (
+                                <button
+                                  key={option.value}
+                                  onClick={() => updateSidebarSettings({ language: option.value })}
+                                  className={cn(
+                                    'rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors',
+                                    sidebarSettings.language === option.value
+                                      ? 'bg-blue-600 text-white'
+                                      : 'border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
+                                  )}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsSection === 'notifications' && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">브라우저 알림</p>
+                            <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">답변 완료, 작업 종료, 메모 알람을 브라우저 알림으로 받을 수 있습니다.</p>
+                          </div>
+                          <button
+                            onClick={() => handleNotificationToggle(!sidebarSettings.notificationsEnabled)}
+                            className={cn(
+                              'relative h-7 w-12 rounded-full transition-colors',
+                              sidebarSettings.notificationsEnabled ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all',
+                                sidebarSettings.notificationsEnabled ? 'left-6' : 'left-1',
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">소리 알림</p>
+                            <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">Claude, Gemini처럼 응답이 끝나면 가벼운 알림음을 재생합니다.</p>
+                          </div>
+                          <button
+                            onClick={() => updateSidebarSettings({ soundEnabled: !sidebarSettings.soundEnabled })}
+                            className={cn(
+                              'relative h-7 w-12 rounded-full transition-colors',
+                              sidebarSettings.soundEnabled ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all',
+                                sidebarSettings.soundEnabled ? 'left-6' : 'left-1',
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsSection === 'models' && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">기본 우선 모델</p>
+                        <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">질문을 시작할 때 가장 먼저 보여줄 모델을 정합니다.</p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {modelOptions.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => updateSidebarSettings({ defaultModel: option.value })}
+                              className={cn(
+                                'rounded-full px-4 py-2 text-[13px] font-medium transition-colors',
+                                sidebarSettings.defaultModel === option.value
+                                  ? 'bg-violet-600 text-white'
+                                  : 'border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
+                              )}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {[
+                          { name: 'GPT', note: '일반 지식, 글쓰기, 분석을 균형 있게 처리합니다.' },
+                          { name: 'Gemini', note: '검색형 질문과 멀티모달 작업에 잘 맞습니다.' },
+                          { name: 'Claude', note: '긴 문서 읽기, 구조화된 정리에 강합니다.' },
+                          { name: 'Manus', note: '조사, 자동화형 작업을 빠르게 이어서 진행합니다.' },
+                          { name: 'Genspark', note: '아이디어 확장과 초안 생성용 후보로 적합합니다.' },
+                        ].map(item => (
+                          <div key={item.name} className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{item.name}</p>
+                            <p className="mt-1 text-[12px] leading-5 text-slate-500 dark:text-slate-400">{item.note}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsSection === 'personal' && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">기본 응답 스타일</p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {responseStyleOptions.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => updateSidebarSettings({ responseStyle: option.value })}
+                              className={cn(
+                                'rounded-full px-4 py-2 text-[13px] font-medium transition-colors',
+                                sidebarSettings.responseStyle === option.value
+                                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                                  : 'border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
+                              )}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">컴팩트 UI</p>
+                            <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">탭, 카드, 목록 간격을 조금 더 촘촘하게 보여줍니다.</p>
+                          </div>
+                          <button
+                            onClick={() => updateSidebarSettings({ compactUi: !sidebarSettings.compactUi })}
+                            className={cn(
+                              'relative h-7 w-12 rounded-full transition-colors',
+                              sidebarSettings.compactUi ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-700',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all dark:bg-slate-900',
+                                sidebarSettings.compactUi ? 'left-6 dark:bg-slate-900' : 'left-1 dark:bg-white',
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsSection === 'data' && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">대화 기록 저장</p>
+                            <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">질문, 답변, 토론 기록을 기기 브라우저에 보관합니다.</p>
+                          </div>
+                          <button
+                            onClick={() => updateSidebarSettings({ saveHistory: !sidebarSettings.saveHistory })}
+                            className={cn(
+                              'relative h-7 w-12 rounded-full transition-colors',
+                              sidebarSettings.saveHistory ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-700',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all',
+                                sidebarSettings.saveHistory ? 'left-6' : 'left-1',
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-dashed border-slate-300 p-5 dark:border-slate-700">
+                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">추가 예정</p>
+                        <p className="mt-2 text-[12px] leading-5 text-slate-500 dark:text-slate-400">
+                          대화 내보내기, 프로젝트 백업, 기기 간 동기화 같은 항목은 나중에 확장할 수 있도록 자리만 잡아두었습니다.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Manus-style Search Modal */}
       {searchModalOpen && (
@@ -949,7 +1394,6 @@ export function AppSidebar({
                 placeholder="작업 검색..."
                 className="flex-1 text-[14px] text-slate-900 dark:text-white bg-transparent outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
-              <kbd className="hidden sm:inline text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">ESC</kbd>
               <button onClick={() => setSearchModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <X className="w-4 h-4" />
               </button>
@@ -957,17 +1401,6 @@ export function AppSidebar({
 
             {/* Results */}
             <div className="max-h-[50vh] overflow-y-auto">
-              {/* New Chat button */}
-              <button
-                onClick={() => { setSearchModalOpen(false); onNewDiscussion?.(); }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800/50"
-              >
-                <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <Plus className="w-3.5 h-3.5 text-slate-500" />
-                </div>
-                <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">새 작업</span>
-              </button>
-
               {/* Filtered conversation list grouped by date */}
               {(() => {
                 const query = modalSearchQuery.toLowerCase();

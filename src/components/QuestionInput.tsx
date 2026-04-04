@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowUp, FolderPlus, Paperclip, Plus, Square, X } from 'lucide-react';
+import { ArrowUp, FolderPlus, ImagePlus, Paperclip, Plus, Settings, Share2, Square, X } from 'lucide-react';
 import { DiscussionMode, Expert } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import type { AttachedFile } from '@/lib/fileProcessor';
@@ -71,8 +71,16 @@ function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: Discuss
   if (discussionMode === 'general') return '궁금한 것을 물어보세요';
   if (discussionMode === 'multi') return '여러 AI에게 동시에 질문해보세요';
   if (discussionMode === 'expert') return '전문가에게 상담할 내용을 입력해보세요';
-  if (discussionMode === 'aivsuser') return 'AI와 토론할 주제를 입력해보세요';
+  if (discussionMode === 'aivsuser') return '내 입장에서 첫 주장을 입력해보세요';
   return '토론하고 싶은 주제를 입력해보세요';
+}
+
+function openSettingsModal() {
+  window.dispatchEvent(new CustomEvent('personai:open-settings', { detail: { section: 'general' } }));
+}
+
+function openProjectsSidebar() {
+  window.dispatchEvent(new CustomEvent('personai:open-projects'));
 }
 
 export function QuestionInput({
@@ -97,6 +105,10 @@ export function QuestionInput({
   const [fileError, setFileError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Keep render-derived flags above callbacks that capture them to avoid TDZ crashes on first render.
+  const canUseTools = !disabled && !isStreaming;
+  const canAttachFiles = discussionMode !== 'procon';
+  const canGenerateImages = discussionMode !== 'procon';
 
   useEffect(() => {
     const timer = setTimeout(() => textareaRef.current?.focus(), 100);
@@ -120,6 +132,7 @@ export function QuestionInput({
   }, [fileError]);
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
+    if (!canAttachFiles) return;
     if (!files || files.length === 0) return;
 
     setFileError(null);
@@ -142,11 +155,63 @@ export function QuestionInput({
         setFileError('파일 처리 중 오류가 발생했습니다.');
       }
     }
-  }, [attachedFiles]);
+  }, [attachedFiles, canAttachFiles]);
 
   const removeFile = (fileId: string) => {
     setAttachedFiles((prev) => prev.filter((file) => file.id !== fileId));
   };
+
+  const focusTextarea = useCallback(() => {
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  }, []);
+
+  const handleImageGenerate = useCallback(() => {
+    setQuestion((prev) => {
+      const next = prev.trim();
+      return next ? `${next}\n\n이미지 만들어줘` : '이미지 만들어줘';
+    });
+    focusTextarea();
+  }, [focusTextarea]);
+
+  const handleShareConversation = useCallback(async () => {
+    const shareText = question.trim() || 'Personai 대화';
+    const shareUrl = window.location.href;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Personai 대화', text: shareText, url: shareUrl });
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      // Ignore cancellations and unavailable clipboard APIs.
+    }
+  }, [question]);
+
+  const handleQuickImageGenerate = useCallback(() => {
+    setQuestion((prev) => {
+      const next = prev.trim();
+      return next ? `${next}\n\n이미지 만들어줘` : '이미지 만들어줘';
+    });
+    focusTextarea();
+  }, [focusTextarea]);
+
+  const handleConversationShare = useCallback(async () => {
+    const shareText = question.trim() || 'Personai 대화';
+    const shareUrl = window.location.href;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Personai 대화', text: shareText, url: shareUrl });
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      // Ignore cancellations and unavailable clipboard APIs.
+    }
+  }, [question]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,7 +237,7 @@ export function QuestionInput({
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!disabled && !isStreaming) setIsDragOver(true);
+    if (canAttachFiles && !disabled && !isStreaming) setIsDragOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -186,14 +251,18 @@ export function QuestionInput({
     e.stopPropagation();
     setIsDragOver(false);
 
-    if (!disabled && !isStreaming) {
+    if (canAttachFiles && !disabled && !isStreaming) {
       handleFileSelect(e.dataTransfer.files);
     }
   };
 
   const placeholder = getPlaceholder(isFollowUp, discussionMode);
   const canSubmit = !!question.trim() && !disabled && !isStreaming;
-  const canUseTools = !disabled && !isStreaming;
+  const showSelectionAccent =
+    !embedded &&
+    !disabled &&
+    discussionMode === 'general' &&
+    (selectedExperts?.length ?? 0) > 0;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -209,7 +278,7 @@ export function QuestionInput({
               ? embedded
                 ? 'opacity-75'
                 : 'border-slate-200 opacity-75'
-              : focused
+              : focused || showSelectionAccent
                 ? embedded
                   ? 'bg-transparent'
                   : 'border-violet-300 bg-white shadow-[0_2px_20px_rgba(139,92,246,0.10)]'
@@ -309,17 +378,19 @@ export function QuestionInput({
             <div className="px-5 pt-2 text-[11px] text-red-500">{fileError}</div>
           )}
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            multiple
-            accept="image/*,.pdf,.docx,.xlsx"
-            onChange={(e) => {
-              handleFileSelect(e.target.files);
-              e.target.value = '';
-            }}
-            className="hidden"
-          />
+          {canAttachFiles && (
+            <input
+              type="file"
+              ref={fileInputRef}
+              multiple
+              accept="image/*,.pdf,.docx,.xlsx"
+              onChange={(e) => {
+                handleFileSelect(e.target.files);
+                e.target.value = '';
+              }}
+              className="hidden"
+            />
+          )}
 
           <textarea
             ref={textareaRef}
@@ -331,7 +402,7 @@ export function QuestionInput({
             disabled={disabled}
             className={cn(
               'block w-full max-h-[140px] resize-none bg-transparent text-[14px] leading-relaxed text-foreground placeholder:text-slate-400 focus:outline-none',
-              embedded ? 'min-h-[76px] px-5 pb-3 pt-4' : 'min-h-[44px] px-5 pb-2 pt-4'
+              embedded ? 'min-h-[68px] px-5 pb-2.5 pt-3.5' : 'min-h-[44px] px-5 pb-2 pt-4'
             )}
             rows={embedded ? 2 : 1}
             onKeyDown={(e) => {
@@ -347,7 +418,7 @@ export function QuestionInput({
             }}
           />
 
-          <div className={cn('flex items-center justify-between px-3', embedded ? 'py-2.5' : 'py-1.5')}>
+          <div className={cn('flex items-center justify-between px-3', embedded ? 'py-2' : 'py-1.5')}>
             <div className="flex items-center gap-1">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -364,26 +435,122 @@ export function QuestionInput({
                 <DropdownMenuContent
                   align="start"
                   side="top"
-                  className="w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.12)]"
+                  className="w-60 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.12)]"
                 >
                   <DropdownMenuItem
-                    disabled={!canUseTools}
-                    onSelect={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium text-slate-700"
+                    disabled={!canUseTools || !canAttachFiles}
+                    onSelect={() => {
+                      if (!canAttachFiles) return;
+                      fileInputRef.current?.click();
+                    }}
+                    style={{ display: canAttachFiles ? 'flex' : 'none' }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
                   >
                     <Paperclip className="h-4 w-4 text-slate-500" strokeWidth={2} />
                     파일 추가
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    disabled={!canUseTools || !onToggleSettings}
-                    onSelect={() => onToggleSettings?.()}
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium text-slate-700"
+                    disabled={!canUseTools}
+                    onSelect={() => openProjectsSidebar()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
                   >
                     <FolderPlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
                     프로젝트에 추가
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canUseTools || !canGenerateImages}
+                    onSelect={() => {
+                      if (!canGenerateImages) return;
+                      handleQuickImageGenerate();
+                    }}
+                    style={{ display: canGenerateImages ? 'flex' : 'none' }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
+                  >
+                    <ImagePlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    이미지 만들기
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canUseTools}
+                    onSelect={() => void handleConversationShare()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
+                  >
+                    <Share2 className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    대화 공유하기
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canUseTools}
+                    onSelect={() => openSettingsModal()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
+                  >
+                    <Settings className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    설정
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <div className="hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={!canUseTools}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-40 disabled:hover:bg-white"
+                    aria-label="추가 메뉴"
+                    title="추가 메뉴"
+                  >
+                    <Plus className="h-4 w-4" strokeWidth={2.2} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  side="top"
+                  className="w-60 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.12)]"
+                >
+                  <DropdownMenuItem
+                    disabled={!canUseTools}
+                    onSelect={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
+                  >
+                    <Paperclip className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    파일 추가
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canUseTools}
+                    onSelect={() => openProjectsSidebar()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
+                  >
+                    <FolderPlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    프로젝트에 추가
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canUseTools}
+                    onSelect={() => handleImageGenerate()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
+                  >
+                    <ImagePlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    이미지 만들기
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canUseTools}
+                    onSelect={() => void handleShareConversation()}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
+                  >
+                    <Share2 className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    대화 공유하기
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canUseTools}
+                    onSelect={() => {
+                      onToggleSettings?.();
+                      openSettingsModal();
+                    }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
+                  >
+                    <Settings className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                    설정
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              </div>
             </div>
 
             <div className="flex items-center gap-1.5">
