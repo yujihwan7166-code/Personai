@@ -1,6 +1,6 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS } from '@/types/expert';
 import { applyExpertOverrides } from '@/data/expertOverrides';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
@@ -233,6 +233,8 @@ const Index = () => {
   const [aivsJudgments, setAivsJudgments] = useState<any[]>([]); // judgment history
   const [aivsUserStance, setAivsUserStance] = useState<'pro' | 'con'>('pro');
   const [aivsTopic, setAivsTopic] = useState('');
+  const [activeAivsBattleConfig, setActiveAivsBattleConfig] = useState<ActiveAivsBattleConfig | null>(null);
+  const [hasAivsBattleStarted, setHasAivsBattleStarted] = useState(false);
   const [, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -292,6 +294,13 @@ const Index = () => {
     setShowDebateSettings(false);
     setSelectedFramework(null);
     setDiscussionIssues([]);
+    if (mode !== 'aivsuser') {
+      setHasAivsBattleStarted(false);
+      setActiveAivsBattleConfig(null);
+      setAivsRound(0);
+      setAivsJudgments([]);
+      setAivsTopic('');
+    }
   };
 
   const copyAllResults = () => {
@@ -360,6 +369,42 @@ const Index = () => {
   }, [experts, messages, currentQuestion, isDiscussing]);
 
   const activeExperts = experts.filter((e) => selectedExpertIds.includes(e.id));
+
+  const startAivsBattle = useCallback((draft: AivsBattleDraft) => {
+    const topic = AIVS_USER_TOPIC_PRESETS.find(item => item.id === draft.topicId) || AIVS_USER_TOPIC_PRESETS[0];
+    if (!topic) return;
+
+    const resolvedStance = draft.userStance === 'random'
+      ? (Math.random() > 0.5 ? 'pro' : 'con')
+      : draft.userStance;
+    const opponentCount = debateSettings.aivsUserOpponentCount || 1;
+    const opponentIds = selectedExpertIds.slice(0, opponentCount);
+
+    setDebateSettings(prev => ({
+      ...prev,
+      aivsUserOpponentCount: opponentCount,
+      aivsUserDifficulty: draft.battleTone,
+      aivsUserStance: draft.userStance,
+      aivsUserVerdict: draft.verdictMode,
+      aivsUserTopic: topic.title,
+    }));
+    setActiveAivsBattleConfig({
+      topicId: topic.id,
+      topicTitle: topic.title,
+      topicDescription: topic.description,
+      userStance: resolvedStance,
+      battleTone: draft.battleTone,
+      verdictMode: draft.verdictMode,
+      opponentCount,
+      opponentIds,
+    });
+    setHasAivsBattleStarted(true);
+    setAivsRound(0);
+    setAivsJudgments([]);
+    setAivsUserStance(resolvedStance);
+    setAivsTopic(topic.title);
+    setMessages([]);
+  }, [debateSettings.aivsUserOpponentCount, selectedExpertIds]);
 
   const stopDiscussion = () => {
     setStopRequested(true);
@@ -578,35 +623,33 @@ ${role.focus} 관점에서 반응하세요.
 
     // ═══ AI vs User Debate Mode — 자유 티키타카 ═══
     if (useMode === 'aivsuser') {
-      const difficulty = debateSettings.aivsUserDifficulty || 'normal';
-      let stance = debateSettings.aivsUserStance || 'pro';
-      if (stance === 'random') stance = Math.random() > 0.5 ? 'pro' : 'con';
-      const userStance = stance as 'pro' | 'con';
-      const stanceKo = userStance === 'pro' ? '찬성' : '반대';
-      const aiStanceKo = userStance === 'pro' ? '반대' : '찬성';
-      const verdictMode = debateSettings.aivsUserVerdict || 'final';
-      const opponentCount = debateSettings.aivsUserOpponentCount || 1;
-      const presetTopic = (debateSettings.aivsUserTopic || '').trim();
-      const topic = presetTopic;
-      const openingArgument = question.trim();
-
-      // 선택한 AI 사용 (없으면 gemini 기본)
-      const aiOpponents = discussionExperts.length > 0
-        ? discussionExperts.slice(0, opponentCount)
-        : [experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0]].filter(Boolean);
-
-      if (!topic) {
+      const battleConfig = activeAivsBattleConfig;
+      if (!battleConfig) {
         setMessages([
           {
-            id: `avsu-topic-required-${Date.now()}`,
+            id: `avsu-config-required-${Date.now()}`,
             expertId: '__round__',
-            content: '⚠️ AI vs 유저 대결을 시작하려면 먼저 설정창에서 토론 주제를 정해주세요.',
+            content: '⚠️ AI vs 유저 대결은 먼저 "배틀 시작"에서 설정을 완료해야 시작할 수 있어요.',
           },
         ]);
         setIsDiscussing(false);
         setActiveExpertId(undefined);
         return;
       }
+
+      const difficulty = battleConfig.battleTone;
+      const userStance = battleConfig.userStance;
+      const stanceKo = userStance === 'pro' ? '찬성' : '반대';
+      const aiStanceKo = userStance === 'pro' ? '반대' : '찬성';
+      const verdictMode = battleConfig.verdictMode;
+      const opponentCount = battleConfig.opponentCount;
+      const topic = battleConfig.topicTitle;
+      const openingArgument = question.trim();
+
+      // 선택한 AI 사용 (없으면 gemini 기본)
+      const aiOpponents = discussionExperts.length > 0
+        ? discussionExperts.filter(expert => battleConfig.opponentIds.includes(expert.id)).slice(0, opponentCount)
+        : [experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0]].filter(Boolean);
 
       setAivsRound(openingArgument ? 1 : 0);
       setAivsJudgments([]);
@@ -618,7 +661,7 @@ ${role.focus} 관점에서 반응하세요.
         {
           id: `avsu-start-${Date.now()}`,
           expertId: '__round__',
-          content: `⚔️ **${topic}**\n\n유저(${stanceKo}) vs ${aiNames}(${aiStanceKo}) · ${difficulty === 'easy' ? '😊 친근' : difficulty === 'hard' ? '🔥 공격적' : '🤝 논리적'} · ${verdictMode === 'final' ? '🏁 마지막 승패 판정' : '✍️ 자유 대결'}`
+          content: `⚔️ **${topic}**\n\n유저(${stanceKo}) vs ${aiNames}(${aiStanceKo}) · ${difficulty === 'easy' ? '😊 친근' : difficulty === 'hard' ? '🔥 공격적' : '🤝 논리적'} · ${verdictMode === 'final' ? '🏁 마지막 승패 판정' : '✍️ 자유 대결'}\n\n주제 설명: ${battleConfig.topicDescription}`
         },
       ];
 
@@ -1697,7 +1740,7 @@ Rules:
     setActiveExpertId(undefined);
     setIsDiscussing(false);
     setStopRequested(false);
-  }, [experts, selectedExpertIds, discussionMode, debateSettings, stakeholderSettings]);
+  }, [experts, selectedExpertIds, discussionMode, debateSettings, stakeholderSettings, activeAivsBattleConfig]);
 
   // Topic clarification — 토론 모드에서 주제 확인 UI 표시
   const clarifyTopic = useCallback((input: string, mode: DiscussionMode) => {
@@ -1736,13 +1779,21 @@ Rules:
   const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
     if (clarifyState.show) return;
     const useMode = overrideMode || discussionMode;
+    if (useMode === 'aivsuser' && !activeAivsBattleConfig) {
+      setMessages([{
+        id: `avsu-start-required-${Date.now()}`,
+        expertId: '__round__',
+        content: '⚠️ 먼저 배틀 시작 버튼에서 주제와 규칙을 정해주세요.',
+      }]);
+      return;
+    }
     const debateModes = ['standard', 'procon', 'brainstorm', 'hearing', 'freetalk', 'aivsuser'];
     if (debateModes.includes(useMode) && useMode !== 'brainstorm' && useMode !== 'freetalk' && useMode !== 'aivsuser') {
       clarifyTopic(question, useMode);
       return;
     }
     runDiscussion(question, overrideExpertIds, overrideMode);
-  }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussion]);
+  }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussion, activeAivsBattleConfig]);
 
   // Save to history when discussion completes — upsert로 중복 방지
   useEffect(() => {
@@ -2175,7 +2226,18 @@ ${conversationText}`;
 
     // ═══ AI vs User — 자유 티키타카 ═══
     if (discussionMode === 'aivsuser') {
-      const verdictMode = debateSettings.aivsUserVerdict || 'final';
+      const battleConfig = activeAivsBattleConfig;
+      if (!battleConfig) {
+        setMessages(prev => [...prev, {
+          id: `avsu-config-missing-${Date.now()}`,
+          expertId: '__round__',
+          content: '⚠️ 배틀 설정을 다시 시작해주세요. 현재 대결 설정이 비어 있어요.',
+        }]);
+        setIsDiscussing(false);
+        setActiveExpertId(undefined);
+        return;
+      }
+      const verdictMode = battleConfig.verdictMode;
       // 종료 트리거
       if (question === '__AVSU_END__') {
         if (verdictMode === 'none') {
@@ -2203,10 +2265,10 @@ ${conversationText}`;
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              topic: aivsTopic,
+              topic: battleConfig.topicTitle,
               round: 1,
               totalRounds: 1,
-              userStance: aivsUserStance,
+              userStance: battleConfig.userStance,
               userArgument: convHistory.filter(m => m.speaker === '유저').map(m => m.content).join('\n'),
               aiArguments: convHistory.filter(m => m.speaker !== '유저').map(m => ({ name: m.speaker, argument: m.content })),
               previousJudgments: [],
@@ -2230,7 +2292,7 @@ ${conversationText}`;
       setIsDiscussing(true);
       const controller = new AbortController();
       abortControllerRef.current = controller;
-      const difficulty = debateSettings.aivsUserDifficulty || 'normal';
+      const difficulty = battleConfig.battleTone;
       const turnNum = aivsRound + 1;
       setAivsRound(turnNum);
 
@@ -2244,15 +2306,15 @@ ${conversationText}`;
         .filter(m => m.expertId !== '__round__' && m.expertId !== '__avsu_judge__' && m.content)
         .map(m => m.expertId === '__user__' ? { speaker: '유저', content: m.content } : { speaker: m.simRoleName || allExperts.find(e => e.id === m.expertId)?.nameKo || 'AI', content: m.content });
 
-      const topic = (debateSettings.aivsUserTopic || aivsTopic).trim() || aivsTopic;
-      const stanceKo = aivsUserStance === 'pro' ? '찬성' : '반대';
-      const aiStanceKo = aivsUserStance === 'pro' ? '반대' : '찬성';
+      const topic = battleConfig.topicTitle;
+      const stanceKo = battleConfig.userStance === 'pro' ? '찬성' : '반대';
+      const aiStanceKo = battleConfig.userStance === 'pro' ? '반대' : '찬성';
       const difficultyDesc = difficulty === 'easy' ? '친근하고 편안한 말투로 대화해. 유저의 좋은 점은 인정하면서 부드럽게 반론해.' : difficulty === 'hard' ? '공격적이고 날카롭게 말해. 유저의 모든 허점을 파고들고, 비꼬기도 해.' : '논리적이고 차분한 말투로 반론해. 근거 기반으로 약점을 지적하되 공정하게.';
-      const opponentCount = debateSettings.aivsUserOpponentCount || 1;
+      const opponentCount = battleConfig.opponentCount;
 
       // 선택된 AI 상대들 (위에서 클릭한 AI)
       const aiOpponents = activeExperts.length > 0
-        ? activeExperts.filter(e => e.id !== '__user__').slice(0, opponentCount)
+        ? activeExperts.filter(e => battleConfig.opponentIds.includes(e.id)).slice(0, opponentCount)
         : [experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0]].filter(Boolean);
 
       // 각 AI가 순서대로 반론 (티키타카)
@@ -3156,7 +3218,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
     // 다른 모드: 새 토론 시작
     startDiscussion(question);
-  }, [isDiscussing, discussionMode, activeExperts, selectedMultiFollowUpExperts, messages, allExperts, proconStances, startDiscussion, stakeholderSettings, experts, debateSettings, currentQuestion, simPhaseIndex]);
+  }, [isDiscussing, discussionMode, activeExperts, selectedMultiFollowUpExperts, messages, allExperts, proconStances, startDiscussion, stakeholderSettings, experts, debateSettings, currentQuestion, simPhaseIndex, activeAivsBattleConfig]);
 
   // Export discussion as markdown
 
@@ -3463,6 +3525,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     onProconStancesChange={setProconStances}
                     debateSettings={debateSettings}
                     onDebateSettingsChange={setDebateSettings}
+                    hasAivsBattleStarted={hasAivsBattleStarted}
+                    onStartAivsBattle={startAivsBattle}
                     showDebateSettings={showDebateSettings}
                     selectedFramework={selectedFramework}
                     onFrameworkChange={setSelectedFramework}
@@ -5634,14 +5698,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             startDiscussion(question);
                           }
                         }}
-                        disabled={(discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)}
+                        disabled={((discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)) || (discussionMode === 'aivsuser' && !hasAivsBattleStarted)}
                         isStreaming={isDiscussing}
                         onStop={stopDiscussion}
                         discussionMode={discussionMode}
                         onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                         showSettings={showDebateSettings}
                         isFollowUp={isDone}
-                        onConclusion={discussionMode === 'aivsuser' && debateSettings.aivsUserVerdict !== 'none' && messages.length > 2 && !isDiscussing ? () => handleFollowUp('__AVSU_END__') : undefined}
+                        onConclusion={discussionMode === 'aivsuser' && activeAivsBattleConfig?.verdictMode !== 'none' && messages.length > 2 && !isDiscussing ? () => handleFollowUp('__AVSU_END__') : undefined}
+                        placeholderOverride={discussionMode === 'aivsuser' && !hasAivsBattleStarted ? '배틀 시작을 눌러 설정하세요' : discussionMode === 'aivsuser' && !isDone ? '첫 주장 입력' : undefined}
                         onSummarize={discussionMode === 'general' ? handleSummarize : undefined}
                         isSummarizing={isSummarizing}
                         messageCount={messages.filter(m => m.expertId !== '__user__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.expertId !== '__brainstorm_progress__').length}
@@ -5672,14 +5737,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           startDiscussion(question);
                         }
                       }}
-                      disabled={(discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)}
+                      disabled={((discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2)) || (discussionMode === 'aivsuser' && !hasAivsBattleStarted)}
                       isStreaming={isDiscussing}
                       onStop={stopDiscussion}
                       discussionMode={discussionMode}
                       onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                       showSettings={showDebateSettings}
                       isFollowUp={isDone}
-                      onConclusion={discussionMode === 'aivsuser' && debateSettings.aivsUserVerdict !== 'none' && messages.length > 2 && !isDiscussing ? () => handleFollowUp('__AVSU_END__') : undefined}
+                      onConclusion={discussionMode === 'aivsuser' && activeAivsBattleConfig?.verdictMode !== 'none' && messages.length > 2 && !isDiscussing ? () => handleFollowUp('__AVSU_END__') : undefined}
+                      placeholderOverride={discussionMode === 'aivsuser' && !hasAivsBattleStarted ? '배틀 시작을 눌러 설정하세요' : discussionMode === 'aivsuser' && !isDone ? '첫 주장 입력' : undefined}
                       onSummarize={discussionMode === 'general' ? handleSummarize : undefined}
                       isSummarizing={isSummarizing}
                       messageCount={messages.filter(m => m.expertId !== '__user__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.expertId !== '__brainstorm_progress__').length}

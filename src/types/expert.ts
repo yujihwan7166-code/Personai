@@ -84,14 +84,14 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 };
 
 // Main mode: 5 categories
-export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_main' | 'expert' | 'debate' | 'assistant' | 'player';
+export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_main' | 'premium_main' | 'debate' | 'assistant' | 'player';
 
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
     general: { label: '단일 AI', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
     multi: { label: '다중 AI', icon: '🔄', description: '여러 AI의 답변을 종합합니다' },
     brainstorm_main: { label: '브레인스토밍', icon: '💡', description: 'AI들이 협업해 아이디어를 정리합니다' },
     stakeholder_main: { label: '시뮬레이션', icon: '🎭', description: '이해관계자 역할극으로 아이디어를 검증합니다' },
-    expert: { label: '전문 AI 상담', icon: '🔬', description: '분야 전문가와 깊이 있는 1:1 상담' },
+    premium_main: { label: '프리미엄 AI 모드', icon: '🔬', description: '분야별 전문가 팀이 깊이 있는 상담을 제공합니다' },
     debate: { label: 'AI 토론', icon: '⚔️', description: '전문가들이 토론 후 결론을 냅니다' },
     assistant: { label: '어시스턴트', icon: '🛠️', description: '작업을 도와주는 AI 도구' },
     player: { label: '플레이어', icon: '🎮', description: '게임·퀴즈·재미있는 AI 놀이' },
@@ -115,8 +115,8 @@ export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'proc
 export function getMainMode(mode: DiscussionMode): MainMode {
     if (mode === 'general') return 'general';
     if (mode === 'multi') return 'multi';
-    if (mode === 'brainstorm') return 'brainstorm_main';
-    if (mode === 'expert') return 'expert';
+    if (mode === 'brainstorm') return 'debate';
+    if (mode === 'expert') return 'premium_main';
     if (mode === 'assistant') return 'assistant';
     if (mode === 'player') return 'player';
     if (mode === 'stakeholder') return 'stakeholder_main';
@@ -175,6 +175,68 @@ export interface DebateSettings {
     aivsUserVerdict?: 'none' | 'final';
     aivsUserTopic?: string;
 }
+
+export interface AivsUserTopicPreset {
+    id: string;
+    title: string;
+    description: string;
+    category: 'education' | 'work' | 'society' | 'technology' | 'culture' | 'economy';
+    featured?: boolean;
+}
+
+export interface AivsBattleDraft {
+    topicId: string;
+    userStance: 'pro' | 'con' | 'random';
+    battleTone: 'easy' | 'normal' | 'hard';
+    verdictMode: 'none' | 'final';
+}
+
+export interface ActiveAivsBattleConfig {
+    topicId: string;
+    topicTitle: string;
+    topicDescription: string;
+    userStance: 'pro' | 'con';
+    battleTone: 'easy' | 'normal' | 'hard';
+    verdictMode: 'none' | 'final';
+    opponentCount: 1 | 2 | 3;
+    opponentIds: string[];
+}
+
+export const AIVS_USER_TOPIC_PRESETS: AivsUserTopicPreset[] = [
+    { id: 'ai-homework', title: '생성형 AI 과제 허용', description: '학교 과제에서 생성형 AI 사용을 적극 허용해야 하는가', category: 'education', featured: true },
+    { id: 'portfolio-vs-degree', title: '포트폴리오 vs 학위', description: '대학 학위보다 실무 포트폴리오가 더 중요한가', category: 'work', featured: true },
+    { id: 'remote-work', title: '원격근무 생산성', description: '원격근무가 출근 근무보다 더 생산적인가', category: 'work', featured: true },
+    { id: 'real-name-sns', title: 'SNS 실명제', description: 'SNS 실명제를 도입해야 하는가', category: 'society', featured: true },
+    { id: 'basic-income', title: '기본소득 도입', description: '기본소득은 지금 사회에 필요한 제도인가', category: 'economy', featured: true },
+    { id: 'ai-art', title: 'AI 그림은 예술인가', description: '생성형 AI 그림은 예술로 인정받아야 하는가', category: 'culture', featured: true },
+    { id: 'ev-transition', title: '전기차 전환 가속', description: '전기차 전환 속도를 지금보다 더 높여야 하는가', category: 'technology' },
+    { id: 'celebrity-privacy', title: '유명인 사생활', description: '유명인의 사생활은 대중의 알 권리 대상인가', category: 'culture' },
+    { id: 'project-based-eval', title: '프로젝트 평가 중심', description: '시험보다 프로젝트 기반 평가가 더 공정한가', category: 'education' },
+    { id: 'teen-game-regulation', title: '청소년 게임 규제', description: '청소년 게임 이용 규제를 더 강화해야 하는가', category: 'society' },
+    { id: 'college-free', title: '대학 무상교육', description: '대학 교육은 무상으로 제공되어야 하는가', category: 'education' },
+    { id: 'coding-mandatory', title: '코딩 교육 의무화', description: '초중등 교육에서 코딩 교육을 의무화해야 하는가', category: 'education' },
+    { id: 'school-uniform', title: '교복 자율화', description: '학교 교복은 완전히 자율화되어야 하는가', category: 'education' },
+    { id: 'four-day-week', title: '주4일제 도입', description: '주4일제를 보편적으로 도입해야 하는가', category: 'work' },
+    { id: 'salary-open', title: '연봉 공개', description: '기업은 직무별 연봉 정보를 더 공개해야 하는가', category: 'work' },
+    { id: 'job-hopping', title: '잦은 이직의 가치', description: '잦은 이직은 커리어 성장에 더 유리한가', category: 'work' },
+    { id: 'nuclear-power', title: '원전 확대', description: '탄소중립을 위해 원자력 발전 비중을 더 높여야 하는가', category: 'technology' },
+    { id: 'self-driving', title: '자율주행 상용화', description: '자율주행차 상용화를 지금보다 더 빠르게 허용해야 하는가', category: 'technology' },
+    { id: 'ai-regulation', title: 'AI 규제 강화', description: '생성형 AI 산업에 대한 규제를 더 강하게 해야 하는가', category: 'technology' },
+    { id: 'cashless', title: '현금 없는 사회', description: '현금 사용을 사실상 없애는 방향이 바람직한가', category: 'technology' },
+    { id: 'facial-recognition', title: '공공장소 안면인식', description: '공공 안전을 위해 안면인식 기술 활용을 확대해야 하는가', category: 'technology' },
+    { id: 'drug-legalization', title: '대마 합법화', description: '기호용 대마를 합법화해야 하는가', category: 'society' },
+    { id: 'death-penalty', title: '사형제 유지', description: '사형제는 계속 유지되어야 하는가', category: 'society' },
+    { id: 'cctv-expansion', title: '공공 CCTV 확대', description: '범죄 예방을 위해 공공 CCTV를 더 확대해야 하는가', category: 'society' },
+    { id: 'marriage-trend', title: '비혼 증가', description: '비혼 증가 현상은 사회적으로 긍정적인 변화인가', category: 'society' },
+    { id: 'kpop-global', title: 'K-팝 글로벌 전략', description: 'K-팝은 해외 시장 중심으로 더 재편되어야 하는가', category: 'culture' },
+    { id: 'sports-stars-pay', title: '스포츠 스타 고연봉', description: '스포츠 스타의 고연봉은 정당한가', category: 'culture' },
+    { id: 'remake-fatigue', title: '리메이크 콘텐츠', description: '리메이크와 시즌제 중심 제작은 창작 생태계에 해로운가', category: 'culture' },
+    { id: 'influencer-ads', title: '인플루언서 광고 규제', description: '인플루언서 광고 표기 규제를 더 강화해야 하는가', category: 'culture' },
+    { id: 'housing-tax', title: '다주택 중과세', description: '집값 안정을 위해 다주택자 중과세를 유지해야 하는가', category: 'economy' },
+    { id: 'minimum-wage', title: '최저임금 인상', description: '최저임금을 더 빠르게 올려야 하는가', category: 'economy' },
+    { id: 'crypto-investing', title: '가상자산 투자', description: '가상자산은 일반 대중의 장기 투자 수단이 될 수 있는가', category: 'economy' },
+    { id: 'gig-worker-protection', title: '플랫폼 노동 보호', description: '플랫폼 노동자를 더 강하게 법으로 보호해야 하는가', category: 'economy' },
+];
 
 export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
     responseLength: 'medium',
@@ -363,7 +425,91 @@ export interface DiscussionMessage {
     attachedFiles?: { name: string; mimeType: string; preview?: string }[];
     simRoleName?: string;  // 시뮬레이션 역할명 (예: "VC 파트너")
     simRoleIcon?: string;  // 시뮬레이션 역할 아이콘
+    citations?: ApiSourceCitation[];  // 프리미엄 자문 인용 출처
 }
+
+// ══════════════════════════════════════════
+// ── Premium Domain (프리미엄 AI 자문관) ──
+// ══════════════════════════════════════════
+
+export type PremiumDomainId = 'law' | 'drug' | 'finance';
+
+export interface ApiSourceCitation {
+    id: string;
+    type: 'law_article' | 'precedent' | 'drug_info' | 'drug_interaction' | 'economic_indicator' | 'financial_product';
+    label: string;
+    source: string;
+    url?: string;
+    rawData?: string;
+    fetchedAt: string;
+}
+
+export interface ApiEnrichmentResult {
+    domain: PremiumDomainId;
+    query: string;
+    citations: ApiSourceCitation[];
+    rawContext: string;
+    error?: string;
+}
+
+export interface PremiumDomainTemplate {
+    id: PremiumDomainId;
+    name: string;
+    icon: string;
+    tagline: string;
+    description: string;
+    color: { bg: string; text: string; accent: string; border: string; gradient: string };
+    apiSource: { name: string; url: string; icon: string };
+    trustBadge: string;
+    outputFormat: string;
+    sampleQuestions: string[];
+    phases: { id: string; role: string; icon: string; description: string }[];
+}
+
+export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
+    {
+        id: 'law', name: '법률 자문관', icon: '⚖️', tagline: '실시간 법령·판례 기반 법률 자문',
+        description: '국가법령정보센터 API와 연동하여 실제 법령 조문과 판례를 근거로 정확한 법률 자문을 제공합니다.',
+        color: { bg: 'bg-amber-950', text: 'text-amber-200', accent: 'text-amber-400', border: 'border-amber-700', gradient: 'from-amber-900/40 to-slate-950' },
+        apiSource: { name: '국가법령정보센터', url: 'https://law.go.kr', icon: '🏛️' },
+        trustBadge: '실시간 법령 데이터 기반', outputFormat: '법률의견서 (Legal Memorandum)',
+        sampleQuestions: ['전세 사기 당했을 때 대처법은?', '중고거래 환불 의무가 있나요?', '초상권 침해 기준이 뭔가요?'],
+        phases: [
+            { id: 'intake', role: '사건 접수', icon: '📋', description: '사건 유형·당사자·시효 파악' },
+            { id: 'law-search', role: '법령 조회', icon: '🔍', description: '관련 법령·판례 실시간 검색' },
+            { id: 'analysis', role: '법률 분석', icon: '⚖️', description: '적용 조문·판례 분석' },
+            { id: 'strategy', role: '전략 수립', icon: '🎯', description: '대응 전략·액션플랜 제시' },
+        ],
+    },
+    {
+        id: 'drug', name: '의약·건강 자문관', icon: '💊', tagline: '식약처 의약품 데이터 기반 건강 자문',
+        description: '식약처 의약품안전나라 API와 연동하여 약품 성분·효능·부작용·상호작용 정보를 근거로 답변합니다.',
+        color: { bg: 'bg-emerald-950', text: 'text-emerald-200', accent: 'text-emerald-400', border: 'border-emerald-700', gradient: 'from-emerald-900/40 to-slate-950' },
+        apiSource: { name: '식약처 의약품안전나라', url: 'https://nedrug.mfds.go.kr', icon: '🏥' },
+        trustBadge: '식약처 의약품 데이터 기반', outputFormat: 'SOAP Note + 약품 분석',
+        sampleQuestions: ['타이레놀과 이부프로펜 같이 먹어도 되나요?', '이 약의 부작용이 궁금해요', '감기약 먹고 술 마셔도 되나요?'],
+        phases: [
+            { id: 'symptom', role: '증상 파악', icon: '🩺', description: '증상·복용 약물 확인' },
+            { id: 'drug-search', role: '약품 조회', icon: '🔍', description: '의약품 정보 실시간 검색' },
+            { id: 'analysis', role: '약학 분석', icon: '💊', description: '성분·상호작용·부작용 분석' },
+            { id: 'guidance', role: '건강 안내', icon: '📋', description: '복용 가이드·주의사항 제시' },
+        ],
+    },
+    {
+        id: 'finance', name: '재무·투자 자문관', icon: '💰', tagline: '한국은행·금감원 실시간 데이터 기반 재무 자문',
+        description: '한국은행 ECOS와 금감원 금융상품비교 API를 연동하여 실시간 금리·경제지표를 근거로 재무 자문을 제공합니다.',
+        color: { bg: 'bg-blue-950', text: 'text-blue-200', accent: 'text-blue-400', border: 'border-blue-700', gradient: 'from-blue-900/40 to-slate-950' },
+        apiSource: { name: '한국은행 ECOS · 금감원', url: 'https://ecos.bok.or.kr', icon: '📊' },
+        trustBadge: '실시간 금리·경제지표 기반', outputFormat: '재무분석보고서',
+        sampleQuestions: ['지금 예금 금리 가장 높은 곳은?', '기준금리 변동이 내 대출에 미치는 영향은?', '월 200만원으로 투자 포트폴리오 짜줘'],
+        phases: [
+            { id: 'assess', role: '재무 진단', icon: '💼', description: '소득·지출·자산·부채 파악' },
+            { id: 'data-search', role: '시장 조회', icon: '🔍', description: '금리·경제지표 실시간 검색' },
+            { id: 'analysis', role: '재무 분석', icon: '📈', description: '리스크·수익률·비용 분석' },
+            { id: 'plan', role: '전략 제시', icon: '🎯', description: '포트폴리오·절세·액션플랜' },
+        ],
+    },
+];
 
 // ══════════════════════════════════════════
 // ── Expert Mode (전문가 모드) ──

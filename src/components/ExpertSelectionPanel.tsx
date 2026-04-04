@@ -9,7 +9,9 @@ import {
   GAME_CARDS, GameCard,
   SimulationScenario, SIMULATION_SCENARIOS,
   StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS,
+  type PremiumDomainId,
 } from '@/types/expert';
+import { PremiumDomainLanding } from './PremiumDomainLanding';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
 import { cn } from '@/lib/utils';
@@ -57,10 +59,11 @@ interface Props {
   onStartGame?: (gameId: string, option: string, label: string) => void;
   stakeholderSettings?: StakeholderSettings;
   onStakeholderSettingsChange?: (s: StakeholderSettings) => void;
+  onSelectPremiumDomain?: (domainId: PremiumDomainId) => void;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'brainstorm_main', 'assistant']; // player 잠금, expert 시뮬레이션에 통합
-const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'freetalk'];
+const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']; // player 잠금, expert 시뮬레이션에 통합
+const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'freetalk', 'aivsuser'];
 
 const mainModeLabels: Record<MainMode, string> = {
   general: '일반 채팅',
@@ -68,7 +71,7 @@ const mainModeLabels: Record<MainMode, string> = {
   debate: 'AI 토론',
   stakeholder_main: 'AI 시뮬레이션',
   brainstorm_main: '브레인스토밍',
-  expert: '전문가 상담',
+  premium_main: '프리미엄 AI 모드',
   assistant: '어시스턴트',
   player: '플레이어',
 };
@@ -329,6 +332,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
                   ].map(t => (
@@ -500,6 +504,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
                   ].map(t => (
@@ -612,7 +617,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
 }
 
 // ── Brainstorm Settings Panel — 재설계 ──
-function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFrameworkChange, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange, onToggle }: {
+function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFrameworkChange, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange, onToggle, onModeChange }: {
   selectedIds: string[];
   experts: Expert[];
   selectedFramework?: ThinkingFramework | null;
@@ -622,6 +627,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   onFrameworkChange?: (fw: ThinkingFramework | null) => void;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
+  onModeChange?: (mode: DiscussionMode) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const [showBotPicker, setShowBotPicker] = useState(false);
@@ -632,12 +638,35 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
     <div className="space-y-3 overflow-visible">
         {/* Participants */}
         <div className="rounded-xl border border-amber-200 overflow-hidden">
-          <div className="px-3.5 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
+          <div className="px-3.5 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💡</span>
-              <span className="text-[11px] font-bold text-amber-700">참여자</span>
+              <span className="text-[12px] font-bold text-amber-700">브레인스토밍</span>
             </div>
-            {selectedIds.length > 0 && <span className="text-[10px] font-medium text-amber-500">{selectedIds.length}명 선택됨</span>}
+            {onModeChange && (
+              <div className="flex items-center gap-2 rounded-lg border border-white/80 bg-white/85 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
+                <span className="text-[10px] font-semibold text-slate-500 shrink-0">모드 선택</span>
+                <div className="flex items-center gap-0.5 rounded-md bg-slate-100/80 p-0.5 shadow-inner">
+                  {[
+                    { mode: 'procon' as const, label: '찬반토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
+                    { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                  ].map(t => (
+                    <button key={t.mode}
+                      onClick={t.mode === 'brainstorm' ? undefined : () => onModeChange(t.mode)}
+                      className={cn('px-2 py-0.5 rounded-md text-[9px] font-semibold transition-all',
+                        t.mode === 'brainstorm'
+                          ? 'bg-amber-500 text-white shadow-sm cursor-default'
+                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
+                      )}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="px-3 py-3 bg-white">
             {selectedIds.length > 0 ? (
@@ -929,6 +958,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
                   ].map(t => (
@@ -1079,6 +1109,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'standard' as const, label: '심층토론' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
                   ].map(t => (
@@ -3191,6 +3222,7 @@ export function ExpertSelectionPanel({
   onStartGame,
   stakeholderSettings,
   onStakeholderSettingsChange,
+  onSelectPremiumDomain,
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
@@ -3349,7 +3381,7 @@ export function ExpertSelectionPanel({
           ? '이해관계자 역할을 배정하고 시나리오를 시뮬레이션합니다'
           : mainMode === 'brainstorm_main'
             ? '사고 프레임워크를 선택하면 AI들이 협업해 정리된 결과를 제공합니다'
-            : mainMode === 'expert'
+            : mainMode === 'premium_main'
               ? '전문가들이 단계별로 질문하며 최고 품질의 상담을 제공합니다'
               : mainMode === 'assistant'
                 ? '목적에 맞는 AI 어시스턴트를 선택해 작업을 도와받으세요'
@@ -3407,7 +3439,7 @@ export function ExpertSelectionPanel({
     else if (m === 'multi') onModeChange('multi');
     else if (m === 'brainstorm_main') onModeChange('brainstorm');
     else if (m === 'stakeholder_main') onModeChange('stakeholder');
-    else if (m === 'expert') onModeChange('expert');
+    else if (m === 'premium_main') onModeChange('expert');
     else if (m === 'assistant') onModeChange('assistant');
     else if (m === 'player') onModeChange('player');
     else onModeChange('procon');
@@ -3488,7 +3520,7 @@ export function ExpertSelectionPanel({
               : mainMode === 'debate' ? 'AI들이 다각도로 토론하고 결론을 냅니다'
                 : mainMode === 'stakeholder_main' ? '이해관계자 역할극으로 아이디어를 검증하세요'
                   : mainMode === 'brainstorm_main' ? 'AI들이 협업해 아이디어를 정리해드립니다'
-                    : mainMode === 'expert' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
+                    : mainMode === 'premium_main' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
                       : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
                         : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
                           : ''}
@@ -3578,19 +3610,22 @@ export function ExpertSelectionPanel({
         !contentVisible ? 'opacity-0 scale-[0.97] translate-y-2 duration-200' : 'opacity-100 scale-100 translate-y-0 duration-400'
       )}>
 
-      {/* ── Expert Mode ── */}
-      {(mainMode === 'expert' || selectedExpertModeTemplate) && (
+      {/* ── Premium Domain Landing ── */}
+      {mainMode === 'premium_main' && !selectedExpertModeTemplate && (
+        <PremiumDomainLanding onSelectDomain={(domainId) => onSelectPremiumDomain?.(domainId)} />
+      )}
+      {/* ── Expert Mode (Legacy fallback) ── */}
+      {selectedExpertModeTemplate && (
         <ExpertModePanel
           onSelectTemplate={setSelectedExpertModeTemplate}
           selectedTemplate={selectedExpertModeTemplate}
           onSubmit={onSubmit}
           isDiscussing={isDiscussing}
-          showCardsGrid={mainMode === 'expert'}
+          showCardsGrid={false}
           onSimStart={(scenarioId) => {
             if (onStakeholderSettingsChange) {
               onStakeholderSettingsChange({ ...DEFAULT_STAKEHOLDER_SETTINGS, scenarioId });
               if (onModeChange) onModeChange('stakeholder');
-              // overrideMode로 직접 stakeholder 전달
               setTimeout(() => onSubmit('__SIM_START__:' + scenarioId, undefined, 'stakeholder'), 300);
             }
           }}
@@ -3859,6 +3894,7 @@ export function ExpertSelectionPanel({
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
           onToggle={onToggle}
+          onModeChange={onModeChange}
         />
       )}
 
