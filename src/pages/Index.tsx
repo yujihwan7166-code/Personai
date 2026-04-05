@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback } from 'react';
+﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { cn } from '@/lib/utils';
 import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS } from '@/types/expert';
 import { applyExpertOverrides } from '@/data/expertOverrides';
@@ -6,7 +6,7 @@ import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { RightMemoSidebar } from '@/components/RightMemoSidebar';
-import { DiscussionRecord, saveDiscussionToHistory, upsertDiscussionHistory } from '@/lib/discussionHistoryStore';
+import { DiscussionRecord, upsertDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
 import type { AttachedFile } from '@/lib/fileProcessor';
@@ -235,6 +235,7 @@ const Index = () => {
   const [aivsTopic, setAivsTopic] = useState('');
   const [activeAivsBattleConfig, setActiveAivsBattleConfig] = useState<ActiveAivsBattleConfig | null>(null);
   const [hasAivsBattleStarted, setHasAivsBattleStarted] = useState(false);
+  const [aivsBattleAutoStart, setAivsBattleAutoStart] = useState(0);
   const [, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -404,7 +405,17 @@ const Index = () => {
     setAivsUserStance(resolvedStance);
     setAivsTopic(topic.title);
     setMessages([]);
+    // Trigger auto-start: AI provocation opening
+    setAivsBattleAutoStart(prev => prev + 1);
   }, [debateSettings.aivsUserOpponentCount, selectedExpertIds]);
+
+  const resetAivsBattle = useCallback(() => {
+    setHasAivsBattleStarted(false);
+    setActiveAivsBattleConfig(null);
+    setMessages([]);
+    setAivsRound(0);
+    setAivsJudgments([]);
+  }, []);
 
   const stopDiscussion = () => {
     setStopRequested(true);
@@ -670,28 +681,68 @@ ${role.focus} 관점에서 반응하세요.
           id: `avsu-user-open-${Date.now()}`,
           expertId: '__user__',
           content: openingArgument,
+          timestamp: Date.now(),
         });
       }
 
       setMessages(introMessages);
 
+      const difficultyDesc = difficulty === 'easy'
+        ? '친근하고 편안한 말투로 대화해. 유저의 좋은 점은 인정하면서 부드럽게 반론해.'
+        : difficulty === 'hard'
+          ? '공격적이고 날카롭게 말해. 유저의 모든 허점을 파고들고, 비꼬기도 해.'
+          : '논리적이고 차분한 말투로 반론해. 근거 기반으로 약점을 지적하되 공정하게.';
+
+      // ── AI Provocation Opening (no user argument yet) ──
       if (!openingArgument) {
+        setIsDiscussing(true);
+        const firstAi = aiOpponents[0];
+        if (!firstAi) { setIsDiscussing(false); return; }
+
+        const provocationPrompt = `너는 ${firstAi.nameKo}이다. 방금 상대가 "${topic}" 주제에서 "${stanceKo}" 입장이라는 걸 알게 됐어.
+토론 시작 전, 짧은 첫 반응을 보여줘.
+
+## 규칙
+- 실제 논거나 근거는 아직 꺼내지 마. 본격 토론은 아직이야.
+- 상대 입장이 ${stanceKo}이라는 것에 대한 감정적 첫 반응만 보여줘.
+- 상대가 "이 녀석..." 하면서 반박하고 싶어지게 도발해.
+- 주제의 핵심 포인트를 살짝 건드려서 주제를 잘 아는 것처럼 보여줘.
+- 반드시 1~2문장. 너무 길지 않게.
+- 말투: ${difficulty === 'easy' ? '친근하고 장난스럽게 (ㅋㅋ, ㅎㅎ 등 사용 가능)' : difficulty === 'hard' ? '날카롭고 비꼬는 듯하게 (직설적, 도발적)' : '차분하지만 의아한 듯 (논리적으로 한마디)'}
+- 역할명이나 태그를 본문에 쓰지 마.
+- 한국어로만 답해.`;
+
+        const provMsgId = `avsu-provocation-${Date.now()}`;
+        setMessages(prev => [...prev, { id: provMsgId, expertId: firstAi.id, content: '', isStreaming: true, timestamp: Date.now() }]);
+        setActiveExpertId(firstAi.id);
+
+        let provContent = '';
+        try {
+          await streamExpert({
+            question: `"${topic}" 주제에서 상대방이 "${stanceKo}" 입장이야. 첫 반응을 보여줘.`,
+            expert: { ...firstAi, systemPrompt: provocationPrompt },
+            previousResponses: [],
+            round: 'initial' as DiscussionRound,
+            onDelta: chunk => { provContent += chunk; setMessages(prev => prev.map(m => m.id === provMsgId ? { ...m, content: provContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === provMsgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') { setIsDiscussing(false); return; }
+        }
+
         setIsDiscussing(false);
         setActiveExpertId(undefined);
         return;
       }
 
+      // ── User has typed first argument — AI responds ──
       setIsDiscussing(true);
       const convHistory = [{ speaker: '유저', content: openingArgument }];
       for (let ri = 0; ri < aiOpponents.length; ri++) {
         if (shouldStop()) break;
         const aiExpert = aiOpponents[ri];
         if (!aiExpert) continue;
-        const difficultyDesc = difficulty === 'easy'
-          ? '친근하고 편안한 말투로 대화해. 유저의 좋은 점은 인정하면서 부드럽게 반론해.'
-          : difficulty === 'hard'
-            ? '공격적이고 날카롭게 말해. 유저의 모든 허점을 파고들고, 비꼬기도 해.'
-            : '논리적이고 차분한 말투로 반론해. 근거 기반으로 약점을 지적하되 공정하게.';
         const aiPrompt = `당신은 ${aiExpert.nameKo}입니다. "${topic}" 주제에서 "${aiStanceKo}" 입장으로 유저와 토론합니다.
 
 ## 유저 입장: ${stanceKo}
@@ -704,14 +755,14 @@ ${difficultyDesc}
 
 ## 행동 규칙
 1. 유저의 첫 주장에 바로 반응하고 반대 입장을 분명히 밝히세요.
-2. 2~4문장으로 짧고 강하게 답변하세요.
+2. ${debateSettings.responseLength === 'short' ? '1~2문장으로 아주 짧고 강하게.' : debateSettings.responseLength === 'long' ? '4~6문장으로 근거를 들어 상세하게.' : '2~4문장으로 짧고 강하게.'}
 3. ${aiOpponents.length > 1 ? '다른 AI와 겹치지 않게 다른 각도에서 반박하세요.' : '근거와 반론 포인트를 분명히 제시하세요.'}
 4. 역할명이나 태그를 본문에 쓰지 마세요.
 5. 한국어로만 답하세요.`;
 
         if (ri > 0) await new Promise(r => setTimeout(r, 200));
         const aiMsgId = `avsu-opening-ai-${ri}-${Date.now()}`;
-        setMessages(prev => [...prev, { id: aiMsgId, expertId: aiExpert.id, content: '', isStreaming: true, simRoleName: aiExpert.nameKo }]);
+        setMessages(prev => [...prev, { id: aiMsgId, expertId: aiExpert.id, content: '', isStreaming: true, simRoleName: aiExpert.nameKo, timestamp: Date.now() }]);
         setActiveExpertId(aiExpert.id);
 
         let aiContent = '';
@@ -720,7 +771,7 @@ ${difficultyDesc}
             question: `주제: "${topic}"\n유저의 첫 주장: "${openingArgument}"\n${aiStanceKo} 입장에서 바로 반박하세요.`,
             expert: { ...aiExpert, systemPrompt: aiPrompt },
             previousResponses: convHistory.map(m => ({ name: m.speaker, content: m.content })),
-            round: 'initial' as any,
+            round: 'initial' as DiscussionRound,
             onDelta: chunk => { aiContent += chunk; setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: aiContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m)); },
             signal: controller.signal,
@@ -894,7 +945,7 @@ ${difficultyDesc}
           await streamExpert({
             question,
             expert: await buildExpertWithPrompt(expert, '\n\n빠른 토론 모드입니다. 핵심만 1문단(3-4문장)으로 간결하게 답변해주세요.'),
-            previousResponses: allResponses, round: 'initial',
+            previousResponses: [], round: 'initial',
             onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
             onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
             signal: controller.signal,
@@ -1053,7 +1104,7 @@ ${difficultyDesc}
           const sideLabel = stanceMap[expert.id] === 'pro' ? '찬성' : '반대';
           const extra = (round !== 'final' ?
           `\n\n당신은 이 주제에 대해 스스로 "${sideLabel}" 입장을 선택했습니다. ${sideLabel === '찬성' ? '찬성하는 입장에서' : '반대하는 입장에서'} 강하게 주장해주세요.` :
-          `\n\n최종 라운드입니다. 당신은 "${sideLabel}" 입장이었습니다. 토론을 통해 입장이 변했다면 그 이유를 설명하고, 최종 입장을 정리해주세요.`) + proconSettingsExtra;
+          `\n\n최종 라운드입니다. 당신은 "${sideLabel}" 입장이었습니다. 토론을 통해 입장이 변했다면 그 이유를 설명하고, 최종 입장을 정리해주세요.`) + proconSettingsExtra + lengthExtra;
           const msgId = `${expert.id}-${round}-${side}-${Date.now()}`;
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
@@ -1416,7 +1467,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
 - 구체적 수치, 사례, 데이터를 포함하세요 (예: "배럴당 80달러 선", "2024년 OPEC 감산", "미국 셰일 생산량 증가")
 
 ### 말투
-- 1~3문장. 4문장 이상 절대 금지.
+- ${debateSettings.responseLength === 'short' ? '1~2문장. 3문장 이상 절대 금지.' : debateSettings.responseLength === 'long' ? '3~5문장. 구체적 근거와 예시를 포함.' : '1~3문장. 4문장 이상 절대 금지.'}
 - 구어체 ("~인 것 같아요", "~거든요")
 - 이모지 가끔 1개 정도
 ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.natural}
@@ -2083,11 +2134,31 @@ ${conversationText}`;
     }
   }, [simPrepDone]);
 
+  // After battle config is set, auto-start with AI provocation opening
+  useEffect(() => {
+    if (aivsBattleAutoStart > 0) {
+      skipClarifyRef.current = true;
+      startDiscussion('');
+    }
+  }, [aivsBattleAutoStart]);
+
   // Multi AI view state
   const [multiActiveTab, setMultiActiveTab] = useState<string | null>(null);
   const [multiView, setMultiView] = useState<'overview' | 'detail'>('overview');
   const [proconActiveRound, setProconActiveRound] = useState(0);
+  const [stdActiveRound, setStdActiveRound] = useState(0);
   const [proconFocusSide, setProconFocusSide] = useState<null | 'pro' | 'con'>(null);
+
+  // Auto-scroll to latest round tab during streaming
+  useEffect(() => {
+    if (isDiscussing && messages.length > 0) {
+      const roundCount = messages.filter(m => m.expertId === '__round__').length;
+      if (roundCount > 0) {
+        setProconActiveRound(prev => Math.max(prev, roundCount - 1));
+        setStdActiveRound(prev => Math.max(prev, roundCount - 1));
+      }
+    }
+  }, [isDiscussing, messages]);
   const [questionExpanded, setQuestionExpanded] = useState(false);
   const [followUpTarget, setFollowUpTarget] = useState<string | null>(null); // null = 전체, id = 특정 전문가
   const [multiFollowUpTargetIds, setMultiFollowUpTargetIds] = useState<string[]>([]);
@@ -2298,7 +2369,7 @@ ${conversationText}`;
 
       // 유저 메시지 추가
       const userMsgId = `avsu-user-${Date.now()}`;
-      setMessages(prev => [...prev, { id: userMsgId, expertId: '__user__', content: question }]);
+      setMessages(prev => [...prev, { id: userMsgId, expertId: '__user__', content: question, timestamp: Date.now() }]);
 
       // 대화 기록
       const allMsgs = [...messages, { id: userMsgId, expertId: '__user__', content: question }];
@@ -2337,7 +2408,7 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
 
 ## 행동 규칙
 1. 유저가 방금 한 말에 바로 반응해. 인용하면서 반박
-2. 2~4문장으로 짧고 강하게. 댓글 싸움 톤
+2. ${debateSettings.responseLength === 'short' ? '1~2문장으로 아주 짧고 강하게.' : debateSettings.responseLength === 'long' ? '4~6문장으로 근거를 들어 상세하게.' : '2~4문장으로 짧고 강하게.'} 댓글 싸움 톤
 3. "~라고?" "그건 아닌데" "말이 안 되는 게" 같은 구어체 OK
 4. 새 논점 하나는 꼭 던져
 5. ${aiOpponents.length > 1 ? '다른 AI의 발언과 겹치지 않게 다른 각도에서 공격' : '다양한 각도에서 공격'}
@@ -2346,7 +2417,7 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
 
         if (ri > 0) await new Promise(r => setTimeout(r, 200));
         const aiMsgId = `avsu-ai-${ri}-${Date.now()}`;
-        setMessages(prev => [...prev, { id: aiMsgId, expertId: aiExpert.id, content: '', isStreaming: true, simRoleName: aiExpert.nameKo }]);
+        setMessages(prev => [...prev, { id: aiMsgId, expertId: aiExpert.id, content: '', isStreaming: true, simRoleName: aiExpert.nameKo, timestamp: Date.now() }]);
         setActiveExpertId(aiExpert.id);
 
         let aiContent = '';
@@ -2748,33 +2819,6 @@ ${direction}`;
         }
         allResponses.push({ name: `${expert1.nameKo} (${speaker1Role.name})`, content: fullContent });
 
-        // Second speaker — 비활성화 (한 턴에 한 명만 응답)
-        if (false && orchestration.follow_up_speaker && !controller.signal.aborted) {
-          const speaker2RoleName = orchestration.follow_up_speaker;
-          const speaker2Role = scenario.roles.find(r => r.name === speaker2RoleName);
-          const expert2 = getExpertForRole(speaker2RoleName);
-
-          if (speaker2Role && expert2) {
-            await new Promise(r => setTimeout(r, 300));
-            const msg2Id = `${expert2.id}-sim2-${Date.now()}`;
-            setMessages(prev => [...prev, { id: msg2Id, expertId: expert2.id, content: '', isStreaming: true, simRoleName: speaker2Role.name, simRoleIcon: speaker2Role.icon }]);
-            setActiveExpertId(expert2.id);
-
-            let fullContent2 = '';
-            try {
-              await streamExpert({
-                question: `유저(${scenario.userRole})의 답변: "${question}"\n\n이 답변을 바탕으로 반응하세요.`,
-                expert: { ...expert2, systemPrompt: buildRolePrompt(speaker2Role, orchestration.follow_up_direction || '이전 발언에 동조하거나 반박하세요.') },
-                previousResponses: allResponses,
-                round: 'initial' as any,
-                onDelta: chunk => { fullContent2 += chunk; setMessages(prev => prev.map(m => m.id === msg2Id ? { ...m, content: fullContent2 } : m)); },
-                onDone: () => { setMessages(prev => prev.map(m => m.id === msg2Id ? { ...m, isStreaming: false } : m)); },
-                signal: controller.signal,
-              });
-            } catch { /* ignore */ }
-          }
-        }
-
         // Handle consultation phase transition
         if (scenario.simType === 'consultation' && orchestration.next_phase) {
           const nextIdx = simPhaseIndex + 1;
@@ -3107,7 +3151,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
       return;
     }
 
-    // 다중 AI: 모든 AI에게 동시 후속 질문
+    // 다중 AI: 모든 AI에게 독립적으로 후속 질문 (서로의 답변 간섭 없음)
     if (discussionMode === 'multi') {
       setIsDiscussing(true);
       const controller = new AbortController();
@@ -3117,11 +3161,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         setIsDiscussing(false);
         return;
       }
-      const prevAll = messages.filter(m => m.expertId !== '__round__' && m.content).map(m => {
-        if (m.expertId === '__user__') return { name: '사용자', content: m.content };
-        const e = allExperts.find(ex => ex.id === m.expertId);
-        return { name: e?.nameKo || '', content: m.content };
-      });
       const multiTargetLabel = `${targetExperts.map((expert) => expert.nameKo).join(', ')}에게`;
       setMessages(prev => [...prev, {
         id: `user-multi-${Date.now()}`,
@@ -3130,17 +3169,23 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         timestamp: Date.now(),
         attachedFiles: followUpFilesBadges
       }]);
-      // 뷰 전환 안 함 — 현재 뷰 유지
 
       for (const expert of targetExperts) {
         if (controller.signal.aborted) break;
         setActiveExpertId(expert.id);
         const msgId = `${expert.id}-followup-${Date.now()}`;
         setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, timestamp: Date.now() }]);
+        // 이 AI 자신의 이전 답변 + 사용자 메시지만 맥락으로 전달 (다른 AI 답변 제외)
+        const ownPrev = messages
+          .filter(m => (m.expertId === expert.id || m.expertId === '__user__') && m.content)
+          .map(m => {
+            if (m.expertId === '__user__') return { name: '사용자', content: m.content };
+            return { name: expert.nameKo, content: m.content };
+          });
         let fullContent = '';
         try {
           await streamExpert({ question, expert: await buildExpertWithPrompt(expert, '\n\n이전 대화 맥락을 참고하여 후속 질문에 답변하세요.'),
-            previousResponses: prevAll, round: 'initial',
+            previousResponses: ownPrev, round: 'initial',
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
             signal: controller.signal,
@@ -3149,7 +3194,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           if ((err as Error).name === 'AbortError') break;
           setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false } : m));
         }
-        prevAll.push({ name: expert.nameKo, content: fullContent });
         await new Promise(r => setTimeout(r, DELAY_BETWEEN_EXPERTS));
       }
       setActiveExpertId(undefined);
@@ -3527,6 +3571,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     onDebateSettingsChange={setDebateSettings}
                     hasAivsBattleStarted={hasAivsBattleStarted}
                     onStartAivsBattle={startAivsBattle}
+                    onResetAivsBattle={resetAivsBattle}
                     showDebateSettings={showDebateSettings}
                     selectedFramework={selectedFramework}
                     onFrameworkChange={setSelectedFramework}
@@ -4369,10 +4414,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   const activeRound = Math.min(proconActiveRound, mergedRounds.length - 1);
                   const currentRound = mergedRounds[activeRound >= 0 ? activeRound : 0];
 
-                  // 스트리밍 중이면 마지막 라운드로 자동 이동
-                  if (isDiscussing && mergedRounds.length > 0 && proconActiveRound !== mergedRounds.length - 1) {
-                    setTimeout(() => setProconActiveRound(mergedRounds.length - 1), 0);
-                  }
+                  // Note: auto-scroll to last round is handled by useEffect below
 
                   return (
                     <div className="space-y-2">
@@ -4936,13 +4978,13 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           {data.roadmap?.length > 0 && (
                             <div className="flex items-center gap-1">
                               {data.roadmap.map((r: any, i: number) => (
-                                <React.Fragment key={i}>
+                                <Fragment key={i}>
                                   <div className="flex-1 rounded-lg bg-indigo-50 border border-indigo-200 p-2 text-center">
                                     <div className="text-[10px] font-bold text-indigo-600">{r.phase}</div>
                                     <div className="text-[9px] text-indigo-400 mt-0.5">{r.desc}</div>
                                   </div>
                                   {i < data.roadmap.length - 1 && <span className="text-[10px] text-slate-300 shrink-0">→</span>}
-                                </React.Fragment>
+                                </Fragment>
                               ))}
                             </div>
                           )}
@@ -4953,9 +4995,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
                     // ── Design Thinking 렌더링 ──
                     if (fwId === 'designthinking') {
-                      const phases = [
-                        { key: 'empathize', label: '공감', icon: '❤️', bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700' },
-                      ];
                       return (
                         <div key={msg.id} className="space-y-4 animate-in fade-in duration-500">
                           <div className="text-center mb-2"><span className="text-[20px]">🎨</span><h3 className="text-[15px] font-bold text-slate-800 mt-1">Design Thinking 결과</h3></div>
@@ -5166,15 +5205,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   }
                   if (currentLabel) rounds.push({ label: currentLabel, id: currentId, msgs: currentMsgs });
 
-                  const [stdActiveRound, setStdActiveRound] = [proconActiveRound, setProconActiveRound];
+                  // stdActiveRound is now a proper separate state (no longer aliased to proconActiveRound)
                   const activeRound = Math.min(stdActiveRound, rounds.length - 1);
                   const currentRound = rounds[activeRound >= 0 ? activeRound : 0];
 
-                  if (isDiscussing && rounds.length > 0 && stdActiveRound !== rounds.length - 1) {
-                    setTimeout(() => setStdActiveRound(rounds.length - 1), 0);
-                  }
-
-                  const expertColors = ['border-l-blue-500', 'border-l-emerald-500', 'border-l-violet-500', 'border-l-amber-500', 'border-l-rose-500'];
+                  // Note: auto-scroll to last round is handled by useEffect below
 
                   return (
                     <div className="space-y-3">
@@ -5493,9 +5528,56 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   }
                   if (belongsToCollapsedRound) return null;
 
+                  // ── AI vs User: 디씨 키배 스타일 렌더링 ──
+                  if (discussionMode === 'aivsuser' && msg.expertId !== '__round__') {
+                    const isUser = msg.expertId === '__user__';
+                    const expert = isUser ? null : allExperts.find(e => e.id === msg.expertId);
+                    if (!isUser && !expert) return null;
+                    // 첫 발화가 아니면 전부 ㄴ 들여쓰기
+                    const isFirstPost = idx === 0 || (idx === 1 && messages[0].expertId === '__round__');
+                    const isReply = !isFirstPost;
+                    const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '';
+
+                    return (
+                      <div key={msg.id} className="animate-in fade-in duration-200 border-b border-slate-100">
+                        <div className={cn('flex py-2 px-3', isReply ? 'pl-8' : 'pl-3')}>
+                          {/* ㄴ reply indicator */}
+                          {isReply && (
+                            <span className="text-slate-300 text-[13px] font-mono select-none shrink-0 mr-2 mt-0.5">ㄴ</span>
+                          )}
+                          {/* Nickname */}
+                          <div className="shrink-0 w-[80px] pt-0.5">
+                            {isUser ? (
+                              <span className="text-[12px] font-bold text-blue-600">나</span>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <div className="w-4 h-4 rounded-full overflow-hidden shrink-0">
+                                  <ExpertAvatar expert={expert!} size="xs" />
+                                </div>
+                                <span className="text-[12px] font-bold text-rose-600 truncate">{expert!.nameKo}</span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0 text-[13px] text-slate-800 leading-relaxed break-words">
+                            {msg.content ? (
+                              <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} />
+                            ) : (
+                              msg.isStreaming && <span className="text-slate-400 animate-pulse">...</span>
+                            )}
+                          </div>
+                          {/* Timestamp */}
+                          {timeStr && (
+                            <span className="shrink-0 text-[10px] text-slate-300 pt-0.5 ml-2 tabular-nums">{timeStr}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
                   if (msg.expertId === '__user__') {
-                    // AI vs User / Stakeholder: 유저 메시지 — 오른쪽
-                    if (discussionMode === 'stakeholder' || discussionMode === 'aivsuser') {
+                    // Stakeholder: 유저 메시지 — 오른쪽
+                    if (discussionMode === 'stakeholder') {
                       return (
                         <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-2 duration-400 flex justify-end">
                           <div className="max-w-[70%] bg-white border border-slate-200 rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] text-slate-700 leading-relaxed shadow-sm">

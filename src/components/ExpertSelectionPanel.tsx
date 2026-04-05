@@ -10,7 +10,10 @@ import {
   SimulationScenario, SIMULATION_SCENARIOS,
   StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS,
   type PremiumDomainId,
+  type AivsBattleDraft,
+  AIVS_USER_TOPIC_PRESETS,
 } from '@/types/expert';
+import { AivsBattleConfigModal } from './AivsBattleConfigModal';
 import { PremiumDomainLanding } from './PremiumDomainLanding';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
@@ -60,6 +63,9 @@ interface Props {
   stakeholderSettings?: StakeholderSettings;
   onStakeholderSettingsChange?: (s: StakeholderSettings) => void;
   onSelectPremiumDomain?: (domainId: PremiumDomainId) => void;
+  hasAivsBattleStarted?: boolean;
+  onStartAivsBattle?: (draft: AivsBattleDraft) => void;
+  onResetAivsBattle?: () => void;
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']; // player 잠금, expert 시뮬레이션에 통합
@@ -326,7 +332,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               <span className="text-[12px] font-bold text-emerald-700">심층 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
@@ -357,7 +363,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                 {visibleParticipants.filter(Boolean).map(e => (
                   <button key={e.id} type="button" onClick={() => onToggle(e.id)}
                     className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                    <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                    <div className="relative w-12 h-12 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
                       <ExpertAvatar expert={e} size="md" />
                       <div className="absolute inset-0 rounded-full flex items-center justify-center">
                         <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
@@ -368,8 +374,8 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                 ))}
                 {Array.from({ length: visibleParticipantSlotCount - selectedExperts.length }).map((_, i) => (
                   <button key={`empty-standard-${i}`} type="button" onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors cursor-pointer">
-                      <Plus className="w-4 h-4 text-slate-300" />
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-emerald-300 flex items-center justify-center hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors cursor-pointer">
+                      <Plus className="w-4 h-4 text-emerald-300" />
                     </div>
                   </button>
                 ))}
@@ -497,7 +503,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
               <span className="text-[12px] font-bold text-violet-700">찬반 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
@@ -633,7 +639,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
 
   return (
-    <div className="space-y-3 overflow-visible">
+    <div>
+      <div className="space-y-3">
         {/* Participants */}
         <div className="rounded-xl border border-amber-200 overflow-hidden">
           <div className="px-3.5 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
@@ -642,7 +649,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
               <span className="text-[12px] font-bold text-amber-700">브레인스토밍</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
@@ -674,7 +681,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                     return e ? (
                       <button key={id} type="button" onClick={() => onToggle(id)}
                         className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                        <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                        <div className="relative w-12 h-12 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
                           <ExpertAvatar expert={e} size="md" />
                           <div className="absolute inset-0 rounded-full flex items-center justify-center">
                             <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
@@ -687,8 +694,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                   {/* Add button */}
                   <button type="button" onClick={() => setShowBotPicker(true)}
                     className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:bg-amber-50 transition-colors">
-                      <Plus className="w-5 h-5 text-amber-400" />
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:border-amber-400 hover:bg-amber-50 transition-colors">
+                      <Plus className="w-4 h-4 text-amber-300" />
                     </div>
                     <span className="text-[10px] text-amber-400 font-medium">추가</span>
                   </button>
@@ -698,8 +705,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
               <div className="flex flex-col items-center gap-2 py-1">
                 <button type="button" onClick={() => setShowBotPicker(true)}
                   className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-                  <div className="w-14 h-14 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center bg-amber-50/50">
-                    <Plus className="w-6 h-6 text-amber-400" />
+                  <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:border-amber-400 hover:bg-amber-50 transition-colors">
+                    <Plus className="w-4 h-4 text-amber-300" />
                   </div>
                   <span className="text-[11px] text-slate-400">참여할 전문가/AI를 선택하세요</span>
                 </button>
@@ -759,6 +766,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
             </div>
           </div>
         </div>
+      </div>
     </div>
   );
 }
@@ -805,7 +813,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
               <span className="text-[12px] font-bold text-amber-700">아이디어 검증</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5">
+              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5 debate-tab-glow">
                 {[
                   { mode: 'procon' as const, label: '⚖️ 찬반' },
                   { mode: 'standard' as const, label: '🎯 심층' },
@@ -949,7 +957,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               <span className="text-[12px] font-bold text-cyan-700">자유 토론</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
@@ -980,7 +988,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 {visibleParticipants.filter(Boolean).map(e => (
                   <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
                     className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                    <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                    <div className="relative w-12 h-12 rounded-full bg-cyan-50 border-2 border-cyan-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
                       <ExpertAvatar expert={e} size="md" />
                       <div className="absolute inset-0 rounded-full flex items-center justify-center">
                         <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
@@ -991,8 +999,8 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 ))}
                 {Array.from({ length: visibleParticipantSlotCount - selected.length }).map((_, i) => (
                   <button key={`empty-freetalk-${i}`} type="button" onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center hover:border-cyan-300 hover:bg-cyan-50/50 transition-colors cursor-pointer">
-                      <Plus className="w-4 h-4 text-slate-300" />
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-cyan-300 flex items-center justify-center hover:border-cyan-400 hover:bg-cyan-50/50 transition-colors cursor-pointer">
+                      <Plus className="w-4 h-4 text-cyan-300" />
                     </div>
                   </button>
                 ))}
@@ -1070,19 +1078,24 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
 // ── AI vs User Settings Panel ──
 
-function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, onToggle, onModeChange }: {
+function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, onToggle, onModeChange, hasAivsBattleStarted, onStartAivsBattle, onResetAivsBattle }: {
   onModeChange?: (mode: DiscussionMode) => void;
   experts: Expert[];
   selectedIds: string[];
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
   onToggle?: (id: string) => void;
+  hasAivsBattleStarted?: boolean;
+  onStartAivsBattle?: (draft: AivsBattleDraft) => void;
+  onResetAivsBattle?: () => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
+  const [showBattleModal, setShowBattleModal] = useState(false);
   const ds = debateSettings!;
   const opponentCount = ds.aivsUserOpponentCount || 1;
   const selected = experts.filter(e => selectedIds.includes(e.id)).slice(0, opponentCount);
   const visibleOpponentSlots = Array.from({ length: opponentCount }, (_, index) => selected[index] ?? null);
+  const lockedTopic = hasAivsBattleStarted ? AIVS_USER_TOPIC_PRESETS.find(t => t.title === ds.aivsUserTopic) : null;
 
   useEffect(() => {
     if (!onToggle || selectedIds.length <= opponentCount) return;
@@ -1091,7 +1104,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
   return (
     <div>
-      <div>
+      <div className="space-y-3">
         <div className="rounded-xl border border-rose-200 overflow-hidden">
           <div className="px-3.5 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -1099,7 +1112,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               <span className="text-[12px] font-bold text-rose-700">AI vs 유저</span>
             </div>
             {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5">
+              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
@@ -1195,44 +1208,9 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               </div>
             </div>
 
+            {/* Participant count */}
             <div className="border-t border-rose-100">
-              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
-                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
-                  주제
-                </span>
-                <input
-                  value={ds.aivsUserTopic || ''}
-                  onChange={e => onDebateSettingsChange?.({ ...ds, aivsUserTopic: e.target.value })}
-                  placeholder="미리 정한 주제로 대결을 시작하세요"
-                  className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-[10px] text-slate-700 outline-none focus:border-rose-300 transition-all"
-                />
-              </div>
-              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
-                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
-                  내 입장
-                </span>
-                <div className="flex gap-1 flex-1">
-                  {([
-                    { v: 'pro' as const, l: '찬성' },
-                    { v: 'con' as const, l: '반대' },
-                    { v: 'random' as const, l: '자동' },
-                  ]).map(opt => (
-                    <button
-                      key={opt.v}
-                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserStance: opt.v })}
-                      className={cn(
-                        'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                        (ds.aivsUserStance || 'pro') === opt.v
-                          ? 'bg-rose-100 text-rose-700 font-semibold'
-                          : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
-                      )}
-                    >
-                      {opt.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
+              <div className="flex items-center gap-3 px-4 py-2">
                 <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
                   참여 인원
                 </span>
@@ -1257,55 +1235,37 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
-                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
-                  말투
-                </span>
-                <div className="flex gap-1 flex-1">
-                  {([
-                    { v: 'easy' as const, l: '😊 친근' },
-                    { v: 'normal' as const, l: '🤝 논리적' },
-                    { v: 'hard' as const, l: '🔥 공격적' },
-                  ]).map(opt => (
-                    <button
-                      key={opt.v}
-                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserDifficulty: opt.v })}
-                      className={cn(
-                        'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                        (ds.aivsUserDifficulty || 'normal') === opt.v
-                          ? 'bg-rose-100 text-rose-700 font-semibold'
-                          : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
-                      )}
-                    >
-                      {opt.l}
-                    </button>
-                  ))}
+            </div>
+
+            {/* Battle start button OR locked state */}
+            <div className="px-4 py-3">
+              {hasAivsBattleStarted && lockedTopic ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[14px] shrink-0">⚔️</span>
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-bold text-rose-700 truncate">{lockedTopic.title}</div>
+                      <div className="text-[9px] text-rose-400 truncate">{lockedTopic.description}</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onResetAivsBattle}
+                    className="shrink-0 px-2.5 py-1 rounded-lg text-[9px] font-medium text-rose-500 bg-white border border-rose-200 hover:bg-rose-50 transition-colors"
+                  >
+                    변경
+                  </button>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 px-4 py-2">
-                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
-                  승패 판정
-                </span>
-                <div className="flex gap-1 flex-1">
-                  {([
-                    { v: 'none' as const, l: '없음' },
-                    { v: 'final' as const, l: '마지막 판정' },
-                  ]).map(opt => (
-                    <button
-                      key={opt.v}
-                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserVerdict: opt.v })}
-                      className={cn(
-                        'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                        (ds.aivsUserVerdict || 'final') === opt.v
-                          ? 'bg-rose-100 text-rose-700 font-semibold'
-                          : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
-                      )}
-                    >
-                      {opt.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowBattleModal(true)}
+                  disabled={selected.length === 0}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[13px] font-bold transition-all hover:from-rose-600 hover:to-pink-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                >
+                  ⚔️ 배틀 시작
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1319,6 +1279,14 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             title="상대 AI 선택"
             accentColor="red"
             maxCount={opponentCount}
+          />
+        )}
+
+        {onStartAivsBattle && (
+          <AivsBattleConfigModal
+            open={showBattleModal}
+            onOpenChange={setShowBattleModal}
+            onConfirm={onStartAivsBattle}
           />
         )}
       </div>
@@ -3218,6 +3186,9 @@ export function ExpertSelectionPanel({
   stakeholderSettings,
   onStakeholderSettingsChange,
   onSelectPremiumDomain,
+  hasAivsBattleStarted,
+  onStartAivsBattle,
+  onResetAivsBattle,
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
@@ -3259,6 +3230,16 @@ export function ExpertSelectionPanel({
 
   const MAX_PER_ZONE = debateSettings?.proconTeamSize || 3;
   const mainMode = getMainMode(discussionMode);
+  const [debateTabRainbow, setDebateTabRainbow] = useState(false);
+  const prevMainModeRef = useRef(mainMode);
+  useEffect(() => {
+    if (mainMode === 'debate' && prevMainModeRef.current !== 'debate') {
+      setDebateTabRainbow(true);
+      const timer = setTimeout(() => setDebateTabRainbow(false), 1000);
+      return () => clearTimeout(timer);
+    }
+    prevMainModeRef.current = mainMode;
+  }, [mainMode]);
   const proconProCount = Object.values(proconStances).filter((stance) => stance === 'pro').length;
   const proconConCount = Object.values(proconStances).filter((stance) => stance === 'con').length;
   const isProconTeamComplete = proconProCount === MAX_PER_ZONE && proconConCount === MAX_PER_ZONE;
@@ -3575,7 +3556,7 @@ export function ExpertSelectionPanel({
                 ))}
               </div>
               <div className="w-px h-3 bg-slate-200 shrink-0" />
-              {discussionMode !== 'procon' && discussionMode !== 'brainstorm' && (
+              {(discussionMode === 'standard' || discussionMode === 'hearing') && (
                 <>
                   <div className="flex items-center gap-0.5">
                     {([2, 3, 4] as const).map(v => (
@@ -3588,12 +3569,14 @@ export function ExpertSelectionPanel({
                   <div className="w-px h-3 bg-slate-200 shrink-0" />
                 </>
               )}
-              <button onClick={() => onDebateSettingsChange({ ...debateSettings, includeConclusion: !debateSettings.includeConclusion })} disabled={isDiscussing}
-                className={cn('px-2 py-[1px] rounded-full text-[10px] font-medium transition-all duration-150 flex items-center gap-1',
-                  debateSettings.includeConclusion ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100')}>
-                <span>결론</span>
-                <span className="opacity-70">{debateSettings.includeConclusion ? '포함' : '제외'}</span>
-              </button>
+              {discussionMode !== 'freetalk' && discussionMode !== 'aivsuser' && (
+                <button onClick={() => onDebateSettingsChange({ ...debateSettings, includeConclusion: !debateSettings.includeConclusion })} disabled={isDiscussing}
+                  className={cn('px-2 py-[1px] rounded-full text-[10px] font-medium transition-all duration-150 flex items-center gap-1',
+                    debateSettings.includeConclusion ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100')}>
+                  <span>결론</span>
+                  <span className="opacity-70">{debateSettings.includeConclusion ? '포함' : '제외'}</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -3856,6 +3839,7 @@ export function ExpertSelectionPanel({
       )}
 
       {/* Mode-specific settings panels */}
+      {mainMode === 'debate' && <div className={debateTabRainbow ? 'debate-rainbow-active' : undefined}>
       {isProcon && (
         <ProconSettingsPanel
           experts={experts} selectedIds={selectedIds} onToggle={onToggle} proconStances={proconStances}
@@ -3921,6 +3905,9 @@ export function ExpertSelectionPanel({
           onDebateSettingsChange={onDebateSettingsChange}
           onToggle={onToggle}
           onModeChange={onModeChange}
+          hasAivsBattleStarted={hasAivsBattleStarted}
+          onStartAivsBattle={onStartAivsBattle}
+          onResetAivsBattle={onResetAivsBattle}
         />
       )}
 
@@ -3935,8 +3922,10 @@ export function ExpertSelectionPanel({
         />
       )}
 
-      {/* Question Input — not shown for expert/assistant/player (they have their own inputs) */}
-      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && (
+      </div>}{/* end debate-rainbow-active wrapper */}
+
+      {/* Question Input — not shown for expert/assistant/player/aivsuser (they have their own inputs or modal flow) */}
+      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && discussionMode !== 'aivsuser' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
           disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (discussionMode === 'freetalk' && selectedIds.length < 1)}

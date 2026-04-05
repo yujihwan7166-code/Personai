@@ -758,19 +758,7 @@ export function AppSidebar({
           <div className="shrink-0 px-1.5">
             {/* Header */}
             <div className="flex items-center justify-between px-2 py-1.5">
-              {false && <button
-                onClick={() => setProjectsExpanded(!projectsExpanded)}
-                className="flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-              >
-                <ChevronRight className={cn("w-3 h-3 transition-transform", projectsExpanded && "rotate-90")} />
-                프로젝트
-              </button>}
-              {false && <button
-                onClick={() => { setCreatingProject(true); setNewProjectName(''); }}
-                className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>}
+              {/* Project header buttons - temporarily disabled */}
             </div>
 
             {/* Project creation input */}

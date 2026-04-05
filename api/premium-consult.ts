@@ -47,22 +47,29 @@ const DOMAIN_SYSTEM_PROMPTS: Record<PremiumDomainId, string> = {
 - 한국어로 답변하고, 구조화된 마크다운을 사용하세요`,
 };
 
-async function extractKeywords(question: string, domain: PremiumDomainId, apiKey: string): Promise<any> {
+async function extractKeywords(question: string, domain: PremiumDomainId, apiKey: string): Promise<Record<string, unknown>> {
   const url = buildGeminiUrl('gemini-2.5-flash-lite', apiKey, false);
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: `${KEYWORD_EXTRACTION_PROMPTS[domain]}\n\n사용자 질문: ${question}` }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 256 },
-    }),
-  });
-  const data = await resp.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-  return extractJsonObject(text) || {};
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `${KEYWORD_EXTRACTION_PROMPTS[domain]}\n\n사용자 질문: ${question}` }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 256 },
+      }),
+      signal: controller.signal,
+    });
+    const data = await resp.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    return extractJsonObject(text) || {};
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-async function callProxySearch(domain: PremiumDomainId, keywords: any, origin: string): Promise<{ citations: ApiSourceCitation[]; rawContext: string; error?: string }> {
+async function callProxySearch(domain: PremiumDomainId, keywords: Record<string, unknown>, origin: string): Promise<{ citations: ApiSourceCitation[]; rawContext: string; error?: string }> {
   const endpointMap: Record<PremiumDomainId, string> = {
     law: '/api/law-search',
     drug: '/api/drug-search',
@@ -105,7 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
 
   // Step 1: Extract keywords
-  let keywords: any = {};
+  let keywords: Record<string, unknown> = {};
   try {
     keywords = await extractKeywords(question, domain, apiKey);
   } catch { /* proceed without keywords */ }
@@ -120,7 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const enrichedPrompt = basePrompt + citationContext;
 
   // Build conversation for Gemini
-  const contents: any[] = [];
+  const contents: { role: string; parts: { text: string }[] }[] = [];
   if (enrichedPrompt) {
     contents.push({ role: 'user', parts: [{ text: `[시스템 지시]\n${enrichedPrompt}` }] });
     contents.push({ role: 'model', parts: [{ text: '네, 제공된 데이터를 근거로 답변하겠습니다.' }] });

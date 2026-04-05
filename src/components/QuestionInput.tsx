@@ -167,30 +167,6 @@ export function QuestionInput({
     requestAnimationFrame(() => textareaRef.current?.focus());
   }, []);
 
-  const handleImageGenerate = useCallback(() => {
-    setQuestion((prev) => {
-      const next = prev.trim();
-      return next ? `${next}\n\n이미지 만들어줘` : '이미지 만들어줘';
-    });
-    focusTextarea();
-  }, [focusTextarea]);
-
-  const handleShareConversation = useCallback(async () => {
-    const shareText = question.trim() || 'Personai 대화';
-    const shareUrl = window.location.href;
-
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Personai 대화', text: shareText, url: shareUrl });
-        return;
-      }
-
-      await navigator.clipboard.writeText(shareUrl);
-    } catch {
-      // Ignore cancellations and unavailable clipboard APIs.
-    }
-  }, [question]);
-
   const handleQuickImageGenerate = useCallback(() => {
     setQuestion((prev) => {
       const next = prev.trim();
@@ -489,70 +465,6 @@ export function QuestionInput({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <div className="hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    disabled={!canUseTools}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-40 disabled:hover:bg-white"
-                    aria-label="추가 메뉴"
-                    title="추가 메뉴"
-                  >
-                    <Plus className="h-4 w-4" strokeWidth={2.2} />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  side="top"
-                  className="w-60 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.12)]"
-                >
-                  <DropdownMenuItem
-                    disabled={!canUseTools}
-                    onSelect={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
-                  >
-                    <Paperclip className="h-4 w-4 text-slate-500" strokeWidth={2} />
-                    파일 추가
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={!canUseTools}
-                    onSelect={() => openProjectsSidebar()}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
-                  >
-                    <FolderPlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
-                    프로젝트에 추가
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={!canUseTools}
-                    onSelect={() => handleImageGenerate()}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
-                  >
-                    <ImagePlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
-                    이미지 만들기
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={!canUseTools}
-                    onSelect={() => void handleShareConversation()}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
-                  >
-                    <Share2 className="h-4 w-4 text-slate-500" strokeWidth={2} />
-                    대화 공유하기
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={!canUseTools}
-                    onSelect={() => {
-                      onToggleSettings?.();
-                      openSettingsModal();
-                    }}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
-                  >
-                    <Settings className="h-4 w-4 text-slate-500" strokeWidth={2} />
-                    설정
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              </div>
             </div>
 
             <div className="flex items-center gap-1.5">

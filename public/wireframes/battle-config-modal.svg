@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="660" viewBox="0 0 440 660">
+  <defs>
+    <filter id="shadow" x="-10%" y="-5%" width="120%" height="115%">
+      <feDropShadow dx="0" dy="8" stdDeviation="24" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+    <linearGradient id="roseGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#E11D48"/>
+      <stop offset="100%" stop-color="#F43F5E"/>
+    </linearGradient>
+    <filter id="inset" x="-2%" y="-10%" width="104%" height="130%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#94A3B8" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- ===== OVERLAY ===== -->
+  <rect width="440" height="660" fill="#0F172A" opacity="0.52"/>
+
+  <!-- ===== MODAL ===== -->
+  <rect x="20" y="14" width="400" height="632" rx="16" fill="#FFFFFF" filter="url(#shadow)"/>
+
+  <!-- ===== HEADER ===== -->
+  <text x="40" y="49" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="16" font-weight="700" fill="#1E293B">⚔️ 배틀 설정</text>
+  <rect x="376" y="28" width="28" height="28" rx="8" fill="#F1F5F9"/>
+  <line x1="385" y1="37" x2="399" y2="51" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+  <line x1="399" y1="37" x2="385" y2="51" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+  <line x1="32" y1="64" x2="408" y2="64" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- ===== TOPIC SELECTION BOX ===== -->
+  <rect x="32" y="74" width="376" height="382" rx="12" fill="#FAFBFC" stroke="#E2E8F0" stroke-width="1.2"/>
+
+  <!-- Search bar -->
+  <rect x="44" y="86" width="352" height="34" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1" filter="url(#inset)"/>
+  <circle cx="62" cy="103" r="6" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+  <line x1="66.5" y1="107.5" x2="70.5" y2="111.5" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="78" y="108" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11.5" fill="#94A3B8">주제 검색...</text>
+  <rect x="334" y="92" width="52" height="18" rx="9" fill="#F1F5F9"/>
+  <text x="360" y="105" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="9" fill="#64748B" text-anchor="middle">총 33개</text>
+
+  <!-- ===== CATEGORY CHIPS ===== -->
+  <rect x="44" y="128" width="42" height="23" rx="11.5" fill="#FFE4E6"/>
+  <text x="65" y="143.5" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" font-weight="600" fill="#BE123C" text-anchor="middle">전체</text>
+  <rect x="90" y="128" width="42" height="23" rx="11.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="111" y="143.5" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#64748B" text-anchor="middle">교육</text>
+  <rect x="136" y="128" width="42" height="23" rx="11.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="157" y="143.5" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#64748B" text-anchor="middle">직장</text>
+  <rect x="182" y="128" width="42" height="23" rx="11.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="203" y="143.5" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#64748B" text-anchor="middle">사회</text>
+  <rect x="228" y="128" width="42" height="23" rx="11.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="249" y="143.5" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#64748B" text-anchor="middle">기술</text>
+  <rect x="274" y="128" width="42" height="23" rx="11.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="295" y="143.5" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#64748B" text-anchor="middle">문화</text>
+  <rect x="320" y="128" width="42" height="23" rx="11.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="341" y="143.5" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#64748B" text-anchor="middle">경제</text>
+
+  <!-- ===== 2-COLUMN CARD GRID (8 per page, 4 rows × 2 cols) ===== -->
+  <!-- Column positions: left=44, right=204.  Card width=168, height=52, gap=6 -->
+
+  <!-- Row 1 -->
+  <!-- Card 1 - SELECTED -->
+  <rect x="44" y="160" width="168" height="52" rx="8" fill="#FFF1F2" stroke="#FB7185" stroke-width="1.4"/>
+  <rect x="44" y="160" width="3.5" height="52" rx="1.75" fill="#E11D48"/>
+  <rect x="53" y="165" width="36" height="13" rx="6.5" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+  <text x="71" y="175" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="7.5" fill="#C2410C" text-anchor="middle">⭐추천</text>
+  <text x="53" y="190" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="700" fill="#1E293B">생성형 AI 과제 허용</text>
+  <text x="53" y="203" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="8.5" fill="#64748B">학교 과제에서 AI 사용을 허용?</text>
+
+  <!-- Card 2 -->
+  <rect x="218" y="160" width="168" height="52" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="227" y="165" width="36" height="13" rx="6.5" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+  <text x="245" y="175" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="7.5" fill="#C2410C" text-anchor="middle">⭐추천</text>
+  <text x="227" y="190" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#334155">포트폴리오 vs 학위</text>
+  <text x="227" y="203" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="8.5" fill="#94A3B8">실무 포트폴리오가 더 중요?</text>
+
+  <!-- Row 2 -->
+  <!-- Card 3 -->
+  <rect x="44" y="218" width="168" height="52" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="53" y="223" width="36" height="13" rx="6.5" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+  <text x="71" y="233" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="7.5" fill="#C2410C" text-anchor="middle">⭐추천</text>
+  <text x="53" y="248" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#334155">원격근무 생산성</text>
+  <text x="53" y="261" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="8.5" fill="#94A3B8">재택이 출근보다 생산적?</text>
+
+  <!-- Card 4 -->
+  <rect x="218" y="218" width="168" height="52" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="227" y="223" width="36" height="13" rx="6.5" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+  <text x="245" y="233" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="7.5" fill="#C2410C" text-anchor="middle">⭐추천</text>
+  <text x="227" y="248" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#334155">SNS 실명제</text>
+  <text x="227" y="261" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="8.5" fill="#94A3B8">SNS 실명제를 도입해야?</text>
+
+  <!-- Row 3 -->
+  <!-- Card 5 -->
+  <rect x="44" y="276" width="168" height="52" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="53" y="281" width="36" height="13" rx="6.5" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+  <text x="71" y="291" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="7.5" fill="#C2410C" text-anchor="middle">⭐추천</text>
+  <text x="53" y="306" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#334155">기본소득 도입</text>
+  <text x="53" y="319" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="8.5" fill="#94A3B8">기본소득은 필요한 제도?</text>
+
+  <!-- Card 6 -->
+  <rect x="218" y="276" width="168" height="52" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="227" y="281" width="36" height="13" rx="6.5" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+  <text x="245" y="291" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="7.5" fill="#C2410C" text-anchor="middle">⭐추천</text>
+  <text x="227" y="306" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#334155">AI 그림은 예술인가</text>
+  <text x="227" y="319" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="8.5" fill="#94A3B8">AI 그림을 예술로 인정?</text>
+
+  <!-- Row 4 -->
+  <!-- Card 7 -->
+  <rect x="44" y="334" width="168" height="52" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="53" y="358" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#334155">전기차 전환 가속</text>
+  <text x="53" y="371" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="8.5" fill="#94A3B8">전환 속도를 더 높여야?</text>
+
+  <!-- Card 8 -->
+  <rect x="218" y="334" width="168" height="52" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="227" y="358" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#334155">유명인 사생활</text>
+  <text x="227" y="371" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="8.5" fill="#94A3B8">유명인 사생활은 알 권리?</text>
+
+  <!-- ===== PAGINATION ===== -->
+  <g transform="translate(220, 400)">
+    <rect x="-88" y="0" width="22" height="22" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+    <text x="-77" y="15" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" fill="#94A3B8" text-anchor="middle">‹</text>
+
+    <rect x="-60" y="0" width="22" height="22" rx="6" fill="#E11D48"/>
+    <text x="-49" y="15" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+
+    <rect x="-33" y="0" width="22" height="22" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+    <text x="-22" y="15" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#475569" text-anchor="middle">2</text>
+
+    <rect x="-6" y="0" width="22" height="22" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+    <text x="5" y="15" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#475569" text-anchor="middle">3</text>
+
+    <rect x="21" y="0" width="22" height="22" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+    <text x="32" y="15" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#475569" text-anchor="middle">4</text>
+
+    <rect x="48" y="0" width="22" height="22" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+    <text x="59" y="15" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10" fill="#475569" text-anchor="middle">5</text>
+
+    <rect x="75" y="0" width="22" height="22" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+    <text x="86" y="15" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" fill="#94A3B8" text-anchor="middle">›</text>
+
+    <text x="0" y="35" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle">1 / 5 페이지</text>
+  </g>
+
+  <!-- ===== SETTINGS CHIPS ===== -->
+  <line x1="40" y1="450" x2="400" y2="450" stroke="#F1F5F9" stroke-width="1"/>
+
+  <!-- Row 1: 내 입장 -->
+  <text x="40" y="475" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#475569">내 입장</text>
+  <rect x="104" y="461" width="50" height="26" rx="13" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="129" y="478" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" fill="#64748B" text-anchor="middle">찬성</text>
+  <rect x="160" y="461" width="50" height="26" rx="13" fill="#FFE4E6" stroke="#FECDD3" stroke-width="0.8"/>
+  <text x="185" y="478" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#BE123C" text-anchor="middle">반대</text>
+  <rect x="216" y="461" width="50" height="26" rx="13" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="241" y="478" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" fill="#64748B" text-anchor="middle">자동</text>
+
+  <!-- Row 2: 말투 -->
+  <text x="40" y="509" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#475569">말투</text>
+  <rect x="104" y="495" width="62" height="26" rx="13" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="135" y="512" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10.5" fill="#64748B" text-anchor="middle">😊 친근</text>
+  <rect x="172" y="495" width="72" height="26" rx="13" fill="#FFE4E6" stroke="#FECDD3" stroke-width="0.8"/>
+  <text x="208" y="512" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10.5" font-weight="600" fill="#BE123C" text-anchor="middle">🤝 논리적</text>
+  <rect x="250" y="495" width="72" height="26" rx="13" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="286" y="512" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="10.5" fill="#64748B" text-anchor="middle">🔥 공격적</text>
+
+  <!-- Row 3: 판정 -->
+  <text x="40" y="543" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#475569">판정</text>
+  <rect x="104" y="529" width="50" height="26" rx="13" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+  <text x="129" y="546" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" fill="#64748B" text-anchor="middle">없음</text>
+  <rect x="160" y="529" width="92" height="26" rx="13" fill="#FFE4E6" stroke="#FECDD3" stroke-width="0.8"/>
+  <text x="206" y="546" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="11" font-weight="600" fill="#BE123C" text-anchor="middle">마지막 판정</text>
+
+  <!-- ===== CONFIRM BUTTON ===== -->
+  <rect x="32" y="572" width="376" height="44" rx="12" fill="url(#roseGrad)"/>
+  <text x="220" y="600" font-family="system-ui,'Noto Sans KR',sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">확인</text>
+</svg>

@@ -64,7 +64,7 @@ function makeNote(index = 1): NoteItem {
   const now = new Date();
   return {
     id: `note-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
-    title: `硫붾え ${index}`,
+    title: `메모 ${index}`,
     content: '',
     updatedAt: now.toISOString(),
   };
@@ -76,7 +76,7 @@ function normalizeNotes(rawNotes: unknown, legacyNote?: string) {
       .filter((item): item is Partial<NoteItem> => typeof item === 'object' && item !== null)
       .map((item, index) => ({
         id: typeof item.id === 'string' && item.id ? item.id : makeNote(index + 1).id,
-        title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : `硫붾え ${index + 1}`,
+        title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : `메모 ${index + 1}`,
         content: typeof item.content === 'string' ? item.content : '',
         updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : new Date().toISOString(),
       }));
@@ -88,7 +88,7 @@ function normalizeNotes(rawNotes: unknown, legacyNote?: string) {
     return [
       {
         ...makeNote(1),
-        title: '湲곗〈 硫붾え',
+        title: '기존 메모',
         content: legacyNote,
       },
     ];
@@ -103,10 +103,10 @@ function getDefaultState(): MemoSidebarState {
     notes: [makeNote(1)],
     activeNoteId: null,
     ddayDate: formatDateInput(),
-    ddayLabel: '留덇컧',
+    ddayLabel: '마감',
     alarmEnabled: false,
     alarmAt: '',
-    alarmMessage: '硫붾え瑜??뺤씤???쒓컙?낅땲??',
+    alarmMessage: '메모를 확인할 시간입니다!',
     lastAlarmAt: null,
     memoExpanded: false,
   };
@@ -140,7 +140,7 @@ function loadState(): MemoSidebarState {
 
 function formatAlarmTarget(value: string) {
   const target = new Date(value);
-  if (Number.isNaN(target.getTime())) return '?뚮엺 ?놁쓬';
+  if (Number.isNaN(target.getTime())) return '설정 없음';
   return `${formatDateInput(target)} ${formatTime(target)}`;
 }
 
@@ -153,7 +153,7 @@ function getMinutesLeft(value: string) {
 
 function getPreview(content: string) {
   const normalized = content.replace(/\s+/g, ' ').trim();
-  if (!normalized) return '硫붾え ?댁슜???꾩쭅 ?놁뒿?덈떎.';
+  if (!normalized) return '메모 내용이 아직 없습니다.';
   return normalized.slice(0, 72);
 }
 
@@ -222,7 +222,7 @@ export function RightMemoSidebar() {
       setFlashMessage(alarmMessage);
 
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Personai 硫붾え ?뚮엺', {
+        new Notification('Personai 메모 알림', {
           body: alarmMessage,
         });
       }
@@ -433,8 +433,8 @@ export function RightMemoSidebar() {
           {isOpen ? (
             <>
               <div>
-                <div className="text-[14px] font-bold text-slate-800">?묒뾽 硫붾え</div>
-                <div className="text-[10px] text-slate-400">?먮룞 ??λ릺??媛쒖씤 硫붾え 蹂대뱶</div>
+                <div className="text-[14px] font-bold text-slate-800">작업 메모</div>
+                <div className="text-[10px] text-slate-400">자동 저장되는 개인 메모 보드</div>
               </div>
               <button
                 type="button"
@@ -496,7 +496,7 @@ export function RightMemoSidebar() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-[28px] leading-none font-black tracking-tight">{ddayText}</div>
-                    <div className="mt-1 text-[11px] font-semibold opacity-95">{ddayLabel || '留덇컧'}</div>
+                    <div className="mt-1 text-[11px] font-semibold opacity-95">{ddayLabel || '마감'}</div>
                   </div>
                   <CalendarDays className="mt-1 h-4 w-4 shrink-0 opacity-80" />
                 </div>
@@ -521,8 +521,8 @@ export function RightMemoSidebar() {
             <section className="w-full max-w-full rounded-2xl border border-slate-200 bg-white shadow-sm p-1">
               <div className="mb-1 flex items-center justify-between gap-2">
                 <div>
-                  <div className="text-[11px] font-bold text-slate-800">?뚮엺 ?ㅼ젙</div>
-                  <div className="text-[9px] text-slate-400">鍮좊Ⅴ寃?留욎텛??媛꾪렪 ?뚮엺</div>
+                  <div className="text-[11px] font-bold text-slate-800">알림 설정</div>
+                  <div className="text-[9px] text-slate-400">빠르게 맞춤형 간편 알림</div>
                 </div>
                 <div
                   className={cn(
@@ -566,7 +566,7 @@ export function RightMemoSidebar() {
                     onClick={clearAlarm}
                     className="shrink-0 rounded-lg border border-slate-200 bg-white px-1 py-0.5 text-[8.5px] font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-800 transition-colors"
                   >
-                    ?댁젣
+                    해제
                   </button>
                 )}
               </div>

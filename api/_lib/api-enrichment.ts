@@ -20,7 +20,7 @@ export interface ApiEnrichmentResult {
 
 const xmlParser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true });
 
-export function parseXmlResponse(xml: string): any {
+export function parseXmlResponse(xml: string): Record<string, unknown> | null {
   try {
     return xmlParser.parse(xml);
   } catch {
@@ -44,7 +44,7 @@ export function buildCitationContext(citations: ApiSourceCitation[]): string {
     const data = c.rawData ? `\n내용: ${c.rawData}` : '';
     return `[${i + 1}] ${c.label} (출처: ${c.source})${data}`;
   });
-  return `\n\n=== 실제 데이터 참조 (아래 데이터를 근거로 답변하세요) ===\n${lines.join('\n\n')}\n\n위 데이터를 인용할 때는 반드시 {{cite:${'{label}'}}} 형식으로 마킹하세요.`;
+  return `\n\n=== 실제 데이터 참조 (아래 데이터를 근거로 답변하세요) ===\n${lines.join('\n\n')}\n\n위 데이터를 인용할 때는 반드시 {{cite:출처명}} 형식으로 마킹하세요.`;
 }
 
 export function buildTrustHeader(domain: 'law' | 'drug' | 'finance', citations: ApiSourceCitation[]): string {

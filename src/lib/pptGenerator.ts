@@ -64,14 +64,14 @@ export function generatePpt(data: PptData, filename?: string) {
           s.addText(slide.subtitle, {
             x: 0.8, y: 3.5, w: 11.5, h: 1,
             fontSize: 18, fontFace: 'Pretendard, Arial',
-            color: '#FFFFFF', alpha: 80, align: 'left',
+            color: '#FFFFFF', transparency: 20, align: 'left',
           });
         }
         // 날짜
         s.addText(new Date().toLocaleDateString('ko-KR'), {
           x: 0.8, y: 5.5, w: 5, h: 0.5,
           fontSize: 12, fontFace: 'Pretendard, Arial',
-          color: '#FFFFFF', alpha: 60,
+          color: '#FFFFFF', transparency: 40,
         });
         break;
       }
@@ -168,7 +168,7 @@ export function generatePpt(data: PptData, filename?: string) {
         if (slide.items && slide.items.length > 0) {
           const endItems = slide.items.map(item => ({
             text: item,
-            options: { fontSize: 14, fontFace: 'Pretendard, Arial', color: '#FFFFFF', alpha: 80, align: 'center' as const, paraSpaceAfter: 4 },
+            options: { fontSize: 14, fontFace: 'Pretendard, Arial', color: '#FFFFFF', transparency: 20, align: 'center' as const, paraSpaceAfter: 4 },
           }));
           s.addText(endItems, { x: 2, y: 3.8, w: 9, h: 2.5, valign: 'top' });
         }
@@ -176,7 +176,7 @@ export function generatePpt(data: PptData, filename?: string) {
         s.addText('Made with Personai', {
           x: 0, y: 6.5, w: 13.33, h: 0.5,
           fontSize: 10, fontFace: 'Pretendard, Arial',
-          color: '#FFFFFF', alpha: 40, align: 'center',
+          color: '#FFFFFF', transparency: 60, align: 'center',
         });
         break;
       }

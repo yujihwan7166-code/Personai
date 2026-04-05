@@ -31,9 +31,12 @@ export interface AbilityStats {
 
 export function getAbilityStats(): AbilityStats {
   const stored = localStorage.getItem('game-ability-stats');
-  return stored
-    ? JSON.parse(stored)
-    : { logic: 10, creativity: 10, language: 10, psychology: 10, observation: 10 };
+  if (!stored) return { logic: 10, creativity: 10, language: 10, psychology: 10, observation: 10 };
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return { logic: 10, creativity: 10, language: 10, psychology: 10, observation: 10 };
+  }
 }
 
 // Map each game to which ability it boosts
@@ -84,7 +87,12 @@ export function addGameRecord(record: GameRecord) {
 
 export function getGameRecords(): GameRecord[] {
   const stored = localStorage.getItem('game-records');
-  return stored ? JSON.parse(stored) : [];
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return [];
+  }
 }
 
 export function getGameStats(gameId?: string) {
@@ -257,7 +265,12 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 export function getUnlockedAchievements(): string[] {
   const stored = localStorage.getItem('game-achievements');
-  return stored ? JSON.parse(stored) : [];
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return [];
+  }
 }
 
 export function checkAchievements(): { newlyUnlocked: Achievement[] } {

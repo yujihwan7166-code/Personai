@@ -28,7 +28,11 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   }
 
   private handleReload = () => {
-    this.props.onReload?.() ?? window.location.reload();
+    if (this.props.onReload) {
+      this.props.onReload();
+    } else {
+      window.location.reload();
+    }
   };
 
   render() {

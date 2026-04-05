@@ -48,7 +48,7 @@ describe('EXPERT_OVERRIDES', () => {
       '복잡한 문제를 단계별로 풀어줘',
     ]);
 
-    expect(lawyer.quote).toBe('문서의 모호함은 나중에 비용으로 돌아옵니다.');
+    expect(lawyer.quote).toBe('말과 글로 엮어낸 가장 단단한 방패');
     expect(lawyer.sampleQuestions).toHaveLength(3);
 
     expect(untouched.description).toBe('original description');
