@@ -5,7 +5,7 @@ import {
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
   DEBATE_SUB_MODE_LABELS, getMainMode, DebateSettings,
   THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
-  EXPERT_MODE_TEMPLATES, ExpertModeTemplate, ASSISTANT_CARDS, AssistantCard,
+  ASSISTANT_CARDS, AssistantCard,
   GAME_CARDS, GameCard,
   SimulationScenario, SIMULATION_SCENARIOS,
   StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS,
@@ -1297,13 +1297,12 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
 // ── Simulation Mode Panel ──
 
-function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, isDiscussing, onSelectExpertTemplate }: {
+function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, isDiscussing }: {
   experts: Expert[];
   settings: StakeholderSettings;
   onSettingsChange: (s: StakeholderSettings) => void;
   onSubmit: SubmitDiscussion;
   isDiscussing: boolean;
-  onSelectExpertTemplate?: (template: ExpertModeTemplate | null) => void;
 }) {
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario | null>(null);
   const [dropdownRole, setDropdownRole] = useState<string | null>(null);
@@ -1318,18 +1317,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
   const assignedExpertIds = new Set(Object.values(settings.roleAssignments));
   const intensityLabel = settings.intensity <= 3 ? '건설적' : settings.intensity <= 6 ? '균형' : '날카로운';
 
-  // consultation → ExpertModePanel ID 매핑
-  const consultationToTemplateId: Record<string, string> = {
-    medical: 'medical', legal_sim: 'legal', finance_sim: 'finance',
-    realestate_sim: 'realestate', startup_sim: 'startup', psychology_sim: 'psychology',
-  };
-
   const handleSelectScenario = (scenario: SimulationScenario) => {
-    if (scenario.simType === 'consultation' && onSelectExpertTemplate) {
-      const templateId = consultationToTemplateId[scenario.id];
-      const template = EXPERT_MODE_TEMPLATES.find(t => t.id === templateId);
-      if (template) { onSelectExpertTemplate(template); return; }
-    }
     setSelectedScenario(scenario);
     update({ scenarioId: scenario.id, roleAssignments: {}, intensity: scenario.defaultIntensity, prepAnswers: {} });
     setDropdownRole(null);
@@ -1572,293 +1560,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
 }
 
 
-// ── Expert Mode Selection Panel ──
-function ExpertModePanel({ onSelectTemplate, selectedTemplate, onSubmit, isDiscussing, showCardsGrid = true, onSimStart }: {
-  onSelectTemplate: (t: ExpertModeTemplate | null) => void;
-  selectedTemplate: ExpertModeTemplate | null;
-  onSubmit: SubmitDiscussion;
-  isDiscussing: boolean;
-  showCardsGrid?: boolean;
-  onSimStart?: (scenarioId: string) => void;
-}) {
-  const [question, setQuestion] = useState('');
-  const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (selectedTemplate && modalRef.current) {
-      modalRef.current.scrollTop = 0;
-    }
-  }, [selectedTemplate]);
-
-  return (
-    <div className="space-y-4">
-      {/* Mode cards grid — 3 per row, information-rich */}
-      {showCardsGrid && <div className="grid grid-cols-3 gap-3">
-        {EXPERT_MODE_TEMPLATES.map(template => {
-          const isSelected = selectedTemplate?.id === template.id;
-          const corePhases = template.phases.filter(p => p.sampleQuestions.length > 0);
-          return (
-            <button
-              key={template.id}
-              onClick={() => onSelectTemplate(isSelected ? null : template)}
-              className={cn(
-                'relative text-left rounded-2xl border transition-all duration-200 group overflow-hidden',
-                isSelected
-                  ? 'border-indigo-300 bg-indigo-50/80 shadow-lg ring-1 ring-indigo-200'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-lg'
-              )}
-            >
-              {/* Top gradient accent bar */}
-              <div className={cn('h-1', `bg-gradient-to-r ${template.gradient}`)} />
-
-              <div className="px-4 pt-3.5 pb-3">
-                {/* Badges */}
-                <div className="absolute top-3 right-3 flex gap-1">
-                  {template.isPopular && (
-                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">인기</span>
-                  )}
-                  {template.isNew && (
-                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">NEW</span>
-                  )}
-                </div>
-
-                {/* Header: Icon + Title */}
-                <div className="flex items-start gap-2.5 mb-2.5">
-                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm', `bg-gradient-to-br ${template.gradient}`)}>
-                    {template.icon}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className={cn('text-[13px] font-bold leading-tight', isSelected ? 'text-indigo-900' : 'text-slate-800')}>{template.name}</h3>
-                    <p className="text-[9px] mt-0.5 leading-snug text-slate-500">{template.description}</p>
-                  </div>
-                </div>
-
-                {/* Phase flow: expert roles */}
-                <div className={cn('rounded-lg p-2 mb-2.5', isSelected ? 'bg-indigo-100/50' : 'bg-slate-50')}>
-                  <div className="flex items-center gap-0.5 flex-wrap">
-                    {corePhases.map((phase, i) => (
-                      <div key={phase.id} className="flex items-center gap-0.5">
-                        <span className={cn('text-[9px] px-1.5 py-0.5 rounded-md font-medium inline-flex items-center gap-0.5',
-                          isSelected ? 'bg-white text-indigo-700 border border-indigo-200' : 'bg-white text-slate-600 border border-slate-200')}>
-                          <span>{phase.expertIcon}</span>
-                          <span>{phase.expertRole}</span>
-                        </span>
-                        {i < corePhases.length - 1 && <ChevronRight className="w-2.5 h-2.5 shrink-0 text-slate-300" />}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Output format */}
-                <div className="flex items-center gap-1.5 text-[9px] font-medium text-slate-400">
-                  <FileText className="w-3 h-3 shrink-0" />
-                  <span>{template.outputFormat}</span>
-                </div>
-
-                {/* Phase count badge */}
-                <div className={cn('mt-2 pt-2 border-t', isSelected ? 'border-indigo-200' : 'border-slate-100')}>
-                  <span className={cn('text-[9px] font-bold', isSelected ? 'text-indigo-500' : 'text-slate-500')}>
-                    {template.phases.length}단계 전문가 AI 상담
-                  </span>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>}
-
-      {/* ── Floating Modal ── */}
-      {selectedTemplate && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => onSelectTemplate(null)}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-
-          <div ref={modalRef} className="relative w-full max-w-[640px] max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-
-            {/* ── Header ── */}
-            <div className={cn('relative px-6 py-2.5', `bg-gradient-to-br ${selectedTemplate.gradient}`)}>
-              <button onClick={() => onSelectTemplate(null)}
-                className="absolute top-2 right-2.5 w-6 h-6 rounded-full bg-white/60 hover:bg-white flex items-center justify-center transition-colors">
-                <X className="w-3 h-3 text-slate-600" />
-              </button>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white shadow flex items-center justify-center text-[18px] shrink-0">
-                  {selectedTemplate.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-[15px] font-bold text-slate-900">{selectedTemplate.name}</h3>
-                    <span className="text-[8px] font-bold text-slate-500 bg-white/70 px-1.5 py-0.5 rounded">{selectedTemplate.phases.length}단계</span>
-                  </div>
-                  <p className="text-[10px] text-slate-600 leading-snug">{selectedTemplate.description}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Connector: header → process */}
-            <div className="flex items-center gap-2 pt-5 pb-3 px-8 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
-              <div className="h-px flex-1 bg-slate-200" />
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-[11px] font-semibold text-slate-600">전문가들이 단계별로 질문하고 분석합니다</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
-            {/* ── Process: full-width card rows ── */}
-            {(() => {
-              const procColors: Record<string, { accent: string; numBg: string; numText: string }> = {
-                medical: { accent: 'from-red-500 to-rose-500', numBg: 'bg-red-500', numText: 'text-white' },
-                legal: { accent: 'from-amber-500 to-yellow-500', numBg: 'bg-amber-500', numText: 'text-white' },
-                finance: { accent: 'from-emerald-500 to-green-500', numBg: 'bg-emerald-500', numText: 'text-white' },
-                realestate: { accent: 'from-blue-500 to-sky-500', numBg: 'bg-blue-500', numText: 'text-white' },
-                startup: { accent: 'from-purple-500 to-violet-500', numBg: 'bg-purple-500', numText: 'text-white' },
-                psychology: { accent: 'from-pink-500 to-rose-500', numBg: 'bg-pink-500', numText: 'text-white' },
-              };
-              const pc = procColors[selectedTemplate.id] || procColors.medical;
-              return (
-                <div className="px-8 pt-1 pb-3">
-                  <div className="space-y-1.5">
-                    {selectedTemplate.phases.map((phase, i) => {
-                      const isLast = i === selectedTemplate.phases.length - 1;
-                      if (isLast) return null;
-                      return (
-                        <div key={phase.id}
-                          className="flex items-start gap-3 px-4 py-2.5 rounded-lg border border-slate-100 bg-slate-50/80 hover:bg-slate-50 animate-in fade-in slide-in-from-bottom-2 duration-400"
-                          style={{ animationDelay: `${800 + i * 150}ms`, animationFillMode: 'both' }}>
-                          <div className={cn('w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5', pc.numBg, pc.numText)}>
-                            {i + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[12px]">{phase.expertIcon}</span>
-                              <span className="text-[11px] font-bold text-slate-800">{phase.expertRole}</span>
-                              <span className="text-[9px] text-slate-500">— {phase.description}</span>
-                            </div>
-                            {phase.sampleQuestions.length > 0 && (
-                              <div className="mt-1.5 flex flex-wrap gap-1">
-                                {phase.sampleQuestions.map((q, qi) => (
-                                  <span key={qi} className="text-[9px] px-2 py-0.5 rounded text-slate-600 bg-white border border-slate-200">{q}</span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* Connector */}
-                  <div className="flex items-center gap-2 py-5 animate-in fade-in slide-in-from-bottom-2 duration-500"
-                    style={{ animationDelay: `${800 + selectedTemplate.phases.length * 150 + 400}ms`, animationFillMode: 'both' }}>
-                    <div className="h-px flex-1 bg-slate-200" />
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-[11px] font-semibold text-slate-600">상담 완료 시 {selectedTemplate.outputFormat} 제공</span>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                    <div className="h-px flex-1 bg-slate-200" />
-                  </div>
-                  {/* Final step — premium deliverable card */}
-                  {(() => {
-                    const lastPhase = selectedTemplate.phases[selectedTemplate.phases.length - 1];
-                    const colorMap: Record<string, { accent: string; bg: string; text: string; icon: string }> = {
-                      medical: { accent: 'from-red-500 to-rose-500', bg: 'bg-red-50', text: 'text-red-700', icon: 'text-red-500' },
-                      legal: { accent: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50', text: 'text-amber-700', icon: 'text-amber-500' },
-                      finance: { accent: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: 'text-emerald-500' },
-                      realestate: { accent: 'from-blue-500 to-sky-500', bg: 'bg-blue-50', text: 'text-blue-700', icon: 'text-blue-500' },
-                      startup: { accent: 'from-purple-500 to-violet-500', bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
-                      psychology: { accent: 'from-pink-500 to-rose-500', bg: 'bg-pink-50', text: 'text-pink-700', icon: 'text-pink-500' },
-                    };
-                    const deliverables: Record<string, { icon: string; label: string }[]> = {
-                      medical: [
-                        { icon: '🔍', label: '감별진단 목록' }, { icon: '🧪', label: '권장 검사 항목' },
-                        { icon: '💪', label: '생활습관 교정' }, { icon: '📋', label: 'SOAP Note 작성' },
-                        { icon: '📅', label: '추적 관찰 일정' }, { icon: '🏥', label: '전문의 연계 권고' },
-                      ],
-                      legal: [
-                        { icon: '📜', label: '법률의견서 작성' }, { icon: '⚖️', label: '쟁점별 판례 분석' },
-                        { icon: '📊', label: '승소 가능성 평가' }, { icon: '🎯', label: '소송 전략 권고' },
-                        { icon: '💰', label: '예상 비용·기간' }, { icon: '✅', label: '즉시 조치 체크리스트' },
-                      ],
-                      finance: [
-                        { icon: '💯', label: '재무 건강 점수' }, { icon: '📊', label: '자산 배분 설계' },
-                        { icon: '🧾', label: '절세 전략' }, { icon: '📈', label: '투자 포트폴리오' },
-                        { icon: '📋', label: '개인재무보고서' }, { icon: '🗓️', label: '90일 액션플랜' },
-                      ],
-                      realestate: [
-                        { icon: '📊', label: '시세 분석 리포트' }, { icon: '🧾', label: '세금 시뮬레이션' },
-                        { icon: '⚠️', label: '리스크 체크' }, { icon: '📈', label: '수익률 분석' },
-                        { icon: '🏠', label: '매수/매도 판정' }, { icon: '✅', label: '실행 체크리스트' },
-                      ],
-                      startup: [
-                        { icon: '📐', label: 'Lean Canvas' }, { icon: '🔎', label: '시장 규모 분석' },
-                        { icon: '💼', label: '재무 모델링' }, { icon: '📊', label: 'IR Pitch Deck' },
-                        { icon: '🗓️', label: '90일 로드맵' }, { icon: '📈', label: 'KPI 대시보드' },
-                      ],
-                      psychology: [
-                        { icon: '💭', label: '감정 상태 분석' }, { icon: '📊', label: '스트레스 지수' },
-                        { icon: '😴', label: '수면 패턴 평가' }, { icon: '🧘', label: '이완 기법 가이드' },
-                        { icon: '📋', label: '심리 건강 리포트' }, { icon: '🏥', label: '전문 상담 연계' },
-                      ],
-                    };
-                    const colors = colorMap[selectedTemplate.id] || colorMap.medical;
-                    const items = deliverables[selectedTemplate.id] || [{ icon: '📋', label: lastPhase.description }];
-                    return (
-                      <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-500"
-                        style={{ animationDelay: `${800 + selectedTemplate.phases.length * 150 + 900}ms`, animationFillMode: 'both' }}>
-                        {/* Gradient accent top */}
-                        <div className={cn('h-1 bg-gradient-to-r', colors.accent)} />
-                        {/* Header */}
-                        <div className="flex items-center gap-3 px-5 py-3 bg-white border-b border-slate-100">
-                          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', colors.bg)}>
-                            <FileText className={cn('w-4 h-4', colors.icon)} />
-                          </div>
-                          <div>
-                            <p className="text-[13px] font-bold text-slate-900">{selectedTemplate.outputFormat}</p>
-                            <p className="text-[9px] text-slate-500">최종 리포트에 포함되는 항목</p>
-                          </div>
-                        </div>
-                        {/* Items grid */}
-                        <div className="grid grid-cols-3 gap-0">
-                          {items.map((item, ii) => (
-                            <div key={ii} className={cn('flex items-center gap-2 px-4 py-2.5 border-b border-r border-slate-50',
-                              ii % 3 === 2 && 'border-r-0')}>
-                              <span className="text-[12px]">{item.icon}</span>
-                              <span className="text-[10px] font-medium text-slate-700">{item.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            })()}
-
-            {/* Start button */}
-            <div className="px-5 pb-5 pt-3">
-              <button
-                type="button"
-                onClick={() => {
-                  // template → consultation scenario ID 매핑
-                  const templateToScenario: Record<string, string> = {
-                    medical: 'medical', legal: 'legal_sim', finance: 'finance_sim',
-                    realestate: 'realestate_sim', startup: 'startup_sim', psychology: 'psychology_sim',
-                  };
-                  const scenarioId = selectedTemplate ? templateToScenario[selectedTemplate.id] : null;
-                  onSelectTemplate(null);
-                  if (scenarioId && onSimStart) {
-                    onSimStart(scenarioId);
-                  }
-                }}
-                className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5"
-              >
-                상담 시작 <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-}
 
 // ── Player Lobby (Game Mode) ──
 function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onSubmit: SubmitDiscussion; isDiscussing: boolean; onStartGame?: (gameId: string, option: string, label: string) => void; onBackToHub?: () => void }) {
@@ -3200,7 +2902,6 @@ export function ExpertSelectionPanel({
   const [dragOver, setDragOver] = useState<'pro' | 'con' | null>(null);
   const [hintId, setHintId] = useState<string | null>(null);
   const [maxLimitMsg, setMaxLimitMsg] = useState<string | null>(null);
-  const [selectedExpertModeTemplate, setSelectedExpertModeTemplate] = useState<ExpertModeTemplate | null>(null);
   const [autoAssign, setAutoAssign] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -3591,25 +3292,8 @@ export function ExpertSelectionPanel({
       )}>
 
       {/* ── Premium Domain Landing (hidden when consultation chat is open) ── */}
-      {mainMode === 'premium_main' && !selectedExpertModeTemplate && !selectedPremiumDomain && (
+      {mainMode === 'premium_main' && !selectedPremiumDomain && (
         <PremiumDomainLanding onSelectDomain={(domainId) => onSelectPremiumDomain?.(domainId)} />
-      )}
-      {/* ── Expert Mode (Legacy fallback) ── */}
-      {selectedExpertModeTemplate && (
-        <ExpertModePanel
-          onSelectTemplate={setSelectedExpertModeTemplate}
-          selectedTemplate={selectedExpertModeTemplate}
-          onSubmit={onSubmit}
-          isDiscussing={isDiscussing}
-          showCardsGrid={false}
-          onSimStart={(scenarioId) => {
-            if (onStakeholderSettingsChange) {
-              onStakeholderSettingsChange({ ...DEFAULT_STAKEHOLDER_SETTINGS, scenarioId });
-              if (onModeChange) onModeChange('stakeholder');
-              setTimeout(() => onSubmit('__SIM_START__:' + scenarioId, undefined, 'stakeholder'), 300);
-            }
-          }}
-        />
       )}
 
       {/* ── Assistant Mode ── */}
@@ -3922,7 +3606,6 @@ export function ExpertSelectionPanel({
           onSettingsChange={onStakeholderSettingsChange}
           onSubmit={onSubmit}
           isDiscussing={isDiscussing}
-          onSelectExpertTemplate={setSelectedExpertModeTemplate}
         />
       )}
 
