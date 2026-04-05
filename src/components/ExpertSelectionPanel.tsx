@@ -78,7 +78,7 @@ const mainModeLabels: Record<MainMode, string> = {
   debate: 'AI 토론',
   stakeholder_main: 'AI 시뮬레이션',
   brainstorm_main: '브레인스토밍',
-  premium_main: '프리미엄 AI 모드',
+  premium_main: '프리미엄 AI 자문',
   assistant: '어시스턴트',
   player: '플레이어',
 };

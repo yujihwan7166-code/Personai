@@ -522,6 +522,99 @@ const Index = () => {
     setSelectedPremiumDomain(null);
   }, []);
 
+  // ── Debate analysis panel state ──
+  const [showDebateAnalysis, setShowDebateAnalysis] = useState(false);
+  const [debateAnalysisTab, setDebateAnalysisTab] = useState<'points' | 'table' | 'verdict'>('points');
+  const [debateAnalysisContent, setDebateAnalysisContent] = useState<Record<string, string>>({});
+  const [debateAnalysisLoading, setDebateAnalysisLoading] = useState(false);
+
+  const requestDebateAnalysis = useCallback(async (tab: 'points' | 'table' | 'verdict') => {
+    if (debateAnalysisContent[tab] || debateAnalysisLoading) return;
+    setDebateAnalysisLoading(true);
+    const allText = messages
+      .filter(m => m.expertId !== '__round__' && m.content)
+      .map(m => {
+        if (m.expertId === '__user__') return `[사용자] ${m.content}`;
+        const e = experts.find(ex => ex.id === m.expertId);
+        return `[${e?.nameKo || 'AI'}] ${m.content}`;
+      }).join('\n\n');
+
+    const prompts: Record<string, string> = {
+      points: `다음은 찬반 토론 내용입니다. 양쪽의 핵심 논점을 각각 3~5개씩 한 줄로 정리하세요.
+
+형식:
+## 찬성 측 핵심 논점
+- 논점1
+- 논점2
+
+## 반대 측 핵심 논점
+- 논점1
+- 논점2
+
+한국어로, 마크다운으로 답하세요.`,
+      table: `다음은 찬반 토론 내용입니다. 주요 논점별로 찬성/반대 입장을 비교 테이블로 정리하세요.
+
+형식:
+| 논점 | 찬성 | 반대 |
+|------|------|------|
+| ... | ... | ... |
+
+3~5개 핵심 논점으로 압축하세요. 한국어, 마크다운.`,
+      verdict: `다음은 찬반 토론 내용입니다. 현재까지의 형세를 판단하세요.
+
+형식:
+## 형세 판단
+(어느 쪽이 우세한지, 왜 그런지 2~3문장)
+
+## 찬성 측 강점/약점
+- 강점: ...
+- 약점: ...
+
+## 반대 측 강점/약점
+- 강점: ...
+- 약점: ...
+
+한국어, 마크다운. 공정하게 분석하세요.`,
+    };
+
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemPrompt: '당신은 토론 분석 전문가입니다. 주어진 토론 내용을 분석하여 요청된 형식으로 정리합니다.',
+          question: `${prompts[tab]}\n\n=== 토론 내용 ===\n${allText}`,
+        }),
+      });
+      if (!resp.ok || !resp.body) throw new Error('응답 실패');
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let result = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            const chunk = parsed.choices?.[0]?.delta?.content;
+            if (chunk) result += chunk;
+          } catch { /* skip */ }
+        }
+      }
+      setDebateAnalysisContent(prev => ({ ...prev, [tab]: result }));
+    } catch {
+      setDebateAnalysisContent(prev => ({ ...prev, [tab]: '분석을 불러오지 못했습니다.' }));
+    }
+    setDebateAnalysisLoading(false);
+  }, [messages, experts, debateAnalysisContent, debateAnalysisLoading]);
+
   const stopDiscussion = () => {
     setStopRequested(true);
     abortControllerRef.current?.abort();
@@ -2266,6 +2359,7 @@ ${conversationText}`;
   }, [isDiscussing, messages]);
   const [questionExpanded, setQuestionExpanded] = useState(false);
   const [followUpTarget, setFollowUpTarget] = useState<string | null>(null); // null = 전체, id = 특정 전문가
+
   const [multiFollowUpTargetIds, setMultiFollowUpTargetIds] = useState<string[]>([]);
   const [sampleQuestionValue, setSampleQuestionValue] = useState<string>('');
   const [activeGame, setActiveGame] = useState<{ id: string; option: string; label: string } | null>(null);
@@ -3330,7 +3424,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         if (controller.signal.aborted) break;
         setActiveExpertId(expert.id);
         const msgId = `${expert.id}-debate-followup-${Date.now()}`;
-        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, isDirectFollowUp: true }]);
         let fullContent = '';
         try {
           await streamExpert({ question, expert: await buildExpertWithPrompt(expert, stanceExtra(expert.id)),
@@ -4513,7 +4607,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       currentLabel = msg.content;
                       currentId = msg.id;
                       currentPro = []; currentCon = []; currentOther = [];
-                    } else if (!msg.isSummary && msg.expertId !== '__user__') {
+                    } else if (!msg.isSummary && msg.expertId !== '__user__' && !msg.isDirectFollowUp && !msg.id.includes('-followup-') && !msg.id.includes('-debate-followup-')) {
                       if (proconStances[msg.expertId] === 'pro') currentPro.push(msg);
                       else if (proconStances[msg.expertId] === 'con') currentCon.push(msg);
                       else currentOther.push(msg);
@@ -4545,9 +4639,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       {/* 현재 라운드 — 회색 칸 안에 탭 + 찬반 */}
                       {currentRound && (
                         <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-                        {/* 라운드 탭 — 회색 칸 상단에 고정 */}
+                        {/* 라운드 탭 + 분석 탭 — 상단에 고정 */}
                         {mergedRounds.length > 0 && (
-                          <div className="flex items-center gap-1 bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                          <div className="flex items-center gap-0.5 bg-slate-50 border-b border-slate-200 px-2 py-1 overflow-x-auto scrollbar-none">
                             {mergedRounds.map((r, ri) => {
                               const isActive = ri === (activeRound >= 0 ? activeRound : 0);
                               const roundNum = r.label.match(/(\d)/)?.[1] || '';
@@ -4555,11 +4649,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const hasContent = r.proMsgs.length > 0 || r.conMsgs.length > 0;
                               return (
                                 <button key={r.id} onClick={() => setProconActiveRound(ri)}
-                                  className={cn('flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
+                                  className={cn('flex items-center gap-1 px-2.5 py-1 rounded-md transition-all shrink-0 text-[10px] font-semibold',
                                     isActive
                                       ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-slate-800 text-white shadow-sm'
                                       : hasContent ? 'text-slate-500 hover:text-slate-700 hover:bg-white' : 'text-slate-300')}>
-                                  <span className="text-[12px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
+                                  <span className="text-[11px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
                                   {isFinal ? '최종' : r.label.includes('주장') ? '주장' : r.label.includes('반론') ? '반론' : r.label.replace(/\d라운드\s*·?\s*/, '')}
                                   {isDiscussing && ri === mergedRounds.length - 1 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
                                 </button>
@@ -4648,7 +4742,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       {/* 후속 1:1 대화 — 메신저 스타일 */}
                       {(() => {
                         const lastSummaryIdx = messages.reduce((acc, m, i) => m.isSummary ? i : acc, -1);
-                        const followUpMsgs = lastSummaryIdx >= 0 ? messages.slice(lastSummaryIdx + 1) : [];
+                        const followUpFromSummary = lastSummaryIdx >= 0 ? messages.slice(lastSummaryIdx + 1) : [];
+                        const followUpByFlag = messages.filter(m => m.isDirectFollowUp || m.id.includes('-debate-followup-') || (m.expertId === '__user__' && m.id.includes('user-debate-followup')));
+                        const followUpMsgs = followUpFromSummary.length > 0 ? followUpFromSummary : followUpByFlag;
                         if (followUpMsgs.length === 0) return null;
                         return (
                           <div className="space-y-2.5 pt-3 border-t border-slate-200 mt-3">
@@ -5342,18 +5438,18 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                         {/* 라운드 탭 */}
                         {rounds.length > 0 && (
-                          <div className="flex items-center gap-1 bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto scrollbar-none">
+                          <div className="flex items-center gap-0.5 bg-slate-50 border-b border-slate-200 px-2 py-1 overflow-x-auto scrollbar-none">
                             {rounds.map((r, ri) => {
                               const isActive = ri === (activeRound >= 0 ? activeRound : 0);
                               const roundNum = r.label.match(/(\d)/)?.[1] || '';
                               const isFinal = r.label.includes('최종');
                               return (
                                 <button key={r.id} onClick={() => setStdActiveRound(ri)}
-                                  className={cn('flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all shrink-0 text-[11px] font-semibold',
+                                  className={cn('flex items-center gap-1 px-2.5 py-1 rounded-md transition-all shrink-0 text-[10px] font-semibold',
                                     isActive
                                       ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-indigo-500 text-white shadow-sm'
                                       : r.msgs.length > 0 ? 'text-slate-500 hover:text-slate-700 hover:bg-white' : 'text-slate-300')}>
-                                  <span className="text-[12px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
+                                  <span className="text-[11px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
                                   {r.label.replace(/\d라운드\s*·?\s*/, '')}
                                   {isDiscussing && ri === rounds.length - 1 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
                                 </button>
@@ -5815,7 +5911,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     )}
                   </div>
                 )}
-                {/* 토론 모드 후속질문 — 전문가 선택 칩 */}
+                {/* 토론 모드 후속질문 — 전문가 선택 칩 + 토론 분석 버튼 */}
                 {!isDiscussing && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length >= 1 && (
                   <div className="flex items-center gap-1.5 flex-wrap px-1">
                     <span className="text-[10px] text-slate-400">질문할 토론자 선택:</span>
@@ -5827,6 +5923,64 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         {e.nameKo}
                       </button>
                     ))}
+                    {/* 토론 분석 탭 */}
+                    {messages.length > 2 && (
+                      <>
+                        <div className="w-px h-4 bg-slate-200 shrink-0 mx-0.5" />
+                        {([
+                          { id: 'points' as const, label: '논점 정리', icon: '📋' },
+                          { id: 'table' as const, label: '라운드 분석', icon: '📊' },
+                          { id: 'verdict' as const, label: '형세 판단', icon: '🏆' },
+                        ]).map(t => (
+                          <button key={t.id}
+                            onClick={() => {
+                              if (showDebateAnalysis && debateAnalysisTab === t.id) {
+                                setShowDebateAnalysis(false);
+                              } else {
+                                setShowDebateAnalysis(true);
+                                setDebateAnalysisTab(t.id);
+                                if (!debateAnalysisContent[t.id]) requestDebateAnalysis(t.id);
+                              }
+                            }}
+                            className={cn('flex items-center gap-0.5 px-2 py-1 rounded-full text-[10px] font-semibold transition-all border',
+                              showDebateAnalysis && debateAnalysisTab === t.id ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:border-slate-300')}
+                          >
+                            {t.icon} {t.label}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
+                {/* 분석 내용 패널 (토론자 칩 아래) */}
+                {showDebateAnalysis && !isDiscussing && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && (
+                  <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 bg-slate-50">
+                      <span className="text-[11px] font-bold text-slate-600">
+                        {debateAnalysisTab === 'points' ? '📋 논점 정리' : debateAnalysisTab === 'table' ? '📊 라운드 분석' : '🏆 형세 판단'}
+                      </span>
+                      <button
+                        onClick={() => { setDebateAnalysisContent(prev => ({ ...prev, [debateAnalysisTab]: '' })); requestDebateAnalysis(debateAnalysisTab); }}
+                        disabled={debateAnalysisLoading}
+                        className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-white transition-colors"
+                      >
+                        <RefreshCw className={cn('w-3 h-3', debateAnalysisLoading && 'animate-spin')} />
+                      </button>
+                    </div>
+                    <div className="px-3 py-3 max-h-[300px] overflow-y-auto">
+                      {debateAnalysisLoading && !debateAnalysisContent[debateAnalysisTab] ? (
+                        <div className="flex items-center justify-center py-6 gap-2">
+                          <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />
+                          <span className="text-[11px] text-slate-400">AI가 분석 중...</span>
+                        </div>
+                      ) : debateAnalysisContent[debateAnalysisTab] ? (
+                        <div className="prose prose-sm max-w-none text-[12px] text-slate-700 leading-relaxed prose-headings:text-[13px] prose-headings:font-bold prose-headings:text-slate-800 prose-th:text-[11px] prose-td:text-[11px]">
+                          <LazyMarkdown content={debateAnalysisContent[debateAnalysisTab]} fallback={<span className="whitespace-pre-wrap">{debateAnalysisContent[debateAnalysisTab]}</span>} />
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-[11px] text-slate-400">분석 결과가 없습니다</div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {!isDiscussing && messages.length > 0 && discussionMode === 'multi' && activeExperts.length >= 1 ? (

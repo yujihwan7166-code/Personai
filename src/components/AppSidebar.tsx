@@ -760,7 +760,13 @@ export function AppSidebar({
           <div className="shrink-0 px-1.5">
             {/* Header */}
             <div className="flex items-center justify-between px-2 py-1.5">
-              {/* Project header buttons - temporarily disabled */}
+              <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">프로젝트</span>
+              <button
+                onClick={() => { setCreatingProject(true); setNewProjectName(''); }}
+                className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Project creation input */}
@@ -853,7 +859,7 @@ export function AppSidebar({
                             <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
                           </button>
                           <button
-                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setShowIconPicker(project.id); }}
+                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setTimeout(() => setShowIconPicker(project.id), 50); }}
                             className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                           >
                             <span className="w-3.5 h-3.5 flex items-center justify-center text-[11px]">{project.icon || '📁'}</span> 아이콘 변경
@@ -949,12 +955,12 @@ export function AppSidebar({
           );
         })()}
 
-        {/* Icon Picker Modal */}
+        {/* Icon Picker Modal — portal to body to avoid sidebar overflow/contain issues */}
         {showIconPicker && showIconPicker !== 'new' && (() => {
           const proj = projects.find(p => p.id === showIconPicker);
           if (!proj) return null;
-          return (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setShowIconPicker(null)}>
+          return createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={() => setShowIconPicker(null)}>
               <div className="absolute inset-0 bg-black/20" />
               <div onClick={e => e.stopPropagation()} className="relative w-64 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
                 <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-3">{proj.name} 아이콘 선택</p>
@@ -969,7 +975,8 @@ export function AppSidebar({
                   ))}
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           );
         })()}
 
