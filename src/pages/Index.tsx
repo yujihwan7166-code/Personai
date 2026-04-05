@@ -1,6 +1,6 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { applyExpertOverrides } from '@/data/expertOverrides';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
@@ -20,6 +20,7 @@ const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
 const LazyGamePlayer = lazy(() => import('@/components/GamePlayer').then((module) => ({ default: module.GamePlayer })));
 const LazyQuestionInput = lazy(() => import('@/components/QuestionInput').then((module) => ({ default: module.QuestionInput })));
+const LazyPremiumConsultChat = lazy(() => import('@/components/PremiumConsultChat').then((module) => ({ default: module.PremiumConsultChat })));
 let pptGeneratorPromise: Promise<typeof import('@/lib/pptGenerator')> | null = null;
 
 async function loadPptGenerator() {
@@ -238,6 +239,16 @@ const Index = () => {
   const [aivsBattleAutoStart, setAivsBattleAutoStart] = useState(0);
   const [, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
+
+  // ── Premium consultation state ──
+  const [selectedPremiumDomain, setSelectedPremiumDomain] = useState<PremiumDomainId | null>(null);
+  const [premiumMessages, setPremiumMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; isStreaming?: boolean; citations?: ApiSourceCitation[] }[]>([]);
+  const [premiumStreaming, setPremiumStreaming] = useState(false);
+  const [premiumCitations, setPremiumCitations] = useState<ApiSourceCitation[]>([]);
+  const [premiumTrustHeader, setPremiumTrustHeader] = useState<string | undefined>();
+  const [premiumError, setPremiumError] = useState<string | undefined>();
+  const [premiumSteps, setPremiumSteps] = useState<{ step: number; label: string; done: boolean }[]>([]);
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingFilesRef = useRef<AttachedFile[]>([]);
@@ -415,6 +426,100 @@ const Index = () => {
     setMessages([]);
     setAivsRound(0);
     setAivsJudgments([]);
+  }, []);
+
+  // ── Premium consultation send handler ──
+  const handlePremiumSend = useCallback(async (question: string, domain: PremiumDomainId, history: { role: 'user' | 'assistant'; content: string }[]) => {
+    const userMsgId = `premium-user-${Date.now()}`;
+    setPremiumMessages(prev => [...prev, { id: userMsgId, role: 'user', content: question }]);
+    setPremiumStreaming(true);
+    setPremiumError(undefined);
+    setPremiumSteps([
+      { step: 1, label: '키워드 분석 중...', done: false },
+      { step: 2, label: '데이터 검색 중...', done: false },
+      { step: 3, label: '답변 생성 중...', done: false },
+    ]);
+
+    const aiMsgId = `premium-ai-${Date.now()}`;
+    setPremiumMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: '', isStreaming: true }]);
+
+    try {
+      const resp = await fetch('/api/premium-consult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, domain, conversationHistory: history }),
+      });
+
+      if (!resp.ok || !resp.body) {
+        throw new Error('응답을 받아올 수 없습니다.');
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+
+            if (parsed.type === 'trust') {
+              setPremiumTrustHeader(parsed.trustHeader);
+              if (parsed.citations) setPremiumCitations(parsed.citations);
+              if (parsed.error) setPremiumError(parsed.error);
+              setPremiumSteps(prev => prev.map((s, i) => i <= 1 ? { ...s, done: true } : s));
+              continue;
+            }
+
+            if (parsed.type === 'step') {
+              setPremiumSteps(prev => prev.map(s => s.step <= parsed.step ? { ...s, label: parsed.label || s.label, done: true } : s));
+              continue;
+            }
+
+            const chunk = parsed.choices?.[0]?.delta?.content;
+            if (chunk) {
+              fullContent += chunk;
+              setPremiumSteps(prev => prev.map(s => ({ ...s, done: true })));
+              setPremiumMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: fullContent } : m));
+            }
+          } catch { /* skip malformed SSE */ }
+        }
+      }
+
+      setPremiumMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false, citations: premiumCitations } : m));
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : '알 수 없는 오류';
+      setPremiumMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: `⚠️ ${errMsg}`, isStreaming: false } : m));
+      setPremiumError(errMsg);
+    }
+
+    setPremiumStreaming(false);
+    setPremiumSteps([]);
+  }, [premiumCitations]);
+
+  const handleSelectPremiumDomain = useCallback((domainId: PremiumDomainId) => {
+    setSelectedPremiumDomain(domainId);
+    setPremiumMessages([]);
+    setPremiumCitations([]);
+    setPremiumTrustHeader(undefined);
+    setPremiumError(undefined);
+    setPremiumSteps([]);
+  }, []);
+
+  const handlePremiumBack = useCallback(() => {
+    setSelectedPremiumDomain(null);
   }, []);
 
   const stopDiscussion = () => {
@@ -3582,6 +3687,25 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     onStartGame={(id, opt, label) => setActiveGame({ id, option: opt, label })}
                     stakeholderSettings={stakeholderSettings}
                     onStakeholderSettingsChange={setStakeholderSettings}
+                    onSelectPremiumDomain={handleSelectPremiumDomain}
+                    selectedPremiumDomain={selectedPremiumDomain}
+                  />
+                </Suspense>
+              )}
+
+              {/* Premium Consultation Chat */}
+              {selectedPremiumDomain && getMainMode(discussionMode) === 'premium_main' && (
+                <Suspense fallback={null}>
+                  <LazyPremiumConsultChat
+                    domainId={selectedPremiumDomain}
+                    onBack={handlePremiumBack}
+                    onSendMessage={handlePremiumSend}
+                    messages={premiumMessages}
+                    isStreaming={premiumStreaming}
+                    citations={premiumCitations}
+                    trustHeader={premiumTrustHeader}
+                    error={premiumError}
+                    steps={premiumSteps}
                   />
                 </Suspense>
               )}

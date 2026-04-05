@@ -12,6 +12,9 @@ const SOURCE_MAP: Record<PremiumDomainId, string> = {
   law: '국가법령정보센터',
   drug: '식약처 의약품안전나라',
   finance: '한국은행 ECOS · 금감원',
+  realestate: 'AI 전문 지식',
+  tax: 'AI 전문 지식',
+  labor: 'AI 전문 지식',
 };
 
 export function TrustIndicator({ domain, citations, error, trustHeader }: Props) {

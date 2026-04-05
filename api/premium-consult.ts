@@ -26,25 +26,45 @@ JSON으로만 응답: {"drugName": "약품명", "ingredient": "성분명", "sear
 JSON으로만 응답: {"dataType": "indicator" | "deposit" | "loan" | "exchange", "keyword": "검색어"}`,
 };
 
+const FOLLOWUP_INSTRUCTION = `\n- 답변 마지막에 반드시 {{followup:후속질문1||후속질문2||후속질문3}} 형식으로 맥락에 맞는 후속 질문 3개를 제안하세요. 이 태그는 답변 본문과 별도로, 맨 마지막 줄에 넣으세요.`;
+
 const DOMAIN_SYSTEM_PROMPTS: Record<PremiumDomainId, string> = {
   law: `당신은 한국 법률 전문 AI 자문관입니다.
 - 반드시 제공된 실제 법령/판례 데이터를 근거로 답변하세요
 - 법령을 인용할 때는 {{cite:법령명 제X조}} 형식으로 마킹하세요
 - 판례를 인용할 때는 {{cite:사건번호}} 형식으로 마킹하세요
 - 법적 면책: "이 답변은 AI 참고 자문이며, 정확한 법률 조언은 변호사와 상담하세요"를 마지막에 포함
-- 한국어로 답변하고, 구조화된 마크다운을 사용하세요`,
+- 한국어로 답변하고, 구조화된 마크다운을 사용하세요` + FOLLOWUP_INSTRUCTION,
 
   drug: `당신은 한국 의약품·건강 전문 AI 자문관입니다.
 - 반드시 제공된 식약처 의약품 데이터를 근거로 답변하세요
 - 약품을 인용할 때는 {{cite:약품명}} 형식으로 마킹하세요
 - 의료 면책: "이 답변은 AI 참고 자문이며, 정확한 의료 조언은 의사/약사와 상담하세요"를 마지막에 포함
-- 한국어로 답변하고, 구조화된 마크다운을 사용하세요`,
+- 한국어로 답변하고, 구조화된 마크다운을 사용하세요` + FOLLOWUP_INSTRUCTION,
 
   finance: `당신은 한국 재무·투자 전문 AI 자문관입니다.
 - 반드시 제공된 한국은행/금감원 실시간 데이터를 근거로 답변하세요
 - 금융 데이터를 인용할 때는 {{cite:지표명 또는 상품명}} 형식으로 마킹하세요
 - 투자 면책: "이 답변은 AI 참고 자문이며, 투자 결정은 본인 책임입니다"를 마지막에 포함
-- 한국어로 답변하고, 구조화된 마크다운을 사용하세요`,
+- 한국어로 답변하고, 구조화된 마크다운을 사용하세요` + FOLLOWUP_INSTRUCTION,
+
+  realestate: `당신은 한국 부동산 전문 AI 자문관입니다.
+- 질문의 사실관계를 정리하고, 매매/임대차 판단 포인트, 비용 구조, 리스크, 체크리스트 순서로 답하세요
+- 실거래가나 대출 조건이 없으면 단정하지 말고 필요한 확인 정보를 먼저 밝히세요
+- 면책: "부동산 계약 전에는 최신 실거래가, 세금, 금융 조건을 다시 확인해야 합니다."를 마지막에 포함
+- 한국어로 답변하고, 구조화된 마크다운을 사용하세요` + FOLLOWUP_INSTRUCTION,
+
+  tax: `당신은 한국 세무 전문 AI 자문관입니다.
+- 신고 대상, 준비 자료, 주의사항, 전문가 확인 포인트 순서로 구조화하세요
+- 수치나 법 해석을 단정하지 말고 확인이 필요한 부분은 명확히 표시하세요
+- 면책: "실제 신고 전에는 최신 세법과 세무 전문가 의견을 확인하세요."를 마지막에 포함
+- 한국어로 답변하고, 구조화된 마크다운을 사용하세요` + FOLLOWUP_INSTRUCTION,
+
+  labor: `당신은 한국 노무 전문 AI 자문관입니다.
+- 사실관계 요약, 적용 가능 기준, 증거 체크, 대응 순서 순으로 구조화하세요
+- 해고, 징계, 퇴직 등 분쟁 사안은 단정하지 말고 확인이 필요한 사실을 먼저 짚으세요
+- 면책: "분쟁성 노무 사안은 노무사 또는 변호사 확인이 필요할 수 있습니다."를 마지막에 포함
+- 한국어로 답변하고, 구조화된 마크다운을 사용하세요` + FOLLOWUP_INSTRUCTION,
 };
 
 async function extractKeywords(question: string, domain: PremiumDomainId, apiKey: string): Promise<Record<string, unknown>> {
@@ -111,16 +131,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
 
+  // Set up SSE headers early so we can send step events
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
   // Step 1: Extract keywords
+  res.write(`data: ${JSON.stringify({ type: 'step', step: 1, label: '키워드 분석 중...' })}\n\n`);
   let keywords: Record<string, unknown> = {};
   try {
     keywords = await extractKeywords(question, domain, apiKey);
   } catch { /* proceed without keywords */ }
+  res.write(`data: ${JSON.stringify({ type: 'step', step: 1, label: '키워드 분석 완료' })}\n\n`);
 
   // Step 2: Search public API
+  res.write(`data: ${JSON.stringify({ type: 'step', step: 2, label: '데이터 검색 중...' })}\n\n`);
   const searchResult = await callProxySearch(domain, keywords, origin);
   const citationContext = buildCitationContext(searchResult.citations);
   const trustHeader = buildTrustHeader(domain, searchResult.citations);
+  res.write(`data: ${JSON.stringify({ type: 'step', step: 2, label: searchResult.citations.length > 0 ? `${searchResult.citations.length}건 발견` : '데이터 검색 완료' })}\n\n`);
 
   // Step 3: Build enriched system prompt
   const basePrompt = systemPrompt || DOMAIN_SYSTEM_PROMPTS[domain];
@@ -137,14 +167,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   contents.push({ role: 'user', parts: [{ text: question }] });
 
-  // Step 4: Stream response
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-
-  // Send trust header as first event
+  // Step 4: Stream response — send trust header + start Gemini stream
   res.write(`data: ${JSON.stringify({ type: 'trust', trustHeader, citations: searchResult.citations, error: searchResult.error })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'step', step: 3, label: '답변 생성 중...' })}\n\n`);
 
   const streamUrl = buildGeminiUrl('gemini-2.5-flash-lite', apiKey, true);
   try {

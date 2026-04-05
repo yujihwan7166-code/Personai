@@ -432,11 +432,11 @@ export interface DiscussionMessage {
 // ── Premium Domain (프리미엄 AI 자문관) ──
 // ══════════════════════════════════════════
 
-export type PremiumDomainId = 'law' | 'drug' | 'finance';
+export type PremiumDomainId = 'law' | 'drug' | 'finance' | 'realestate' | 'tax' | 'labor';
 
 export interface ApiSourceCitation {
     id: string;
-    type: 'law_article' | 'precedent' | 'drug_info' | 'drug_interaction' | 'economic_indicator' | 'financial_product';
+    type: 'law_article' | 'precedent' | 'drug_info' | 'drug_interaction' | 'economic_indicator' | 'financial_product' | 'real_estate_data' | 'tax_reference' | 'labor_reference' | 'public_guideline';
     label: string;
     source: string;
     url?: string;
@@ -507,6 +507,48 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
             { id: 'data-search', role: '시장 조회', icon: '🔍', description: '금리·경제지표 실시간 검색' },
             { id: 'analysis', role: '재무 분석', icon: '📈', description: '리스크·수익률·비용 분석' },
             { id: 'plan', role: '전략 제시', icon: '🎯', description: '포트폴리오·절세·액션플랜' },
+        ],
+    },
+    {
+        id: 'realestate', name: '부동산 자문관', icon: '🏠', tagline: '실거래가·권리분석 기반 부동산 자문',
+        description: 'AI 전문 지식을 활용하여 매매·전세·월세 판단, 권리 분석, 투자 전략을 제공합니다.',
+        color: { bg: 'bg-violet-950', text: 'text-violet-200', accent: 'text-violet-400', border: 'border-violet-700', gradient: 'from-violet-900/40 to-slate-950' },
+        apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
+        trustBadge: 'AI 전문 지식 기반', outputFormat: '부동산 분석 리포트',
+        sampleQuestions: ['전세 계약 시 확인해야 할 등기부등본 사항은?', '갭투자 리스크를 분석해주세요', '신혼부부 특별공급 조건이 궁금해요'],
+        phases: [
+            { id: 'assess', role: '매물 분석', icon: '🏠', description: '매매/전세/월세, 지역, 예산 파악' },
+            { id: 'search', role: '시세 조회', icon: '🔍', description: '실거래가·시세 정보 분석' },
+            { id: 'analysis', role: '권리 분석', icon: '📋', description: '등기부등본·건축물대장 확인' },
+            { id: 'strategy', role: '투자 판단', icon: '🎯', description: '수익률 분석, 리스크 평가' },
+        ],
+    },
+    {
+        id: 'tax', name: '세무 자문관', icon: '🧾', tagline: '세법·절세 전략 기반 세무 자문',
+        description: 'AI 전문 지식을 활용하여 소득세·부가세·법인세 신고와 합법적 절세 방안을 안내합니다.',
+        color: { bg: 'bg-cyan-950', text: 'text-cyan-200', accent: 'text-cyan-400', border: 'border-cyan-700', gradient: 'from-cyan-900/40 to-slate-950' },
+        apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
+        trustBadge: 'AI 전문 지식 기반', outputFormat: '세무 분석 리포트',
+        sampleQuestions: ['프리랜서 종합소득세 절세 방법은?', '양도소득세 비과세 요건이 뭔가요?', '1인 법인 설립 시 세금 혜택은?'],
+        phases: [
+            { id: 'assess', role: '세무 진단', icon: '🧾', description: '소득 유형, 사업 형태 파악' },
+            { id: 'search', role: '법령 조회', icon: '🔍', description: '관련 세법·시행령 분석' },
+            { id: 'analysis', role: '세액 분석', icon: '📊', description: '과세표준·세율·공제 분석' },
+            { id: 'strategy', role: '절세 전략', icon: '🎯', description: '합법적 절세·신고 가이드' },
+        ],
+    },
+    {
+        id: 'labor', name: '노무 자문관', icon: '👷', tagline: '근로기준법 기반 노동 자문',
+        description: 'AI 전문 지식을 활용하여 해고·임금·산재·4대보험 등 노동 관련 자문을 제공합니다.',
+        color: { bg: 'bg-orange-950', text: 'text-orange-200', accent: 'text-orange-400', border: 'border-orange-700', gradient: 'from-orange-900/40 to-slate-950' },
+        apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
+        trustBadge: 'AI 전문 지식 기반', outputFormat: '노무 상담 리포트',
+        sampleQuestions: ['퇴직금 계산 방법이 궁금해요', '부당해고를 당했는데 어떻게 하나요?', '연차 미사용 수당은 어떻게 받나요?'],
+        phases: [
+            { id: 'assess', role: '사건 파악', icon: '👷', description: '근로자/사용자 구분, 사안 유형' },
+            { id: 'search', role: '법령 조회', icon: '🔍', description: '근로기준법·노동관계법 분석' },
+            { id: 'analysis', role: '권리 분석', icon: '⚖️', description: '임금·해고·산재 분석' },
+            { id: 'strategy', role: '대응 전략', icon: '🎯', description: '진정·소송 방안 제시' },
         ],
     },
 ];

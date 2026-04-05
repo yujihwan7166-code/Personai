@@ -63,6 +63,7 @@ interface Props {
   stakeholderSettings?: StakeholderSettings;
   onStakeholderSettingsChange?: (s: StakeholderSettings) => void;
   onSelectPremiumDomain?: (domainId: PremiumDomainId) => void;
+  selectedPremiumDomain?: PremiumDomainId | null;
   hasAivsBattleStarted?: boolean;
   onStartAivsBattle?: (draft: AivsBattleDraft) => void;
   onResetAivsBattle?: () => void;
@@ -3186,6 +3187,7 @@ export function ExpertSelectionPanel({
   stakeholderSettings,
   onStakeholderSettingsChange,
   onSelectPremiumDomain,
+  selectedPremiumDomain,
   hasAivsBattleStarted,
   onStartAivsBattle,
   onResetAivsBattle,
@@ -3588,8 +3590,8 @@ export function ExpertSelectionPanel({
         !contentVisible ? 'opacity-0 scale-[0.97] translate-y-2 duration-200' : 'opacity-100 scale-100 translate-y-0 duration-400'
       )}>
 
-      {/* ── Premium Domain Landing ── */}
-      {mainMode === 'premium_main' && !selectedExpertModeTemplate && (
+      {/* ── Premium Domain Landing (hidden when consultation chat is open) ── */}
+      {mainMode === 'premium_main' && !selectedExpertModeTemplate && !selectedPremiumDomain && (
         <PremiumDomainLanding onSelectDomain={(domainId) => onSelectPremiumDomain?.(domainId)} />
       )}
       {/* ── Expert Mode (Legacy fallback) ── */}
@@ -3911,6 +3913,8 @@ export function ExpertSelectionPanel({
         />
       )}
 
+      </div>}{/* end debate-rainbow-active wrapper */}
+
       {isStakeholder && stakeholderSettings && onStakeholderSettingsChange && (
         <SimulationModePanel
           experts={experts}
@@ -3921,8 +3925,6 @@ export function ExpertSelectionPanel({
           onSelectExpertTemplate={setSelectedExpertModeTemplate}
         />
       )}
-
-      </div>}{/* end debate-rainbow-active wrapper */}
 
       {/* Question Input — not shown for expert/assistant/player/aivsuser (they have their own inputs or modal flow) */}
       {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && discussionMode !== 'aivsuser' && (

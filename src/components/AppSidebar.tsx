@@ -558,7 +558,9 @@ export function AppSidebar({
                 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400': record.mode === 'expert',
                 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400': record.mode === 'assistant',
               } as Record<string, boolean>)}>
-                {{ multi: '멀티', brainstorm: '브레인', standard: '토론', procon: '찬반', hearing: '검증', freetalk: '자유', stakeholder: 'AI시뮬', expert: '상담', assistant: '어시' }[record.mode] || record.mode}
+                {record.premiumDomain
+                  ? { law: '⚖️법률', drug: '💊의약', finance: '💰금융', realestate: '🏠부동산', tax: '🧾세무', labor: '👷노무' }[record.premiumDomain] || '상담'
+                  : { multi: '멀티', brainstorm: '브레인', standard: '토론', procon: '찬반', hearing: '검증', freetalk: '자유', stakeholder: 'AI시뮬', expert: '상담', assistant: '어시' }[record.mode] || record.mode}
               </span>
             )}
           </div>

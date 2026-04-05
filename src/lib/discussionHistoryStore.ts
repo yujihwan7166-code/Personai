@@ -1,4 +1,4 @@
-import type { DiscussionMessage, DiscussionMode } from '@/types/expert';
+import type { DiscussionMessage, DiscussionMode, PremiumDomainId, ApiSourceCitation } from '@/types/expert';
 
 export interface DiscussionRecord {
   id: string;
@@ -8,6 +8,8 @@ export interface DiscussionRecord {
   expertIds: string[];
   timestamp: number;
   proconStances?: Record<string, 'pro' | 'con'>;
+  premiumDomain?: PremiumDomainId;
+  premiumCitations?: ApiSourceCitation[];
 }
 
 const HISTORY_KEY = 'ai-debate-history-v1';
@@ -83,6 +85,8 @@ function normalizeRecord(record: unknown): DiscussionRecord | null {
     expertIds: record.expertIds,
     timestamp: record.timestamp,
     proconStances,
+    premiumDomain: typeof record.premiumDomain === 'string' ? record.premiumDomain as PremiumDomainId : undefined,
+    premiumCitations: Array.isArray(record.premiumCitations) ? record.premiumCitations as ApiSourceCitation[] : undefined,
   };
 }
 
