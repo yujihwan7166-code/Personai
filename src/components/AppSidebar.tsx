@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Expert, DiscussionMode } from '@/types/expert';
 import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { cn } from '@/lib/utils';
+import { ExpertAvatar } from './ExpertAvatar';
 import {
   PanelLeft, SquarePen, Bot, Search,
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
@@ -1554,10 +1555,8 @@ export function AppSidebar({
                       onClick={() => setSelectedBotProfile(expert.id)}
                       className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700 transition-all text-left group"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[16px] shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
-                        {expert.avatarUrl ? (
-                          <img src={expert.avatarUrl} alt={expert.nameKo} className="w-full h-full object-cover" />
-                        ) : expert.icon}
+                      <div className="shrink-0 group-hover:scale-110 transition-transform">
+                        <ExpertAvatar expert={expert} size="md" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-slate-800 dark:text-white truncate">{expert.nameKo}</p>
@@ -1585,10 +1584,8 @@ export function AppSidebar({
                   {/* Profile */}
                   <div className="flex-1 overflow-y-auto px-6 py-6">
                     <div className="flex flex-col items-center text-center mb-6">
-                      <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[32px] mb-3 overflow-hidden">
-                        {bot.avatarUrl ? (
-                          <img src={bot.avatarUrl} alt={bot.nameKo} className="w-full h-full object-cover" />
-                        ) : bot.icon}
+                      <div className="mb-3">
+                        <ExpertAvatar expert={bot} size="xl" />
                       </div>
                       <h3 className="text-[18px] font-bold text-slate-800 dark:text-white">{bot.nameKo}</h3>
                       <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5">{bot.description}</p>

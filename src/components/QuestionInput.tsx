@@ -455,14 +455,6 @@ export function QuestionInput({
                     <Share2 className="h-4 w-4 text-slate-500" strokeWidth={2} />
                     대화 공유하기
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={!canUseTools}
-                    onSelect={() => openSettingsModal()}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
-                  >
-                    <Settings className="h-4 w-4 text-slate-500" strokeWidth={2} />
-                    설정
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               {extraButtons}

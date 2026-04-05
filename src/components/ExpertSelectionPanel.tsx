@@ -207,9 +207,7 @@ function AIPickerModal({ experts, selectedIds, onToggle, onClose, title, accentC
                 {selected.slice(0, 4).map(e => (
                   <button key={e.id} onClick={() => onToggle(e.id)}
                     className={cn('inline-flex items-center gap-1 pl-1 pr-1.5 py-0.5 rounded-full text-[10px] font-medium transition-colors', ac.chip, `hover:opacity-70`)}>
-                    <div className="w-4 h-4 rounded-full overflow-hidden shrink-0">
-                      {e.avatarUrl ? <img src={e.avatarUrl} alt="" className="w-full h-full object-contain" /> : <span className="text-[9px]">{e.icon}</span>}
-                    </div>
+                    <ExpertAvatar expert={e} size="xxs" />
                     {e.nameKo}
                     <X className="w-2.5 h-2.5 opacity-50" />
                   </button>
