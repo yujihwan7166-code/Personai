@@ -1396,7 +1396,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
       {/* Unified grid */}
       <div className="grid grid-cols-3 gap-2">
         {(() => {
-          const priorityOrder = ['medical', 'legal_sim', 'investment', 'interview', 'product', 'finance_sim', 'policy', 'realestate_sim', 'strategy', 'startup_sim', 'internal', 'admission', 'psychology_sim'];
+          const priorityOrder = ['investment', 'interview', 'b2b_sales', 'crisis', 'product', 'content_pitch', 'collab', 'complaint', 'policy', 'strategy', 'internal', 'admission'];
           return [...SIMULATION_SCENARIOS].sort((a, b) => priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id));
         })().map((scenario, i) => (
           <button key={scenario.id}

@@ -2777,6 +2777,82 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     theme: { bg: 'bg-teal-50', accent: 'text-teal-600', cardBg: 'bg-white' },
     userRole: '수험생', prepQuestions: [], phases: ['자기소개', '전공 면접', '인성 면접', '결과'],
   },
+  // ── 신규 시나리오 5개 ──
+  {
+    id: 'content_pitch', name: '콘텐츠 기획안 피칭', icon: '🎬', gradient: 'from-rose-100 to-pink-50', simType: 'roleplay',
+    description: '방송·유튜브·콘텐츠 기획안을 통과시킵니다',
+    roles: [
+      { name: '편성 PD', icon: '🎥', focus: '시청률 예측, 타겟 시청자, 편성 적합성, 기존 프로그램과 차별점' },
+      { name: '광고 담당', icon: '💵', focus: '광고 수익성, 스폰서 유치 가능성, 브랜드 친화도' },
+      { name: '시청자 대표', icon: '📺', focus: '실제로 보고 싶은지, 재미 요소, 몰입도, 화제성' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '편성 가능성',
+    verdictOptions: ['편성 확정', '파일럿 제작', '수정 후 재검토', '기각'],
+    theme: { bg: 'bg-rose-50', accent: 'text-rose-600', cardBg: 'bg-white' },
+    userRole: '크리에이터', prepQuestions: [], phases: [],
+  },
+  {
+    id: 'b2b_sales', name: 'B2B 영업 미팅', icon: '💼', gradient: 'from-blue-100 to-indigo-50', simType: 'roleplay',
+    description: '기업 고객에게 솔루션 도입을 설득합니다',
+    roles: [
+      { name: '구매 담당자', icon: '🏢', focus: '비용 대비 효과, 기존 시스템과 호환성, 도입 리스크' },
+      { name: '현업 실무자', icon: '👨‍💻', focus: '실제 사용 편의성, 업무 효율 개선, 학습 비용' },
+      { name: '의사결정권자', icon: '👔', focus: '전략적 가치, 경쟁사 대비 우위, ROI, 장기 파트너십' },
+    ],
+    defaultIntensity: 7, gaugeLabel: '도입 가능성',
+    verdictOptions: ['도입 확정', 'PoC 진행', '내부 검토', '거절'],
+    theme: { bg: 'bg-indigo-50', accent: 'text-indigo-600', cardBg: 'bg-white' },
+    userRole: '영업 대표',
+    prepQuestions: [
+      { id: 'solution', question: '어떤 솔루션인가요?', options: [{label: 'SaaS', value: 'SaaS 소프트웨어'}, {label: '컨설팅', value: '컨설팅 서비스'}, {label: '하드웨어', value: '하드웨어/장비'}, {label: '플랫폼', value: '플랫폼 서비스'}] },
+      { id: 'client', question: '상대 기업 규모는?', options: [{label: '스타트업', value: '스타트업'}, {label: '중소기업', value: '중소기업'}, {label: '대기업', value: '대기업'}, {label: '공공기관', value: '공공기관'}] },
+    ],
+    phases: [],
+  },
+  {
+    id: 'crisis', name: '위기 대응', icon: '🚨', gradient: 'from-red-100 to-orange-50', simType: 'roleplay',
+    description: '기업 위기 상황에서 해명하고 대책을 발표합니다',
+    roles: [
+      { name: '기자', icon: '📰', focus: '사건 경위, 책임 소재, 피해 규모, 재발 방지 대책' },
+      { name: '피해자 대표', icon: '😤', focus: '보상 방안, 사과의 진정성, 구체적 해결 일정' },
+      { name: '법무팀', icon: '⚖️', focus: '법적 리스크, 소송 가능성, 규제 위반 여부, 공식 입장 표현' },
+    ],
+    defaultIntensity: 8, gaugeLabel: '위기 수습도',
+    verdictOptions: ['수습 성공', '부분 수습', '악화', '통제 불능'],
+    theme: { bg: 'bg-red-50', accent: 'text-red-600', cardBg: 'bg-white' },
+    userRole: 'PR 책임자',
+    prepQuestions: [
+      { id: 'crisis_type', question: '어떤 유형의 위기인가요?', options: [{label: '제품 결함', value: '제품 결함/리콜'}, {label: '서비스 장애', value: '서비스 장애/다운타임'}, {label: '개인정보 유출', value: '개인정보 유출'}, {label: '직원 비위', value: '임직원 비위/스캔들'}] },
+      { id: 'severity', question: '피해 규모는?', options: [{label: '소규모', value: '소수 피해'}, {label: '중규모', value: '수백~수천명 영향'}, {label: '대규모', value: '대규모 사회적 이슈'}] },
+    ],
+    phases: [],
+  },
+  {
+    id: 'collab', name: '브랜드 제휴 제안', icon: '🤝', gradient: 'from-violet-100 to-purple-50', simType: 'roleplay',
+    description: '타사 브랜드에 콜라보레이션을 제안합니다',
+    roles: [
+      { name: '상대 브랜드 매니저', icon: '🏷️', focus: '브랜드 이미지 적합성, 타겟 고객 겹침, 리스크' },
+      { name: '상대 마케팅팀', icon: '📊', focus: '기대 효과 수치, 비용 분담, 캠페인 실행 가능성' },
+      { name: '상대 법무팀', icon: '📋', focus: '계약 조건, IP 사용 범위, 책임 소재, 위약금' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '제휴 가능성',
+    verdictOptions: ['제휴 확정', '조건 협의', '내부 검토', '거절'],
+    theme: { bg: 'bg-violet-50', accent: 'text-violet-600', cardBg: 'bg-white' },
+    userRole: '마케터', prepQuestions: [], phases: [],
+  },
+  {
+    id: 'complaint', name: '강성 컴플레인 대응', icon: '😠', gradient: 'from-orange-100 to-amber-50', simType: 'roleplay',
+    description: '무리한 요구를 하는 고객을 진정시키고 대안을 제시합니다',
+    roles: [
+      { name: '화난 고객', icon: '🤬', focus: '감정 폭발, 무리한 보상 요구, 온라인 악성 리뷰 위협' },
+      { name: '매장 매니저', icon: '🧑‍💼', focus: '규정 준수, 팀원 보호, 매장 운영 영향' },
+      { name: '본사 CS팀', icon: '📞', focus: '고객 이탈 방지, 브랜드 이미지, 보상 범위 가이드라인' },
+    ],
+    defaultIntensity: 8, gaugeLabel: '고객 만족도',
+    verdictOptions: ['원만 해결', '일부 수용', '규정대로', '이탈'],
+    theme: { bg: 'bg-orange-50', accent: 'text-orange-600', cardBg: 'bg-white' },
+    userRole: 'CS 담당자', prepQuestions: [], phases: [],
+  },
 ];
 
 // ── Stakeholder Settings ──
