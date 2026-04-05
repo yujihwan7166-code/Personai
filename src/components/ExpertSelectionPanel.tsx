@@ -129,6 +129,24 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
+// ── Auto/Manual Toggle ──
+function AutoManualToggle({ auto, onChange }: { auto: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg bg-slate-100 p-0.5">
+      <button type="button" onClick={() => onChange(false)}
+        className={cn('px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
+          !auto ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+        수동 선택
+      </button>
+      <button type="button" onClick={() => onChange(true)}
+        className={cn('px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
+          auto ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+        AI 추천
+      </button>
+    </div>
+  );
+}
+
 // ── AI 선택 플로팅 모달 (공통) ──
 function AIPickerModal({ experts, selectedIds, onToggle, onClose, title, accentColor = 'indigo', maxCount }: {
   experts: Expert[];
@@ -337,10 +355,10 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
@@ -357,8 +375,17 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             )}
           </div>
 
-          {/* 참여자 슬롯 */}
+          {/* 수동/자동 토글 + 참여자 슬롯 */}
           <div className="px-3 py-3 bg-white">
+            <div className="flex items-center justify-center mb-2">
+              <AutoManualToggle auto={autoAssign || false} onChange={v => onAutoAssignChange?.(v)} />
+            </div>
+            {autoAssign ? (
+              <div className="flex flex-col items-center gap-2 py-3">
+                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <p className="text-[11px] text-slate-400 text-center">질문을 입력하면 AI가<br/>적합한 토론자를 골라드려요</p>
+              </div>
+            ) : (
             <div className="flex flex-col items-center gap-2 py-1">
               <div className="flex items-center gap-3 flex-wrap justify-center">
                 {visibleParticipants.filter(Boolean).map(e => (
@@ -385,6 +412,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                 <span className="text-[11px] text-slate-400">클릭하여 AI를 추가하세요</span>
               )}
             </div>
+            )}
           </div>
 
           {/* 설정 — 같은 카드 하단, 연한 배경으로 구분 */}
@@ -508,10 +536,10 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
@@ -654,10 +682,10 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'brainstorm' ? undefined : () => onModeChange(t.mode)}
@@ -674,7 +702,15 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
             )}
           </div>
           <div className="px-3 py-3 bg-white">
-            {selectedIds.length > 0 ? (
+            <div className="flex items-center justify-center mb-2">
+              <AutoManualToggle auto={autoAssign || false} onChange={v => onAutoAssignChange?.(v)} />
+            </div>
+            {autoAssign ? (
+              <div className="flex flex-col items-center gap-2 py-3">
+                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <p className="text-[11px] text-slate-400 text-center">질문을 입력하면 AI가<br/>적합한 참여자를 골라드려요</p>
+              </div>
+            ) : selectedIds.length > 0 ? (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {selectedIds.map(id => {
@@ -692,7 +728,6 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                       </button>
                     ) : null;
                   })}
-                  {/* Add button */}
                   <button type="button" onClick={() => setShowBotPicker(true)}
                     className="flex flex-col items-center gap-1">
                     <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:border-amber-400 hover:bg-amber-50 transition-colors">
@@ -817,10 +852,10 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5 debate-tab-glow">
                 {[
                   { mode: 'procon' as const, label: '⚖️ 찬반' },
-                  { mode: 'standard' as const, label: '🎯 심층' },
-                  { mode: 'hearing' as const, label: '🔍 검증' },
                   { mode: 'freetalk' as const, label: '💬 자유' },
+                  { mode: 'standard' as const, label: '🎯 심층' },
                   { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
+                  { mode: 'brainstorm' as const, label: '💡 브레인' },
                 ].map(t => (
                   <button key={t.mode}
                     onClick={t.mode === 'hearing' ? undefined : () => onModeChange(t.mode)}
@@ -962,10 +997,10 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
@@ -982,8 +1017,17 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             )}
           </div>
 
-          {/* 참여자 슬롯 */}
+          {/* 수동/자동 토글 + 참여자 슬롯 */}
           <div className="px-3 py-3 bg-white">
+            <div className="flex items-center justify-center mb-2">
+              <AutoManualToggle auto={autoAssign || false} onChange={v => onAutoAssignChange?.(v)} />
+            </div>
+            {autoAssign ? (
+              <div className="flex flex-col items-center gap-2 py-3">
+                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <p className="text-[11px] text-slate-400 text-center">질문을 입력하면 AI가<br/>적합한 참여자를 골라드려요</p>
+              </div>
+            ) : (
             <div className="flex flex-col items-center gap-2 py-1">
               <div className="flex items-center gap-3 flex-wrap justify-center">
                 {visibleParticipants.filter(Boolean).map(e => (
@@ -1010,6 +1054,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 <span className="text-[11px] text-slate-400">클릭하여 AI를 추가하세요</span>
               )}
             </div>
+            )}
           </div>
 
           {/* 설정 — 카드 하단 */}
@@ -1092,6 +1137,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const [showBattleModal, setShowBattleModal] = useState(false);
+  const [aivsAutoSelect, setAivsAutoSelect] = useState(false);
   const ds = debateSettings!;
   const opponentCount = ds.aivsUserOpponentCount || 1;
   const selected = experts.filter(e => selectedIds.includes(e.id)).slice(0, opponentCount);
@@ -1117,10 +1163,10 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 <div className="flex items-center gap-0.5">
                   {[
                     { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                     { mode: 'freetalk' as const, label: '자유토론' },
+                    { mode: 'standard' as const, label: '심층토론' },
                     { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button
                       key={t.mode}
@@ -1142,13 +1188,16 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
           <div className="bg-white">
             <div className="px-4 py-5">
-              <div className="min-h-[20px] flex items-center justify-center">
-                {selected.length > 0 && (
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    {selected.length === 1 ? '1:1 맞짱' : selected.length === 2 ? '1 vs 2 협공' : '1 vs 3 포위'}
-                  </span>
-                )}
+              <div className="flex items-center justify-center mb-2">
+                <AutoManualToggle auto={aivsAutoSelect} onChange={setAivsAutoSelect} />
               </div>
+              {aivsAutoSelect ? (
+                <div className="flex flex-col items-center gap-2 py-3">
+                  <Sparkles className="w-5 h-5 text-indigo-400" />
+                  <p className="text-[11px] text-slate-400 text-center">주제에 맞는 상대 AI가<br/>자동으로 배정됩니다</p>
+                </div>
+              ) : (
+              <>
 
               <div className="mt-2 flex items-center justify-center gap-4">
                 <div className="flex flex-col items-center gap-1 shrink-0">
@@ -1207,6 +1256,8 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   </div>
                 </div>
               </div>
+              </>
+              )}
             </div>
 
             {/* Participant count */}
@@ -1261,7 +1312,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 <button
                   type="button"
                   onClick={() => setShowBattleModal(true)}
-                  disabled={selected.length === 0}
+                  disabled={!aivsAutoSelect && selected.length === 0}
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[13px] font-bold transition-all hover:from-rose-600 hover:to-pink-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                 >
                   ⚔️ 배틀 시작
@@ -2980,19 +3031,21 @@ export function ExpertSelectionPanel({
       let s = 0;
       const desc = (e.description + ' ' + e.nameKo + ' ' + e.name).toLowerCase();
       // 키워드 매칭
-      if (/의학|건강|병|질병|증상|치료|약|의사/.test(q) && /의|medical|health|doctor/.test(desc)) s += 3;
-      if (/법|소송|계약|판례|변호사|법률/.test(q) && /법|legal|law/.test(desc)) s += 3;
-      if (/투자|주식|금융|경제|재무|돈|펀드/.test(q) && /금융|투자|finance|invest/.test(desc)) s += 3;
-      if (/코드|개발|프로그래밍|소프트웨어|버그/.test(q) && /코딩|개발|code|program/.test(desc)) s += 3;
-      if (/심리|정신|상담|스트레스|우울/.test(q) && /심리|psycho/.test(desc)) s += 3;
-      if (/교육|학습|공부|시험|학교/.test(q) && /교|teacher|education/.test(desc)) s += 3;
-      if (/역사|전쟁|문명|고대/.test(q) && /역사|history/.test(desc)) s += 3;
-      if (/철학|윤리|도덕|존재/.test(q) && /철학|philosophy|ethic/.test(desc)) s += 3;
-      if (/부동산|집|아파트|전세|매매/.test(q) && /부동산|real estate/.test(desc)) s += 3;
-      if (/창업|사업|스타트업|비즈니스/.test(q) && /창업|사업|startup|business/.test(desc)) s += 3;
-      if (/예술|디자인|음악|미술/.test(q) && /예술|art|design|creative/.test(desc)) s += 3;
-      if (/과학|연구|실험|물리|화학/.test(q) && /과학|science|research/.test(desc)) s += 3;
-      if (/ai|인공지능|기술|미래/.test(q) && e.category === 'ai') s += 2;
+      if (/의학|건강|병|질병|증상|치료|약|의사|수술|진단|암|감기|두통|복통|알레르기/.test(q) && /의|medical|health|doctor/.test(desc)) s += 3;
+      if (/법|소송|계약|판례|변호사|법률|범죄|형사|민사|헌법|저작권|특허|규제/.test(q) && /법|legal|law/.test(desc)) s += 3;
+      if (/투자|주식|금융|경제|재무|돈|펀드|유가|원유|환율|금리|물가|GDP|인플레|디플레|무역|수출|수입|세금|부채|채권|코인|비트코인|부동산/.test(q) && /금융|투자|경제|finance|invest|econo/.test(desc)) s += 3;
+      if (/코드|개발|프로그래밍|소프트웨어|버그|API|서버|데이터베이스|알고리즘/.test(q) && /코딩|개발|code|program/.test(desc)) s += 3;
+      if (/심리|정신|상담|스트레스|우울|불안|트라우마|자존감/.test(q) && /심리|psycho|상담/.test(desc)) s += 3;
+      if (/교육|학습|공부|시험|학교|대학|입시|커리큘럼/.test(q) && /교|teacher|education/.test(desc)) s += 3;
+      if (/역사|전쟁|문명|고대|근현대|왕조|식민지/.test(q) && /역사|history/.test(desc)) s += 3;
+      if (/철학|윤리|도덕|존재|정의|자유|의식/.test(q) && /철학|philosophy|ethic/.test(desc)) s += 3;
+      if (/부동산|집|아파트|전세|매매|임대|청약|분양/.test(q) && /부동산|real estate/.test(desc)) s += 3;
+      if (/창업|사업|스타트업|비즈니스|마케팅|매출|고객/.test(q) && /창업|사업|startup|business|마케팅/.test(desc)) s += 3;
+      if (/예술|디자인|음악|미술|영화|문학|창작/.test(q) && /예술|art|design|creative|문학|영화/.test(desc)) s += 3;
+      if (/과학|연구|실험|물리|화학|생물|우주|양자/.test(q) && /과학|science|research/.test(desc)) s += 3;
+      if (/에너지|원전|석유|가스|신재생|탄소|기후|환경/.test(q) && /에너지|환경|기후|energy|climate/.test(desc)) s += 3;
+      if (/정치|선거|외교|안보|국방|통일|북한/.test(q) && /정치|외교|political|국제/.test(desc)) s += 3;
+      if (/ai|인공지능|기술|미래|로봇|자동화/.test(q) && e.category === 'ai') s += 2;
       // 카테고리 다양성 보너스 (기본 점수)
       if (e.category === 'ai') s += 1;
       if (e.category === 'specialist') s += 1;
@@ -3613,7 +3666,7 @@ export function ExpertSelectionPanel({
       {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && discussionMode !== 'aivsuser' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
-          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (discussionMode === 'multi' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (discussionMode === 'freetalk' && selectedIds.length < 1)}
+          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2) || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 1)}
           discussionMode={discussionMode}
           selectedExperts={
             (isProcon || discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')

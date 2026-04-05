@@ -834,46 +834,21 @@ export function AppSidebar({
                   {convCount > 0 && !isEditing && (
                     <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">{convCount}</span>
                   )}
-                  {/* Project menu */}
+                  {/* Project menu trigger */}
                   {!isEditing && (
-                    <div className="relative shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          if (projectMenuId === project.id) { setProjectMenuId(null); return; }
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                          setMenuPos({ top: rect.bottom + 4, left: rect.left });
-                          setProjectMenuId(project.id);
-                        }}
-                        className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                      >
-                        <MoreHorizontal className="w-3.5 h-3.5" />
-                      </button>
-                      {projectMenuId === project.id && (
-                        <div className="fixed w-40 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg animate-in fade-in zoom-in-95 duration-150 z-[100]"
-                          style={{ top: menuPos.top, left: menuPos.left }}>
-                          <button
-                            onClick={e => { e.stopPropagation(); setEditingProjectId(project.id); setEditProjectName(project.name); setProjectMenuId(null); }}
-                            className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
-                          >
-                            <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
-                          </button>
-                          <button
-                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setTimeout(() => setShowIconPicker(project.id), 50); }}
-                            className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
-                          >
-                            <span className="w-3.5 h-3.5 flex items-center justify-center text-[11px]">{project.icon || '📁'}</span> 아이콘 변경
-                          </button>
-                          <div className="my-0.5 border-t border-slate-100 dark:border-slate-700" />
-                          <button
-                            onClick={e => { e.stopPropagation(); setProjectMenuId(null); setDeletingProjectId(project.id); }}
-                            className="w-full px-3 py-1.5 text-left text-[12px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> 삭제
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      className={cn("shrink-0 p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-opacity",
+                        projectMenuId === project.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (projectMenuId === project.id) { setProjectMenuId(null); return; }
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setMenuPos({ top: rect.bottom + 4, left: rect.left });
+                        setProjectMenuId(project.id);
+                      }}
+                    >
+                      <MoreHorizontal className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
                 {/* 프로젝트 클릭 시 아래로 대화 펼침 */}
@@ -952,6 +927,40 @@ export function AppSidebar({
                 </div>
               </div>
             </div>
+          );
+        })()}
+
+        {/* Project context menu — portal to body */}
+        {projectMenuId && (() => {
+          const proj = projects.find(p => p.id === projectMenuId);
+          if (!proj) return null;
+          return createPortal(
+            <div className="fixed inset-0 z-[9998]" onClick={() => setProjectMenuId(null)}>
+              <div className="fixed w-40 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg animate-in fade-in zoom-in-95 duration-150"
+                style={{ top: menuPos.top, left: menuPos.left }}
+                onClick={e => e.stopPropagation()}>
+                <button
+                  onClick={() => { setEditingProjectId(proj.id); setEditProjectName(proj.name); setProjectMenuId(null); }}
+                  className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
+                </button>
+                <button
+                  onClick={() => { setProjectMenuId(null); setTimeout(() => setShowIconPicker(proj.id), 50); }}
+                  className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                >
+                  <span className="w-3.5 h-3.5 flex items-center justify-center text-[11px]">{proj.icon || '📁'}</span> 아이콘 변경
+                </button>
+                <div className="my-0.5 border-t border-slate-100 dark:border-slate-700" />
+                <button
+                  onClick={() => { setProjectMenuId(null); setDeletingProjectId(proj.id); }}
+                  className="w-full px-3 py-1.5 text-left text-[12px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> 삭제
+                </button>
+              </div>
+            </div>,
+            document.body
           );
         })()}
 

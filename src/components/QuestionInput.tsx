@@ -56,6 +56,7 @@ interface Props {
   onExternalValueConsumed?: () => void;
   embedded?: boolean;
   placeholderOverride?: string;
+  extraButtons?: React.ReactNode;
 }
 
 function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: DiscussionMode | undefined) {
@@ -99,6 +100,7 @@ export function QuestionInput({
   onExternalValueConsumed,
   embedded = false,
   placeholderOverride,
+  extraButtons,
 }: Props) {
   const [question, setQuestion] = useState('');
   const [focused, setFocused] = useState(false);
@@ -465,6 +467,7 @@ export function QuestionInput({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {extraButtons}
             </div>
 
             <div className="flex items-center gap-1.5">

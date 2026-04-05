@@ -8,7 +8,7 @@ interface Props {
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'debate'];
-const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'hearing', 'freetalk', 'aivsuser'];
+const debateSubModes: DebateSubMode[] = ['procon', 'freetalk', 'standard', 'aivsuser', 'brainstorm', 'hearing'];
 
 export function DiscussionModeSelector({ mode, onChange, disabled }: Props) {
   const mainMode = getMainMode(mode);
