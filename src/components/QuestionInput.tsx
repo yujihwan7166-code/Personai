@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowUp, FolderPlus, ImagePlus, Paperclip, Plus, Settings, Share2, Square, X } from 'lucide-react';
 import { DiscussionMode, Expert } from '@/types/expert';
 import { cn } from '@/lib/utils';
+import { ExpertAvatar } from './ExpertAvatar';
 import type { AttachedFile } from '@/lib/fileProcessor';
 import {
   DropdownMenu,
@@ -101,6 +102,9 @@ export function QuestionInput({
   embedded = false,
   placeholderOverride,
   extraButtons,
+  onSummarize,
+  isSummarizing,
+  messageCount,
 }: Props) {
   const [question, setQuestion] = useState('');
   const [focused, setFocused] = useState(false);
@@ -301,11 +305,9 @@ export function QuestionInput({
                       onClick={() => onRemoveExpert(expert.id)}
                       className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-indigo-600 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-400"
                     >
-                      {expert.avatarUrl ? (
-                        <img src={expert.avatarUrl} alt="" className="h-3.5 w-3.5 object-contain pointer-events-none" />
-                      ) : expert.icon ? (
-                        <span className="pointer-events-none text-[12px]">{expert.icon}</span>
-                      ) : null}
+                      <span className="pointer-events-none">
+                        <ExpertAvatar expert={expert} size="xxs" />
+                      </span>
                       {expert.nameKo}
                       <span className="text-[9px] opacity-60">×</span>
                     </button>
@@ -314,11 +316,7 @@ export function QuestionInput({
                       key={expert.id}
                       className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-indigo-600"
                     >
-                      {expert.avatarUrl ? (
-                        <img src={expert.avatarUrl} alt="" className="h-3.5 w-3.5 object-contain" />
-                      ) : expert.icon ? (
-                        <span className="text-[12px]">{expert.icon}</span>
-                      ) : null}
+                      <ExpertAvatar expert={expert} size="xxs" />
                       {expert.nameKo}
                     </span>
                   )
@@ -468,6 +466,16 @@ export function QuestionInput({
                 </DropdownMenuContent>
               </DropdownMenu>
               {extraButtons}
+              {onSummarize && (messageCount ?? 0) >= 3 && (
+                <button
+                  type="button"
+                  onClick={onSummarize}
+                  disabled={isSummarizing}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all border bg-white text-slate-500 border-slate-200 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 disabled:opacity-50"
+                >
+                  {isSummarizing ? '요약 중...' : '📝 요약하기'}
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5">

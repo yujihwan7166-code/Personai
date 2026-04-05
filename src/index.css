@@ -256,6 +256,18 @@
     animation: border-color-spin 1s linear 1;
   }
 
+  /* Table overflow fix */
+  .prose table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  .prose table th,
+  .prose table td {
+    white-space: nowrap;
+  }
+
   /* Reduce markdown flickering during streaming */
   .prose * {
     transition: none !important;

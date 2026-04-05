@@ -45,6 +45,70 @@ const SAFETY_GUARDRAIL = `\n=== 안전 규칙 (최우선) ===
 - 불법 행위 조언/개인정보 요청: 거부.
 === 끝 ===\n`;
 
+const QUALITY_GUARDRAIL = `\n=== 답변 품질 규칙 ===
+[서론 금지]
+- "~에 대해 설명하겠습니다", "~를 살펴보겠습니다", "~에 대해 알아보겠습니다" 같은 서론 금지.
+- 첫 문장부터 핵심 주장이나 결론을 말하세요.
+
+[근거 구체성]
+- "많은 전문가들이", "일반적으로", "다양한 관점에서" 같은 모호한 표현 금지.
+- 구체적 수치, 날짜, 사례, 출처를 포함하세요.
+
+[한국어 자연스러움]
+- 번역체 금지: "그것은 ~입니다", "이는 ~를 의미합니다", "~라고 할 수 있습니다"
+- 자연스러운 종결 섞기: ~입니다, ~거든요, ~인데요, ~하죠, ~이에요
+- 같은 문장 패턴 3회 이상 반복 금지
+
+[구조화]
+- 3문장 이하: 평문. 마크다운 불필요.
+- 4~8문장: 핵심만 **볼드**.
+- 9문장 이상: ## 제목으로 구조화 필수.
+- 비교/대조: 표(table) 사용.
+- 단계/절차: 번호 목록 사용.
+
+[중복 방지]
+- 이전 발언자의 논점을 그대로 반복하지 마세요.
+- "~님 말씀처럼", "동의합니다만" 같은 빈 동조 금지.
+- 반드시 새로운 관점, 근거, 시각만 제시하세요.
+=== 끝 ===\n`;
+
+const MODE_INSTRUCTIONS: Record<string, string> = {
+  general: `\n[일반 채팅 모드]
+- 질문 길이에 비례해서 답변하세요. 짧은 질문에 장문 금지.
+- 사실 확인 질문 → 1~2문장. 분석 요청 → 구조화된 답변. 창작 → 형식에 맞게.
+- 대화하듯 자연스럽게. 백과사전이 아니라 전문가와의 대화입니다.`,
+
+  standard: `\n[심층 토론 모드]
+- 당신만의 고유한 분석 관점을 가지세요. 다른 토론자와 절대 같은 각도로 분석하지 마세요.
+- 이전 토론자의 주장 중 최소 하나에 명확히 반론하세요.
+- 반론 시 상대 주장을 정확히 인용한 후 반박하세요.
+- "저도 동의합니다만" 같은 약한 반론 금지. 확실하게 반박하세요.`,
+
+  procon: `\n[찬반 토론 모드]
+- Steelman 원칙: 자기 입장의 가장 강한 버전을 제시하세요.
+- 상대측의 가장 강한 반론을 인정한 뒤, 그럼에도 자기 입장이 맞는 이유를 설명하세요.
+- 근거 우선순위: 데이터/통계 > 연구결과 > 전문가 의견 > 논리적 추론
+- 상대방의 구체적 문장을 인용하며 반박하세요.`,
+
+  brainstorm: `\n[브레인스토밍 모드]
+- 아이디어는 WHAT이 아니라 HOW까지 포함하세요.
+- 나쁜 예: "마케팅을 강화하면 좋겠다"
+- 좋은 예: "틱톡 30초 비포/애프터 시리즈. 주 3회, 첫 달 예산 200만원, 타겟: 2030 여성"
+- 이미 나온 아이디어와 비슷하면 버리고 완전히 다른 방향을 찾으세요.`,
+
+  freetalk: `\n[자유 토론 모드]
+- 매 발언에 반드시 새로운 사실, 관점, 또는 질문을 하나 이상 포함하세요.
+- 이전 발언의 요약이나 반복 금지.
+- "맞습니다", "좋은 지적입니다" 같은 빈 동의 대신 바로 새 내용을 추가하세요.
+- 때때로 날카로운 반문을 던지세요: "근데 그러면 ~은 어떻게 되나요?"`,
+
+  aivsuser: `\n[AI vs 유저 모드]
+- 유저를 존중하되 절대 봐주지 마세요.
+- 유저가 한 말을 직접 인용하며 반박하세요: "당신이 ~라고 했는데, 이건 ~와 모순됩니다"
+- 유저의 논리적 약점을 정확히 파고드세요.
+- 유저가 좋은 포인트를 내면 인정하되, 바로 더 강한 반론으로 넘어가세요.`,
+};
+
 function mockRoute(question: string, candidates: Expert[]): { expert: Expert; reason: string } {
   const q = question.toLowerCase();
   const find = (id: string) => candidates.find(e => e.id === id);
@@ -143,7 +207,7 @@ async function streamExpert({
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + basePrompt, question, previousResponses, files: files && files.length > 0 ? files : undefined }),
+    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + QUALITY_GUARDRAIL + basePrompt, question, previousResponses, files: files && files.length > 0 ? files : undefined }),
     signal
   });
 
@@ -1209,7 +1273,7 @@ ${difficultyDesc}
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert: await buildExpertWithPrompt(expert, issueContext + lengthExtra), previousResponses: allResponses, round,
+            await streamExpert({ question, expert: await buildExpertWithPrompt(expert, issueContext + lengthExtra), previousResponses: allResponses, round, mode: 'standard',
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal });
@@ -2422,6 +2486,14 @@ ${conversationText}`;
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [discussionMode, multiView, multiActiveTab, messages, activeExperts]);
+
+  // Settings modal
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  useEffect(() => {
+    const handler = () => setShowSettingsModal(true);
+    window.addEventListener('personai:open-settings', handler);
+    return () => window.removeEventListener('personai:open-settings', handler);
+  }, []);
 
   // Ask single AI follow-up (multi mode)
   const askSingleAI = useCallback(async (expertId: string, followUpQ: string) => {
@@ -6174,6 +6246,81 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         </div>
         <RightMemoSidebar />
       </div>
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={() => setShowSettingsModal(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div onClick={e => e.stopPropagation()} className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h2 className="text-[16px] font-bold text-slate-800">설정</h2>
+              <button onClick={() => setShowSettingsModal(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-6 max-h-[60vh] overflow-y-auto">
+              {/* 토론 설정 */}
+              <div>
+                <h3 className="text-[13px] font-semibold text-slate-700 mb-3">토론 설정</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-slate-600">기본 분량</span>
+                    <div className="flex gap-1">
+                      {(['short', 'medium', 'long'] as const).map(v => (
+                        <button key={v} onClick={() => setDebateSettings(prev => ({ ...prev, responseLength: v }))}
+                          className={cn('px-3 py-1 rounded-lg text-[11px] font-medium transition-all',
+                            debateSettings.responseLength === v ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+                          {v === 'short' ? '짧게' : v === 'medium' ? '보통' : '길게'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-slate-600">기본 라운드</span>
+                    <div className="flex gap-1">
+                      {([2, 3, 4] as const).map(v => (
+                        <button key={v} onClick={() => setDebateSettings(prev => ({ ...prev, rounds: v }))}
+                          className={cn('px-3 py-1 rounded-lg text-[11px] font-medium transition-all',
+                            debateSettings.rounds === v ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+                          {v}R
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-slate-600">결론 포함</span>
+                    <button onClick={() => setDebateSettings(prev => ({ ...prev, includeConclusion: !prev.includeConclusion }))}
+                      className={cn('relative w-10 h-[22px] rounded-full transition-colors duration-200',
+                        debateSettings.includeConclusion ? 'bg-slate-800' : 'bg-slate-300')}>
+                      <div className={cn('absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
+                        debateSettings.includeConclusion ? 'translate-x-[18px]' : 'translate-x-0')} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 데이터 관리 */}
+              <div>
+                <h3 className="text-[13px] font-semibold text-slate-700 mb-3">데이터 관리</h3>
+                <div className="space-y-2">
+                  <button onClick={() => { if (confirm('모든 대화 기록을 삭제하시겠습니까?')) { localStorage.removeItem('ai-debate-history-v1'); window.location.reload(); } }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-slate-200 text-[12px] text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors">
+                    <span>대화 기록 전체 삭제</span>
+                    <span className="text-[10px] text-slate-400">복구 불가</span>
+                  </button>
+                  <button onClick={() => { localStorage.removeItem('ai-debate-experts-v65'); window.location.reload(); }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-slate-200 text-[12px] text-slate-600 hover:bg-slate-50 transition-colors">
+                    <span>캐시 초기화</span>
+                    <span className="text-[10px] text-slate-400">전문가 데이터 새로고침</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </SidebarProvider>);
 
 };
