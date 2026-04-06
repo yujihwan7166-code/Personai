@@ -316,7 +316,6 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingFilesRef = useRef<AttachedFile[]>([]);
-  const pendingSimQuestionRef = useRef<string>('');
 
   useEffect(() => {
     localStorage.setItem('ai-debate-experts-v65', JSON.stringify(applyExpertOverrides(experts)));
@@ -1863,6 +1862,26 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
       // scenarioId를 settings에도 반영
       if (simStartMatch) setStakeholderSettings(prev => ({ ...prev, scenarioId: effectiveScenarioId }));
 
+      // prepAnswers → 사람이 읽을 수 있는 컨텍스트 문자열
+      const prep = shSettings.prepAnswers || {};
+      const prepEntries = Object.entries(prep).filter(([k, v]) => v && k !== '__context__');
+      const contextText = prep.__context__ || '';
+      const simContextLines: string[] = [];
+      for (const [key, val] of prepEntries) {
+        const qDef = scenario.prepQuestions.find(q => q.id === key);
+        simContextLines.push(`- ${qDef ? qDef.question : key}: ${val}`);
+      }
+      if (contextText) simContextLines.push(`- 추가 설명: ${contextText}`);
+      const simContext = simContextLines.length > 0
+        ? `\n[유저가 사전에 제공한 정보]\n${simContextLines.join('\n')}`
+        : '';
+      const answeredCount = prepEntries.length;
+      const totalQuestions = scenario.prepQuestions.length;
+      const infoLevel: 'full' | 'partial' | 'none' =
+        (answeredCount >= Math.ceil(totalQuestions * 0.5) || contextText.length > 20) ? 'full'
+        : answeredCount > 0 ? 'partial'
+        : 'none';
+
       // Fix currentQuestion for history
       setCurrentQuestion(`${scenario.icon} ${scenario.name}`);
       sessionTitleRef.current = `${scenario.icon} ${scenario.name}`;
@@ -1899,49 +1918,33 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
         setActiveExpertId(firstExpert.id);
 
         const intensityDesc = shSettings.intensity <= 3 ? '건설적이고 우호적으로' : shSettings.intensity <= 6 ? '균형 잡힌 톤으로' : '날카롭고 도전적으로';
-        const fixedOpenings: Record<string, string> = {
-          investment: '반갑습니다. 저는 투자를 검토하는 VC 파트너입니다. 바로 본론으로 들어가죠. 어떤 문제를 해결하는 사업인지, 왜 지금이 적기인지부터 시작해주시겠어요?',
-          interview: '안녕하세요, 오늘 면접은 직무 역량, 조직 적합성, 실무 경험 순으로 진행됩니다. 먼저 어느 회사의 어떤 포지션에 지원하셨고, 왜 이 역할에 관심을 갖게 되었는지 말씀해주세요.',
-          product: '안녕하세요, 오늘 신제품 프레젠테이션을 듣게 된 타겟 고객입니다. 솔직히 기존에 쓰는 것도 있어서, 왜 바꿔야 하는지 확 와닿아야 관심이 갈 것 같아요. 어떤 제품인지 보여주시겠어요?',
-          policy: '안녕하세요, 오늘 정책 검토 공청회를 시작하겠습니다. 이 자리에는 시민, 산업계, 법률 전문가가 참석해 있습니다. 정책 입안자께서 먼저 이 정책의 배경, 목적, 그리고 국민 생활에 어떤 변화가 생기는지 설명해주시기 바랍니다.',
-          strategy: '자, 오늘 전략 회의를 시작하죠. 마케팅, 개발, 운영 담당이 모두 모였으니 각자 관점에서 솔직하게 의견 주세요. 먼저 회의 주제와 현재 상황, 달성하려는 목표를 공유해주시겠습니까?',
-          internal: '네, 제안 발표 시작하시죠. 경영진 세 명이 듣고 있습니다. 시간은 한정되어 있으니 현재 어떤 문제가 있고, 이 제안이 왜 필요한지 핵심부터 말씀해주세요.',
-          admission: '안녕하세요, 오늘 면접을 진행할 학과 교수입니다. 먼저 어느 대학교 어떤 학과에 지원했는지, 그리고 이 학과를 선택하게 된 계기가 있다면 말씀해주세요.',
-          content_pitch: '안녕하세요, 편성 PD입니다. 오늘 기획안 피칭 시간이 주어졌습니다. 광고팀과 시청자 패널도 함께 듣고 있으니, 어떤 콘텐츠를 기획했고 왜 이게 먹힐 거라고 생각하는지 발표해주세요.',
-          b2b_sales: '안녕하세요, 오늘 솔루션 데모를 들어볼 구매 담당자입니다. 현업 실무자와 의사결정권자도 함께 참석해 있습니다. 먼저 어떤 솔루션이고, 저희 회사에 왜 필요한지부터 말씀해주시겠어요?',
-          crisis: '여기 기자입니다. 지금 귀사에 심각한 이슈가 발생한 것으로 알고 있는데요. 피해자 대표와 법무팀도 동석해 있습니다. 먼저 무슨 상황인지, 그리고 책임자로서 어떤 입장인지 말씀해주시죠.',
-          collab: '안녕하세요, 제안 미팅에 참석한 브랜드 매니저입니다. 마케팅팀과 법무팀도 함께 듣고 있습니다. 어떤 브랜드에서 오셨고, 어떤 형태의 콜라보를 제안하시는 건지 소개해주시겠어요?',
-          complaint: '아 진짜 화가 나서 왔거든요? 이게 말이 됩니까? 돈 내고 산 건데 이런 식이면 어떡하라는 거예요! 일단 어떻게 된 건지 해명부터 해주세요!',
-          medical: '안녕하세요, 접수를 담당하는 간호사입니다. 오늘 어떤 증상으로 오셨는지 편하게 말씀해주세요.',
-          legal_sim: '안녕하세요, 수석 변호사입니다. 어떤 법적 문제로 상담을 원하시는지 상황을 설명해주세요.',
-          finance_sim: '안녕하세요, 재무설계사입니다. 현재 재무 상황이나 고민을 편하게 말씀해주세요.',
-          realestate_sim: '안녕하세요, 부동산 컨설턴트입니다. 어떤 부동산 관련 상담이 필요하신가요?',
-          startup_sim: '안녕하세요, 스타트업 멘토입니다. 어떤 사업 아이디어를 가지고 계신지 들려주세요.',
-          psychology_sim: '안녕하세요, 편하게 이야기해주세요. 요즘 마음이 힘든 부분이 있으신가요?',
-        };
 
-        const fixedText = fixedOpenings[scenario.id];
-        if (fixedText) {
-          setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fixedText, isStreaming: false } : m));
-        } else {
-          // fallback: AI 생성
-          const openingPrompt = `당신은 "${scenario.name}" 시뮬레이션에서 "${firstRole.name}" 역할입니다.
+        const infoInstruction = infoLevel === 'full'
+          ? `유저가 충분한 정보를 제공했습니다. 자기소개를 한 문장으로 하고, 제공된 정보를 바탕으로 바로 본론에 맞는 심층적 첫 질문이나 의견을 제시하세요. "어떤 사업인가요?" 같은 이미 답변된 기본 질문은 절대 하지 마세요.`
+          : infoLevel === 'partial'
+          ? `유저가 일부 정보만 제공했습니다. 자기소개를 한 문장으로 하고, 이미 알고 있는 정보를 언급하면서 부족한 부분만 자연스럽게 추가 질문하세요.`
+          : `유저가 아직 구체적 정보를 제공하지 않았습니다. 자기소개를 한 문장으로 하고, 시뮬레이션 진행에 필요한 핵심 정보를 자연스럽게 물어보세요.`;
+
+        const openingPrompt = `당신은 "${scenario.name}" 시뮬레이션에서 "${firstRole.name}" 역할입니다.
 핵심 관심사: ${firstRole.focus}
-시뮬레이션이 시작됩니다. ${scenario.userRole}(유저)에게 자기소개를 간단히 하고, 상황에 대해 설명해달라고 요청하세요.
-${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`;
-          let fullContent = '';
-          try {
-            await streamExpert({
-              question: '시뮬레이션을 시작합니다.',
-              expert: { ...firstExpert, systemPrompt: openingPrompt },
-              previousResponses: [],
-              round: 'initial' as any,
-              onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fullContent } : m)); },
-              onDone: () => { setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isStreaming: false } : m)); },
-              signal: controller.signal,
-            });
-          } catch { /* ignore */ }
-        }
+${intensityDesc} 말하세요. 한국어. 대화체.
+${simContext}
+
+${infoInstruction}
+3~4문장 이내로 짧게.`;
+
+        let fullContent = '';
+        try {
+          await streamExpert({
+            question: '시뮬레이션을 시작합니다.',
+            expert: { ...firstExpert, systemPrompt: openingPrompt },
+            previousResponses: [],
+            round: 'initial' as any,
+            onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fullContent } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isStreaming: false } : m)); },
+            signal: controller.signal,
+          });
+        } catch { /* ignore */ }
       }
 
       setIsDiscussing(false);
@@ -2398,24 +2401,6 @@ ${conversationText}`;
     originalQuestion: string;
   } | null>(null);
 
-  const [simPrepModal, setSimPrepModal] = useState<{
-    show: boolean;
-    scenario: SimulationScenario;
-    answers: Record<string, string>;
-    originalQuestion: string;
-  } | null>(null);
-  const [simPrepDone, setSimPrepDone] = useState(0);
-
-  // After prep modal closes and stakeholderSettings are updated, trigger discussion
-  useEffect(() => {
-    if (simPrepDone > 0 && pendingSimQuestionRef.current) {
-      const q = pendingSimQuestionRef.current;
-      pendingSimQuestionRef.current = '';
-      skipClarifyRef.current = true;
-      startDiscussion(q);
-    }
-  }, [simPrepDone]);
-
   // After battle config is set, auto-start with AI provocation opening
   useEffect(() => {
     if (aivsBattleAutoStart > 0) {
@@ -2779,6 +2764,7 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
           body: JSON.stringify({
             scenario: { name: scenario.name, roles: scenario.roles, userRole: scenario.userRole, gaugeLabel: scenario.gaugeLabel, verdictOptions: scenario.verdictOptions },
             intensity: shSettings.intensity,
+            prepContext: simContext,
             conversationHistory,
             turnCount,
             mode: scenario.simType === 'consultation' ? 'consultation' : 'roleplay',
@@ -2836,6 +2822,7 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
           const finalPrompt = `당신은 "${scenario.name}" 시뮬레이션에서 "${role.name}" 역할입니다.
 핵심 관심사: ${role.focus}
 반응 강도: ${shSettings.intensity}/10
+${simContext ? `\n${simContext}` : ''}
 
 시뮬레이션이 종료됩니다. 전체 대화를 바탕으로 최종 입장을 밝히세요.
 
@@ -3080,6 +3067,7 @@ ${direction}`;
 - 역할: ${role.name} ${role.icon}
 - 핵심 관심사: ${role.focus}
 ${personality ? `\n## 역할 성격\n${personality}` : ''}
+${simContext ? `\n## 사전 정보\n${simContext}` : ''}
 
 ## 반응 강도: ${shSettings.intensity}/10
 ${intensityDesc}
@@ -3090,9 +3078,10 @@ ${intensityDesc}
 3. 2~4문장으로 짧게. 대화하듯 말하라. 분석 보고서가 아니라 대화다.
 4. 구체적 질문을 던져라 (예: "그래서 수익은 어떻게 되나요?", "번레이트는요?")
 5. 다른 역할의 이전 발언을 참조하여 동의하거나 반박할 수 있다
-6. 한국어로 답변하라
-7. 역할명이나 태그를 본문에 포함하지 마라
-8. "~님" 등 호칭 사용 금지. 바로 내용으로 시작하라
+6. 사전 정보에서 이미 답변된 내용을 다시 묻지 마라
+7. 한국어로 답변하라
+8. 역할명이나 태그를 본문에 포함하지 마라
+9. "~님" 등 호칭 사용 금지. 바로 내용으로 시작하라
 
 ## 현재 지시
 ${direction}`;
@@ -4146,63 +4135,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 </div>
               )}
 
-              {/* Simulation prep modal */}
-              {simPrepModal?.show && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
-                  <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border overflow-hidden animate-in zoom-in-95 duration-300">
-                    <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-3.5 flex items-center gap-3">
-                      <span className="text-[24px]">{simPrepModal.scenario.icon}</span>
-                      <div>
-                        <h3 className="text-[15px] font-bold text-white">{simPrepModal.scenario.name} 준비</h3>
-                        <p className="text-[11px] text-white/70">시뮬레이션 전에 상황을 설정합니다</p>
-                      </div>
-                    </div>
-                    <div className="px-5 py-4 space-y-4">
-                      <div className="text-[11px] text-slate-500">
-                        당신의 역할: <span className="font-semibold text-slate-700">{simPrepModal.scenario.userRole}</span>
-                      </div>
-                      {simPrepModal.scenario.prepQuestions.map(q => (
-                        <div key={q.id}>
-                          <p className="text-[13px] font-semibold text-slate-700 mb-2">{q.question}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {q.options.map(opt => (
-                              <button key={opt.value}
-                                onClick={() => setSimPrepModal(prev => prev ? {...prev, answers: {...prev.answers, [q.id]: opt.value}} : null)}
-                                className={cn("px-3.5 py-2 rounded-xl text-[12px] font-medium border transition-all",
-                                  simPrepModal.answers[q.id] === opt.value
-                                    ? "bg-slate-800 text-white border-slate-800"
-                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
-                                )}>
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="px-5 py-4 border-t flex justify-between">
-                      <button onClick={() => { setSimPrepModal(null); }} className="text-[12px] text-slate-400 hover:text-slate-600 font-medium transition-colors">취소</button>
-                      <button
-                        onClick={() => {
-                          const answers = simPrepModal.answers;
-                          const q = simPrepModal.originalQuestion;
-                          setStakeholderSettings(prev => ({...prev, prepAnswers: answers}));
-                          setSimPrepModal(null);
-                          pendingSimQuestionRef.current = q;
-                          setSimPrepDone(prev => prev + 1);
-                        }}
-                        disabled={Object.keys(simPrepModal.answers).length < simPrepModal.scenario.prepQuestions.length}
-                        className={cn("px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all",
-                          Object.keys(simPrepModal.answers).length >= simPrepModal.scenario.prepQuestions.length
-                            ? "bg-slate-800 text-white hover:bg-slate-900 shadow-md" : "bg-slate-100 text-slate-300 cursor-not-allowed"
-                        )}>
-                        시뮬레이션 시작
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Topic clarification — floating modal */}
               {clarifyState.show && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
@@ -4406,7 +4338,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               )}
 
               {/* Messages — mode-specific rendering */}
-              {discussionMode === 'multi' ? (
+              {discussionMode === 'multi' && messages.length > 0 ? (
                 /* Multi AI: enhanced 3-layer view */
                 (() => {
                   // 각 전문가의 모든 메시지 (follow-up 포함)
@@ -4569,20 +4501,18 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             'bg-cyan-50 hover:bg-cyan-100'
                           ];
                           const activeIdx = sortedExperts.findIndex(e => e.id === activeTab);
-                          const detailOrderedExperts = activeIdx > 0
-                            ? [...sortedExperts.slice(activeIdx), ...sortedExperts.slice(0, activeIdx)]
-                            : sortedExperts;
+                          const detailOrderedExperts = sortedExperts;
                           const detailExpertIndexMap = new Map(
                             sortedExperts.map((expert, expertIndex) => [expert.id, expertIndex])
                           );
                           return (
                             <div
-                              key={`multi-detail-${activeExp.id}`}
-                              className="animate-in fade-in slide-in-from-left-1 duration-200 ease-out"
+                              key="multi-detail-stable"
+                              className="transition-opacity duration-150 ease-out"
                             >
                               {/* AI 탭바 — 포스트잇처럼 카드 위에 얹힌 형태 */}
                               <div
-                                className="relative z-10 flex items-end gap-1.5 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                className="relative z-10 flex items-end overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                                 style={{ msOverflowStyle: 'none' }}
                               >
                                 {detailOrderedExperts.map((expert) => {
@@ -4595,11 +4525,12 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                       key={expert.id}
                                       type="button"
                                       onClick={() => setMultiActiveTab(expert.id)}
+                                      style={{ marginRight: '-8px', zIndex: isActive ? 30 : (sortedExperts.length - (detailExpertIndexMap.get(expert.id) ?? 0)) }}
                                       className={cn(
-                                        'flex shrink-0 items-center gap-1.5 rounded-t-[18px] border border-b-0 px-3.5 transition-all duration-200',
+                                        'relative flex shrink-0 items-center gap-1.5 rounded-t-[18px] border border-b-0 px-3.5 transition-all duration-200',
                                         isActive
-                                          ? cn('translate-y-px pb-2.5 pt-2.5 text-[11.5px] font-bold', tabSkin.active)
-                                          : cn('pb-2 pt-1.5 text-[11px] font-semibold opacity-90 hover:opacity-100', tabSkin.idle)
+                                          ? cn('pb-2.5 pt-2 text-[11px] font-bold', tabSkin.active)
+                                          : cn('pb-2 pt-1.5 text-[11px] font-semibold opacity-80 hover:opacity-100', tabSkin.idle)
                                       )}
                                     >
                                       <ExpertAvatar expert={expert} size="xs" />
@@ -4706,7 +4637,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     </div>
                   );
                 })()
-              ) : discussionMode === 'procon' ? (
+              ) : discussionMode === 'procon' && messages.length > 0 ? (
                 /* Procon: 탭형 라운드 + 찬반 나란히 */
                 (() => {
                   // 라운드별로 그룹핑
@@ -5546,7 +5477,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     </div>
                   </div>
                 </div>
-              ) : discussionMode === 'standard' ? (
+              ) : discussionMode === 'standard' && messages.length > 0 ? (
                 /* 심층토론: 탭형 라운드 + 발언자별 컬러 */
                 (() => {
                   const rounds: { label: string; id: string; msgs: typeof messages }[] = [];
@@ -6478,7 +6409,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           startDiscussion(question);
                         }
                       }}
-                      disabled={((discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'standard' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'freetalk' && messages.length === 0 && activeExperts.length < 2)) || (discussionMode === 'aivsuser' && !hasAivsBattleStarted)}
+                      disabled={((discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'standard' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'freetalk' && messages.length === 0 && activeExperts.length < 2)) || (discussionMode === 'aivsuser' && !hasAivsBattleStarted) || (isDone && ['standard', 'procon', 'brainstorm', 'hearing', 'freetalk'].includes(discussionMode) && !followUpTarget)}
                       isStreaming={isDiscussing}
                       onStop={stopDiscussion}
                       discussionMode={discussionMode}

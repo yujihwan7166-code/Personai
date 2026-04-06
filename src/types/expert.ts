@@ -464,6 +464,7 @@ export interface PremiumDomainTemplate {
     outputFormat: string;
     sampleQuestions: string[];
     phases: { id: string; role: string; icon: string; description: string }[];
+    strengths?: { icon: string; title: string; desc: string }[];
 }
 
 export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
@@ -474,6 +475,12 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: '국가법령정보센터', url: 'https://law.go.kr', icon: '🏛️' },
         trustBadge: '실시간 법령 데이터 기반', outputFormat: '법률의견서 (Legal Memorandum)',
         sampleQuestions: ['전세 사기 당했을 때 대처법은?', '중고거래 환불 의무가 있나요?', '초상권 침해 기준이 뭔가요?'],
+        strengths: [
+            { icon: '📋', title: '실제 법 조문 인용', desc: '법령 원문을 근거로 제시' },
+            { icon: '🔍', title: '유사 판례 분석', desc: '관련 판례를 찾아 비교' },
+            { icon: '💬', title: '쉬운 법률 해석', desc: '법률 용어를 쉽게 풀이' },
+            { icon: '🎯', title: '맞춤 대응 전략', desc: '상황별 구체적 액션플랜' },
+        ],
         phases: [
             { id: 'intake', role: '사건 접수', icon: '📋', description: '사건 유형·당사자·시효 파악' },
             { id: 'law-search', role: '법령 조회', icon: '🔍', description: '관련 법령·판례 실시간 검색' },
@@ -488,6 +495,12 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: '식약처 의약품안전나라', url: 'https://nedrug.mfds.go.kr', icon: '🏥' },
         trustBadge: '식약처 의약품 데이터 기반', outputFormat: 'SOAP Note + 약품 분석',
         sampleQuestions: ['타이레놀과 이부프로펜 같이 먹어도 되나요?', '이 약의 부작용이 궁금해요', '감기약 먹고 술 마셔도 되나요?'],
+        strengths: [
+            { icon: '💊', title: '약물 상호작용 확인', desc: '병용 투여 위험 사전 분석' },
+            { icon: '📋', title: '성분별 효능 분석', desc: '약품 성분과 효과 상세 설명' },
+            { icon: '⚠️', title: '부작용 사전 확인', desc: '복용 전 위험 요소 파악' },
+            { icon: '🩺', title: '맞춤 복용 가이드', desc: '올바른 복용법·주의사항 안내' },
+        ],
         phases: [
             { id: 'symptom', role: '증상 파악', icon: '🩺', description: '증상·복용 약물 확인' },
             { id: 'drug-search', role: '약품 조회', icon: '🔍', description: '의약품 정보 실시간 검색' },
@@ -502,6 +515,12 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: '한국은행 ECOS · 금감원', url: 'https://ecos.bok.or.kr', icon: '📊' },
         trustBadge: '실시간 금리·경제지표 기반', outputFormat: '재무분석보고서',
         sampleQuestions: ['지금 예금 금리 가장 높은 곳은?', '기준금리 변동이 내 대출에 미치는 영향은?', '월 200만원으로 투자 포트폴리오 짜줘'],
+        strengths: [
+            { icon: '📊', title: '실시간 금리 비교', desc: '최신 금리·경제지표 반영' },
+            { icon: '💰', title: '맞춤 포트폴리오', desc: '상황에 맞는 투자 전략 설계' },
+            { icon: '📈', title: '리스크 사전 진단', desc: '투자 위험 요소 분석' },
+            { icon: '🎯', title: '절세 전략 제시', desc: '세금 최적화 방안 안내' },
+        ],
         phases: [
             { id: 'assess', role: '재무 진단', icon: '💼', description: '소득·지출·자산·부채 파악' },
             { id: 'data-search', role: '시장 조회', icon: '🔍', description: '금리·경제지표 실시간 검색' },
@@ -516,6 +535,12 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '부동산 분석 리포트',
         sampleQuestions: ['전세 계약 시 확인해야 할 등기부등본 사항은?', '갭투자 리스크를 분석해주세요', '신혼부부 특별공급 조건이 궁금해요'],
+        strengths: [
+            { icon: '🏠', title: '시세·실거래가 분석', desc: '지역별 시세 흐름 파악' },
+            { icon: '📋', title: '권리 분석', desc: '등기부등본·건축물대장 해석' },
+            { icon: '⚠️', title: '리스크 사전 진단', desc: '전세 사기·깡통전세 위험 확인' },
+            { icon: '💰', title: '수익률 계산', desc: '투자 대비 기대 수익 분석' },
+        ],
         phases: [
             { id: 'assess', role: '매물 분석', icon: '🏠', description: '매매/전세/월세, 지역, 예산 파악' },
             { id: 'search', role: '시세 조회', icon: '🔍', description: '실거래가·시세 정보 분석' },
@@ -530,6 +555,12 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '세무 분석 리포트',
         sampleQuestions: ['프리랜서 종합소득세 절세 방법은?', '양도소득세 비과세 요건이 뭔가요?', '1인 법인 설립 시 세금 혜택은?'],
+        strengths: [
+            { icon: '🧾', title: '세금 자동 계산', desc: '과세표준·세율·공제 즉시 산출' },
+            { icon: '💡', title: '합법적 절세 방안', desc: '상황별 최적 절세 전략' },
+            { icon: '📅', title: '신고 기한 안내', desc: '놓치기 쉬운 신고 일정 관리' },
+            { icon: '📊', title: '세법 변경 반영', desc: '최신 세법 개정 내용 적용' },
+        ],
         phases: [
             { id: 'assess', role: '세무 진단', icon: '🧾', description: '소득 유형, 사업 형태 파악' },
             { id: 'search', role: '법령 조회', icon: '🔍', description: '관련 세법·시행령 분석' },
@@ -544,6 +575,12 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '노무 상담 리포트',
         sampleQuestions: ['퇴직금 계산 방법이 궁금해요', '부당해고를 당했는데 어떻게 하나요?', '연차 미사용 수당은 어떻게 받나요?'],
+        strengths: [
+            { icon: '⚖️', title: '근로자 권리 분석', desc: '근로기준법 기반 권리 확인' },
+            { icon: '💰', title: '임금·퇴직금 계산', desc: '정확한 금액 산출·검증' },
+            { icon: '📋', title: '부당해고 대응', desc: '구제 절차·진정 방법 안내' },
+            { icon: '🛡️', title: '4대보험 상담', desc: '가입·탈퇴·혜택 안내' },
+        ],
         phases: [
             { id: 'assess', role: '사건 파악', icon: '👷', description: '근로자/사용자 구분, 사안 유형' },
             { id: 'search', role: '법령 조회', icon: '🔍', description: '근로기준법·노동관계법 분석' },
@@ -2671,6 +2708,7 @@ export interface SimulationScenario {
   phases: string[];
   gradient: string;
   isPopular?: boolean;
+  contextPlaceholder?: string;
 }
 
 export const SIMULATION_SCENARIOS: SimulationScenario[] = [
@@ -2686,8 +2724,9 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     verdictOptions: ['투자', '조건부 검토', '보류', '거절'],
     theme: { bg: 'bg-slate-900', accent: 'text-blue-400', cardBg: 'bg-slate-800' },
     userRole: '창업자',
+    contextPlaceholder: 'MAU 5만, 전년 대비 200% 성장, 헬스케어 AI 앱...',
     prepQuestions: [
-      { id: 'business', question: '어떤 사업인가요?', options: [{label: '요식업', value: '요식업'}, {label: 'IT/앱', value: 'IT/앱'}, {label: '교육', value: '교육'}, {label: '커머스', value: '커머스'}] },
+      { id: 'business', question: '어떤 분야인가요?', options: [{label: 'IT/앱', value: 'IT/앱'}, {label: '커머스', value: '커머스'}, {label: '요식업', value: '요식업'}, {label: '교육', value: '교육'}, {label: '헬스케어', value: '헬스케어'}, {label: '핀테크', value: '핀테크'}, {label: '콘텐츠/미디어', value: '콘텐츠/미디어'}, {label: '물류/유통', value: '물류/유통'}, {label: '제조/하드웨어', value: '제조/하드웨어'}] },
       { id: 'stage', question: '현재 단계는?', options: [{label: '아이디어', value: '아이디어 단계'}, {label: 'MVP 완성', value: 'MVP 완성'}, {label: '초기 매출', value: '초기 매출 발생'}, {label: '성장기', value: '성장기'}] },
       { id: 'amount', question: '필요 투자금은?', options: [{label: '1천만원', value: '1천만원'}, {label: '5천만원', value: '5천만원'}, {label: '1~3억', value: '1~3억'}, {label: '3억 이상', value: '3억 이상'}] },
     ],
@@ -2705,6 +2744,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     verdictOptions: ['합격', '보류', '불합격'],
     theme: { bg: 'bg-slate-50', accent: 'text-slate-700', cardBg: 'bg-white' },
     userRole: '지원자',
+    contextPlaceholder: '네이버 백엔드 개발 지원, React/Node.js 3년차...',
     prepQuestions: [
       { id: 'position', question: '어떤 포지션인가요?', options: [{label: '개발', value: '개발'}, {label: '마케팅', value: '마케팅'}, {label: '디자인', value: '디자인'}, {label: '기획', value: '기획'}] },
       { id: 'experience', question: '경력은?', options: [{label: '신입', value: '신입'}, {label: '3년 이하', value: '3년 이하'}, {label: '5년 이상', value: '5년 이상'}, {label: '10년 이상', value: '10년 이상'}] },
@@ -2723,7 +2763,12 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 5, gaugeLabel: '구매 의향',
     verdictOptions: ['즉시 구매', '관심', '보류', '패스'],
     theme: { bg: 'bg-blue-50', accent: 'text-blue-600', cardBg: 'bg-white' },
-    userRole: '제품 기획자', prepQuestions: [], phases: [],
+    userRole: '제품 기획자', contextPlaceholder: 'AI 영어 학습 앱, 타겟 직장인, 월 9,900원...',
+    prepQuestions: [
+      { id: 'stage', question: '제품 단계는?', options: [{label: '컨셉', value: '컨셉/아이디어 단계'}, {label: '프로토타입', value: '프로토타입'}, {label: '베타', value: '베타 테스트'}, {label: '출시 완료', value: '출시 완료'}] },
+      { id: 'target', question: '타겟은?', options: [{label: 'B2C 일반', value: 'B2C 일반 소비자'}, {label: 'B2B 기업', value: 'B2B 기업'}, {label: '특정 커뮤니티', value: '특정 커뮤니티/니치'}] },
+    ],
+    phases: [],
   },
   {
     id: 'policy', name: '정책 검토', icon: '🏛️', gradient: 'from-emerald-100 to-green-50', simType: 'roleplay',
@@ -2736,7 +2781,12 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 5, gaugeLabel: '지지율',
     verdictOptions: ['시행', '수정 후 시행', '보류', '폐기'],
     theme: { bg: 'bg-emerald-50', accent: 'text-emerald-700', cardBg: 'bg-white' },
-    userRole: '정책 입안자', prepQuestions: [], phases: [],
+    userRole: '정책 입안자', contextPlaceholder: '주 4일제 도입 검토, 공무원 우선 적용...',
+    prepQuestions: [
+      { id: 'area', question: '정책 분야는?', options: [{label: '경제/산업', value: '경제/산업'}, {label: '교육', value: '교육'}, {label: '환경/에너지', value: '환경/에너지'}, {label: '복지/보건', value: '복지/보건'}, {label: '기술/과학', value: '기술/과학'}] },
+      { id: 'phase', question: '추진 단계는?', options: [{label: '검토 중', value: '검토 단계'}, {label: '입법 추진', value: '입법 추진 중'}, {label: '시행 예정', value: '시행 예정'}] },
+    ],
+    phases: [],
   },
   {
     id: 'strategy', name: '전략 회의', icon: '📊', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
@@ -2749,7 +2799,12 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 3, gaugeLabel: '합의도',
     verdictOptions: ['실행', '수정 후 실행', '재검토'],
     theme: { bg: 'bg-amber-50', accent: 'text-amber-700', cardBg: 'bg-white' },
-    userRole: '전략 책임자', prepQuestions: [], phases: [],
+    userRole: '전략 책임자', contextPlaceholder: '해외 시장 진출 전략, 동남아 우선 타겟...',
+    prepQuestions: [
+      { id: 'meetingType', question: '회의 유형은?', options: [{label: '신규 사업', value: '신규 사업 진출'}, {label: '기존 사업 개선', value: '기존 사업 개선'}, {label: '비용 절감', value: '비용 절감/구조조정'}, {label: '위기 대응', value: '위기 대응'}] },
+      { id: 'companySize', question: '회사 규모는?', options: [{label: '스타트업', value: '스타트업'}, {label: '중소기업', value: '중소기업'}, {label: '대기업', value: '대기업'}] },
+    ],
+    phases: [],
   },
   {
     id: 'internal', name: '사내 제안', icon: '🏢', gradient: 'from-slate-100 to-gray-50', simType: 'roleplay',
@@ -2762,7 +2817,12 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 5, gaugeLabel: '승인 가능성',
     verdictOptions: ['승인', '조건부 승인', '보류', '반려'],
     theme: { bg: 'bg-gray-50', accent: 'text-slate-600', cardBg: 'bg-white' },
-    userRole: '제안자', prepQuestions: [], phases: [],
+    userRole: '제안자', contextPlaceholder: '사내 AI 도구 도입, 비용 절감 30% 목표...',
+    prepQuestions: [
+      { id: 'proposalType', question: '제안 유형은?', options: [{label: '신규 프로젝트', value: '신규 프로젝트'}, {label: '프로세스 개선', value: '프로세스 개선'}, {label: '도구/시스템 도입', value: '도구/시스템 도입'}, {label: '조직 변경', value: '조직 변경'}] },
+      { id: 'budget', question: '예산 규모는?', options: [{label: '소규모 (~500만)', value: '소규모 500만원 이하'}, {label: '중규모 (~5천만)', value: '중규모 5천만원 이하'}, {label: '대규모 (5천만+)', value: '대규모 5천만원 이상'}] },
+    ],
+    phases: [],
   },
   {
     id: 'admission', name: '입시 면접', icon: '🎓', gradient: 'from-teal-100 to-cyan-50', simType: 'roleplay',
@@ -2775,7 +2835,14 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 5, gaugeLabel: '합격 가능성',
     verdictOptions: ['합격', '예비', '불합격'],
     theme: { bg: 'bg-teal-50', accent: 'text-teal-600', cardBg: 'bg-white' },
-    userRole: '수험생', prepQuestions: [], phases: ['자기소개', '전공 면접', '인성 면접', '결과'],
+    userRole: '수험생', contextPlaceholder: '서울대 컴퓨터공학과, 정보올림피아드 수상...',
+    prepQuestions: [
+      { id: 'school', question: '지원 학교', options: [] },
+      { id: 'field', question: '계열', options: [{label: '인문', value: '인문계열'}, {label: '자연', value: '자연계열'}, {label: '공학', value: '공학계열'}, {label: '예체능', value: '예체능계열'}, {label: '의약', value: '의약계열'}] },
+      { id: 'major', question: '학과', options: [] },
+      { id: 'level', question: '성적대', options: [{label: '상향 지원', value: '상향 지원'}, {label: '적정', value: '적정 지원'}, {label: '안정', value: '안정 지원'}, {label: '도전', value: '도전적 지원'}] },
+    ],
+    phases: ['자기소개', '전공 면접', '인성 면접', '결과'],
   },
   // ── 신규 시나리오 5개 ──
   {
@@ -2789,7 +2856,12 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 5, gaugeLabel: '편성 가능성',
     verdictOptions: ['편성 확정', '파일럿 제작', '수정 후 재검토', '기각'],
     theme: { bg: 'bg-rose-50', accent: 'text-rose-600', cardBg: 'bg-white' },
-    userRole: '크리에이터', prepQuestions: [], phases: [],
+    userRole: '크리에이터', contextPlaceholder: '직장인 퇴근 후 요리 예능, 20~30대 타겟...',
+    prepQuestions: [
+      { id: 'platform', question: '어떤 플랫폼인가요?', options: [{label: '유튜브/숏폼', value: '유튜브/숏폼'}, {label: 'TV/OTT', value: 'TV/OTT'}, {label: '팟캐스트', value: '팟캐스트'}, {label: 'SNS', value: 'SNS'}] },
+      { id: 'genre', question: '장르는?', options: [{label: '예능', value: '예능'}, {label: '교양/다큐', value: '교양/다큐'}, {label: '드라마', value: '드라마'}, {label: '교육', value: '교육'}] },
+    ],
+    phases: [],
   },
   {
     id: 'b2b_sales', name: 'B2B 영업 미팅', icon: '💼', gradient: 'from-blue-100 to-indigo-50', simType: 'roleplay',
@@ -2803,6 +2875,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     verdictOptions: ['도입 확정', 'PoC 진행', '내부 검토', '거절'],
     theme: { bg: 'bg-indigo-50', accent: 'text-indigo-600', cardBg: 'bg-white' },
     userRole: '영업 대표',
+    contextPlaceholder: 'CRM 솔루션, 중소기업 대상, 월 30만원...',
     prepQuestions: [
       { id: 'solution', question: '어떤 솔루션인가요?', options: [{label: 'SaaS', value: 'SaaS 소프트웨어'}, {label: '컨설팅', value: '컨설팅 서비스'}, {label: '하드웨어', value: '하드웨어/장비'}, {label: '플랫폼', value: '플랫폼 서비스'}] },
       { id: 'client', question: '상대 기업 규모는?', options: [{label: '스타트업', value: '스타트업'}, {label: '중소기업', value: '중소기업'}, {label: '대기업', value: '대기업'}, {label: '공공기관', value: '공공기관'}] },
@@ -2821,6 +2894,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     verdictOptions: ['수습 성공', '부분 수습', '악화', '통제 불능'],
     theme: { bg: 'bg-red-50', accent: 'text-red-600', cardBg: 'bg-white' },
     userRole: 'PR 책임자',
+    contextPlaceholder: '앱 개인정보 유출, 10만명 피해, 언론 보도 시작...',
     prepQuestions: [
       { id: 'crisis_type', question: '어떤 유형의 위기인가요?', options: [{label: '제품 결함', value: '제품 결함/리콜'}, {label: '서비스 장애', value: '서비스 장애/다운타임'}, {label: '개인정보 유출', value: '개인정보 유출'}, {label: '직원 비위', value: '임직원 비위/스캔들'}] },
       { id: 'severity', question: '피해 규모는?', options: [{label: '소규모', value: '소수 피해'}, {label: '중규모', value: '수백~수천명 영향'}, {label: '대규모', value: '대규모 사회적 이슈'}] },
@@ -2838,7 +2912,12 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 5, gaugeLabel: '제휴 가능성',
     verdictOptions: ['제휴 확정', '조건 협의', '내부 검토', '거절'],
     theme: { bg: 'bg-violet-50', accent: 'text-violet-600', cardBg: 'bg-white' },
-    userRole: '마케터', prepQuestions: [], phases: [],
+    userRole: '마케터', contextPlaceholder: '카페 브랜드 × 캐릭터 IP 콜라보, 한정판 굿즈...',
+    prepQuestions: [
+      { id: 'collabType', question: '제휴 형태는?', options: [{label: '콜라보 제품', value: '콜라보 제품'}, {label: '공동 마케팅', value: '공동 마케팅'}, {label: '기술 제휴', value: '기술 제휴'}, {label: 'IP 라이선스', value: 'IP 라이선스'}] },
+      { id: 'ourScale', question: '우리 쪽 규모는?', options: [{label: '스타트업/소규모', value: '스타트업/소규모'}, {label: '중견', value: '중견기업'}, {label: '대기업/유명 브랜드', value: '대기업/유명 브랜드'}] },
+    ],
+    phases: [],
   },
   {
     id: 'complaint', name: '강성 컴플레인 대응', icon: '😠', gradient: 'from-orange-100 to-amber-50', simType: 'roleplay',
@@ -2851,7 +2930,12 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     defaultIntensity: 8, gaugeLabel: '고객 만족도',
     verdictOptions: ['원만 해결', '일부 수용', '규정대로', '이탈'],
     theme: { bg: 'bg-orange-50', accent: 'text-orange-600', cardBg: 'bg-white' },
-    userRole: 'CS 담당자', prepQuestions: [], phases: [],
+    userRole: 'CS 담당자', contextPlaceholder: '배송 지연 3일, 고객이 환불+추가 보상 요구...',
+    prepQuestions: [
+      { id: 'channel', question: '어떤 채널에서 발생했나요?', options: [{label: '매장 대면', value: '매장 대면'}, {label: '전화', value: '전화'}, {label: '온라인/SNS', value: '온라인/SNS'}] },
+      { id: 'customer', question: '고객 유형은?', options: [{label: '일반 고객', value: '일반 고객'}, {label: 'VIP/단골', value: 'VIP/단골'}, {label: '인플루언서', value: '인플루언서'}] },
+    ],
+    phases: [],
   },
 ];
 

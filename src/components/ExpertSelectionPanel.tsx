@@ -1356,6 +1356,10 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
   isDiscussing: boolean;
 }) {
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario | null>(null);
+  const [step2Scenario, setStep2Scenario] = useState<SimulationScenario | null>(null);
+  const [step2Context, setStep2Context] = useState('');
+  const [step2Answers, setStep2Answers] = useState<Record<string, string>>({});
+  const [step2CustomMode, setStep2CustomMode] = useState<Record<string, boolean>>({});
   const [dropdownRole, setDropdownRole] = useState<string | null>(null);
   const [botPickerCat, setBotPickerCat] = useState('전체');
   const [botPickerSearch, setBotPickerSearch] = useState('');
@@ -1438,7 +1442,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
 
       {/* Floating Modal — Roleplay */}
       {selectedScenario && selectedScenario.simType === 'roleplay' && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-8 px-4 pb-4" onClick={() => setSelectedScenario(null)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedScenario(null)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full max-w-[480px] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}>
@@ -1558,10 +1562,122 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                 </div>
               </div>
 
-              {/* Intensity slider */}
+            </div>
+
+            {/* Start button */}
+            <div className="shrink-0 px-4 py-3 border-t border-slate-200 bg-slate-50">
+              <button
+                onClick={() => {
+                  setStep2Scenario(selectedScenario);
+                  setStep2Context('');
+                  setStep2Answers({});
+                  setStep2CustomMode({});
+                  setSelectedScenario(null);
+                }}
+                className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5"
+              >
+                다음 <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Step 2: 세부 설정 모달 */}
+      {step2Scenario && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setStep2Scenario(null)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div className="shrink-0 px-5 py-4 border-b border-slate-100 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center text-[20px]">
+                {step2Scenario.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[15px] font-bold text-slate-800">{step2Scenario.name}</h3>
+                <p className="text-[11px] text-slate-400">세부 사항을 설정하세요</p>
+              </div>
+              <button onClick={() => setStep2Scenario(null)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            {/* 콘텐츠 — 스크롤 가능 */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+              {/* prepQuestions (있는 경우) */}
+              {step2Scenario.prepQuestions.length > 0 && (
+                <div className="space-y-4">
+                  {step2Scenario.prepQuestions.map((q, qi) => (
+                    <div key={q.id}>
+                      <p className="text-[12px] font-bold text-slate-700 mb-2 flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 text-[10px] font-black flex items-center justify-center shrink-0">{qi + 1}</span>
+                        {q.question}
+                      </p>
+                      {q.options.length === 0 ? (
+                        /* 텍스트 전용 질문 */
+                        <input
+                          value={step2Answers[q.id] || ''}
+                          onChange={e => setStep2Answers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                          placeholder={`${q.question}을 입력하세요`}
+                          className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] text-slate-700 placeholder:text-slate-300 outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 transition-all"
+                        />
+                      ) : step2CustomMode[q.id] ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            autoFocus
+                            value={step2Answers[q.id] || ''}
+                            onChange={e => setStep2Answers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                            placeholder="직접 입력..."
+                            className="flex-1 rounded-lg border border-indigo-300 px-3 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-indigo-200"
+                          />
+                          <button onClick={() => { setStep2CustomMode(prev => ({ ...prev, [q.id]: false })); setStep2Answers(prev => { const n = { ...prev }; delete n[q.id]; return n; }); }}
+                            className="text-[10px] text-slate-400 hover:text-slate-600 shrink-0">취소</button>
+                        </div>
+                      ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {q.options.map(opt => (
+                          <button key={opt.value}
+                            onClick={() => setStep2Answers(prev => ({ ...prev, [q.id]: opt.value }))}
+                            className={cn('px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all',
+                              step2Answers[q.id] === opt.value
+                                ? 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50'
+                            )}>
+                            {opt.label}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => { setStep2CustomMode(prev => ({ ...prev, [q.id]: true })); setStep2Answers(prev => { const n = { ...prev }; delete n[q.id]; return n; }); }}
+                          className="px-3 py-1.5 rounded-lg text-[11px] font-medium border border-dashed border-slate-300 text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-all">
+                          직접 입력
+                        </button>
+                      </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 자유 텍스트 입력 */}
+              <div>
+                <p className="text-[12px] font-bold text-slate-700 mb-2">
+                  {step2Scenario.prepQuestions.length > 0 ? '추가 상황 설명' : '상황 설명'}
+                  <span className="text-[10px] font-normal text-slate-400 ml-1.5">(선택)</span>
+                </p>
+                <textarea
+                  value={step2Context}
+                  onChange={e => setStep2Context(e.target.value)}
+                  placeholder={step2Scenario.contextPlaceholder || '시뮬레이션에 필요한 배경 정보를 자유롭게 적어주세요...'}
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-[12px] text-slate-700 placeholder:text-slate-300 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 outline-none resize-none transition-all"
+                />
+              </div>
+
+              {/* 반응 강도 슬라이더 */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-slate-600">반응 강도</span>
+                  <span className="text-[12px] font-bold text-slate-700">반응 강도</span>
                   <span className={cn('text-[10px] font-medium',
                     settings.intensity <= 3 ? 'text-sky-600' : settings.intensity <= 6 ? 'text-slate-500' : 'text-red-500'
                   )}>{intensityLabel} ({settings.intensity})</span>
@@ -1574,26 +1690,26 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                   <span className="text-[10px] text-red-500 font-medium shrink-0">날카로운</span>
                 </div>
               </div>
-
-              {/* Auto report toggle */}
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold text-slate-700">자동 리포트 생성</p>
-                  <p className="text-[9px] text-slate-400">시뮬레이션 후 종합 판정 리포트 자동 생성</p>
-                </div>
-                <Toggle checked={settings.autoReport} onChange={v => update({ autoReport: v })} />
-              </div>
             </div>
 
-            {/* Start button */}
-            <div className="shrink-0 px-4 py-3 border-t border-slate-200 bg-slate-50">
+            {/* 하단 버튼 */}
+            <div className="shrink-0 px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <button
+                onClick={() => { setSelectedScenario(step2Scenario); setStep2Scenario(null); }}
+                className="text-[12px] text-slate-400 hover:text-slate-600 font-medium transition-colors"
+              >
+                ← 뒤로
+              </button>
               <button
                 onClick={() => {
-                  const scenarioId = selectedScenario.id;
-                  setSelectedScenario(null);
+                  const scenarioId = step2Scenario.id;
+                  const contextAnswers: Record<string, string> = { ...step2Answers };
+                  if (step2Context.trim()) contextAnswers.__context__ = step2Context.trim();
+                  update({ prepAnswers: contextAnswers });
+                  setStep2Scenario(null);
                   onSubmit(`__SIM_START__:${scenarioId}`, undefined, 'stakeholder');
                 }}
-                className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5"
+                className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center gap-1.5"
               >
                 시뮬레이션 시작 <ArrowRight className="w-4 h-4" />
               </button>
@@ -3668,7 +3784,7 @@ export function ExpertSelectionPanel({
       )}
 
       {/* Question Input — not shown for expert/assistant/player/aivsuser (they have their own inputs or modal flow) */}
-      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && discussionMode !== 'aivsuser' && (
+      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && mainMode !== 'premium_main' && discussionMode !== 'aivsuser' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
           disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2) || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2)}

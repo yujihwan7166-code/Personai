@@ -29,6 +29,7 @@ interface CurrentPhase {
 interface SimOrchestratorRequestBody {
   scenario?: SimulationScenarioRequest;
   intensity?: number;
+  prepContext?: string;
   conversationHistory?: ConversationEntry[];
   turnCount?: number;
   mode?: string;
@@ -59,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
-  const { scenario, intensity, conversationHistory, turnCount, mode, currentPhase } =
+  const { scenario, intensity, prepContext, conversationHistory, turnCount, mode, currentPhase } =
     (req.body || {}) as SimOrchestratorRequestBody;
 
   if (!scenario || !Array.isArray(conversationHistory)) {
@@ -74,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const prompt =
     mode === 'consultation' && currentPhase
       ? buildConsultationPrompt(scenario, currentPhase, conversationHistory, intensity ?? 5)
-      : buildRoleplayPrompt(scenario, conversationHistory, turnCount ?? conversationHistory.length, intensity ?? 5);
+      : buildRoleplayPrompt(scenario, conversationHistory, turnCount ?? conversationHistory.length, intensity ?? 5, prepContext);
 
   try {
     const geminiRes = await fetch(buildGeminiUrl(DEFAULT_MODEL, apiKey), {
@@ -243,6 +244,7 @@ function buildRoleplayPrompt(
   conversationHistory: ConversationEntry[],
   turnCount: number,
   intensity: number,
+  prepContext?: string,
 ) {
   return `You are an orchestrator for a Korean multi-party roleplay simulation.
 
@@ -253,6 +255,7 @@ User role: ${scenario.userRole}
 Participants: ${scenario.roles.map((role) => `${role.name}(${role.focus})`).join(', ')}
 Intensity: ${intensity}/10
 Turn count: ${turnCount}
+${prepContext ? `\nUser-provided context:\n${prepContext}` : ''}
 
 Conversation history:
 ${formatConversation(conversationHistory)}

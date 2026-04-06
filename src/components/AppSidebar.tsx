@@ -524,9 +524,13 @@ export function AppSidebar({
         onClick={() => !isEditing && handleLoadHistory(record)}
       >
         {/* AI model icon circle */}
-        <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 text-[10px]">
-          {firstExpert?.icon || firstExpert?.nameKo?.[0] || (
-            <Bot className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+          {firstExpert ? (
+            <ExpertAvatar expert={firstExpert} size="xs" />
+          ) : (
+            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              <Bot className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+            </div>
           )}
         </div>
 
