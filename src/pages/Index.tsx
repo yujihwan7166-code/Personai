@@ -353,8 +353,8 @@ const Index = () => {
       if (getMainMode(discussionMode) === 'multi' && prev.length >= 3) return prev;
       // 심층/자유 토론: max 3
       if ((discussionMode === 'standard' || discussionMode === 'freetalk') && prev.length >= 3) return prev;
-      // Debate mode (brainstorm/hearing/procon): max 4
-      if (getMainMode(discussionMode) === 'debate' && discussionMode !== 'standard' && discussionMode !== 'freetalk' && discussionMode !== 'procon' && prev.length >= 4) return prev;
+      // Debate mode (brainstorm/hearing): max 3, procon: handled separately
+      if (getMainMode(discussionMode) === 'debate' && discussionMode !== 'standard' && discussionMode !== 'freetalk' && discussionMode !== 'procon' && prev.length >= 3) return prev;
       return [...prev, id];
     });
   };
@@ -1712,7 +1712,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
       }
     } else if (useMode === 'freetalk') {
       // Freetalk: AI group chat - short flowing messages
-      const maxMessages = debateSettings.freetalkMessageCount || 40;
+      const maxMessages = debateSettings.freetalkMessageCount || 30;
       let msgCount = 0;
       const freetalkToneMap: Record<string, string> = {
         'ultra-polite': '- 극존칭으로 매우 공손하게 말하세요. "~습니다", "~주시면 감사하겠습니다" 톤을 유지하세요.\n- 반박도 매우 정중하게 완곡하게 표현하세요.',
@@ -1996,7 +1996,7 @@ ${intensityDesc} 말하세요. 2~3문장. 한국어. 대화체.`;
       return;
     }
 
-    if (!shouldStop() && debateSettings.includeConclusion) {
+    if (!shouldStop() && debateSettings.includeConclusion && useMode !== 'freetalk') {
       // 브레인스토밍 전용 결론
       const isBrainstormConclusion = useMode === 'brainstorm';
       const brainstormSummaryPrompt = `You are a brainstorming session facilitator. Organize ALL ideas from the session into a clear Korean summary using this format:
@@ -3634,7 +3634,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           )}
 
           {/* Main scroll area */}
-          <div ref={scrollRef} className={cn("flex-1 overflow-y-auto scrollbar-thin relative", discussionMode === 'player' && 'bg-gradient-to-b from-slate-900 to-slate-800')} onScroll={handleScroll}>
+          <div ref={scrollRef} className={cn("flex-1 overflow-y-auto scrollbar-thin relative", discussionMode === 'player' && 'bg-gradient-to-b from-slate-900 to-slate-800')} style={{ scrollbarGutter: 'stable' }} onScroll={handleScroll}>
             {/* Simulation wrapper — 헤더 + 대화 영역을 하나의 흰색 카드로 */}
             {!selectable && discussionMode === 'stakeholder' && (() => {
               const scenario = SIMULATION_SCENARIOS.find(s => s.id === stakeholderSettings.scenarioId)
@@ -4065,27 +4065,33 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               {/* 브레인스토밍 주제 구체화 — 전용 플로팅 모달 */}
               {bsClarify?.show && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
-                  <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
-                    {/* 헤더 — 브레인스토밍 테마 */}
-                    <div className="bg-gradient-to-r from-amber-400 to-orange-400 px-5 py-3.5 flex items-center gap-3">
-                      <span className="text-[24px]">💡</span>
-                      <div>
-                        <h3 className="text-[15px] font-bold text-white">브레인스토밍 세션 준비</h3>
-                        <p className="text-[11px] text-white/70">{bsClarify.message}</p>
+                  <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
+                    {/* 헤더 */}
+                    <div className="bg-gradient-to-r from-amber-100 via-orange-100 to-amber-100 px-6 py-4 border-b border-amber-200 relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, #f59e0b 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
+                      <div className="relative flex items-center gap-4">
+                        <span className="text-[26px]">💡</span>
+                        <div className="flex-1">
+                          <h3 className="text-[17px] font-bold text-amber-900">세션 준비</h3>
+                          <p className="text-[12px] text-amber-700/70 mt-0.5">{bsClarify.message}</p>
+                        </div>
                       </div>
                     </div>
 
                     {/* 원래 주제 */}
-                    <div className="px-5 pt-4 pb-2">
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">입력한 주제</span>
-                      <p className="text-[14px] font-medium text-slate-700 mt-1">{bsClarify.originalQuestion}</p>
+                    <div className="px-6 pt-5 pb-2">
+                      <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider">입력한 주제</span>
+                      <p className="text-[15px] font-semibold text-slate-800 mt-1.5">{bsClarify.originalQuestion}</p>
                     </div>
 
                     {/* 질문들 */}
-                    <div className="px-5 py-3 space-y-4">
-                      {bsClarify.questions.map(q => (
+                    <div className="px-6 py-4 space-y-5">
+                      {bsClarify.questions.map((q, qi) => (
                         <div key={q.id}>
-                          <p className="text-[13px] font-semibold text-slate-700 mb-2">{q.question}</p>
+                          <p className="text-[13px] font-bold text-slate-700 mb-2.5 flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 text-[10px] font-black flex items-center justify-center shrink-0">{qi + 1}</span>
+                            {q.question}
+                          </p>
                           <div className="flex flex-wrap gap-2">
                             {q.options.filter(o => o.value !== '__custom__').map(opt => (
                               <button
@@ -4095,10 +4101,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                   setBsClarify({ ...bsClarify, selections: newSelections });
                                 }}
                                 className={cn(
-                                  "px-3.5 py-2 rounded-xl text-[12px] font-medium border transition-all",
+                                  "px-4 py-2 rounded-lg text-[12px] font-medium border-2 transition-all",
                                   bsClarify.selections[q.id] === opt.value
-                                    ? "bg-amber-500 text-white border-amber-500 shadow-md"
-                                    : "bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:bg-amber-50"
+                                    ? "bg-amber-50 text-amber-700 border-amber-400 shadow-sm ring-1 ring-amber-200"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:bg-amber-50/50"
                                 )}
                               >
                                 {opt.label}
@@ -4110,13 +4116,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     </div>
 
                     {/* 하단 버튼 */}
-                    <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
-                      <button
-                        onClick={() => { setBsClarify(null); skipClarifyRef.current = true; runDiscussion(bsClarify.originalQuestion); }}
-                        className="text-[12px] text-slate-400 hover:text-slate-600 font-medium transition-colors"
-                      >
-                        건너뛰기
-                      </button>
+                    <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end">
                       <button
                         onClick={() => {
                           const answers = bsClarify.questions.map(q => {
@@ -4133,9 +4133,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         }}
                         disabled={Object.keys(bsClarify.selections).length === 0}
                         className={cn(
-                          "px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all",
+                          "px-6 py-2.5 rounded-xl text-[13px] font-bold transition-all",
                           Object.keys(bsClarify.selections).length > 0
-                            ? "bg-amber-500 text-white hover:bg-amber-600 shadow-md"
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-md shadow-amber-200"
                             : "bg-slate-100 text-slate-300 cursor-not-allowed"
                         )}
                       >
@@ -4315,7 +4315,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               )}
 
               {/* Participants display — VS layout for procon, normal for others */}
-              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
+              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
                 discussionMode === 'standard' ? (
                   /* 심층토론 스테이지 헤더 */
                   <div className="rounded-2xl overflow-hidden shadow-lg border border-indigo-200/50">
@@ -4888,9 +4888,27 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     </div>
                   );
                 })()
-              ) : discussionMode === 'brainstorm' ? (
-                /* Brainstorm: curated or grid layout */
-                (() => {
+              ) : discussionMode === 'brainstorm' && messages.length > 0 ? (
+                /* Brainstorm: curated or grid layout — wrapped in card */
+                <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[calc(100vh-200px)] flex flex-col overflow-hidden">
+                    {/* 헤더 */}
+                    <div className="shrink-0 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-5 py-3 rounded-t-2xl flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[16px]">💡</span>
+                        <span className="text-[16px] font-extrabold text-slate-800 dark:text-slate-200">브레인스토밍</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {activeExperts.map(e => (
+                          <span key={e.id} className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700">
+                            <ExpertAvatar expert={e} size="xs" /> {e.nameKo}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {/* 콘텐츠 */}
+                    <div className="flex-1 p-5">
+                {(() => {
                   // 프로그레스 메시지 체크
                   const progressMsg = messages.find(m => m.expertId === '__brainstorm_progress__');
                   if (progressMsg) {
@@ -4985,12 +5003,16 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     const msg = summaryMsgs[0];
                     const fwId = msg.round || 'free';
 
-                    // 스트리밍 중이면 일반 텍스트로 표시
+                    // 스트리밍 중이면 결과 정리 중 표시
                     if (msg.isStreaming) {
                       return (
-                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                          <div className="text-[13px] text-slate-600 leading-relaxed whitespace-pre-wrap">{msg.content}</div>
-                          <div className="flex items-center gap-1.5 mt-3">
+                        <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-500">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[24px] shadow-lg mb-5">
+                            📋
+                          </div>
+                          <h3 className="text-[15px] font-bold text-slate-800 mb-1">결과를 정리하고 있습니다</h3>
+                          <p className="text-[12px] text-slate-400 mb-5">아이디어를 분석하고 구조화하는 중...</p>
+                          <div className="flex items-center gap-1.5">
                             <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
                             <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
                             <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
@@ -5520,7 +5542,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       })}
                     </div>
                   );
-                })()
+                })()}
+                    </div>
+                  </div>
+                </div>
               ) : discussionMode === 'standard' ? (
                 /* 심층토론: 탭형 라운드 + 발언자별 컬러 */
                 (() => {
@@ -5629,15 +5654,238 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     </div>
                   );
                 })()
-              ) : discussionMode === 'freetalk' ? (
-                /* Freetalk: KakaoTalk-style chat bubbles */
-                <div className="space-y-2">
+              ) : discussionMode === 'aivsuser' && messages.length > 0 ? (
+                /* AI vs User: battle card */
+                (() => {
+                  const battleConfig = activeAivsBattleConfig;
+                  const aiOpponents = activeExperts.length > 0 ? activeExperts : [];
+                  const userStanceKo = aivsUserStance === 'pro' ? '찬성' : '반대';
+                  const aiStanceKo = aivsUserStance === 'pro' ? '반대' : '찬성';
+                  const roundJudges = messages.filter(m => m.expertId === '__avsu_judge__');
+                  const currentRound = roundJudges.length;
+                  return (
+                    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
+                      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[calc(100vh-200px)] flex flex-col overflow-hidden">
+                        {/* 배틀 헤더 */}
+                        <div className="shrink-0 bg-slate-900 relative overflow-hidden">
+                          {/* 배경 장식 */}
+                          <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, white 10px, white 11px)' }} />
+                          <div className="absolute top-0 left-0 w-1/3 h-full bg-gradient-to-r from-blue-600/20 to-transparent" />
+                          <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-rose-600/20 to-transparent" />
+                          {/* 콘텐츠 */}
+                          <div className="relative px-5 py-4">
+                            <div className="flex items-center justify-between">
+                              {/* 유저 */}
+                              <div className="flex-1 flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-[18px] shadow-lg ring-2 ring-blue-400/50">
+                                  🙋
+                                </div>
+                                <div>
+                                  <div className="text-[13px] font-black text-white tracking-wide">나</div>
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-500/30 text-blue-300 border border-blue-500/30">{userStanceKo}</span>
+                                </div>
+                              </div>
+                              {/* VS 중앙 */}
+                              <div className="shrink-0 mx-3 flex flex-col items-center">
+                                <div className="w-11 h-11 rounded-full bg-gradient-to-b from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                                  <span className="text-[14px] font-black text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>VS</span>
+                                </div>
+                                {currentRound > 0 && <span className="mt-1 text-[9px] font-bold text-amber-400/80">R{currentRound}</span>}
+                                {isDiscussing && <span className="text-[7px] font-bold text-red-400 uppercase tracking-widest animate-pulse mt-0.5">● LIVE</span>}
+                              </div>
+                              {/* AI */}
+                              <div className="flex-1 flex items-center gap-3 justify-end">
+                                <div className="text-right">
+                                  <div className="text-[13px] font-black text-white tracking-wide">
+                                    {aiOpponents.map(e => e.nameKo).join(', ') || 'AI'}
+                                  </div>
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/30 text-rose-300 border border-rose-500/30">{aiStanceKo}</span>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-lg ring-2 ring-rose-400/50 overflow-hidden">
+                                  {aiOpponents[0] ? <ExpertAvatar expert={aiOpponents[0]} size="sm" /> : <span className="text-[18px]">🤖</span>}
+                                </div>
+                              </div>
+                            </div>
+                            {/* 주제 */}
+                            {battleConfig && (
+                              <div className="mt-3 text-center bg-white/5 rounded-lg px-3 py-1.5 border border-white/10">
+                                <span className="text-[11px] font-semibold text-slate-300">{battleConfig.topicTitle}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {/* 대화 영역 */}
+                        <div className="flex-1 bg-white dark:bg-slate-900">
+                          {messages.map((msg, idx) => {
+                            // Judge card
+                            if (msg.expertId === '__avsu_judge__') {
+                              try {
+                                const j = JSON.parse(msg.content);
+                                const isFinalJudge = j.type === '__avsu_final__';
+                                const userTotal = j.user_score?.total || 0;
+                                const aiTotal = j.ai_score?.total || 0;
+                                const maxScore = 50;
+                                const userPct = Math.round((userTotal / maxScore) * 100);
+                                const aiPct = Math.round((aiTotal / maxScore) * 100);
+                                const winnerEmoji = j.round_winner === 'user' ? '🏆' : j.round_winner === 'ai' ? '💀' : '🤝';
+                                const winnerText = j.round_winner === 'user' ? '유저 우세' : j.round_winner === 'ai' ? 'AI 우세' : '무승부';
+
+                                if (isFinalJudge) {
+                                  const fw = j.final_winner === 'user' ? '🏆 유저 승리!' : j.final_winner === 'ai' ? '💀 AI 승리' : '🤝 무승부';
+                                  return (
+                                    <div key={msg.id} className="px-5 py-4 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                                      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-xl border border-slate-700">
+                                        <div className="text-center mb-4">
+                                          <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">최종 판정</div>
+                                          <div className="text-2xl font-black">{fw}</div>
+                                        </div>
+                                        <div className="flex items-center justify-center gap-6 mb-4">
+                                          <div className="text-center">
+                                            <div className="text-[10px] text-slate-400">유저</div>
+                                            <div className="text-2xl font-bold text-blue-400">{j.final_score?.user || userTotal}</div>
+                                          </div>
+                                          <div className="text-slate-500 text-lg">vs</div>
+                                          <div className="text-center">
+                                            <div className="text-[10px] text-slate-400">AI</div>
+                                            <div className="text-2xl font-bold text-red-400">{j.final_score?.ai || aiTotal}</div>
+                                          </div>
+                                        </div>
+                                        {j.overall_comment && <p className="text-[12px] text-slate-300 text-center mb-3 leading-relaxed">{j.overall_comment}</p>}
+                                        <div className="grid grid-cols-2 gap-3 mt-3">
+                                          {j.user_strengths?.length > 0 && (
+                                            <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/20">
+                                              <div className="text-[10px] font-bold text-blue-400 mb-1.5">💪 강점</div>
+                                              {j.user_strengths.map((s: string, i: number) => <div key={i} className="text-[11px] text-blue-200">• {s}</div>)}
+                                            </div>
+                                          )}
+                                          {j.user_improvements?.length > 0 && (
+                                            <div className="bg-amber-500/10 rounded-lg p-3 border border-amber-500/20">
+                                              <div className="text-[10px] font-bold text-amber-400 mb-1.5">📝 개선점</div>
+                                              {j.user_improvements.map((s: string, i: number) => <div key={i} className="text-[11px] text-amber-200">• {s}</div>)}
+                                            </div>
+                                          )}
+                                        </div>
+                                        {j.mvp_moment && (
+                                          <div className="mt-3 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+                                            <span className="text-[10px] text-yellow-400 font-bold">⭐ MVP 순간</span>
+                                            <p className="text-[11px] text-slate-300 mt-0.5">{j.mvp_moment}</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // Round judgment
+                                return (
+                                  <div key={msg.id} className="px-5 py-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                                      <div className="flex items-center justify-between mb-2.5">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">⚖️ {j.round || ''}라운드 판정</span>
+                                        <span className="text-[12px] font-bold">{winnerEmoji} {winnerText}</span>
+                                      </div>
+                                      <div className="space-y-1.5 mb-3">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] text-blue-500 w-8 shrink-0 font-bold">유저</span>
+                                          <div className="flex-1 bg-slate-200 dark:bg-slate-600 rounded-full h-2.5 overflow-hidden">
+                                            <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{width: `${userPct}%`}} />
+                                          </div>
+                                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 w-12 text-right">{userTotal}/50</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] text-rose-500 w-8 shrink-0 font-bold">AI</span>
+                                          <div className="flex-1 bg-slate-200 dark:bg-slate-600 rounded-full h-2.5 overflow-hidden">
+                                            <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{width: `${aiPct}%`}} />
+                                          </div>
+                                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 w-12 text-right">{aiTotal}/50</span>
+                                        </div>
+                                      </div>
+                                      {j.comment && <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">💬 {j.comment}</p>}
+                                      {j.user_feedback && <p className="text-[10px] text-indigo-600 mt-1.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg px-2.5 py-1.5">📌 {j.user_feedback}</p>}
+                                    </div>
+                                  </div>
+                                );
+                              } catch { return null; }
+                            }
+                            // Round separator
+                            if (msg.expertId === '__round__') {
+                              return (
+                                <div key={msg.id} className="flex justify-center py-2 bg-slate-50/50 dark:bg-slate-800/50">
+                                  <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-400 font-medium">{msg.content}</span>
+                                </div>
+                              );
+                            }
+                            // Summary
+                            if (msg.isSummary) {
+                              const expert = allExperts.find(e => e.id === msg.expertId);
+                              if (!expert) return null;
+                              return <div key={msg.id} className="px-5 py-3"><DiscussionMessageCard message={msg} expert={expert} variant="default" /></div>;
+                            }
+                            // User message — 오른쪽, 파란색
+                            if (msg.expertId === '__user__') {
+                              return (
+                                <div key={msg.id} className="px-5 py-2 flex justify-end animate-in fade-in slide-in-from-right-2 duration-300">
+                                  <div className="max-w-[75%] flex items-start gap-2">
+                                    <div className="bg-blue-500 text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-[13px] leading-relaxed shadow-sm">
+                                      <ReactMarkdownInline content={msg.content} />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            // Skip system
+                            if (msg.expertId === '__summary__' || msg.expertId === '__ppt_download__') return null;
+                            // AI message — 왼쪽, 빨간색
+                            const expert = allExperts.find(e => e.id === msg.expertId);
+                            if (!expert) return null;
+                            return (
+                              <div key={msg.id} className="px-5 py-2 flex justify-start animate-in fade-in slide-in-from-left-2 duration-300">
+                                <div className="max-w-[75%] flex items-start gap-2.5">
+                                  <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0 mt-0.5 ring-2 ring-rose-300 dark:ring-rose-700">
+                                    <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">{expert.nameKo}</span>
+                                    <div className="mt-0.5 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-2xl rounded-tl-sm px-4 py-2.5 text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">
+                                      {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : (msg.isStreaming ? <span className="text-slate-400 animate-pulse">...</span> : '')}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : discussionMode === 'freetalk' && messages.length > 0 ? (
+                /* Freetalk: card-wrapped chat bubbles like simulation */
+                <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[calc(100vh-200px)] flex flex-col">
+                    {/* 헤더 */}
+                    <div className="shrink-0 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-5 py-3 rounded-t-2xl flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[16px]">💬</span>
+                        <span className="text-[14px] font-extrabold text-slate-800 dark:text-slate-200">{currentQuestion || '자유 토론'}</span>
+                        <span className="text-[11px] text-slate-400 font-medium">· 자유 토론</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {activeExperts.map(e => (
+                          <span key={e.id} className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700">
+                            <ExpertAvatar expert={e} size="xs" /> {e.nameKo}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {/* 대화 영역 */}
+                    <div className="flex-1 p-5 space-y-2">
                   {messages.map((msg) => {
                     // Round separator
                     if (msg.expertId === '__round__') {
                       return (
                         <div key={msg.id} className="flex justify-center py-2">
-                          <span className="px-3 py-1 rounded-full bg-slate-100 text-[10px] text-slate-400 font-medium">{msg.content}</span>
+                          <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-400 font-medium">{msg.content}</span>
                         </div>
                       );
                     }
@@ -5650,8 +5898,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     // User message
                     if (msg.expertId === '__user__') {
                       return (
-                        <div key={msg.id} className="flex justify-end">
-                          <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[13px] shadow-sm">
+                        <div key={msg.id} className="flex justify-end mt-4">
+                          <div className="max-w-[70%] bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">
                             <ReactMarkdownInline content={msg.content} />
                           </div>
                         </div>
@@ -5663,24 +5911,24 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     const expert = allExperts.find(e => e.id === msg.expertId);
                     if (!expert) return null;
                     const bubbleColorMap: Record<string, { bg: string; border: string; name: string }> = {
-                      gpt: { bg: 'bg-blue-50', border: 'border-blue-200', name: 'text-blue-600' },
-                      claude: { bg: 'bg-violet-50', border: 'border-violet-200', name: 'text-violet-600' },
-                      gemini: { bg: 'bg-emerald-50', border: 'border-emerald-200', name: 'text-emerald-600' },
-                      perplexity: { bg: 'bg-cyan-50', border: 'border-cyan-200', name: 'text-cyan-600' },
-                      grok: { bg: 'bg-orange-50', border: 'border-orange-200', name: 'text-orange-600' },
-                      deepseek: { bg: 'bg-indigo-50', border: 'border-indigo-200', name: 'text-indigo-600' },
-                      qwen: { bg: 'bg-teal-50', border: 'border-teal-200', name: 'text-teal-600' },
+                      gpt: { bg: 'bg-blue-100/50', border: 'border-blue-200', name: 'text-blue-600' },
+                      claude: { bg: 'bg-violet-100/50', border: 'border-violet-200', name: 'text-violet-600' },
+                      gemini: { bg: 'bg-emerald-100/50', border: 'border-emerald-200', name: 'text-emerald-600' },
+                      perplexity: { bg: 'bg-cyan-100/50', border: 'border-cyan-200', name: 'text-cyan-600' },
+                      grok: { bg: 'bg-orange-100/50', border: 'border-orange-200', name: 'text-orange-600' },
+                      deepseek: { bg: 'bg-indigo-100/50', border: 'border-indigo-200', name: 'text-indigo-600' },
+                      qwen: { bg: 'bg-teal-100/50', border: 'border-teal-200', name: 'text-teal-600' },
                     };
                     // Hash-based color for non-AI-model experts
                     const hashColors = [
-                      { bg: 'bg-rose-50', border: 'border-rose-200', name: 'text-rose-600' },
-                      { bg: 'bg-amber-50', border: 'border-amber-200', name: 'text-amber-600' },
-                      { bg: 'bg-lime-50', border: 'border-lime-200', name: 'text-lime-600' },
-                      { bg: 'bg-sky-50', border: 'border-sky-200', name: 'text-sky-600' },
-                      { bg: 'bg-fuchsia-50', border: 'border-fuchsia-200', name: 'text-fuchsia-600' },
-                      { bg: 'bg-pink-50', border: 'border-pink-200', name: 'text-pink-600' },
-                      { bg: 'bg-emerald-50', border: 'border-emerald-200', name: 'text-emerald-600' },
-                      { bg: 'bg-violet-50', border: 'border-violet-200', name: 'text-violet-600' },
+                      { bg: 'bg-rose-100/50', border: 'border-rose-200', name: 'text-rose-600' },
+                      { bg: 'bg-amber-100/50', border: 'border-amber-200', name: 'text-amber-600' },
+                      { bg: 'bg-lime-100/50', border: 'border-lime-200', name: 'text-lime-600' },
+                      { bg: 'bg-sky-100/50', border: 'border-sky-200', name: 'text-sky-600' },
+                      { bg: 'bg-fuchsia-100/50', border: 'border-fuchsia-200', name: 'text-fuchsia-600' },
+                      { bg: 'bg-pink-100/50', border: 'border-pink-200', name: 'text-pink-600' },
+                      { bg: 'bg-emerald-100/50', border: 'border-emerald-200', name: 'text-emerald-600' },
+                      { bg: 'bg-violet-100/50', border: 'border-violet-200', name: 'text-violet-600' },
                     ];
                     const getBubbleStyle = (id: string) => {
                       if (bubbleColorMap[id]) return bubbleColorMap[id];
@@ -5690,17 +5938,19 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     };
                     const bStyle = getBubbleStyle(expert.id);
                     return (
-                      <div key={msg.id} className="flex items-start gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                      <div key={msg.id} className="flex items-start gap-2.5 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-400 max-w-[80%]">
                         <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
-                        <div className="max-w-[70%]">
-                          <span className={cn('text-[10px] font-semibold', bStyle.name)}>{expert.nameKo}</span>
-                          <div className={cn('mt-0.5 px-3 py-2 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 leading-relaxed', bStyle.bg, bStyle.border)}>
-                            {msg.content || (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
+                        <div className="min-w-0 flex-1">
+                          <span className={cn('text-[11px] font-bold', bStyle.name)}>{expert.nameKo}</span>
+                          <div className={cn('mt-1 px-3.5 py-2.5 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed', bStyle.bg, bStyle.border)}>
+                            {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
                           </div>
                         </div>
                       </div>
                     );
                   })}
+                    </div>
+                  </div>
                 </div>
               ) : activeGame ? null : (
                 /* All other modes: sequential */
@@ -6011,14 +6261,14 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           {!activeGame && (messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
               <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
-                <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px]' : 'max-w-2xl'))}>
+                <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' || discussionMode === 'freetalk' || discussionMode === 'aivsuser' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px]' : 'max-w-2xl'))}>
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
                   <div className="flex items-center gap-3">
                     {activeExpert && (
                       <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
                         <ExpertAvatar expert={activeExpert} size="xs" active />
-                        <span className="text-[11px] font-medium text-slate-500">{activeExpert.nameKo} 응답 중</span>
+                        <span className="text-[11px] font-medium text-slate-500">{(discussionMode === 'stakeholder' && messages.find(m => m.isStreaming && m.simRoleName)?.simRoleName) || activeExpert.nameKo} 응답 중</span>
                         <span className="flex items-center gap-0.5">
                           <span className="typing-dot w-1 h-1 rounded-full bg-primary/50" />
                           <span className="typing-dot w-1 h-1 rounded-full bg-primary/50" />
@@ -6029,9 +6279,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   </div>
                 )}
                 {/* 토론 모드 후속질문 — 전문가 선택 칩 + 토론 분석 버튼 */}
-                {!isDiscussing && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode) && activeExperts.length >= 1 && (
+                {!isDiscussing && messages.length > 0 && ['standard', 'procon', 'brainstorm', 'hearing', 'freetalk'].includes(discussionMode) && activeExperts.length >= 1 && (
                   <div className="flex items-center gap-1.5 flex-wrap px-1">
-                    <span className="text-[10px] text-slate-400">질문할 토론자 선택:</span>
+                    <span className="text-[10px] text-slate-400">질문 대상 선택:</span>
                     {activeExperts.map(e => (
                       <button key={e.id} type="button" onClick={() => setFollowUpTarget(followUpTarget === e.id ? null : e.id)}
                         className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border',
@@ -6164,7 +6414,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             startDiscussion(question);
                           }
                         }}
-                        disabled={((discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'standard' && messages.length === 0 && activeExperts.length < 2)) || (discussionMode === 'aivsuser' && !hasAivsBattleStarted)}
+                        disabled={((discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'standard' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'freetalk' && messages.length === 0 && activeExperts.length < 2)) || (discussionMode === 'aivsuser' && !hasAivsBattleStarted)}
                         isStreaming={isDiscussing}
                         onStop={stopDiscussion}
                         discussionMode={discussionMode}
@@ -6213,7 +6463,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       onSubmit={isDone ? (q: string) => {
                         if (discussionMode === 'multi') {
                           handleFollowUp(q);
-                        } else if (['standard', 'procon', 'brainstorm', 'hearing'].includes(discussionMode)) {
+                        } else if (['standard', 'procon', 'brainstorm', 'hearing', 'freetalk'].includes(discussionMode)) {
                           const target = followUpTarget || activeExperts[0]?.id;
                           if (target) askSingleAI(target, q);
                         } else {
@@ -6228,7 +6478,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           startDiscussion(question);
                         }
                       }}
-                      disabled={((discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'standard' && messages.length === 0 && activeExperts.length < 2)) || (discussionMode === 'aivsuser' && !hasAivsBattleStarted)}
+                      disabled={((discussionMode !== 'stakeholder' && discussionMode !== 'aivsuser' && activeExperts.length < 1) || (discussionMode === 'multi' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'standard' && messages.length === 0 && activeExperts.length < 2) || (discussionMode === 'freetalk' && messages.length === 0 && activeExperts.length < 2)) || (discussionMode === 'aivsuser' && !hasAivsBattleStarted)}
                       isStreaming={isDiscussing}
                       onStop={stopDiscussion}
                       discussionMode={discussionMode}

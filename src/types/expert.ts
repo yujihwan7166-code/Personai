@@ -260,7 +260,7 @@ export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
     hearingFocus: 'overall',
     ideaScoring: false,
     investorSimulation: false,
-    freetalkMessageCount: 40,
+    freetalkMessageCount: 30,
     freetalkTone: 'natural',
     aivsUserOpponentCount: 1,
     aivsUserDifficulty: 'normal',

@@ -62,7 +62,7 @@ interface Props {
 
 function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: DiscussionMode | undefined) {
   if (isFollowUp) {
-    if (discussionMode === 'brainstorm') return '추가 방향이나 아이디어를 적어보세요';
+    if (discussionMode === 'brainstorm') return '아이디어를 더 발전시키거나 추가 질문을 해보세요';
     if (discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'hearing') {
       return '토론자에게 추가 질문을 해보세요';
     }

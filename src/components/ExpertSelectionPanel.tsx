@@ -669,8 +669,8 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
     <div>
       <div className="space-y-3">
         {/* Participants */}
-        <div className="rounded-xl border border-amber-200 overflow-hidden">
-          <div className="px-3.5 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
+        <div className="rounded-xl border border-amber-200 overflow-visible">
+          <div className="px-3.5 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 rounded-t-xl flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💡</span>
               <span className="text-[12px] font-bold text-amber-700">브레인스토밍</span>
@@ -726,6 +726,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                       </button>
                     ) : null;
                   })}
+                  {selectedIds.length < 3 && (
                   <button type="button" onClick={() => setShowBotPicker(true)}
                     className="flex flex-col items-center gap-1">
                     <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:border-amber-400 hover:bg-amber-50 transition-colors">
@@ -733,6 +734,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                     </div>
                     <span className="text-[10px] text-amber-400 font-medium">추가</span>
                   </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -781,7 +783,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           </div>
 
           {/* 설정 — 카드 하단 */}
-          <div className="bg-white border-t border-amber-100">
+          <div className="bg-white border-t border-amber-100 rounded-b-xl">
             <div className="flex items-center gap-3 px-4 py-2 [&>span]:text-[12px] [&>span]:font-semibold [&>span]:text-slate-600 [&>span]:w-16 [&>span]:tracking-tight">
               <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">창의성</span>
               <div className="flex gap-1 flex-1">
@@ -1061,13 +1063,13 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
               <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">최대 대화 수</span>
               <div className="flex gap-1 flex-1">
-                {[{ v: 20, l: '20회' }, { v: 40, l: '40회' }, { v: 60, l: '60회' }].map(opt => (
+                {[{ v: 15, l: '15회' }, { v: 30, l: '30회' }, { v: 45, l: '45회' }].map(opt => (
                   <button
                     key={opt.v}
                     type="button"
                     onClick={() => onDebateSettingsChange?.({ ...ds, freetalkMessageCount: opt.v })}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                      (ds.freetalkMessageCount || 40) === opt.v
+                      (ds.freetalkMessageCount || 30) === opt.v
                         ? 'bg-cyan-100 text-cyan-700 font-semibold'
                         : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                     {opt.l}
@@ -1101,11 +1103,11 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             <div className="hidden items-center gap-3 px-4 py-2 [&>span]:text-[12px] [&>span]:font-semibold [&>span]:text-slate-600 [&>span]:w-16 [&>span]:tracking-tight">
               <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">분량</span>
               <div className="flex gap-1 flex-1">
-                {[{v: 15, l: '짧게'}, {v: 25, l: '보통'}, {v: 40, l: '길게'}].map(opt => (
+                {[{v: 15, l: '짧게'}, {v: 30, l: '보통'}, {v: 45, l: '길게'}].map(opt => (
                   <button key={opt.v}
                     onClick={() => onDebateSettingsChange?.({...ds, freetalkMessageCount: opt.v})}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                      (ds.freetalkMessageCount || 25) === opt.v
+                      (ds.freetalkMessageCount || 30) === opt.v
                         ? 'bg-cyan-100 text-cyan-700 font-semibold'
                         : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                     {opt.l}
@@ -1396,7 +1398,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
       {/* Unified grid */}
       <div className="grid grid-cols-3 gap-2">
         {(() => {
-          const priorityOrder = ['investment', 'interview', 'b2b_sales', 'crisis', 'product', 'content_pitch', 'collab', 'complaint', 'policy', 'strategy', 'internal', 'admission'];
+          const priorityOrder = ['admission', 'investment', 'interview', 'b2b_sales', 'crisis', 'product', 'content_pitch', 'collab', 'complaint', 'policy', 'strategy', 'internal'];
           return [...SIMULATION_SCENARIOS].sort((a, b) => priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id));
         })().map((scenario, i) => (
           <button key={scenario.id}
@@ -1405,9 +1407,6 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
             className="relative text-left rounded-2xl bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-400">
 
             <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${scenario.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-            <span className={cn('absolute top-3 right-3 text-[9px] font-medium px-2 py-0.5 rounded-md',
-              scenario.simType === 'roleplay' ? 'bg-slate-100 text-slate-500' : 'bg-slate-100 text-slate-500'
-            )}>{scenario.simType === 'roleplay' ? '시뮬레이션' : '전문가 상담'}</span>
 
             <div className="px-4 pt-3 pb-2.5">
               {/* Badges */}
@@ -3106,7 +3105,10 @@ export function ExpertSelectionPanel({
     : mainMode === 'multi'
       ? '여러 챗봇을 선택하면 각자 답변한 뒤 하나의 종합 결론으로 정리해드립니다'
       : mainMode === 'debate'
-        ? '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다'
+        ? (discussionMode === 'brainstorm' ? '사고 프레임워크를 선택하면 AI들이 다양한 아이디어를 발산합니다'
+          : discussionMode === 'freetalk' ? '2명 이상 선택 후 주제를 던지면 AI들이 자유롭게 토론합니다'
+          : discussionMode === 'aivsuser' ? 'AI 상대를 선택하고 주제를 정해 실전 토론에 도전하세요'
+          : '2명 이상 선택 후 질문하면 토론을 거쳐 최종 결론을 도출합니다')
         : mainMode === 'stakeholder_main'
           ? '이해관계자 역할을 배정하고 시나리오를 시뮬레이션합니다'
           : mainMode === 'brainstorm_main'
@@ -3247,7 +3249,12 @@ export function ExpertSelectionPanel({
         <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
-              : mainMode === 'debate' ? 'AI들이 다각도로 토론하고 결론을 냅니다'
+              : mainMode === 'debate' ? (
+                  discussionMode === 'brainstorm' ? 'AI들이 협업해 아이디어를 쏟아냅니다'
+                  : discussionMode === 'freetalk' ? 'AI들이 자유롭게 대화하며 의견을 나눕니다'
+                  : discussionMode === 'aivsuser' ? 'AI와 1:1로 토론 배틀을 벌여보세요'
+                  : 'AI들이 다각도로 토론하고 결론을 냅니다'
+                )
                 : mainMode === 'stakeholder_main' ? '이해관계자 역할극으로 아이디어를 검증하세요'
                   : mainMode === 'brainstorm_main' ? 'AI들이 협업해 아이디어를 정리해드립니다'
                     : mainMode === 'premium_main' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
@@ -3664,7 +3671,7 @@ export function ExpertSelectionPanel({
       {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && discussionMode !== 'aivsuser' && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
-          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2) || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 1)}
+          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2) || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2)}
           discussionMode={discussionMode}
           selectedExperts={
             (isProcon || discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')

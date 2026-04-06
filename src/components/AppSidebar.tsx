@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Expert, DiscussionMode } from '@/types/expert';
 import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { cn } from '@/lib/utils';
