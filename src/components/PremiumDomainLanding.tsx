@@ -1,35 +1,38 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { PREMIUM_DOMAIN_TEMPLATES, type PremiumDomainId, type PremiumDomainTemplate } from '@/types/expert';
-import { ChevronRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface Props {
   onSelectDomain: (domainId: PremiumDomainId) => void;
-  onSelectWithQuestion?: (domainId: PremiumDomainId, question: string) => void;
 }
 
-const ACCENT: Record<string, {
-  line: string; cta: string; ctaHover: string;
-  badgeBg: string; badgeBorder: string;
+/* ── Per-domain accent tokens ── */
+const THEME: Record<string, {
+  accent: string; accentMuted: string; accentBorder: string;
+  cta: string; ctaHover: string;
+  featureIcon: string;
+  strengthLabel: string;
 }> = {
-  law:        { line: 'bg-amber-400', cta: 'bg-amber-500', ctaHover: 'hover:bg-amber-600', badgeBg: 'bg-amber-50', badgeBorder: 'border-amber-200' },
-  drug:       { line: 'bg-emerald-400', cta: 'bg-emerald-500', ctaHover: 'hover:bg-emerald-600', badgeBg: 'bg-emerald-50', badgeBorder: 'border-emerald-200' },
-  finance:    { line: 'bg-blue-400', cta: 'bg-blue-500', ctaHover: 'hover:bg-blue-600', badgeBg: 'bg-blue-50', badgeBorder: 'border-blue-200' },
-  realestate: { line: 'bg-violet-400', cta: 'bg-violet-500', ctaHover: 'hover:bg-violet-600', badgeBg: 'bg-violet-50', badgeBorder: 'border-violet-200' },
-  tax:        { line: 'bg-cyan-400', cta: 'bg-cyan-500', ctaHover: 'hover:bg-cyan-600', badgeBg: 'bg-cyan-50', badgeBorder: 'border-cyan-200' },
-  labor:      { line: 'bg-orange-400', cta: 'bg-orange-500', ctaHover: 'hover:bg-orange-600', badgeBg: 'bg-orange-50', badgeBorder: 'border-orange-200' },
+  law:        { accent: 'text-amber-600', accentMuted: 'text-amber-700/50', accentBorder: 'border-amber-300/60', cta: 'bg-amber-600', ctaHover: 'hover:bg-amber-700', featureIcon: 'text-amber-500', strengthLabel: 'text-amber-400' },
+  drug:       { accent: 'text-emerald-600', accentMuted: 'text-emerald-700/50', accentBorder: 'border-emerald-300/60', cta: 'bg-emerald-600', ctaHover: 'hover:bg-emerald-700', featureIcon: 'text-emerald-500', strengthLabel: 'text-emerald-400' },
+  finance:    { accent: 'text-blue-600', accentMuted: 'text-blue-700/50', accentBorder: 'border-blue-300/60', cta: 'bg-blue-600', ctaHover: 'hover:bg-blue-700', featureIcon: 'text-blue-500', strengthLabel: 'text-blue-400' },
+  realestate: { accent: 'text-violet-600', accentMuted: 'text-violet-700/50', accentBorder: 'border-violet-300/60', cta: 'bg-violet-600', ctaHover: 'hover:bg-violet-700', featureIcon: 'text-violet-500', strengthLabel: 'text-violet-400' },
+  tax:        { accent: 'text-cyan-600', accentMuted: 'text-cyan-700/50', accentBorder: 'border-cyan-300/60', cta: 'bg-cyan-600', ctaHover: 'hover:bg-cyan-700', featureIcon: 'text-cyan-500', strengthLabel: 'text-cyan-400' },
+  labor:      { accent: 'text-orange-600', accentMuted: 'text-orange-700/50', accentBorder: 'border-orange-300/60', cta: 'bg-orange-600', ctaHover: 'hover:bg-orange-700', featureIcon: 'text-orange-500', strengthLabel: 'text-orange-400' },
 };
 
-export function PremiumDomainLanding({ onSelectDomain, onSelectWithQuestion }: Props) {
+export function PremiumDomainLanding({ onSelectDomain }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {PREMIUM_DOMAIN_TEMPLATES.map((domain) => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {PREMIUM_DOMAIN_TEMPLATES.map((domain, idx) => (
           <DomainCard
             key={domain.id}
             domain={domain}
+            index={idx}
             isHovered={hoveredId === domain.id}
             onHover={() => setHoveredId(domain.id)}
             onLeave={() => setHoveredId(null)}
@@ -38,85 +41,117 @@ export function PremiumDomainLanding({ onSelectDomain, onSelectWithQuestion }: P
         ))}
       </div>
 
-      <p className="text-center text-[9px] text-slate-400 leading-relaxed px-4">
+      <p className="text-center text-[10px] text-slate-400 leading-relaxed tracking-wide">
         AI 기반 참고 자문이며 전문가 상담을 대체하지 않습니다 · 법률·의료·투자 결정은 반드시 전문가와 상의하세요
       </p>
     </div>
   );
 }
 
-function DomainCard({ domain, isHovered, onHover, onLeave, onSelect }: {
+function DomainCard({ domain, index, isHovered, onHover, onLeave, onSelect }: {
   domain: PremiumDomainTemplate;
+  index: number;
   isHovered: boolean;
   onHover: () => void;
   onLeave: () => void;
   onSelect: () => void;
 }) {
-  const c = ACCENT[domain.id] || ACCENT.law;
+  const t = THEME[domain.id] || THEME.law;
 
   return (
     <div
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
+      onClick={onSelect}
       className={cn(
-        'group relative text-left rounded-2xl border bg-white overflow-hidden transition-all duration-200',
-        isHovered ? 'shadow-xl border-slate-300 -translate-y-0.5' : 'shadow-sm border-slate-200',
+        'group relative cursor-pointer rounded-2xl border bg-white transition-all duration-300 ease-out',
+        isHovered
+          ? 'shadow-[0_8px_30px_rgba(0,0,0,0.08)] border-slate-300 -translate-y-1'
+          : 'shadow-[0_1px_3px_rgba(0,0,0,0.04)] border-slate-200/80',
       )}
+      style={{ animationDelay: `${index * 60}ms` }}
     >
-      {/* Accent line */}
-      <div className={cn('h-1 w-full', c.line)} />
+      {/* Top accent — confident line */}
+      <div className={cn('h-[3px] w-full', t.cta)} />
 
-      <div className="px-6 pt-6 pb-5">
-        {/* Header — centered */}
-        <div className="text-center mb-6">
-          <h3 className="text-[20px] font-semibold text-slate-800 tracking-tight">{domain.name}</h3>
-          <p className="text-[11px] text-slate-500 mt-1.5">{domain.tagline}</p>
+      <div className="px-7 pt-7 pb-6">
+
+        {/* ── Header ── */}
+        <div className="text-center mb-7">
+          <h3 className="text-[19px] font-medium text-slate-900 tracking-[-0.01em] leading-tight">
+            {domain.name}
+          </h3>
+          <p className={cn('text-[11px] mt-2 tracking-wide', t.accentMuted)}>
+            {domain.tagline}
+          </p>
+          {/* Decorative divider */}
+          <div className="flex items-center justify-center gap-2.5 mt-4">
+            <div className="h-px w-10 bg-slate-200/80" />
+            <div className="w-1 h-1 rounded-full bg-slate-300" />
+            <div className="h-px w-10 bg-slate-200/80" />
+          </div>
         </div>
 
-        {/* Features — centered descriptions */}
+        {/* ── Features — centered description blocks ── */}
         {domain.features && domain.features.length > 0 && (
-          <div className="space-y-4 mb-6">
+          <div className="space-y-5 mb-7">
             {domain.features.map((f, i) => (
               <div key={i} className="text-center">
-                <p className="text-[12px] font-bold text-slate-700 flex items-center justify-center gap-1.5">
-                  <span className="text-[14px]">{f.icon}</span>
+                <p className="text-[11.5px] font-semibold text-slate-800 leading-snug">
+                  <span className={cn('text-[13px] mr-1.5', t.featureIcon)}>{f.icon}</span>
                   {f.title}
                 </p>
-                <p className="text-[10px] text-slate-500 leading-relaxed mt-1 max-w-[90%] mx-auto">{f.desc}</p>
+                <p className="text-[10px] text-slate-600/80 leading-[1.8] mt-1.5 max-w-[88%] mx-auto">
+                  {f.desc}
+                </p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Strengths — 2x2 grid, centered */}
+        {/* ── Strengths — 2×2 typographic grid ── */}
         {domain.strengths && domain.strengths.length > 0 && (
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="absolute left-1/2 top-3 bottom-3 w-px bg-slate-100" />
-              <div className="absolute top-1/2 left-6 right-6 h-px bg-slate-100" />
-            </div>
-            <div className="grid grid-cols-2 gap-y-5 gap-x-4 py-2">
+          <div className="mb-7">
+            <div className="grid grid-cols-2 border border-slate-100/80 rounded-xl overflow-hidden bg-slate-50/30">
               {domain.strengths.map((s, i) => (
-                <div key={i} className="text-center relative z-10">
-                  <p className="text-[8px] font-bold text-slate-400 tracking-[0.15em] uppercase leading-none">{s.titleEn}</p>
-                  <p className="text-[12px] font-semibold text-slate-700 mt-1.5">{s.title}</p>
+                <div
+                  key={i}
+                  className={cn(
+                    'py-4 px-3 text-center',
+                    i < 2 && 'border-b border-slate-100/80',
+                    i % 2 === 0 && 'border-r border-slate-100/80',
+                  )}
+                >
+                  <p className={cn(
+                    'text-[7.5px] font-semibold tracking-[0.18em] uppercase leading-none',
+                    t.strengthLabel,
+                  )}>
+                    {s.titleEn}
+                  </p>
+                  <p className="text-[11.5px] font-medium text-slate-700 mt-2 leading-tight">
+                    {s.title}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* CTA */}
+        {/* ── CTA ── */}
         <button
           type="button"
-          onClick={onSelect}
+          onClick={(e) => { e.stopPropagation(); onSelect(); }}
           className={cn(
-            'w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-[13px] font-bold text-white transition-all shadow-sm',
-            c.cta, c.ctaHover,
+            'w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-[12px] font-medium text-white tracking-wider transition-all duration-300',
+            t.cta, t.ctaHover,
+            isHovered && 'shadow-lg',
           )}
         >
-          상담 시작
-          <ChevronRight className={cn('w-4 h-4 transition-transform', isHovered && 'translate-x-0.5')} />
+          <span>상담 시작</span>
+          <ArrowRight className={cn(
+            'w-3.5 h-3.5 transition-all duration-300',
+            isHovered ? 'translate-x-1.5 opacity-100' : 'opacity-70',
+          )} />
         </button>
       </div>
     </div>
