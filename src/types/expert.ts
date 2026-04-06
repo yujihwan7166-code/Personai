@@ -464,7 +464,9 @@ export interface PremiumDomainTemplate {
     outputFormat: string;
     sampleQuestions: string[];
     phases: { id: string; role: string; icon: string; description: string }[];
-    strengths?: { icon: string; title: string; desc: string }[];
+    strengths?: { icon: string; title: string; titleEn: string; desc: string }[];
+    features?: { icon: string; title: string; desc: string }[];
+    useCases?: { icon: string; title: string; desc: string }[];
 }
 
 export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
@@ -475,11 +477,20 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: '국가법령정보센터', url: 'https://law.go.kr', icon: '🏛️' },
         trustBadge: '실시간 법령 데이터 기반', outputFormat: '법률의견서 (Legal Memorandum)',
         sampleQuestions: ['전세 사기 당했을 때 대처법은?', '중고거래 환불 의무가 있나요?', '초상권 침해 기준이 뭔가요?'],
+        useCases: [
+            { icon: '🔍', title: '판례 기반 법률 리서치', desc: '유사 판례를 검색하고 쟁점별 비교 분석' },
+            { icon: '📄', title: '법령 조문 해석', desc: '관련 법령의 적용 범위와 요건을 상세 분석' },
+            { icon: '⚖️', title: '소송 전략 수립', desc: '승소 가능성과 리스크를 사전 평가' },
+        ],
+        features: [
+            { icon: '⚖️', title: '실시간 법령 및 판례 기반 자문', desc: '최신 개정 법령과 대법원 판례를 실시간으로 분석하여 현재 상황에 가장 적합한 법적 근거를 제시합니다.' },
+            { icon: '🏛️', title: '국가법령정보센터 연동 지원', desc: '법제처 데이터베이스와의 직접 연동을 통해 공신력 있는 법률 정보와 절차적 가이드를 제공받을 수 있습니다.' },
+        ],
         strengths: [
-            { icon: '📋', title: '실제 법 조문 인용', desc: '법령 원문을 근거로 제시' },
-            { icon: '🔍', title: '유사 판례 분석', desc: '관련 판례를 찾아 비교' },
-            { icon: '💬', title: '쉬운 법률 해석', desc: '법률 용어를 쉽게 풀이' },
-            { icon: '🎯', title: '맞춤 대응 전략', desc: '상황별 구체적 액션플랜' },
+            { icon: '📋', title: '실제 법조문 인용', titleEn: 'PROVISION CITATION', desc: '법령 원문을 근거로 제시' },
+            { icon: '🔍', title: '유사 판례 정밀 분석', titleEn: 'PRECEDENT ANALYSIS', desc: '관련 판례를 찾아 비교' },
+            { icon: '💬', title: '쉬운 법률 해석 제공', titleEn: 'INTERPRETATION', desc: '법률 용어를 쉽게 풀이' },
+            { icon: '🎯', title: '맞춤형 대응 전략 수립', titleEn: 'CUSTOM STRATEGY', desc: '상황별 구체적 액션플랜' },
         ],
         phases: [
             { id: 'intake', role: '사건 접수', icon: '📋', description: '사건 유형·당사자·시효 파악' },
@@ -495,11 +506,20 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: '식약처 의약품안전나라', url: 'https://nedrug.mfds.go.kr', icon: '🏥' },
         trustBadge: '식약처 의약품 데이터 기반', outputFormat: 'SOAP Note + 약품 분석',
         sampleQuestions: ['타이레놀과 이부프로펜 같이 먹어도 되나요?', '이 약의 부작용이 궁금해요', '감기약 먹고 술 마셔도 되나요?'],
+        useCases: [
+            { icon: '💊', title: '복수 약물 병용 검토', desc: '약물 간 상호작용과 병용 금기를 확인' },
+            { icon: '📋', title: '의약품 성분 분석', desc: '성분·효능·용법·용량을 상세 조회' },
+            { icon: '🩺', title: '증상별 대응 가이드', desc: '증상에 맞는 약품과 주의사항 안내' },
+        ],
+        features: [
+            { icon: '💊', title: '식약처 공인 의약품 데이터 기반', desc: '식약처 의약품안전나라 데이터베이스를 기반으로 약품 성분·효능·부작용 정보를 정확하게 제공합니다.' },
+            { icon: '🔬', title: '약물 상호작용 정밀 분석', desc: '복수의 약물 병용 시 발생할 수 있는 위험성과 주의사항을 과학적 근거로 분석합니다.' },
+        ],
         strengths: [
-            { icon: '💊', title: '약물 상호작용 확인', desc: '병용 투여 위험 사전 분석' },
-            { icon: '📋', title: '성분별 효능 분석', desc: '약품 성분과 효과 상세 설명' },
-            { icon: '⚠️', title: '부작용 사전 확인', desc: '복용 전 위험 요소 파악' },
-            { icon: '🩺', title: '맞춤 복용 가이드', desc: '올바른 복용법·주의사항 안내' },
+            { icon: '💊', title: '약물 상호작용 확인', titleEn: 'DRUG INTERACTION', desc: '병용 투여 위험 사전 분석' },
+            { icon: '📋', title: '성분별 효능 분석', titleEn: 'COMPONENT ANALYSIS', desc: '약품 성분과 효과 상세 설명' },
+            { icon: '⚠️', title: '부작용 사전 확인', titleEn: 'SIDE EFFECT CHECK', desc: '복용 전 위험 요소 파악' },
+            { icon: '🩺', title: '맞춤 복용 가이드', titleEn: 'DOSAGE GUIDE', desc: '올바른 복용법·주의사항 안내' },
         ],
         phases: [
             { id: 'symptom', role: '증상 파악', icon: '🩺', description: '증상·복용 약물 확인' },
@@ -515,11 +535,20 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: '한국은행 ECOS · 금감원', url: 'https://ecos.bok.or.kr', icon: '📊' },
         trustBadge: '실시간 금리·경제지표 기반', outputFormat: '재무분석보고서',
         sampleQuestions: ['지금 예금 금리 가장 높은 곳은?', '기준금리 변동이 내 대출에 미치는 영향은?', '월 200만원으로 투자 포트폴리오 짜줘'],
+        useCases: [
+            { icon: '📊', title: '금융상품 비교 분석', desc: '예적금·펀드·ETF 수익률을 실시간 비교' },
+            { icon: '💼', title: '재무 포트폴리오 설계', desc: '자산 배분과 투자 전략을 맞춤 설계' },
+            { icon: '📈', title: '경제지표 해석', desc: '금리·환율·물가 변동의 영향을 분석' },
+        ],
+        features: [
+            { icon: '📊', title: '한국은행·금감원 실시간 데이터 연동', desc: '한국은행 ECOS와 금감원 금융상품비교 API를 통해 최신 금리·경제지표를 실시간으로 반영합니다.' },
+            { icon: '💰', title: '개인 맞춤형 재무 전략 설계', desc: '소득·지출·자산 현황을 분석하여 목표에 최적화된 투자 포트폴리오와 절세 방안을 제시합니다.' },
+        ],
         strengths: [
-            { icon: '📊', title: '실시간 금리 비교', desc: '최신 금리·경제지표 반영' },
-            { icon: '💰', title: '맞춤 포트폴리오', desc: '상황에 맞는 투자 전략 설계' },
-            { icon: '📈', title: '리스크 사전 진단', desc: '투자 위험 요소 분석' },
-            { icon: '🎯', title: '절세 전략 제시', desc: '세금 최적화 방안 안내' },
+            { icon: '📊', title: '실시간 금리 비교', titleEn: 'RATE COMPARISON', desc: '최신 금리·경제지표 반영' },
+            { icon: '💰', title: '맞춤 포트폴리오', titleEn: 'PORTFOLIO DESIGN', desc: '상황에 맞는 투자 전략 설계' },
+            { icon: '📈', title: '리스크 사전 진단', titleEn: 'RISK ANALYSIS', desc: '투자 위험 요소 분석' },
+            { icon: '🎯', title: '절세 전략 제시', titleEn: 'TAX OPTIMIZATION', desc: '세금 최적화 방안 안내' },
         ],
         phases: [
             { id: 'assess', role: '재무 진단', icon: '💼', description: '소득·지출·자산·부채 파악' },
@@ -535,11 +564,20 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '부동산 분석 리포트',
         sampleQuestions: ['전세 계약 시 확인해야 할 등기부등본 사항은?', '갭투자 리스크를 분석해주세요', '신혼부부 특별공급 조건이 궁금해요'],
+        useCases: [
+            { icon: '🏠', title: '매물 적정가 분석', desc: '실거래가 기반 매매·전세 시세를 판단' },
+            { icon: '📋', title: '등기부등본 권리 해석', desc: '근저당·가압류 등 권리관계를 분석' },
+            { icon: '💰', title: '투자 수익률 시뮬레이션', desc: '보유세·양도세 포함 실수익률 산출' },
+        ],
+        features: [
+            { icon: '🏠', title: '실거래가 및 시세 기반 분석', desc: '지역별 실거래 데이터와 시세 흐름을 분석하여 적정 매매·전세 가격 판단을 지원합니다.' },
+            { icon: '📋', title: '등기부등본 권리 분석 지원', desc: '등기부등본과 건축물대장을 해석하여 권리관계 리스크를 사전에 파악할 수 있습니다.' },
+        ],
         strengths: [
-            { icon: '🏠', title: '시세·실거래가 분석', desc: '지역별 시세 흐름 파악' },
-            { icon: '📋', title: '권리 분석', desc: '등기부등본·건축물대장 해석' },
-            { icon: '⚠️', title: '리스크 사전 진단', desc: '전세 사기·깡통전세 위험 확인' },
-            { icon: '💰', title: '수익률 계산', desc: '투자 대비 기대 수익 분석' },
+            { icon: '🏠', title: '시세·실거래가 분석', titleEn: 'MARKET ANALYSIS', desc: '지역별 시세 흐름 파악' },
+            { icon: '📋', title: '권리 분석', titleEn: 'TITLE REVIEW', desc: '등기부등본·건축물대장 해석' },
+            { icon: '⚠️', title: '리스크 사전 진단', titleEn: 'RISK ASSESSMENT', desc: '전세 사기·깡통전세 위험 확인' },
+            { icon: '💰', title: '수익률 계산', titleEn: 'ROI CALCULATION', desc: '투자 대비 기대 수익 분석' },
         ],
         phases: [
             { id: 'assess', role: '매물 분석', icon: '🏠', description: '매매/전세/월세, 지역, 예산 파악' },
@@ -555,11 +593,20 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '세무 분석 리포트',
         sampleQuestions: ['프리랜서 종합소득세 절세 방법은?', '양도소득세 비과세 요건이 뭔가요?', '1인 법인 설립 시 세금 혜택은?'],
+        useCases: [
+            { icon: '🧾', title: '세액 산출 및 신고 안내', desc: '소득 유형별 예상 세액과 신고 절차 안내' },
+            { icon: '💡', title: '공제·감면 항목 분석', desc: '놓치기 쉬운 세액 공제 항목을 점검' },
+            { icon: '📊', title: '사업자 vs 개인 비교', desc: '법인 전환·사업자 등록의 세무적 유불리 분석' },
+        ],
+        features: [
+            { icon: '🧾', title: '세법 기반 정밀 세액 분석', desc: '소득세·부가세·법인세 등 세목별 과세표준과 세율을 분석하여 정확한 예상 세액을 산출합니다.' },
+            { icon: '💡', title: '합법적 절세 전략 설계', desc: '현행 세법의 공제·감면 항목을 최대한 활용하여 합법적 범위 내 최적의 절세 방안을 안내합니다.' },
+        ],
         strengths: [
-            { icon: '🧾', title: '세금 자동 계산', desc: '과세표준·세율·공제 즉시 산출' },
-            { icon: '💡', title: '합법적 절세 방안', desc: '상황별 최적 절세 전략' },
-            { icon: '📅', title: '신고 기한 안내', desc: '놓치기 쉬운 신고 일정 관리' },
-            { icon: '📊', title: '세법 변경 반영', desc: '최신 세법 개정 내용 적용' },
+            { icon: '🧾', title: '세금 자동 계산', titleEn: 'TAX CALCULATION', desc: '과세표준·세율·공제 즉시 산출' },
+            { icon: '💡', title: '합법적 절세 방안', titleEn: 'TAX SAVING', desc: '상황별 최적 절세 전략' },
+            { icon: '📅', title: '신고 기한 안내', titleEn: 'DEADLINE ALERT', desc: '놓치기 쉬운 신고 일정 관리' },
+            { icon: '📊', title: '세법 변경 반영', titleEn: 'LAW UPDATE', desc: '최신 세법 개정 내용 적용' },
         ],
         phases: [
             { id: 'assess', role: '세무 진단', icon: '🧾', description: '소득 유형, 사업 형태 파악' },
@@ -575,11 +622,20 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '노무 상담 리포트',
         sampleQuestions: ['퇴직금 계산 방법이 궁금해요', '부당해고를 당했는데 어떻게 하나요?', '연차 미사용 수당은 어떻게 받나요?'],
+        useCases: [
+            { icon: '💰', title: '임금·퇴직금 정밀 산출', desc: '근무 조건별 정확한 금액 계산과 검증' },
+            { icon: '⚖️', title: '부당해고 구제 절차 안내', desc: '노동위원회 진정·소송 절차를 단계별 안내' },
+            { icon: '📋', title: '근로계약 검토', desc: '계약서의 위법 조항과 불리한 조건을 분석' },
+        ],
+        features: [
+            { icon: '⚖️', title: '근로기준법 기반 권리 분석', desc: '근로계약·해고·임금 문제에 대해 근로기준법과 노동관계법을 근거로 근로자의 권리를 분석합니다.' },
+            { icon: '💰', title: '임금·퇴직금 정밀 계산 지원', desc: '근무 기간·급여 체계를 분석하여 퇴직금·연차수당·미지급 임금 등을 정확하게 산출합니다.' },
+        ],
         strengths: [
-            { icon: '⚖️', title: '근로자 권리 분석', desc: '근로기준법 기반 권리 확인' },
-            { icon: '💰', title: '임금·퇴직금 계산', desc: '정확한 금액 산출·검증' },
-            { icon: '📋', title: '부당해고 대응', desc: '구제 절차·진정 방법 안내' },
-            { icon: '🛡️', title: '4대보험 상담', desc: '가입·탈퇴·혜택 안내' },
+            { icon: '⚖️', title: '근로자 권리 분석', titleEn: 'LABOR RIGHTS', desc: '근로기준법 기반 권리 확인' },
+            { icon: '💰', title: '임금·퇴직금 계산', titleEn: 'WAGE CALCULATION', desc: '정확한 금액 산출·검증' },
+            { icon: '📋', title: '부당해고 대응', titleEn: 'DISMISSAL DEFENSE', desc: '구제 절차·진정 방법 안내' },
+            { icon: '🛡️', title: '4대보험 상담', titleEn: 'INSURANCE GUIDE', desc: '가입·탈퇴·혜택 안내' },
         ],
         phases: [
             { id: 'assess', role: '사건 파악', icon: '👷', description: '근로자/사용자 구분, 사안 유형' },
