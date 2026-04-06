@@ -7,7 +7,9 @@
       "Edit(*)",
       "Glob(*)",
       "Grep(*)",
-      "Agent(*)"
+      "Agent(*)",
+      "WebFetch(domain:lawconnect.com)",
+      "WebFetch(domain:superlawyer.co.kr)"
     ]
   }
 }

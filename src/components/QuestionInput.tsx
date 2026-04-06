@@ -303,7 +303,7 @@ export function QuestionInput({
                       key={expert.id}
                       type="button"
                       onClick={() => onRemoveExpert(expert.id)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-indigo-600 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-400"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-slate-600 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-400"
                     >
                       <span className="pointer-events-none">
                         <ExpertAvatar expert={expert} size="xxs" />
@@ -314,7 +314,7 @@ export function QuestionInput({
                   ) : (
                     <span
                       key={expert.id}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-indigo-600"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-slate-600"
                     >
                       <ExpertAvatar expert={expert} size="xxs" />
                       {expert.nameKo}
@@ -463,7 +463,7 @@ export function QuestionInput({
                   type="button"
                   onClick={onSummarize}
                   disabled={isSummarizing}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all border bg-white text-slate-500 border-slate-200 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 disabled:opacity-50"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all border bg-white text-slate-500 border-slate-200 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
                 >
                   {isSummarizing ? '요약 중...' : '📝 요약하기'}
                 </button>
@@ -483,7 +483,7 @@ export function QuestionInput({
                   onClick={onStop}
                   aria-label="중지"
                   title="중지"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-md transition-all duration-150 hover:bg-indigo-600"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-md transition-all duration-150 hover:bg-slate-800"
                 >
                   <Square className="h-3.5 w-3.5" strokeWidth={2.5} />
                 </button>
@@ -494,7 +494,7 @@ export function QuestionInput({
                   className={cn(
                     'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-150',
                     canSubmit
-                      ? 'bg-indigo-500 text-white shadow-md hover:bg-indigo-600'
+                      ? 'bg-slate-900 text-white shadow-md hover:bg-slate-800'
                       : 'bg-slate-100 text-slate-300'
                   )}
                   aria-label="전송"

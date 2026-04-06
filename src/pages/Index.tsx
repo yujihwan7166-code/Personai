@@ -4230,7 +4230,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 getMainMode(discussionMode) === 'general' ? (
                   /* 단일 AI — 오른쪽 말풍선 */
                   <div className="flex justify-end">
-                    <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                    <div className="max-w-[75%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
                       <p className="text-[13px] leading-relaxed">{currentQuestion}</p>
                     </div>
                   </div>
@@ -4363,7 +4363,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         <div className="space-y-3">
                           {currentQuestion && (
                             <div className="flex justify-end">
-                              <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+                              <div className="max-w-[75%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
                                 <p className="text-[13px] leading-relaxed line-clamp-3">{currentQuestion}</p>
                               </div>
                             </div>
@@ -4565,7 +4565,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                       const text = q.content.replace(/^💬\s*[^:]+:\s*/, '');
                                     return (
                                       <div className="flex justify-end mb-2">
-                                        <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[12px]">
+                                        <div className="max-w-[70%] bg-slate-800 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[12px]">
                                           {text}
                                         </div>
                                       </div>
@@ -4800,7 +4800,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               if (msg.expertId === '__user__') {
                                 return (
                                   <div key={msg.id} className="flex justify-end">
-                                    <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                                    <div className="max-w-[70%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
                                       <ReactMarkdownInline content={msg.content} />
                                     </div>
                                   </div>
@@ -5566,7 +5566,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               if (msg.expertId === '__user__') {
                                 return (
                                   <div key={msg.id} className="flex justify-end">
-                                    <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                                    <div className="max-w-[70%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
                                       <ReactMarkdownInline content={msg.content} />
                                     </div>
                                   </div>
@@ -6109,7 +6109,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       <div key={msg.id} className={cn(isMessenger ? 'flex justify-end' : '')}>
                         <div className={cn(
                           isMessenger
-                            ? 'max-w-[60%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
+                            ? 'max-w-[60%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
                             : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
                         )}>
                           <ReactMarkdownInline content={msg.content} />
@@ -6216,7 +6216,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     {activeExperts.map(e => (
                       <button key={e.id} type="button" onClick={() => setFollowUpTarget(followUpTarget === e.id ? null : e.id)}
                         className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border',
-                          followUpTarget === e.id ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50')}>
+                          followUpTarget === e.id ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50')}>
                         <ExpertAvatar expert={e} size="xs" />
                         {e.nameKo}
                       </button>
@@ -6310,8 +6310,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                   className={cn(
                                       'h-[28px] inline-flex items-center gap-1.5 px-3 rounded-full text-[11px] font-semibold transition-all border shrink-0',
                                       isSelected
-                                        ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
+                                        ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50'
                                     )}
                                   >
                                     <ExpertAvatar expert={expert} size="xs" />
@@ -6441,7 +6441,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 }
                               }}
                               className={cn('px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all border',
-                                showDebateAnalysis && debateAnalysisTab === t.id ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' : 'text-slate-500 border-slate-200 bg-white hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50')}
+                                showDebateAnalysis && debateAnalysisTab === t.id ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'text-slate-500 border-slate-200 bg-white hover:text-indigo-600 hover:border-slate-400 hover:bg-slate-50')}
                             >
                               {t.icon} {t.label}
                             </button>

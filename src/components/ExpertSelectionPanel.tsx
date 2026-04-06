@@ -1574,7 +1574,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                   setStep2CustomMode({});
                   setSelectedScenario(null);
                 }}
-                className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-1.5"
               >
                 다음 <ArrowRight className="w-4 h-4" />
               </button>
@@ -1611,7 +1611,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                   {step2Scenario.prepQuestions.map((q, qi) => (
                     <div key={q.id}>
                       <p className="text-[12px] font-bold text-slate-700 mb-2 flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 text-[10px] font-black flex items-center justify-center shrink-0">{qi + 1}</span>
+                        <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-black flex items-center justify-center shrink-0">{qi + 1}</span>
                         {q.question}
                       </p>
                       {q.options.length === 0 ? (
@@ -1629,7 +1629,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                             value={step2Answers[q.id] || ''}
                             onChange={e => setStep2Answers(prev => ({ ...prev, [q.id]: e.target.value }))}
                             placeholder="직접 입력..."
-                            className="flex-1 rounded-lg border border-indigo-300 px-3 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-indigo-200"
+                            className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-slate-300"
                           />
                           <button onClick={() => { setStep2CustomMode(prev => ({ ...prev, [q.id]: false })); setStep2Answers(prev => { const n = { ...prev }; delete n[q.id]; return n; }); }}
                             className="text-[10px] text-slate-400 hover:text-slate-600 shrink-0">취소</button>
@@ -1641,8 +1641,8 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                             onClick={() => setStep2Answers(prev => ({ ...prev, [q.id]: opt.value }))}
                             className={cn('px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all',
                               step2Answers[q.id] === opt.value
-                                ? 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
-                                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50'
+                                ? 'bg-slate-100 text-slate-800 border-slate-400 ring-1 ring-slate-300'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                             )}>
                             {opt.label}
                           </button>
@@ -1709,7 +1709,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                   setStep2Scenario(null);
                   onSubmit(`__SIM_START__:${scenarioId}`, undefined, 'stakeholder');
                 }}
-                className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center gap-1.5"
+                className="px-5 py-2 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-all flex items-center gap-1.5"
               >
                 시뮬레이션 시작 <ArrowRight className="w-4 h-4" />
               </button>
@@ -3484,7 +3484,7 @@ export function ExpertSelectionPanel({
 
       {/* ── Expert Selection Grid (general / multi / debate) ── */}
       {showExpertGrid && (
-        <div className={cn('border border-slate-200 rounded-xl bg-white overflow-visible shadow-[0_2px_12px_rgba(0,0,0,0.07)] transition-all duration-200 relative',
+        <div className={cn('border border-slate-200 rounded-xl bg-white overflow-visible shadow-[0_1px_6px_rgba(0,0,0,0.04)] transition-all duration-200 relative',
           autoAssign && 'opacity-50'
         )} onClick={() => { if (autoAssign) setAutoAssign(false); }}>
           {/* Category tabs / Search */}
