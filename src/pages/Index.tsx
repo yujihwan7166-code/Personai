@@ -3576,7 +3576,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]">
+      <div className="h-screen flex w-full bg-[#f9f9fb] dark:bg-[#0c0c0e]">
         <Suspense fallback={null}>
           <LazyAppSidebar
             experts={experts}
@@ -4251,7 +4251,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 discussionMode === 'standard' ? (
                   /* 심층토론 스테이지 헤더 */
                   <div className="rounded-2xl overflow-hidden shadow-lg border border-indigo-200/50">
-                    <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-5 py-4">
+                    <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[20px]">🎯</span>
@@ -4280,7 +4280,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   /* VS 토론 스테이지 */
                   <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-300/50">
                     {/* 그라디언트 배경 */}
-                    <div className="bg-gradient-to-r from-blue-600 via-slate-900 to-red-600 px-5 py-5">
+                    <div className="bg-gradient-to-r from-blue-700 via-slate-900 to-rose-700 px-5 py-5">
                       <div className="flex items-center">
                         {/* 찬성 팀 */}
                         <div className="flex-1">
@@ -5894,7 +5894,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       <div key={msg.id} className="my-4 ml-[4%] mr-[8%] animate-in fade-in slide-in-from-bottom-2 duration-400">
                         <div className="rounded-2xl overflow-hidden shadow-lg border border-emerald-200/60 dark:border-emerald-800/40">
                           {/* 헤더 */}
-                          <div className="flex items-center justify-between px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500">
+                          <div className="flex items-center justify-between px-5 py-2.5 bg-slate-800">
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4 text-white/80" />
                               <span className="text-[14px] font-bold text-white">대화 요약</span>
@@ -5904,7 +5904,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             </button>
                           </div>
                           {/* 본문 — 섹션별 구분 */}
-                          <div className="bg-emerald-50/50 dark:bg-slate-900 px-5 py-4">
+                          <div className="bg-slate-50/50 dark:bg-slate-900 px-5 py-4">
                             <div className="text-[12.5px] leading-[1.7] text-slate-700 dark:text-slate-300 [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:text-slate-800 [&_h2]:dark:text-slate-200 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2:first-child]:mt-0 [&_ul]:pl-4 [&_ul]:space-y-1 [&_li]:text-[12px] [&_p]:mb-1">
                               <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} />
                             </div>
@@ -6191,7 +6191,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           {/* Bottom Input — 게임 모드에서는 GamePlayer 내부에 입력 있으므로 숨김 */}
           {!activeGame && (messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
-              <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f9f9fb] dark:from-[#0c0c0e] to-transparent pointer-events-none" />
                 <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' || discussionMode === 'freetalk' || discussionMode === 'aivsuser' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px]' : 'max-w-2xl'))}>
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (

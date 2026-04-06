@@ -3362,7 +3362,7 @@ export function ExpertSelectionPanel({
           : 'opacity-100 scale-100 max-h-32 py-0 space-y-2 duration-300',
         isLeavingPlayer && transitionPhase >= 2 && 'opacity-100 max-h-32 space-y-2'
       )}>
-        <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
+        <h2 key={mainMode} className="text-xl sm:text-2xl font-display font-semibold text-foreground tracking-[-0.03em] animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
               : mainMode === 'debate' ? (
@@ -3394,10 +3394,10 @@ export function ExpertSelectionPanel({
         isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
       )}>
         <div className={cn(
-          'flex flex-col shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-all duration-500 ease-out',
+          'flex flex-col shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all duration-500 ease-out',
           showPlayerBg
             ? 'bg-slate-900 border border-slate-700'
-            : 'bg-white border border-slate-200',
+            : 'bg-white/90 backdrop-blur-sm border border-slate-200/70',
           'rounded-full p-[3px]'
         )}>
           <div className="flex items-center gap-[3px]">
@@ -3406,11 +3406,11 @@ export function ExpertSelectionPanel({
               return (
                 <button key={m} onClick={() => handleMainModeChange(m)} disabled={isDiscussing || transitionPhase !== 0}
                   className={cn(
-                    'flex items-center justify-center gap-1 min-w-0 px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-all duration-300',
+                    'flex items-center justify-center gap-1 min-w-0 px-3.5 py-[3px] rounded-full text-[11px] tracking-[-0.01em] transition-all duration-200',
                     isActive && m === 'player'
-                      ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold shadow-lg shadow-purple-500/25'
-                      : isActive ? 'bg-indigo-500 text-white font-semibold shadow-sm'
-                        : showPlayerBg ? 'text-slate-400 font-medium hover:text-slate-200' : 'text-slate-600 font-medium hover:text-slate-900'
+                      ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold shadow-md'
+                      : isActive ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold shadow-sm'
+                        : showPlayerBg ? 'text-slate-400 font-medium hover:text-slate-200' : 'text-slate-500 font-medium hover:text-slate-800'
                   )}>
                   {mainModeLabels[m]}
                 </button>

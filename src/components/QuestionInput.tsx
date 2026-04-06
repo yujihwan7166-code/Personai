@@ -257,18 +257,18 @@ export function QuestionInput({
           isDragOver
             ? embedded
               ? 'rounded-b-2xl bg-blue-50/30'
-              : 'border-blue-400 bg-blue-50/30 shadow-[0_2px_20px_rgba(59,130,246,0.15)]'
+              : 'border-blue-400 bg-blue-50/30 shadow-[0_4px_20px_rgba(59,130,246,0.12)]'
             : disabled
               ? embedded
                 ? 'opacity-75'
-                : 'border-slate-200 opacity-75'
+                : 'border-slate-200/80 opacity-75'
               : focused || showSelectionAccent
                 ? embedded
                   ? 'bg-transparent'
-                  : 'border-violet-300 bg-white shadow-[0_2px_20px_rgba(139,92,246,0.10)]'
+                  : 'border-slate-300 bg-white shadow-[0_2px_16px_rgba(0,0,0,0.06)]'
                 : embedded
                   ? 'bg-transparent'
-                  : 'border-slate-200 bg-slate-50 shadow-sm hover:border-violet-300'
+                  : 'border-slate-200/80 bg-white shadow-sm hover:border-slate-300'
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
