@@ -360,7 +360,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
+                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'standard'
                           ? 'bg-emerald-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
@@ -541,7 +541,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
+                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'procon'
                           ? 'bg-violet-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
@@ -687,7 +687,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'brainstorm' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
+                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'brainstorm'
                           ? 'bg-amber-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
@@ -1004,7 +1004,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   ].map(t => (
                     <button key={t.mode}
                       onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
+                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'freetalk'
                           ? 'bg-cyan-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
@@ -1172,7 +1172,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                       key={t.mode}
                       onClick={t.mode === 'aivsuser' ? undefined : () => onModeChange(t.mode)}
                       className={cn(
-                        'px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
+                        'px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'aivsuser'
                           ? 'bg-rose-500 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
