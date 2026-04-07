@@ -3576,7 +3576,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="h-screen flex w-full bg-[#f9f9fb] dark:bg-[#0c0c0e]">
+      <div className="h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]">
         <Suspense fallback={null}>
           <LazyAppSidebar
             experts={experts}
@@ -3674,7 +3674,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           const isDone = isConsult && ri < simPhaseIndex;
                           return (
                             <span key={r.name} className={cn('text-[10px] font-medium flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all',
-                              isCurrent ? 'bg-slate-200 text-slate-800 font-bold' :
+                              isCurrent ? 'bg-indigo-100 text-indigo-700 font-bold' :
                               isDone ? 'text-slate-400' :
                               'text-slate-500'
                             )}>
@@ -4000,7 +4000,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60 backdrop-blur-[2px] animate-in fade-in duration-200">
                     <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-3 duration-300">
                       {/* AI 헤더 바 */}
-                      <div className="px-4 py-2.5 bg-gradient-to-r from-slate-700 to-slate-800 flex items-center gap-2.5">
+                      <div className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 flex items-center gap-2.5">
                         {expert0 && <ExpertAvatar expert={expert0} size="xs" active />}
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-[12px] font-bold truncate">{expert0?.nameKo || 'AI'}</p>
@@ -4032,11 +4032,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             return (
                               <button key={oi} onClick={() => handleSelect(opt.value)}
                                 className={cn('w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left mb-1',
-                                isSelected ? 'bg-slate-50' : 'hover:bg-slate-50')}>
+                                isSelected ? 'bg-indigo-50' : 'hover:bg-slate-50')}>
                               <span className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0',
-                                isSelected ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-400')}>{oi + 1}</span>
-                              <span className={cn('text-[13px] font-medium flex-1', isSelected ? 'text-slate-600' : 'text-slate-700')}>{opt.label}</span>
-                              {isSelected && <span className="text-slate-400 text-[14px]">→</span>}
+                                isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-400')}>{oi + 1}</span>
+                              <span className={cn('text-[13px] font-medium flex-1', isSelected ? 'text-indigo-600' : 'text-slate-700')}>{opt.label}</span>
+                              {isSelected && <span className="text-indigo-400 text-[14px]">→</span>}
                               </button>
                             );
                           })}
@@ -4049,13 +4049,13 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 type="text"
                                 value={chatClarify.customInputs[q.id] || ''}
                                 onChange={e => setChatClarify({ ...chatClarify, customInputs: { ...chatClarify.customInputs, [q.id]: e.target.value } })}
-                                className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                                className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                                 placeholder="직접 입력..."
                                 onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit(); }}
                               />
                               <button
                                 onClick={handleCustomSubmit}
-                                className="rounded-lg bg-slate-500 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-slate-700"
+                                className="rounded-lg bg-indigo-500 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-indigo-600"
                               >
                                 확인
                               </button>
@@ -4158,9 +4158,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
                   <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
                     {/* Header — 모드별 진행자 */}
-                    <div className="px-5 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
+                    <div className="px-5 py-4 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
                           <span className="text-[18px]">{discussionMode === 'hearing' ? '🔍' : discussionMode === 'brainstorm' ? '💡' : '🎙️'}</span>
                         </div>
                         <div>
@@ -4248,7 +4248,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 getMainMode(discussionMode) === 'general' ? (
                   /* 단일 AI — 오른쪽 말풍선 */
                   <div className="flex justify-end">
-                    <div className="max-w-[75%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                    <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
                       <p className="text-[13px] leading-relaxed">{currentQuestion}</p>
                     </div>
                   </div>
@@ -4268,12 +4268,12 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
                 discussionMode === 'standard' ? (
                   /* 심층토론 스테이지 헤더 */
-                  <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200/80">
-                    <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-4">
+                  <div className="rounded-2xl overflow-hidden shadow-lg border border-indigo-200/50">
+                    <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-5 py-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[20px]">🎯</span>
-                          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">심층 토론</span>
+                          <span className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest">심층 토론</span>
                         </div>
                         {isDiscussing && <span className="text-[8px] font-bold text-red-300 uppercase tracking-widest animate-pulse">● LIVE</span>}
                       </div>
@@ -4296,9 +4296,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   </div>
                 ) : discussionMode === 'procon' ? (
                   /* VS 토론 스테이지 */
-                  <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200/80">
+                  <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-300/50">
                     {/* 그라디언트 배경 */}
-                    <div className="bg-gradient-to-r from-blue-700 via-slate-900 to-rose-700 px-5 py-5">
+                    <div className="bg-gradient-to-r from-blue-600 via-slate-900 to-red-600 px-5 py-5">
                       <div className="flex items-center">
                         {/* 찬성 팀 */}
                         <div className="flex-1">
@@ -4381,7 +4381,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         <div className="space-y-3">
                           {currentQuestion && (
                             <div className="flex justify-end">
-                              <div className="max-w-[75%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+                              <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
                                 <p className="text-[13px] leading-relaxed line-clamp-3">{currentQuestion}</p>
                               </div>
                             </div>
@@ -4439,7 +4439,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                           onClick={() => { setMultiActiveTab(expert.id); setMultiView('detail'); setTimeout(() => document.getElementById(msg.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
                                           className="w-full px-4 py-2.5 text-[12px] leading-relaxed text-slate-600 text-left hover:bg-slate-50 transition-colors">
                                           {mi > 0 && questionText && (
-                                            <p className="text-[10px] text-slate-400 font-medium mb-1.5 truncate">💬 "{questionText}"</p>
+                                            <p className="text-[10px] text-indigo-400 font-medium mb-1.5 truncate">💬 "{questionText}"</p>
                                           )}
                                           <div className="line-clamp-5">
                                             {preview || (msg.isStreaming ? '응답 생성 중...' : '')}
@@ -4455,7 +4455,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                   <button type="button"
                                     onClick={() => { setMultiActiveTab(expert.id); setMultiView('detail'); }}
                                     className="w-full px-4 py-2 text-left border-t border-slate-100 hover:bg-slate-50 transition-colors">
-                                    <span className="text-[10px] font-semibold text-slate-500">자세히 보기 →</span>
+                                    <span className="text-[10px] font-semibold text-indigo-500">자세히 보기 →</span>
                                   </button>
                                 )}
                               </div>
@@ -4583,7 +4583,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                       const text = q.content.replace(/^💬\s*[^:]+:\s*/, '');
                                     return (
                                       <div className="flex justify-end mb-2">
-                                        <div className="max-w-[70%] bg-slate-800 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[12px]">
+                                        <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[12px]">
                                           {text}
                                         </div>
                                       </div>
@@ -4818,7 +4818,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               if (msg.expertId === '__user__') {
                                 return (
                                   <div key={msg.id} className="flex justify-end">
-                                    <div className="max-w-[70%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                                    <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
                                       <ReactMarkdownInline content={msg.content} />
                                     </div>
                                   </div>
@@ -4888,18 +4888,18 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       return (
                         <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-500">
                           {/* 프레임워크 아이콘 */}
-                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-[28px] shadow-lg mb-6 animate-pulse">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[28px] shadow-lg mb-6 animate-pulse">
                             {fwIcon}
                           </div>
 
                           {/* 프레임워크 이름 + 단계 */}
                           <h3 className="text-[16px] font-bold text-slate-800 mb-1">{p.frameworkName}</h3>
-                          <p className="text-[13px] text-slate-600 font-medium mb-2">{p.stepLabel}</p>
+                          <p className="text-[13px] text-violet-600 font-medium mb-2">{p.stepLabel}</p>
                           <p className="text-[12px] text-slate-500 mb-6">{isLastStep ? '📋' : `${fwIcon}`} {phaseDescription}</p>
 
                           {/* 프로그레스 바 */}
                           <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden mb-4">
-                            <div className="h-full bg-gradient-to-r from-slate-600 to-slate-800 rounded-full transition-all duration-700 ease-out"
+                            <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
                               style={{ width: `${stepPercent}%` }} />
                           </div>
                           <span className="text-[11px] text-slate-400 mb-6">{p.currentStep + 1} / {p.totalSteps} 단계</span>
@@ -4909,7 +4909,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             <div className="grid grid-cols-2 gap-1 w-48 mb-6">
                               {['강점', '약점', '기회', '위협'].map((label, i) => (
                                 <div key={label} className={cn('px-3 py-2 rounded-lg text-center text-[11px] font-semibold transition-all duration-500',
-                                  i < p.currentStep ? 'bg-slate-700 text-white' : i === p.currentStep ? 'bg-slate-200 text-slate-700 animate-pulse' : 'bg-slate-100 text-slate-400')}>
+                                  i < p.currentStep ? 'bg-violet-500 text-white' : i === p.currentStep ? 'bg-violet-100 text-violet-700 animate-pulse' : 'bg-slate-100 text-slate-400')}>
                                   {label} {i < p.currentStep ? '✓' : i === p.currentStep ? '...' : ''}
                                 </div>
                               ))}
@@ -4922,7 +4922,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               {Object.entries(hatColors).map(([key, val], i) => (
                                 <div key={key} className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all duration-500',
                                   val.bg, val.text,
-                                  i < p.currentStep ? 'opacity-100 scale-100' : i === p.currentStep ? 'opacity-100 scale-110 ring-2 ring-slate-400 animate-pulse' : 'opacity-30 scale-90')}>
+                                  i < p.currentStep ? 'opacity-100 scale-100' : i === p.currentStep ? 'opacity-100 scale-110 ring-2 ring-violet-400 animate-pulse' : 'opacity-30 scale-90')}>
                                   {i < p.currentStep ? '✓' : val.label.charAt(0)}
                                 </div>
                               ))}
@@ -4956,15 +4956,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     if (msg.isStreaming) {
                       return (
                         <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-500">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-[24px] shadow-lg mb-5">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[24px] shadow-lg mb-5">
                             📋
                           </div>
                           <h3 className="text-[15px] font-bold text-slate-800 mb-1">결과를 정리하고 있습니다</h3>
                           <p className="text-[12px] text-slate-400 mb-5">아이디어를 분석하고 구조화하는 중...</p>
                           <div className="flex items-center gap-1.5">
-                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" />
-                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" />
-                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" />
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
                           </div>
                         </div>
                       );
@@ -5287,9 +5287,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             <div className="flex items-center gap-1">
                               {data.roadmap.map((r: any, i: number) => (
                                 <Fragment key={i}>
-                                  <div className="flex-1 rounded-lg bg-slate-50 border border-slate-200 p-2 text-center">
-                                    <div className="text-[10px] font-bold text-slate-600">{r.phase}</div>
-                                    <div className="text-[9px] text-slate-400 mt-0.5">{r.desc}</div>
+                                  <div className="flex-1 rounded-lg bg-indigo-50 border border-indigo-200 p-2 text-center">
+                                    <div className="text-[10px] font-bold text-indigo-600">{r.phase}</div>
+                                    <div className="text-[9px] text-indigo-400 mt-0.5">{r.desc}</div>
                                   </div>
                                   {i < data.roadmap.length - 1 && <span className="text-[10px] text-slate-300 shrink-0">→</span>}
                                 </Fragment>
@@ -5459,7 +5459,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             return (
                               <div key={i} className={cn(
                                 'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all',
-                                isDone ? 'bg-slate-700 text-white' : isCurrent ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'bg-slate-100 text-slate-400'
+                                isDone ? 'bg-violet-500 text-white' : isCurrent ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'bg-slate-100 text-slate-400'
                               )}>
                                 {g.round!.content}
                               </div>
@@ -5538,7 +5538,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 <button key={r.id} onClick={() => setStdActiveRound(ri)}
                                   className={cn('flex items-center gap-1 px-2.5 py-1 rounded-md transition-all shrink-0 text-[10px] font-semibold',
                                     isActive
-                                      ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-slate-800 text-white shadow-sm'
+                                      ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-indigo-500 text-white shadow-sm'
                                       : r.msgs.length > 0 ? 'text-slate-500 hover:text-slate-700 hover:bg-white' : 'text-slate-300')}>
                                   <span className="text-[11px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
                                   {r.label.replace(/\d라운드\s*·?\s*/, '')}
@@ -5584,7 +5584,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               if (msg.expertId === '__user__') {
                                 return (
                                   <div key={msg.id} className="flex justify-end">
-                                    <div className="max-w-[70%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                                    <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
                                       <ReactMarkdownInline content={msg.content} />
                                     </div>
                                   </div>
@@ -5750,7 +5750,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                         </div>
                                       </div>
                                       {j.comment && <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">💬 {j.comment}</p>}
-                                      {j.user_feedback && <p className="text-[10px] text-slate-600 mt-1.5 bg-slate-50 dark:bg-slate-800/30 rounded-lg px-2.5 py-1.5">📌 {j.user_feedback}</p>}
+                                      {j.user_feedback && <p className="text-[10px] text-indigo-600 mt-1.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg px-2.5 py-1.5">📌 {j.user_feedback}</p>}
                                     </div>
                                   </div>
                                 );
@@ -5865,7 +5865,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       gemini: { bg: 'bg-emerald-100/50', border: 'border-emerald-200', name: 'text-emerald-600' },
                       perplexity: { bg: 'bg-cyan-100/50', border: 'border-cyan-200', name: 'text-cyan-600' },
                       grok: { bg: 'bg-orange-100/50', border: 'border-orange-200', name: 'text-orange-600' },
-                      deepseek: { bg: 'bg-slate-100/50', border: 'border-slate-200', name: 'text-slate-600' },
+                      deepseek: { bg: 'bg-indigo-100/50', border: 'border-indigo-200', name: 'text-indigo-600' },
                       qwen: { bg: 'bg-teal-100/50', border: 'border-teal-200', name: 'text-teal-600' },
                     };
                     // Hash-based color for non-AI-model experts
@@ -5910,9 +5910,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   if (msg.expertId === '__summary__') {
                     return (
                       <div key={msg.id} className="my-4 ml-[4%] mr-[8%] animate-in fade-in slide-in-from-bottom-2 duration-400">
-                        <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-700">
+                        <div className="rounded-2xl overflow-hidden shadow-lg border border-emerald-200/60 dark:border-emerald-800/40">
                           {/* 헤더 */}
-                          <div className="flex items-center justify-between px-5 py-2.5 bg-slate-800">
+                          <div className="flex items-center justify-between px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500">
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4 text-white/80" />
                               <span className="text-[14px] font-bold text-white">대화 요약</span>
@@ -5922,7 +5922,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             </button>
                           </div>
                           {/* 본문 — 섹션별 구분 */}
-                          <div className="bg-slate-50/50 dark:bg-slate-900 px-5 py-4">
+                          <div className="bg-emerald-50/50 dark:bg-slate-900 px-5 py-4">
                             <div className="text-[12.5px] leading-[1.7] text-slate-700 dark:text-slate-300 [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:text-slate-800 [&_h2]:dark:text-slate-200 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2:first-child]:mt-0 [&_ul]:pl-4 [&_ul]:space-y-1 [&_li]:text-[12px] [&_p]:mb-1">
                               <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} />
                             </div>
@@ -6037,7 +6037,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               </div>
                             </div>
                             {j.comment && <p className="text-[11px] text-slate-600 leading-relaxed">💬 {j.comment}</p>}
-                            {j.user_feedback && <p className="text-[10px] text-slate-600 mt-1.5 bg-slate-50 rounded-lg px-2.5 py-1.5">📌 {j.user_feedback}</p>}
+                            {j.user_feedback && <p className="text-[10px] text-indigo-600 mt-1.5 bg-indigo-50 rounded-lg px-2.5 py-1.5">📌 {j.user_feedback}</p>}
                           </div>
                         </div>
                       );
@@ -6127,7 +6127,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       <div key={msg.id} className={cn(isMessenger ? 'flex justify-end' : '')}>
                         <div className={cn(
                           isMessenger
-                            ? 'max-w-[60%] bg-slate-800 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
+                            ? 'max-w-[60%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
                             : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
                         )}>
                           <ReactMarkdownInline content={msg.content} />
@@ -6136,7 +6136,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               {msg.attachedFiles.map((f, i) => (
                                 <span key={i} className={cn(
                                   'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
-                                  isMessenger ? 'bg-slate-600/30 text-slate-200' : 'bg-slate-50 text-slate-500 border border-slate-200'
+                                  isMessenger ? 'bg-indigo-400/30 text-indigo-100' : 'bg-slate-50 text-slate-500 border border-slate-200'
                                 )}>
                                   {f.preview ? (
                                     <img src={f.preview} alt="" className="w-4 h-4 rounded object-cover" />
@@ -6209,7 +6209,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           {/* Bottom Input — 게임 모드에서는 GamePlayer 내부에 입력 있으므로 숨김 */}
           {!activeGame && (messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
-              <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f9f9fb] dark:from-[#0c0c0e] to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
                 <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' || discussionMode === 'freetalk' || discussionMode === 'aivsuser' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px]' : 'max-w-2xl'))}>
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
@@ -6234,7 +6234,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     {activeExperts.map(e => (
                       <button key={e.id} type="button" onClick={() => setFollowUpTarget(followUpTarget === e.id ? null : e.id)}
                         className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border',
-                          followUpTarget === e.id ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50')}>
+                          followUpTarget === e.id ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50')}>
                         <ExpertAvatar expert={e} size="xs" />
                         {e.nameKo}
                       </button>
@@ -6328,8 +6328,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                   className={cn(
                                       'h-[28px] inline-flex items-center gap-1.5 px-3 rounded-full text-[11px] font-semibold transition-all border shrink-0',
                                       isSelected
-                                        ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50'
+                                        ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
                                     )}
                                   >
                                     <ExpertAvatar expert={expert} size="xs" />
@@ -6459,7 +6459,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 }
                               }}
                               className={cn('px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all border',
-                                showDebateAnalysis && debateAnalysisTab === t.id ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'text-slate-500 border-slate-200 bg-white hover:text-slate-600 hover:border-slate-400 hover:bg-slate-50')}
+                                showDebateAnalysis && debateAnalysisTab === t.id ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' : 'text-slate-500 border-slate-200 bg-white hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50')}
                             >
                               {t.icon} {t.label}
                             </button>
@@ -6559,7 +6559,7 @@ function RoundSeparator({ msg, isCollapsed, onToggle, count, variant }: { msg: D
   if (variant === 'brainstorm') {
     return (
       <button type="button" onClick={onToggle} className="w-full py-1 cursor-pointer">
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 transition-all hover:shadow-sm">
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200/50 transition-all hover:shadow-sm">
           <div className="w-7 h-7 rounded-lg bg-violet-500 flex items-center justify-center text-white text-[12px] font-black shrink-0">💡</div>
           <div className="flex-1 text-left">
             <div className="text-[11px] font-bold text-violet-800">{msg.content}</div>

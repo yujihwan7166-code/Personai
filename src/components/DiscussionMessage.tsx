@@ -19,19 +19,19 @@ interface Props {
 }
 
 const proseClasses = `prose prose-sm max-w-none
-  prose-p:my-1.5 prose-p:leading-[1.75] prose-p:text-[12.5px]
-  prose-headings:text-slate-800 prose-headings:font-semibold prose-headings:tracking-[-0.02em]
+  prose-p:my-1.5 prose-p:leading-relaxed prose-p:text-[12.5px]
+  prose-headings:text-slate-800 prose-headings:font-semibold prose-headings:tracking-tight
   prose-headings:mt-3 prose-headings:mb-1.5
   prose-h2:text-[14px] prose-h3:text-[13px] prose-h4:text-[12.5px]
   prose-strong:text-slate-700 prose-strong:font-semibold
   prose-ul:my-1.5 prose-li:my-0.5 prose-li:text-[12.5px]
   prose-ol:my-1.5
-  prose-blockquote:border-l-2 prose-blockquote:border-slate-200 prose-blockquote:text-slate-500 prose-blockquote:text-[12px] prose-blockquote:py-0.5 prose-blockquote:my-2
+  prose-blockquote:border-l-2 prose-blockquote:border-primary/20 prose-blockquote:text-slate-500 prose-blockquote:text-[12px] prose-blockquote:py-0.5 prose-blockquote:my-2
   prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-code:text-slate-600 prose-code:before:content-none prose-code:after:content-none
-  prose-pre:bg-slate-900 prose-pre:rounded-xl prose-pre:text-[11px] prose-pre:my-2
+  prose-pre:bg-slate-900 prose-pre:rounded-lg prose-pre:text-[11px] prose-pre:my-2
   prose-table:text-[11px] prose-table:my-2 prose-th:bg-slate-50 prose-th:px-2.5 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold prose-th:text-slate-600 prose-td:px-2.5 prose-td:py-1.5 prose-td:border-t prose-td:border-slate-100
   prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-  prose-img:rounded-xl prose-img:my-2`;
+  prose-img:rounded-lg prose-img:my-2`;
 
 function StreamingIndicator() {
   return (
@@ -112,7 +112,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   if (variant === 'general-card') {
     return (
       <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
-        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.03)] overflow-hidden transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)] overflow-hidden transition-all hover:border-slate-300 hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]">
           <div className="flex items-center gap-2 px-4 py-3">
             <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
             <span className="text-[13px] font-semibold text-slate-700">{expert.nameKo}</span>
@@ -136,7 +136,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
         <div className="flex-1 min-w-0 max-w-[85%]">
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
-          <div className="bg-white border border-slate-100/80 border-l-[3px] border-l-slate-300 rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+          <div className="bg-white border border-slate-100 border-l-[4px] border-l-indigo-400 rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
               <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
             </div>
