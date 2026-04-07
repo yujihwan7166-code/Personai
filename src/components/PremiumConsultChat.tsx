@@ -141,15 +141,19 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                       labor: '노동·근로 문제를 물어보세요.',
                     } as Record<string, string>)[domainId] || `${domain.name}에게 물어보세요.`}
                   </h3>
-                  <p className="text-[15px] text-slate-400 mt-3 flex items-center justify-center gap-2">
-                    <span className="relative flex h-1.5 w-1.5">
+                  <p className="text-[13px] text-slate-400 mt-3 flex items-center justify-center gap-1.5 flex-wrap">
+                    <span className="relative flex h-1.5 w-1.5 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-50" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                     </span>
-                    {domain.apiSource.name} 실시간 연동 중
-                  </p>
-                  <p className="text-[13px] text-slate-300 mt-1">
-                    출처 기반 답변 · 구조화된 전문 분석
+                    {({
+                      law: '실시간 법령 연동 · 판례 기반 근거 추론 · 법률의견서 자동 생성',
+                      drug: '의약품 DB 연동 · 약물 상호작용 분석 · SOAP Note 기반 응답',
+                      finance: '경제지표 실시간 반영 · 리스크 팩터 분석 · 포트폴리오 시뮬레이션',
+                      realestate: '실거래가 분석 · 권리관계 리스크 진단 · 투자 수익률 산출',
+                      tax: '세법 기반 과세 분석 · 공제항목 자동 점검 · 절세 시나리오 설계',
+                      labor: '근로기준법 기반 권리 분석 · 임금·퇴직금 정밀 산출 · 구제절차 안내',
+                    } as Record<string, string>)[domainId] || `${domain.apiSource.name} 실시간 연동 · 멀티스텝 근거 추론 · 구조화 분석`}
                   </p>
                   <div className="grid grid-cols-3 gap-2.5 w-full max-w-3xl mt-6">
                     {(domain.sampleCases || domain.sampleQuestions.map(q => ({ title: q, desc: '', query: q }))).map((c, i) => {

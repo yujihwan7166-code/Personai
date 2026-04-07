@@ -58,6 +58,7 @@ interface Props {
   embedded?: boolean;
   placeholderOverride?: string;
   extraButtons?: React.ReactNode;
+  accentBorder?: boolean;
 }
 
 function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: DiscussionMode | undefined) {
@@ -102,6 +103,7 @@ export function QuestionInput({
   embedded = false,
   placeholderOverride,
   extraButtons,
+  accentBorder = false,
   onSummarize,
   isSummarizing,
   messageCount,
@@ -380,7 +382,7 @@ export function QuestionInput({
             disabled={disabled}
             className={cn(
               'block w-full max-h-[140px] resize-none bg-transparent text-[14px] leading-relaxed text-foreground placeholder:text-slate-400 focus:outline-none',
-              embedded ? 'min-h-[68px] px-5 pb-2.5 pt-3.5' : 'min-h-[44px] px-5 pb-2 pt-4'
+              embedded ? 'min-h-[56px] px-5 pb-2.5 pt-3' : 'min-h-[48px] px-5 pb-2 pt-3.5'
             )}
             rows={embedded ? 2 : 1}
             onKeyDown={(e) => {
@@ -435,18 +437,7 @@ export function QuestionInput({
                     <FolderPlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
                     프로젝트에 추가
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={!canUseTools || !canGenerateImages}
-                    onSelect={() => {
-                      if (!canGenerateImages) return;
-                      handleQuickImageGenerate();
-                    }}
-                    style={{ display: canGenerateImages ? 'flex' : 'none' }}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700"
-                  >
-                    <ImagePlus className="h-4 w-4 text-slate-500" strokeWidth={2} />
-                    이미지 만들기
-                  </DropdownMenuItem>
+                  {/* 이미지 만들기 제거됨 */}
                   <DropdownMenuItem
                     disabled={!canUseTools}
                     onSelect={() => void handleConversationShare()}
@@ -458,15 +449,23 @@ export function QuestionInput({
                 </DropdownMenuContent>
               </DropdownMenu>
               {extraButtons}
-              {onSummarize && (messageCount ?? 0) >= 3 && (
-                <button
-                  type="button"
-                  onClick={onSummarize}
-                  disabled={isSummarizing}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all border bg-white text-slate-500 border-slate-200 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 disabled:opacity-50"
-                >
-                  {isSummarizing ? '요약 중...' : '📝 요약하기'}
-                </button>
+              {onSummarize && (
+                <div className="relative group/summary">
+                  <button
+                    type="button"
+                    onClick={(messageCount ?? 0) >= 3 ? onSummarize : undefined}
+                    disabled={isSummarizing || (messageCount ?? 0) < 3}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all border bg-white text-slate-500 border-slate-200 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-500 disabled:hover:border-slate-200 disabled:hover:bg-white"
+                  >
+                    {isSummarizing ? '요약 중...' : '📝 요약하기'}
+                  </button>
+                  {(messageCount ?? 0) < 3 && (
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] whitespace-nowrap opacity-0 group-hover/summary:opacity-100 transition-opacity pointer-events-none shadow-lg">
+                      AI 응답 3개 이상일 때 사용 가능
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

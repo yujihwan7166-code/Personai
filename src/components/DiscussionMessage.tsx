@@ -276,7 +276,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
           <div className="flex-1 min-w-0 flex items-center gap-1.5">
             <span className="font-semibold text-[12px] text-slate-700">{expert.nameKo}</span>
-            {isSummary && <span className="text-[9px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">⚖️ 종합 판정</span>}
+            {isSummary && <span className="text-[9px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">📋 토론 정리</span>}
             {message.round && !isSummary && (
               <span className="text-[9px] font-medium bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">{ROUND_LABELS[message.round]}</span>
             )}

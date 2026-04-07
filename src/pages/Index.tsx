@@ -97,10 +97,11 @@ const MODE_INSTRUCTIONS: Record<string, string> = {
 - 이미 나온 아이디어와 비슷하면 버리고 완전히 다른 방향을 찾으세요.`,
 
   freetalk: `\n[자유 토론 모드]
-- 매 발언에 반드시 새로운 사실, 관점, 또는 질문을 하나 이상 포함하세요.
-- 이전 발언의 요약이나 반복 금지.
-- "맞습니다", "좋은 지적입니다" 같은 빈 동의 대신 바로 새 내용을 추가하세요.
-- 때때로 날카로운 반문을 던지세요: "근데 그러면 ~은 어떻게 되나요?"`,
+- 3번 중 1번은 반드시 상대 의견에 정면 반박하세요. "그건 다르게 봐야 합니다" 수준으로.
+- 동의할 때도 약점·예외·반례를 지적하세요. 빈 동의 절대 금지.
+- 이미 나온 하위 주제를 반복하지 말고, 같은 큰 주제의 다른 측면으로 확장하세요.
+- 이모지 사용 금지. 텍스트로만 소통하세요.
+- 2~3턴에 한번은 1문장 짧은 반박이나 질문만 던지세요.`,
 
   aivsuser: `\n[AI vs 유저 모드]
 - 유저를 존중하되 절대 봐주지 마세요.
@@ -369,6 +370,9 @@ const Index = () => {
     setShowDebateSettings(false);
     setSelectedFramework(null);
     setDiscussionIssues([]);
+    // 모드 전환 시 이전 모드의 clarify/bsClarify 상태 정리
+    setClarifyState({ show: false, loading: false, originalInput: '', suggestions: [], customEdit: '' });
+    setBsClarify(null);
     if (mode !== 'aivsuser') {
       setHasAivsBattleStarted(false);
       setActiveAivsBattleConfig(null);
@@ -1219,6 +1223,43 @@ ${difficultyDesc}
       // 저장은 대화 완료 시 upsert로 처리
       return;
     } else if (useMode === 'multi') {
+      // 멀티 채팅: 명확화 질문 (첫 질문, 스킵 안 된 경우만)
+      const multiExpert0 = discussionExperts[0];
+      if (multiExpert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS) {
+        clarifyAttemptsRef.current++;
+        try {
+          const clarifyResp = await fetch('/api/clarify-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: question, expertName: multiExpert0.nameKo, expertDescription: multiExpert0.description, attempt: clarifyAttemptsRef.current }),
+          });
+          const clarifyData = await clarifyResp.json();
+          if (clarifyData.type === 'answer_with_assumption' && clarifyData.assumption) {
+            question = `${question}\n\n[사용자 맥락 가정: ${clarifyData.assumption}]`;
+          } else if (clarifyData.type === 'clarifying_questions' && clarifyData.questions?.length > 0) {
+            if (messages.length === 0) {
+              setMessages([{ id: `user-clarify-${Date.now()}`, expertId: '__user__', content: displayQuestion || question, attachedFiles: filesBadges }]);
+            }
+            if (clarifyData.partialAnswer) {
+              setMessages(prev => [...prev, { id: `partial-${Date.now()}`, expertId: multiExpert0.id, content: clarifyData.partialAnswer }]);
+            }
+            pendingFilesRef.current = pendingFiles;
+            setChatClarify({
+              show: true, loading: false,
+              message: clarifyData.message || '더 정확한 답변을 위해 확인할게요',
+              questions: clarifyData.questions,
+              selections: {}, customInputs: {}, currentPage: 0,
+              originalQuestion: question,
+            });
+            setIsDiscussing(false);
+            setStopRequested(false);
+            return;
+          }
+        } catch { /* 실패 시 그냥 답변 진행 */ }
+        skipClarifyRef.current = true;
+        setChatClarify(null);
+      }
+
       setMessages((prev) => [...prev, { id: `round-sep-multi-${Date.now()}`, expertId: '__round__', content: '다중 AI 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
@@ -1389,8 +1430,13 @@ ${difficultyDesc}
           setActiveExpertId(expert.id);
           const sideLabel = stanceMap[expert.id] === 'pro' ? '찬성' : '반대';
           const extra = (round !== 'final' ?
-          `\n\n당신은 이 주제에 대해 스스로 "${sideLabel}" 입장을 선택했습니다. ${sideLabel === '찬성' ? '찬성하는 입장에서' : '반대하는 입장에서'} 강하게 주장해주세요.` :
-          `\n\n최종 라운드입니다. 당신은 "${sideLabel}" 입장이었습니다. 토론을 통해 입장이 변했다면 그 이유를 설명하고, 최종 입장을 정리해주세요.`) + proconSettingsExtra + lengthExtra;
+          `\n\n## 절대 규칙 — 입장 고정
+당신은 이 토론에서 **"${sideLabel}"** 측입니다.
+${sideLabel === '찬성' ? '이 명제에 "찬성(동의)"하는 입장에서만 주장하세요. 명제가 옳다는 근거를 제시하세요.' : '이 명제에 "반대(비동의)"하는 입장에서만 주장하세요. 명제가 틀리다는 근거를 제시하세요.'}
+- 개인적 의견과 무관하게 배정된 입장을 절대 벗어나지 마세요.
+- "${sideLabel === '찬성' ? '반대' : '찬성'}" 측의 논리를 인정하거나 동조하지 마세요.
+- 상대 논리의 허점을 공격하고, 자기 입장의 근거를 강화하세요.` :
+          `\n\n최종 라운드입니다. 당신은 "${sideLabel}" 측이었습니다. 자신의 핵심 주장을 요약하고 최종 입장을 정리하세요. 입장 변경은 불필요합니다.`) + proconSettingsExtra + lengthExtra;
           const msgId = `${expert.id}-${round}-${side}-${Date.now()}`;
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
@@ -1426,6 +1472,7 @@ ${difficultyDesc}
               questions: clarifyData.questions,
               selections: {},
               originalQuestion: question,
+              expertIds: useIds,
             });
             setIsDiscussing(false);
             setStopRequested(false);
@@ -1731,47 +1778,64 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
         aggressive: '- 공격적이고 날카로운 토론 톤으로 말하세요.\n- 상대 논리의 빈틈을 강하게 찌르되, 욕설/비하 표현은 쓰지 마세요.',
       };
 
-      // System message
+      // System message + 주제 표시
       setMessages(prev => [...prev, {
         id: `system-freetalk-${Date.now()}`,
         expertId: '__round__',
         content: `💬 자유 토론 시작 · ${discussionExperts.length}명 참여 · 총 ${maxMessages}개 메시지`,
+      }, {
+        id: `freetalk-topic-${Date.now()}`,
+        expertId: '__round__',
+        content: `📌 ${question}`,
       }]);
 
       // 각 봇별 자유토론 프롬프트 생성 (기존 systemPrompt 위에 얹기)
+      // AI별 종결어미 차별화
+      const expertEndingStyles: Record<string, string> = {
+        gpt: '종결어미: ~입니다, ~이죠, ~한 셈이죠. "~거든요"는 사용하지 마세요.',
+        claude: '종결어미: ~거든요, ~인데요, ~잖아요. "~입니다"는 사용하지 마세요.',
+        gemini: '종결어미: ~같아요, ~하죠, ~일 수도요. "~거든요"는 사용하지 마세요.',
+        perplexity: '종결어미: ~인데, ~하거든, ~이야. 반말 데이터 분석가 톤.',
+        grok: '종결어미: ~임, ~인 듯, ~아닐까. 직설적이고 짧게.',
+        deepseek: '종결어미: ~합니다, ~하겠죠, ~일 겁니다. 차분한 분석 톤.',
+        qwen: '종결어미: ~네요, ~하더라고요, ~보여요. 관찰자 시점 톤.',
+      };
+      const endingStyle = expertEndingStyles[expert.id] || '자연스러운 구어체로 말하되, 직전 발언자와 다른 종결어미를 사용하세요.';
+
       const buildFreetalkPrompt = async (expert: Expert) => {
         const basePrompt = await getExpertPrompt(expert);
         return `${basePrompt}
 
 ## 자유 토론 모드
-"${question}" 주제로 다른 전문가들과 대화 중입니다.
+"${question}" 주제로 다른 전문가들과 실시간 토론 중입니다.
 
-### 핵심 원칙: 주제에 집중하라
-- 반드시 "${question}"에 대한 직접적인 의견, 예측, 분석을 말하세요
-- 당신의 전문 분야(${expert.description})의 지식을 활용해 이 주제에 대한 구체적 인사이트를 제공하세요
-- "제 분야에서도 비슷한데요~" 식의 자기 분야 얘기로 빠지지 마세요. 주제 자체를 논하세요.
-- 구체적 수치, 사례, 데이터를 포함하세요 (예: "배럴당 80달러 선", "2024년 OPEC 감산", "미국 셰일 생산량 증가")
+### 1. 주제 집중
+- "${question}"에 대한 직접적 의견·예측·분석만 말하세요.
+- 구체적 수치, 사례, 데이터를 포함하세요.
+- 자기 분야 자랑으로 주제를 이탈하지 마세요.
 
-### 말투
+### 2. 대립과 긴장감 (가장 중요)
+- **3번 발언 중 1번은 반드시 상대 의견에 정면 반박하세요.** "그건 다르게 봐야 합니다", "그 논리에는 허점이 있는데요" 수준으로 강하게.
+- 동의할 때도 약점·예외·반례를 반드시 지적하세요. "맞지만 ~은 간과하고 있는데요"
+- 빈 동의("좋은 지적입니다", "동의합니다") 절대 금지. 바로 새 내용으로 시작하세요.
+
+### 3. 주제 확장
+- 이미 나온 하위 주제를 반복하지 마세요. 같은 큰 주제의 **다른 측면**으로 확장하세요.
+- 예: 유가 → 에너지 안보 → 환율 영향 → 소비자 물가 → 산업 구조조정 → 외교적 파급 (매번 다른 축)
+
+### 4. 말투
 - ${debateSettings.responseLength === 'short' ? '1~2문장. 3문장 이상 절대 금지.' : debateSettings.responseLength === 'long' ? '3~5문장. 구체적 근거와 예시를 포함.' : '1~3문장. 4문장 이상 절대 금지.'}
-- 구어체 ("~인 것 같아요", "~거든요")
-- 이모지 가끔 1개 정도
+- ${endingStyle}
+- **이모지 사용 금지.** 텍스트로만 소통하세요.
+- 2~3턴에 한번은 **1문장 짧은 반박이나 질문만** 던지세요. 매번 긴 발언은 지루합니다.
 ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.natural}
 
-### 대화 흐름
-- 직전 발언의 내용에 바로 반응하세요. 상대방 이름/호칭을 부르지 마세요.
-- 동의만 하지 말고 반론/보완/새 각도를 제시하세요
-- 이미 나온 내용을 반복하면 안 됩니다. 새로운 팩트나 관점만 추가하세요.
-- 때로는 반박하세요. "그건 좀 다르게 볼 수도 있는데요"
-- 상대 의견에 질문을 던지세요. "근데 그러면 ~은 어떻게 되나요?"
-
-### 절대 금지
-- "~님 말씀처럼", "~님", "~전문가님" 등 상대방 호칭 사용 금지. 바로 내용으로 시작하세요.
+### 5. 절대 금지
+- 상대방 호칭("~님", "~전문가님") 사용 금지. 바로 내용으로 시작.
 - [역할명] 태그 포함 금지
-- "현실적인 제약 안에서 최적의 결과" 같은 추상적 동의 금지
 - 이전 발언 앵무새 반복 금지
-- 자기 분야 자랑으로 주제 이탈 금지
-- "~에 대해 분석하겠습니다" 발표체 금지`;
+- "~에 대해 분석하겠습니다" 발표체 금지
+- "~할 수 있다고 봐요"를 2회 이상 연속 사용 금지. 다른 종결어미를 쓰세요.`;
       };
 
       while (msgCount < maxMessages && !shouldStop()) {
@@ -1785,10 +1849,14 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
           let fullContent = '';
           const prevAll = allResponses.slice(-20);
 
-          // 첫 턴: 주제 소개, 후속 턴: 직전 발언에 반응
+          // 턴별 4단계 분기: 첫 턴 / 초반 / 중반 / 후반
           const questionForAI = msgCount === 0
-            ? `주제: "${question}" — 이 주제에 대한 당신만의 구체적인 의견이나 예측을 말해주세요. 수치나 근거를 포함하세요.`
-            : `"${question}" 주제에서 직전 발언에 반응하세요. 동의만 하지 말고 반론/보완/새 팩트를 추가하세요. 주제에서 벗어나지 마세요.`;
+            ? `주제: "${question}" — 이 주제에 대한 당신만의 강한 입장을 먼저 밝히세요. 수치나 근거를 포함하세요.`
+            : msgCount <= 4
+            ? `"${question}" — 직전 발언에 반응하되, 당신만의 근거와 데이터로 자기 입장을 강화하세요. 상대와 다른 점을 부각하세요.`
+            : msgCount <= 8
+            ? `"${question}" — 직전 발언의 논리적 허점이나 간과한 부분을 지적하세요. 지금까지 안 나온 새로운 팩트를 추가하세요. 같은 하위 주제 반복 금지.`
+            : `"${question}" — 지금까지 논의에서 빠진 완전히 다른 각도를 제시하세요. 또는 1문장으로 핵심 반박만 던지세요.`;
 
           try {
             await streamExpert({
@@ -1829,9 +1897,7 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
         try {
           await streamExpert({
             question,
-            expert: { ...SUMMARIZER_EXPERT, systemPrompt: `You are a conversation summarizer. Summarize the free-flowing AI group chat about the given topic in Korean. Use this format:
-
-## 💬 자유 토론 정리
+            expert: { ...SUMMARIZER_EXPERT, systemPrompt: `You are a conversation summarizer. Summarize the free-flowing AI group chat in Korean. Do NOT include a top-level title — the UI already shows a header. Start directly with the first ### section.
 
 ### 💡 핵심 결론
 (대화에서 도출된 핵심 결론 2-3문장)
@@ -1845,9 +1911,10 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
 - (눈에 띄는 의견 1)
 - (눈에 띄는 의견 2)
 
-> 💡 **한줄 요약:** (전체 대화를 한 문장으로)
-
-한국어로 작성하세요. 간결하게.` },
+Rules:
+- "##" 레벨 제목 금지. "###" 레벨부터 시작.
+- 한줄 요약, 종합 판정 금지.
+- 한국어. 간결하게.` },
             previousResponses: allResponses,
             round: 'summary',
             onDelta: chunk => { summaryContent += chunk; setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent } : m)); },
@@ -2085,15 +2152,13 @@ ${infoInstruction}
       let summaryContent = '';
       try {
         await streamExpert({
-          question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: isBrainstormConclusion ? brainstormSummaryPrompt : `You are a debate summarizer and conclusion synthesizer. Create a comprehensive, well-structured Korean summary that combines both the discussion overview AND the final conclusion. Use this markdown format EXACTLY:
-
-## 📋 토론 정리
+          question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: isBrainstormConclusion ? brainstormSummaryPrompt : `You are a debate summarizer. Create a well-structured Korean summary. Do NOT include a top-level title — the UI already shows "토론 정리" as a header. Start directly with the first section.
 
 ### 💡 핵심 결론
 (질문에 대한 직접적 답변 2-3문장. 모든 전문가의 관점을 종합한 최종 답변.)
 
 ### 📌 주요 논점
-1. **(논점 제목)** — 이 논점에 대해 전문가들이 어떤 입장을 보였는지 설명. 합의가 있으면 합의 내용을, 대립이 있으면 누가 어떤 입장인지 포함.
+1. **(논점 제목)** — 전문가들의 입장 차이와 근거. 합의 또는 대립 포인트.
 2. **(논점 제목)** — 설명
 3. **(논점 제목)** — 설명
 
@@ -2102,14 +2167,13 @@ ${infoInstruction}
 - (구체적이고 실행 가능한 제안 2)
 - (구체적이고 실행 가능한 제안 3)
 
-> 💡 **한줄 요약:** (토론 전체를 한 문장으로 정리)
-
 Rules:
-- 핵심 결론을 가장 먼저 작성하세요.
-- 논점은 전문가 이름을 포함하여 구체적으로 작성하세요.
-- 테이블은 사용하지 마세요. 글머리 기호만 사용하세요.
-- 전체적으로 간결하게. 각 논점은 2-3문장 이내.
-- 한국어로 작성하세요.` },
+- "## 토론 정리" 같은 최상위 제목을 절대 쓰지 마세요. ### 레벨 섹션부터 시작하세요.
+- 한줄 요약, 종합 판정 섹션은 만들지 마세요.
+- 논점은 전문가 이름을 포함하여 구체적으로.
+- 테이블 금지. 글머리 기호만 사용.
+- 각 논점은 2-3문장 이내. 간결하게.
+- 한국어로 작성.` },
           previousResponses: allResponses, round: 'summary',
           onDelta: (chunk) => {summaryContent += chunk;setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent } : m));},
           onDone: () => {setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, isStreaming: false } : m));},
@@ -2127,7 +2191,7 @@ Rules:
     setActiveExpertId(undefined);
     setIsDiscussing(false);
     setStopRequested(false);
-  }, [experts, selectedExpertIds, discussionMode, debateSettings, stakeholderSettings, activeAivsBattleConfig]);
+  }, [experts, selectedExpertIds, discussionMode, debateSettings, stakeholderSettings, activeAivsBattleConfig, selectedFramework]);
 
   // Topic clarification — 토론 모드에서 주제 확인 UI 표시
   const clarifyTopic = useCallback((input: string, mode: DiscussionMode) => {
@@ -2154,7 +2218,11 @@ Rules:
     }).catch(() => {
       setClarifyState(prev => ({
         ...prev, loading: false,
-        suggestions: [
+        suggestions: mode === 'procon' ? [
+          { topic: `${input}에 찬성하는가?`, description: '찬성: 긍정적 효과 vs 반대: 부작용·리스크' },
+          { topic: `${input}을(를) 허용해야 하는가?`, description: '찬성: 자유·권리 vs 반대: 규제·안전' },
+          { topic: `${input}은(는) 득보다 실이 많은가?`, description: '찬성: 실익 부족 vs 반대: 장기적 이득' },
+        ] : [
           { topic: input, description: '입력한 주제 그대로 사용' },
           { topic: `${input}의 장단점`, description: '장단점 분석' },
           { topic: `${input}이 미치는 영향`, description: '영향 분석' },
@@ -2284,34 +2352,51 @@ Rules:
       })
       .join('\n\n');
 
-    const summaryPrompt = `아래 대화를 요약하세요.
+    const msgCount = messages.filter(m => m.expertId !== '__summary__' && m.expertId !== '__round__' && m.content).length;
+    const isDeep = msgCount >= 8;
 
-규칙:
-1. 개괄식으로 작성 — "키워드: 핵심 내용" 형태
-2. 문장형 서술 금지. 쭉 이어지는 문장 금지.
-3. 한 줄에 하나의 불릿만
-4. 각 섹션 제목 앞뒤로 빈 줄 필수
-5. 불릿은 "- " 로 시작
+    const summaryPrompt = `당신은 맥킨지 출신 시니어 컨설턴트입니다. 아래 대화를 분석하여 브리핑 노트를 작성하세요.
 
-아래 형식을 정확히 따르세요:
+## 당신의 역할
+이 대화를 직접 보지 않은 의사결정자에게 3분 안에 브리핑할 자료를 만드세요.
+- "무슨 얘기를 했는가"가 아니라 **"그래서 무엇을 알게 되었고, 다음에 뭘 해야 하는가"**에 집중
+- 대화 속 사실(fact)과 의견(opinion)을 구분
+- 수치·법령·고유명사·구체적 사례는 반드시 보존
+- 모호한 표현("다양한", "여러 가지") 대신 구체적으로
+- 대화 주제가 여러 개면 가장 실질적인 주제 1~2개만 추려서 깊게
 
-## 📌 주제
+## 포맷 규칙
+1. "**키워드**: 핵심 내용" 개괄식만 사용. 줄줄 이어지는 문장 금지.
+2. 불릿("- ") 하나에 한 포인트만. 불릿 안에서 줄바꿈 금지.
+3. 섹션 제목(###) 앞뒤 빈 줄 필수.
+4. 해당 없는 섹션은 아예 출력하지 마세요. "(없음)" 절대 금지.
+5. 이모지는 섹션 제목에만. 본문에는 사용 금지.
 
-- (대화 주제)
+## 출력 형식
 
-## 💡 핵심 결론
+### 📌 핵심 한줄
 
-- 결론 키워드: 핵심 내용
-- 결론 키워드: 핵심 내용
-- (3~5개)
+- (이 대화의 결론을 한 문장으로. "~에 대해 논의함" 같은 설명이 아니라 결론 자체를 쓰세요)
 
-## 📊 주요 수치
+### 💡 주요 발견${isDeep ? ' (상세)' : ''}
 
-- 항목: 수치 (없으면 이 섹션 생략)
+- **키워드**: 내용 — 근거/수치 포함 (왜 이게 중요한지 한마디 덧붙이기)
+- (${isDeep ? '5~8개' : '3~5개'}, 중요도순)
 
-## ❓ 남은 논점
+### 🎯 추천 다음 행동
 
-- 논점 키워드: 간단 설명
+- **키워드**: 구체적이고 즉시 실행 가능한 액션 (누가/무엇을/언제)
+- (1~3개. 일상 대화처럼 액션이 없으면 이 섹션 생략)
+
+${isDeep ? `### ⚠️ 주의할 점
+
+- **키워드**: 대화에서 드러난 리스크, 전제 조건, 또는 검증이 필요한 부분
+- (1~3개. 해당 없으면 생략)
+
+` : ''}### 🔭 추가 탐구
+
+- **키워드**: 이 대화에서 다루지 못했지만 알아두면 좋을 후속 주제
+- (1~2개. 해당 없으면 생략)
 
 대화 내용:
 ${conversationText}`;
@@ -2321,7 +2406,7 @@ ${conversationText}`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          systemPrompt: '대화 요약 전문가. 개괄식으로 작성 (문장형 금지, "키워드: 핵심 내용" 형태). 마크다운 구조화. 한국어.',
+          systemPrompt: '맥킨지 출신 시니어 컨설턴트. 의사결정자 브리핑용 노트 작성. "무슨 얘기를 했나"가 아니라 "그래서 뭘 알게 됐고, 다음에 뭘 해야 하나"에 집중. 사실과 의견 구분. 수치·법령·고유명사 절대 보존. 개괄식("**키워드**: 핵심") 전용, 문장형 금지. h3+불릿만. 한국어.',
           question: summaryPrompt,
         }),
       });
@@ -2347,9 +2432,7 @@ ${conversationText}`;
             if (jsonStr === '[DONE]') break;
             try {
               const parsed = JSON.parse(jsonStr);
-              // Gemini SSE format
               const geminiText = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-              // OpenAI SSE format
               const openaiText = parsed.choices?.[0]?.delta?.content;
               if (geminiText) fullText += geminiText;
               else if (openaiText) fullText += openaiText;
@@ -2450,6 +2533,7 @@ ${conversationText}`;
     questions: { id: string; question: string; options: { label: string; value: string }[] }[];
     selections: Record<string, string>;
     originalQuestion: string;
+    expertIds?: string[];
   } | null>(null);
 
   // After battle config is set, auto-start with AI provocation opening
@@ -4081,12 +4165,13 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             })()}
 
               <div className={cn(
-                'mx-auto px-4 sm:px-6 pt-16 pb-6',
+                'mx-auto px-4 sm:px-6 pb-6',
+                !selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-16',
                 !selectable && discussionMode === 'stakeholder' ? 'hidden'
-                : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[720px] space-y-3' : 'max-w-3xl space-y-2.5')
+                : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-5' : 'max-w-3xl space-y-2.5')
                   : (discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'stakeholder') ? 'max-w-4xl space-y-3'
                   : (discussionMode === 'multi' && messages.length > 0) ? 'max-w-[960px] space-y-3'
-                  : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px] space-y-1' : 'max-w-2xl space-y-1')
+                  : (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-1' : 'max-w-2xl space-y-1')
               )}>
 
               {selectable && (
@@ -4345,9 +4430,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           const enriched = answers.length > 0
                             ? `${bsClarify.originalQuestion} (${answers.join(', ')})`
                             : bsClarify.originalQuestion;
+                          const savedExpertIds = bsClarify.expertIds;
                           setBsClarify(null);
                           skipClarifyRef.current = true;
-                          runDiscussion(enriched);
+                          runDiscussion(enriched, savedExpertIds);
                         }}
                         disabled={Object.keys(bsClarify.selections).length === 0}
                         className={cn(
@@ -4369,17 +4455,39 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
                   <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
                     {/* Header — 모드별 진행자 */}
-                    <div className="px-5 py-4 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100">
+                    <div className={cn("px-5 py-4 border-b",
+                      discussionMode === 'procon' ? 'bg-gradient-to-r from-blue-50 via-white to-red-50 border-slate-200'
+                      : discussionMode === 'freetalk' ? 'bg-gradient-to-r from-emerald-50 to-white border-emerald-100'
+                      : discussionMode === 'hearing' ? 'bg-gradient-to-r from-amber-50 to-white border-amber-100'
+                      : 'bg-gradient-to-r from-indigo-50 to-white border-indigo-100')}>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                          <span className="text-[18px]">{discussionMode === 'hearing' ? '🔍' : discussionMode === 'brainstorm' ? '💡' : '🎙️'}</span>
+                        <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0",
+                          discussionMode === 'procon' ? 'bg-gradient-to-r from-blue-100 to-red-100'
+                          : discussionMode === 'freetalk' ? 'bg-emerald-100'
+                          : discussionMode === 'hearing' ? 'bg-amber-100'
+                          : 'bg-indigo-100')}>
+                          <span className="text-[18px]">{
+                            discussionMode === 'procon' ? '⚖️'
+                            : discussionMode === 'freetalk' ? '💬'
+                            : discussionMode === 'hearing' ? '🔍'
+                            : discussionMode === 'brainstorm' ? '💡'
+                            : discussionMode === 'standard' ? '🎯'
+                            : '🎙️'}</span>
                         </div>
                         <div>
                           <h3 className="text-[14px] font-bold text-slate-800">
-                            {discussionMode === 'hearing' ? '검증 진행자' : discussionMode === 'brainstorm' ? '세션 진행자' : '토론 진행자'}
+                            {discussionMode === 'procon' ? '찬반 토론 명제 선택'
+                            : discussionMode === 'freetalk' ? '자유 토론 주제 설정'
+                            : discussionMode === 'hearing' ? '검증 대상 설정'
+                            : discussionMode === 'standard' ? '심층 토론 주제 설정'
+                            : discussionMode === 'brainstorm' ? '세션 진행자' : '토론 진행자'}
                           </h3>
                           <p className="text-[11px] text-slate-400">
-                            {discussionMode === 'hearing' ? '아이디어를 검증하기 전에 주제를 확인합니다' : discussionMode === 'brainstorm' ? '브레인스토밍 전에 주제를 확인합니다' : '토론을 시작하기 전에 주제를 확인합니다'}
+                            {discussionMode === 'procon' ? '찬성과 반대로 나뉠 수 있는 명제를 선택하세요'
+                            : discussionMode === 'freetalk' ? '다양한 관점에서 토론할 수 있는 주제를 선택하세요'
+                            : discussionMode === 'hearing' ? '전문가들이 검증할 아이디어를 선택하세요'
+                            : discussionMode === 'standard' ? '전문가들이 깊이 토론할 주제를 선택하세요'
+                            : discussionMode === 'brainstorm' ? '브레인스토밍 전에 주제를 확인합니다' : '토론을 시작하기 전에 주제를 확인합니다'}
                           </p>
                         </div>
                       </div>
@@ -4405,7 +4513,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         {/* Suggestion cards */}
                         {clarifyState.suggestions.length > 0 && (
                           <div className="space-y-2">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">추천 주제</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{discussionMode === 'procon' ? '찬반 토론 명제' : '추천 주제'}</p>
                             {clarifyState.suggestions.map((s, i) => (
                               <button key={i} type="button"
                                 onClick={() => { setClarifyState(prev => ({ ...prev, show: false })); runDiscussion(s.topic); }}
@@ -4459,8 +4567,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 getMainMode(discussionMode) === 'general' ? (
                   /* 단일 AI — 오른쪽 말풍선 */
                   <div className="flex justify-end">
-                    <div className="max-w-[75%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
-                      <p className="text-[13px] leading-relaxed">{currentQuestion}</p>
+                    <div className="max-w-[75%] bg-indigo-500 dark:bg-indigo-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                      <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{currentQuestion}</p>
                     </div>
                   </div>
                 ) : (
@@ -4949,7 +5057,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               <button type="button" onClick={() => setProconFocusSide(prev => prev === 'pro' ? null : 'pro')}
                                 className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer">
                                 <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">찬성</span>
+                                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">찬성(동의)</span>
                               </button>
                               <div className="flex-1 h-px bg-blue-200" />
                               {proconFocusSide === 'pro' && (
@@ -4976,7 +5084,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               <button type="button" onClick={() => setProconFocusSide(prev => prev === 'con' ? null : 'con')}
                                 className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer">
                                 <div className="w-2 h-2 rounded-full bg-red-500" />
-                                <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider">반대</span>
+                                <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider">반대(비동의)</span>
                               </button>
                               <div className="flex-1 h-px bg-red-200" />
                               {proconFocusSide === 'con' && (
@@ -5010,7 +5118,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onLike={handleLike} onDislike={handleDislike} />;
                       })}
 
-                      {/* 종합 판정 */}
+                      {/* 토론 정리 */}
                       {summaryMsgs.map(msg => {
                         const expert = allExperts.find(e => e.id === msg.expertId);
                         if (!expert) return null;
@@ -5182,27 +5290,29 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       );
                     }
 
-                    // JSON 파싱 시도 — 여러 형태 처리
+                    // JSON 파싱 시도 — 다단계 복구
                     let data: any = null;
                     try {
                       let raw = msg.content;
                       // markdown 코드블록 제거
-                      raw = raw.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
-                      // 앞뒤 설명 텍스트 제거 — JSON 객체만 추출
+                      raw = raw.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').replace(/```\s*$/gi, '');
+                      // JSON 객체 추출
                       const jsonMatch = raw.match(/\{[\s\S]*\}/);
                       if (jsonMatch) {
-                        // 이스케이프 안 된 줄바꿈 처리
-                        let jsonStr = jsonMatch[0].replace(/[\r\n]/g, ' ').replace(/\t/g, ' ');
-                        data = JSON.parse(jsonStr);
+                        let jsonStr = jsonMatch[0];
+                        // 1차: 줄바꿈/탭 제거
+                        jsonStr = jsonStr.replace(/[\r\n]/g, ' ').replace(/\t/g, ' ');
+                        try { data = JSON.parse(jsonStr); } catch {
+                          // 2차: JSON 문자열 내부 줄바꿈 이스케이프
+                          jsonStr = jsonStr.replace(/"([^"]*?)"/g, (_m, p1) => `"${p1.replace(/\n/g, '\\n').replace(/\r/g, '')}"`);
+                          try { data = JSON.parse(jsonStr); } catch {
+                            // 3차: 제어 문자 전부 제거
+                            jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, ' ');
+                            try { data = JSON.parse(jsonStr); } catch { /* 최종 실패 */ }
+                          }
+                        }
                       }
-                    } catch {
-                      // 2차 시도: 줄바꿈 포함된 JSON
-                      try {
-                        const raw2 = msg.content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
-                        const match2 = raw2.match(/\{[\s\S]*\}/);
-                        if (match2) data = JSON.parse(match2[0]);
-                      } catch { /* 최종 실패 → fallback */ }
-                    }
+                    } catch { /* 파싱 완전 실패 → fallback */ }
 
                     // 파싱 실패 → 일반 마크다운으로 fallback
                     if (!data) {
@@ -5826,52 +5936,82 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   const roundJudges = messages.filter(m => m.expertId === '__avsu_judge__');
                   const currentRound = roundJudges.length;
                   return (
-                    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
+                    <div className="max-w-3xl mx-auto pt-4 pb-6">
                       <div className="rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[calc(100vh-200px)] flex flex-col overflow-hidden">
-                        {/* 배틀 헤더 */}
-                        <div className="shrink-0 bg-slate-900 relative overflow-hidden">
-                          {/* 배경 장식 */}
-                          <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, white 10px, white 11px)' }} />
-                          <div className="absolute top-0 left-0 w-1/3 h-full bg-gradient-to-r from-blue-600/20 to-transparent" />
-                          <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-rose-600/20 to-transparent" />
+                        {/* 배틀 헤더 — 키보드 배틀 스타일 */}
+                        <div className="shrink-0 bg-slate-950 relative overflow-hidden">
+                          {/* 배경 — 대각선 스트라이프 + 그라데이션 + 글로우 */}
+                          <div className="absolute inset-0 kb-battle-stripes" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/40 via-transparent to-rose-900/40" />
+                          <div className="absolute top-0 left-0 w-2/5 h-full bg-gradient-to-r from-blue-600/25 to-transparent" />
+                          <div className="absolute top-0 right-0 w-2/5 h-full bg-gradient-to-l from-rose-600/25 to-transparent" />
+                          {/* 상단 스캔라인 효과 */}
+                          <div className="absolute inset-0 kb-scanlines pointer-events-none" />
+                          {/* 상단/하단 네온 라인 */}
+                          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-amber-400 to-rose-500 kb-glow-line" />
+                          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-blue-500/50 via-amber-400/50 to-rose-500/50" />
+
                           {/* 콘텐츠 */}
-                          <div className="relative px-5 py-4">
+                          <div className="relative px-5 pt-3 pb-4">
+                            {/* 타이틀 */}
+                            <div className="text-center mb-3">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400/80">⌨️ 키보드 배틀</span>
+                              {isDiscussing && <span className="ml-2 inline-flex items-center text-[8px] font-black text-red-400 uppercase tracking-[0.2em] animate-pulse">● LIVE</span>}
+                              {currentRound > 0 && <span className="ml-2 text-[9px] font-bold text-amber-300/70 tracking-wider">ROUND {currentRound}</span>}
+                            </div>
+
                             <div className="flex items-center justify-between">
-                              {/* 유저 */}
+                              {/* 유저 (좌측) */}
                               <div className="flex-1 flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-[18px] shadow-lg ring-2 ring-blue-400/50">
-                                  🙋
+                                <div className="relative">
+                                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 flex items-center justify-center text-[22px] shadow-lg shadow-blue-500/40 ring-2 ring-blue-400/60 kb-avatar-glow-blue">
+                                    🙋
+                                  </div>
+                                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-md bg-blue-500 flex items-center justify-center text-[8px] font-black text-white shadow-md border border-blue-400">⚔️</div>
                                 </div>
                                 <div>
-                                  <div className="text-[13px] font-black text-white tracking-wide">나</div>
-                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-500/30 text-blue-300 border border-blue-500/30">{userStanceKo}</span>
+                                  <div className="text-[14px] font-black text-white tracking-wide drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]">나</div>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-black bg-blue-500/30 text-blue-200 border border-blue-400/40 shadow-[0_0_6px_rgba(59,130,246,0.3)]">{userStanceKo}</span>
+                                  </div>
                                 </div>
                               </div>
-                              {/* VS 중앙 */}
-                              <div className="shrink-0 mx-3 flex flex-col items-center">
-                                <div className="w-11 h-11 rounded-full bg-gradient-to-b from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                                  <span className="text-[14px] font-black text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>VS</span>
+
+                              {/* VS 중앙 — 큰 임팩트 */}
+                              <div className="shrink-0 mx-4 flex flex-col items-center">
+                                <div className="relative">
+                                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-b from-amber-400 via-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/50 kb-vs-pulse border-2 border-amber-300/40">
+                                    <span className="text-[20px] font-black text-white kb-vs-text" style={{ textShadow: '0 0 10px rgba(251,191,36,0.8), 0 0 20px rgba(251,146,36,0.5), 0 2px 4px rgba(0,0,0,0.5)' }}>VS</span>
+                                  </div>
+                                  {/* 방사형 글로우 */}
+                                  <div className="absolute inset-[-8px] rounded-3xl bg-amber-500/10 blur-md kb-vs-glow pointer-events-none" />
                                 </div>
-                                {currentRound > 0 && <span className="mt-1 text-[9px] font-bold text-amber-400/80">R{currentRound}</span>}
-                                {isDiscussing && <span className="text-[7px] font-bold text-red-400 uppercase tracking-widest animate-pulse mt-0.5">● LIVE</span>}
                               </div>
-                              {/* AI */}
+
+                              {/* AI (우측) */}
                               <div className="flex-1 flex items-center gap-3 justify-end">
                                 <div className="text-right">
-                                  <div className="text-[13px] font-black text-white tracking-wide">
+                                  <div className="text-[14px] font-black text-white tracking-wide drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]">
                                     {headerBattleAi ? headerBattleAi.name : (aiOpponents.map(e => e.nameKo).join(', ') || 'AI')}
                                   </div>
-                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/30 text-rose-300 border border-rose-500/30">{aiStanceKo}</span>
+                                  <div className="flex items-center gap-1.5 mt-0.5 justify-end">
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-black bg-rose-500/30 text-rose-200 border border-rose-400/40 shadow-[0_0_6px_rgba(244,63,94,0.3)]">{aiStanceKo}</span>
+                                  </div>
                                 </div>
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-lg ring-2 ring-rose-400/50 overflow-hidden">
-                                  {headerBattleAi ? <span className="text-[20px]">{headerBattleAi.icon}</span> : aiOpponents[0] ? <ExpertAvatar expert={aiOpponents[0]} size="sm" /> : <span className="text-[18px]">🤖</span>}
+                                <div className="relative">
+                                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 via-rose-500 to-rose-700 flex items-center justify-center shadow-lg shadow-rose-500/40 ring-2 ring-rose-400/60 overflow-hidden kb-avatar-glow-red">
+                                    {headerBattleAi ? <span className="text-[22px]">{headerBattleAi.icon}</span> : aiOpponents[0] ? <ExpertAvatar expert={aiOpponents[0]} size="sm" /> : <span className="text-[20px]">🤖</span>}
+                                  </div>
+                                  <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-md bg-rose-500 flex items-center justify-center text-[8px] font-black text-white shadow-md border border-rose-400">🛡️</div>
                                 </div>
                               </div>
                             </div>
-                            {/* 주제 */}
+
+                            {/* 주제 — 하단 크게 */}
                             {battleConfig && (
-                              <div className="mt-3 text-center bg-white/5 rounded-lg px-3 py-1.5 border border-white/10">
-                                <span className="text-[11px] font-semibold text-slate-300">{battleConfig.topicTitle}</span>
+                              <div className="mt-3 text-center bg-white/[0.06] rounded-lg px-4 py-2 border border-white/10 backdrop-blur-sm">
+                                <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-0.5">TOPIC</div>
+                                <span className="text-[13px] font-bold text-slate-200 leading-snug">{battleConfig.topicTitle}</span>
                               </div>
                             )}
                           </div>
@@ -6018,8 +6158,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   );
                 })()
               ) : discussionMode === 'freetalk' && messages.length > 0 ? (
-                /* Freetalk: card-wrapped chat bubbles like simulation */
-                <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
+                /* Freetalk: outer padding 없음 — 카드 테두리가 입력창 텍스트 영역과 동일 위치 */
+                <div className="max-w-3xl mx-auto pt-4 pb-2">
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[calc(100vh-200px)] flex flex-col">
                     {/* 헤더 */}
                     <div className="shrink-0 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-5 py-3 rounded-t-2xl flex items-center justify-between">
@@ -6046,12 +6186,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         </div>
                       );
                     }
-                    // Summary card
-                    if (msg.isSummary) {
-                      const expert = allExperts.find(e => e.id === msg.expertId);
-                      if (!expert) return null;
-                      return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
-                    }
+                    // Summary card — 카드 밖에서 렌더링, 여기서는 스킵
+                    if (msg.isSummary) return null;
                     // User message
                     if (msg.expertId === '__user__') {
                       return (
@@ -6094,12 +6230,18 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       return hashColors[Math.abs(hash) % hashColors.length];
                     };
                     const bStyle = getBubbleStyle(expert.id);
+                    // 전문가별 좌/우 교차 배치
+                    const expertIdx = activeExperts.findIndex(e => e.id === expert.id);
+                    const isRight = expertIdx % 2 === 1;
                     return (
-                      <div key={msg.id} className="flex items-start gap-2.5 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-400 max-w-[80%]">
+                      <div key={msg.id} className={cn('flex items-start gap-2.5 mt-4 animate-in fade-in duration-400 max-w-[85%]',
+                        isRight ? 'flex-row-reverse ml-auto slide-in-from-right-2' : 'slide-in-from-left-2')}>
                         <ExpertAvatar expert={expert} size="sm" active={msg.isStreaming} />
-                        <div className="min-w-0 flex-1">
+                        <div className={cn('min-w-0 flex-1', isRight && 'text-right')}>
                           <span className={cn('text-[11px] font-bold', bStyle.name)}>{expert.nameKo}</span>
-                          <div className={cn('mt-1 px-3.5 py-2.5 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed', bStyle.bg, bStyle.border)}>
+                          <div className={cn('mt-1 px-3.5 py-2.5 border text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed text-left',
+                            isRight ? 'rounded-2xl rounded-tr-md' : 'rounded-2xl rounded-tl-md',
+                            bStyle.bg, bStyle.border)}>
                             {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
                           </div>
                         </div>
@@ -6108,30 +6250,38 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   })}
                     </div>
                   </div>
+                  {/* 토론 정리 — 카드 밖, 입력창과 동일 너비 */}
+                  {messages.filter(m => m.isSummary).map(msg => {
+                    const expert = allExperts.find(e => e.id === msg.expertId);
+                    if (!expert) return null;
+                    return (
+                      <div key={msg.id} className="mt-4 px-4 sm:px-6">
+                        <DiscussionMessageCard message={msg} expert={expert} variant="default" />
+                      </div>
+                    );
+                  })}
                 </div>
               ) : activeGame ? null : (
                 /* All other modes: sequential */
                 messages.map((msg, idx) => {
                   // 시뮬레이션 브리핑 — 헤더로 이동, 렌더링 스킵
                   if (msg.expertId === '__sim_briefing__') return null;
-                  // 대화 요약 카드
+                  // 대화 요약 카드 — 전체 폭, 인디고 테마
                   if (msg.expertId === '__summary__') {
                     return (
-                      <div key={msg.id} className="my-4 ml-[4%] mr-[8%] animate-in fade-in slide-in-from-bottom-2 duration-400">
-                        <div className="rounded-2xl overflow-hidden shadow-lg border border-emerald-200/60 dark:border-emerald-800/40">
-                          {/* 헤더 */}
-                          <div className="flex items-center justify-between px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500">
+                      <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-2 duration-400">
+                        <div className="rounded-2xl overflow-hidden border border-indigo-200/60 dark:border-indigo-800/40 shadow-sm">
+                          <div className="flex items-center justify-between px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500">
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4 text-white/80" />
-                              <span className="text-[14px] font-bold text-white">대화 요약</span>
+                              <span className="text-[13px] font-bold text-white">대화 요약</span>
                             </div>
                             <button onClick={() => { navigator.clipboard.writeText(msg.content); }} className="px-2.5 py-1 rounded-md text-[10px] font-medium text-white/60 hover:text-white hover:bg-white/15 transition-colors">
                               복사
                             </button>
                           </div>
-                          {/* 본문 — 섹션별 구분 */}
-                          <div className="bg-emerald-50/50 dark:bg-slate-900 px-5 py-4">
-                            <div className="text-[12.5px] leading-[1.7] text-slate-700 dark:text-slate-300 [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:text-slate-800 [&_h2]:dark:text-slate-200 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2:first-child]:mt-0 [&_ul]:pl-4 [&_ul]:space-y-1 [&_li]:text-[12px] [&_p]:mb-1">
+                          <div className="px-5 py-4 bg-white dark:bg-slate-900">
+                            <div className="text-[13px] leading-[1.8] text-slate-700 dark:text-slate-300 [&_h3]:text-[13.5px] [&_h3]:font-bold [&_h3]:text-slate-800 [&_h3]:dark:text-slate-200 [&_h3]:mt-4 [&_h3]:mb-2 [&_h3:first-child]:mt-0 [&_h2]:text-[13.5px] [&_h2]:font-bold [&_h2]:text-slate-800 [&_h2]:dark:text-slate-200 [&_h2]:mt-4 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:pl-4 [&_ul]:space-y-1 [&_li]:text-[12.5px] [&_p]:mb-1 [&_hr]:my-3 [&_hr]:border-slate-100">
                               <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} />
                             </div>
                           </div>
@@ -6337,7 +6487,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       <div key={msg.id} className={cn(isMessenger ? 'flex justify-end' : '')}>
                         <div className={cn(
                           isMessenger
-                            ? 'max-w-[60%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
+                            ? 'max-w-[75%] bg-indigo-500 dark:bg-indigo-600 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm leading-relaxed'
                             : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
                         )}>
                           <ReactMarkdownInline content={msg.content} />
@@ -6420,7 +6570,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           {!activeGame && (messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
               <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
-                <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'freetalk' || discussionMode === 'aivsuser' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px]' : 'max-w-2xl'))}>
+                <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'freetalk' || discussionMode === 'aivsuser' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[710px]' : 'max-w-2xl'))}>
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
                   <div className="flex items-center gap-3">
@@ -6499,10 +6649,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   </div>
                 )}
                 {!isDiscussing && messages.length > 0 && discussionMode === 'multi' && activeExperts.length >= 1 ? (
-                  <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
-                    <div className="px-4 py-1.5 border-b border-slate-100">
+                  <div className="rounded-2xl border-2 border-violet-300 bg-white shadow-sm overflow-hidden">
+                    <div className="px-4 py-1.5 border-b border-violet-100">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-0.5 shrink-0">
+                        <div className="flex items-center gap-1 rounded-xl bg-slate-100 border border-slate-200 p-0.5 shrink-0">
                           {([['overview', '전체'], ['detail', '상세']] as const).map(([v, label]) => (
                             <button
                               key={v}
@@ -6605,8 +6755,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                     if (!debateAnalysisContent[t.id]) requestDebateAnalysis(t.id);
                                   }
                                 }}
-                                className={cn('px-2 py-1 rounded-lg text-[9px] font-medium transition-all',
-                                  showDebateAnalysis && debateAnalysisTab === t.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100')}
+                                className={cn('px-2.5 py-1 rounded-lg text-[9px] font-medium transition-all border',
+                                  showDebateAnalysis && debateAnalysisTab === t.id ? 'bg-slate-700 text-white border-slate-700' : 'text-slate-500 border-slate-300 hover:text-slate-700 hover:border-slate-400 hover:bg-slate-50 analysis-btn-glow')}
                               >
                                 {t.icon} {t.label}
                               </button>

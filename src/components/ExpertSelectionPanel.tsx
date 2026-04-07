@@ -164,8 +164,8 @@ function AIPickerModal({ experts, selectedIds, onToggle, onClose, title, accentC
   const moreRef = useRef<HTMLDivElement>(null);
 
   const selected = experts.filter(e => selectedIds.includes(e.id));
-  const mainCats = ['전체', 'AI 모델', '전문가', '직업', '인물', '캐릭터'];
-  const moreCats = ['신화', '이념', '철학/종교', '라이프스타일', '페르소나'];
+  const mainCats = ['전체', 'AI 모델', '전문가', '직업', '인물', '캐릭터', '이념'];
+  const moreCats = ['신화', '철학/종교', '라이프스타일', '페르소나'];
   const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion', '라이프스타일': 'lifestyle', '페르소나': 'perspective' };
 
   const accentClasses = {
@@ -644,6 +644,11 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
   const ds = debateSettings!;
   const update = (patch: Partial<DebateSettings>) => onDebateSettingsChange?.({ ...ds, ...patch });
 
+  // 브레인스토밍은 항상 자동 배정 — 마운트 시 한번만 설정 (render-time side effect 대신 useEffect)
+  useEffect(() => {
+    if (!autoAssign) onAutoAssignChange?.(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div>
       <div className="space-y-3">
@@ -679,7 +684,6 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
             )}
           </div>
           <div className="px-3 py-3 bg-white">
-            {(() => { if (!autoAssign) onAutoAssignChange?.(true); return null; })()}
             <div className="flex items-center justify-center gap-1.5 py-1.5">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               <p className="text-[11px] text-slate-400">질문을 입력하면 AI가 적합한 참여자를 골라드려요</p>
@@ -2220,7 +2224,7 @@ export function ExpertSelectionPanel({
               ) : (
                 <>
                   <div className="flex flex-1 min-w-0 gap-0.5">
-                    {grouped.filter(g => !['celebrity', 'ideology', 'region', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
+                    {grouped.filter(g => !['celebrity', 'region', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = cat === 'ai';
                       const isAiDisabled = isAiTab && isStandardOrProcon;
@@ -2237,7 +2241,7 @@ export function ExpertSelectionPanel({
                     })}
                     {/* 더보기 — 호버 시 세로 드롭다운 */}
                     {(() => {
-                      const moreCats = grouped.filter(g => ['region', 'ideology', 'celebrity', 'mythology'].includes(g.cat));
+                      const moreCats = grouped.filter(g => ['region', 'celebrity', 'mythology'].includes(g.cat));
                       if (moreCats.length === 0) return null;
                       const isMoreActive = moreCats.some(g => effectiveCategory === g.cat);
                       return (
