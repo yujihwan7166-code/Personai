@@ -14,6 +14,9 @@ import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRigh
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 const CHAT_URL = '/api/chat';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
@@ -255,6 +258,7 @@ async function streamExpert({
 }
 
 const Index = () => {
+  const { user } = useAuth();
   const [experts, setExperts] = useState<Expert[]>(() => {
     try {
       const saved = localStorage.getItem('ai-debate-experts-v65');
@@ -317,6 +321,32 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingFilesRef = useRef<AttachedFile[]>([]);
+
+  const logUsageEvent = useCallback(async ({
+    mode,
+    premiumDomain,
+    status,
+    metadata,
+  }: {
+    mode: string;
+    premiumDomain?: PremiumDomainId;
+    status: 'success' | 'error';
+    metadata?: Record<string, Json | undefined>;
+  }) => {
+    if (!user?.id) return;
+
+    const { error } = await supabase.from('usage_events').insert({
+      user_id: user.id,
+      mode,
+      premium_domain: premiumDomain ?? null,
+      status,
+      metadata: (metadata ?? {}) as Json,
+    });
+
+    if (error) {
+      console.warn('[usage] failed to record usage event', error);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     localStorage.setItem('ai-debate-experts-v65', JSON.stringify(applyExpertOverrides(experts)));
@@ -566,15 +596,35 @@ const Index = () => {
       }
 
       setPremiumMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false, citations: premiumCitations } : m));
+      void logUsageEvent({
+        mode: 'premium',
+        premiumDomain: domain,
+        status: 'success',
+        metadata: {
+          historyLength: history.length,
+          questionLength: question.length,
+          citationCount: premiumCitations.length,
+        },
+      });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       setPremiumMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: `⚠️ ${errMsg}`, isStreaming: false } : m));
       setPremiumError(errMsg);
+      void logUsageEvent({
+        mode: 'premium',
+        premiumDomain: domain,
+        status: 'error',
+        metadata: {
+          historyLength: history.length,
+          questionLength: question.length,
+          error: errMsg,
+        },
+      });
     }
 
     setPremiumStreaming(false);
     setPremiumSteps([]);
-  }, [premiumCitations]);
+  }, [logUsageEvent, premiumCitations]);
 
   const handleSelectPremiumDomain = useCallback((domainId: PremiumDomainId) => {
     setSelectedPremiumDomain(domainId);
@@ -2193,6 +2243,42 @@ Rules:
     setStopRequested(false);
   }, [experts, selectedExpertIds, discussionMode, debateSettings, stakeholderSettings, activeAivsBattleConfig, selectedFramework]);
 
+  const runDiscussionWithUsage = useCallback(async (
+    question: string,
+    overrideExpertIds?: string[],
+    overrideMode?: DiscussionMode,
+    displayQuestion?: string,
+  ) => {
+    const useMode = overrideMode || discussionMode;
+    const useIds = overrideExpertIds || selectedExpertIds;
+
+    try {
+      await runDiscussion(question, overrideExpertIds, overrideMode, displayQuestion);
+      void logUsageEvent({
+        mode: useMode,
+        status: 'success',
+        metadata: {
+          expertCount: useIds.length,
+          questionLength: question.length,
+          mainMode: getMainMode(useMode),
+        },
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      void logUsageEvent({
+        mode: useMode,
+        status: 'error',
+        metadata: {
+          expertCount: useIds.length,
+          questionLength: question.length,
+          mainMode: getMainMode(useMode),
+          error: errorMessage,
+        },
+      });
+      throw error;
+    }
+  }, [discussionMode, logUsageEvent, runDiscussion, selectedExpertIds]);
+
   // Topic clarification — 토론 모드에서 주제 확인 UI 표시
   const clarifyTopic = useCallback((input: string, mode: DiscussionMode) => {
     setClarifyState({
@@ -2247,8 +2333,8 @@ Rules:
       clarifyTopic(question, useMode);
       return;
     }
-    runDiscussion(question, overrideExpertIds, overrideMode);
-  }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussion, activeAivsBattleConfig]);
+    runDiscussionWithUsage(question, overrideExpertIds, overrideMode);
+  }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussionWithUsage, activeAivsBattleConfig]);
 
   // Save to history when discussion completes — upsert로 중복 방지
   useEffect(() => {
@@ -3741,6 +3827,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
             setIsDiscussing(false);
             setActiveExpertId(undefined);
+            void logUsageEvent({
+              mode: `${discussionMode}_followup`,
+              status: 'success',
+              metadata: {
+                mainMode: mode,
+                questionLength: question.length,
+                fileCount: followUpFiles.length,
+              },
+            });
             return;
           }
         }
@@ -3798,6 +3893,16 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
       }
       setActiveExpertId(undefined);
       setIsDiscussing(false);
+      void logUsageEvent({
+        mode: 'multi_followup',
+        status: 'success',
+        metadata: {
+          mainMode: mode,
+          expertCount: targetExperts.length,
+          questionLength: question.length,
+          fileCount: followUpFiles.length,
+        },
+      });
       return;
     }
 
@@ -3857,12 +3962,22 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
       }
       setActiveExpertId(undefined);
       setIsDiscussing(false);
+      void logUsageEvent({
+        mode: `${discussionMode}_followup`,
+        status: 'success',
+        metadata: {
+          mainMode: mode,
+          expertCount: activeExperts.length,
+          questionLength: question.length,
+          fileCount: followUpFiles.length,
+        },
+      });
       return;
     }
 
     // 다른 모드: 새 토론 시작
     startDiscussion(question);
-  }, [isDiscussing, discussionMode, activeExperts, selectedMultiFollowUpExperts, messages, allExperts, proconStances, startDiscussion, stakeholderSettings, experts, debateSettings, currentQuestion, simPhaseIndex, activeAivsBattleConfig]);
+  }, [isDiscussing, discussionMode, activeExperts, selectedMultiFollowUpExperts, messages, allExperts, proconStances, startDiscussion, stakeholderSettings, experts, debateSettings, currentQuestion, simPhaseIndex, activeAivsBattleConfig, logUsageEvent]);
 
   // Export discussion as markdown
 
@@ -3888,7 +4003,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
               if (mode === 'question') {
                 setTimeout(() => {
-                  runDiscussion(content, [expertId], 'general');
+                  runDiscussionWithUsage(content, [expertId], 'general');
                 }, 100);
               } else {
                 setTimeout(() => {
@@ -4260,7 +4375,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     const enriched = `${chatClarify.originalQuestion} (${answerParts.join(', ')})`;
                     const original = chatClarify.originalQuestion;
                     setChatClarify(null);
-                    runDiscussion(enriched, undefined, undefined, original);
+                    runDiscussionWithUsage(enriched, undefined, undefined, original);
                   } else if (value !== '__custom__' && !isLast) {
                     setChatClarify({ ...chatClarify, selections: newSelections, currentPage: chatClarify.currentPage + 1 });
                   } else {
@@ -4280,7 +4395,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     const enriched = `${chatClarify.originalQuestion} (${answerParts.join(', ')})`;
                     const original = chatClarify.originalQuestion;
                     setChatClarify(null);
-                    runDiscussion(enriched, undefined, undefined, original);
+                    runDiscussionWithUsage(enriched, undefined, undefined, original);
                   } else {
                     setChatClarify({ ...chatClarify, selections: newSelections, currentPage: chatClarify.currentPage + 1 });
                   }
@@ -4289,7 +4404,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 const handleSkip = () => {
                   skipClarifyRef.current = true;
                   setChatClarify(null);
-                  runDiscussion(chatClarify.originalQuestion);
+                  runDiscussionWithUsage(chatClarify.originalQuestion);
                 };
 
                 return (
@@ -4433,7 +4548,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           const savedExpertIds = bsClarify.expertIds;
                           setBsClarify(null);
                           skipClarifyRef.current = true;
-                          runDiscussion(enriched, savedExpertIds);
+                          runDiscussionWithUsage(enriched, savedExpertIds);
                         }}
                         disabled={Object.keys(bsClarify.selections).length === 0}
                         className={cn(
@@ -4516,7 +4631,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{discussionMode === 'procon' ? '찬반 토론 명제' : '추천 주제'}</p>
                             {clarifyState.suggestions.map((s, i) => (
                               <button key={i} type="button"
-                                onClick={() => { setClarifyState(prev => ({ ...prev, show: false })); runDiscussion(s.topic); }}
+                                onClick={() => { setClarifyState(prev => ({ ...prev, show: false })); runDiscussionWithUsage(s.topic); }}
                                 className={cn(
                                   'w-full text-left px-4 py-3 rounded-xl border transition-all group/sug',
                                   'border-slate-200 hover:border-primary hover:bg-primary/5 hover:shadow-md'
