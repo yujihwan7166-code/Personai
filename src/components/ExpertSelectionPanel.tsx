@@ -341,12 +341,12 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
 
       <div className="space-y-3">
         {/* 참여자 + 설정 통합 카드 */}
-        <div className="rounded-xl border border-emerald-200 overflow-hidden flex flex-col">
+        <div className="rounded-xl border border-slate-200 overflow-hidden flex flex-col">
           {/* 헤더 */}
-          <div className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
+          <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🎯</span>
-              <span className="text-[12px] font-bold text-emerald-700">심층 토론</span>
+              <span className="text-[12px] font-semibold text-slate-700">심층 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
@@ -362,7 +362,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                       onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
                       className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'standard'
-                          ? 'bg-emerald-500 text-white shadow-sm cursor-default'
+                          ? 'bg-slate-800 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
                       )}>
                       {t.label}
@@ -414,7 +414,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           </div>
 
           {/* 설정 — 같은 카드 하단, 연한 배경으로 구분 */}
-          <div className="bg-white border-t border-emerald-100 order-2">
+          <div className="bg-white border-t border-slate-100 order-2">
             {[
               { label: '목적', options: [{ id: 'mild', l: '탐색' }, { id: 'moderate', l: '분석' }, { id: 'intense', l: '합의' }], value: ds.debateTone, onChange: (v: string) => onDebateSettingsChange?.({ ...ds, debateTone: v as DebateSettings['debateTone'] }) },
               ...(debateSettings && onDebateSettingsChange ? [
@@ -428,7 +428,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                   {row.options.map(opt => (
                     <button key={opt.id} onClick={() => row.onChange(opt.id)}
                       className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                        row.value === opt.id ? 'bg-emerald-100 text-emerald-700 font-semibold' : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
+                        row.value === opt.id ? 'bg-slate-800 text-white font-semibold' : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                       {opt.l}
                     </button>
                   ))}
@@ -438,7 +438,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
           </div>
 
           {/* 핵심 논점 — 카드 하단, 더 연한 배경 */}
-          <div className="px-4 py-3 bg-white border-t border-emerald-100 order-1">
+          <div className="px-4 py-3 bg-white border-t border-slate-100 order-1">
             <div className="text-[11px] font-semibold text-slate-600 mb-1.5">핵심 논점 <span className="text-[10px] font-normal text-slate-400">(선택)</span></div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {allTemplates.map(t => (
@@ -522,12 +522,12 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
 
       <div className="space-y-3">
         {/* 진영 배정 + 설정 통합 카드 */}
-        <div className="rounded-xl border border-violet-200 overflow-hidden">
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3.5 py-1.5 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
+          <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚖️</span>
-              <span className="text-[12px] font-bold text-violet-700">찬반 토론</span>
+              <span className="text-[12px] font-semibold text-slate-700">찬반 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
@@ -543,7 +543,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                       onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
                       className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'procon'
-                          ? 'bg-violet-500 text-white shadow-sm cursor-default'
+                          ? 'bg-slate-800 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
                       )}>
                       {t.label}
@@ -669,11 +669,11 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
     <div>
       <div className="space-y-3">
         {/* Participants */}
-        <div className="rounded-xl border border-amber-200 overflow-visible">
-          <div className="px-3.5 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 rounded-t-xl flex items-center justify-between">
+        <div className="rounded-xl border border-slate-200 overflow-visible">
+          <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 rounded-t-xl flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💡</span>
-              <span className="text-[12px] font-bold text-amber-700">브레인스토밍</span>
+              <span className="text-[12px] font-semibold text-slate-700">브레인스토밍</span>
             </div>
             {onModeChange && (
               <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
@@ -689,7 +689,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                       onClick={t.mode === 'brainstorm' ? undefined : () => onModeChange(t.mode)}
                       className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'brainstorm'
-                          ? 'bg-amber-500 text-white shadow-sm cursor-default'
+                          ? 'bg-slate-800 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
                       )}>
                       {t.label}
@@ -753,7 +753,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           {showBotPicker && <AIPickerModal experts={experts} selectedIds={selectedIds} onToggle={onToggle!} onClose={() => setShowBotPicker(false)} title="참여자 추가" accentColor="amber" maxCount={3} />}
 
           {/* 프레임워크 — 카드 안 */}
-          <div className="px-3.5 py-3 bg-white border-t border-amber-100">
+          <div className="px-3.5 py-3 bg-white border-t border-slate-100">
             <div className="text-[10px] font-semibold text-slate-600 mb-2">사고 프레임워크</div>
             <div className="grid grid-cols-5 gap-1.5">
               {THINKING_FRAMEWORKS.map((fw) => (
@@ -783,14 +783,14 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
           </div>
 
           {/* 설정 — 카드 하단 */}
-          <div className="bg-white border-t border-amber-100 rounded-b-xl">
+          <div className="bg-white border-t border-slate-100 rounded-b-xl">
             <div className="flex items-center gap-3 px-4 py-2 [&>span]:text-[12px] [&>span]:font-semibold [&>span]:text-slate-600 [&>span]:w-16 [&>span]:tracking-tight">
               <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">창의성</span>
               <div className="flex gap-1 flex-1">
                 {[{ id: 'realistic' as const, l: '현실적' }, { id: 'balanced' as const, l: '균형' }, { id: 'radical' as const, l: '창의적' }].map(opt => (
                   <button key={opt.id} onClick={() => update({ creativityLevel: opt.id })}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                      ds.creativityLevel === opt.id ? 'bg-amber-100 text-amber-700 font-semibold' : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
+                      ds.creativityLevel === opt.id ? 'bg-slate-800 text-white font-semibold' : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                     {opt.l}
                   </button>
                 ))}
@@ -841,12 +841,12 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
     <div>
       <div className="space-y-3">
         {/* 검증 위원 + 설정 통합 카드 */}
-        <div className="rounded-xl border border-amber-200 overflow-hidden">
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3.5 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
+          <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">🔍</span>
-              <span className="text-[12px] font-bold text-amber-700">아이디어 검증</span>
+              <span className="text-[12px] font-semibold text-slate-700">아이디어 검증</span>
             </div>
             {onModeChange && (
               <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5 debate-tab-glow">
@@ -909,7 +909,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
                 {pressureOptions.map(opt => (
                   <button key={opt.id} onClick={() => update({ hearingPressure: opt.id })}
                     className={cn('flex-1 px-3 py-2.5 rounded-lg text-center transition-all border',
-                      ds.hearingPressure === opt.id ? 'bg-amber-100 text-amber-700 font-semibold border-amber-200' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
+                      ds.hearingPressure === opt.id ? 'bg-slate-800 text-white font-semibold border-amber-200' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400')}>
                     <div className="text-[12px] font-bold">{opt.label}</div>
                     <div className="text-[9px] opacity-70 mt-0.5">{opt.desc}</div>
                   </button>
@@ -930,7 +930,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
                   <div className="flex gap-1 flex-1">
                     {(['short', 'medium', 'long'] as const).map(v => (
                       <button key={v} onClick={() => update({ responseLength: v })}
-                        className={cn('flex-1 py-1.5 rounded-md text-[10px] font-medium text-center transition-all', ds.responseLength === v ? 'bg-amber-100 text-amber-700 font-semibold' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
+                        className={cn('flex-1 py-1.5 rounded-md text-[10px] font-medium text-center transition-all', ds.responseLength === v ? 'bg-slate-800 text-white font-semibold' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400')}>
                         {v === 'short' ? '짧게' : v === 'medium' ? '보통' : '길게'}
                       </button>
                     ))}
@@ -985,12 +985,12 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
 
       <div className="space-y-3">
         {/* 참여자 + 설정 통합 카드 */}
-        <div className="rounded-xl border border-cyan-200 overflow-hidden">
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-50 to-sky-50 border-b border-cyan-100 flex items-center justify-between">
+          <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">💬</span>
-              <span className="text-[12px] font-bold text-cyan-700">자유 토론</span>
+              <span className="text-[12px] font-semibold text-slate-700">자유 토론</span>
             </div>
             {onModeChange && (
               <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
@@ -1006,7 +1006,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                       onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
                       className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'freetalk'
-                          ? 'bg-cyan-500 text-white shadow-sm cursor-default'
+                          ? 'bg-slate-800 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
                       )}>
                       {t.label}
@@ -1058,7 +1058,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           </div>
 
           {/* 설정 — 카드 하단 */}
-          <div className="bg-white border-t border-cyan-100">
+          <div className="bg-white border-t border-slate-100">
             {/* upgraded freetalk controls */}
             <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100/80">
               <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">최대 대화 수</span>
@@ -1070,7 +1070,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     onClick={() => onDebateSettingsChange?.({ ...ds, freetalkMessageCount: opt.v })}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
                       (ds.freetalkMessageCount || 30) === opt.v
-                        ? 'bg-cyan-100 text-cyan-700 font-semibold'
+                        ? 'bg-slate-800 text-white font-semibold'
                         : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                     {opt.l}
                   </button>
@@ -1093,7 +1093,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     onClick={() => onDebateSettingsChange?.({ ...ds, freetalkTone: opt.v })}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
                       (ds.freetalkTone || 'natural') === opt.v
-                        ? 'bg-cyan-100 text-cyan-700 font-semibold'
+                        ? 'bg-slate-800 text-white font-semibold'
                         : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                     {opt.l}
                   </button>
@@ -1108,7 +1108,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     onClick={() => onDebateSettingsChange?.({...ds, freetalkMessageCount: opt.v})}
                     className={cn('flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
                       (ds.freetalkMessageCount || 30) === opt.v
-                        ? 'bg-cyan-100 text-cyan-700 font-semibold'
+                        ? 'bg-slate-800 text-white font-semibold'
                         : 'text-slate-600 bg-slate-50 hover:bg-slate-100')}>
                     {opt.l}
                   </button>
@@ -1152,11 +1152,11 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
   return (
     <div>
       <div className="space-y-3">
-        <div className="rounded-xl border border-rose-200 overflow-hidden">
-          <div className="px-3.5 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚔️</span>
-              <span className="text-[12px] font-bold text-rose-700">AI vs 유저</span>
+              <span className="text-[12px] font-semibold text-slate-700">AI vs 유저</span>
             </div>
             {onModeChange && (
               <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
@@ -1174,7 +1174,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                       className={cn(
                         'px-2.5 py-1 rounded-md text-[9px] font-medium transition-all duration-150',
                         t.mode === 'aivsuser'
-                          ? 'bg-rose-500 text-white shadow-sm cursor-default'
+                          ? 'bg-slate-800 text-white shadow-sm cursor-default'
                           : 'text-slate-600 hover:bg-white hover:text-slate-800'
                       )}
                     >
@@ -1261,7 +1261,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             </div>
 
             {/* Participant count */}
-            <div className="border-t border-rose-100">
+            <div className="border-t border-slate-100">
               <div className="flex items-center gap-3 px-4 py-2">
                 <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
                   참여 인원
@@ -1278,7 +1278,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                       className={cn(
                         'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
                         (ds.aivsUserOpponentCount || 1) === opt.v
-                          ? 'bg-rose-100 text-rose-700 font-semibold'
+                          ? 'bg-slate-800 text-white font-semibold'
                           : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
                       )}
                     >
