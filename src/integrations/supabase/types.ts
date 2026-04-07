@@ -14,13 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_user_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          last_seen_at: string | null
+          plan: "free" | "premium" | "pro"
+          role: "user" | "admin" | "owner"
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          last_seen_at?: string | null
+          plan?: "free" | "premium" | "pro"
+          role?: "user" | "admin" | "owner"
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_seen_at?: string | null
+          plan?: "free" | "premium" | "pro"
+          role?: "user" | "admin" | "owner"
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      usage_events: {
+        Row: {
+          created_at: string
+          estimated_cost: number
+          id: string
+          metadata: Json
+          mode: string
+          premium_domain: string | null
+          status: "success" | "error"
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          estimated_cost?: number
+          id?: string
+          metadata?: Json
+          mode: string
+          premium_domain?: string | null
+          status?: "success" | "error"
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          estimated_cost?: number
+          id?: string
+          metadata?: Json
+          mode?: string
+          premium_domain?: string | null
+          status?: "success" | "error"
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: {
+          user_id?: string
+        }
+        Returns: boolean
+      }
+      touch_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

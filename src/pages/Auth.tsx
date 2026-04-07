@@ -1,11 +1,16 @@
 import { useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { MessageSquare, Mail, Lock, ArrowRight, Sparkles, Home } from 'lucide-react';
 
 const Auth = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, signOut } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,11 +18,15 @@ const Auth = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
+  const requestedNext = searchParams.get('next');
+  const nextPath = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/';
+  const redirectUrl = `${window.location.origin}${nextPath}`;
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: redirectUrl,
     });
     if (error) setError(error.message || '구글 로그인에 실패했습니다.');
     setLoading(false);
@@ -32,52 +41,86 @@ const Auth = () => {
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
+      else navigate(nextPath, { replace: true });
     } else {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: redirectUrl },
       });
       if (error) setError(error.message);
-      else setMessage('인증 이메일을 확인해주세요.');
+      else setMessage('가입 요청이 완료되었습니다. 이메일 인증이 켜져 있다면 받은 메일함을 확인해주세요.');
     }
     setLoading(false);
   };
 
+  if (user) {
+    return (
+      <div className="min-h-screen bg-[#f7f5ef] flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-white">
+            <MessageSquare className="w-7 h-7" />
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-950">이미 로그인되어 있습니다</h1>
+          <p className="mt-2 text-sm text-slate-500">{user.email}</p>
+          <div className="mt-6 flex flex-col gap-2">
+            <Button className="h-11 rounded-xl" onClick={() => navigate(nextPath, { replace: true })}>
+              계속하기
+            </Button>
+            <Button
+              className="h-11 rounded-xl"
+              onClick={() => void signOut()}
+              variant="outline"
+            >
+              다른 계정으로 로그인
+            </Button>
+            <Link className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900" to="/">
+              <Home className="w-4 h-4" />
+              홈으로 돌아가기
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#f7f5ef] flex items-center justify-center px-4">
       {/* Background decoration */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-slate-900/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg" style={{ background: 'var(--gradient-primary)' }}>
-            <MessageSquare className="w-8 h-8 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg bg-slate-950">
+            <MessageSquare className="w-8 h-8 text-white" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">
-            AI 전문가 토론
+          <h1 className="font-display text-2xl font-black text-slate-950 tracking-tight">
+            Personai 계정
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            다양한 AI와 전문가가 함께하는 토론 플랫폼
+          <p className="text-sm text-slate-500 mt-1">
+            지금은 선택형 로그인입니다. 기존 기능은 로그인 없이도 사용할 수 있어요.
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-card border border-border rounded-2xl p-8 shadow-xl shadow-primary/5">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-6 text-center">
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-xl shadow-slate-900/5">
+          <h2 className="font-display text-lg font-black text-slate-950 mb-2 text-center">
             {isLogin ? '로그인' : '회원가입'}
           </h2>
+          <p className="mb-6 text-center text-xs leading-5 text-slate-500">
+            관리자 페이지와 나중의 토큰/결제 기능을 위한 계정 기반입니다.
+          </p>
 
           {/* Google */}
           <Button
             onClick={handleGoogleLogin}
             disabled={loading}
             variant="outline"
-            className="w-full h-12 text-sm font-medium gap-3 rounded-xl border-border hover:bg-secondary/50 mb-4"
+            className="w-full h-12 text-sm font-medium gap-3 rounded-xl border-slate-200 hover:bg-slate-50 mb-4"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -90,14 +133,14 @@ const Auth = () => {
 
           <div className="flex items-center gap-3 my-5">
             <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">또는</span>
+            <span className="text-xs text-slate-400">또는</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
           {/* Email form */}
           <form onSubmit={handleEmailAuth} className="space-y-3">
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 type="email"
                 placeholder="이메일"
@@ -108,7 +151,7 @@ const Auth = () => {
               />
             </div>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 type="password"
                 placeholder="비밀번호"
@@ -126,28 +169,33 @@ const Auth = () => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 rounded-xl font-medium text-sm gap-2"
-              style={{ background: 'var(--gradient-primary)' }}
+              className="w-full h-12 rounded-xl font-bold text-sm gap-2 bg-slate-950 hover:bg-slate-800"
             >
               {isLogin ? '로그인' : '가입하기'}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-5">
+          <p className="text-center text-sm text-slate-500 mt-5">
             {isLogin ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
             <button
               onClick={() => { setIsLogin(!isLogin); setError(''); setMessage(''); }}
-              className="text-primary font-medium ml-1 hover:underline"
+              className="text-slate-950 font-bold ml-1 hover:underline"
             >
               {isLogin ? '회원가입' : '로그인'}
             </button>
           </p>
+          <div className="mt-5 text-center">
+            <Link className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700" to="/">
+              <Home className="w-3.5 h-3.5" />
+              사이트로 돌아가기
+            </Link>
+          </div>
         </div>
 
-        <div className="flex items-center justify-center gap-1.5 mt-6 text-xs text-muted-foreground">
+        <div className="flex items-center justify-center gap-1.5 mt-6 text-xs text-slate-500">
           <Sparkles className="w-3 h-3" />
-          <span>AI 전문가들과 깊이 있는 토론을 시작하세요</span>
+          <span>로그인해도 프리미엄 자문은 아직 자동으로 잠기지 않습니다</span>
         </div>
       </div>
     </div>

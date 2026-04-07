@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import {
   Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER,
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
@@ -18,6 +19,7 @@ import { AivsBattleConfigModal } from './AivsBattleConfigModal';
 import { PremiumDomainLanding } from './PremiumDomainLanding';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import {
   Target, Scale, Lightbulb,
@@ -26,7 +28,7 @@ import {
   Eye, BookOpen, Brain, Link2, Sparkles, Swords, Clapperboard,
   Users, User, Crown, Star,
   Flame, ShieldAlert, Heart, RotateCcw, Lock, Bomb, UserX, Shield, Handshake,
-  Drama, Gavel,
+  Drama, Gavel, LogOut,
 } from 'lucide-react';
 
 
@@ -127,6 +129,55 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
         checked ? 'translate-x-[18px]' : 'translate-x-0'
       )} />
     </button>
+  );
+}
+
+function AccountStatus() {
+  const { user, profile, loading, profileLoading, isAdmin, signOut } = useAuth();
+
+  if (loading || profileLoading) {
+    return (
+      <div className="hidden sm:flex items-center rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-slate-400 shadow-sm backdrop-blur">
+        계정 확인 중
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Link
+        to="/auth"
+        className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-bold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50"
+      >
+        <User className="w-3.5 h-3.5" />
+        로그인
+      </Link>
+    );
+  }
+
+  return (
+    <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-2 py-1.5 shadow-sm backdrop-blur">
+      <span className="max-w-[150px] truncate px-1 text-[11px] font-semibold text-slate-600">{user.email}</span>
+      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-slate-500">
+        {profile?.plan ?? 'free'}
+      </span>
+      {isAdmin && (
+        <Link
+          to="/admin"
+          className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white hover:bg-slate-800"
+        >
+          Admin
+        </Link>
+      )}
+      <button
+        type="button"
+        onClick={() => void signOut()}
+        className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+        aria-label="로그아웃"
+      >
+        <LogOut className="w-3.5 h-3.5" />
+      </button>
+    </div>
   );
 }
 
@@ -2075,6 +2126,9 @@ export function ExpertSelectionPanel({
           : 'opacity-100 scale-100 duration-300',
         isLeavingPlayer && transitionPhase >= 2 && 'opacity-100'
       )}>
+        <div className="absolute right-0 top-0 z-10">
+          <AccountStatus />
+        </div>
         <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
@@ -2372,11 +2426,11 @@ export function ExpertSelectionPanel({
                             </span>
                           )}
                           {/* 즐겨찾기 별 */}
-                          <button type="button" onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
-                            className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10',
+                          <span onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
+                            className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer',
                               favoriteIds.includes(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
                             {favoriteIds.includes(expert.id) ? '★' : '☆'}
-                          </button>
+                          </span>
                           <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
                           <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
                             isDisabled ? 'text-slate-300'

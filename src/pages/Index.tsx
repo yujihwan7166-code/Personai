@@ -5307,7 +5307,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           jsonStr = jsonStr.replace(/"([^"]*?)"/g, (_m, p1) => `"${p1.replace(/\n/g, '\\n').replace(/\r/g, '')}"`);
                           try { data = JSON.parse(jsonStr); } catch {
                             // 3차: 제어 문자 전부 제거
-                            jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, ' ');
+                            jsonStr = Array.from(jsonStr, (char) => {
+                              const code = char.charCodeAt(0);
+                              return code < 32 || code === 127 ? ' ' : char;
+                            }).join('');
                             try { data = JSON.parse(jsonStr); } catch { /* 최종 실패 */ }
                           }
                         }
