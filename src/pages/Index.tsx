@@ -4016,7 +4016,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 className={cn('w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left mb-1',
                                 isSelected ? 'bg-indigo-50' : 'hover:bg-slate-50')}>
                               <span className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0',
-                                isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-400')}>{oi + 1}</span>
+                                isSelected ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-400')}>{oi + 1}</span>
                               <span className={cn('text-[13px] font-medium flex-1', isSelected ? 'text-indigo-600' : 'text-slate-700')}>{opt.label}</span>
                               {isSelected && <span className="text-indigo-400 text-[14px]">→</span>}
                               </button>
@@ -4037,7 +4037,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               />
                               <button
                                 onClick={handleCustomSubmit}
-                                className="rounded-lg bg-indigo-500 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-indigo-600"
+                                className="rounded-lg bg-indigo-500 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-slate-700"
                               >
                                 확인
                               </button>
@@ -4250,7 +4250,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
                 discussionMode === 'standard' ? (
                   /* 심층토론 스테이지 헤더 */
-                  <div className="rounded-2xl overflow-hidden shadow-lg border border-indigo-200/50">
+                  <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200/80">
                     <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -4278,7 +4278,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   </div>
                 ) : discussionMode === 'procon' ? (
                   /* VS 토론 스테이지 */
-                  <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-300/50">
+                  <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200/80">
                     {/* 그라디언트 배경 */}
                     <div className="bg-gradient-to-r from-blue-700 via-slate-900 to-rose-700 px-5 py-5">
                       <div className="flex items-center">
@@ -5520,7 +5520,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 <button key={r.id} onClick={() => setStdActiveRound(ri)}
                                   className={cn('flex items-center gap-1 px-2.5 py-1 rounded-md transition-all shrink-0 text-[10px] font-semibold',
                                     isActive
-                                      ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-indigo-500 text-white shadow-sm'
+                                      ? isFinal ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm' : 'bg-slate-800 text-white shadow-sm'
                                       : r.msgs.length > 0 ? 'text-slate-500 hover:text-slate-700 hover:bg-white' : 'text-slate-300')}>
                                   <span className="text-[11px] font-black">{isFinal ? '⚖️' : `${roundNum}R`}</span>
                                   {r.label.replace(/\d라운드\s*·?\s*/, '')}
@@ -5892,7 +5892,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   if (msg.expertId === '__summary__') {
                     return (
                       <div key={msg.id} className="my-4 ml-[4%] mr-[8%] animate-in fade-in slide-in-from-bottom-2 duration-400">
-                        <div className="rounded-2xl overflow-hidden shadow-lg border border-emerald-200/60 dark:border-emerald-800/40">
+                        <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-700">
                           {/* 헤더 */}
                           <div className="flex items-center justify-between px-5 py-2.5 bg-slate-800">
                             <div className="flex items-center gap-2">
