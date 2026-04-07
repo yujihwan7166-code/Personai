@@ -925,7 +925,7 @@ ${role.focus} 관점에서 반응하세요.
       }
 
       const battleAi = BATTLE_AI_CHARACTERS.find(a => a.id === battleConfig.battleAiId) || BATTLE_AI_CHARACTERS[0];
-      const difficulty = battleConfig.battleAiId === 'savage' ? 'hard' : battleConfig.battleAiId === 'street' ? 'hard' : battleConfig.battleAiId === 'empathy' ? 'easy' : 'normal';
+      const difficulty = battleConfig.battleAiId === 'dcinside' ? 'hard' : battleConfig.battleAiId === 'toxic' ? 'hard' : battleConfig.battleAiId === 'oracle' ? 'normal' : 'normal';
       const userStance = battleConfig.userStance;
       const stanceKo = userStance === 'pro' ? '찬성' : '반대';
       const aiStanceKo = userStance === 'pro' ? '반대' : '찬성';
@@ -2637,7 +2637,7 @@ ${conversationText}`;
       const controller = new AbortController();
       abortControllerRef.current = controller;
       const battleAi = BATTLE_AI_CHARACTERS.find(a => a.id === battleConfig.battleAiId) || BATTLE_AI_CHARACTERS[0];
-      const difficulty = battleConfig.battleAiId === 'savage' ? 'hard' : battleConfig.battleAiId === 'street' ? 'hard' : battleConfig.battleAiId === 'empathy' ? 'easy' : 'normal';
+      const difficulty = battleConfig.battleAiId === 'dcinside' ? 'hard' : battleConfig.battleAiId === 'toxic' ? 'hard' : battleConfig.battleAiId === 'oracle' ? 'normal' : 'normal';
       const turnNum = aivsRound + 1;
       setAivsRound(turnNum);
 

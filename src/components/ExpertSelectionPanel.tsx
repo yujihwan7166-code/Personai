@@ -701,44 +701,12 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
             )}
           </div>
           <div className="px-3 py-3 bg-white">
-            <div className="flex items-center justify-center mb-2">
-              <AutoManualToggle auto={autoAssign || false} onChange={v => onAutoAssignChange?.(v)} />
+            {(() => { if (!autoAssign) onAutoAssignChange?.(true); return null; })()}
+            <div className="flex items-center justify-center gap-1.5 py-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <p className="text-[11px] text-slate-400">질문을 입력하면 AI가 적합한 참여자를 골라드려요</p>
             </div>
-            {autoAssign ? (
-              <div className="flex flex-col items-center gap-2 py-3">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
-                <p className="text-[11px] text-slate-400 text-center">질문을 입력하면 AI가<br/>적합한 참여자를 골라드려요</p>
-              </div>
-            ) : selectedIds.length > 0 ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-3 flex-wrap justify-center">
-                  {selectedIds.map(id => {
-                    const e = experts.find(x => x.id === id);
-                    return e ? (
-                      <button key={id} type="button" onClick={() => onToggle(id)}
-                        className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                        <div className="relative w-12 h-12 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
-                          <ExpertAvatar expert={e} size="md" />
-                          <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                            <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-semibold text-slate-600 max-w-[56px] truncate text-center group-hover/p:text-red-500 transition-colors">{e.nameKo}</span>
-                      </button>
-                    ) : null;
-                  })}
-                  {selectedIds.length < 3 && (
-                  <button type="button" onClick={() => setShowBotPicker(true)}
-                    className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:border-amber-400 hover:bg-amber-50 transition-colors">
-                      <Plus className="w-4 h-4 text-amber-300" />
-                    </div>
-                    <span className="text-[10px] text-amber-400 font-medium">추가</span>
-                  </button>
-                  )}
-                </div>
-              </div>
-            ) : (
+            {false && (
               <div className="flex flex-col items-center gap-2 py-1">
                 <button type="button" onClick={() => setShowBotPicker(true)}
                   className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
