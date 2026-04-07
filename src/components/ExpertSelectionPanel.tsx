@@ -1173,19 +1173,10 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                   );
                 })}
               </div>
-              {/* Selected AI sample line */}
-              {(() => {
-                const ai = BATTLE_AI_CHARACTERS.find(a => a.id === selectedAiId);
-                return ai ? (
-                  <div className="mt-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <p className="text-[10px] text-slate-500 italic text-center">"{ai.sampleLine}"</p>
-                  </div>
-                ) : null;
-              })()}
             </div>
 
-            {/* Battle start button OR locked state */}
-            <div className="px-3 pb-3">
+            {/* Level selector + Battle start */}
+            <div className="px-3 pb-3 space-y-2.5">
               {hasAivsBattleStarted && lockedTopic ? (
                 <div className="flex items-center justify-between gap-2 rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5">
                   <div className="flex items-center gap-2 min-w-0">

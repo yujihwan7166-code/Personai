@@ -33,7 +33,7 @@ interface Props {
 export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [userStance, setUserStance] = useState<'pro' | 'con' | 'random'>('pro');
-  const [verdictMode, setVerdictMode] = useState<'none' | 'final'>('final');
+  const [battleLevel, setBattleLevel] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -66,7 +66,7 @@ export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) 
 
   const handleConfirm = () => {
     if (!selectedTopicId) return;
-    onConfirm({ topicId: selectedTopicId, userStance, battleAiId: 'logical', verdictMode });
+    onConfirm({ topicId: selectedTopicId, userStance, battleAiId: 'logical', verdictMode: 'none' });
     onOpenChange(false);
   };
 
@@ -216,7 +216,7 @@ export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) 
           {/* 내 입장 */}
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-semibold text-slate-400">입장</span>
-            {([{ v: 'pro', l: '찬성' }, { v: 'con', l: '반대' }, { v: 'random', l: '자동' }] as const).map(opt => (
+            {([{ v: 'pro', l: '찬성' }, { v: 'con', l: '반대' }] as const).map(opt => (
               <button
                 key={opt.v}
                 onClick={() => setUserStance(opt.v)}
@@ -232,23 +232,25 @@ export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) 
             ))}
           </div>
 
-          {/* 판정 */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold text-slate-400">판정</span>
-            {([{ v: 'none', l: '없음' }, { v: 'final', l: '마지막 판정' }] as const).map(opt => (
-              <button
-                key={opt.v}
-                onClick={() => setVerdictMode(opt.v)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all',
-                  verdictMode === opt.v
-                    ? 'bg-rose-100 text-rose-700 font-semibold'
-                    : 'bg-slate-50 text-slate-500 border border-slate-200 hover:text-slate-700'
-                )}
-              >
-                {opt.l}
-              </button>
-            ))}
+          {/* 난이도 */}
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-[10px] font-semibold text-slate-400 shrink-0">난이도</span>
+            <div className="flex items-center gap-1 flex-1">
+              {([1, 2, 3, 4, 5] as const).map(lv => (
+                <button key={lv} type="button"
+                  onClick={() => setBattleLevel(lv)}
+                  className={cn(
+                    'flex-1 h-2.5 rounded-full transition-all',
+                    lv <= battleLevel
+                      ? battleLevel <= 2 ? 'bg-emerald-400' : battleLevel <= 3 ? 'bg-amber-400' : 'bg-rose-400'
+                      : 'bg-slate-200'
+                  )}
+                />
+              ))}
+            </div>
+            <span className={cn('text-[10px] font-bold shrink-0', battleLevel <= 2 ? 'text-emerald-500' : battleLevel <= 3 ? 'text-amber-500' : 'text-rose-500')}>
+              {['입문', '초급', '중급', '고급', '극한'][battleLevel - 1]}
+            </span>
           </div>
         </div>
 

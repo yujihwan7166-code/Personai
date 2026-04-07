@@ -171,6 +171,7 @@ export interface DebateSettings {
     // AI vs 유저 전용
     aivsUserOpponentCount?: 1;
     aivsUserBattleAiId?: BattleAiId;
+    aivsUserBattleLevel?: 1 | 2 | 3 | 4 | 5;
     aivsUserStance?: 'pro' | 'con' | 'random';
     aivsUserVerdict?: 'none' | 'final';
     aivsUserTopic?: string;
@@ -198,7 +199,7 @@ export interface BattleAiCharacter {
 
 export const BATTLE_AI_CHARACTERS: BattleAiCharacter[] = [
     {
-        id: 'logical', name: '논리봇', icon: '🧠', color: 'bg-blue-100 text-blue-700 border-blue-200',
+        id: 'logical', name: '논리봇', icon: '🤓', color: 'bg-blue-100 text-blue-700 border-blue-200',
         description: '감정 없이 팩트로만 압살',
         personality: '감정이 없는 논리 기계. 데이터·통계·논리 체인으로만 반박한다. 상대 주장의 전제를 하나씩 분해하며, 빈틈없는 논리로 퇴로를 차단한다. 격식체를 사용하며, 절대 감정적이 되지 않는다. 모든 주장에 "근거는?"을 묻고, 근거가 없으면 가차없이 기각한다.',
         sampleLine: '그 주장의 전제를 하나씩 검증해보죠.',
@@ -216,13 +217,13 @@ export const BATTLE_AI_CHARACTERS: BattleAiCharacter[] = [
         sampleLine: '아 그러니까 요약하면, 비 오니까 우산 없애자는 말씀이시죠?',
     },
     {
-        id: 'dcinside', name: '디시 20년차', icon: '💀', color: 'bg-red-100 text-red-700 border-red-200',
+        id: 'dcinside', name: '커뮤 20년차', icon: '💀', color: 'bg-red-100 text-red-700 border-red-200',
         description: '온갖 키배 다 겪어본 커뮤 고인물',
         personality: '인터넷 커뮤니티 20년 경력의 키배 전사. ㅋㅋ, ㅎㅎ를 자주 쓴다. 상대 논리를 조롱하면서도 핵심을 찌른다. "아직도 그렇게 생각하는 사람 있구나 ㅋㅋ"가 기본 스탠스. 비속어는 안 쓰지만, 인터넷 밈·은어를 섞어서 상대 멘탈을 흔든다. 조롱 속에 항상 논리적 포인트가 숨어 있다.',
         sampleLine: 'ㅋㅋ 이 논리 레전드다 진심으로 말하는 거 맞아?',
     },
     {
-        id: 'oracle', name: '오라클', icon: '👁️', color: 'bg-slate-200 text-slate-700 border-slate-300',
+        id: 'oracle', name: '???', icon: '👁️', color: 'bg-slate-200 text-slate-700 border-slate-300',
         description: '인류 역사급 스케일의 말빨',
         personality: '전지적 관찰자. 인류 역사·문명·철학의 스케일에서 상대의 주장을 내려다본다. "수천 년간 인류가 같은 실수를 반복해왔죠"가 기본 무기. 개인의 의견을 인류사적 맥락에 배치하면서 상대를 왜소하게 만든다. 차분하지만 압도적. 예언자 같은 어조로 말한다.',
         sampleLine: '수천 년간 인류가 같은 실수를 반복해왔죠. 당신도 지금 그렇습니다.',
@@ -309,6 +310,7 @@ export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
     freetalkTone: 'natural',
     aivsUserOpponentCount: 1,
     aivsUserBattleAiId: 'logical',
+    aivsUserBattleLevel: 2,
     aivsUserStance: 'pro',
     aivsUserVerdict: 'final',
     aivsUserTopic: '',

@@ -925,7 +925,8 @@ ${role.focus} 관점에서 반응하세요.
       }
 
       const battleAi = BATTLE_AI_CHARACTERS.find(a => a.id === battleConfig.battleAiId) || BATTLE_AI_CHARACTERS[0];
-      const difficulty = battleConfig.battleAiId === 'dcinside' ? 'hard' : battleConfig.battleAiId === 'toxic' ? 'hard' : battleConfig.battleAiId === 'oracle' ? 'normal' : 'normal';
+      const battleLevel = debateSettings.aivsUserBattleLevel || 3;
+      const difficulty = battleLevel >= 4 ? 'hard' : battleLevel <= 2 ? 'easy' : 'normal';
       const userStance = battleConfig.userStance;
       const stanceKo = userStance === 'pro' ? '찬성' : '반대';
       const aiStanceKo = userStance === 'pro' ? '반대' : '찬성';
@@ -944,12 +945,12 @@ ${role.focus} 관점에서 반응하세요.
       setAivsUserStance(userStance);
       setAivsTopic(topic);
 
-      const aiNames = aiOpponents.map(e => e.nameKo).join(', ');
+      const levelLabels = ['입문', '초급', '중급', '고급', '극한'];
       const introMessages: DiscussionMessage[] = [
         {
           id: `avsu-start-${Date.now()}`,
           expertId: '__round__',
-          content: `⚔️ **${topic}**\n\n유저(${stanceKo}) vs ${aiNames}(${aiStanceKo}) · ${difficulty === 'easy' ? '😊 친근' : difficulty === 'hard' ? '🔥 공격적' : '🤝 논리적'} · ${verdictMode === 'final' ? '🏁 마지막 승패 판정' : '✍️ 자유 대결'}\n\n주제 설명: ${battleConfig.topicDescription}`
+          content: `⚔️ **${topic}**\n\n유저(${stanceKo}) vs ${battleAi.icon} ${battleAi.name}(${aiStanceKo}) · 난이도 ${levelLabels[battleLevel - 1]}\n\n${battleConfig.topicDescription}`
         },
       ];
 
@@ -964,7 +965,15 @@ ${role.focus} 관점에서 반응하세요.
 
       setMessages(introMessages);
 
-      const difficultyDesc = battleAi.personality;
+      const levelDescs: Record<number, string> = {
+        1: '\n강도: 입문. 친절하게 반론. 상대 주장의 좋은 점을 인정하면서 부드럽게 다른 관점을 제시. 초보자도 편하게 대응 가능.',
+        2: '\n강도: 초급. 예의 바르지만 논리적으로 반박. 허점을 지적하되 상대가 배울 수 있게.',
+        3: '\n강도: 중급. 날카롭게 반론. 상대 약점을 정확히 파고들되 대응할 여지는 남겨둬.',
+        4: '\n강도: 고급. 공격적으로 반박. 상대 논리를 다각도로 해체하고 퇴로를 차단해.',
+        5: '\n강도: 극한. 전력을 다해 싸워. 한 치의 양보도 없이. 상대가 반박할 틈을 주지 마. 모든 허점을 파고들어.',
+      };
+      const levelDesc = levelDescs[battleLevel] || levelDescs[3];
+      const difficultyDesc = battleAi.personality + levelDesc;
 
       // ── AI Provocation Opening (no user argument yet) ──
       if (!openingArgument) {
@@ -2637,7 +2646,8 @@ ${conversationText}`;
       const controller = new AbortController();
       abortControllerRef.current = controller;
       const battleAi = BATTLE_AI_CHARACTERS.find(a => a.id === battleConfig.battleAiId) || BATTLE_AI_CHARACTERS[0];
-      const difficulty = battleConfig.battleAiId === 'dcinside' ? 'hard' : battleConfig.battleAiId === 'toxic' ? 'hard' : battleConfig.battleAiId === 'oracle' ? 'normal' : 'normal';
+      const battleLevel = debateSettings.aivsUserBattleLevel || 3;
+      const difficulty = battleLevel >= 4 ? 'hard' : battleLevel <= 2 ? 'easy' : 'normal';
       const turnNum = aivsRound + 1;
       setAivsRound(turnNum);
 
@@ -2654,7 +2664,15 @@ ${conversationText}`;
       const topic = battleConfig.topicTitle;
       const stanceKo = battleConfig.userStance === 'pro' ? '찬성' : '반대';
       const aiStanceKo = battleConfig.userStance === 'pro' ? '반대' : '찬성';
-      const difficultyDesc = battleAi.personality;
+      const levelDescs: Record<number, string> = {
+        1: '\n강도: 입문. 친절하게 반론. 상대 주장의 좋은 점을 인정하면서 부드럽게 다른 관점을 제시. 초보자도 편하게 대응 가능.',
+        2: '\n강도: 초급. 예의 바르지만 논리적으로 반박. 허점을 지적하되 상대가 배울 수 있게.',
+        3: '\n강도: 중급. 날카롭게 반론. 상대 약점을 정확히 파고들되 대응할 여지는 남겨둬.',
+        4: '\n강도: 고급. 공격적으로 반박. 상대 논리를 다각도로 해체하고 퇴로를 차단해.',
+        5: '\n강도: 극한. 전력을 다해 싸워. 한 치의 양보도 없이. 상대가 반박할 틈을 주지 마. 모든 허점을 파고들어.',
+      };
+      const levelDesc = levelDescs[battleLevel] || levelDescs[3];
+      const difficultyDesc = battleAi.personality + levelDesc;
       const opponentCount = battleConfig.opponentCount;
 
       // 선택된 AI 상대들 (위에서 클릭한 AI)
@@ -4261,6 +4279,48 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   </button>
                 )
               )}
+
+              {/* Keyboard Battle header */}
+              {discussionMode === 'aivsuser' && messages.length > 0 && activeAivsBattleConfig && (() => {
+                const bAi = BATTLE_AI_CHARACTERS.find(a => a.id === activeAivsBattleConfig.battleAiId) || BATTLE_AI_CHARACTERS[0];
+                const bLevel = debateSettings.aivsUserBattleLevel || 3;
+                const bLevelLabel = ['입문', '초급', '중급', '고급', '극한'][bLevel - 1];
+                const bStanceKo = activeAivsBattleConfig.userStance === 'pro' ? '찬성' : '반대';
+                const bAiStanceKo = activeAivsBattleConfig.userStance === 'pro' ? '반대' : '찬성';
+                return (
+                  <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-300/50">
+                    <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 px-5 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="w-11 h-11 rounded-full bg-blue-500/20 flex items-center justify-center text-[20px] ring-2 ring-blue-400/50">🙋</div>
+                            <span className="text-[9px] font-bold text-blue-300">나</span>
+                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-blue-500/30 text-blue-200 font-bold">{bStanceKo}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                            <span className="text-[16px] font-black text-white">VS</span>
+                          </div>
+                          <span className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded', bLevel <= 2 ? 'bg-emerald-500/30 text-emerald-200' : bLevel <= 3 ? 'bg-amber-500/30 text-amber-200' : 'bg-rose-500/30 text-rose-200')}>
+                            {bLevelLabel}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="w-11 h-11 rounded-full bg-rose-500/20 flex items-center justify-center text-[20px] ring-2 ring-rose-400/50">{bAi.icon}</div>
+                            <span className="text-[9px] font-bold text-rose-300">{bAi.name}</span>
+                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-200 font-bold">{bAiStanceKo}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-slate-800 px-5 py-2 text-center">
+                      <span className="text-[12px] font-medium text-slate-300">{activeAivsBattleConfig.topicTitle}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Participants display — VS layout for procon, normal for others */}
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
@@ -6066,27 +6126,27 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     const isUser = msg.expertId === '__user__';
                     const expert = isUser ? null : allExperts.find(e => e.id === msg.expertId);
                     if (!isUser && !expert) return null;
-                    // 첫 발화가 아니면 전부 ㄴ 들여쓰기
                     const isFirstPost = idx === 0 || (idx === 1 && messages[0].expertId === '__round__');
                     const isReply = !isFirstPost;
                     const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '';
+                    const bAiChar = activeAivsBattleConfig ? BATTLE_AI_CHARACTERS.find(a => a.id === activeAivsBattleConfig.battleAiId) : null;
 
                     return (
                       <div key={msg.id} className="animate-in fade-in duration-200 border-b border-slate-100">
                         <div className={cn('flex py-2 px-3', isReply ? 'pl-8' : 'pl-3')}>
-                          {/* ㄴ reply indicator */}
                           {isReply && (
                             <span className="text-slate-300 text-[13px] font-mono select-none shrink-0 mr-2 mt-0.5">ㄴ</span>
                           )}
-                          {/* Nickname */}
                           <div className="shrink-0 w-[80px] pt-0.5">
                             {isUser ? (
                               <span className="text-[12px] font-bold text-blue-600">나</span>
+                            ) : bAiChar ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[12px] shrink-0">{bAiChar.icon}</span>
+                                <span className="text-[12px] font-bold text-rose-600 truncate">{bAiChar.name}</span>
+                              </div>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <div className="w-4 h-4 rounded-full overflow-hidden shrink-0">
-                                  <ExpertAvatar expert={expert!} size="xs" />
-                                </div>
                                 <span className="text-[12px] font-bold text-rose-600 truncate">{expert!.nameKo}</span>
                               </div>
                             )}
@@ -6214,7 +6274,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     {activeExpert && (
                       <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
                         <ExpertAvatar expert={activeExpert} size="xs" active />
-                        <span className="text-[11px] font-medium text-slate-500">{(discussionMode === 'stakeholder' && messages.find(m => m.isStreaming && m.simRoleName)?.simRoleName) || activeExpert.nameKo} 응답 중</span>
+                        <span className="text-[11px] font-medium text-slate-500">{discussionMode === 'aivsuser' && activeAivsBattleConfig ? (BATTLE_AI_CHARACTERS.find(a => a.id === activeAivsBattleConfig.battleAiId)?.name || activeExpert.nameKo) : (discussionMode === 'stakeholder' && messages.find(m => m.isStreaming && m.simRoleName)?.simRoleName) || activeExpert.nameKo} 응답 중</span>
                         <span className="flex items-center gap-0.5">
                           <span className="typing-dot w-1 h-1 rounded-full bg-primary/50" />
                           <span className="typing-dot w-1 h-1 rounded-full bg-primary/50" />
