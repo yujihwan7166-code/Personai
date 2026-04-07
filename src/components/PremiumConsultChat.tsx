@@ -126,12 +126,12 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
         <div className={cn('flex-1 flex flex-col min-w-0', hasCitations && showSourcePanel ? 'md:w-[65%]' : 'w-full')}>
           {/* Messages — scrollable */}
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-3xl mx-auto px-6 py-6 space-y-6">
+            <div className="max-w-[700px] mx-auto px-6 py-6 space-y-6">
 
               {/* Empty state */}
               {messages.length === 0 && steps.length === 0 && (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-                  <h3 className="text-[26px] font-semibold text-slate-800 dark:text-slate-200 tracking-[-0.03em]">
+                  <h3 className="text-[22px] font-semibold text-slate-800 dark:text-slate-200 tracking-[-0.03em]">
                     {({
                       law: '법률 질문은 무엇이든 물어보세요.',
                       drug: '의약품·건강 궁금증을 물어보세요.',
@@ -141,7 +141,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                       labor: '노동·근로 문제를 물어보세요.',
                     } as Record<string, string>)[domainId] || `${domain.name}에게 물어보세요.`}
                   </h3>
-                  <p className="text-[13px] text-slate-400 mt-3 flex items-center justify-center gap-1.5 flex-wrap">
+                  <p className="text-[11px] text-slate-400 mt-2 flex items-center justify-center gap-1.5 flex-wrap">
                     <span className="relative flex h-1.5 w-1.5 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-50" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
@@ -155,18 +155,18 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                       labor: '근로기준법 기반 권리 분석 · 임금·퇴직금 정밀 산출 · 구제절차 안내',
                     } as Record<string, string>)[domainId] || `${domain.apiSource.name} 실시간 연동 · 멀티스텝 근거 추론 · 구조화 분석`}
                   </p>
-                  <div className="grid grid-cols-3 gap-2.5 w-full max-w-3xl mt-6">
+                  <div className="grid grid-cols-3 gap-2 w-full max-w-[700px] mt-5">
                     {(domain.sampleCases || domain.sampleQuestions.map(q => ({ title: q, desc: '', query: q }))).map((c, i) => {
                       const item = typeof c === 'string' ? { title: c, desc: '', query: c } : c;
                       return (
                         <button
                           key={i}
                           onClick={() => handleSampleClick(item.query)}
-                          className="text-left px-4 py-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all group"
+                          className="text-left px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all group"
                         >
-                          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">{item.title}</p>
+                          <p className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">{item.title}</p>
                           {item.desc && (
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-[1.6] line-clamp-3">{item.desc}</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-[1.6] line-clamp-3">{item.desc}</p>
                           )}
                         </button>
                       );
@@ -315,7 +315,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
 
           {/* Input — bottom fixed, general chat style */}
           <div className="shrink-0 bg-white dark:bg-[#0f1117]">
-            <div className="max-w-3xl mx-auto px-6 py-3">
+            <div className="max-w-[700px] mx-auto px-6 py-3">
               <div className="rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
                 <textarea
                   ref={inputRef}
