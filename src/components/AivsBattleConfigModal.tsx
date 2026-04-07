@@ -33,7 +33,6 @@ interface Props {
 export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [userStance, setUserStance] = useState<'pro' | 'con' | 'random'>('pro');
-  const [battleTone, setBattleTone] = useState<'easy' | 'normal' | 'hard'>('normal');
   const [verdictMode, setVerdictMode] = useState<'none' | 'final'>('final');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -67,7 +66,7 @@ export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) 
 
   const handleConfirm = () => {
     if (!selectedTopicId) return;
-    onConfirm({ topicId: selectedTopicId, userStance, battleTone, verdictMode });
+    onConfirm({ topicId: selectedTopicId, userStance, battleAiId: 'logical', verdictMode });
     onOpenChange(false);
   };
 
@@ -224,25 +223,6 @@ export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) 
                 className={cn(
                   'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all',
                   userStance === opt.v
-                    ? 'bg-rose-100 text-rose-700 font-semibold'
-                    : 'bg-slate-50 text-slate-500 border border-slate-200 hover:text-slate-700'
-                )}
-              >
-                {opt.l}
-              </button>
-            ))}
-          </div>
-
-          {/* 말투 */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold text-slate-400">말투</span>
-            {([{ v: 'easy', l: '😊 친근' }, { v: 'normal', l: '🤝 논리적' }, { v: 'hard', l: '🔥 공격적' }] as const).map(opt => (
-              <button
-                key={opt.v}
-                onClick={() => setBattleTone(opt.v)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all',
-                  battleTone === opt.v
                     ? 'bg-rose-100 text-rose-700 font-semibold'
                     : 'bg-slate-50 text-slate-500 border border-slate-200 hover:text-slate-700'
                 )}

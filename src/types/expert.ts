@@ -106,7 +106,7 @@ export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon
     brainstorm: { label: '브레인스토밍', icon: '💡', description: '자유롭게 아이디어를 쏟아내고 발전' },
     hearing: { label: '아이디어 검증', icon: '🔍', description: '전문가들이 날카로운 질문으로 검증' },
     freetalk: { label: '자유 토론', icon: '💬', description: 'AI들이 자유롭게 대화합니다' },
-    aivsuser: { label: 'AI vs 유저', icon: '⚔️', description: 'AI와 직접 1:1~3:1 토론' },
+    aivsuser: { label: '키보드배틀', icon: '⚔️', description: 'AI와 직접 1:1~3:1 토론' },
 };
 
 // Flat DiscussionMode for backward compat in logic
@@ -133,7 +133,7 @@ export const DISCUSSION_MODE_LABELS: Record<string, { label: string; icon: strin
     brainstorm: { label: '브레인스토밍', icon: '💡', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
     hearing: { label: '아이디어 검증', icon: '🔍', description: '전문가 검증', detail: '전문가들이 각자 전문 분야에서 날카로운 질문으로 아이디어를 검증합니다.' },
     freetalk: { label: '자유 토론', icon: '💬', description: 'AI 단톡방', detail: 'AI들이 짧게 대화하며 자유롭게 의견을 나눕니다.' },
-    aivsuser: { label: 'AI vs 유저', icon: '⚔️', description: 'AI와 직접 토론', detail: 'AI와 1:1~3:1로 직접 토론하고 판정관이 승패를 가립니다.' },
+    aivsuser: { label: '키보드배틀', icon: '⚔️', description: 'AI와 직접 토론', detail: 'AI와 1:1~3:1로 직접 토론하고 판정관이 승패를 가립니다.' },
     stakeholder: { label: '스테이크홀더', icon: '🎭', description: '이해관계자 시뮬레이션', detail: '이해관계자 관점에서 반응을 시뮬레이션하여 다각적 피드백을 받습니다.' },
     creative: { label: '창의적 토론', icon: '🎨', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },
     endless: { label: '끝장 토론', icon: '♾️', description: '합의까지', detail: '최대 5라운드, 합의에 도달할 때까지 토론합니다.' },
@@ -169,8 +169,8 @@ export interface DebateSettings {
     freetalkMessageCount?: number;
     freetalkTone?: 'ultra-polite' | 'polite' | 'natural' | 'direct' | 'aggressive';
     // AI vs 유저 전용
-    aivsUserOpponentCount?: 1 | 2 | 3;
-    aivsUserDifficulty?: 'easy' | 'normal' | 'hard';
+    aivsUserOpponentCount?: 1;
+    aivsUserBattleAiId?: BattleAiId;
     aivsUserStance?: 'pro' | 'con' | 'random';
     aivsUserVerdict?: 'none' | 'final';
     aivsUserTopic?: string;
@@ -184,10 +184,55 @@ export interface AivsUserTopicPreset {
     featured?: boolean;
 }
 
+export type BattleAiId = 'logical' | 'street' | 'devil' | 'empathy' | 'savage';
+
+export interface BattleAiCharacter {
+    id: BattleAiId;
+    name: string;
+    icon: string;
+    description: string;
+    personality: string;
+    sampleLine: string;
+    color: string;
+}
+
+export const BATTLE_AI_CHARACTERS: BattleAiCharacter[] = [
+    {
+        id: 'logical', name: '논리봇', icon: '🧠', color: 'bg-blue-100 text-blue-700 border-blue-200',
+        description: '데이터와 논리로 차분하게 압박',
+        personality: '차분한 분석가. 감정을 배제하고 데이터·통계·논리 체인으로만 반박한다. 상대 주장의 전제를 하나씩 분해하며, 빈틈없는 논리로 조여온다. 격식체를 사용하며, 절대 감정적이 되지 않는다.',
+        sampleLine: '그 주장의 전제를 하나씩 검증해보죠.',
+    },
+    {
+        id: 'street', name: '현실봇', icon: '🔥', color: 'bg-orange-100 text-orange-700 border-orange-200',
+        description: '현실 사례로 직설적으로 반박',
+        personality: '현실주의자. 이론보다 실제 사례를 중시한다. "그래서 현실에서 되냐?"가 핵심 무기. 직설적이고 거침없지만, 비속어는 쓰지 않는다. 반말과 존댓말을 섞어 쓰며, 실제 뉴스·사건·데이터를 인용한다.',
+        sampleLine: '이론은 그럴듯한데, 실제로 해본 나라 있어요?',
+    },
+    {
+        id: 'devil', name: '악마의 변호인', icon: '😈', color: 'bg-violet-100 text-violet-700 border-violet-200',
+        description: '예상 못한 각도로 허점 공격',
+        personality: '의도적 반대론자. 어떤 주장이든 반대편에 선다. 남들이 생각 못한 각도에서 공격하며, "한 가지만 물어볼게요"로 핵심 허점을 찌른다. 소크라테스식 질문법을 사용하며, 상대가 스스로 모순을 깨닫게 유도한다.',
+        sampleLine: '한 가지만 물어볼게요. 그게 왜 지금이어야 하죠?',
+    },
+    {
+        id: 'empathy', name: '감성봇', icon: '💜', color: 'bg-pink-100 text-pink-700 border-pink-200',
+        description: '사람과 감정 중심으로 날카롭게 질문',
+        personality: '공감형 토론가. 논리도 쓰지만, 핵심 무기는 "그래서 사람은 어떻게 되는데?"이다. 정책·기술·경제 주제에서도 인간적 영향을 파고든다. 부드럽지만 날카로운 질문으로 상대를 곤란하게 만든다.',
+        sampleLine: '논리적으로는 맞지만, 그 정책으로 피해 보는 사람은요?',
+    },
+    {
+        id: 'savage', name: '키배봇', icon: '⚡', color: 'bg-red-100 text-red-700 border-red-200',
+        description: '초공격적 인터넷 키보드배틀 스타일',
+        personality: '디씨 키배 전사. 초공격적이고 비꼬는 스타일. ㅋㅋ, ㅎㅎ를 자주 쓰며, 상대 논리를 조롱한다. 하지만 비속어는 쓰지 않고, 조롱 속에도 논리적 포인트가 있다. 상대가 화나게 만들어서 실수를 유도한다.',
+        sampleLine: 'ㅋㅋ 그걸 근거라고 들고온 거야? 진심?',
+    },
+];
+
 export interface AivsBattleDraft {
     topicId: string;
     userStance: 'pro' | 'con' | 'random';
-    battleTone: 'easy' | 'normal' | 'hard';
+    battleAiId: BattleAiId;
     verdictMode: 'none' | 'final';
 }
 
@@ -196,9 +241,9 @@ export interface ActiveAivsBattleConfig {
     topicTitle: string;
     topicDescription: string;
     userStance: 'pro' | 'con';
-    battleTone: 'easy' | 'normal' | 'hard';
+    battleAiId: BattleAiId;
     verdictMode: 'none' | 'final';
-    opponentCount: 1 | 2 | 3;
+    opponentCount: 1;
     opponentIds: string[];
 }
 
@@ -263,7 +308,7 @@ export const DEFAULT_DEBATE_SETTINGS: DebateSettings = {
     freetalkMessageCount: 30,
     freetalkTone: 'natural',
     aivsUserOpponentCount: 1,
-    aivsUserDifficulty: 'normal',
+    aivsUserBattleAiId: 'logical',
     aivsUserStance: 'pro',
     aivsUserVerdict: 'final',
     aivsUserTopic: '',
@@ -485,6 +530,8 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
             { title: '소멸시효 확인', desc: '3년 전에 빌려준 돈을 아직 못 받았습니다. 차용증은 있지만 시간이 많이 지나서 청구가 가능한지 소멸시효가 걱정됩니다.', query: '3년 전 지인에게 빌려준 돈을 못 받고 있습니다. 차용증이 있을 때 대여금 반환 청구의 소멸시효와 시효 중단 방법을 알려주세요.' },
             { title: '계약 해지 분쟁', desc: '온라인으로 구매한 서비스의 위약금이 부당하게 높습니다. 약관에 명시되어 있긴 하지만 소비자 보호법상 다툴 여지가 있는지 검토가 필요합니다.', query: '온라인 서비스 해지 시 위약금이 결제액의 50%입니다. 약관에 명시되어 있어도 소비자보호법상 부당한 위약금으로 다툴 수 있나요?' },
             { title: '명예훼손 대응', desc: '온라인 커뮤니티에서 사실이 아닌 내용으로 지속적인 비방을 당하고 있습니다. 게시글 삭제와 민·형사상 대응 방법이 궁금합니다.', query: '온라인 커뮤니티에서 허위 사실로 지속적인 비방을 당하고 있습니다. 게시글 삭제 요청 방법과 명예훼손 고소 절차를 알려주세요.' },
+            { title: '임대차 분쟁', desc: '임대인이 원상복구 비용을 과도하게 청구하고 있습니다. 보증금에서 공제할 수 있는 범위와 대응 방법이 궁금합니다.', query: '퇴거 시 임대인이 원상복구 비용을 과도하게 청구합니다. 보증금 공제 범위와 부당 청구에 대한 법적 대응 방법을 알려주세요.' },
+            { title: '교통사고 과실 비율', desc: '교차로에서 접촉 사고가 발생했는데 상대방과 과실 비율에 대해 의견이 다릅니다. 판례 기준이 궁금합니다.', query: '교차로 접촉 사고에서 과실 비율 산정 기준과 유사 판례를 분석해주세요.' },
         ],
         useCases: [
             { icon: '🔍', title: '판례 기반 법률 리서치', desc: '유사 판례를 검색하고 쟁점별 비교 분석' },
@@ -521,6 +568,8 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
             { title: '증상별 일반의약품', desc: '병원에 가기 전 약국에서 살 수 있는 약 중에 현재 증상에 맞는 것이 무엇인지, 성분과 효능을 비교하고 싶습니다.', query: '두통과 근육통이 동시에 있을 때 약국에서 구매 가능한 일반의약품 중 가장 적합한 것을 성분 기준으로 비교해주세요.' },
             { title: '복용법 최적화', desc: '같은 약이라도 복용 시간이나 음식과의 조합에 따라 효과가 달라질 수 있는지 정확한 복용 가이드가 필요합니다.', query: '철분제와 칼슘제를 같이 먹으면 흡수가 떨어진다고 하는데, 최적의 복용 시간대와 간격을 알려주세요.' },
             { title: '만성질환 약물 관리', desc: '장기간 복용해야 하는 약의 부작용 모니터링과 정기 검사 항목이 궁금합니다. 간 수치나 신장 기능에 영향이 있는지 확인하고 싶습니다.', query: '고지혈증약(스타틴)을 1년째 복용 중입니다. 장기 복용 시 주의할 부작용과 정기적으로 확인해야 할 검사 항목을 알려주세요.' },
+            { title: '소아 해열제 선택', desc: '아이가 열이 나는데 해열제 종류별 차이와 체중에 맞는 용량이 궁금합니다. 교차 복용 시 주의사항도 확인하고 싶습니다.', query: '만 4세 아이 체중 18kg입니다. 해열제 종류별 용량과 교차 복용 방법을 알려주세요.' },
+            { title: '영양제 흡수 최적화', desc: '여러 영양제를 복용 중인데 함께 먹으면 흡수가 떨어지는 조합이 있는지 확인하고 싶습니다.', query: '비타민C, 철분, 칼슘, 마그네슘을 복용 중입니다. 최적의 복용 시간과 조합을 알려주세요.' },
         ],
         useCases: [
             { icon: '💊', title: '복수 약물 병용 검토', desc: '약물 간 상호작용과 병용 금기를 확인' },

@@ -1,11 +1,11 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
+import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { applyExpertOverrides } from '@/data/expertOverrides';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
-import { RightMemoSidebar } from '@/components/RightMemoSidebar';
+// RightMemoSidebar removed
 import { DiscussionRecord, upsertDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
@@ -457,8 +457,8 @@ const Index = () => {
 
     setDebateSettings(prev => ({
       ...prev,
-      aivsUserOpponentCount: opponentCount,
-      aivsUserDifficulty: draft.battleTone,
+      aivsUserOpponentCount: 1,
+      aivsUserBattleAiId: draft.battleAiId,
       aivsUserStance: draft.userStance,
       aivsUserVerdict: draft.verdictMode,
       aivsUserTopic: topic.title,
@@ -468,9 +468,9 @@ const Index = () => {
       topicTitle: topic.title,
       topicDescription: topic.description,
       userStance: resolvedStance,
-      battleTone: draft.battleTone,
+      battleAiId: draft.battleAiId,
       verdictMode: draft.verdictMode,
-      opponentCount,
+      opponentCount: 1,
       opponentIds,
     });
     setHasAivsBattleStarted(true);
@@ -924,7 +924,8 @@ ${role.focus} 관점에서 반응하세요.
         return;
       }
 
-      const difficulty = battleConfig.battleTone;
+      const battleAi = BATTLE_AI_CHARACTERS.find(a => a.id === battleConfig.battleAiId) || BATTLE_AI_CHARACTERS[0];
+      const difficulty = battleConfig.battleAiId === 'savage' ? 'hard' : battleConfig.battleAiId === 'street' ? 'hard' : battleConfig.battleAiId === 'empathy' ? 'easy' : 'normal';
       const userStance = battleConfig.userStance;
       const stanceKo = userStance === 'pro' ? '찬성' : '반대';
       const aiStanceKo = userStance === 'pro' ? '반대' : '찬성';
@@ -963,11 +964,7 @@ ${role.focus} 관점에서 반응하세요.
 
       setMessages(introMessages);
 
-      const difficultyDesc = difficulty === 'easy'
-        ? '친근하고 편안한 말투로 대화해. 유저의 좋은 점은 인정하면서 부드럽게 반론해.'
-        : difficulty === 'hard'
-          ? '공격적이고 날카롭게 말해. 유저의 모든 허점을 파고들고, 비꼬기도 해.'
-          : '논리적이고 차분한 말투로 반론해. 근거 기반으로 약점을 지적하되 공정하게.';
+      const difficultyDesc = battleAi.personality;
 
       // ── AI Provocation Opening (no user argument yet) ──
       if (!openingArgument) {
@@ -2124,7 +2121,7 @@ Rules:
       return;
     }
     const debateModes = ['standard', 'procon', 'brainstorm', 'hearing', 'freetalk', 'aivsuser'];
-    if (debateModes.includes(useMode) && useMode !== 'brainstorm' && useMode !== 'freetalk' && useMode !== 'aivsuser') {
+    if (debateModes.includes(useMode) && useMode !== 'brainstorm' && useMode !== 'aivsuser') {
       clarifyTopic(question, useMode);
       return;
     }
@@ -2639,7 +2636,8 @@ ${conversationText}`;
       setIsDiscussing(true);
       const controller = new AbortController();
       abortControllerRef.current = controller;
-      const difficulty = battleConfig.battleTone;
+      const battleAi = BATTLE_AI_CHARACTERS.find(a => a.id === battleConfig.battleAiId) || BATTLE_AI_CHARACTERS[0];
+      const difficulty = battleConfig.battleAiId === 'savage' ? 'hard' : battleConfig.battleAiId === 'street' ? 'hard' : battleConfig.battleAiId === 'empathy' ? 'easy' : 'normal';
       const turnNum = aivsRound + 1;
       setAivsRound(turnNum);
 
@@ -2656,7 +2654,7 @@ ${conversationText}`;
       const topic = battleConfig.topicTitle;
       const stanceKo = battleConfig.userStance === 'pro' ? '찬성' : '반대';
       const aiStanceKo = battleConfig.userStance === 'pro' ? '반대' : '찬성';
-      const difficultyDesc = difficulty === 'easy' ? '친근하고 편안한 말투로 대화해. 유저의 좋은 점은 인정하면서 부드럽게 반론해.' : difficulty === 'hard' ? '공격적이고 날카롭게 말해. 유저의 모든 허점을 파고들고, 비꼬기도 해.' : '논리적이고 차분한 말투로 반론해. 근거 기반으로 약점을 지적하되 공정하게.';
+      const difficultyDesc = battleAi.personality;
       const opponentCount = battleConfig.opponentCount;
 
       // 선택된 AI 상대들 (위에서 클릭한 AI)
@@ -3875,7 +3873,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[720px] space-y-3' : 'max-w-3xl space-y-2.5')
                   : (discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'stakeholder') ? 'max-w-4xl space-y-3'
                   : (discussionMode === 'multi' && messages.length > 0) ? 'max-w-[960px] space-y-3'
-                  : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px] space-y-3' : 'max-w-2xl space-y-3')
+                  : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px] space-y-1' : 'max-w-2xl space-y-1')
               )}>
 
               {selectable && (
@@ -4248,7 +4246,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 getMainMode(discussionMode) === 'general' ? (
                   /* 단일 AI — 오른쪽 말풍선 */
                   <div className="flex justify-end">
-                    <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                    <div className="max-w-[75%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
                       <p className="text-[13px] leading-relaxed">{currentQuestion}</p>
                     </div>
                   </div>
@@ -4381,7 +4379,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         <div className="space-y-3">
                           {currentQuestion && (
                             <div className="flex justify-end">
-                              <div className="max-w-[75%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+                              <div className="max-w-[75%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
                                 <p className="text-[13px] leading-relaxed line-clamp-3">{currentQuestion}</p>
                               </div>
                             </div>
@@ -4396,9 +4394,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             const allMsgs = getExpertAllMsgs(expert.id);
                             if (!allMsgs.length) return null;
                             const gradients = [
-                              'from-blue-400 to-blue-500', 'from-emerald-400 to-emerald-500',
-                              'from-violet-400 to-violet-500', 'from-amber-400 to-amber-500',
-                              'from-rose-400 to-rose-500', 'from-cyan-400 to-cyan-500'
+                              'from-blue-100 to-blue-200', 'from-emerald-100 to-emerald-200',
+                              'from-violet-100 to-violet-200', 'from-amber-100 to-amber-200',
+                              'from-rose-100 to-rose-200', 'from-cyan-100 to-cyan-200'
                             ];
                             const gradient = gradients[ei % gradients.length];
                             return (
@@ -4406,13 +4404,13 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 {/* 헤더 */}
                                 <button type="button"
                                   onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
-                                  className={cn('w-full flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r text-white hover:brightness-110 transition-all', gradient)}>
+                                  className={cn('w-full flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r hover:brightness-95 transition-all', gradient)}>
                                   <ExpertAvatar expert={expert} size="xs" active={allMsgs.some(m => m.isStreaming)} />
                                   <div className="flex-1 min-w-0 text-left">
-                                    <span className="text-[12px] font-bold">{expert.nameKo}</span>
-                                    <span className="text-[9px] text-white/60 ml-1.5">{allMsgs.length > 1 ? `${allMsgs.length}개 답변` : expert.description}</span>
+                                    <span className="text-[12px] font-bold text-slate-800">{expert.nameKo}</span>
+                                    <span className="text-[9px] text-slate-500 ml-1.5">{allMsgs.length > 1 ? `${allMsgs.length}개 답변` : expert.description}</span>
                                   </div>
-                                  {allMsgs.some(m => m.isStreaming) && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" /></span>}
+                                  {allMsgs.some(m => m.isStreaming) && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /></span>}
                                 </button>
                                 {/* 응답 카드들 — 질문+답변 쌓임 */}
                                 <div className="divide-y divide-slate-100">
@@ -4480,9 +4478,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         };
                         // Overview 카드와 동일한 컬러 매핑
                         const detailGradients = [
-                          'from-blue-400 to-blue-500', 'from-emerald-400 to-emerald-500',
-                          'from-violet-400 to-violet-500', 'from-amber-400 to-amber-500',
-                          'from-rose-400 to-rose-500', 'from-cyan-400 to-cyan-500'
+                          'from-blue-100 to-blue-200', 'from-emerald-100 to-emerald-200',
+                          'from-violet-100 to-violet-200', 'from-amber-100 to-amber-200',
+                          'from-rose-100 to-rose-200', 'from-cyan-100 to-cyan-200'
                         ];
                         const detailTabSkins = [
                           {
@@ -4545,10 +4543,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                       onClick={() => setMultiActiveTab(expert.id)}
                                       style={{ marginRight: '-8px', zIndex: isActive ? 30 : (sortedExperts.length - (detailExpertIndexMap.get(expert.id) ?? 0)) }}
                                       className={cn(
-                                        'relative flex shrink-0 items-center gap-1.5 rounded-t-[18px] border border-b-0 px-3.5 transition-all duration-200',
+                                        'relative flex shrink-0 items-center gap-1.5 rounded-t-[18px] border border-b-0 px-3.5 pb-2 pt-1.5 text-[11px] transition-colors duration-200',
                                         isActive
-                                          ? cn('pb-2.5 pt-2 text-[11px] font-bold', tabSkin.active)
-                                          : cn('pb-2 pt-1.5 text-[11px] font-semibold opacity-80 hover:opacity-100', tabSkin.idle)
+                                          ? cn('font-bold', tabSkin.active)
+                                          : cn('font-semibold opacity-80 hover:opacity-100', tabSkin.idle)
                                       )}
                                     >
                                       <ExpertAvatar expert={expert} size="xs" />
@@ -4583,7 +4581,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                       const text = q.content.replace(/^💬\s*[^:]+:\s*/, '');
                                     return (
                                       <div className="flex justify-end mb-2">
-                                        <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[12px]">
+                                        <div className="max-w-[70%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-3.5 py-2 text-[12px]">
                                           {text}
                                         </div>
                                       </div>
@@ -4818,7 +4816,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               if (msg.expertId === '__user__') {
                                 return (
                                   <div key={msg.id} className="flex justify-end">
-                                    <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                                    <div className="max-w-[70%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
                                       <ReactMarkdownInline content={msg.content} />
                                     </div>
                                   </div>
@@ -4828,7 +4826,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="messenger" />
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="general-card" />
                               );
                             })}
                           </div>
@@ -5584,7 +5582,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               if (msg.expertId === '__user__') {
                                 return (
                                   <div key={msg.id} className="flex justify-end">
-                                    <div className="max-w-[70%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
+                                    <div className="max-w-[70%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm">
                                       <ReactMarkdownInline content={msg.content} />
                                     </div>
                                   </div>
@@ -5594,7 +5592,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="messenger" />
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="general-card" />
                               );
                             })}
                           </div>
@@ -5816,8 +5814,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     <div className="shrink-0 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-5 py-3 rounded-t-2xl flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <span className="text-[16px]">💬</span>
-                        <span className="text-[14px] font-extrabold text-slate-800 dark:text-slate-200">{currentQuestion || '자유 토론'}</span>
-                        <span className="text-[11px] text-slate-400 font-medium">· 자유 토론</span>
+                        <span className="text-[14px] font-extrabold text-slate-800 dark:text-slate-200">자유 토론</span>
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap justify-end">
                         {activeExperts.map(e => (
@@ -6127,7 +6124,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       <div key={msg.id} className={cn(isMessenger ? 'flex justify-end' : '')}>
                         <div className={cn(
                           isMessenger
-                            ? 'max-w-[60%] bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
+                            ? 'max-w-[60%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm'
                             : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
                         )}>
                           <ReactMarkdownInline content={msg.content} />
@@ -6210,7 +6207,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           {!activeGame && (messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
               <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
-                <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' || discussionMode === 'freetalk' || discussionMode === 'aivsuser' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px]' : 'max-w-2xl'))}>
+                <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'freetalk' || discussionMode === 'aivsuser' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[720px]' : 'max-w-2xl'))}>
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
                   <div className="flex items-center gap-3">
@@ -6474,7 +6471,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           )}
         </>}
         </div>
-        <RightMemoSidebar />
       </div>
 
       {/* Settings Modal */}

@@ -7,27 +7,36 @@ interface Props {
   onSelectDomain: (domainId: PremiumDomainId) => void;
 }
 
-/* ── Per-domain accent tokens ── */
 const THEME: Record<string, {
-  accent: string; accentMuted: string; accentBorder: string;
-  cta: string; ctaHover: string;
-  featureIcon: string;
-  strengthLabel: string;
+  accent: string; accentMuted: string; cta: string; ctaHover: string; tagBg: string; tagText: string;
 }> = {
-  law:        { accent: 'text-amber-600', accentMuted: 'text-amber-700/50', accentBorder: 'border-amber-300/60', cta: 'bg-amber-600', ctaHover: 'hover:bg-amber-700', featureIcon: 'text-amber-500', strengthLabel: 'text-amber-400' },
-  drug:       { accent: 'text-emerald-600', accentMuted: 'text-emerald-700/50', accentBorder: 'border-emerald-300/60', cta: 'bg-emerald-600', ctaHover: 'hover:bg-emerald-700', featureIcon: 'text-emerald-500', strengthLabel: 'text-emerald-400' },
-  finance:    { accent: 'text-blue-600', accentMuted: 'text-blue-700/50', accentBorder: 'border-blue-300/60', cta: 'bg-blue-600', ctaHover: 'hover:bg-blue-700', featureIcon: 'text-blue-500', strengthLabel: 'text-blue-400' },
-  realestate: { accent: 'text-violet-600', accentMuted: 'text-violet-700/50', accentBorder: 'border-violet-300/60', cta: 'bg-violet-600', ctaHover: 'hover:bg-violet-700', featureIcon: 'text-violet-500', strengthLabel: 'text-violet-400' },
-  tax:        { accent: 'text-cyan-600', accentMuted: 'text-cyan-700/50', accentBorder: 'border-cyan-300/60', cta: 'bg-cyan-600', ctaHover: 'hover:bg-cyan-700', featureIcon: 'text-cyan-500', strengthLabel: 'text-cyan-400' },
-  labor:      { accent: 'text-orange-600', accentMuted: 'text-orange-700/50', accentBorder: 'border-orange-300/60', cta: 'bg-orange-600', ctaHover: 'hover:bg-orange-700', featureIcon: 'text-orange-500', strengthLabel: 'text-orange-400' },
+  law:        { accent: 'text-amber-600', accentMuted: 'text-amber-500/60', cta: 'bg-amber-600', ctaHover: 'hover:bg-amber-700', tagBg: 'bg-amber-50', tagText: 'text-amber-600' },
+  drug:       { accent: 'text-emerald-600', accentMuted: 'text-emerald-500/60', cta: 'bg-emerald-600', ctaHover: 'hover:bg-emerald-700', tagBg: 'bg-emerald-50', tagText: 'text-emerald-600' },
+  finance:    { accent: 'text-blue-600', accentMuted: 'text-blue-500/60', cta: 'bg-blue-600', ctaHover: 'hover:bg-blue-700', tagBg: 'bg-blue-50', tagText: 'text-blue-600' },
+  realestate: { accent: 'text-violet-600', accentMuted: 'text-violet-500/60', cta: 'bg-violet-600', ctaHover: 'hover:bg-violet-700', tagBg: 'bg-violet-50', tagText: 'text-violet-600' },
+  tax:        { accent: 'text-cyan-600', accentMuted: 'text-cyan-500/60', cta: 'bg-cyan-600', ctaHover: 'hover:bg-cyan-700', tagBg: 'bg-cyan-50', tagText: 'text-cyan-600' },
+  labor:      { accent: 'text-orange-600', accentMuted: 'text-orange-500/60', cta: 'bg-orange-600', ctaHover: 'hover:bg-orange-700', tagBg: 'bg-orange-50', tagText: 'text-orange-600' },
 };
 
 export function PremiumDomainLanding({ onSelectDomain }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div className="space-y-4">
+      {/* Tech spec bar */}
+      <div className="flex items-center justify-center gap-3 text-[12px] text-slate-900 font-semibold py-2.5 border-y border-slate-200">
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />공공 API 실시간 연동</span>
+        <span className="text-slate-300">|</span>
+        <span>분석 데이터 48만건+</span>
+        <span className="text-slate-300">|</span>
+        <span>RAG 기반 근거 추론</span>
+        <span className="text-slate-300">|</span>
+        <span>표준 스키마 통합</span>
+        <span className="text-slate-300">|</span>
+        <span>멀티스텝 오케스트레이션</span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {PREMIUM_DOMAIN_TEMPLATES.map((domain, idx) => (
           <DomainCard
             key={domain.id}
@@ -40,8 +49,7 @@ export function PremiumDomainLanding({ onSelectDomain }: Props) {
           />
         ))}
       </div>
-
-      <p className="text-center text-[10px] text-slate-400 leading-relaxed tracking-wide">
+      <p className="text-center text-[9px] text-slate-400 leading-relaxed">
         AI 기반 참고 자문이며 전문가 상담을 대체하지 않습니다 · 법률·의료·투자 결정은 반드시 전문가와 상의하세요
       </p>
     </div>
@@ -64,94 +72,61 @@ function DomainCard({ domain, index, isHovered, onHover, onLeave, onSelect }: {
       onMouseLeave={onLeave}
       onClick={onSelect}
       className={cn(
-        'group relative cursor-pointer rounded-2xl border bg-white transition-all duration-300 ease-out',
+        'group relative cursor-pointer rounded-xl border bg-white transition-all duration-200',
         isHovered
-          ? 'shadow-[0_8px_30px_rgba(0,0,0,0.08)] border-slate-300 -translate-y-1'
-          : 'shadow-[0_1px_3px_rgba(0,0,0,0.04)] border-slate-200/80',
+          ? 'shadow-lg border-slate-300 -translate-y-0.5'
+          : 'shadow-sm border-slate-200/80',
       )}
-      style={{ animationDelay: `${index * 60}ms` }}
+      style={{ animationDelay: `${index * 40}ms` }}
     >
-      {/* Top accent — confident line */}
-      <div className={cn('h-[3px] w-full', t.cta)} />
+      <div className={cn('h-[3px] w-full rounded-t-xl', t.cta)} />
 
-      <div className="px-7 pt-7 pb-6">
-
-        {/* ── Header ── */}
-        <div className="text-center mb-7">
-          <h3 className="text-[22px] font-semibold text-slate-900 tracking-[-0.02em] leading-tight">
-            {domain.name}
-          </h3>
-          <p className={cn('text-[11px] mt-2 tracking-wide', t.accentMuted)}>
-            {domain.tagline}
-          </p>
-          {/* Decorative divider */}
-          <div className="flex items-center justify-center gap-2.5 mt-4">
-            <div className="h-px w-10 bg-slate-200/80" />
-            <div className="w-1 h-1 rounded-full bg-slate-300" />
-            <div className="h-px w-10 bg-slate-200/80" />
-          </div>
+      <div className="px-4 pt-4 pb-3.5">
+        {/* Header */}
+        <div className="text-center mb-3">
+          <h3 className="text-[15px] font-bold text-slate-900 tracking-tight">{domain.name}</h3>
+          <p className={cn('text-[10px] mt-1', t.accentMuted)}>{domain.tagline}</p>
         </div>
 
-        {/* ── Features — centered description blocks ── */}
+        {/* Features — compact list */}
         {domain.features && domain.features.length > 0 && (
-          <div className="space-y-5 mb-7">
-            {domain.features.map((f, i) => (
-              <div key={i} className="text-center">
-                <p className="text-[11.5px] font-semibold text-slate-800 leading-snug">
-                  <span className={cn('text-[13px] mr-1.5', t.featureIcon)}>{f.icon}</span>
-                  {f.title}
-                </p>
-                <p className="text-[10px] text-slate-600/80 leading-[1.8] mt-1.5 max-w-[88%] mx-auto">
-                  {f.desc}
-                </p>
+          <div className="space-y-1.5 mb-3">
+            {domain.features.slice(0, 2).map((f, i) => (
+              <div key={i} className="flex items-start gap-1.5">
+                <span className="text-[11px] shrink-0 mt-0.5">{f.icon}</span>
+                <span className="text-[10px] text-slate-600 leading-snug">{f.title}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* ── Strengths — 2×2 typographic grid ── */}
+        {/* Strengths — inline tags */}
         {domain.strengths && domain.strengths.length > 0 && (
-          <div className="mb-7">
-            <div className="grid grid-cols-2 border border-slate-100/80 rounded-xl overflow-hidden bg-slate-50/30">
-              {domain.strengths.map((s, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'py-4 px-3 text-center',
-                    i < 2 && 'border-b border-slate-100/80',
-                    i % 2 === 0 && 'border-r border-slate-100/80',
-                  )}
-                >
-                  <p className={cn(
-                    'text-[7.5px] font-semibold tracking-[0.18em] uppercase leading-none',
-                    t.strengthLabel,
-                  )}>
-                    {s.titleEn}
-                  </p>
-                  <p className="text-[11.5px] font-medium text-slate-700 mt-2 leading-tight">
-                    {s.title}
-                  </p>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {domain.strengths.map((s, i) => (
+              <span key={i} className={cn('px-2 py-0.5 rounded-full text-[8px] font-medium', t.tagBg, t.tagText)}>
+                {s.title}
+              </span>
+            ))}
           </div>
         )}
 
-        {/* ── CTA ── */}
+        {/* Fallback if no features/strengths */}
+        {!domain.features && !domain.strengths && (
+          <p className="text-[10px] text-slate-400 text-center mb-3 truncate">"{domain.sampleQuestions[0]}"</p>
+        )}
+
+        {/* CTA */}
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onSelect(); }}
           className={cn(
-            'w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-[12px] font-medium text-white tracking-wider transition-all duration-300',
+            'w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium text-white transition-all',
             t.cta, t.ctaHover,
-            isHovered && 'shadow-lg',
           )}
         >
-          <span>상담 시작</span>
-          <ArrowRight className={cn(
-            'w-3.5 h-3.5 transition-all duration-300',
-            isHovered ? 'translate-x-1.5 opacity-100' : 'opacity-70',
-          )} />
+          상담 시작
+          <ArrowRight className={cn('w-3 h-3 transition-transform', isHovered && 'translate-x-0.5')} />
         </button>
       </div>
     </div>

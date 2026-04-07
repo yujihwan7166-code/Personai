@@ -12,6 +12,7 @@ import {
   type PremiumDomainId,
   type AivsBattleDraft,
   AIVS_USER_TOPIC_PRESETS,
+  BATTLE_AI_CHARACTERS,
 } from '@/types/expert';
 import { AivsBattleConfigModal } from './AivsBattleConfigModal';
 import { PremiumDomainLanding } from './PremiumDomainLanding';
@@ -355,7 +356,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'aivsuser' as const, label: '키보드배틀' },
                     { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button key={t.mode}
@@ -536,7 +537,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'aivsuser' as const, label: '키보드배틀' },
                     { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button key={t.mode}
@@ -682,7 +683,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'aivsuser' as const, label: '키보드배틀' },
                     { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button key={t.mode}
@@ -854,7 +855,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
                   { mode: 'procon' as const, label: '⚖️ 찬반' },
                   { mode: 'freetalk' as const, label: '💬 자유' },
                   { mode: 'standard' as const, label: '🎯 심층' },
-                  { mode: 'aivsuser' as const, label: '⚔️ AI vs 유저' },
+                  { mode: 'aivsuser' as const, label: '⚔️ 키보드배틀' },
                   { mode: 'brainstorm' as const, label: '💡 브레인' },
                 ].map(t => (
                   <button key={t.mode}
@@ -999,7 +1000,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'aivsuser' as const, label: '키보드배틀' },
                     { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button key={t.mode}
@@ -1122,7 +1123,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
   );
 }
 
-// ── AI vs User Settings Panel ──
+// ── Keyboard Battle Settings Panel ──
 
 function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, onToggle, onModeChange, hasAivsBattleStarted, onStartAivsBattle, onResetAivsBattle }: {
   onModeChange?: (mode: DiscussionMode) => void;
@@ -1135,19 +1136,10 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
   onStartAivsBattle?: (draft: AivsBattleDraft) => void;
   onResetAivsBattle?: () => void;
 }) {
-  const [showPicker, setShowPicker] = useState(false);
   const [showBattleModal, setShowBattleModal] = useState(false);
-  const [aivsAutoSelect, setAivsAutoSelect] = useState(false);
   const ds = debateSettings!;
-  const opponentCount = ds.aivsUserOpponentCount || 1;
-  const selected = experts.filter(e => selectedIds.includes(e.id)).slice(0, opponentCount);
-  const visibleOpponentSlots = Array.from({ length: opponentCount }, (_, index) => selected[index] ?? null);
+  const selectedAiId = ds.aivsUserBattleAiId || 'logical';
   const lockedTopic = hasAivsBattleStarted ? AIVS_USER_TOPIC_PRESETS.find(t => t.title === ds.aivsUserTopic) : null;
-
-  useEffect(() => {
-    if (!onToggle || selectedIds.length <= opponentCount) return;
-    selectedIds.slice(opponentCount).forEach(id => onToggle(id));
-  }, [onToggle, opponentCount, selectedIds]);
 
   return (
     <div>
@@ -1156,7 +1148,8 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           <div className="px-3.5 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px]">⚔️</span>
-              <span className="text-[12px] font-bold text-rose-700">AI vs 유저</span>
+              <span className="text-[12px] font-bold text-rose-700">키보드배틀</span>
+              <span className="text-[9px] text-rose-400 font-medium">1:1</span>
             </div>
             {onModeChange && (
               <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
@@ -1165,7 +1158,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                     { mode: 'procon' as const, label: '찬반토론' },
                     { mode: 'freetalk' as const, label: '자유토론' },
                     { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: 'AI vs 유저' },
+                    { mode: 'aivsuser' as const, label: '키보드배틀' },
                     { mode: 'brainstorm' as const, label: '브레인스토밍' },
                   ].map(t => (
                     <button
@@ -1187,110 +1180,44 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
           </div>
 
           <div className="bg-white">
-            <div className="px-4 py-5">
-              <div className="flex items-center justify-center mb-2">
-                <AutoManualToggle auto={aivsAutoSelect} onChange={setAivsAutoSelect} />
-              </div>
-              {aivsAutoSelect ? (
-                <div className="flex flex-col items-center gap-2 py-3">
-                  <Sparkles className="w-5 h-5 text-indigo-400" />
-                  <p className="text-[11px] text-slate-400 text-center">주제에 맞는 상대 AI가<br/>자동으로 배정됩니다</p>
-                </div>
-              ) : (
-              <>
-
-              <div className="mt-2 flex items-center justify-center gap-4">
-                <div className="flex flex-col items-center gap-1 shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-[22px] shadow-sm ring-2 ring-blue-300 ring-offset-1">
-                    🙋
-                  </div>
-                  <span className="text-[10px] font-bold text-blue-600">나</span>
-                </div>
-
-                <div className="shrink-0">
-                  <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center shadow">
-                    <span className="text-[8px] font-black text-white">VS</span>
-                  </div>
-                </div>
-
-                <div className={cn('relative flex items-center justify-center px-1', selected.length === 0 ? 'min-h-[84px] pb-4' : 'min-h-[72px] pb-0')}>
-                  <div className="flex items-center justify-center gap-2.5 min-h-[68px]">
-                    {visibleOpponentSlots.map((expert, i) => (
-                      expert ? (
-                        <button
-                          key={expert.id}
-                          type="button"
-                          onClick={() => onToggle?.(expert.id)}
-                          className="w-[56px] min-h-[68px] flex flex-col items-center gap-1 group/ai animate-in fade-in zoom-in-75 duration-200"
-                          style={{ animationDelay: `${i * 60}ms` }}
-                        >
-                          <div className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm ring-2 ring-red-300 ring-offset-1 group-hover/ai:ring-red-500 transition-all">
-                            <ExpertAvatar expert={expert} size="md" />
-                            <div className="absolute inset-0 rounded-full bg-red-500/0 group-hover/ai:bg-red-500/10 flex items-center justify-center transition-all">
-                              <X className="w-4 h-4 text-red-500 opacity-0 group-hover/ai:opacity-100 transition-opacity" />
-                            </div>
-                          </div>
-                          <span className="text-[9px] font-medium text-slate-600 max-w-[52px] truncate group-hover/ai:text-red-500 transition-colors">
-                            {expert.nameKo}
-                          </span>
-                        </button>
-                      ) : (
-                        <button
-                          key={`empty-${i}`}
-                          type="button"
-                          onClick={() => setShowPicker(true)}
-                          className="w-[56px] min-h-[68px] flex flex-col items-center gap-1 [&>span]:hidden"
-                        >
-                          <div className="w-12 h-12 rounded-full bg-white border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-red-300 hover:bg-red-50/50 transition-colors">
-                            <Plus className="w-4 h-4 text-slate-300" />
-                          </div>
-                          {selected.length === 0 && i === 0 && (
-                            <span className="text-[9px] text-slate-400">AI 선택</span>
-                          )}
-                        </button>
-                      )
-                    ))}
-                  </div>
-                  <div className={cn('pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-4 text-[10px] font-semibold text-center', selected.length === 0 ? 'text-slate-500' : 'text-transparent select-none')}>
-                    AI 선택
-                  </div>
-                </div>
-              </div>
-              </>
-              )}
-            </div>
-
-            {/* Participant count */}
-            <div className="border-t border-rose-100">
-              <div className="flex items-center gap-3 px-4 py-2">
-                <span className="text-[9px] font-medium text-slate-400 w-14 shrink-0 tracking-wide text-center border-r border-slate-100 pr-3 mr-1">
-                  참여 인원
-                </span>
-                <div className="flex gap-1 flex-1">
-                  {([
-                    { v: 1 as const, l: '1:1' },
-                    { v: 2 as const, l: '1:2' },
-                    { v: 3 as const, l: '1:3' },
-                  ]).map(opt => (
+            {/* Battle AI character grid */}
+            <div className="px-3 py-3">
+              <p className="text-[10px] text-slate-400 text-center mb-2">상대 AI를 선택하세요</p>
+              <div className="grid grid-cols-5 gap-1.5">
+                {BATTLE_AI_CHARACTERS.map(ai => {
+                  const isSelected = selectedAiId === ai.id;
+                  return (
                     <button
-                      key={opt.v}
-                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserOpponentCount: opt.v })}
+                      key={ai.id}
+                      type="button"
+                      onClick={() => onDebateSettingsChange?.({ ...ds, aivsUserBattleAiId: ai.id })}
                       className={cn(
-                        'flex-1 py-1 rounded-md text-[10px] font-medium text-center transition-all',
-                        (ds.aivsUserOpponentCount || 1) === opt.v
-                          ? 'bg-rose-100 text-rose-700 font-semibold'
-                          : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
+                        'flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border transition-all',
+                        isSelected
+                          ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-300'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                       )}
                     >
-                      {opt.l}
+                      <span className="text-[22px]">{ai.icon}</span>
+                      <span className={cn('text-[10px] font-bold', isSelected ? 'text-rose-700' : 'text-slate-700')}>{ai.name}</span>
+                      <span className="text-[8px] text-slate-400 text-center leading-tight px-0.5">{ai.description}</span>
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
+              {/* Selected AI sample line */}
+              {(() => {
+                const ai = BATTLE_AI_CHARACTERS.find(a => a.id === selectedAiId);
+                return ai ? (
+                  <div className="mt-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                    <p className="text-[10px] text-slate-500 italic text-center">"{ai.sampleLine}"</p>
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             {/* Battle start button OR locked state */}
-            <div className="px-4 py-3">
+            <div className="px-3 pb-3">
               {hasAivsBattleStarted && lockedTopic ? (
                 <div className="flex items-center justify-between gap-2 rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5">
                   <div className="flex items-center gap-2 min-w-0">
@@ -1312,8 +1239,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 <button
                   type="button"
                   onClick={() => setShowBattleModal(true)}
-                  disabled={!aivsAutoSelect && selected.length === 0}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[13px] font-bold transition-all hover:from-rose-600 hover:to-pink-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[13px] font-bold transition-all hover:from-rose-600 hover:to-pink-600 shadow-sm"
                 >
                   ⚔️ 배틀 시작
                 </button>
@@ -1321,18 +1247,6 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             </div>
           </div>
         </div>
-
-        {showPicker && (
-          <AIPickerModal
-            experts={experts}
-            selectedIds={selectedIds.slice(0, opponentCount)}
-            onToggle={onToggle!}
-            onClose={() => setShowPicker(false)}
-            title="상대 AI 선택"
-            accentColor="red"
-            maxCount={opponentCount}
-          />
-        )}
 
         {onStartAivsBattle && (
           <AivsBattleConfigModal
@@ -1408,33 +1322,18 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
           <button key={scenario.id}
             onClick={() => handleSelectScenario(scenario)}
             style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'both' }}
-            className="relative text-left rounded-2xl bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-400">
+            className="relative text-left rounded-xl bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-400">
 
             <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${scenario.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
-            <div className="px-4 pt-3 pb-2.5">
-              {/* Badges */}
-
-              {/* Icon + Title */}
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${scenario.gradient} flex items-center justify-center text-2xl shrink-0 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300`}>
-                  {scenario.icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[15px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">{scenario.name} {scenario.userRole && <span className="text-[11px] font-semibold text-indigo-500">({scenario.userRole})</span>}</h3>
-                  <p className="text-[10px] text-slate-700 leading-snug mt-0.5 truncate">{scenario.description}</p>
-                </div>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${scenario.gradient} flex items-center justify-center text-[22px] shrink-0 group-hover:scale-105 transition-transform duration-300`}>
+                {scenario.icon}
               </div>
-
-              {/* Role tags */}
-              <div className="flex items-center gap-1 mb-0 justify-center overflow-hidden">
-                {scenario.roles.map(role => (
-                  <span key={role.name} className="text-[8px] px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 font-medium border border-slate-100 shrink-0 whitespace-nowrap">
-                    {role.icon} {role.name}
-                  </span>
-                ))}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors leading-tight">{scenario.name}</h3>
+                <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{scenario.description}</p>
               </div>
-
             </div>
           </button>
         ))}
@@ -3439,9 +3338,9 @@ export function ExpertSelectionPanel({
         "text-center relative z-0 transition-all ease-out overflow-hidden",
         (isGoingToPlayer && transitionPhase >= 1) || (isPlayerActive && !isLeavingPlayer)
           ? 'opacity-0 max-h-0 py-0 space-y-0 duration-500'
-          : !contentVisible ? 'opacity-0 scale-[0.98] max-h-32 space-y-2 duration-200'
-          : 'opacity-100 scale-100 max-h-32 py-0 space-y-2 duration-300',
-        isLeavingPlayer && transitionPhase >= 2 && 'opacity-100 max-h-32 space-y-2'
+          : !contentVisible ? 'opacity-0 scale-[0.98] duration-200'
+          : 'opacity-100 scale-100 duration-300',
+        isLeavingPlayer && transitionPhase >= 2 && 'opacity-100'
       )}>
         <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
@@ -3454,18 +3353,21 @@ export function ExpertSelectionPanel({
                 )
                 : mainMode === 'stakeholder_main' ? '이해관계자 역할극으로 아이디어를 검증하세요'
                   : mainMode === 'brainstorm_main' ? 'AI들이 협업해 아이디어를 정리해드립니다'
-                    : mainMode === 'premium_main' ? '분야별 전문가 팀이 단계별 맞춤 상담을 제공합니다'
+                    : mainMode === 'premium_main' ? '공공 데이터 기반 AI 자문 시스템'
                       : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
                         : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
                           : ''}
         </h2>
-        <div className="relative flex justify-center">
-          <span className="invisible text-[12px] leading-relaxed">{subtitleText}</span>
-          <span className="absolute inset-0 flex items-center justify-center text-[12px] text-muted-foreground leading-relaxed">
-            {typedSubtitle}
-            {typedSubtitle.length < subtitleText.length && <span className="animate-pulse text-muted-foreground/40">|</span>}
-          </span>
-        </div>
+        {mainMode === 'premium_main' && (<div />)}
+        {mainMode !== 'premium_main' && (
+          <div className="relative flex justify-center mt-0">
+            <span className="invisible text-[12px] leading-tight">{subtitleText}</span>
+            <span className="absolute inset-0 flex items-center justify-center text-[12px] text-muted-foreground leading-tight">
+              {typedSubtitle}
+              {typedSubtitle.length < subtitleText.length && <span className="animate-pulse text-muted-foreground/40">|</span>}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Main Mode Tabs — 플레이어 모드에서는 숨김 (GAME ARENA 자체 헤더 사용) */}

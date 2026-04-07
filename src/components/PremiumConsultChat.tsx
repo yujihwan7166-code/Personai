@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { PREMIUM_DOMAIN_TEMPLATES, type PremiumDomainId, type PremiumDomainTemplate, type ApiSourceCitation } from '@/types/expert';
 import { TrustIndicator } from './TrustIndicator';
 import { LazyMarkdown } from './LazyMarkdown';
-import { ArrowLeft, Send, FileText, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle, ThumbsUp, ThumbsDown, Search } from 'lucide-react';
+import { ArrowLeft, Send, FileText, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle, ThumbsUp, ThumbsDown, Search, Plus } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -131,7 +131,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
               {/* Empty state */}
               {messages.length === 0 && steps.length === 0 && (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-                  <h3 className="text-[20px] font-semibold text-slate-800 dark:text-slate-200 tracking-[-0.02em]">
+                  <h3 className="text-[26px] font-semibold text-slate-800 dark:text-slate-200 tracking-[-0.03em]">
                     {({
                       law: '법률 질문은 무엇이든 물어보세요.',
                       drug: '의약품·건강 궁금증을 물어보세요.',
@@ -141,19 +141,25 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                       labor: '노동·근로 문제를 물어보세요.',
                     } as Record<string, string>)[domainId] || `${domain.name}에게 물어보세요.`}
                   </h3>
-                  <p className="text-[12px] text-slate-400 mt-2">{domain.apiSource.name} 기반 · {domain.trustBadge}</p>
-                  <div className="grid grid-cols-2 gap-4 w-full max-w-2xl mt-8">
+                  <p className="text-[15px] text-slate-400 mt-3 flex items-center justify-center gap-2">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-50" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                    </span>
+                    {domain.apiSource.name} 실시간 연동 중
+                  </p>
+                  <div className="grid grid-cols-3 gap-2.5 w-full max-w-3xl mt-6">
                     {(domain.sampleCases || domain.sampleQuestions.map(q => ({ title: q, desc: '', query: q }))).map((c, i) => {
                       const item = typeof c === 'string' ? { title: c, desc: '', query: c } : c;
                       return (
                         <button
                           key={i}
                           onClick={() => handleSampleClick(item.query)}
-                          className="text-left px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all group"
+                          className="text-left px-4 py-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all group"
                         >
-                          <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">{item.title}</p>
+                          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">{item.title}</p>
                           {item.desc && (
-                            <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-1.5 leading-[1.6] line-clamp-2">{item.desc}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-[1.6] line-clamp-3">{item.desc}</p>
                           )}
                         </button>
                       );
@@ -300,44 +306,45 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
             </div>
           </div>
 
-          {/* Input — bottom fixed */}
-          <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0f1117]">
+          {/* Input — bottom fixed, general chat style */}
+          <div className="shrink-0 bg-white dark:bg-[#0f1117]">
             <div className="max-w-3xl mx-auto px-6 py-3">
-              {domain.promptHint && messages.length === 0 && (
-                <button
-                  onClick={() => handleSampleClick(domain.promptHint!.replace('?', '').replace('싶다면', '싶습니다'))}
-                  className="w-full text-left px-4 py-2.5 mb-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11.5px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 transition-all flex items-center justify-between group"
-                >
-                  <span>{domain.promptHint}</span>
-                  <span className="text-slate-300 group-hover:text-slate-500 ml-2">→</span>
-                </button>
-              )}
-            </div>
-            <div className="max-w-3xl mx-auto px-6 pb-3">
-              <div className="flex items-end gap-2 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus-within:border-slate-400 focus-within:shadow-sm transition-all bg-white dark:bg-slate-800">
+              <div className="rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 shadow-sm overflow-hidden focus-within:border-indigo-400 transition-colors">
                 <textarea
                   ref={inputRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => { setInput(e.target.value); const t = e.target; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 200)}px`; }}
                   onKeyDown={handleKeyDown}
-                  placeholder={`궁금한 ${domain.name.replace('자문관', '').replace('·건강', '')} 지식을 물어보세요.`}
+                  placeholder={`${domain.name}에게 질문하세요`}
                   rows={1}
-                  className="flex-1 bg-transparent text-[13px] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 resize-none outline-none max-h-32"
-                  style={{ minHeight: '22px' }}
+                  className="w-full px-4 pt-3.5 pb-2 bg-transparent text-[13px] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 resize-none outline-none"
+                  style={{ minHeight: '44px', maxHeight: '200px' }}
                   disabled={isStreaming}
                 />
-                <button
-                  onClick={handleSubmit}
-                  disabled={!input.trim() || isStreaming}
-                  className={cn(
-                    'p-2 rounded-lg transition-all shrink-0',
-                    input.trim() && !isStreaming
-                      ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-800 hover:bg-slate-700'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-500 cursor-not-allowed'
-                  )}
-                >
-                  {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </button>
+                <div className="flex items-center justify-between px-3 py-1.5">
+                  <div className="flex items-center gap-1">
+                    <button type="button" className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 transition-all">
+                      <Plus className="h-4 w-4" strokeWidth={2.2} />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {!isStreaming && (
+                      <span className="text-[9px] text-slate-300">Enter 전송 · Shift+Enter 줄바꿈</span>
+                    )}
+                    <button
+                      onClick={handleSubmit}
+                      disabled={!input.trim() || isStreaming}
+                      className={cn(
+                        'p-1.5 rounded-xl transition-all',
+                        input.trim() && !isStreaming
+                          ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-800 hover:bg-slate-700'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-500 cursor-not-allowed'
+                      )}
+                    >
+                      {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
               </div>
               <p className="text-[9px] text-slate-400 text-center mt-2">
                 정확한 {domain.name.replace('자문관', '').replace('·건강', '')} 자문은 반드시 전문가와 상담하세요.
