@@ -4870,18 +4870,18 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       return (
                         <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-500">
                           {/* 프레임워크 아이콘 */}
-                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[28px] shadow-lg mb-6 animate-pulse">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-[28px] shadow-lg mb-6 animate-pulse">
                             {fwIcon}
                           </div>
 
                           {/* 프레임워크 이름 + 단계 */}
                           <h3 className="text-[16px] font-bold text-slate-800 mb-1">{p.frameworkName}</h3>
-                          <p className="text-[13px] text-violet-600 font-medium mb-2">{p.stepLabel}</p>
+                          <p className="text-[13px] text-slate-600 font-medium mb-2">{p.stepLabel}</p>
                           <p className="text-[12px] text-slate-500 mb-6">{isLastStep ? '📋' : `${fwIcon}`} {phaseDescription}</p>
 
                           {/* 프로그레스 바 */}
                           <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden mb-4">
-                            <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
+                            <div className="h-full bg-gradient-to-r from-slate-600 to-slate-800 rounded-full transition-all duration-700 ease-out"
                               style={{ width: `${stepPercent}%` }} />
                           </div>
                           <span className="text-[11px] text-slate-400 mb-6">{p.currentStep + 1} / {p.totalSteps} 단계</span>
@@ -4891,7 +4891,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             <div className="grid grid-cols-2 gap-1 w-48 mb-6">
                               {['강점', '약점', '기회', '위협'].map((label, i) => (
                                 <div key={label} className={cn('px-3 py-2 rounded-lg text-center text-[11px] font-semibold transition-all duration-500',
-                                  i < p.currentStep ? 'bg-violet-500 text-white' : i === p.currentStep ? 'bg-violet-100 text-violet-700 animate-pulse' : 'bg-slate-100 text-slate-400')}>
+                                  i < p.currentStep ? 'bg-slate-700 text-white' : i === p.currentStep ? 'bg-slate-200 text-slate-700 animate-pulse' : 'bg-slate-100 text-slate-400')}>
                                   {label} {i < p.currentStep ? '✓' : i === p.currentStep ? '...' : ''}
                                 </div>
                               ))}
@@ -4904,7 +4904,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               {Object.entries(hatColors).map(([key, val], i) => (
                                 <div key={key} className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all duration-500',
                                   val.bg, val.text,
-                                  i < p.currentStep ? 'opacity-100 scale-100' : i === p.currentStep ? 'opacity-100 scale-110 ring-2 ring-violet-400 animate-pulse' : 'opacity-30 scale-90')}>
+                                  i < p.currentStep ? 'opacity-100 scale-100' : i === p.currentStep ? 'opacity-100 scale-110 ring-2 ring-slate-400 animate-pulse' : 'opacity-30 scale-90')}>
                                   {i < p.currentStep ? '✓' : val.label.charAt(0)}
                                 </div>
                               ))}
@@ -4938,15 +4938,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     if (msg.isStreaming) {
                       return (
                         <div className="flex flex-col items-center justify-center py-16 animate-in fade-in duration-500">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[24px] shadow-lg mb-5">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-[24px] shadow-lg mb-5">
                             📋
                           </div>
                           <h3 className="text-[15px] font-bold text-slate-800 mb-1">결과를 정리하고 있습니다</h3>
                           <p className="text-[12px] text-slate-400 mb-5">아이디어를 분석하고 구조화하는 중...</p>
                           <div className="flex items-center gap-1.5">
-                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
-                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
-                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-violet-400" />
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" />
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" />
+                            <span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" />
                           </div>
                         </div>
                       );
@@ -5441,7 +5441,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             return (
                               <div key={i} className={cn(
                                 'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all',
-                                isDone ? 'bg-violet-500 text-white' : isCurrent ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'bg-slate-100 text-slate-400'
+                                isDone ? 'bg-slate-700 text-white' : isCurrent ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'bg-slate-100 text-slate-400'
                               )}>
                                 {g.round!.content}
                               </div>
