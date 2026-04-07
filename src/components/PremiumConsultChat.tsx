@@ -148,6 +148,9 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                     </span>
                     {domain.apiSource.name} 실시간 연동 중
                   </p>
+                  <p className="text-[13px] text-slate-300 mt-1">
+                    출처 기반 답변 · 구조화된 전문 분석
+                  </p>
                   <div className="grid grid-cols-3 gap-2.5 w-full max-w-3xl mt-6">
                     {(domain.sampleCases || domain.sampleQuestions.map(q => ({ title: q, desc: '', query: q }))).map((c, i) => {
                       const item = typeof c === 'string' ? { title: c, desc: '', query: c } : c;
@@ -309,7 +312,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
           {/* Input — bottom fixed, general chat style */}
           <div className="shrink-0 bg-white dark:bg-[#0f1117]">
             <div className="max-w-3xl mx-auto px-6 py-3">
-              <div className="rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 shadow-sm overflow-hidden focus-within:border-indigo-400 transition-colors">
+              <div className="rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
                 <textarea
                   ref={inputRef}
                   value={input}

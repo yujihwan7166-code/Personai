@@ -742,6 +742,8 @@ const Index = () => {
     setSimPhaseIndex(0);
     setAivsRound(0);
     setAivsJudgments([]);
+    setHasAivsBattleStarted(false);
+    setActiveAivsBattleConfig(null);
     setIsDiscussing(false);
     setActiveExpertId(undefined);
     skipClarifyRef.current = false;
@@ -981,7 +983,10 @@ ${role.focus} 관점에서 반응하세요.
         const firstAi = aiOpponents[0];
         if (!firstAi) { setIsDiscussing(false); return; }
 
-        const provocationPrompt = `너는 ${firstAi.nameKo}이다. 방금 상대가 "${topic}" 주제에서 "${stanceKo}" 입장이라는 걸 알게 됐어.
+        const provocationPrompt = `너는 "${battleAi.name}"이다.
+${difficultyDesc}
+
+방금 상대가 "${topic}" 주제에서 "${stanceKo}" 입장이라는 걸 알게 됐어.
 토론 시작 전, 짧은 첫 반응을 보여줘.
 
 ## 규칙
@@ -990,7 +995,6 @@ ${role.focus} 관점에서 반응하세요.
 - 상대가 "이 녀석..." 하면서 반박하고 싶어지게 도발해.
 - 주제의 핵심 포인트를 살짝 건드려서 주제를 잘 아는 것처럼 보여줘.
 - 반드시 1~2문장. 너무 길지 않게.
-- 말투: ${difficulty === 'easy' ? '친근하고 장난스럽게 (ㅋㅋ, ㅎㅎ 등 사용 가능)' : difficulty === 'hard' ? '날카롭고 비꼬는 듯하게 (직설적, 도발적)' : '차분하지만 의아한 듯 (논리적으로 한마디)'}
 - 역할명이나 태그를 본문에 쓰지 마.
 - 한국어로만 답해.`;
 
@@ -1025,7 +1029,7 @@ ${role.focus} 관점에서 반응하세요.
         if (shouldStop()) break;
         const aiExpert = aiOpponents[ri];
         if (!aiExpert) continue;
-        const aiPrompt = `당신은 ${aiExpert.nameKo}입니다. "${topic}" 주제에서 "${aiStanceKo}" 입장으로 유저와 토론합니다.
+        const aiPrompt = `당신은 "${battleAi.name}"입니다. "${topic}" 주제에서 "${aiStanceKo}" 입장으로 유저와 토론합니다.
 
 ## 유저 입장: ${stanceKo}
 ## 승패 판정 방식: ${verdictMode === 'final' ? '마지막에 판정 있음' : '판정 없이 자유 토론'}
@@ -1913,6 +1917,40 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
         }),
       }]);
 
+      // Fixed opening texts for scenarios (used when no user context provided)
+      const fixedOpenings: Record<string, string> = {
+        salary: '연봉 협상 자리에 오셨군요. 먼저, 이번에 인상을 요청하시게 된 배경이 궁금합니다. 최근 맡으셨던 프로젝트나 성과 중에서 특별히 강조하고 싶은 부분이 있으신가요?',
+        parent_meeting: '선생님, 오늘 상담 잡아주셔서 감사합니다. 저희 아이 건으로 왔는데, 정확히 어떤 상황인지 선생님 입장에서 먼저 설명해주시겠어요? 집에서 들은 이야기와 좀 다를 수도 있으니까요.',
+        regulation: '해당 사업에 대한 검토를 시작하겠습니다. 먼저 현행 규제 체계 내에서 귀사의 서비스가 어떤 분류에 해당하는지 설명해주시죠. 인허가 요건을 충족하고 있다고 보시는 근거도 함께 말씀해주십시오.',
+        partnership: '제안서는 잘 봤습니다. 솔직히 기술적으로 흥미로운 부분이 있긴 한데, 우리 입장에서 왜 지금 이 제휴를 해야 하는지가 아직 명확하지 않아요. 귀사 기술이 우리 사업에 가져올 구체적인 가치를 설명해주시겠습니까?',
+        budget: '내년도 예산안 발표를 시작하겠습니다. 올해 전사적으로 비용 효율화를 추진하고 있는 건 아시죠? 그런 상황에서 증액을 요청하신 근거를 먼저 듣고 싶습니다. 숫자 기반으로 부탁드립니다.',
+        committee: '과제 발표를 시작해주시죠. 먼저 이 연구의 핵심 가설과 기존 연구 대비 차별점을 간결하게 설명해주십시오. 연구 계획서는 읽었지만, 직접 들어보고 싶습니다.',
+        startup_pitch: '안녕하세요, 오늘 피칭 기대하고 있었습니다. 먼저 팀 소개와 함께, 이 문제를 왜 지금 풀어야 하는지부터 말씀해주시죠. 시장 타이밍이 궁금합니다.',
+        medical_consult: '어서 오세요. 오늘 어떤 증상 때문에 오셨나요? 편하게 말씀해주시면 됩니다. 언제부터 시작됐는지도 함께 알려주시면 진료에 도움이 됩니다.',
+        wedding_plan: '축하드려요! 결혼 준비 상담이시군요. 먼저 대략적인 결혼 시기와 예산 범위를 알려주시면, 거기에 맞춰서 효율적인 플랜을 짜드릴게요.',
+        school_bully: '선생님, 저희 아이가 학교에서 계속 괴롭힘을 당하고 있다고 합니다. 어떤 상황인지 정확히 알고 싶어서 왔어요. 학교에서는 파악하고 계셨나요?',
+        estate_dispute: '형님/언니가 부모님 돌봄을 많이 하신 건 저도 알아요. 근데 그렇다고 유산을 혼자 다 가져가는 건 다른 문제 아닌가요? 법적으로 저도 상속 권리가 있잖아요.',
+        franchise_consult: '반갑습니다! 저희 브랜드에 관심 가져주셔서 감사합니다. 현재 전국 200개 가맹점을 운영 중이고, 평균 월 매출이 3,500만원 수준입니다. 어떤 지역에서 창업을 생각하고 계신가요?',
+        tenant_dispute: '보증금 반환 문제로 오셨군요. 계약서를 먼저 보여주시겠어요? 계약 만료일과 현재 보증금 현황을 확인해야 정확한 상황 파악이 됩니다.',
+        career_change: '이직을 고민하고 계시군요. 먼저 현재 회사에서의 연차, 직무, 그리고 이직을 생각하게 된 가장 큰 이유를 말씀해주시겠어요? 시장 상황과 맞춰서 조언드리겠습니다.',
+        insurance_claim: '보험금 청구 건으로 오셨군요. 먼저 해당 보험 약관을 확인하겠습니다. 사고 발생 일시와 경위, 그리고 청구하신 보험금 항목을 구체적으로 말씀해주시겠습니까?',
+        neighborhood: '윗집에서 소음이 심하다고요? 우리도 나름대로 조심하고 있는데... 구체적으로 어떤 소리가 언제 들린다는 건지 먼저 말씀해주시겠어요? 솔직히 좀 억울한 부분도 있거든요.',
+        immigration: '이민 상담이시군요. 먼저 희망하시는 국가와 이민 목적을 말씀해주세요. 국가별로 비자 종류와 자격 요건이 완전히 다르기 때문에, 정확한 상황을 알아야 맞춤 안내가 가능합니다.',
+        influencer_crisis: '급하게 연락 왔습니다. 지금 온라인에서 관련 글이 빠르게 퍼지고 있어요. 먼저 정확히 어떤 상황인지, 사실관계를 저한테 솔직하게 다 말씀해주세요. 대응 전략을 짜려면 진실부터 알아야 합니다.',
+        divorce_mediation: '두 분의 상황을 정리하기 위해 먼저 말씀을 드리겠습니다. 조정 과정은 양측 모두의 이야기를 충분히 듣는 것에서 시작합니다. 편하게 현재 상황과 가장 걱정되시는 부분부터 말씀해주시겠어요?',
+        elderly_care: '안녕하세요, 요양보호사입니다. 어르신 상태에 대해 정확히 파악해야 가장 적합한 돌봄 방향을 제안드릴 수 있어요. 현재 부모님의 건강 상태와 일상생활 가능 정도를 먼저 말씀해주시겠어요?',
+        whistleblower: '이 건은 조심스럽게 진행해야 합니다. 혹시 뭘 봤는지는 아직 아무한테도 이야기 안 했지? 일단 감정적으로 행동하면 불리해지니까, 무슨 일이 있었는지 나한테만 정확하게 말해봐.',
+        debt_crisis: '먼저 심호흡 한번 하시고, 현재 상황을 정리해보겠습니다. 채무 문제는 정확한 현황 파악이 첫 번째입니다. 총 빚이 얼마인지, 어디어디에서 빌리셨는지, 월 상환액이 얼마인지 말씀해주세요. 해결 방법은 분명히 있습니다.',
+        child_custody: '양육권 관련 가정조사를 위해 먼저 몇 가지 여쭤보겠습니다. 현재 자녀분과 함께 생활하고 계신가요? 그리고 일상적인 양육 환경, 자녀의 학교생활, 건강 상태에 대해 편하게 말씀해주세요.',
+        workplace_harassment: '이야, 그게 무슨 소리야? 내가 언제 널 괴롭혔다는 거야? 업무 지시를 한 건데 그걸 괴롭힘이라고? 좀 예민한 거 아닌가? 일단 이거 정확하게 어떤 상황을 말하는 건지 들어보자.',
+        medical_decision: '보호자분, 환자분의 현재 상태와 수술에 대해 상세히 설명드리겠습니다. 먼저 검사 결과를 함께 보시면서, 왜 수술이 필요한지와 예상되는 결과에 대해 말씀드릴게요. 궁금하신 점은 언제든 질문해주세요.',
+        startup_cofounder: '이제 솔직하게 이야기하자. 나도 이 회사에 지난 2년간 전부를 쏟아부었어. 근데 지금 상황이 공평하다고 생각해? 역할이나 기여도에 비해서 내가 받는 게 맞는 건지, 진지하게 얘기해보자.',
+        school_transfer: '학부모님, 먼저 아이 상황에 대해 말씀해주셔서 감사합니다. 제가 담임으로서 파악하고 있는 부분도 있고, 모르는 부분도 있을 수 있어요. 구체적으로 어떤 점이 가장 걱정되시는지 말씀해주시겠어요?',
+        contract_negotiation: '제안서는 검토했습니다. 솔직히 말씀드리면, 현재 납품 단가로는 저희 내부 기준에 맞지 않습니다. 시장에 동급 공급사가 여럿 있는 것도 아시죠? 어디까지 조정이 가능하신지 들어보겠습니다.',
+        mental_health: '와주셔서 감사합니다. 이렇게 도움을 요청하시는 것 자체가 용기 있는 첫걸음이에요. 오늘은 편하게 이야기하시면 됩니다. 요즘 가장 힘드신 부분이 어떤 건지, 천천히 말씀해주시겠어요?',
+        inheritance_plan: '어르신, 먼저 현재 보유하고 계신 재산의 전체 그림을 그려보겠습니다. 부동산, 금융자산, 기타 자산을 종류별로 정리해야 정확한 세금 시뮬레이션이 가능합니다. 대략적인 규모부터 말씀해주시겠어요?',
+      };
+
       // First AI asks the opening question naturally
       const firstRole = scenario.roles[0];
       const firstExpert = experts.find(e => e.id === finalAssignments[firstRole.name]);
@@ -1923,15 +1961,21 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
         setMessages(prev => [...prev, { id: introMsgId, expertId: firstExpert.id, content: '', isStreaming: true, simRoleName: firstRole.name, simRoleIcon: firstRole.icon }]);
         setActiveExpertId(firstExpert.id);
 
-        const intensityDesc = shSettings.intensity <= 3 ? '건설적이고 우호적으로' : shSettings.intensity <= 6 ? '균형 잡힌 톤으로' : '날카롭고 도전적으로';
+        const fixedText = (infoLevel === 'none') ? fixedOpenings[scenario.id] : undefined;
 
-        const infoInstruction = infoLevel === 'full'
-          ? `유저가 충분한 정보를 제공했습니다. 자기소개를 한 문장으로 하고, 제공된 정보를 바탕으로 바로 본론에 맞는 심층적 첫 질문이나 의견을 제시하세요. "어떤 사업인가요?" 같은 이미 답변된 기본 질문은 절대 하지 마세요.`
-          : infoLevel === 'partial'
-          ? `유저가 일부 정보만 제공했습니다. 자기소개를 한 문장으로 하고, 이미 알고 있는 정보를 언급하면서 부족한 부분만 자연스럽게 추가 질문하세요.`
-          : `유저가 아직 구체적 정보를 제공하지 않았습니다. 자기소개를 한 문장으로 하고, 시뮬레이션 진행에 필요한 핵심 정보를 자연스럽게 물어보세요.`;
+        if (fixedText) {
+          // Use fixed opening text for a snappy start
+          setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fixedText, isStreaming: false } : m));
+        } else {
+          const intensityDesc = shSettings.intensity <= 3 ? '건설적이고 우호적으로' : shSettings.intensity <= 6 ? '균형 잡힌 톤으로' : '날카롭고 도전적으로';
 
-        const openingPrompt = `당신은 "${scenario.name}" 시뮬레이션에서 "${firstRole.name}" 역할입니다.
+          const infoInstruction = infoLevel === 'full'
+            ? `유저가 충분한 정보를 제공했습니다. 자기소개를 한 문장으로 하고, 제공된 정보를 바탕으로 바로 본론에 맞는 심층적 첫 질문이나 의견을 제시하세요. "어떤 사업인가요?" 같은 이미 답변된 기본 질문은 절대 하지 마세요.`
+            : infoLevel === 'partial'
+            ? `유저가 일부 정보만 제공했습니다. 자기소개를 한 문장으로 하고, 이미 알고 있는 정보를 언급하면서 부족한 부분만 자연스럽게 추가 질문하세요.`
+            : `유저가 아직 구체적 정보를 제공하지 않았습니다. 자기소개를 한 문장으로 하고, 시뮬레이션 진행에 필요한 핵심 정보를 자연스럽게 물어보세요.`;
+
+          const openingPrompt = `당신은 "${scenario.name}" 시뮬레이션에서 "${firstRole.name}" 역할입니다.
 핵심 관심사: ${firstRole.focus}
 ${intensityDesc} 말하세요. 한국어. 대화체.
 ${simContext}
@@ -1939,18 +1983,19 @@ ${simContext}
 ${infoInstruction}
 3~4문장 이내로 짧게.`;
 
-        let fullContent = '';
-        try {
-          await streamExpert({
-            question: '시뮬레이션을 시작합니다.',
-            expert: { ...firstExpert, systemPrompt: openingPrompt },
-            previousResponses: [],
-            round: 'initial' as any,
-            onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isStreaming: false } : m)); },
-            signal: controller.signal,
-          });
-        } catch { /* ignore */ }
+          let fullContent = '';
+          try {
+            await streamExpert({
+              question: '시뮬레이션을 시작합니다.',
+              expert: { ...firstExpert, systemPrompt: openingPrompt },
+              previousResponses: [],
+              round: 'initial' as any,
+              onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fullContent } : m)); },
+              onDone: () => { setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isStreaming: false } : m)); },
+              signal: controller.signal,
+            });
+          } catch { /* ignore */ }
+        }
       }
 
       setIsDiscussing(false);
@@ -2387,7 +2432,7 @@ ${conversationText}`;
   const clarifyAttemptsRef = useRef(0);
   const sessionIdRef = useRef<string>(`hist-${Date.now()}`);
   const sessionTitleRef = useRef<string>('');
-  const MAX_CLARIFY_ATTEMPTS = 2;
+  const MAX_CLARIFY_ATTEMPTS = 1;
   const [chatClarify, setChatClarify] = useState<{
     show: boolean;
     loading: boolean;
@@ -2686,7 +2731,7 @@ ${conversationText}`;
         const aiExpert = aiOpponents[ri];
         if (!aiExpert) continue;
 
-        const aiPrompt = `당신은 ${aiExpert.nameKo}입니다. "${topic}" 주제에서 "${aiStanceKo}" 입장으로 유저와 싸우고 있습니다.
+        const aiPrompt = `당신은 "${battleAi.name}"입니다. "${topic}" 주제에서 "${aiStanceKo}" 입장으로 유저와 싸우고 있습니다.
 
 ## 말투: ${difficulty === 'easy' ? '친근' : difficulty === 'hard' ? '공격적' : '논리적'}
 ${difficultyDesc}
@@ -3003,6 +3048,156 @@ ${simContext ? `\n${simContext}` : ''}
           '화난 고객': '극도로 감정적. 소리 지르고, 위협하고, 온라인에 올리겠다고 협박. 논리보다 감정이 앞선다. "사장 나오라고 해!", "소비자보호원에 신고할 거야!"',
           '매장 매니저': '유저(CS 담당자)의 상급자. 상황 파악 후 개입. "규정은 지키되 고객을 잃지는 마세요", "이건 제가 결정할 수 있는 범위가 아닙니다"',
           '본사 CS팀': '규정과 가이드라인 기반. "보상 범위는 여기까지입니다", "전례가 되면 안 됩니다", "고객 이탈률도 고려해야 합니다"',
+        },
+        '연봉 협상': {
+          '팀장': '팀원의 기여를 인정하지만 팀 전체 균형을 고려. "네 성과는 인정하지만, 다른 팀원들과의 형평성도 있어서...", "구체적으로 어떤 성과가 있었는지 정리해줄 수 있어?"',
+          'HR 담당자': '제도와 기준 중심. 감정이 아닌 데이터로 대화. "현재 직급 밴드 기준으로 보면...", "동일 직급 평균 대비 이미 상위권이신데요", "이직 시장 상황도 고려해야죠"',
+          'CFO': '숫자와 예산으로만 판단. "인건비 총액이 이미 전년 대비 12% 올랐습니다", "한 명을 올리면 팀 전체 기대치가 올라갑니다", "ROI로 설명해주세요"',
+        },
+        '학부모 상담': {
+          '학부모': '자녀 편에서 감정적으로 반응. "우리 아이가 그럴 리 없어요", "학교에서 제대로 관리를 한 건가요?", "다른 아이 문제 아닌가요?"',
+          '교감': '학교 규정과 법적 책임 관점. "교칙에 따르면...", "학교운영위원회에 보고해야 할 수도 있습니다", "교육청 지침을 따라야 합니다"',
+          '학생': '자기 입장을 변호하되 숨기는 게 있다. 처음엔 "저는 안 그랬어요"지만 점점 진실이 드러남. 또래 압력이나 가정 사정을 간접적으로 암시.',
+        },
+        '규제 대응': {
+          '규제기관 담당자': '원칙적이고 엄격. "현행법상 이건 허가 대상입니다", "소비자 피해가 발생하면 누가 책임지죠?", "해외 사례가 있다고 국내에 바로 적용할 순 없습니다"',
+          '사내 법률팀': '유저 편이지만 리스크를 경고. "이 표현은 규제 위반으로 해석될 수 있습니다", "우회 전략으로 이런 방법이 있습니다", "최악의 시나리오도 준비해야 합니다"',
+          '기자': '대중의 관심사 관점으로 질문. "일반 국민이 들으면 어떻게 생각할까요?", "혹시 기존 업체들의 반발은 없나요?", "규제 로비 의혹은?"',
+        },
+        '파트너십 협상': {
+          '대기업 사업 임원': '전략적이고 주도적. "우리가 이 제휴를 해야 할 이유가 뭡니까?", "경쟁사도 비슷한 제안을 해왔는데요", "독점권은 줄 수 있나요?"',
+          '대기업 법무팀': '계약 조건에 까다로움. "IP 귀속이 명확하지 않네요", "중도 해지 시 기술 반환 조항은?", "경업금지 기간은 어떻게 되죠?"',
+          '대기업 기술팀장': '기술 통합 현실성 검증. "우리 시스템과 API 호환이 되나요?", "성능 벤치마크 자료 있나요?", "유지보수는 누가 하죠?"',
+        },
+        '예산 심의': {
+          'CFO': '전사 재무 관점에서 냉정하게 평가. "올해 영업이익률이 떨어졌는데 증액 근거가 뭡니까?", "다른 부서는 다 삭감했습니다", "숫자로 보여주세요"',
+          '타 부서장': '예산 경쟁자. 자기 부서 예산을 지키면서 견제. "우리 부서도 인원이 부족한데요", "마케팅비만 늘린다고 매출이 오르나요?", "우선순위를 다시 정해야 하는 거 아닙니까?"',
+          '대표이사': '큰 그림과 전략 방향. "이게 3개년 계획과 어떻게 연결되나?", "경쟁사 대비 우리 투자 수준은?", "성과가 안 나오면 어떻게 할 건가?"',
+        },
+        '위원회 발표': {
+          '심사위원장': '학술적 깊이와 독창성을 중시. "기존 연구 대비 차별점이 명확하지 않은데요", "이론적 기여가 구체적으로 뭔가요?", "방법론의 타당성을 좀 더 설명해주세요"',
+          '기술 심사위원': '실현 가능성에 집중. "이 실험 장비가 확보되어 있나요?", "연구 인력 구성이 적절한가요?", "제시한 일정이 현실적인지 의문입니다"',
+          '산업계 심사위원': '실용성과 사업화 관점. "이 연구 결과가 산업계에 어떻게 적용되나요?", "시장 수요가 있나요?", "기업과 공동연구 경험은?"',
+        },
+        '스타트업 투자 유치': {
+          'VC 심사역': '체계적이고 분석적. "TAM이 얼마나 되죠?", "3년 내 BEP 달성 계획은?", "현재 번레이트가 어떻게 되나요?" 숫자와 근거를 반드시 요구.',
+          '엔젤투자자': '창업자 개인에 집중. "이 문제를 왜 당신이 풀어야 하죠?", "이전 실패 경험에서 뭘 배웠어요?", "올인할 각오가 되어 있나요?" 진정성을 본다.',
+          '창업 멘토': '경험 기반으로 현실적 조언. "그거 저도 해봤는데요...", "고객 10명한테 직접 물어봤어요?", "피벗할 준비는 되어 있나요?" 따뜻하지만 직설적.',
+        },
+        '의료 상담': {
+          '주치의': '차분하고 체계적. "언제부터 시작됐나요?", "가족력이 있으신가요?", "다른 약을 복용 중이신가요?" 환자를 안심시키면서 정보를 수집.',
+          '간호사': '따뜻하고 세심. "많이 불편하셨겠어요", "식사는 잘 하고 계세요?", "수면 패턴은 어떠세요?" 생활 전반을 살핌.',
+          '전문의': '전문적이고 정밀. "MRI 결과를 보면...", "이 증상 패턴은 감별이 필요합니다", "정밀 검사를 권합니다" 의학적 근거 기반.',
+        },
+        '결혼 준비 상담': {
+          '웨딩플래너': '밝고 전문적. "요즘 트렌드는 이래요", "예산 안에서 이렇게 하면 효율적이에요", "이 업체는 제가 직접 해봐서 추천드려요" 경험 기반 조언.',
+          '양가 부모님': '전통과 체면을 중시하면서도 자녀를 걱정. "우리 때는 이렇게 했는데...", "상대 집안에서 뭐라고 하시던?", "너무 무리하지 마라" 세대 차이가 드러남.',
+          '결혼한 친구': '솔직하고 현실적. "나 때 이거 후회했어", "그건 돈 낭비야 진짜", "신혼여행은 진짜 잘 골라야 해" 경험담 위주.',
+        },
+        '학교 폭력 대응': {
+          '피해 학생 부모': '감정적이고 분노에 차 있음. "우리 아이가 얼마나 힘들어하는지 아세요?", "가해 학생은 제대로 처벌받아야 합니다", "학교에서 왜 방치했나요?" 강하게 추궁.',
+          '가해 학생': '처음엔 부인하다가 점점 사실 인정. "저는 안 그랬어요", "장난이었어요", "다른 애들도 다 그래요" 또래 압력과 가정환경이 암시됨.',
+          '학교폭력위원': '규정과 절차를 따름. "학교폭력예방법에 따르면...", "양측 진술을 모두 들어야 합니다", "피해 학생 보호 조치가 우선입니다" 공정하고 절차적.',
+        },
+        '유산 분쟁 조정': {
+          '동생': '감정적이면서 권리를 주장. "법적으로 균등 상속이잖아요", "형/언니만 부모님 모신 것도 아니잖아요", "저도 나름대로 도왔어요" 서운함과 분노가 섞임.',
+          '변호사': '냉정하고 법률적. "민법 제1009조에 따르면...", "기여분 주장을 하시려면 증거가 필요합니다", "소송까지 가면 양쪽 다 손해입니다" 법적 현실을 직시시킴.',
+          '조정위원': '양측을 달래며 합의점을 찾음. "양쪽 다 일리가 있습니다", "이런 방법은 어떨까요?", "가족 관계가 더 중요하지 않겠습니까?" 감정 조절에 집중.',
+        },
+        '프랜차이즈 창업 상담': {
+          '프랜차이즈 본사 담당자': '긍정적이고 영업적. "현재 전국 매장 평균 월매출이...", "본사에서 인테리어부터 교육까지 다 지원합니다", "지금이 가맹 타이밍입니다" 좋은 면 강조.',
+          '기존 가맹점주': '현실적이고 솔직. "본사 말만 듣지 마세요", "실제 순이익은 그 절반도 안 돼요", "로열티랑 원재료비가 생각보다 큽니다" 경험에서 나온 직설.',
+          '창업 컨설턴트': '데이터와 분석 기반. "이 상권의 유동인구가...", "경쟁 매장 수를 보면...", "손익분기점까지 최소 8개월은 잡으셔야 합니다" 객관적 평가.',
+        },
+        '세입자-임대인 분쟁': {
+          '임대인': '자기 입장을 방어. "건물 유지비가 얼마인지 알아요?", "다른 세입자는 다 올려줬어요", "계약서에 다 명시되어 있잖아요" 재산권 주장.',
+          '부동산 중개사': '양쪽을 중재하며 시세를 제시. "현재 이 동네 시세가...", "양쪽 다 양보하셔야 합니다", "이 조건이면 합리적인 선이에요" 현실적 중재.',
+          '법률 상담사': '법적 권리를 명확히. "임대차보호법상 이 경우...", "내용증명부터 보내시는 게 좋겠습니다", "임차권등기명령을 고려해보세요" 절차적 안내.',
+        },
+        '이직·전직 상담': {
+          '헤드헌터': '시장 정보에 밝고 현실적. "현재 이 포지션 시장 가격이...", "지금 이 타이밍이 좋습니다/나쁩니다", "이력서에 이 부분을 강조하세요" 매칭 관점.',
+          '현직자': '회사 내부 현실을 솔직하게. "솔직히 야근이 많아요", "성장은 확실히 되는데 워라밸은...", "팀 분위기는 이래요" 필터 없는 정보.',
+          '커리어 코치': '장기적 관점에서 조언. "5년 후 어디에 있고 싶으세요?", "이직이 아니라 전직이 필요한 것 같은데요", "강점을 살리는 방향으로 가시죠" 체계적 설계.',
+        },
+        '보험 청구 분쟁': {
+          '보험사 심사역': '약관 기준으로 엄격하게 판단. "약관 제17조에 따르면 면책 사유에 해당합니다", "고지의무를 위반하셨는데요", "보상 범위가 여기까지입니다" 원칙적.',
+          '보험설계사': '고객 편에 서면서 중재. "제가 가입 때 이 부분을 설명드렸는데...", "본사에 특별 심사를 요청해보겠습니다", "이의신청을 하시는 게 좋겠어요" 고객 대변.',
+          '금감원 상담원': '소비자 권리 중심. "보험업법상 이 경우...", "분쟁 조정을 신청하실 수 있습니다", "비슷한 사례에서 이런 결과가 나왔어요" 제도 안내.',
+        },
+        '층간소음 분쟁': {
+          '윗집 주민': '억울함을 표현하면서 방어적. "우리도 조심하고 있어요", "아이가 있으니 어쩔 수 없는 부분도 있잖아요", "아래층에서 너무 예민한 거 아닌가요?" 역공도 함.',
+          '관리사무소장': '양쪽을 달래며 규약 적용. "관리규약에 따르면 밤 10시 이후는...", "소음 측정을 한번 해볼까요?", "양쪽 다 조금씩 양보하셔야 합니다" 중립적 중재.',
+          '조정위원': '법적 기준과 조정안 제시. "환경분쟁조정위원회 기준으로...", "손해배상이 인정된 판례가 있습니다", "이런 합의안은 어떠신가요?" 해결 지향.',
+        },
+        '해외 이민·비자 상담': {
+          '이민 컨설턴트': '체계적이고 전문적. "해당 국가의 포인트 제도에서 현재 점수가...", "이 비자 카테고리가 가장 적합합니다", "준비 기간은 최소 6개월~1년 잡으세요" 절차 중심.',
+          '현지 교민': '현실 경험 공유. "와보면 생각과 많이 달라요", "한인 커뮤니티가 있긴 한데...", "아이들 적응이 제일 힘들었어요" 생활 밀착 정보.',
+          '비자 전문 행정사': '서류와 법적 요건 집중. "이 서류가 빠지면 거절됩니다", "비자 거절 사유 중 가장 많은 게...", "대안으로 이 비자도 고려해보세요" 실무적.',
+        },
+        'SNS 위기 대응': {
+          '매니저': '긴급 모드로 빠른 판단. "일단 예정된 광고 게시물 다 내려요", "브랜드 측에서 연락 왔습니다", "변호사 연결할게요, 아무 말도 하지 마세요" 위기관리 실행.',
+          '악성 댓글 작성자': '공격적이고 집요함. "증거 다 있다", "사과해도 용서 안 해", "다른 피해자들도 모이고 있다" 여론 압박. 분노와 정의감이 섞여 있음.',
+          'PR 전문가': '여론 흐름을 읽고 전략 수립. "지금 사과하면 역효과입니다", "먼저 팩트를 정리하고 타이밍을 잡아야 합니다", "진정성 있는 영상이 텍스트보다 효과적이에요" 전략적.',
+        },
+        '이혼 조정 상담': {
+          '가사 조정위원': '차분하고 중립적. 양측의 감정을 존중하면서도 합리적 합의점을 찾는다. "양쪽 다 힘드신 거 알겠습니다. 자녀분에게 가장 좋은 방향을 함께 찾아보시죠.", "감정과 법적 권리는 분리해서 생각하셔야 합니다."',
+          '상대측 변호사': '의뢰인(상대 배우자)을 대변하며 냉정하게 공격. "제 의뢰인의 양육 기여도를 고려하면 재산분할 비율이...", "위자료 산정 기준에 대해 판례를 보시죠", "자녀가 누구와 더 안정적인 생활을 할 수 있는지가 핵심입니다."',
+          '자녀 심리상담사': '자녀의 목소리를 대변. 따뜻하지만 단호. "아이가 부모님 다툼에 많이 불안해하고 있어요.", "양육 환경 변화가 아이에게 미치는 영향을 먼저 생각해주세요.", "부모님의 갈등을 자녀에게 전가하지 않는 것이 가장 중요합니다."',
+        },
+        '부모님 요양 결정': {
+          '요양보호사': '현장 경험에서 나오는 현실적 조언. "시설이 무조건 나쁜 건 아니에요. 전문 케어가 필요한 단계가 있습니다.", "재가돌봄은 가족 번아웃이 가장 큰 위험이에요.", "어르신 등급에 따라 지원받을 수 있는 서비스가 달라집니다."',
+          '형제자매': '서운함과 현실적 한계가 섞인 감정. "나도 부모님 걱정 안 하는 거 아니야", "근데 나도 직장에 아이들에 형편이 안 되는 부분이 있어", "형/언니가 가까이 살잖아, 나는 매달 비용이라도 보태줄게" 감정과 현실 사이.',
+          '어르신 본인': '자존심과 불안이 공존. "나는 아직 괜찮아, 왜 자꾸 시설 이야기를 하니", "너희한테 짐이 되고 싶지 않아", "그래도 낯선 곳에 가기는 싫어..." 자식에게 약한 모습 보이기 싫어함.',
+        },
+        '내부 고발 결정': {
+          '상사': '처음엔 회유, 나중엔 압박. "네가 잘못 본 거 아니야?", "이건 회사가 다 아는 관행이야", "신고하면 너도 무사하지 못해", "차라리 내가 위에 보고해서 정리할게" 은폐와 회유를 반복.',
+          '공익신고센터 상담원': '객관적이고 절차적. "공익신고자보호법에 따라 신분이 보장됩니다.", "증거 자료를 어떤 형태로 가지고 계신가요?", "보복 행위에 대한 법적 보호 조치도 마련되어 있습니다." 안심시키면서 절차 안내.',
+          '동료': '갈등하면서도 현실적. "나도 그거 이상하다고 생각했어", "근데 우리가 신고하면 팀 전체가 다 조사받잖아", "가족이 있으니까 쉽게 결정 못 하겠어..." 연대의 가능성과 두려움 사이.',
+        },
+        '빚 탈출 상담': {
+          '신용회복위원회 상담사': '따뜻하지만 현실적. "많이 힘드셨을 텐데, 이제 같이 정리해봅시다.", "월 소득 대비 상환 비율을 보면 개인회생이 적합할 수 있습니다.", "가장 중요한 건 숨기지 않고 정확한 현황을 말씀해주시는 거예요." 비판 없이 안내.',
+          '채권추심원': '압박하면서도 법적 선을 지킴. "이번 달 상환이 또 안 됐는데요", "법적 조치를 진행할 수밖에 없습니다", "지금이라도 일부 변제하시면 협의 가능합니다" 긴장감을 조성하되 협상 여지를 남김.',
+          '가족': '걱정과 답답함이 교차. "왜 이렇게 된 거야, 진작 말했으면 좋았잖아", "아이들 학비는 어떡하는 거야", "같이 방법을 찾아보자, 혼자 해결하려고 하지 마" 정서적 지지와 현실 직면.',
+        },
+        '양육권 분쟁': {
+          '가정법원 조사관': '객관적이고 절차적. "자녀의 일상 생활 패턴을 자세히 말씀해주세요.", "양육 환경 조사는 양측 모두에게 동일하게 진행됩니다.", "자녀의 의사도 중요하게 반영됩니다." 공정한 평가 자세.',
+          '전 배우자': '감정적이고 공격적. "당신이 아이를 잘 키울 수 있다고?", "내가 얼마나 아이한테 헌신했는데", "양육비도 제대로 안 주면서 양육권을 주장해?" 상대방을 공격하며 자기 정당성 주장.',
+          '아동심리전문가': '자녀 중심의 따뜻한 시각. "아이가 부모님 갈등으로 많이 위축되어 있어요.", "이 나이 아이에게 안정적인 환경이 가장 중요합니다.", "부모님 두 분 모두 아이에게 소중한 존재라는 점을 잊지 마세요."',
+        },
+        '직장 내 괴롭힘 대응': {
+          '가해 상사': '행위를 부인하거나 정당화. "내가 엄격하게 지도한 거지, 괴롭힘이 아니야", "이 정도도 못 견디면 사회생활 어떻게 해?", "네가 업무 능력이 부족하니까 지적한 거 아닌가" 가스라이팅과 합리화.',
+          '인사팀 담당자': '절차를 따르면서도 조직을 고려. "신고 내용은 비밀이 보장됩니다.", "양측 모두 조사를 진행하겠습니다.", "피해자 보호 조치를 먼저 시행하겠습니다." 체계적이지만 때로 조직 논리에 흔들림.',
+          '노무사': '법률 전문가로서 명확하게 조언. "이건 근로기준법 76조의2 직장 내 괴롭힘에 해당합니다.", "녹음 증거의 법적 효력은 충분합니다.", "고용노동부 신고와 손해배상 청구를 동시에 진행할 수 있습니다."',
+        },
+        '중대 수술 결정': {
+          '집도의': '전문적이면서도 이해하기 쉽게 설명. "성공률은 85%이지만, 환자분의 기저질환을 고려하면...", "수술하지 않을 경우의 예후도 말씀드려야 합니다.", "궁금하신 점은 뭐든 물어보세요, 충분히 이해하신 후에 결정하셔야 합니다."',
+          '간호사': '따뜻하고 실무적. "수술 전 검사 일정은 이렇게 진행됩니다.", "회복 기간 동안 보호자분이 준비하셔야 할 것들을 정리해드릴게요.", "많이 불안하시죠? 충분히 그러실 수 있어요." 환자 가족의 감정을 돌봄.',
+          '다른 가족 구성원': '걱정과 반대 의견. "이 나이에 이렇게 큰 수술을 해도 되는 거야?", "다른 병원에서 한번 더 소견을 들어보자", "만약에라도 잘못되면 어떡해..." 보호 본능에서 나온 우려.',
+        },
+        '공동창업 갈등': {
+          '공동창업자 B': '억울함과 분노. "나도 이 회사에 모든 걸 쏟아부었어", "기술은 내가 다 만들었는데 지분이 이게 맞아?", "이렇게 갈 거면 차라리 깔끔하게 정리하자" 감정적이면서도 협상 카드를 내밈.',
+          '초기 투자자': '투자금 보전이 최우선이지만 중재 역할. "두 분 다 소중한 분들인데...", "회사가 무너지면 모두가 잃습니다", "감정적 결정은 지금 하지 마시고, 숫자로 이야기합시다" 냉정한 중재.',
+          '법률 자문': '법적 현실을 직시시킴. "주주간 계약서에 이런 조항이 있습니다/없습니다", "지분 매수 시 시가 평가가 필요합니다", "경업금지 기간과 기밀유지에 대해서도 정리해야 합니다" 감정을 배제한 법적 분석.',
+        },
+        '자녀 전학 결정': {
+          '현재 담임교사': '학교 상황을 설명하면서도 자기 방어적 부분도 있음. "그 부분은 저도 파악하고 있고, 조치를 취하고 있었습니다.", "전학이 반드시 해결책이 되지는 않을 수 있어요.", "아이가 여기서 잘 적응할 수 있도록 지원하겠습니다."',
+          '전학 대상 학교 상담사': '환영하면서도 현실적 기대치 조정. "저희 학교에서는 전입 학생 적응 프로그램을 운영하고 있어요.", "새 환경이 무조건 좋은 건 아닐 수 있다는 점도 말씀드려야 해요.", "아이의 현재 학업 수준과 성향을 알면 더 도움이 됩니다."',
+          '자녀': '복잡한 감정을 서툴게 표현. "그냥 학교 가기 싫어...", "새 학교에 가면 나 아는 사람 아무도 없잖아", "근데 지금 학교도 좀..." 속마음을 쉽게 말하지 못하지만, 단서를 흘림.',
+        },
+        '대형 계약 협상': {
+          '대기업 구매팀장': '우위를 점하며 협상. "현재 시장가 대비 높습니다", "경쟁 입찰을 진행할 수도 있다는 거 아시죠?", "독점 공급 조건이면 단가를 더 내려야 하지 않나요?" 압박하면서 양보를 유도.',
+          '자사 법무팀': '유저 편에서 리스크 관리. "이 위약금 조항은 우리한테 불리합니다", "납품 지연 시 면책 조항을 반드시 넣어야 합니다", "지재권 조항은 양보하시면 안 됩니다" 법적 보호에 집중.',
+          '거래처 실무자': '현장 실무 관점. "이 납기는 물리적으로 어렵습니다", "품질 기준을 이렇게 올리면 원가가 올라갈 수밖에 없어요", "현장에서 실제로 가능한 선을 말씀드리는 겁니다" 현실적 제약을 설명.',
+        },
+        '정신건강 상담': {
+          '심리상담사': '깊은 공감과 따뜻한 수용. "그런 상황이라면 당연히 힘드셨을 거예요.", "지금 느끼시는 감정에 이름을 붙여볼까요?", "작은 것부터 변화를 시작해도 괜찮아요." 비판 없이 경청하고, 스스로 답을 찾도록 안내.',
+          '정신건강의학과 전문의': '의학적으로 정확하되 따뜻하게. "말씀하신 증상 패턴을 보면 전문적인 평가가 도움이 될 것 같습니다.", "약물 치료에 대한 우려가 있으시다면 자세히 설명드릴게요.", "치료는 약 vs 상담이 아니라 병행이 가장 효과적입니다."',
+          '가까운 지인': '서툴지만 진심 어린 걱정. "요즘 너 좀 달라 보여서 걱정됐어", "내가 뭘 도와줄 수 있을까?", "전문가 만나보는 거 어때? 부끄러운 거 아니야" 일상적 언어로 응원하되, 때로 상처가 되는 말도 할 수 있음.',
+        },
+        '상속 사전 설계': {
+          '세무사': '숫자와 법률에 기반한 정확한 분석. "현재 재산 규모에서 상속세가 약 O억원 예상됩니다.", "10년 단위 분할 증여가 절세에 유리합니다.", "부동산은 공시지가와 시가 차이가 커서 전략적 접근이 필요해요." 절세 방안을 구체적으로 제시.',
+          '장남': '기여분을 주장하면서도 부모님 뜻을 존중. "제가 부모님 모시면서 병원도 다 제가 데려갔잖아요", "사업을 물려받을 준비가 되어 있습니다", "물론 부모님 뜻이 제일 중요하죠" 형으로서의 책임감과 더 받아야 한다는 의식.',
+          '차남': '균등 분배를 주장하며 서운함 표출. "기여분이라는 게 그렇게 크다면, 저도 나름대로 한 게 있어요", "형만 다 가져가면 저는요?", "공평하게 하시는 게 나중에 형제 사이에도 좋습니다" 감정적이지만 나름의 논리도 있음.',
         },
       };
 
@@ -4280,47 +4475,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 )
               )}
 
-              {/* Keyboard Battle header */}
-              {discussionMode === 'aivsuser' && messages.length > 0 && activeAivsBattleConfig && (() => {
-                const bAi = BATTLE_AI_CHARACTERS.find(a => a.id === activeAivsBattleConfig.battleAiId) || BATTLE_AI_CHARACTERS[0];
-                const bLevel = debateSettings.aivsUserBattleLevel || 3;
-                const bLevelLabel = ['입문', '초급', '중급', '고급', '극한'][bLevel - 1];
-                const bStanceKo = activeAivsBattleConfig.userStance === 'pro' ? '찬성' : '반대';
-                const bAiStanceKo = activeAivsBattleConfig.userStance === 'pro' ? '반대' : '찬성';
-                return (
-                  <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-300/50">
-                    <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 px-5 py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="w-11 h-11 rounded-full bg-blue-500/20 flex items-center justify-center text-[20px] ring-2 ring-blue-400/50">🙋</div>
-                            <span className="text-[9px] font-bold text-blue-300">나</span>
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-blue-500/30 text-blue-200 font-bold">{bStanceKo}</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                            <span className="text-[16px] font-black text-white">VS</span>
-                          </div>
-                          <span className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded', bLevel <= 2 ? 'bg-emerald-500/30 text-emerald-200' : bLevel <= 3 ? 'bg-amber-500/30 text-amber-200' : 'bg-rose-500/30 text-rose-200')}>
-                            {bLevelLabel}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="w-11 h-11 rounded-full bg-rose-500/20 flex items-center justify-center text-[20px] ring-2 ring-rose-400/50">{bAi.icon}</div>
-                            <span className="text-[9px] font-bold text-rose-300">{bAi.name}</span>
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-200 font-bold">{bAiStanceKo}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-slate-800 px-5 py-2 text-center">
-                      <span className="text-[12px] font-medium text-slate-300">{activeAivsBattleConfig.topicTitle}</span>
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Participants display — VS layout for procon, normal for others */}
               {currentQuestion && messages.length > 0 && ['standard', 'procon', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
@@ -5668,6 +5822,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   const aiOpponents = activeExperts.length > 0 ? activeExperts : [];
                   const userStanceKo = aivsUserStance === 'pro' ? '찬성' : '반대';
                   const aiStanceKo = aivsUserStance === 'pro' ? '반대' : '찬성';
+                  const headerBattleAi = battleConfig ? BATTLE_AI_CHARACTERS.find(a => a.id === battleConfig.battleAiId) : null;
                   const roundJudges = messages.filter(m => m.expertId === '__avsu_judge__');
                   const currentRound = roundJudges.length;
                   return (
@@ -5704,12 +5859,12 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               <div className="flex-1 flex items-center gap-3 justify-end">
                                 <div className="text-right">
                                   <div className="text-[13px] font-black text-white tracking-wide">
-                                    {aiOpponents.map(e => e.nameKo).join(', ') || 'AI'}
+                                    {headerBattleAi ? headerBattleAi.name : (aiOpponents.map(e => e.nameKo).join(', ') || 'AI')}
                                   </div>
                                   <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/30 text-rose-300 border border-rose-500/30">{aiStanceKo}</span>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-lg ring-2 ring-rose-400/50 overflow-hidden">
-                                  {aiOpponents[0] ? <ExpertAvatar expert={aiOpponents[0]} size="sm" /> : <span className="text-[18px]">🤖</span>}
+                                  {headerBattleAi ? <span className="text-[20px]">{headerBattleAi.icon}</span> : aiOpponents[0] ? <ExpertAvatar expert={aiOpponents[0]} size="sm" /> : <span className="text-[18px]">🤖</span>}
                                 </div>
                               </div>
                             </div>
@@ -5814,13 +5969,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 );
                               } catch { return null; }
                             }
-                            // Round separator
+                            // Round separator — 키배 모드는 헤더에 표시되므로 숨김
                             if (msg.expertId === '__round__') {
-                              return (
-                                <div key={msg.id} className="flex justify-center py-2 bg-slate-50/50 dark:bg-slate-800/50">
-                                  <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-400 font-medium">{msg.content}</span>
-                                </div>
-                              );
+                              return null;
                             }
                             // Summary
                             if (msg.isSummary) {
@@ -5849,10 +6000,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               <div key={msg.id} className="px-5 py-2 flex justify-start animate-in fade-in slide-in-from-left-2 duration-300">
                                 <div className="max-w-[75%] flex items-start gap-2.5">
                                   <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0 mt-0.5 ring-2 ring-rose-300 dark:ring-rose-700">
-                                    <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />
+                                    {headerBattleAi ? <span className="text-[16px]">{headerBattleAi.icon}</span> : <ExpertAvatar expert={expert} size="xs" active={msg.isStreaming} />}
                                   </div>
                                   <div className="min-w-0">
-                                    <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">{expert.nameKo}</span>
+                                    <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">{headerBattleAi ? headerBattleAi.name : expert.nameKo}</span>
                                     <div className="mt-0.5 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-2xl rounded-tl-sm px-4 py-2.5 text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">
                                       {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : (msg.isStreaming ? <span className="text-slate-400 animate-pulse">...</span> : '')}
                                     </div>
@@ -6104,6 +6255,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   }
 
                   if (msg.expertId === '__round__') {
+                    // 키배 모드는 VS 헤더가 별도이므로 round 메시지 숨김
+                    if (discussionMode === 'aivsuser') return null;
                     const isCollapsed = collapsedRounds.has(msg.id);
                     let roundMsgCount = 0;
                     for (let i = idx + 1; i < messages.length; i++) {

@@ -3,6 +3,7 @@ import {
   AIVS_USER_TOPIC_PRESETS,
   type AivsUserTopicPreset,
   type AivsBattleDraft,
+  type BattleAiId,
 } from '@/types/expert';
 import {
   Dialog,
@@ -28,9 +29,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (draft: AivsBattleDraft) => void;
+  battleAiId?: string;
 }
 
-export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) {
+export function AivsBattleConfigModal({ open, onOpenChange, onConfirm, battleAiId = 'logical' }: Props) {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [userStance, setUserStance] = useState<'pro' | 'con' | 'random'>('pro');
   const [battleLevel, setBattleLevel] = useState<1 | 2 | 3 | 4 | 5>(3);
@@ -66,7 +68,7 @@ export function AivsBattleConfigModal({ open, onOpenChange, onConfirm }: Props) 
 
   const handleConfirm = () => {
     if (!selectedTopicId) return;
-    onConfirm({ topicId: selectedTopicId, userStance, battleAiId: 'logical', verdictMode: 'none' });
+    onConfirm({ topicId: selectedTopicId, userStance, battleAiId: battleAiId as BattleAiId, verdictMode: 'none' });
     onOpenChange(false);
   };
 

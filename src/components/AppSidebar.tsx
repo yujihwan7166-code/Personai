@@ -546,11 +546,11 @@ export function AppSidebar({
             }}
             onBlur={saveEditing}
             onClick={e => e.stopPropagation()}
-            className="flex-1 min-w-0 text-[13px] text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 outline-none focus:border-blue-400 dark:focus:border-blue-500"
+            className="flex-1 min-w-0 text-[12px] text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 outline-none focus:border-blue-400 dark:focus:border-blue-500"
           />
         ) : (
           <div className="flex-1 min-w-0 flex items-center gap-1.5">
-            <span className="text-[12px] text-slate-600 dark:text-slate-400 truncate">
+            <span className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
               {record.question}
             </span>
             {record.mode && record.mode !== 'general' && (
@@ -598,19 +598,19 @@ export function AppSidebar({
                 style={{ top: menuPos.top, left: Math.max(8, menuPos.left) }}>
                 <button
                   onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(record.question); setMenuOpenId(null); }}
-                  className="w-full px-3 py-2 text-left text-[13px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
+                  className="w-full px-3 py-2 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
                 >
                   <Share2 className="w-4 h-4 text-slate-400" /> 공유하기
                 </button>
                 <button
                   onClick={e => { e.stopPropagation(); setMenuOpenId(null); startEditing(record); }}
-                  className="w-full px-3 py-2 text-left text-[13px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
+                  className="w-full px-3 py-2 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
                 >
                   <Pencil className="w-4 h-4 text-slate-400" /> 이름 바꾸기
                 </button>
                 <button
                   onClick={e => { e.stopPropagation(); togglePin(record.id); setMenuOpenId(null); }}
-                  className="w-full px-3 py-2 text-left text-[13px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
+                  className="w-full px-3 py-2 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
                 >
                   {pinnedIds.has(record.id)
                     ? <><PinOff className="w-4 h-4 text-slate-400" /> 고정 해제</>
@@ -633,7 +633,7 @@ export function AppSidebar({
                       setShowProjectPicker(record.id);
                     }}
                     onMouseLeave={() => { setTimeout(() => { if (!document.querySelector('[data-project-picker]:hover')) setShowProjectPicker(null); }, 100); }}
-                    className="w-full px-3 py-2 text-left text-[13px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
+                    className="w-full px-3 py-2 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
                   >
                     <FolderOpen className="w-4 h-4 text-slate-400" /> 프로젝트로 이동
                     <ChevronRight className="w-3 h-3 text-slate-400 ml-auto" />
@@ -649,7 +649,7 @@ export function AppSidebar({
                           key={p.id}
                           onClick={e => { e.stopPropagation(); moveToProject(record.id, p.id); setShowProjectPicker(null); setMenuOpenId(null); }}
                           className={cn(
-                            "w-full px-3 py-1.5 text-left text-[12px] hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors",
+                            "w-full px-3 py-1.5 text-left text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors",
                             projectMap[record.id] === p.id ? 'text-blue-500 font-medium' : 'text-slate-600 dark:text-slate-400'
                           )}
                         >
@@ -660,14 +660,14 @@ export function AppSidebar({
                       {projectMap[record.id] && (
                         <button
                           onClick={e => { e.stopPropagation(); removeFromProject(record.id); setShowProjectPicker(null); setMenuOpenId(null); }}
-                          className="w-full px-3 py-1.5 text-left text-[12px] text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700"
+                          className="w-full px-3 py-1.5 text-left text-[11px] text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700"
                         >
                           프로젝트에서 제거
                         </button>
                       )}
                       <button
                         onClick={e => { e.stopPropagation(); setShowProjectPicker(null); setMenuOpenId(null); setCreatingProject(true); setNewProjectName(''); }}
-                        className="w-full px-3 py-1.5 text-left text-[12px] text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700"
+                        className="w-full px-3 py-1.5 text-left text-[11px] text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700"
                       >
                         <Plus className="w-3 h-3" /> 새 프로젝트
                       </button>
@@ -677,7 +677,7 @@ export function AppSidebar({
                 <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
                 <button
                   onClick={e => { e.stopPropagation(); setMenuOpenId(null); setDeletingId(record.id); }}
-                  className="w-full px-3 py-2 text-left text-[13px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2.5 transition-colors"
+                  className="w-full px-3 py-2 text-left text-[12px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2.5 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" /> 삭제
                 </button>
@@ -699,14 +699,14 @@ export function AppSidebar({
         />
       )}
 
-      {/* Sidebar — 열림: 260px / 닫힘: 아이콘 미니모드 48px */}
+      {/* Sidebar — 열림: 220px / 닫힘: 아이콘 미니모드 48px */}
       <aside
         className={cn(
           'fixed top-0 left-0 h-full z-50 flex flex-col transition-all duration-300 ease-out',
           'bg-white dark:bg-[#0f0f0f]',
           'border-r border-slate-200 dark:border-slate-800',
           'md:relative',
-          isOpen ? 'w-[260px]' : 'w-[48px]',
+          isOpen ? 'w-[220px]' : 'w-[48px]',
           // 모바일: 닫힘=완전 숨김
           !isOpen && 'max-md:-translate-x-full',
         )}
@@ -719,7 +719,7 @@ export function AppSidebar({
                 <div className="w-7 h-7 rounded-md bg-slate-900 dark:bg-white flex items-center justify-center shrink-0">
                   <span className="text-white dark:text-slate-900 text-sm font-bold">P</span>
                 </div>
-                <span className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight">Personai</span>
+                <span className="text-[14px] font-bold text-slate-900 dark:text-white tracking-tight">Personai</span>
               </div>
               <button onClick={toggleSidebar} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <PanelLeft className="w-5 h-5" />
@@ -745,7 +745,7 @@ export function AppSidebar({
               title={!isOpen ? item.label : undefined}
               className={cn(
                 "font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center transition-colors w-full",
-                isOpen ? 'px-3 py-2 gap-2.5 text-[13px]' : 'p-2 justify-center',
+                isOpen ? 'px-3 py-2 gap-2.5 text-[12px]' : 'p-2 justify-center',
                 item.highlight && 'bg-slate-50 dark:bg-slate-800/50',
                 item.active && 'bg-slate-100 dark:bg-slate-800',
               )}
@@ -766,7 +766,7 @@ export function AppSidebar({
           <div className="shrink-0 px-1.5">
             {/* Header */}
             <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">프로젝트</span>
+              <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">프로젝트</span>
               <button
                 onClick={() => { setCreatingProject(true); setNewProjectName(''); }}
                 className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -781,7 +781,7 @@ export function AppSidebar({
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setShowIconPicker(showIconPicker === 'new' ? null : 'new')}
-                    className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[14px] hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
+                    className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[13px] hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
                   >
                     {newProjectIcon}
                   </button>
@@ -792,14 +792,14 @@ export function AppSidebar({
                     onKeyDown={e => { if (e.key === 'Enter') createProject(); if (e.key === 'Escape') { setCreatingProject(false); setShowIconPicker(null); } }}
                     onBlur={() => { if (!showIconPicker) { if (newProjectName.trim()) createProject(); else setCreatingProject(false); } }}
                     placeholder="프로젝트 이름..."
-                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[12px] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-slate-600"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-slate-600"
                   />
                 </div>
                 {showIconPicker === 'new' && (
                   <div className="flex flex-wrap gap-1 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
                     {PROJECT_ICONS.map(icon => (
                       <button key={icon} onClick={() => { setNewProjectIcon(icon); setShowIconPicker(null); }}
-                        className={cn("w-7 h-7 rounded-md flex items-center justify-center text-[14px] hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors", newProjectIcon === icon && 'bg-slate-200 dark:bg-slate-700 ring-1 ring-blue-400')}>
+                        className={cn("w-7 h-7 rounded-md flex items-center justify-center text-[13px] hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors", newProjectIcon === icon && 'bg-slate-200 dark:bg-slate-700 ring-1 ring-blue-400')}>
                         {icon}
                       </button>
                     ))}
@@ -823,7 +823,7 @@ export function AppSidebar({
                   )}
                   onClick={() => !isEditing && setActiveProjectId(isActive ? null : project.id)}
                 >
-                  <span className="text-[12px] shrink-0">{project.icon || '📁'}</span>
+                  <span className="text-[11px] shrink-0">{project.icon || '📁'}</span>
                   {isEditing ? (
                     <input
                       autoFocus
@@ -832,10 +832,10 @@ export function AppSidebar({
                       onKeyDown={e => { if (e.key === 'Enter') renameProject(project.id); if (e.key === 'Escape') setEditingProjectId(null); }}
                       onBlur={() => renameProject(project.id)}
                       onClick={e => e.stopPropagation()}
-                      className="flex-1 min-w-0 text-[12px] text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 outline-none focus:border-blue-400"
+                      className="flex-1 min-w-0 text-[11px] text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 outline-none focus:border-blue-400"
                     />
                   ) : (
-                    <span className="text-[12px] text-slate-600 dark:text-slate-400 truncate flex-1">{project.name}</span>
+                    <span className="text-[11px] text-slate-600 dark:text-slate-400 truncate flex-1">{project.name}</span>
                   )}
                   {convCount > 0 && !isEditing && (
                     <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">{convCount}</span>
@@ -861,7 +861,7 @@ export function AppSidebar({
                 {isActive && (
                   historyRecords.filter(r => projectMap[r.id] === project.id).length === 0 ? (
                     <div className="ml-6 pl-2 border-l border-slate-200 dark:border-slate-700 py-1">
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 px-2 py-1">대화가 없습니다</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 px-2 py-1">대화가 없습니다</p>
                     </div>
                   ) : (
                     <div className="ml-6 pl-2 border-l border-slate-200 dark:border-slate-700 py-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -877,7 +877,7 @@ export function AppSidebar({
                             )}
                           >
                             <span className="text-[10px] shrink-0">{expert?.icon || '💬'}</span>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{r.question}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{r.question}</span>
                           </button>
                         );
                       })}
@@ -892,7 +892,7 @@ export function AppSidebar({
             {projectsExpanded && projects.length === 0 && !creatingProject && (
               <button
                 onClick={() => { setCreatingProject(true); setNewProjectName(''); }}
-                className="w-full px-2.5 py-[5px] rounded-lg flex items-center gap-2 text-[12px] text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mx-0.5"
+                className="w-full px-2.5 py-[5px] rounded-lg flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mx-0.5"
               >
                 <Plus className="w-3.5 h-3.5" /> 새 프로젝트
               </button>
@@ -907,11 +907,11 @@ export function AppSidebar({
             <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setDeletingId(null)}>
               <div className="absolute inset-0 bg-black/20"></div>
               <div onClick={e => e.stopPropagation()} className="relative w-72 p-5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-                <p className="text-[14px] font-semibold text-slate-700 dark:text-slate-300 mb-1">대화를 삭제할까요?</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 truncate">{record?.question}</p>
+                <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1">대화를 삭제할까요?</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-4 truncate">{record?.question}</p>
                 <div className="flex gap-2 justify-end">
-                  <button onClick={() => setDeletingId(null)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
-                  <button onClick={() => handleDeleteHistory(deletingId)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
+                  <button onClick={() => setDeletingId(null)} className="px-3.5 py-1.5 text-[11px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
+                  <button onClick={() => handleDeleteHistory(deletingId)} className="px-3.5 py-1.5 text-[11px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
                 </div>
               </div>
             </div>
@@ -925,11 +925,11 @@ export function AppSidebar({
             <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setDeletingProjectId(null)}>
               <div className="absolute inset-0 bg-black/20"></div>
               <div onClick={e => e.stopPropagation()} className="relative w-72 p-5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-                <p className="text-[14px] font-semibold text-slate-700 dark:text-slate-300 mb-1">프로젝트를 삭제할까요?</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 truncate">{project.icon || '📁'} {project.name}</p>
+                <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1">프로젝트를 삭제할까요?</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-4 truncate">{project.icon || '📁'} {project.name}</p>
                 <div className="flex gap-2 justify-end">
-                  <button onClick={() => setDeletingProjectId(null)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
-                  <button onClick={() => deleteProject(deletingProjectId)} className="px-3.5 py-1.5 text-[12px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
+                  <button onClick={() => setDeletingProjectId(null)} className="px-3.5 py-1.5 text-[11px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
+                  <button onClick={() => deleteProject(deletingProjectId)} className="px-3.5 py-1.5 text-[11px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
                 </div>
               </div>
             </div>
@@ -947,20 +947,20 @@ export function AppSidebar({
                 onClick={e => e.stopPropagation()}>
                 <button
                   onClick={() => { setEditingProjectId(proj.id); setEditProjectName(proj.name); setProjectMenuId(null); }}
-                  className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                  className="w-full px-3 py-1.5 text-left text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
                 </button>
                 <button
                   onClick={() => { setProjectMenuId(null); setTimeout(() => setShowIconPicker(proj.id), 50); }}
-                  className="w-full px-3 py-1.5 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                  className="w-full px-3 py-1.5 text-left text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                 >
-                  <span className="w-3.5 h-3.5 flex items-center justify-center text-[11px]">{proj.icon || '📁'}</span> 아이콘 변경
+                  <span className="w-3.5 h-3.5 flex items-center justify-center text-[10px]">{proj.icon || '📁'}</span> 아이콘 변경
                 </button>
                 <div className="my-0.5 border-t border-slate-100 dark:border-slate-700" />
                 <button
                   onClick={() => { setProjectMenuId(null); setDeletingProjectId(proj.id); }}
-                  className="w-full px-3 py-1.5 text-left text-[12px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
+                  className="w-full px-3 py-1.5 text-left text-[11px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> 삭제
                 </button>
@@ -978,13 +978,13 @@ export function AppSidebar({
             <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={() => setShowIconPicker(null)}>
               <div className="absolute inset-0 bg-black/20" />
               <div onClick={e => e.stopPropagation()} className="relative w-64 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-                <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-3">{proj.name} 아이콘 선택</p>
+                <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-3">{proj.name} 아이콘 선택</p>
                 <div className="flex flex-wrap gap-1.5">
                   {PROJECT_ICONS.map(icon => (
                     <button key={icon} onClick={() => {
                       setProjects(prev => { const updated = prev.map(p => p.id === proj.id ? { ...p, icon } : p); saveProjects(updated); return updated; });
                       setShowIconPicker(null);
-                    }} className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-[18px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors", (proj.icon || '📁') === icon && 'bg-slate-100 dark:bg-slate-700 ring-2 ring-blue-400')}>
+                    }} className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-[17px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors", (proj.icon || '📁') === icon && 'bg-slate-100 dark:bg-slate-700 ring-2 ring-blue-400')}>
                       {icon}
                     </button>
                   ))}
@@ -1006,7 +1006,7 @@ export function AppSidebar({
                   value={searchQuery}
                   onChange={e => { setSearchQuery(e.target.value); refreshHistory(); }}
                   placeholder="대화 검색..."
-                  className="flex-1 min-w-0 bg-transparent text-[12px] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none"
+                  className="flex-1 min-w-0 bg-transparent text-[11px] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none"
                 />
               </div>
               <button onClick={toggleSearch} className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0">
@@ -1015,7 +1015,7 @@ export function AppSidebar({
             </div>
           ) : (
             <div className="flex items-center justify-between px-1">
-              <span className="text-[12px] font-medium text-slate-400 uppercase tracking-wider">모든 대화</span>
+              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">모든 대화</span>
               <button className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <SlidersHorizontal className="w-4 h-4" />
               </button>
@@ -1061,13 +1061,13 @@ export function AppSidebar({
               {searchQuery ? (
                 <>
                   <Search className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                  <p className="text-[13px] text-slate-400 dark:text-slate-500">검색 결과가 없습니다</p>
+                  <p className="text-[12px] text-slate-400 dark:text-slate-500">검색 결과가 없습니다</p>
                 </>
               ) : (
                 <>
                   <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                  <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500">대화 기록이 없습니다</p>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-600 mt-1">새 채팅을 시작해보세요</p>
+                  <p className="text-[12px] font-medium text-slate-400 dark:text-slate-500">대화 기록이 없습니다</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-600 mt-1">새 채팅을 시작해보세요</p>
                 </>
               )}
             </div>
@@ -1102,8 +1102,7 @@ export function AppSidebar({
               <div className="flex w-[174px] shrink-0 flex-col border-r border-slate-200 bg-slate-50/90 p-2.5 dark:border-slate-800 dark:bg-slate-950/70">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[17px] font-bold text-slate-900 dark:text-white">설정</p>
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Personai 작업 환경을 정리합니다</p>
+                    <p className="text-[16px] font-bold text-slate-900 dark:text-white">설정</p>
                   </div>
                   <button
                     onClick={() => setSettingsOpen(false)}
@@ -1129,26 +1128,20 @@ export function AppSidebar({
                         )}
                       >
                         <Icon className="h-4 w-4" />
-                        <span className="text-[12px] font-medium">{item.label}</span>
+                        <span className="text-[11px] font-medium">{item.label}</span>
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="mt-auto rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900/80">
-                  <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">간단 기능만 실제 저장</p>
-                  <p className="mt-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
-                    테마, 알림, 기본 모델, 응답 스타일, 기록 저장은 바로 반영됩니다.
-                  </p>
-                </div>
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col bg-white dark:bg-[#101217]">
                 <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-                  <p className="text-[17px] font-bold text-slate-900 dark:text-white">
+                  <p className="text-[16px] font-bold text-slate-900 dark:text-white">
                     {settingsNav.find(item => item.id === settingsSection)?.label}
                   </p>
-                  <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                     {settingsSection === 'general' && '기본 환경, 언어, 화면 표시 방식을 조정합니다.'}
                     {settingsSection === 'notifications' && '브라우저 알림과 소리 알림 방식을 관리합니다.'}
                     {settingsSection === 'models' && 'GPT, Gemini, Claude, Manus, Genspark 기본 우선순위를 정합니다.'}
@@ -1161,15 +1154,15 @@ export function AppSidebar({
                   {settingsSection === 'general' && (
                     <div className="space-y-4">
                       <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
-                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">화면 테마</p>
-                        <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">GPT, Claude처럼 작업할 때 가장 편한 색상 모드를 고릅니다.</p>
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">화면 테마</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">GPT, Claude처럼 작업할 때 가장 편한 색상 모드를 고릅니다.</p>
                         <div className="mt-4 flex flex-wrap gap-2">
                           {themeOptions.map(option => (
                             <button
                               key={option.value}
                               onClick={() => updateSidebarSettings({ theme: option.value })}
                               className={cn(
-                                'rounded-full px-4 py-2 text-[13px] font-medium transition-colors',
+                                'rounded-full px-4 py-2 text-[12px] font-medium transition-colors',
                                 sidebarSettings.theme === option.value
                                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
                                   : 'border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
@@ -1182,17 +1175,17 @@ export function AppSidebar({
                       </div>
 
                       <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
-                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">언어</p>
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">언어</p>
                         <div className="mt-4 space-y-3">
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">인터페이스 언어</span>
+                            <span className="text-[12px] font-medium text-slate-700 dark:text-slate-300">인터페이스 언어</span>
                             <div className="flex gap-2">
                               {languageOptions.map(option => (
                                 <button
                                   key={option.value}
                                   onClick={() => updateSidebarSettings({ language: option.value })}
                                   className={cn(
-                                    'rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors',
+                                    'rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors',
                                     sidebarSettings.language === option.value
                                       ? 'bg-blue-600 text-white'
                                       : 'border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
@@ -1213,8 +1206,8 @@ export function AppSidebar({
                       <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">브라우저 알림</p>
-                            <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">답변 완료, 작업 종료, 메모 알람을 브라우저 알림으로 받을 수 있습니다.</p>
+                            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">브라우저 알림</p>
+                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">답변 완료, 작업 종료, 메모 알람을 브라우저 알림으로 받을 수 있습니다.</p>
                           </div>
                           <button
                             onClick={() => handleNotificationToggle(!sidebarSettings.notificationsEnabled)}
@@ -1236,8 +1229,8 @@ export function AppSidebar({
                       <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">소리 알림</p>
-                            <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">Claude, Gemini처럼 응답이 끝나면 가벼운 알림음을 재생합니다.</p>
+                            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">소리 알림</p>
+                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Claude, Gemini처럼 응답이 끝나면 가벼운 알림음을 재생합니다.</p>
                           </div>
                           <button
                             onClick={() => updateSidebarSettings({ soundEnabled: !sidebarSettings.soundEnabled })}
@@ -1261,15 +1254,15 @@ export function AppSidebar({
                   {settingsSection === 'models' && (
                     <div className="space-y-4">
                       <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
-                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">기본 우선 모델</p>
-                        <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">질문을 시작할 때 가장 먼저 보여줄 모델을 정합니다.</p>
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">기본 우선 모델</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">질문을 시작할 때 가장 먼저 보여줄 모델을 정합니다.</p>
                         <div className="mt-4 flex flex-wrap gap-2">
                           {modelOptions.map(option => (
                             <button
                               key={option.value}
                               onClick={() => updateSidebarSettings({ defaultModel: option.value })}
                               className={cn(
-                                'rounded-full px-4 py-2 text-[13px] font-medium transition-colors',
+                                'rounded-full px-4 py-2 text-[12px] font-medium transition-colors',
                                 sidebarSettings.defaultModel === option.value
                                   ? 'bg-violet-600 text-white'
                                   : 'border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
@@ -1290,8 +1283,8 @@ export function AppSidebar({
                           { name: 'Genspark', note: '아이디어 확장과 초안 생성용 후보로 적합합니다.' },
                         ].map(item => (
                           <div key={item.name} className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
-                            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{item.name}</p>
-                            <p className="mt-1 text-[12px] leading-5 text-slate-500 dark:text-slate-400">{item.note}</p>
+                            <p className="text-[13px] font-semibold text-slate-900 dark:text-white">{item.name}</p>
+                            <p className="mt-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">{item.note}</p>
                           </div>
                         ))}
                       </div>
@@ -1301,14 +1294,14 @@ export function AppSidebar({
                   {settingsSection === 'personal' && (
                     <div className="space-y-4">
                       <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
-                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">기본 응답 스타일</p>
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">기본 응답 스타일</p>
                         <div className="mt-4 flex flex-wrap gap-2">
                           {responseStyleOptions.map(option => (
                             <button
                               key={option.value}
                               onClick={() => updateSidebarSettings({ responseStyle: option.value })}
                               className={cn(
-                                'rounded-full px-4 py-2 text-[13px] font-medium transition-colors',
+                                'rounded-full px-4 py-2 text-[12px] font-medium transition-colors',
                                 sidebarSettings.responseStyle === option.value
                                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
                                   : 'border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
@@ -1323,8 +1316,8 @@ export function AppSidebar({
                       <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">컴팩트 UI</p>
-                            <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">탭, 카드, 목록 간격을 조금 더 촘촘하게 보여줍니다.</p>
+                            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">컴팩트 UI</p>
+                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">탭, 카드, 목록 간격을 조금 더 촘촘하게 보여줍니다.</p>
                           </div>
                           <button
                             onClick={() => updateSidebarSettings({ compactUi: !sidebarSettings.compactUi })}
@@ -1350,8 +1343,8 @@ export function AppSidebar({
                       <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">대화 기록 저장</p>
-                            <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">질문, 답변, 토론 기록을 기기 브라우저에 보관합니다.</p>
+                            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">대화 기록 저장</p>
+                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">질문, 답변, 토론 기록을 기기 브라우저에 보관합니다.</p>
                           </div>
                           <button
                             onClick={() => updateSidebarSettings({ saveHistory: !sidebarSettings.saveHistory })}
@@ -1371,8 +1364,8 @@ export function AppSidebar({
                       </div>
 
                       <div className="rounded-2xl border border-dashed border-slate-300 p-5 dark:border-slate-700">
-                        <p className="text-[15px] font-semibold text-slate-900 dark:text-white">추가 예정</p>
-                        <p className="mt-2 text-[12px] leading-5 text-slate-500 dark:text-slate-400">
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">추가 예정</p>
+                        <p className="mt-2 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
                           대화 내보내기, 프로젝트 백업, 기기 간 동기화 같은 항목은 나중에 확장할 수 있도록 자리만 잡아두었습니다.
                         </p>
                       </div>
@@ -1404,7 +1397,7 @@ export function AppSidebar({
                 value={modalSearchQuery}
                 onChange={e => setModalSearchQuery(e.target.value)}
                 placeholder="작업 검색..."
-                className="flex-1 text-[14px] text-slate-900 dark:text-white bg-transparent outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                className="flex-1 text-[13px] text-slate-900 dark:text-white bg-transparent outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <button onClick={() => setSearchModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <X className="w-4 h-4" />
@@ -1424,7 +1417,7 @@ export function AppSidebar({
                   return (
                     <div className="px-5 py-12 text-center">
                       <Search className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                      <p className="text-[14px] text-slate-400 dark:text-slate-500">
+                      <p className="text-[13px] text-slate-400 dark:text-slate-500">
                         {query ? '검색 결과가 없습니다' : '대화 기록이 없습니다'}
                       </p>
                     </div>
@@ -1446,7 +1439,7 @@ export function AppSidebar({
                   .map(label => (
                     <div key={label}>
                       <div className="px-4 pt-3 pb-1">
-                        <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{label}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{label}</span>
                       </div>
                       {groups[label].map(record => {
                         const firstExpert = experts.find(e => record.expertIds?.includes(e.id));
@@ -1462,24 +1455,24 @@ export function AppSidebar({
                             className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left group"
                           >
                             {/* AI icon */}
-                            <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-[13px]">
+                            <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-[12px]">
                               {firstExpert?.icon || <Bot className="w-3.5 h-3.5 text-slate-400" />}
                             </div>
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-slate-900 dark:group-hover:text-white">
+                                <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-slate-900 dark:group-hover:text-white">
                                   {record.question}
                                 </p>
                               </div>
                               {preview && (
-                                <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5">{preview}</p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">{preview}</p>
                               )}
                             </div>
 
                             {/* Date */}
-                            <span className="text-[11px] text-slate-400 dark:text-slate-500 shrink-0 tabular-nums">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0 tabular-nums">
                               {formatSearchDate(record.timestamp)}
                             </span>
                           </button>
@@ -1503,7 +1496,7 @@ export function AppSidebar({
           >
             {/* Header */}
             <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="text-[15px] font-bold text-slate-800 dark:text-white">AI 봇 둘러보기</h3>
+              <h3 className="text-[14px] font-bold text-slate-800 dark:text-white">AI 봇 둘러보기</h3>
               <button onClick={() => setShowBotBrowser(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -1514,7 +1507,7 @@ export function AppSidebar({
               {['전체', '인기', 'AI 모델', '전문가', '직업', '인물', '캐릭터'].map(cat => (
                 <button key={cat}
                   onClick={() => setBotBrowserCat(cat)}
-                  className={cn("px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-colors shrink-0",
+                  className={cn("px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors shrink-0",
                     botBrowserCat === cat ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                   )}
                 >{cat}</button>
@@ -1523,7 +1516,7 @@ export function AppSidebar({
               <div className="relative">
                 <button
                   onClick={() => setBotMoreOpen(!botMoreOpen)}
-                  className={cn("px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-colors shrink-0",
+                  className={cn("px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors shrink-0",
                     ['라이프스타일','페르소나','신화','이념','철학/종교'].includes(botBrowserCat)
                       ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
                       : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1535,7 +1528,7 @@ export function AppSidebar({
                   <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg py-1 min-w-[120px] animate-in fade-in slide-in-from-top-1 duration-150">
                     {['라이프스타일', '페르소나', '신화', '이념', '철학/종교'].map(cat => (
                       <button key={cat} onClick={() => { setBotBrowserCat(cat); setBotMoreOpen(false); }}
-                        className="w-full px-3 py-1.5 text-left text-[12px] font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        className="w-full px-3 py-1.5 text-left text-[11px] font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                         {cat}
                       </button>
                     ))}
@@ -1564,7 +1557,7 @@ export function AppSidebar({
                         <ExpertAvatar expert={expert} size="md" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-slate-800 dark:text-white truncate">{expert.nameKo}</p>
+                        <p className="text-[12px] font-semibold text-slate-800 dark:text-white truncate">{expert.nameKo}</p>
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{expert.quote || expert.description}</p>
                       </div>
                     </button>
@@ -1583,7 +1576,7 @@ export function AppSidebar({
                     <button onClick={() => setSelectedBotProfile(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                       <ChevronLeft className="w-5 h-5" />
                     </button>
-                    <span className="text-[13px] font-medium text-slate-500">봇 목록으로</span>
+                    <span className="text-[12px] font-medium text-slate-500">봇 목록으로</span>
                   </div>
 
                   {/* Profile */}
@@ -1592,17 +1585,17 @@ export function AppSidebar({
                       <div className="mb-3">
                         <ExpertAvatar expert={bot} size="xl" />
                       </div>
-                      <h3 className="text-[18px] font-bold text-slate-800 dark:text-white">{bot.nameKo}</h3>
-                      <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5">{bot.description}</p>
+                      <h3 className="text-[17px] font-bold text-slate-800 dark:text-white">{bot.nameKo}</h3>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{bot.description}</p>
                       {bot.quote && (
-                        <p className="text-[12px] text-indigo-500 dark:text-indigo-400 font-medium mt-2 italic">"{bot.quote}"</p>
+                        <p className="text-[11px] text-indigo-500 dark:text-indigo-400 font-medium mt-2 italic">"{bot.quote}"</p>
                       )}
                     </div>
 
                     {/* Sample Questions */}
                     {bot.sampleQuestions && bot.sampleQuestions.length > 0 && (
                       <div className="mb-6">
-                        <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">추천 질문</p>
+                        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">추천 질문</p>
                         <div className="space-y-1.5">
                           {bot.sampleQuestions.map((q, i) => (
                             <button
@@ -1612,7 +1605,7 @@ export function AppSidebar({
                                 setSelectedBotProfile(null);
                                 onStartChat?.(bot.id, 'question', q);
                               }}
-                              className="w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[12px] text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
+                              className="w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
                             >
                               {q}
                             </button>
@@ -1624,12 +1617,12 @@ export function AppSidebar({
                     {/* Info */}
                     <div className="space-y-2 mb-6">
                       {bot.subCategory && (
-                        <div className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center justify-between text-[10px]">
                           <span className="text-slate-400">분야</span>
                           <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.subCategory}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center justify-between text-[10px]">
                         <span className="text-slate-400">카테고리</span>
                         <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.category}</span>
                       </div>
@@ -1656,7 +1649,7 @@ export function AppSidebar({
                         setSelectedBotProfile(null);
                         onStartChat?.(bot.id, 'greeting', greeting);
                       }}
-                      className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold text-[14px] transition-colors shadow-md"
+                      className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold text-[13px] transition-colors shadow-md"
                     >
                       대화 시작하기
                     </button>

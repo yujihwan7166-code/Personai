@@ -45,7 +45,7 @@ export function TrustIndicator({ domain, citations, error, trustHeader }: Props)
       <span>
         {hasData
           ? `${SOURCE_MAP[domain]} 데이터 기반 · ${dateStr} 기준 · ${citations.length}건 참조`
-          : error || 'API 연결 대기 중...'}
+          : error || `${SOURCE_MAP[domain]} 연동 준비 중`}
       </span>
     </div>
   );
