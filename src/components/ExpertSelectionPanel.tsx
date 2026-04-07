@@ -140,7 +140,7 @@ function AutoManualToggle({ auto, onChange }: { auto: boolean; onChange: (v: boo
       </button>
       <button type="button" onClick={() => onChange(true)}
         className={cn('px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
-          auto ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
+          auto ? 'bg-white text-slate-600 shadow-sm' : 'text-slate-400 hover:text-slate-600')}>
         AI 추천
       </button>
     </div>
@@ -380,7 +380,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             </div>
             {autoAssign ? (
               <div className="flex flex-col items-center gap-2 py-3">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <Sparkles className="w-5 h-5 text-slate-400" />
                 <p className="text-[11px] text-slate-400 text-center">질문을 입력하면 AI가<br/>적합한 토론자를 골라드려요</p>
               </div>
             ) : (
@@ -705,7 +705,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
             </div>
             {autoAssign ? (
               <div className="flex flex-col items-center gap-2 py-3">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <Sparkles className="w-5 h-5 text-slate-400" />
                 <p className="text-[11px] text-slate-400 text-center">질문을 입력하면 AI가<br/>적합한 참여자를 골라드려요</p>
               </div>
             ) : selectedIds.length > 0 ? (
@@ -1024,7 +1024,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
             </div>
             {autoAssign ? (
               <div className="flex flex-col items-center gap-2 py-3">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <Sparkles className="w-5 h-5 text-slate-400" />
                 <p className="text-[11px] text-slate-400 text-center">질문을 입력하면 AI가<br/>적합한 참여자를 골라드려요</p>
               </div>
             ) : (
@@ -1193,7 +1193,7 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
               </div>
               {aivsAutoSelect ? (
                 <div className="flex flex-col items-center gap-2 py-3">
-                  <Sparkles className="w-5 h-5 text-indigo-400" />
+                  <Sparkles className="w-5 h-5 text-slate-400" />
                   <p className="text-[11px] text-slate-400 text-center">주제에 맞는 상대 AI가<br/>자동으로 배정됩니다</p>
                 </div>
               ) : (
@@ -3532,7 +3532,7 @@ export function ExpertSelectionPanel({
                         <div className="relative group/more">
                           <button type="button"
                             className={cn('flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md font-medium',
-                              isMoreActive ? 'text-indigo-600 font-semibold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/70')}>
+                              isMoreActive ? 'text-slate-600 font-semibold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/70')}>
                             {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
                           </button>
                           <div className="absolute left-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
@@ -3540,7 +3540,7 @@ export function ExpertSelectionPanel({
                               <button key={cat} type="button"
                                 onClick={() => { setActiveCategory(cat); setActiveSubCategory('전체'); }}
                                 className={cn('w-full text-left px-4 py-2 text-[11px] font-medium transition-colors flex items-center gap-2',
-                                  effectiveCategory === cat ? 'text-indigo-600' : 'text-slate-600 hover:bg-slate-50')}>
+                                  effectiveCategory === cat ? 'text-slate-600' : 'text-slate-600 hover:bg-slate-50')}>
                                 {effectiveCategory === cat && <Check className="w-3 h-3 text-indigo-500" />}
                                 {label}
                               </button>
@@ -3666,7 +3666,7 @@ export function ExpertSelectionPanel({
                             isDisabled ? 'text-slate-300'
                               : isProcon && isPro ? 'text-blue-600 font-semibold'
                                 : isProcon && isCon ? 'text-red-500 font-semibold'
-                                  : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
+                                  : !isProcon && isSelected ? 'text-slate-600 font-semibold'
                                     : 'text-slate-400 group-hover:text-slate-700')}>
                             {expert.nameKo}
                           </span>
