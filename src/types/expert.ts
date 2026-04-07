@@ -463,6 +463,8 @@ export interface PremiumDomainTemplate {
     trustBadge: string;
     outputFormat: string;
     sampleQuestions: string[];
+    sampleCases?: { title: string; desc: string; query: string }[];
+    promptHint?: string;
     phases: { id: string; role: string; icon: string; description: string }[];
     strengths?: { icon: string; title: string; titleEn: string; desc: string }[];
     features?: { icon: string; title: string; desc: string }[];
@@ -472,11 +474,18 @@ export interface PremiumDomainTemplate {
 export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
     {
         id: 'law', name: '법률 자문관', icon: '⚖️', tagline: '실시간 법령·판례 기반 법률 자문',
+        promptHint: '계약서 조항의 유효성, 손해배상 청구 가능 여부, 소송 절차와 예상 기간을 분석해보고 싶다면?',
         description: '국가법령정보센터 API와 연동하여 실제 법령 조문과 판례를 근거로 정확한 법률 자문을 제공합니다.',
         color: { bg: 'bg-amber-950', text: 'text-amber-200', accent: 'text-amber-400', border: 'border-amber-700', gradient: 'from-amber-900/40 to-slate-950' },
         apiSource: { name: '국가법령정보센터', url: 'https://law.go.kr', icon: '🏛️' },
         trustBadge: '실시간 법령 데이터 기반', outputFormat: '법률의견서 (Legal Memorandum)',
         sampleQuestions: ['전세 사기 당했을 때 대처법은?', '중고거래 환불 의무가 있나요?', '초상권 침해 기준이 뭔가요?'],
+        sampleCases: [
+            { title: '내용증명 작성', desc: '거래처에서 계약 위반으로 손해가 발생했습니다. 내용증명을 보내려 하는데 법적 효력이 있는 작성 방법과 유의사항이 궁금합니다.', query: '거래처의 계약 위반으로 손해가 발생해 내용증명을 보내려 합니다. 법적 효력이 있는 내용증명 작성법과 발송 후 절차를 알려주세요.' },
+            { title: '소멸시효 확인', desc: '3년 전에 빌려준 돈을 아직 못 받았습니다. 차용증은 있지만 시간이 많이 지나서 청구가 가능한지 소멸시효가 걱정됩니다.', query: '3년 전 지인에게 빌려준 돈을 못 받고 있습니다. 차용증이 있을 때 대여금 반환 청구의 소멸시효와 시효 중단 방법을 알려주세요.' },
+            { title: '계약 해지 분쟁', desc: '온라인으로 구매한 서비스의 위약금이 부당하게 높습니다. 약관에 명시되어 있긴 하지만 소비자 보호법상 다툴 여지가 있는지 검토가 필요합니다.', query: '온라인 서비스 해지 시 위약금이 결제액의 50%입니다. 약관에 명시되어 있어도 소비자보호법상 부당한 위약금으로 다툴 수 있나요?' },
+            { title: '명예훼손 대응', desc: '온라인 커뮤니티에서 사실이 아닌 내용으로 지속적인 비방을 당하고 있습니다. 게시글 삭제와 민·형사상 대응 방법이 궁금합니다.', query: '온라인 커뮤니티에서 허위 사실로 지속적인 비방을 당하고 있습니다. 게시글 삭제 요청 방법과 명예훼손 고소 절차를 알려주세요.' },
+        ],
         useCases: [
             { icon: '🔍', title: '판례 기반 법률 리서치', desc: '유사 판례를 검색하고 쟁점별 비교 분석' },
             { icon: '📄', title: '법령 조문 해석', desc: '관련 법령의 적용 범위와 요건을 상세 분석' },
@@ -501,11 +510,18 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
     },
     {
         id: 'drug', name: '의약·건강 자문관', icon: '💊', tagline: '식약처 의약품 데이터 기반 건강 자문',
+        promptHint: '복용 중인 약물의 상호작용, 성분별 효능 비교, 장기 복용 시 주의사항을 확인해보고 싶다면?',
         description: '식약처 의약품안전나라 API와 연동하여 약품 성분·효능·부작용·상호작용 정보를 근거로 답변합니다.',
         color: { bg: 'bg-emerald-950', text: 'text-emerald-200', accent: 'text-emerald-400', border: 'border-emerald-700', gradient: 'from-emerald-900/40 to-slate-950' },
         apiSource: { name: '식약처 의약품안전나라', url: 'https://nedrug.mfds.go.kr', icon: '🏥' },
         trustBadge: '식약처 의약품 데이터 기반', outputFormat: 'SOAP Note + 약품 분석',
         sampleQuestions: ['타이레놀과 이부프로펜 같이 먹어도 되나요?', '이 약의 부작용이 궁금해요', '감기약 먹고 술 마셔도 되나요?'],
+        sampleCases: [
+            { title: '처방약 병용 검토', desc: '현재 복용 중인 약이 여러 가지인데, 새로 처방받은 약과 함께 먹어도 되는지 상호작용 여부를 확인하고 싶습니다.', query: '현재 복용 중인 약이 3가지입니다. 새로 처방받은 약과의 상호작용 위험과 복용 간격을 확인해주세요.' },
+            { title: '증상별 일반의약품', desc: '병원에 가기 전 약국에서 살 수 있는 약 중에 현재 증상에 맞는 것이 무엇인지, 성분과 효능을 비교하고 싶습니다.', query: '두통과 근육통이 동시에 있을 때 약국에서 구매 가능한 일반의약품 중 가장 적합한 것을 성분 기준으로 비교해주세요.' },
+            { title: '복용법 최적화', desc: '같은 약이라도 복용 시간이나 음식과의 조합에 따라 효과가 달라질 수 있는지 정확한 복용 가이드가 필요합니다.', query: '철분제와 칼슘제를 같이 먹으면 흡수가 떨어진다고 하는데, 최적의 복용 시간대와 간격을 알려주세요.' },
+            { title: '만성질환 약물 관리', desc: '장기간 복용해야 하는 약의 부작용 모니터링과 정기 검사 항목이 궁금합니다. 간 수치나 신장 기능에 영향이 있는지 확인하고 싶습니다.', query: '고지혈증약(스타틴)을 1년째 복용 중입니다. 장기 복용 시 주의할 부작용과 정기적으로 확인해야 할 검사 항목을 알려주세요.' },
+        ],
         useCases: [
             { icon: '💊', title: '복수 약물 병용 검토', desc: '약물 간 상호작용과 병용 금기를 확인' },
             { icon: '📋', title: '의약품 성분 분석', desc: '성분·효능·용법·용량을 상세 조회' },
@@ -530,11 +546,18 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
     },
     {
         id: 'finance', name: '재무·투자 자문관', icon: '💰', tagline: '한국은행·금감원 실시간 데이터 기반 재무 자문',
+        promptHint: '자산 배분 최적화, 세후 실질 수익률 비교, 금리 변동에 따른 포트폴리오 리밸런싱을 분석해보고 싶다면?',
         description: '한국은행 ECOS와 금감원 금융상품비교 API를 연동하여 실시간 금리·경제지표를 근거로 재무 자문을 제공합니다.',
         color: { bg: 'bg-blue-950', text: 'text-blue-200', accent: 'text-blue-400', border: 'border-blue-700', gradient: 'from-blue-900/40 to-slate-950' },
         apiSource: { name: '한국은행 ECOS · 금감원', url: 'https://ecos.bok.or.kr', icon: '📊' },
         trustBadge: '실시간 금리·경제지표 기반', outputFormat: '재무분석보고서',
         sampleQuestions: ['지금 예금 금리 가장 높은 곳은?', '기준금리 변동이 내 대출에 미치는 영향은?', '월 200만원으로 투자 포트폴리오 짜줘'],
+        sampleCases: [
+            { title: '자산 배분 전략', desc: '현재 보유 자산의 구성이 적절한지, 위험 분산과 수익 극대화를 위해 어떻게 리밸런싱해야 하는지 점검이 필요합니다.', query: '총 자산 2억 중 예금 80%, 주식 20%입니다. 30대 후반 기준 적절한 자산 배분 비율과 리밸런싱 전략을 제안해주세요.' },
+            { title: '금리 변동 시뮬레이션', desc: '기준금리 변동이 내 대출과 투자에 동시에 미치는 영향을 수치로 확인하고, 금리 방향에 따른 대응 전략을 세우고 싶습니다.', query: '변동금리 대출 2억과 채권형 펀드 5천만원을 보유 중입니다. 기준금리 0.25%p 인상/인하 시 각각의 영향을 시뮬레이션해주세요.' },
+            { title: '은퇴 자금 설계', desc: '현재 소득과 지출 패턴을 기반으로 목표 은퇴 시점까지 필요한 자금과 월 저축액을 계산하고 싶습니다.', query: '40세, 월 소득 500만원, 월 지출 350만원입니다. 60세 은퇴 목표로 필요한 총 은퇴 자금과 월 저축 계획을 설계해주세요.' },
+            { title: '세후 수익률 비교', desc: '여러 금융상품의 표면 금리가 아닌 세금·수수료를 반영한 실질 수익률을 비교해서 최적의 선택을 하고 싶습니다.', query: '정기예금 3.5%, 채권형 ETF 4.2%, 연금저축 5.1%를 세후 실질 수익률 기준으로 비교해주세요.' },
+        ],
         useCases: [
             { icon: '📊', title: '금융상품 비교 분석', desc: '예적금·펀드·ETF 수익률을 실시간 비교' },
             { icon: '💼', title: '재무 포트폴리오 설계', desc: '자산 배분과 투자 전략을 맞춤 설계' },
@@ -559,11 +582,18 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
     },
     {
         id: 'realestate', name: '부동산 자문관', icon: '🏠', tagline: '실거래가·권리분석 기반 부동산 자문',
+        promptHint: '등기부등본 위험 분석, 매매·전세 의사결정, 보유세·양도세 포함 실수익률을 계산해보고 싶다면?',
         description: 'AI 전문 지식을 활용하여 매매·전세·월세 판단, 권리 분석, 투자 전략을 제공합니다.',
         color: { bg: 'bg-violet-950', text: 'text-violet-200', accent: 'text-violet-400', border: 'border-violet-700', gradient: 'from-violet-900/40 to-slate-950' },
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '부동산 분석 리포트',
         sampleQuestions: ['전세 계약 시 확인해야 할 등기부등본 사항은?', '갭투자 리스크를 분석해주세요', '신혼부부 특별공급 조건이 궁금해요'],
+        sampleCases: [
+            { title: '등기부등본 위험 분석', desc: '매매 또는 전세 계약 전, 등기부등본의 권리관계를 분석하여 근저당·가압류·가등기 등 숨은 위험 요소를 점검합니다.', query: '전세 계약 예정입니다. 등기부등본에 근저당이 설정되어 있는데, 매매가 대비 전세가 비율과 함께 위험도를 분석해주세요.' },
+            { title: '매매 vs 전세 의사결정', desc: '현재 자산 상황에서 매매와 전세 중 어느 쪽이 유리한지, 기회비용과 세금 부담까지 종합적으로 비교 분석합니다.', query: '자기자본 1억, 월 소득 400만원일 때 수도권 아파트 매매와 전세 중 어느 쪽이 유리한지 종합 분석해주세요.' },
+            { title: '양도세·취득세 시뮬레이션', desc: '부동산 거래 시 발생하는 세금을 사전에 계산하여, 예상 세부담과 절세 가능한 방법을 확인합니다.', query: '1주택자가 3년 보유한 아파트를 매도할 때 양도소득세가 얼마나 나오는지, 비과세 요건을 충족하는지 확인해주세요.' },
+            { title: '임대수익률 계산', desc: '투자 목적의 부동산에 대해 보유세·공실률·관리비를 반영한 실질 임대수익률을 산출합니다.', query: '매매가 3억 원짜리 오피스텔, 월세 80만원일 때 보유세와 공실률을 반영한 실질 임대수익률을 계산해주세요.' },
+        ],
         useCases: [
             { icon: '🏠', title: '매물 적정가 분석', desc: '실거래가 기반 매매·전세 시세를 판단' },
             { icon: '📋', title: '등기부등본 권리 해석', desc: '근저당·가압류 등 권리관계를 분석' },
@@ -588,11 +618,18 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
     },
     {
         id: 'tax', name: '세무 자문관', icon: '🧾', tagline: '세법·절세 전략 기반 세무 자문',
+        promptHint: '소득 유형별 세율 비교, 공제·감면 항목 점검, 사업자 형태별 세무 전략을 설계해보고 싶다면?',
         description: 'AI 전문 지식을 활용하여 소득세·부가세·법인세 신고와 합법적 절세 방안을 안내합니다.',
         color: { bg: 'bg-cyan-950', text: 'text-cyan-200', accent: 'text-cyan-400', border: 'border-cyan-700', gradient: 'from-cyan-900/40 to-slate-950' },
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '세무 분석 리포트',
         sampleQuestions: ['프리랜서 종합소득세 절세 방법은?', '양도소득세 비과세 요건이 뭔가요?', '1인 법인 설립 시 세금 혜택은?'],
+        sampleCases: [
+            { title: '소득 유형별 세율 비교', desc: '근로소득·사업소득·기타소득 등 소득 유형에 따라 적용되는 세율과 공제 항목이 다릅니다. 본인의 소득 구조에 맞는 최적 전략을 확인합니다.', query: '프리랜서 수입 6천만원과 근로소득 2천만원이 동시에 있습니다. 종합소득세 신고 시 최적의 절세 방법을 알려주세요.' },
+            { title: '사업자 등록 전략', desc: '간이과세자와 일반과세자, 개인사업자와 법인 중 어떤 형태가 세무적으로 유리한지 매출 규모별로 비교 분석합니다.', query: '연 매출 1.5억 예상되는 온라인 사업을 시작합니다. 간이과세 vs 일반과세, 개인 vs 법인 중 어떤 형태가 유리한가요?' },
+            { title: '공제·감면 항목 점검', desc: '놓치기 쉬운 세액공제와 소득공제 항목을 점검하여, 합법적 범위 내에서 환급받을 수 있는 금액을 극대화합니다.', query: '직장인인데 연말정산에서 놓치기 쉬운 공제 항목이 있나요? 월세, 의료비, 교육비 외에 추가로 챙길 것을 알려주세요.' },
+            { title: '증여·상속세 사전 설계', desc: '자녀에게 자산을 이전할 때 발생하는 세금을 최소화하기 위한 증여 시기, 금액, 방법을 사전에 설계합니다.', query: '성인 자녀에게 1억원을 증여하려 합니다. 증여세 면제 한도와 분할 증여 전략을 알려주세요.' },
+        ],
         useCases: [
             { icon: '🧾', title: '세액 산출 및 신고 안내', desc: '소득 유형별 예상 세액과 신고 절차 안내' },
             { icon: '💡', title: '공제·감면 항목 분석', desc: '놓치기 쉬운 세액 공제 항목을 점검' },
@@ -617,11 +654,18 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
     },
     {
         id: 'labor', name: '노무 자문관', icon: '👷', tagline: '근로기준법 기반 노동 자문',
+        promptHint: '해고의 적법성 검토, 임금·퇴직금 정산 계산, 근로조건 변경의 법적 효력을 확인해보고 싶다면?',
         description: 'AI 전문 지식을 활용하여 해고·임금·산재·4대보험 등 노동 관련 자문을 제공합니다.',
         color: { bg: 'bg-orange-950', text: 'text-orange-200', accent: 'text-orange-400', border: 'border-orange-700', gradient: 'from-orange-900/40 to-slate-950' },
         apiSource: { name: 'AI 전문 지식', url: '', icon: '🧠' },
         trustBadge: 'AI 전문 지식 기반', outputFormat: '노무 상담 리포트',
         sampleQuestions: ['퇴직금 계산 방법이 궁금해요', '부당해고를 당했는데 어떻게 하나요?', '연차 미사용 수당은 어떻게 받나요?'],
+        sampleCases: [
+            { title: '임금 체불 대응', desc: '회사가 급여를 2개월째 지급하지 않고 있습니다. 고용노동부 진정, 체당금 제도, 소액재판 등 활용 가능한 구제 수단을 안내합니다.', query: '회사가 2개월째 급여를 지급하지 않고 있습니다. 고용노동부 진정 절차와 체당금 신청 방법을 알려주세요.' },
+            { title: '해고 적법성 검토', desc: '해고 통보를 받았는데, 해고 사유와 절차가 근로기준법에 부합하는지 검토하여 부당해고 여부를 판단합니다.', query: '경영상 이유로 해고 통보를 받았습니다. 30일 전 서면 통보 없이 구두로 통보받았는데 부당해고에 해당하나요?' },
+            { title: '퇴직금·수당 정산', desc: '퇴사 시 받아야 할 퇴직금, 미사용 연차수당, 미지급 야근수당 등을 정확하게 계산하고 청구 근거를 확인합니다.', query: '3년 근무 후 퇴사합니다. 월급 350만원, 미사용 연차 15일, 야근수당 미지급분이 있을 때 총 정산 금액을 계산해주세요.' },
+            { title: '근로조건 변경 대응', desc: '회사가 일방적으로 근무 조건을 변경하려 합니다. 동의 없는 변경이 유효한지, 거부할 수 있는 법적 근거를 확인합니다.', query: '회사가 동의 없이 부서 이동과 연봉 삭감을 통보했습니다. 근로기준법상 거부할 수 있는 권리가 있나요?' },
+        ],
         useCases: [
             { icon: '💰', title: '임금·퇴직금 정밀 산출', desc: '근무 조건별 정확한 금액 계산과 검증' },
             { icon: '⚖️', title: '부당해고 구제 절차 안내', desc: '노동위원회 진정·소송 절차를 단계별 안내' },

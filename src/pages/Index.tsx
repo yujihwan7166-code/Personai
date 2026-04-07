@@ -3613,6 +3613,24 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
 
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+          {/* Premium full-screen takeover */}
+          {selectedPremiumDomain && getMainMode(discussionMode) === 'premium_main' ? (
+            <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+            <Suspense fallback={null}>
+              <LazyPremiumConsultChat
+                domainId={selectedPremiumDomain}
+                onBack={handlePremiumBack}
+                onSendMessage={handlePremiumSend}
+                messages={premiumMessages}
+                isStreaming={premiumStreaming}
+                citations={premiumCitations}
+                trustHeader={premiumTrustHeader}
+                error={premiumError}
+                steps={premiumSteps}
+              />
+            </Suspense>
+            </div>
+          ) : <>
           {/* Scroll to bottom FAB */}
           {showScrollBtn && (
             <button onClick={scrollToBottom}
@@ -6454,6 +6472,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               </div>
             </div>
           )}
+        </>}
         </div>
         <RightMemoSidebar />
       </div>

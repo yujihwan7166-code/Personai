@@ -1562,6 +1562,86 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                 </div>
               </div>
 
+              {/* 안내 */}
+              <div className="pt-1">
+                <div className="space-y-0">
+                  {(({
+                    investment: [
+                      '사업 모델과 시장 규모를 설득력 있게 설명하기',
+                      '번레이트·밸류에이션 등 까다로운 재무 질문 대응',
+                      '종료 후 각 심사역의 투자 가능성 판정과 피드백 제공',
+                    ],
+                    interview: [
+                      '직무 역량과 경험을 구조적으로 어필하기',
+                      '갈등 해결·협업 사례 등 인성 질문 대응',
+                      '종료 후 면접관별 합격 판정과 개선 포인트 제공',
+                    ],
+                    product: [
+                      '제품의 핵심 가치를 고객 관점에서 전달하기',
+                      '기존 대안 대비 전환 이유를 설득하기',
+                      '종료 후 고객·경쟁사·리뷰어의 구매 의향 판정 제공',
+                    ],
+                    policy: [
+                      '정책의 필요성과 기대 효과를 논리적으로 설명하기',
+                      '시민·기업·법률 관점의 다각도 반론에 대응',
+                      '종료 후 이해관계자별 지지율 판정과 보완점 제공',
+                    ],
+                    strategy: [
+                      '전략의 근거와 예상 성과를 구체적으로 제시하기',
+                      '마케팅·개발·운영 관점의 현실적 피드백 대응',
+                      '종료 후 팀원별 합의도 판정과 실행 제안 제공',
+                    ],
+                    internal: [
+                      '제안의 비용 대비 효과를 경영진 눈높이로 설명하기',
+                      'CEO·CFO·실무팀장의 서로 다른 관심사에 대응',
+                      '종료 후 경영진의 승인 판정과 보완 요청 제공',
+                    ],
+                    admission: [
+                      '지원 동기와 학업 계획을 진정성 있게 전달하기',
+                      '교수·사정관의 검증 질문에 자연스럽게 대응',
+                      '종료 후 면접관별 합격 판정과 어필 포인트 제공',
+                    ],
+                    content_pitch: [
+                      '콘텐츠의 차별점과 타겟 시청자를 명확히 어필하기',
+                      '광고 수익성·편성 적합성 질문에 대응',
+                      '종료 후 편성 가능성 판정과 기획 보완점 제공',
+                    ],
+                    b2b_sales: [
+                      '솔루션의 도입 효과를 고객사 상황에 맞춰 설명하기',
+                      '구매 담당·실무자·의사결정권자 각각의 관심사 대응',
+                      '종료 후 도입 가능성 판정과 영업 전략 피드백 제공',
+                    ],
+                    crisis: [
+                      '위기 상황에서 책임감 있는 입장을 전달하기',
+                      '기자·피해자·법무팀의 동시 압박에 대응',
+                      '종료 후 위기 수습도 판정과 대응 개선점 제공',
+                    ],
+                    collab: [
+                      '제휴의 상호 이익을 상대 관점에서 설득하기',
+                      '브랜드 이미지·계약 조건·법적 리스크 질문 대응',
+                      '종료 후 제휴 가능성 판정과 조건 협의 피드백 제공',
+                    ],
+                    complaint: [
+                      '격앙된 고객의 감정을 진정시키며 대안 제시하기',
+                      '무리한 보상 요구에 규정 내에서 대응',
+                      '종료 후 고객 만족도 판정과 CS 개선점 제공',
+                    ],
+                  } as Record<string, string[]>)[selectedScenario.id] || [
+                    `${selectedScenario.roles[0]?.name || 'AI'}의 핵심 질문에 대응하기`,
+                    '상황별 전략적 답변 구성 연습',
+                    '실전과 유사한 압박 질문 경험',
+                  ]).map((text, i, arr) => (
+                    <div key={i} className={cn(
+                      "flex items-center gap-2.5 py-2",
+                      i < arr.length - 1 && "border-b border-slate-100"
+                    )}>
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-[9px] font-bold text-slate-500 flex items-center justify-center shrink-0">{i + 1}</span>
+                      <span className={cn("text-[11px] leading-snug", i === arr.length - 1 ? "text-slate-700 font-medium" : "text-slate-600")}>{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
 
             {/* Start button */}
@@ -1709,7 +1789,8 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                   setStep2Scenario(null);
                   onSubmit(`__SIM_START__:${scenarioId}`, undefined, 'stakeholder');
                 }}
-                className="px-5 py-2 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                disabled={step2Scenario.prepQuestions.length > 0 && step2Scenario.prepQuestions.some(q => !step2Answers[q.id]?.trim())}
+                className="px-5 py-2 rounded-xl bg-slate-900 text-white text-[13px] font-bold hover:bg-slate-800 transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 시뮬레이션 시작 <ArrowRight className="w-4 h-4" />
               </button>

@@ -78,7 +78,7 @@ function DomainCard({ domain, index, isHovered, onHover, onLeave, onSelect }: {
 
         {/* ── Header ── */}
         <div className="text-center mb-7">
-          <h3 className="text-[19px] font-medium text-slate-900 tracking-[-0.01em] leading-tight">
+          <h3 className="text-[22px] font-semibold text-slate-900 tracking-[-0.02em] leading-tight">
             {domain.name}
           </h3>
           <p className={cn('text-[11px] mt-2 tracking-wide', t.accentMuted)}>
