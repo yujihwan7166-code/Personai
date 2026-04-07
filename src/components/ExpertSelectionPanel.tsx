@@ -389,7 +389,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                 {visibleParticipants.filter(Boolean).map(e => (
                   <button key={e.id} type="button" onClick={() => onToggle(e.id)}
                     className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                    <div className="relative w-12 h-12 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                    <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
                       <ExpertAvatar expert={e} size="md" />
                       <div className="absolute inset-0 rounded-full flex items-center justify-center">
                         <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
@@ -400,7 +400,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
                 ))}
                 {Array.from({ length: visibleParticipantSlotCount - selectedExperts.length }).map((_, i) => (
                   <button key={`empty-standard-${i}`} type="button" onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-emerald-300 flex items-center justify-center hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors cursor-pointer">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-slate-400 hover:bg-slate-50 transition-colors cursor-pointer">
                       <Plus className="w-4 h-4 text-emerald-300" />
                     </div>
                   </button>
@@ -444,7 +444,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
               {allTemplates.map(t => (
                 <button key={t} onClick={() => toggleIssue(t)}
                   className={cn('px-2 py-0.5 rounded-md text-[10px] font-medium transition-all border flex items-center gap-1',
-                    selectedTitle === t ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'text-slate-500 border-slate-200 hover:border-slate-400 hover:bg-white')}>
+                    selectedTitle === t ? 'bg-slate-100 text-slate-800 border-slate-400' : 'text-slate-500 border-slate-200 hover:border-slate-400 hover:bg-white')}>
                   {selectedTitle === t && <Check className="w-2.5 h-2.5" />}{t}
                 </button>
               ))}
@@ -452,9 +452,9 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
             <div className="flex items-center gap-2">
               <input value={newIssue} onChange={e => setNewIssue(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addCustom(); }}
-                placeholder="직접 논점 추가..." className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-[10px] outline-none focus:border-emerald-300 transition-all" />
+                placeholder="직접 논점 추가..." className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-[10px] outline-none focus:border-slate-400 transition-all" />
               <button onClick={addCustom} disabled={!newIssue.trim()}
-                className="px-2.5 py-1 rounded-md bg-emerald-500 text-white text-[9px] font-semibold disabled:opacity-30 hover:bg-emerald-600 transition-colors flex items-center gap-1">
+                className="px-2.5 py-1 rounded-md bg-slate-800 text-white text-[9px] font-semibold disabled:opacity-30 hover:bg-slate-700 transition-colors flex items-center gap-1">
                 <Plus className="w-2.5 h-2.5" /> 추가
               </button>
             </div>
@@ -716,7 +716,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                     return e ? (
                       <button key={id} type="button" onClick={() => onToggle(id)}
                         className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                        <div className="relative w-12 h-12 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                        <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
                           <ExpertAvatar expert={e} size="md" />
                           <div className="absolute inset-0 rounded-full flex items-center justify-center">
                             <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
@@ -729,7 +729,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
                   {selectedIds.length < 3 && (
                   <button type="button" onClick={() => setShowBotPicker(true)}
                     className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:border-amber-400 hover:bg-amber-50 transition-colors">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-slate-400 hover:bg-slate-50 transition-colors">
                       <Plus className="w-4 h-4 text-amber-300" />
                     </div>
                     <span className="text-[10px] text-amber-400 font-medium">추가</span>
@@ -741,7 +741,7 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
               <div className="flex flex-col items-center gap-2 py-1">
                 <button type="button" onClick={() => setShowBotPicker(true)}
                   className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-                  <div className="w-12 h-12 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center hover:border-amber-400 hover:bg-amber-50 transition-colors">
+                  <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-slate-400 hover:bg-slate-50 transition-colors">
                     <Plus className="w-4 h-4 text-amber-300" />
                   </div>
                   <span className="text-[11px] text-slate-400">참여할 전문가/AI를 선택하세요</span>
@@ -1033,7 +1033,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 {visibleParticipants.filter(Boolean).map(e => (
                   <button key={e.id} type="button" onClick={() => onToggle?.(e.id)}
                     className="flex flex-col items-center gap-1 animate-in fade-in zoom-in-75 duration-200 group/p">
-                    <div className="relative w-12 h-12 rounded-full bg-cyan-50 border-2 border-cyan-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
+                    <div className="relative w-12 h-12 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center group-hover/p:border-red-300 group-hover/p:bg-red-50 transition-colors">
                       <ExpertAvatar expert={e} size="md" />
                       <div className="absolute inset-0 rounded-full flex items-center justify-center">
                         <X className="w-3.5 h-3.5 text-red-500 opacity-0 group-hover/p:opacity-100 transition-opacity" />
@@ -1044,7 +1044,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
                 ))}
                 {Array.from({ length: visibleParticipantSlotCount - selected.length }).map((_, i) => (
                   <button key={`empty-freetalk-${i}`} type="button" onClick={() => setShowPicker(true)} className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-cyan-300 flex items-center justify-center hover:border-cyan-400 hover:bg-cyan-50/50 transition-colors cursor-pointer">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-slate-400 hover:bg-slate-50 transition-colors cursor-pointer">
                       <Plus className="w-4 h-4 text-cyan-300" />
                     </div>
                   </button>
@@ -1574,7 +1574,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                   setStep2CustomMode({});
                   setSelectedScenario(null);
                 }}
-                className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-[13px] font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-all flex items-center justify-center gap-1.5"
               >
                 다음 <ArrowRight className="w-4 h-4" />
               </button>
