@@ -9,7 +9,22 @@
       "Grep(*)",
       "Agent(*)",
       "WebFetch(domain:lawconnect.com)",
-      "WebFetch(domain:superlawyer.co.kr)"
+      "WebFetch(domain:superlawyer.co.kr)",
+      "WebSearch",
+      "WebFetch(domain:linear.app)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:designsystems.surf)",
+      "WebFetch(domain:www.setproduct.com)",
+      "WebFetch(domain:lokeshdhakar.com)",
+      "WebFetch(domain:lollypop.design)",
+      "WebFetch(domain:skiper-ui.com)",
+      "WebFetch(domain:fontofweb.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:help.openai.com)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:www.adamberke.com)",
+      "WebFetch(domain:shadcncraft.com)",
+      "WebFetch(domain:flowbite.com)"
     ]
   }
 }

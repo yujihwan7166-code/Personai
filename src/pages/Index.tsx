@@ -10,7 +10,7 @@ import { DiscussionRecord, upsertDiscussionHistory } from '@/lib/discussionHisto
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
 import type { AttachedFile } from '@/lib/fileProcessor';
-import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, FileText, X } from 'lucide-react';
+import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, ArrowLeft, FileText, X, MessageSquare } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -4023,6 +4023,17 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
 
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+          {/* 피드백 버튼 — 오른쪽 상단 고정 */}
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSc9uc6YNv72sPP2twLvNqzxaZM82YoaQgD6T_ZupmU2Ejh9Pg/viewform"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            피드백
+          </a>
+
           {/* Premium full-screen takeover */}
           {selectedPremiumDomain && getMainMode(discussionMode) === 'premium_main' ? (
             <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
@@ -4280,13 +4291,14 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             })()}
 
               <div className={cn(
-                'mx-auto px-4 sm:px-6 pb-6',
+                'mx-auto px-4 sm:px-6 pb-16',
                 !selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-16',
                 !selectable && discussionMode === 'stakeholder' ? 'hidden'
                 : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-5' : 'max-w-3xl space-y-2.5')
                   : (discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'stakeholder') ? 'max-w-4xl space-y-3'
                   : (discussionMode === 'multi' && messages.length > 0) ? 'max-w-[960px] space-y-3'
-                  : (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-1' : 'max-w-2xl space-y-1')
+                  : (discussionMode === 'general' || discussionMode === 'multi') ? 'max-w-[710px] space-y-1'
+                  : 'max-w-2xl space-y-1'
               )}>
 
               {selectable && (
@@ -6856,6 +6868,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         externalValue={sampleQuestionValue}
                         onExternalValueConsumed={() => setSampleQuestionValue('')}
                         embedded
+                        debateSettings={debateSettings}
+                        onDebateSettingsChange={setDebateSettings}
                         extraButtons={discussionMode === 'procon' && !isDiscussing && messages.length > 2 ? (
                           <div className="flex items-center gap-0.5">
                             {([
@@ -6919,6 +6933,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       messageCount={messages.filter(m => m.expertId !== '__user__' && m.expertId !== '__summary__' && m.expertId !== '__round__' && m.expertId !== '__brainstorm_progress__').length}
                       externalValue={sampleQuestionValue}
                       onExternalValueConsumed={() => setSampleQuestionValue('')}
+                      debateSettings={debateSettings}
+                      onDebateSettingsChange={setDebateSettings}
                       extraButtons={discussionMode === 'procon' && !isDiscussing && messages.length > 2 ? (
                         <div className="flex items-center gap-0.5">
                           {([

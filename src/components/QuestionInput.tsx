@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowUp, FolderPlus, ImagePlus, Paperclip, Plus, Settings, Share2, Square, X } from 'lucide-react';
-import { DiscussionMode, Expert } from '@/types/expert';
+import { DebateSettings, DiscussionMode, Expert } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { ExpertAvatar } from './ExpertAvatar';
 import type { AttachedFile } from '@/lib/fileProcessor';
@@ -59,6 +59,8 @@ interface Props {
   placeholderOverride?: string;
   extraButtons?: React.ReactNode;
   accentBorder?: boolean;
+  debateSettings?: DebateSettings;
+  onDebateSettingsChange?: (s: DebateSettings) => void;
 }
 
 function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: DiscussionMode | undefined) {
@@ -107,14 +109,18 @@ export function QuestionInput({
   onSummarize,
   isSummarizing,
   messageCount,
+  debateSettings,
+  onDebateSettingsChange,
 }: Props) {
   const [question, setQuestion] = useState('');
   const [focused, setFocused] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [openChip, setOpenChip] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chipBarRef = useRef<HTMLDivElement>(null);
   // Keep render-derived flags above callbacks that capture them to avoid TDZ crashes on first render.
   const canUseTools = !disabled && !isStreaming;
   const canAttachFiles = discussionMode !== 'procon';
@@ -140,6 +146,18 @@ export function QuestionInput({
     const timer = setTimeout(() => setFileError(null), 3000);
     return () => clearTimeout(timer);
   }, [fileError]);
+
+  // Close chip popover on outside click
+  useEffect(() => {
+    if (!openChip) return;
+    const handler = (e: MouseEvent) => {
+      if (chipBarRef.current && !chipBarRef.current.contains(e.target as Node)) {
+        setOpenChip(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openChip]);
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!canAttachFiles) return;
@@ -264,13 +282,19 @@ export function QuestionInput({
               ? embedded
                 ? 'opacity-75'
                 : 'border-slate-200 opacity-75'
-              : focused || showSelectionAccent
+              : discussionMode === 'multi'
                 ? embedded
                   ? 'bg-transparent'
                   : 'border-violet-300 bg-white shadow-[0_2px_20px_rgba(139,92,246,0.10)]'
-                : embedded
-                  ? 'bg-transparent'
-                  : 'border-slate-200 bg-slate-50 shadow-sm hover:border-violet-300'
+                : focused || showSelectionAccent
+                  ? embedded
+                    ? 'bg-transparent'
+                    : 'border-violet-300 bg-white shadow-[0_2px_20px_rgba(139,92,246,0.10)]'
+                  : embedded
+                    ? 'bg-transparent'
+                    : (discussionMode === 'procon' || discussionMode === 'freetalk' || discussionMode === 'standard')
+                      ? 'border-violet-300 bg-white shadow-[0_2px_20px_rgba(139,92,246,0.10)]'
+                      : 'border-slate-200 bg-slate-50 shadow-sm hover:border-violet-300'
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -370,6 +394,73 @@ export function QuestionInput({
               }}
               className="hidden"
             />
+          )}
+
+          {/* Debate settings chip bar — 메인화면(standalone)에서만 표시 */}
+          {debateSettings && onDebateSettingsChange && !isFollowUp && !embedded && (discussionMode === 'standard' || discussionMode === 'procon' || discussionMode === 'freetalk') && (
+            <div ref={chipBarRef} className="relative flex items-center gap-2 px-4 pt-3 pb-1">
+              <span className="shrink-0 text-[11px] font-semibold text-slate-500 mr-0.5">⚙️ 세부설정</span>
+              <div className="w-px h-3.5 bg-slate-200 shrink-0" />
+              {(discussionMode === 'standard' ? [
+                { key: 'debateTone', label: '목적', options: [{ id: 'mild', l: '탐색' }, { id: 'moderate', l: '분석' }, { id: 'intense', l: '합의' }], value: debateSettings.debateTone },
+                { key: 'responseLength', label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: debateSettings.responseLength },
+                { key: 'rounds', label: '라운드', options: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }], value: String(debateSettings.rounds) },
+              ] : discussionMode === 'procon' ? [
+                { key: 'proconTeamSize', label: '인원', options: [{ id: '1', l: '1:1' }, { id: '2', l: '2:2' }, { id: '3', l: '3:3' }], value: String(debateSettings.proconTeamSize || 2) },
+                { key: 'debateTone', label: '강도', options: [{ id: 'mild', l: '온건' }, { id: 'moderate', l: '보통' }, { id: 'intense', l: '격렬' }], value: debateSettings.debateTone },
+                { key: 'rounds', label: '라운드', options: [{ id: '2', l: '2R' }, { id: '3', l: '3R' }, { id: '4', l: '4R' }], value: String(debateSettings.rounds) },
+                { key: 'responseLength', label: '길이', options: [{ id: 'short', l: '짧게' }, { id: 'medium', l: '보통' }, { id: 'long', l: '길게' }], value: debateSettings.responseLength },
+              ] : [
+                { key: 'freetalkMessageCount', label: '대화수', options: [{ id: '15', l: '15회' }, { id: '30', l: '30회' }, { id: '45', l: '45회' }], value: String(debateSettings.freetalkMessageCount || 30) },
+                { key: 'freetalkTone', label: '말투', options: [{ id: 'ultra-polite', l: '극존칭' }, { id: 'polite', l: '정중' }, { id: 'natural', l: '자연스럽게' }, { id: 'direct', l: '직설적' }, { id: 'aggressive', l: '공격적' }], value: debateSettings.freetalkTone || 'natural' },
+              ]).map(chip => {
+                const currentOption = chip.options.find(o => o.id === chip.value);
+                return (
+                  <div key={chip.key} className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setOpenChip(openChip === chip.key ? null : chip.key)}
+                      className={cn(
+                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap',
+                        openChip === chip.key
+                          ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      )}
+                    >
+                      <span className="text-[9px] text-slate-400 font-medium">{chip.label}</span>
+                      {currentOption?.l ?? chip.value}
+                    </button>
+                    {openChip === chip.key && (
+                      <div className="absolute left-0 bottom-full mb-1.5 z-50 bg-white border border-slate-200 rounded-xl shadow-lg ring-1 ring-black/5 p-1.5 flex flex-col gap-0.5 min-w-[88px]">
+                        {chip.options.map(opt => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              const key = chip.key as string;
+                              if (key === 'rounds' || key === 'proconTeamSize' || key === 'freetalkMessageCount') {
+                                onDebateSettingsChange({ ...debateSettings, [key]: Number(opt.id) });
+                              } else {
+                                onDebateSettingsChange({ ...debateSettings, [key]: opt.id });
+                              }
+                              setOpenChip(null);
+                            }}
+                            className={cn(
+                              'px-3 py-1.5 rounded-lg text-[12px] font-medium text-left transition-all whitespace-nowrap',
+                              chip.value === opt.id
+                                ? 'bg-indigo-500 text-white font-semibold'
+                                : 'text-slate-700 hover:bg-slate-100'
+                            )}
+                          >
+                            {opt.l}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           <textarea
