@@ -14,6 +14,7 @@ import {
   type AivsBattleDraft,
   AIVS_USER_TOPIC_PRESETS,
   BATTLE_AI_CHARACTERS,
+  DEBATE_RECOMMENDED_TOPICS,
 } from '@/types/expert';
 import { AivsBattleConfigModal } from './AivsBattleConfigModal';
 import { PremiumDomainLanding } from './PremiumDomainLanding';
@@ -350,7 +351,7 @@ function AIPickerModal({ experts, selectedIds, onToggle, onClose, title, accentC
 // ── Issue Editor (심층토론) ──
 const ISSUE_TEMPLATES = ['경제적 영향', '윤리적 쟁점', '기술적 타당성', '사회적 합의', '법률적 문제', '환경적 영향', '실현 가능성'];
 
-function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign, onAutoAssignChange, onToggle, onModeChange, experts }: {
+function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebateSettingsChange, selectedExperts, autoAssign, onAutoAssignChange, onToggle, onModeChange, experts, onTopicSelect }: {
   issues: DiscussionIssue[];
   onIssuesChange?: (issues: DiscussionIssue[]) => void;
   debateSettings?: DebateSettings;
@@ -361,6 +362,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
   onAutoAssignChange?: (v: boolean) => void;
   onToggle?: (id: string) => void;
   onModeChange?: (mode: DiscussionMode) => void;
+  onTopicSelect?: (title: string) => void;
 }) {
   const [newIssue, setNewIssue] = useState('');
   const [customIssues, setCustomIssues] = useState<string[]>([]);
@@ -395,29 +397,19 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
         {/* 참여자 + 설정 통합 카드 */}
         <div className="rounded-xl border border-emerald-200 overflow-hidden flex flex-col">
           {/* 헤더 */}
-          <div className="px-3 py-1 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+          <div className="px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[13px]">🎯</span>
               <span className="text-[12px] font-bold text-emerald-700">심층 토론</span>
             </div>
-            {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
-                <div className="flex items-center gap-0.5">
-                  {[
-                    { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'freetalk' as const, label: '자유토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: '키보드배틀' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
-                  ].map(t => (
-                    <button key={t.mode}
-                      onClick={t.mode === 'standard' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
-                        t.mode === 'standard'
-                          ? 'bg-emerald-500 text-white shadow-sm cursor-default'
-                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
-                      )}>
-                      {t.label}
+            {onTopicSelect && (
+              <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+                <div className="flex items-center gap-1.5">
+                  {(DEBATE_RECOMMENDED_TOPICS['standard'] || []).slice(0, 3).map(t => (
+                    <button key={t.id} type="button" onClick={() => onTopicSelect(t.title)}
+                      className="shrink-0 px-2 py-0.5 rounded-full bg-white/70 text-[9px] font-medium text-slate-500 hover:bg-white hover:text-emerald-600 transition-all truncate max-w-[140px]"
+                      title={t.title}>
+                      {t.title}
                     </button>
                   ))}
                 </div>
@@ -472,7 +464,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
 }
 
 // ── Procon Settings Panel — 완전 재설계 ──
-function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dragOver, draggedId, setDragOver, setDraggedId, assignStance, removeStance, MAX_PER_ZONE, assignMode, setAssignMode, debateSettings, onDebateSettingsChange, onModeChange, topContent, bottomContent }: {
+function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dragOver, draggedId, setDragOver, setDraggedId, assignStance, removeStance, MAX_PER_ZONE, assignMode, setAssignMode, debateSettings, onDebateSettingsChange, onModeChange, onTopicSelect, topContent, bottomContent }: {
   experts: Expert[];
   selectedIds: string[];
   onToggle: (id: string) => void;
@@ -488,6 +480,7 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
   MAX_PER_ZONE: number;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
+  onTopicSelect?: (title: string) => void;
   topContent?: React.ReactNode;
   bottomContent?: React.ReactNode;
 }) {
@@ -526,29 +519,19 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
         {/* 진영 배정 + 설정 통합 카드 */}
         <div className="rounded-xl border border-violet-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3 py-1 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+          <div className="px-3 py-1.5 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-violet-100 flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[13px]">⚖️</span>
               <span className="text-[12px] font-bold text-violet-700">찬반 토론</span>
             </div>
-            {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
-                <div className="flex items-center gap-0.5">
-                  {[
-                    { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'freetalk' as const, label: '자유토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: '키보드배틀' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
-                  ].map(t => (
-                    <button key={t.mode}
-                      onClick={t.mode === 'procon' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
-                        t.mode === 'procon'
-                          ? 'bg-violet-500 text-white shadow-sm cursor-default'
-                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
-                      )}>
-                      {t.label}
+            {onTopicSelect && (
+              <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+                <div className="flex items-center gap-1.5">
+                  {(DEBATE_RECOMMENDED_TOPICS['procon'] || []).slice(0, 3).map(t => (
+                    <button key={t.id} type="button" onClick={() => onTopicSelect(t.title)}
+                      className="shrink-0 px-2 py-0.5 rounded-full bg-white/70 text-[9px] font-medium text-slate-500 hover:bg-white hover:text-violet-600 transition-all truncate max-w-[140px]"
+                      title={t.title}>
+                      {t.title}
                     </button>
                   ))}
                 </div>
@@ -667,34 +650,11 @@ function BrainstormSettingsPanel({ selectedIds, experts, selectedFramework, onFr
       <div className="space-y-3">
         {/* Participants */}
         <div className="rounded-xl border border-amber-200 overflow-visible">
-          <div className="px-3 py-1 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 rounded-t-xl flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+          <div className="px-3 py-1 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 rounded-t-xl flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[13px]">💡</span>
               <span className="text-[12px] font-bold text-amber-700">브레인스토밍</span>
             </div>
-            {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
-                <div className="flex items-center gap-0.5">
-                  {[
-                    { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'freetalk' as const, label: '자유토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: '키보드배틀' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
-                  ].map(t => (
-                    <button key={t.mode}
-                      onClick={t.mode === 'brainstorm' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
-                        t.mode === 'brainstorm'
-                          ? 'bg-amber-500 text-white shadow-sm cursor-default'
-                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
-                      )}>
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
           <div className="px-3 py-3 bg-white">
             <div className="flex items-center justify-center gap-1.5 py-1.5">
@@ -796,32 +756,11 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
         {/* 검증 위원 + 설정 통합 카드 */}
         <div className="rounded-xl border border-amber-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3.5 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+          <div className="px-3.5 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[13px]">🔍</span>
               <span className="text-[12px] font-bold text-amber-700">아이디어 검증</span>
             </div>
-            {onModeChange && (
-              <div className="flex items-center gap-0.5 bg-white/60 rounded-lg p-0.5 debate-tab-glow">
-                {[
-                  { mode: 'procon' as const, label: '⚖️ 찬반' },
-                  { mode: 'freetalk' as const, label: '💬 자유' },
-                  { mode: 'standard' as const, label: '🎯 심층' },
-                  { mode: 'aivsuser' as const, label: '⚔️ 키보드배틀' },
-                  { mode: 'brainstorm' as const, label: '💡 브레인' },
-                ].map(t => (
-                  <button key={t.mode}
-                    onClick={t.mode === 'hearing' ? undefined : () => onModeChange(t.mode)}
-                    className={cn('px-2 py-1 rounded-md text-[9px] font-medium transition-all',
-                      t.mode === 'hearing'
-                        ? 'bg-amber-500 text-white shadow-sm cursor-default'
-                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
-                    )}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Content */}
@@ -915,7 +854,7 @@ function HearingSettingsPanel({ experts, selectedIds, debateSettings, onDebateSe
 
 // ── Freetalk Settings Panel ──
 
-function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange, onToggle, onModeChange }: {
+function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateSettingsChange, autoAssign, onAutoAssignChange, onToggle, onModeChange, onTopicSelect }: {
   onModeChange?: (mode: DiscussionMode) => void;
   experts: Expert[];
   selectedIds: string[];
@@ -924,6 +863,7 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
   autoAssign?: boolean;
   onAutoAssignChange?: (v: boolean) => void;
   onToggle?: (id: string) => void;
+  onTopicSelect?: (topic: string) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const selected = experts.filter(e => selectedIds.includes(e.id));
@@ -939,29 +879,19 @@ function FreetalkSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
         {/* 참여자 + 설정 통합 카드 */}
         <div className="rounded-xl border border-cyan-200 overflow-hidden">
           {/* 헤더 */}
-          <div className="px-3 py-1 bg-gradient-to-r from-cyan-50 to-sky-50 border-b border-cyan-100 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+          <div className="px-3 py-1 bg-gradient-to-r from-cyan-50 to-sky-50 border-b border-cyan-100 flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[13px]">💬</span>
               <span className="text-[12px] font-bold text-cyan-700">자유 토론</span>
             </div>
-            {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
-                <div className="flex items-center gap-0.5">
-                  {[
-                    { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'freetalk' as const, label: '자유토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: '키보드배틀' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
-                  ].map(t => (
-                    <button key={t.mode}
-                      onClick={t.mode === 'freetalk' ? undefined : () => onModeChange(t.mode)}
-                      className={cn('px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
-                        t.mode === 'freetalk'
-                          ? 'bg-cyan-500 text-white shadow-sm cursor-default'
-                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
-                      )}>
-                      {t.label}
+            {onTopicSelect && (
+              <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+                <div className="flex items-center gap-1.5">
+                  {(DEBATE_RECOMMENDED_TOPICS['freetalk'] || []).slice(0, 3).map(t => (
+                    <button key={t.id} type="button" onClick={() => onTopicSelect(t.title)}
+                      className="shrink-0 px-2 py-0.5 rounded-full bg-white/70 text-[9px] font-medium text-slate-500 hover:bg-white hover:text-cyan-600 transition-all truncate max-w-[140px]"
+                      title={t.title}>
+                      {t.title}
                     </button>
                   ))}
                 </div>
@@ -1037,38 +967,12 @@ function AIvsUserSettingsPanel({ experts, selectedIds, debateSettings, onDebateS
     <div>
       <div className="space-y-3">
         <div className="rounded-xl border border-rose-200 overflow-hidden">
-          <div className="px-3 py-1 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+          <div className="px-3 py-1 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[13px]">⚔️</span>
               <span className="text-[12px] font-bold text-rose-700">키보드배틀</span>
               <span className="text-[9px] text-rose-400 font-medium">1:1</span>
             </div>
-            {onModeChange && (
-              <div className="flex items-center rounded-md bg-white/65 p-0.5 debate-tab-glow">
-                <div className="flex items-center gap-0.5">
-                  {[
-                    { mode: 'procon' as const, label: '찬반토론' },
-                    { mode: 'freetalk' as const, label: '자유토론' },
-                    { mode: 'standard' as const, label: '심층토론' },
-                    { mode: 'aivsuser' as const, label: '키보드배틀' },
-                    { mode: 'brainstorm' as const, label: '브레인스토밍' },
-                  ].map(t => (
-                    <button
-                      key={t.mode}
-                      onClick={t.mode === 'aivsuser' ? undefined : () => onModeChange(t.mode)}
-                      className={cn(
-                        'px-2.5 py-1 rounded-md text-[9px] font-medium transition-all',
-                        t.mode === 'aivsuser'
-                          ? 'bg-rose-500 text-white shadow-sm cursor-default'
-                          : 'text-slate-600 hover:bg-white hover:text-slate-800'
-                      )}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="bg-white">
@@ -2185,7 +2089,7 @@ export function ExpertSelectionPanel({
       {/* Main Mode Tabs — 플레이어 모드에서는 숨김 (GAME ARENA 자체 헤더 사용) */}
       <div className={cn(
         "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden",
-        isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mb-0' : 'max-h-24 opacity-100',
+        isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mb-0' : 'max-h-32 opacity-100',
         isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
       )}>
         <div className={cn(
@@ -2193,7 +2097,7 @@ export function ExpertSelectionPanel({
           showPlayerBg
             ? 'bg-slate-900 border border-slate-700'
             : 'bg-white border border-slate-200',
-          'rounded-full p-[3px]'
+          mainMode === 'debate' && !showPlayerBg ? 'rounded-2xl p-[3px]' : 'rounded-full p-[3px]'
         )}>
           <div className="flex items-center gap-[3px]">
             {mainModes.map(m => {
@@ -2213,7 +2117,35 @@ export function ExpertSelectionPanel({
             })}
           </div>
 
-          {/* 서브 탭 제거됨 — 설정 패널 헤더에서 전환 */}
+          {/* AI토론 서브탭 — 메인탭 바 안, 2번째 줄 */}
+          {mainMode === 'debate' && !showPlayerBg && (
+            <div className="flex items-center justify-center gap-1 pt-[3px] pb-[1px] px-1 border-t border-slate-100 mt-[3px]">
+              {([
+                { mode: 'procon' as DebateSubMode, label: '찬반토론' },
+                { mode: 'freetalk' as DebateSubMode, label: '자유토론' },
+                { mode: 'standard' as DebateSubMode, label: '심층토론' },
+                { mode: 'aivsuser' as DebateSubMode, label: '키보드배틀' },
+                { mode: 'brainstorm' as DebateSubMode, label: '브레인스토밍' },
+              ] as const).map(t => {
+                const isActive = discussionMode === t.mode;
+                return (
+                  <button
+                    key={t.mode}
+                    onClick={isActive ? undefined : () => onModeChange(t.mode)}
+                    disabled={isDiscussing}
+                    className={cn(
+                      'px-2.5 py-[2px] rounded-full text-[10px] font-medium transition-all',
+                      isActive
+                        ? 'bg-indigo-50 text-indigo-600 font-semibold'
+                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Quick settings bar */}
           {mainMode === 'debate' && showDebateSettings && debateSettings && onDebateSettingsChange && (
@@ -2506,7 +2438,8 @@ export function ExpertSelectionPanel({
           debateSettings={debateSettings}
           onDebateSettingsChange={onDebateSettingsChange}
           onModeChange={onModeChange}
-          topContent={debateSuggestionSection}
+          onTopicSelect={onSampleQuestionClick}
+          topContent={null}
           bottomContent={(
             <QuestionInput
               onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
@@ -2533,6 +2466,7 @@ export function ExpertSelectionPanel({
           autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
           onToggle={onToggle}
           onModeChange={onModeChange}
+          onTopicSelect={onSampleQuestionClick}
         />
       )}
 
@@ -2564,6 +2498,7 @@ export function ExpertSelectionPanel({
           autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
           onToggle={onToggle}
           onModeChange={onModeChange}
+          onTopicSelect={setPrefilledQuestion}
         />
       )}
 
@@ -2593,86 +2528,7 @@ export function ExpertSelectionPanel({
         />
       )}
 
-      {/* Example Questions — for debate modes before discussion starts */}
-      {!isProcon && (discussionMode === 'freetalk' || discussionMode === 'standard') && (() => {
-        interface TopicSuggestion { topic: string; icon: string; expertIds: string[]; proIds?: string[]; conIds?: string[]; }
-        const topicSuggestions: Record<string, TopicSuggestion[]> = {
-          procon: [
-            { topic: 'AI 과제 허용해야 하나?', icon: '🎓', expertIds: ['education', 'compsci', 'teacher', 'philosophy'], proIds: ['education', 'compsci'], conIds: ['teacher', 'philosophy'] },
-            { topic: 'SNS 실명제 필요할까?', icon: '💬', expertIds: ['legal', 'criminology', 'psychology', 'journalist'], proIds: ['legal', 'criminology'], conIds: ['psychology', 'journalist'] },
-          ],
-          freetalk: [
-            { topic: '2026년 투자 전략은 어떻게 세워야 할까?', icon: '📈', expertIds: ['gpt', 'claude', 'perplexity'] },
-            { topic: 'AI 기술이 교육을 어떻게 바꿀까?', icon: '🤖', expertIds: ['gemini', 'claude', 'deepseek'] },
-          ],
-          standard: [
-            { topic: '저출산 문제의 실질적 해결책', icon: '👶', expertIds: ['gpt', 'claude', 'gemini'] },
-            { topic: '디지털 전환이 전통 산업에 미치는 영향', icon: '⚙️', expertIds: ['perplexity', 'deepseek', 'gpt'] },
-          ],
-        };
-        const suggestions = topicSuggestions[discussionMode];
-        if (!suggestions) return null;
-        const isProconMode = discussionMode === 'procon';
-        const formatExpertName = (expert: Expert) => (expert.nameKo || expert.name).replace(/\s*전문가$/, '');
-        const renderSuggestionCard = (s: TopicSuggestion, i: number) => {
-          const proExperts = (s.proIds?.map(id => experts.find(e => e.id === id)).filter(Boolean) || []) as Expert[];
-          const conExperts = (s.conIds?.map(id => experts.find(e => e.id === id)).filter(Boolean) || []) as Expert[];
-          const cardExperts = s.expertIds.map(id => experts.find(e => e.id === id)).filter(Boolean) as Expert[];
-          const hasTeams = isProconMode && proExperts.length > 0 && conExperts.length > 0;
-          return (
-            <button
-              key={i}
-              type="button"
-              aria-label={`${s.topic} 추천 논제로 시작`}
-              onClick={() => {
-                if (onBulkSelect) onBulkSelect(s.expertIds);
-                onSubmit(s.topic, s.expertIds);
-              }}
-              className="group relative w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-left transition-all duration-200 hover:border-indigo-300 hover:shadow-[0_4px_16px_-4px_rgba(99,102,241,0.12)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            >
-              <p className="relative text-[12px] font-bold text-slate-800 group-hover:text-slate-950 leading-snug text-center">
-                <span className="text-slate-400">추천질문{i + 1} : </span>{s.topic}
-              </p>
-              {hasTeams ? (
-                <div className="relative flex items-center justify-center gap-1.5 mt-2.5">
-                  <div className="flex items-center gap-1">
-                    {proExperts.map(e => (
-                      <span key={e.id} className="inline-flex items-center gap-0.5">
-                        <ExpertAvatar expert={e} size="xs" />
-                        <span className="text-[8.5px] font-semibold text-blue-600/80">{formatExpertName(e)}</span>
-                      </span>
-                    ))}
-                  </div>
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-[8px] font-black text-slate-400 shrink-0">vs</span>
-                  <div className="flex items-center gap-1">
-                    {conExperts.map(e => (
-                      <span key={e.id} className="inline-flex items-center gap-0.5">
-                        <ExpertAvatar expert={e} size="xs" />
-                        <span className="text-[8.5px] font-semibold text-red-500/80">{formatExpertName(e)}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="relative flex items-center justify-center gap-1.5 mt-2">
-                  <div className="flex -space-x-1">
-                    {cardExperts.slice(0, 3).map(e => <ExpertAvatar key={e.id} expert={e} size="xs" />)}
-                  </div>
-                  <span className="text-[10px] font-medium text-slate-400 truncate">{formatExpertName(cardExperts[0])}{'  '}외 {cardExperts.length - 1}명</span>
-                </div>
-              )}
-            </button>
-          );
-        };
-        return (
-          <div>
-            <div className="h-0.5" />
-            <div className="grid grid-cols-2 gap-1.5">
-              {suggestions.map((s, i) => renderSuggestionCard(s, i))}
-            </div>
-          </div>
-        );
-      })()}
+      {/* 추천질문 카드 제거됨 — 헤더 칩으로 대체 */}
 
       {/* Question Input — not shown for expert/assistant/player/aivsuser (they have their own inputs or modal flow) */}
       {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && mainMode !== 'premium_main' && discussionMode !== 'aivsuser' && !isProcon && (

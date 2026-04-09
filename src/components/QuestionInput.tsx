@@ -121,7 +121,7 @@ export function QuestionInput({
   const canUseTools = !disabled && !isStreaming;
   const canAttachFiles = discussionMode !== 'player';
   useEffect(() => {
-    const timer = setTimeout(() => textareaRef.current?.focus(), 100);
+    const timer = setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 100);
     return () => clearTimeout(timer);
   }, []);
 
@@ -131,7 +131,7 @@ export function QuestionInput({
     setQuestion(externalValue);
     onExternalValueConsumed?.();
 
-    const timer = setTimeout(() => textareaRef.current?.focus(), 50);
+    const timer = setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 50);
     return () => clearTimeout(timer);
   }, [externalValue, onExternalValueConsumed]);
 
