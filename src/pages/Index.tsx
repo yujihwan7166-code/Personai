@@ -311,7 +311,7 @@ const Index = () => {
 
   // ── Premium consultation state ──
   const [selectedPremiumDomain, setSelectedPremiumDomain] = useState<PremiumDomainId | null>(null);
-  const [premiumMessages, setPremiumMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; isStreaming?: boolean; citations?: ApiSourceCitation[] }[]>([]);
+  const [premiumMessages, setPremiumMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; isStreaming?: boolean; citations?: ApiSourceCitation[]; attachedFiles?: { name: string; mimeType: string; preview?: string }[] }[]>([]);
   const [premiumStreaming, setPremiumStreaming] = useState(false);
   const [premiumCitations, setPremiumCitations] = useState<ApiSourceCitation[]>([]);
   const [premiumTrustHeader, setPremiumTrustHeader] = useState<string | undefined>();
@@ -526,10 +526,21 @@ const Index = () => {
   }, []);
 
   // ── Premium consultation send handler ──
-  const handlePremiumSend = useCallback(async (question: string, domain: PremiumDomainId, history: { role: 'user' | 'assistant'; content: string }[]) => {
+  const handlePremiumSend = useCallback(async (
+    question: string,
+    domain: PremiumDomainId,
+    history: { role: 'user' | 'assistant'; content: string }[],
+    files: AttachedFile[] = []
+  ) => {
     const userMsgId = `premium-user-${Date.now()}`;
-    setPremiumMessages(prev => [...prev, { id: userMsgId, role: 'user', content: question }]);
+    const attachedFileBadges = files.length > 0
+      ? files.map((file) => ({ name: file.name, mimeType: file.mimeType, preview: file.preview }))
+      : undefined;
+
+    setPremiumMessages(prev => [...prev, { id: userMsgId, role: 'user', content: question, attachedFiles: attachedFileBadges }]);
     setPremiumStreaming(true);
+    setPremiumCitations([]);
+    setPremiumTrustHeader(undefined);
     setPremiumError(undefined);
     setPremiumSteps([
       { step: 1, label: '키워드 분석 중...', done: false },
@@ -540,11 +551,13 @@ const Index = () => {
     const aiMsgId = `premium-ai-${Date.now()}`;
     setPremiumMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: '', isStreaming: true }]);
 
+    let latestCitations: ApiSourceCitation[] = [];
+
     try {
       const resp = await fetch('/api/premium-consult', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, domain, conversationHistory: history }),
+        body: JSON.stringify({ question, domain, conversationHistory: history, files }),
       });
 
       if (!resp.ok || !resp.body) {
@@ -574,7 +587,10 @@ const Index = () => {
 
             if (parsed.type === 'trust') {
               setPremiumTrustHeader(parsed.trustHeader);
-              if (parsed.citations) setPremiumCitations(parsed.citations);
+              if (parsed.citations) {
+                latestCitations = parsed.citations;
+                setPremiumCitations(parsed.citations);
+              }
               if (parsed.error) setPremiumError(parsed.error);
               setPremiumSteps(prev => prev.map((s, i) => i <= 1 ? { ...s, done: true } : s));
               continue;
@@ -595,7 +611,7 @@ const Index = () => {
         }
       }
 
-      setPremiumMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false, citations: premiumCitations } : m));
+      setPremiumMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false, citations: latestCitations } : m));
       void logUsageEvent({
         mode: 'premium',
         premiumDomain: domain,
@@ -603,7 +619,8 @@ const Index = () => {
         metadata: {
           historyLength: history.length,
           questionLength: question.length,
-          citationCount: premiumCitations.length,
+          citationCount: latestCitations.length,
+          attachedFileCount: files.length,
         },
       });
     } catch (err) {
@@ -617,6 +634,7 @@ const Index = () => {
         metadata: {
           historyLength: history.length,
           questionLength: question.length,
+          attachedFileCount: files.length,
           error: errMsg,
         },
       });
@@ -624,7 +642,7 @@ const Index = () => {
 
     setPremiumStreaming(false);
     setPremiumSteps([]);
-  }, [logUsageEvent, premiumCitations]);
+  }, [logUsageEvent]);
 
   const handleSelectPremiumDomain = useCallback((domainId: PremiumDomainId) => {
     setSelectedPremiumDomain(domainId);
@@ -1115,6 +1133,7 @@ ${difficultyDesc}
             onDelta: chunk => { aiContent += chunk; setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: aiContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m)); },
             signal: controller.signal,
+            files: filesToSend,
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
@@ -1376,7 +1395,9 @@ ${difficultyDesc}
             await streamExpert({ question, expert: await buildExpertWithPrompt(expert, issueContext + lengthExtra), previousResponses: allResponses, round, mode: 'standard',
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
-              signal: controller.signal });
+              signal: controller.signal,
+              files: filesToSend,
+            });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
             fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
@@ -1494,7 +1515,9 @@ ${sideLabel === '찬성' ? '이 명제에 "찬성(동의)"하는 입장에서만
             await streamExpert({ question, expert: await buildExpertWithPrompt(expert, extra), previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
-              signal: controller.signal });
+              signal: controller.signal,
+              files: filesToSend,
+            });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
             fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
@@ -1589,7 +1612,9 @@ ${sideLabel === '찬성' ? '이 명제에 "찬성(동의)"하는 입장에서만
                 previousResponses: allResponses, round,
                 onDelta: (chunk) => { fullContent += chunk; },
                 onDone: () => {},
-                signal: controller.signal });
+                signal: controller.signal,
+                files: filesToSend,
+              });
             } catch (err) {
               if ((err as Error).name === 'AbortError') break;
               fullContent = '';
@@ -1735,7 +1760,9 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
                     setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));
                   }
                 },
-                signal: controller.signal });
+                signal: controller.signal,
+                files: filesToSend,
+              });
             } catch (err) {
               if ((err as Error).name === 'AbortError') break;
               fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
@@ -1806,6 +1833,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
               onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
               onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
               signal: controller.signal,
+              files: filesToSend,
             });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
@@ -1922,6 +1950,7 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
                 setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
               },
               signal: controller.signal,
+              files: filesToSend,
             });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
@@ -2336,6 +2365,11 @@ Rules:
     runDiscussionWithUsage(question, overrideExpertIds, overrideMode);
   }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussionWithUsage, activeAivsBattleConfig]);
 
+  const startDiscussionWithFiles = useCallback((question: string, files: AttachedFile[], overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
+    pendingFilesRef.current = files;
+    startDiscussion(question, overrideExpertIds, overrideMode);
+  }, [startDiscussion]);
+
   // Save to history when discussion completes — upsert로 중복 방지
   useEffect(() => {
     if (!isDiscussing && messages.length > 0 && currentQuestion) {
@@ -2711,20 +2745,44 @@ ${conversationText}`;
     if (isDiscussing) return;
     const expert = experts.find(e => e.id === expertId);
     if (!expert) return;
+    const followUpFiles = pendingFilesRef.current;
+    pendingFilesRef.current = [];
+    const followUpFilesToSend = followUpFiles.length > 0 ? followUpFiles.map(f => ({
+      name: f.name,
+      mimeType: f.mimeType,
+      base64: f.base64,
+      extractedText: f.extractedText,
+    })) : undefined;
+    const followUpFilesBadges = followUpFiles.length > 0 ? followUpFiles.map(f => ({
+      name: f.name,
+      mimeType: f.mimeType,
+      preview: f.preview,
+    })) : undefined;
     setIsDiscussing(true);
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setActiveExpertId(expert.id);
     const prevResponses = messages.filter(m => m.expertId === expertId && m.content).map(m => ({ name: expert.nameKo, content: m.content }));
     const msgId = `${expertId}-followup-${Date.now()}`;
-    setMessages(prev => [...prev, { id: `user-debate-followup-${Date.now()}`, expertId: '__user__', content: `💬 ${expert.nameKo}에게: ${followUpQ}`, isDirectFollowUp: true }, { id: msgId, expertId, content: '', isStreaming: true, isDirectFollowUp: true }]);
+    setMessages(prev => [...prev,
+      {
+        id: `user-debate-followup-${Date.now()}`,
+        expertId: '__user__',
+        content: `💬 ${expert.nameKo}에게: ${followUpQ}`,
+        isDirectFollowUp: true,
+        attachedFiles: followUpFilesBadges,
+      },
+      { id: msgId, expertId, content: '', isStreaming: true, isDirectFollowUp: true }
+    ]);
     let fullContent = '';
     try {
       await streamExpert({ question: followUpQ, expert: await buildExpertWithPrompt(expert, '\n\n이전에 이 주제에 대해 답변한 적이 있습니다. 사용자의 추가 질문에 이전 답변을 바탕으로 더 깊이 답변해주세요.'),
         previousResponses: prevResponses, round: 'initial',
         onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
         onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
-        signal: controller.signal });
+        signal: controller.signal,
+        files: followUpFilesToSend,
+      });
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false } : m));
@@ -2868,7 +2926,13 @@ ${conversationText}`;
 
       // 유저 메시지 추가
       const userMsgId = `avsu-user-${Date.now()}`;
-      setMessages(prev => [...prev, { id: userMsgId, expertId: '__user__', content: question, timestamp: Date.now() }]);
+      setMessages(prev => [...prev, {
+        id: userMsgId,
+        expertId: '__user__',
+        content: question,
+        timestamp: Date.now(),
+        attachedFiles: followUpFilesBadges,
+      }]);
 
       // 대화 기록
       const allMsgs = [...messages, { id: userMsgId, expertId: '__user__', content: question }];
@@ -2937,6 +3001,7 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
             onDelta: chunk => { aiContent += chunk; setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: aiContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m)); },
             signal: controller.signal,
+            files: followUpFilesToSend,
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') { setIsDiscussing(false); return; }
@@ -2961,7 +3026,7 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
 
       // Add user message
       const userMsgId = `user-sim-${Date.now()}`;
-      setMessages(prev => [...prev, { id: userMsgId, expertId: '__user__', content: question }]);
+      setMessages(prev => [...prev, { id: userMsgId, expertId: '__user__', content: question, attachedFiles: followUpFilesBadges }]);
 
       // Build conversation history for orchestrator
       const allMsgs = [...messages, { id: userMsgId, expertId: '__user__', content: question }];
@@ -3499,6 +3564,7 @@ ${direction}`;
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
             signal: controller.signal,
+            files: followUpFilesToSend,
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') { setIsDiscussing(false); return; }
@@ -3976,6 +4042,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
     }
 
     // 다른 모드: 새 토론 시작
+    pendingFilesRef.current = followUpFiles;
     startDiscussion(question);
   }, [isDiscussing, discussionMode, activeExperts, selectedMultiFollowUpExperts, messages, allExperts, proconStances, startDiscussion, stakeholderSettings, experts, debateSettings, currentQuestion, simPhaseIndex, activeAivsBattleConfig, logUsageEvent]);
 
@@ -4311,6 +4378,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     onModeChange={handleModeChange}
                     isDiscussing={isDiscussing}
                     onSubmit={startDiscussion}
+                    onSubmitWithFiles={startDiscussionWithFiles}
                     proconStances={proconStances}
                     onProconStancesChange={setProconStances}
                     debateSettings={debateSettings}

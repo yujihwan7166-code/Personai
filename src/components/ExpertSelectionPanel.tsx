@@ -21,6 +21,7 @@ import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import type { AttachedFile } from '@/lib/fileProcessor';
 import {
   Target, Scale, Lightbulb,
   Plus, X, Check, ChevronRight, ChevronDown, ArrowRight, Zap,
@@ -34,6 +35,7 @@ import {
 
 type ProconStance = 'pro' | 'con';
 type SubmitDiscussion = (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => void;
+type SubmitDiscussionWithFiles = (question: string, files: AttachedFile[], overrideExpertIds?: string[], overrideMode?: DiscussionMode) => void;
 
 interface GameRecord {
   gameId: string;
@@ -51,6 +53,7 @@ interface Props {
   onModeChange: (mode: DiscussionMode) => void;
   isDiscussing: boolean;
   onSubmit: SubmitDiscussion;
+  onSubmitWithFiles?: SubmitDiscussionWithFiles;
   proconStances?: Record<string, ProconStance>;
   onProconStancesChange?: (stances: Record<string, ProconStance>) => void;
   debateSettings?: DebateSettings;
@@ -199,7 +202,6 @@ function AutoManualToggle({ auto, onChange }: { auto: boolean; onChange: (v: boo
   );
 }
 
-// ── AI 선택 플로팅 모달 (공통) ──
 function AIPickerModal({ experts, selectedIds, onToggle, onClose, title, accentColor = 'indigo', maxCount }: {
   experts: Expert[];
   selectedIds: string[];
@@ -470,7 +472,7 @@ function StandardSettingsPanel({ issues, onIssuesChange, debateSettings, onDebat
 }
 
 // ── Procon Settings Panel — 완전 재설계 ──
-function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dragOver, draggedId, setDragOver, setDraggedId, assignStance, removeStance, MAX_PER_ZONE, assignMode, setAssignMode, debateSettings, onDebateSettingsChange, onModeChange, children }: {
+function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dragOver, draggedId, setDragOver, setDraggedId, assignStance, removeStance, MAX_PER_ZONE, assignMode, setAssignMode, debateSettings, onDebateSettingsChange, onModeChange, topContent, bottomContent }: {
   experts: Expert[];
   selectedIds: string[];
   onToggle: (id: string) => void;
@@ -486,7 +488,8 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
   MAX_PER_ZONE: number;
   debateSettings?: DebateSettings;
   onDebateSettingsChange?: (s: DebateSettings) => void;
-  children?: React.ReactNode;
+  topContent?: React.ReactNode;
+  bottomContent?: React.ReactNode;
 }) {
   const [pickerZone, setPickerZone] = useState<'pro' | 'con' | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -553,8 +556,15 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
             )}
           </div>
 
-          {/* 찬반 드래그 존 */}
-          <div className="p-3 bg-white">
+          <div className="bg-white">
+            {topContent ? (
+              <div className="border-b border-violet-100 px-3 py-3">
+                {topContent}
+              </div>
+            ) : null}
+
+            {/* 찬반 드래그 존 */}
+            <div className="p-3">
             <div className="grid grid-cols-2 gap-3">
               {(['pro', 'con'] as const).map(zone => {
                 const isOver = dragOver === zone;
@@ -614,10 +624,16 @@ function ProconSettingsPanel({ experts, selectedIds, onToggle, proconStances, dr
                 );
               })}
             </div>
+            </div>
+
+            {bottomContent ? (
+              <div className="border-t border-violet-100 bg-violet-50/30 px-3 py-3">
+                {bottomContent}
+              </div>
+            ) : null}
           </div>
 
         </div>
-        {children}
       </div>
     </div>
   );
@@ -1693,7 +1709,7 @@ function AssistantCardsPanel({ onSubmit, isDiscussing }: {
 // ══════════════════════════════════════════
 export function ExpertSelectionPanel({
   experts, selectedIds, onToggle, discussionMode, onModeChange, isDiscussing,
-  onSubmit, proconStances = {}, onProconStancesChange,
+  onSubmit, onSubmitWithFiles, proconStances = {}, onProconStancesChange,
   debateSettings, onDebateSettingsChange, showDebateSettings,
   selectedFramework, onFrameworkChange,
   discussionIssues = [], onDiscussionIssuesChange,
@@ -1719,6 +1735,7 @@ export function ExpertSelectionPanel({
   const [autoAssign, setAutoAssign] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [prefilledQuestion, setPrefilledQuestion] = useState('');
 
   // ── Mode transition states ──
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -1841,6 +1858,22 @@ export function ExpertSelectionPanel({
     onBulkSelect(picks);
     // overrideExpertIds로 직접 전달 (state 업데이트 대기 불필요)
     onSubmit(question, picks);
+  };
+
+  const handleAutoSubmitWithFiles = (question: string, files: AttachedFile[]) => {
+    if (!onSubmitWithFiles) {
+      handleAutoSubmit(question);
+      return;
+    }
+
+    if (!onBulkSelect) {
+      onSubmitWithFiles(question, files);
+      return;
+    }
+
+    const picks = autoPickExperts(question);
+    onBulkSelect(picks);
+    onSubmitWithFiles(question, files, picks);
   };
 
   const supportsAutoAssign = discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'hearing' || discussionMode === 'freetalk' || discussionMode === 'stakeholder';
@@ -1995,6 +2028,114 @@ export function ExpertSelectionPanel({
   const showPlayerBg = isPlayerActive ? (isLeavingPlayer ? transitionPhase < 2 : true) : (isGoingToPlayer && transitionPhase >= 2);
   // Content visibility: hidden during phase 1 (fade out) and phase 2 (bg transition), visible in phase 0 and 3
   const contentVisible = transitionPhase === 0 || transitionPhase === 3;
+  const debateSuggestionSection = (() => {
+    interface TopicSuggestion {
+      topic: string;
+      icon: string;
+      expertIds: string[];
+      proIds?: string[];
+      conIds?: string[];
+    }
+
+    const topicSuggestions: Record<string, TopicSuggestion[]> = {
+      procon: [
+        { topic: 'AI 교재를 학교 수업에 적극 도입해야 하나?', icon: '📚', expertIds: ['education', 'compsci', 'teacher', 'philosophy'], proIds: ['education', 'compsci'], conIds: ['teacher', 'philosophy'] },
+        { topic: 'SNS 실명제가 필요할까?', icon: '🪪', expertIds: ['legal', 'criminology', 'psychology', 'journalist'], proIds: ['legal', 'criminology'], conIds: ['psychology', 'journalist'] },
+      ],
+      freetalk: [
+        { topic: '2026년 투자 환경은 어떻게 변할까?', icon: '📈', expertIds: ['gpt', 'claude', 'perplexity'] },
+        { topic: 'AI 기술이 교육을 어떻게 바꿀까?', icon: '🎓', expertIds: ['gemini', 'claude', 'deepseek'] },
+      ],
+      standard: [
+        { topic: '저출산 문제는 어디서부터 해결해야 할까', icon: '👶', expertIds: ['gpt', 'claude', 'gemini'] },
+        { topic: '기후 위기가 산업 구조에 미치는 영향', icon: '🌍', expertIds: ['perplexity', 'deepseek', 'gpt'] },
+      ],
+    };
+
+    const suggestions = topicSuggestions[discussionMode];
+    if (!suggestions) return null;
+
+    const isProconMode = discussionMode === 'procon';
+    const formatExpertName = (expert: Expert) => expert.nameKo || expert.name;
+
+    const handleSuggestionClick = (suggestion: TopicSuggestion) => {
+      if (isProconMode) {
+        onBulkSelect?.(suggestion.expertIds);
+
+        const nextStances: Record<string, ProconStance> = {};
+        suggestion.proIds?.forEach((id) => {
+          nextStances[id] = 'pro';
+        });
+        suggestion.conIds?.forEach((id) => {
+          nextStances[id] = 'con';
+        });
+        if (Object.keys(nextStances).length > 0) {
+          onProconStancesChange?.(nextStances);
+        }
+
+        setPrefilledQuestion(suggestion.topic);
+        return;
+      }
+
+      if (onBulkSelect) onBulkSelect(suggestion.expertIds);
+      onSubmit(suggestion.topic, suggestion.expertIds);
+    };
+
+    const renderSuggestionCard = (suggestion: TopicSuggestion, index: number) => {
+      const proExperts = (suggestion.proIds?.map((id) => experts.find((expert) => expert.id === id)).filter(Boolean) || []) as Expert[];
+      const conExperts = (suggestion.conIds?.map((id) => experts.find((expert) => expert.id === id)).filter(Boolean) || []) as Expert[];
+      const cardExperts = suggestion.expertIds.map((id) => experts.find((expert) => expert.id === id)).filter(Boolean) as Expert[];
+      const hasTeams = isProconMode && proExperts.length > 0 && conExperts.length > 0;
+
+      return (
+        <button
+          key={index}
+          type="button"
+          aria-label={`${suggestion.topic} 추천 주제`}
+          onClick={() => handleSuggestionClick(suggestion)}
+          className="group relative w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-left transition-all duration-200 hover:border-indigo-300 hover:shadow-[0_4px_16px_-4px_rgba(99,102,241,0.12)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+        >
+          <p className="relative text-[12px] font-bold text-slate-800 group-hover:text-slate-950 leading-snug text-center">
+            {suggestion.topic}
+          </p>
+          {hasTeams ? (
+            <div className="relative flex items-center justify-center gap-1.5 mt-2.5">
+              <div className="flex items-center gap-1">
+                {proExperts.map((expert) => (
+                  <span key={expert.id} className="inline-flex items-center gap-0.5">
+                    <ExpertAvatar expert={expert} size="xs" />
+                    <span className="text-[8.5px] font-semibold text-blue-600/80">{formatExpertName(expert)}</span>
+                  </span>
+                ))}
+              </div>
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-[8px] font-black text-slate-400 shrink-0">vs</span>
+              <div className="flex items-center gap-1">
+                {conExperts.map((expert) => (
+                  <span key={expert.id} className="inline-flex items-center gap-0.5">
+                    <ExpertAvatar expert={expert} size="xs" />
+                    <span className="text-[8.5px] font-semibold text-red-500/80">{formatExpertName(expert)}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="relative flex items-center justify-center gap-1.5 mt-2">
+              <div className="flex -space-x-1">
+                {cardExperts.slice(0, 3).map((expert) => <ExpertAvatar key={expert.id} expert={expert} size="xs" />)}
+              </div>
+              <span className="text-[10px] font-medium text-slate-400 truncate">{formatExpertName(cardExperts[0])}{'  '}+ {cardExperts.length - 1}명</span>
+            </div>
+          )}
+        </button>
+      );
+    };
+
+    return (
+      <div className="grid grid-cols-2 gap-1.5">
+        {suggestions.map((suggestion, index) => renderSuggestionCard(suggestion, index))}
+      </div>
+    );
+  })();
 
   return (
     <div className={cn("space-y-3 relative transition-all duration-500", isPlayerActive ? 'py-1' : 'py-4')}>
@@ -2365,6 +2506,21 @@ export function ExpertSelectionPanel({
           debateSettings={debateSettings}
           onDebateSettingsChange={onDebateSettingsChange}
           onModeChange={onModeChange}
+          topContent={debateSuggestionSection}
+          bottomContent={(
+            <QuestionInput
+              onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
+              onSubmitWithFiles={autoAssign && supportsAutoAssign ? handleAutoSubmitWithFiles : onSubmitWithFiles}
+              disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2) || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2)}
+              discussionMode={discussionMode}
+              selectedExperts={[]}
+              onRemoveExpert={undefined}
+              debateSettings={debateSettings}
+              onDebateSettingsChange={onDebateSettingsChange}
+              externalValue={prefilledQuestion}
+              onExternalValueConsumed={() => setPrefilledQuestion('')}
+            />
+          )}
         />
       )}
 
@@ -2438,7 +2594,7 @@ export function ExpertSelectionPanel({
       )}
 
       {/* Example Questions — for debate modes before discussion starts */}
-      {(discussionMode === 'procon' || discussionMode === 'freetalk' || discussionMode === 'standard') && (() => {
+      {!isProcon && (discussionMode === 'freetalk' || discussionMode === 'standard') && (() => {
         interface TopicSuggestion { topic: string; icon: string; expertIds: string[]; proIds?: string[]; conIds?: string[]; }
         const topicSuggestions: Record<string, TopicSuggestion[]> = {
           procon: [
@@ -2519,16 +2675,17 @@ export function ExpertSelectionPanel({
       })()}
 
       {/* Question Input — not shown for expert/assistant/player/aivsuser (they have their own inputs or modal flow) */}
-      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && mainMode !== 'premium_main' && discussionMode !== 'aivsuser' && (
+      {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && mainMode !== 'premium_main' && discussionMode !== 'aivsuser' && !isProcon && (
         <QuestionInput
           onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
+          onSubmitWithFiles={autoAssign && supportsAutoAssign ? handleAutoSubmitWithFiles : onSubmitWithFiles}
           disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2) || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2)}
           discussionMode={discussionMode}
           selectedExperts={
-            (isProcon || discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')
+            (discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')
               ? [] : experts.filter(e => selectedIds.includes(e.id))
           }
-          onRemoveExpert={isGeneral || isProcon ? undefined : onToggle}
+          onRemoveExpert={isGeneral ? undefined : onToggle}
           debateSettings={debateSettings}
           onDebateSettingsChange={onDebateSettingsChange}
         />

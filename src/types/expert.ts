@@ -3715,6 +3715,51 @@ export const DEFAULT_STAKEHOLDER_SETTINGS: StakeholderSettings = {
   prepAnswers: {},
 };
 
+// ── 토론 추천주제 ──
+
+export interface RecommendedTopic {
+  id: string;
+  title: string;
+  temperature: number;
+  participation: number;
+  updatedAt: string;
+}
+
+export const DEBATE_RECOMMENDED_TOPICS: Record<string, RecommendedTopic[]> = {
+  procon: [
+    { id: 'rt-1', title: 'AI가 일자리를 대체할까?', temperature: 87, participation: 5234, updatedAt: '방금 전' },
+    { id: 'rt-2', title: '챗봇 중독성 규제 필요할까?', temperature: 72, participation: 3821, updatedAt: '2시간 전' },
+    { id: 'rt-3', title: 'AI 학습용 저작권 침해인가?', temperature: 91, participation: 4156, updatedAt: '3시간 전' },
+    { id: 'rt-4', title: 'AI 학생 과제 사용 금지해야?', temperature: 78, participation: 6021, updatedAt: '1시간 전' },
+    { id: 'rt-5', title: 'AI 이미지 생성 저작권 논란', temperature: 85, participation: 2891, updatedAt: '5시간 전' },
+    { id: 'rt-6', title: '기본소득을 도입해야 하는가?', temperature: 82, participation: 4512, updatedAt: '4시간 전' },
+    { id: 'rt-7', title: 'SNS 실명제를 도입해야 하는가?', temperature: 74, participation: 3245, updatedAt: '6시간 전' },
+    { id: 'rt-8', title: '원격근무가 출근보다 생산적인가?', temperature: 65, participation: 2987, updatedAt: '8시간 전' },
+  ],
+  standard: [
+    { id: 'rt-s1', title: 'AI 규제, 혁신과 안전 사이의 균형점은?', temperature: 84, participation: 4780, updatedAt: '1시간 전' },
+    { id: 'rt-s2', title: '한국 교육, 무엇부터 바꿔야 하나?', temperature: 80, participation: 5120, updatedAt: '2시간 전' },
+    { id: 'rt-s3', title: '원자력 발전 확대가 현실적 대안인가?', temperature: 77, participation: 3450, updatedAt: '3시간 전' },
+    { id: 'rt-s4', title: '디지털 시대의 프라이버시, 어디까지?', temperature: 73, participation: 2980, updatedAt: '5시간 전' },
+    { id: 'rt-s5', title: '저출산 대책, 왜 효과가 없을까?', temperature: 86, participation: 4890, updatedAt: '30분 전' },
+    { id: 'rt-s6', title: '긱 이코노미는 노동의 미래인가?', temperature: 71, participation: 3120, updatedAt: '4시간 전' },
+  ],
+  freetalk: [
+    { id: 'rt-f1', title: '10년 뒤 AI 시대, 어떻게 살아야 할까?', temperature: 79, participation: 4100, updatedAt: '1시간 전' },
+    { id: 'rt-f2', title: '워라밸 vs 성장, 뭐가 더 중요할까?', temperature: 71, participation: 3567, updatedAt: '3시간 전' },
+    { id: 'rt-f3', title: '메타버스는 정말 올까?', temperature: 58, participation: 2134, updatedAt: '5시간 전' },
+    { id: 'rt-f4', title: '초고령사회, 무엇을 준비해야 할까?', temperature: 67, participation: 2890, updatedAt: '4시간 전' },
+    { id: 'rt-f5', title: 'K-팝의 글로벌 영향력은 지속될까?', temperature: 63, participation: 3210, updatedAt: '6시간 전' },
+    { id: 'rt-f6', title: '기후변화, 개인이 할 수 있는 건?', temperature: 76, participation: 3890, updatedAt: '2시간 전' },
+  ],
+  hearing: [
+    { id: 'rt-h1', title: 'AI 기반 개인 재무관리 앱', temperature: 82, participation: 1890, updatedAt: '2시간 전' },
+    { id: 'rt-h2', title: '소규모 학교 온라인 교육 플랫폼', temperature: 68, participation: 1456, updatedAt: '5시간 전' },
+    { id: 'rt-h3', title: '독거노인 AI 안부 확인 서비스', temperature: 75, participation: 2100, updatedAt: '3시간 전' },
+    { id: 'rt-h4', title: '지역 농산물 직거래 구독 서비스', temperature: 60, participation: 1234, updatedAt: '7시간 전' },
+  ],
+};
+
 export const SUMMARIZER_EXPERT: Expert = {
     id: 'summarizer', name: 'Summarizer', nameKo: '토론 정리', icon: '📝', color: 'amber', category: 'specialist', description: '토론 내용 정리', systemPrompt: '',
 };

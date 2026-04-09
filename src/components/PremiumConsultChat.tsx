@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { PREMIUM_DOMAIN_TEMPLATES, type PremiumDomainId, type PremiumDomainTemplate, type ApiSourceCitation } from '@/types/expert';
+import { buildAttachmentPrompt, formatFileSize, getFileIcon, processFile, validateFile, type AttachedFile } from '@/lib/fileProcessor';
 import { TrustIndicator } from './TrustIndicator';
 import { LazyMarkdown } from './LazyMarkdown';
-import { ArrowLeft, Send, FileText, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle, ThumbsUp, ThumbsDown, Search, Plus } from 'lucide-react';
+import { ArrowLeft, Send, FileText, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle, ThumbsUp, ThumbsDown, Search, Paperclip, X } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -11,12 +12,13 @@ interface Message {
   content: string;
   isStreaming?: boolean;
   citations?: ApiSourceCitation[];
+  attachedFiles?: { name: string; mimeType: string; preview?: string }[];
 }
 
 interface Props {
   domainId: PremiumDomainId;
   onBack: () => void;
-  onSendMessage: (question: string, domain: PremiumDomainId, history: { role: 'user' | 'assistant'; content: string }[]) => void;
+  onSendMessage: (question: string, domain: PremiumDomainId, history: { role: 'user' | 'assistant'; content: string }[], files?: AttachedFile[]) => void;
   messages: Message[];
   isStreaming: boolean;
   citations: ApiSourceCitation[];
@@ -47,26 +49,44 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
   const domain = PREMIUM_DOMAIN_TEMPLATES.find(d => d.id === domainId) || PREMIUM_DOMAIN_TEMPLATES[0];
   const accent = ACCENT_MAP[domainId] || ACCENT_MAP.law;
   const [input, setInput] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [showSourcePanel, setShowSourcePanel] = useState(true);
   const [expandedUserMsgs, setExpandedUserMsgs] = useState<Set<string>>(new Set());
   const [stepsExpanded, setStepsExpanded] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, steps]);
 
+  useEffect(() => {
+    if (!fileError) return;
+    const timer = setTimeout(() => setFileError(null), 3000);
+    return () => clearTimeout(timer);
+  }, [fileError]);
+
   const handleSubmit = useCallback(() => {
-    if (!input.trim() || isStreaming) return;
+    if ((!input.trim() && attachedFiles.length === 0) || isStreaming) return;
     const history = messages.map(m => ({ role: m.role, content: m.content }));
-    onSendMessage(input.trim(), domainId, history);
+    const question = input.trim() || buildAttachmentPrompt(attachedFiles);
+    onSendMessage(question, domainId, history, attachedFiles);
     setInput('');
-  }, [input, isStreaming, messages, domainId, onSendMessage]);
+    setAttachedFiles([]);
+    setFileError(null);
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
+  }, [attachedFiles, input, isStreaming, messages, domainId, onSendMessage]);
 
   const handleSampleClick = (q: string) => {
     const history = messages.map(m => ({ role: m.role, content: m.content }));
-    onSendMessage(q, domainId, history);
+    setAttachedFiles([]);
+    setFileError(null);
+    onSendMessage(q, domainId, history, []);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -75,6 +95,68 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
       handleSubmit();
     }
   };
+
+  const handleFileSelection = useCallback(async (files: FileList | File[] | null) => {
+    const selectedFiles = files ? Array.from(files) : [];
+    if (selectedFiles.length === 0) return;
+
+    setFileError(null);
+    const nextFiles = [...attachedFiles];
+    let nextError: string | null = null;
+
+    for (const file of selectedFiles) {
+      const error = validateFile(file, nextFiles);
+      if (error) {
+        nextError = error;
+        continue;
+      }
+
+      try {
+        const processed = await processFile(file);
+        nextFiles.push(processed);
+      } catch {
+        nextError = '파일을 처리하는 중에 문제가 생겼어요.';
+      }
+    }
+
+    setAttachedFiles(nextFiles);
+    setFileError(nextError);
+  }, [attachedFiles]);
+
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (isStreaming) return;
+
+    const pastedFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file instanceof File);
+
+    if (pastedFiles.length === 0) return;
+
+    e.preventDefault();
+    void handleFileSelection(pastedFiles);
+  }, [handleFileSelection, isStreaming]);
+
+  const removeAttachedFile = useCallback((fileId: string) => {
+    setAttachedFiles((prev) => prev.filter((file) => file.id !== fileId));
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!isStreaming) setIsDragOver(true);
+  }, [isStreaming]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (isStreaming) return;
+    void handleFileSelection(e.dataTransfer.files);
+  }, [handleFileSelection, isStreaming]);
 
   const toggleUserMsg = (id: string) => {
     setExpandedUserMsgs(prev => {
@@ -217,6 +299,23 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                   return (
                     <div key={msg.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-5 py-4 relative">
                       <p className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{displayText}</p>
+                      {msg.attachedFiles && msg.attachedFiles.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {msg.attachedFiles.map((file, index) => (
+                            <span
+                              key={`${msg.id}-${file.name}-${index}`}
+                              className="inline-flex max-w-[240px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              {file.preview ? (
+                                <img src={file.preview} alt="" className="h-7 w-7 rounded object-cover shrink-0" />
+                              ) : (
+                                <span className="text-[13px]">{getFileIcon(file.mimeType)}</span>
+                              )}
+                              <span className="truncate">{file.name}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {isLong && (
                         <button
                           onClick={() => toggleUserMsg(msg.id)}
@@ -316,12 +415,63 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
           {/* Input — bottom fixed, general chat style */}
           <div className="shrink-0 bg-white dark:bg-[#0f1117]">
             <div className="max-w-[700px] mx-auto px-6 py-3">
-              <div className="rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
+              <div
+                className={cn(
+                  'rounded-2xl border-2 bg-white dark:bg-slate-800 shadow-sm overflow-hidden transition-all',
+                  isDragOver
+                    ? 'border-indigo-500 bg-indigo-50/40 dark:border-indigo-400'
+                    : 'border-indigo-400 dark:border-indigo-600'
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.docx,.xlsx"
+                  className="hidden"
+                  onChange={(e) => {
+                    void handleFileSelection(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
+                {attachedFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 px-4 pt-4">
+                    {attachedFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className="inline-flex max-w-[240px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
+                      >
+                        {file.preview ? (
+                          <img src={file.preview} alt="" className="h-7 w-7 rounded object-cover shrink-0" />
+                        ) : (
+                          <span className="text-[13px]">{getFileIcon(file.mimeType)}</span>
+                        )}
+                        <span className="truncate">{file.name}</span>
+                        <span className="shrink-0 text-[10px] text-slate-400">{formatFileSize(file.size)}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachedFile(file.id)}
+                          className="rounded p-0.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                          aria-label={`${file.name} 제거`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {fileError && (
+                  <div className="px-4 pt-3 text-[11px] text-red-500">{fileError}</div>
+                )}
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={(e) => { setInput(e.target.value); const t = e.target; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 200)}px`; }}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   placeholder={`${domain.name}에게 질문하세요`}
                   rows={1}
                   className="w-full px-4 pt-3.5 pb-2 bg-transparent text-[13px] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 resize-none outline-none"
@@ -330,8 +480,14 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                 />
                 <div className="flex items-center justify-between px-3 py-1.5">
                   <div className="flex items-center gap-1">
-                    <button type="button" className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 transition-all">
-                      <Plus className="h-4 w-4" strokeWidth={2.2} />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isStreaming}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 transition-all disabled:opacity-40"
+                      aria-label="파일 첨부"
+                    >
+                      <Paperclip className="h-4 w-4" strokeWidth={2.1} />
                     </button>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -340,10 +496,10 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                     )}
                     <button
                       onClick={handleSubmit}
-                      disabled={!input.trim() || isStreaming}
+                      disabled={(!input.trim() && attachedFiles.length === 0) || isStreaming}
                       className={cn(
                         'p-1.5 rounded-xl transition-all',
-                        input.trim() && !isStreaming
+                        (input.trim() || attachedFiles.length > 0) && !isStreaming
                           ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-800 hover:bg-slate-700'
                           : 'bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-500 cursor-not-allowed'
                       )}

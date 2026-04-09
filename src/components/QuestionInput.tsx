@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowUp, FolderPlus, ImagePlus, Paperclip, Plus, Settings, Share2, Square, X } from 'lucide-react';
+import { ArrowUp, FolderPlus, Paperclip, Plus, Share2, Square, X } from 'lucide-react';
 import { DebateSettings, DiscussionMode, Expert } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { ExpertAvatar } from './ExpertAvatar';
-import type { AttachedFile } from '@/lib/fileProcessor';
+import { buildAttachmentPrompt, type AttachedFile } from '@/lib/fileProcessor';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,10 +81,6 @@ function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: Discuss
   return '토론하고 싶은 주제를 입력해보세요';
 }
 
-function openSettingsModal() {
-  window.dispatchEvent(new CustomEvent('personai:open-settings', { detail: { section: 'general' } }));
-}
-
 function openProjectsSidebar() {
   window.dispatchEvent(new CustomEvent('personai:open-projects'));
 }
@@ -123,9 +119,7 @@ export function QuestionInput({
   const chipBarRef = useRef<HTMLDivElement>(null);
   // Keep render-derived flags above callbacks that capture them to avoid TDZ crashes on first render.
   const canUseTools = !disabled && !isStreaming;
-  const canAttachFiles = discussionMode !== 'procon';
-  const canGenerateImages = discussionMode !== 'procon';
-
+  const canAttachFiles = discussionMode !== 'player';
   useEffect(() => {
     const timer = setTimeout(() => textareaRef.current?.focus(), 100);
     return () => clearTimeout(timer);
@@ -159,35 +153,40 @@ export function QuestionInput({
     return () => document.removeEventListener('mousedown', handler);
   }, [openChip]);
 
-  const handleFileSelect = useCallback(async (files: FileList | null) => {
+  const removeFile = (fileId: string) => {
+    setAttachedFiles((prev) => prev.filter((file) => file.id !== fileId));
+  };
+
+  const handleSelectedFiles = useCallback(async (files: FileList | File[] | null) => {
     if (!canAttachFiles) return;
-    if (!files || files.length === 0) return;
+
+    const selectedFiles = files ? Array.from(files) : [];
+    if (selectedFiles.length === 0) return;
 
     setFileError(null);
     const { validateFile, processFile } = await loadFileProcessor();
+    const nextFiles = [...attachedFiles];
+    let nextError: string | null = null;
 
-    for (let i = 0; i < files.length; i += 1) {
-      const file = files[i];
-      const currentFiles = i === 0 ? attachedFiles : [...attachedFiles];
-      const error = validateFile(file, currentFiles);
+    for (const file of selectedFiles) {
+      const error = validateFile(file, nextFiles);
 
       if (error) {
-        setFileError(error);
+        nextError = error;
         continue;
       }
 
       try {
         const processed = await processFile(file);
-        setAttachedFiles((prev) => [...prev, processed]);
+        nextFiles.push(processed);
       } catch {
-        setFileError('파일 처리 중 오류가 발생했습니다.');
+        nextError = '파일을 처리하는 중에 문제가 생겼어요.';
       }
     }
-  }, [attachedFiles, canAttachFiles]);
 
-  const removeFile = (fileId: string) => {
-    setAttachedFiles((prev) => prev.filter((file) => file.id !== fileId));
-  };
+    setAttachedFiles(nextFiles);
+    setFileError(nextError);
+  }, [attachedFiles, canAttachFiles]);
 
   const focusTextarea = useCallback(() => {
     requestAnimationFrame(() => textareaRef.current?.focus());
@@ -217,11 +216,11 @@ export function QuestionInput({
     }
   }, [question]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleResolvedSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim() || disabled || isStreaming) return;
+    if ((!question.trim() && attachedFiles.length === 0) || disabled || isStreaming) return;
 
-    const trimmedQuestion = question.trim();
+    const trimmedQuestion = question.trim() || buildAttachmentPrompt(attachedFiles);
 
     if (onSubmitWithFiles && attachedFiles.length > 0) {
       onSubmitWithFiles(trimmedQuestion, attachedFiles);
@@ -236,7 +235,7 @@ export function QuestionInput({
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  };
+  }, [attachedFiles, disabled, isStreaming, onSubmit, onSubmitWithFiles, question]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -256,12 +255,26 @@ export function QuestionInput({
     setIsDragOver(false);
 
     if (canAttachFiles && !disabled && !isStreaming) {
-      handleFileSelect(e.dataTransfer.files);
+      void handleSelectedFiles(e.dataTransfer.files);
     }
   };
 
+  const handleTextareaPaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (!canAttachFiles || disabled || isStreaming) return;
+
+    const pastedFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file instanceof File);
+
+    if (pastedFiles.length === 0) return;
+
+    e.preventDefault();
+    void handleSelectedFiles(pastedFiles);
+  }, [canAttachFiles, disabled, handleSelectedFiles, isStreaming]);
+
   const placeholder = placeholderOverride || getPlaceholder(isFollowUp, discussionMode);
-  const canSubmit = !!question.trim() && !disabled && !isStreaming;
+  const canSubmit = (!!question.trim() || attachedFiles.length > 0) && !disabled && !isStreaming;
   const showSelectionAccent =
     !embedded &&
     !disabled &&
@@ -269,7 +282,7 @@ export function QuestionInput({
     (selectedExperts?.length ?? 0) > 0;
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleResolvedSubmit}>
       <div
         className={cn(
           'transition-all duration-200',
@@ -389,7 +402,7 @@ export function QuestionInput({
               multiple
               accept="image/*,.pdf,.docx,.xlsx"
               onChange={(e) => {
-                handleFileSelect(e.target.files);
+                void handleSelectedFiles(e.target.files);
                 e.target.value = '';
               }}
               className="hidden"
@@ -479,9 +492,10 @@ export function QuestionInput({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
                 e.preventDefault();
-                handleSubmit(e);
+                handleResolvedSubmit(e);
               }
             }}
+            onPaste={handleTextareaPaste}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
               target.style.height = 'auto';

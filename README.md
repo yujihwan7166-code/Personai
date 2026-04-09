@@ -1,73 +1,81 @@
-# Welcome to your Lovable project
+# Expert Chat Forum
 
-## Project info
+멀티 AI 토론, 일반 채팅, 프리미엄 자문을 한 화면에서 다루는 React + Vite 프로젝트입니다.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 핵심 기능
 
-## How can I edit this code?
+- 일반 채팅, 멀티 AI, 찬반토론, 자유토론
+- 프리미엄 자문 모드
+  - 법률
+  - 의약품
+  - 금융
+  - 부동산
+  - 세무
+  - 노무
+- 첨부파일 기반 질문
+  - 이미지: PNG, JPG, GIF, WEBP
+  - 문서: PDF, DOCX, XLSX
+- 이미지 붙여넣기, 드래그 앤 드롭, 다중 첨부
 
-There are several ways of editing your application.
+## 첨부파일 정책
 
-**Use Lovable**
+- 파일당 최대 10MB
+- 전체 최대 20MB
+- 한 번에 최대 5개
+- DOCX, XLSX는 텍스트를 추출해서 전송
+- 이미지와 PDF는 모델에 직접 전달
+- 질문 없이 파일만 첨부해도 자동 질문으로 전송
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 개발 환경
 
-Changes made via Lovable will be committed automatically to this repo.
+필수:
 
-**Use your preferred IDE**
+- Node.js 18+
+- npm
+- `GEMINI_API_KEY`
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+예시 `.env.local`
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+GEMINI_API_KEY=your_key_here
+```
 
-Follow these steps:
+## 실행 방법
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+추가 명령어:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+npm run test
+```
 
-**Use GitHub Codespaces**
+## 확인한 주요 경로
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- 메인 입력창: `src/components/QuestionInput.tsx`
+- 프리미엄 자문 채팅: `src/components/PremiumConsultChat.tsx`
+- 파일 처리: `src/lib/fileProcessor.ts`
+- 일반 채팅 API: `api/chat.ts`
+- 프리미엄 자문 API: `api/premium-consult.ts`
 
-## What technologies are used for this project?
+## 수동 QA 체크리스트
 
-This project is built with:
+1. 일반 채팅에서 이미지 1장만 첨부 후 전송
+2. 일반 채팅에서 PDF만 첨부 후 전송
+3. 일반 채팅에서 DOCX/XLSX 첨부 후 전송
+4. 일반 채팅에서 이미지 붙여넣기 후 전송
+5. 일반 채팅에서 파일 2~3개 동시 첨부
+6. 프리미엄 자문에서 이미지/PDF 첨부 후 전송
+7. 프리미엄 자문에서 파일만 첨부 후 전송
+8. 10MB 초과 파일 차단 확인
+9. 지원하지 않는 형식 차단 확인
+10. 같은 파일 중복 첨부 차단 확인
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 참고
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- 빌드 시 대형 chunk 경고가 나올 수 있지만 현재 동작 자체를 막는 오류는 아닙니다.
+- 서버 API도 첨부파일 형식과 크기를 다시 검증합니다.

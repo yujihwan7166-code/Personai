@@ -52,26 +52,3 @@ export function CitationBadge({ citation }: Props) {
     </span>
   );
 }
-
-// Parse citation markers from AI response text and replace with components
-export function parseCitationMarkers(text: string, citations: ApiSourceCitation[]): { cleanText: string; inlineCitations: { position: number; citation: ApiSourceCitation }[] } {
-  const inlineCitations: { position: number; citation: ApiSourceCitation }[] = [];
-  let cleanText = text;
-
-  // Match {{cite:label}} patterns
-  const regex = /\{\{cite:([^}]+)\}\}/g;
-  let match;
-  let offset = 0;
-
-  while ((match = regex.exec(text)) !== null) {
-    const label = match[1].trim();
-    const found = citations.find(c => c.label.includes(label) || label.includes(c.label));
-    if (found) {
-      inlineCitations.push({ position: match.index - offset, citation: found });
-    }
-    cleanText = cleanText.replace(match[0], `[${label}]`);
-    offset += match[0].length - `[${label}]`.length;
-  }
-
-  return { cleanText, inlineCitations };
-}

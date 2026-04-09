@@ -1,4 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import {
+  type AttachmentUserPart,
+  buildUserPartsFromUploadedFiles,
+  normalizeAndValidateUploadedFiles,
+} from './_lib/attachments.js';
 import { buildGeminiUrl, parseGeminiStreamBuffer } from './_lib/gemini.js';
 
 interface PreviousResponse {
@@ -6,72 +11,38 @@ interface PreviousResponse {
   content: string;
 }
 
-interface UploadedFilePayload {
-  name: string;
-  mimeType?: string;
-  base64?: string;
-  extractedText?: string;
-}
-
-type UserPart =
-  | { text: string }
-  | {
-      inline_data: {
-        mime_type: string;
-        data: string;
-      };
-    };
-
 interface ChatRequestBody {
   systemPrompt?: string;
   question?: string;
   previousResponses?: PreviousResponse[];
-  files?: UploadedFilePayload[];
+  files?: unknown;
 }
 
-function buildPrompt(question: string, previousResponses?: PreviousResponse[]) {
-  if (!previousResponses || previousResponses.length === 0) {
+function sanitizePreviousResponses(previousResponses: unknown): PreviousResponse[] {
+  if (!Array.isArray(previousResponses)) {
+    return [];
+  }
+
+  return previousResponses
+    .filter((item): item is PreviousResponse => Boolean(item) && typeof item === 'object')
+    .map((item) => ({
+      name: typeof item.name === 'string' ? item.name.slice(0, 80) : '참여자',
+      content: typeof item.content === 'string' ? item.content.slice(0, 6000) : '',
+    }))
+    .filter((item) => item.content.trim().length > 0)
+    .slice(-20);
+}
+
+function buildPrompt(question: string, previousResponses: PreviousResponse[]) {
+  if (previousResponses.length === 0) {
     return question;
   }
 
   const context = previousResponses
-    .map((response) => `[${response.name}]: ${response.content}`)
+    .map((response) => `[${response.name}]\n${response.content}`)
     .join('\n\n');
 
-  return `이전 대화\n${context}\n\n새 질문: ${question}`;
-}
-
-function buildFileParts(files?: UploadedFilePayload[]): UserPart[] {
-  if (!files || files.length === 0) {
-    return [];
-  }
-
-  const parts: UserPart[] = [
-    {
-      text: '\n[첨부 안내]\n질문과 관련이 있다면 아래 첨부 파일 내용을 우선 참고해서 답변하세요.',
-    },
-  ];
-
-  for (const file of files) {
-    if (file.extractedText) {
-      parts.push({
-        text: `\n[첨부 파일: ${file.name}]\n${file.extractedText}`,
-      });
-      continue;
-    }
-
-    if (file.base64 && file.mimeType) {
-      parts.push({ text: `\n[첨부 파일: ${file.name}]` });
-      parts.push({
-        inline_data: {
-          mime_type: file.mimeType,
-          data: file.base64,
-        },
-      });
-    }
-  }
-
-  return parts;
+  return `이전 대화 맥락\n${context}\n\n사용자 질문: ${question}`;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -81,40 +52,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
+    return res.status(500).json({ error: 'GEMINI_API_KEY가 설정되지 않았어요.' });
   }
 
-  const { question, previousResponses, files } = (req.body || {}) as ChatRequestBody;
-  const systemPrompt = typeof req.body?.systemPrompt === 'string' ? req.body.systemPrompt : '';
+  const body = (req.body || {}) as ChatRequestBody;
+  const question = typeof body.question === 'string' ? body.question.trim() : '';
+  const systemPrompt = typeof body.systemPrompt === 'string' ? body.systemPrompt : '';
 
-  if (!question || typeof question !== 'string') {
-    return res.status(400).json({ error: 'question is required and must be a string' });
+  if (!question) {
+    return res.status(400).json({ error: '질문이 비어 있어요.' });
   }
 
   if (question.length > 10000) {
-    return res.status(400).json({ error: 'question is too long' });
+    return res.status(400).json({ error: '질문이 너무 길어요. 10000자 이하로 줄여 주세요.' });
   }
 
-  const contents: Array<{ role: 'user'; parts: UserPart[] }> = [
+  const previousResponses = sanitizePreviousResponses(body.previousResponses);
+
+  let validatedFiles = [];
+  try {
+    validatedFiles = normalizeAndValidateUploadedFiles(body.files);
+  } catch (error) {
+    return res.status(400).json({
+      error: error instanceof Error ? error.message : '첨부파일을 확인하지 못했어요.',
+    });
+  }
+
+  const contents: Array<{ role: 'user'; parts: AttachmentUserPart[] }> = [
     {
       role: 'user',
-      parts: [{ text: buildPrompt(question, previousResponses) }, ...buildFileParts(files)],
+      parts: [
+        { text: buildPrompt(question, previousResponses) },
+        ...buildUserPartsFromUploadedFiles(validatedFiles),
+      ],
     },
   ];
 
   const model = 'gemini-2.5-flash-lite';
   const url = buildGeminiUrl(model, apiKey, true);
+  const hasFiles = validatedFiles.length > 0;
 
   try {
     const abortCtrl = new AbortController();
-    const hasFiles = Array.isArray(files) && files.length > 0;
     const timeoutId = setTimeout(() => abortCtrl.abort(), hasFiles ? 60000 : 30000);
 
     const geminiRes = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
+        systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
         contents,
         generationConfig: {
           temperature: 0.8,
@@ -129,9 +115,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!geminiRes.ok) {
       const errorText = await geminiRes.text();
       if (geminiRes.status === 429) {
-        return res.status(429).json({ error: 'API 요청 한도를 초과했어요. 잠시 후 다시 시도해주세요.' });
+        return res.status(429).json({ error: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.' });
       }
-      return res.status(geminiRes.status).json({ error: errorText });
+      if (geminiRes.status >= 500) {
+        return res.status(geminiRes.status).json({ error: '모델 서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.' });
+      }
+      return res.status(geminiRes.status).json({ error: errorText || '응답을 받아오지 못했어요.' });
     }
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -141,7 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const reader = geminiRes.body?.getReader();
     if (!reader) {
-      return res.status(500).json({ error: 'No response body' });
+      return res.status(500).json({ error: '응답 스트림을 열지 못했어요.' });
     }
 
     const decoder = new TextDecoder();
@@ -166,11 +155,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.write('data: [DONE]\n\n');
     res.end();
-  } catch (err) {
-    if ((err as Error).name === 'AbortError') {
-      return res.status(504).json({ error: 'Upstream model request timed out' });
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      return res.status(504).json({ error: '모델 응답 시간이 초과되었어요. 파일 크기나 질문 길이를 조금 줄여서 다시 시도해 주세요.' });
     }
 
-    return res.status(500).json({ error: String(err) });
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.',
+    });
   }
 }

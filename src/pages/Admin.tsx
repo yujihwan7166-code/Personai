@@ -206,7 +206,7 @@ export default function Admin() {
     } finally {
       setDataLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadModeUsage = useCallback(async () => {
     try {
