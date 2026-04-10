@@ -1,10 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { normalizeAndValidateUploadedFiles } from './_lib/attachments.js';
 import {
-  type AttachmentUserPart,
-  buildUserPartsFromUploadedFiles,
-  normalizeAndValidateUploadedFiles,
-} from './_lib/attachments.js';
-import { buildGeminiUrl, parseGeminiStreamBuffer } from './_lib/gemini.js';
+  buildOpenRouterContentFromUploadedFiles,
+  buildOpenRouterPluginsForUploadedFiles,
+  DEFAULT_OPENROUTER_TEXT_MODEL,
+  getOpenRouterApiKey,
+  getOpenRouterHeaders,
+  OPENROUTER_API_URL,
+  parseOpenRouterStreamBuffer,
+} from './_lib/openrouter.js';
 
 interface PreviousResponse {
   name: string;
@@ -16,6 +20,7 @@ interface ChatRequestBody {
   question?: string;
   previousResponses?: PreviousResponse[];
   files?: unknown;
+  openrouterModel?: string;
 }
 
 function sanitizePreviousResponses(previousResponses: unknown): PreviousResponse[] {
@@ -50,14 +55,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getOpenRouterApiKey();
   if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY가 설정되지 않았어요.' });
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY가 설정되지 않았어요.' });
   }
 
   const body = (req.body || {}) as ChatRequestBody;
   const question = typeof body.question === 'string' ? body.question.trim() : '';
   const systemPrompt = typeof body.systemPrompt === 'string' ? body.systemPrompt : '';
+  const requestedModel = typeof body.openrouterModel === 'string' ? body.openrouterModel.trim() : '';
 
   if (!question) {
     return res.status(400).json({ error: '질문이 비어 있어요.' });
@@ -78,59 +84,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const contents: Array<{ role: 'user'; parts: AttachmentUserPart[] }> = [
+  const messages = [
+    ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
     {
-      role: 'user',
-      parts: [
-        { text: buildPrompt(question, previousResponses) },
-        ...buildUserPartsFromUploadedFiles(validatedFiles),
+      role: 'user' as const,
+      content: [
+        { type: 'text' as const, text: buildPrompt(question, previousResponses) },
+        ...buildOpenRouterContentFromUploadedFiles(validatedFiles),
       ],
     },
   ];
-
-  const model = 'gemini-2.5-flash-lite';
-  const url = buildGeminiUrl(model, apiKey, true);
+  const plugins = buildOpenRouterPluginsForUploadedFiles(validatedFiles);
   const hasFiles = validatedFiles.length > 0;
 
   try {
     const abortCtrl = new AbortController();
     const timeoutId = setTimeout(() => abortCtrl.abort(), hasFiles ? 60000 : 30000);
 
-    const geminiRes = await fetch(url, {
+    const openRouterRes = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getOpenRouterHeaders(apiKey),
       body: JSON.stringify({
-        systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-        contents,
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 2048,
-        },
+        model: requestedModel || DEFAULT_OPENROUTER_TEXT_MODEL,
+        messages,
+        plugins,
+        stream: true,
+        temperature: 0.8,
+        max_tokens: 2048,
       }),
       signal: abortCtrl.signal,
     });
 
     clearTimeout(timeoutId);
 
-    if (!geminiRes.ok) {
-      const errorText = await geminiRes.text();
-      if (geminiRes.status === 429) {
+    if (!openRouterRes.ok) {
+      const errorText = await openRouterRes.text();
+      if (openRouterRes.status === 429) {
         return res.status(429).json({ error: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.' });
       }
-      if (geminiRes.status >= 500) {
-        return res.status(geminiRes.status).json({ error: '모델 서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.' });
+      if (openRouterRes.status >= 500) {
+        return res.status(openRouterRes.status).json({ error: '모델 서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.' });
       }
-      return res.status(geminiRes.status).json({ error: errorText || '응답을 받아오지 못했어요.' });
+      return res.status(openRouterRes.status).json({ error: errorText || '응답을 받아오지 못했어요.' });
     }
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const allowedOrigin = req.headers.origin || '';
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
 
-    const reader = geminiRes.body?.getReader();
+    const reader = openRouterRes.body?.getReader();
     if (!reader) {
-      return res.status(500).json({ error: '응답 스트림을 열지 못했어요.' });
+      return res.status(500).json({ error: '응답 스트림을 읽지 못했어요.' });
     }
 
     const decoder = new TextDecoder();
@@ -141,7 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const parsed = parseGeminiStreamBuffer(buffer);
+      const parsed = parseOpenRouterStreamBuffer(buffer);
       buffer = parsed.remainder;
 
       for (const text of parsed.texts) {
@@ -157,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.end();
   } catch (error) {
     if ((error as Error).name === 'AbortError') {
-      return res.status(504).json({ error: '모델 응답 시간이 초과되었어요. 파일 크기나 질문 길이를 조금 줄여서 다시 시도해 주세요.' });
+      return res.status(504).json({ error: '모델 응답 시간이 초과됐어요. 파일 크기나 질문 길이를 줄여서 다시 시도해 주세요.' });
     }
 
     return res.status(500).json({

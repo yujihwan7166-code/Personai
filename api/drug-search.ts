@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       query: searchTerm,
       citations: [],
       rawContext: '',
-      error: `의약품 검색 실패: ${e instanceof Error ? e.message : 'unknown'}`,
+      error: '의약품 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.',
     } satisfies ApiEnrichmentResult);
   }
 

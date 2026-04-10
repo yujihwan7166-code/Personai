@@ -32,12 +32,15 @@
 
 - Node.js 18+
 - npm
-- `GEMINI_API_KEY`
+- `OPENROUTER_API_KEY`
 
 예시 `.env.local`
 
 ```bash
-GEMINI_API_KEY=your_key_here
+OPENROUTER_API_KEY=your_key_here
+# Optional
+OPENROUTER_TEXT_MODEL=google/gemini-2.5-flash-lite
+OPENROUTER_IMAGE_MODEL=google/gemini-2.5-flash-image
 ```
 
 ## 실행 방법

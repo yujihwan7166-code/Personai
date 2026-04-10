@@ -80,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       query: keyword || dataType,
       citations: [],
       rawContext: '',
-      error: `금융 데이터 조회 실패: ${e instanceof Error ? e.message : 'unknown'}`,
+      error: '금융 데이터 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.',
     } satisfies ApiEnrichmentResult);
   }
 

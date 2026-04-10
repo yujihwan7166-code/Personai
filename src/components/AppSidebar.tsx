@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { ExpertAvatar } from './ExpertAvatar';
 import {
-  PanelLeft, SquarePen, Bot, Search,
+  PanelLeft, House, Bot, Search,
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
   Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
   FolderOpen, ChevronRight, ChevronLeft, Plus, X,
@@ -45,6 +45,9 @@ type SidebarSettings = {
   responseStyle: 'concise' | 'balanced' | 'detailed';
   compactUi: boolean;
   saveHistory: boolean;
+  fontSize: 'small' | 'medium' | 'large';
+  streamingEnabled: boolean;
+  autoSave: boolean;
 };
 
 const PROJECT_ICONS = ['📁', '💼', '📊', '📚', '🎯', '💡', '🔬', '🎨', '🏠', '✈️', '💰', '🎮', '📝', '🔧', '🌍', '❤️'];
@@ -64,6 +67,9 @@ function getDefaultSidebarSettings(): SidebarSettings {
     responseStyle: 'balanced',
     compactUi: false,
     saveHistory: true,
+    fontSize: 'medium',
+    streamingEnabled: true,
+    autoSave: true,
   };
 }
 
@@ -123,6 +129,18 @@ function getSearchGroup(timestamp: number): string {
   if (diffDays <= 7) return '지난 7일';
   if (diffDays <= 30) return '지난 30일';
   return '더 오래된';
+}
+
+function getRecordImageThumbnail(record: DiscussionRecord): string | undefined {
+  for (let index = record.messages.length - 1; index >= 0; index -= 1) {
+    const message = record.messages[index];
+    const thumbnail = message.generatedImages?.find((image) => typeof image.thumbnailDataUrl === 'string' && image.thumbnailDataUrl.length > 0)?.thumbnailDataUrl;
+    if (thumbnail) {
+      return thumbnail;
+    }
+  }
+
+  return undefined;
 }
 
 function updateDiscussionTitle(id: string, newTitle: string) {
@@ -345,10 +363,11 @@ export function AppSidebar({
     if (isMobile) setIsOpen(false);
   };
 
-  const handleNewDiscussion = () => {
+  const handleGoHome = () => {
     setActiveRecordId(null);
     onNewDiscussion?.();
     refreshHistory();
+    if (isMobile) setIsOpen(false);
   };
 
   const applyThemeSetting = useCallback((theme: SidebarSettings['theme']) => {
@@ -720,12 +739,8 @@ export function AppSidebar({
         <div className={cn("shrink-0 flex items-center py-2.5 transition-all duration-300", isOpen ? 'justify-between px-3' : 'justify-center px-0')}>
           {isOpen ? (
             <>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-md bg-slate-900 dark:bg-white flex items-center justify-center shrink-0">
-                  <span className="text-white dark:text-slate-900 text-sm font-bold">P</span>
-                </div>
-                <span className="text-[14px] font-bold text-slate-900 dark:text-white tracking-tight">Personai</span>
-              </div>
+              <img src="/logos/ancano/lockup_light.png" alt="ANCANO" className="h-8 object-contain dark:hidden" />
+              <img src="/logos/ancano/lockup_dark.png" alt="ANCANO" className="h-8 object-contain hidden dark:block" />
               <button onClick={toggleSidebar} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <PanelLeft className="w-5 h-5" />
               </button>
@@ -740,7 +755,7 @@ export function AppSidebar({
         {/* ── 2. Navigation Menu ── */}
         <nav className={cn("shrink-0 space-y-0.5", isOpen ? 'px-2' : 'px-1')}>
           {[
-            { icon: SquarePen, label: '새 채팅', onClick: handleNewDiscussion, highlight: true },
+            { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
             { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('인기'); setShowBotBrowser(true); } },
             { icon: Search, label: '검색', onClick: () => { setSearchModalOpen(true); setModalSearchQuery(''); }, active: searchModalOpen },
           ].map(item => (
@@ -1455,6 +1470,54 @@ export function AppSidebar({
                           </button>
                         </div>
                       </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">글꼴 크기</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">대화 메시지의 텍스트 크기를 조정합니다.</p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {([
+                            { value: 'small' as const, label: '작게' },
+                            { value: 'medium' as const, label: '보통' },
+                            { value: 'large' as const, label: '크게' },
+                          ]).map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => updateSidebarSettings({ fontSize: option.value })}
+                              className={cn(
+                                'rounded-full px-4 py-2 text-[12px] font-medium transition-colors',
+                                sidebarSettings.fontSize === option.value
+                                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                                  : 'border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
+                              )}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">스트리밍 응답</p>
+                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">AI 응답을 실시간으로 한 글자씩 타이핑하듯 표시합니다.</p>
+                          </div>
+                          <button
+                            onClick={() => updateSidebarSettings({ streamingEnabled: !sidebarSettings.streamingEnabled })}
+                            className={cn(
+                              'relative h-7 w-12 rounded-full transition-colors',
+                              sidebarSettings.streamingEnabled ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all',
+                                sidebarSettings.streamingEnabled ? 'left-6' : 'left-1',
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -1483,11 +1546,67 @@ export function AppSidebar({
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-dashed border-slate-300 p-5 dark:border-slate-700">
-                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">추가 예정</p>
-                        <p className="mt-2 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
-                          대화 내보내기, 프로젝트 백업, 기기 간 동기화 같은 항목은 나중에 확장할 수 있도록 자리만 잡아두었습니다.
-                        </p>
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">자동 저장</p>
+                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">대화 중 자동으로 진행 상황을 저장합니다.</p>
+                          </div>
+                          <button
+                            onClick={() => updateSidebarSettings({ autoSave: !sidebarSettings.autoSave })}
+                            className={cn(
+                              'relative h-7 w-12 rounded-full transition-colors',
+                              sidebarSettings.autoSave ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all',
+                                sidebarSettings.autoSave ? 'left-6' : 'left-1',
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">대화 내보내기</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">저장된 대화 기록을 JSON 파일로 다운로드합니다.</p>
+                        <button
+                          onClick={() => {
+                            try {
+                              const history = localStorage.getItem('ai-debate-history-v3');
+                              if (!history) return;
+                              const blob = new Blob([history], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `personai-history-${new Date().toISOString().slice(0, 10)}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            } catch { /* ignore */ }
+                          }}
+                          className="mt-3 rounded-full px-4 py-2 text-[12px] font-medium border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                        >
+                          JSON으로 내보내기
+                        </button>
+                      </div>
+
+                      <div className="rounded-2xl border border-red-200 p-3.5 dark:border-red-900/50">
+                        <p className="text-[14px] font-semibold text-red-600 dark:text-red-400">캐시 초기화</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">로컬 캐시와 임시 데이터를 삭제합니다. 대화 기록은 유지됩니다.</p>
+                        <button
+                          onClick={() => {
+                            try {
+                              const keys = Object.keys(localStorage).filter(k => !k.includes('history') && !k.includes('settings'));
+                              keys.forEach(k => localStorage.removeItem(k));
+                              window.location.reload();
+                            } catch { /* ignore */ }
+                          }}
+                          className="mt-3 rounded-full px-4 py-2 text-[12px] font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                        >
+                          캐시 초기화
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1563,6 +1682,7 @@ export function AppSidebar({
                       </div>
                       {groups[label].map(record => {
                         const firstExpert = experts.find(e => record.expertIds?.includes(e.id));
+                        const imageThumbnail = getRecordImageThumbnail(record);
                         // Get preview text from first message content (if available)
                         const preview = record.messages?.[1]?.content?.slice(0, 100) || record.messages?.[0]?.content?.slice(0, 100) || '';
                         const msgCount = record.messages?.length || 0;
@@ -1575,8 +1695,16 @@ export function AppSidebar({
                             className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left group"
                           >
                             {/* AI icon */}
-                            <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-[12px]">
-                              {firstExpert?.icon || <Bot className="w-3.5 h-3.5 text-slate-400" />}
+                            <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-[12px]">
+                              {imageThumbnail ? (
+                                <img
+                                  src={imageThumbnail}
+                                  alt={record.question}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                firstExpert?.icon || <Bot className="w-3.5 h-3.5 text-slate-400" />
+                              )}
                             </div>
 
                             {/* Content */}

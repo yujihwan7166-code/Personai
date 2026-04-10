@@ -1,22 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { buildGeminiUrl, extractGeminiText, extractJsonObject, parseGeminiStreamBuffer } from '../../api/_lib/gemini';
+import {
+  DEFAULT_OPENROUTER_IMAGE_MODEL,
+  DEFAULT_OPENROUTER_TEXT_MODEL,
+  extractJsonObject,
+  extractOpenRouterImages,
+  extractOpenRouterText,
+  parseOpenRouterStreamBuffer,
+} from '../../api/_lib/openrouter';
 
-describe('gemini helpers', () => {
-  it('builds the correct Gemini URLs for regular and streaming requests', () => {
-    expect(buildGeminiUrl('gemini-2.5-flash-lite', 'secret')).toBe(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=secret',
-    );
-    expect(buildGeminiUrl('gemini-2.5-flash-lite', 'secret', true)).toBe(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=secret',
-    );
+describe('openrouter helpers', () => {
+  it('exposes the expected default model ids', () => {
+    expect(DEFAULT_OPENROUTER_TEXT_MODEL).toBe('google/gemini-2.5-flash-lite');
+    expect(DEFAULT_OPENROUTER_IMAGE_MODEL).toBe('google/gemini-2.5-flash-image');
   });
 
-  it('extracts combined text from Gemini response parts', () => {
-    expect(extractGeminiText({
-      candidates: [
+  it('extracts combined text from OpenRouter response content', () => {
+    expect(extractOpenRouterText({
+      choices: [
         {
-          content: {
-            parts: [
+          message: {
+            content: [
               { text: 'hello ' },
               { text: 'world' },
             ],
@@ -25,7 +28,25 @@ describe('gemini helpers', () => {
       ],
     })).toBe('hello world');
 
-    expect(extractGeminiText({})).toBe('');
+    expect(extractOpenRouterText({})).toBe('');
+  });
+
+  it('extracts generated images from OpenRouter message payloads', () => {
+    expect(extractOpenRouterImages({
+      choices: [
+        {
+          message: {
+            images: [
+              { image_url: { url: 'data:image/png;base64,abc' } },
+              { imageUrl: { url: 'data:image/jpeg;base64,def' } },
+            ],
+          },
+        },
+      ],
+    })).toEqual([
+      { mimeType: 'image/png', data: 'abc' },
+      { mimeType: 'image/jpeg', data: 'def' },
+    ]);
   });
 
   it('extracts JSON payloads from fenced and unfenced model output', () => {
@@ -35,9 +56,9 @@ describe('gemini helpers', () => {
   });
 
   it('parses streamed SSE lines while preserving incomplete remainders', () => {
-    const result = parseGeminiStreamBuffer([
-      'data: {"candidates":[{"content":{"parts":[{"text":"alpha"}]}}]}',
-      'data: {"candidates":[{"content":{"parts":[{"text":"beta"}]}}]}',
+    const result = parseOpenRouterStreamBuffer([
+      'data: {"choices":[{"delta":{"content":"alpha"}}]}',
+      'data: {"choices":[{"delta":{"content":"beta"}}]}',
       'data: [DONE]',
       '',
     ].join('\n'));
@@ -48,9 +69,9 @@ describe('gemini helpers', () => {
       remainder: '',
     });
 
-    const partial = parseGeminiStreamBuffer('data: {"candidates":[{"content":{"parts":[{"text":"cut"}]}}]');
+    const partial = parseOpenRouterStreamBuffer('data: {"choices":[{"delta":{"content":"cut"}}]');
     expect(partial.done).toBe(false);
     expect(partial.texts).toEqual([]);
-    expect(partial.remainder).toContain('data: {"candidates"');
+    expect(partial.remainder).toContain('data: {"choices"');
   });
 });

@@ -34,6 +34,7 @@ function normalizeMessage(message: unknown): DiscussionMessage | null {
     content: message.content,
     isStreaming: typeof message.isStreaming === 'boolean' ? message.isStreaming : undefined,
     isSummary: typeof message.isSummary === 'boolean' ? message.isSummary : undefined,
+    isDirectFollowUp: typeof message.isDirectFollowUp === 'boolean' ? message.isDirectFollowUp : undefined,
     round: typeof message.round === 'string' ? message.round : undefined,
     likes: typeof message.likes === 'number' ? message.likes : undefined,
     dislikes: typeof message.dislikes === 'number' ? message.dislikes : undefined,
@@ -45,8 +46,40 @@ function normalizeMessage(message: unknown): DiscussionMessage | null {
           typeof file.mimeType === 'string' &&
           (file.preview === undefined || typeof file.preview === 'string'))
       : undefined,
+    messageType: message.messageType === 'image' ? 'image' : message.messageType === 'text' ? 'text' : undefined,
+    generatedImages: Array.isArray(message.generatedImages)
+      ? message.generatedImages
+          .filter((image): image is Record<string, unknown> => isRecord(image) && typeof image.mimeType === 'string')
+          .map((image) => ({
+            mimeType: image.mimeType as string,
+            thumbnailDataUrl: typeof image.thumbnailDataUrl === 'string' ? image.thumbnailDataUrl : undefined,
+            prompt: typeof image.prompt === 'string' ? image.prompt : undefined,
+            revisedPrompt: typeof image.revisedPrompt === 'string' ? image.revisedPrompt : undefined,
+            sourceModel: typeof image.sourceModel === 'string' ? image.sourceModel : undefined,
+            aspectRatio: typeof image.aspectRatio === 'string' ? image.aspectRatio : undefined,
+          }))
+      : undefined,
+    imageGenerationMode:
+      message.imageGenerationMode === 'generate' || message.imageGenerationMode === 'edit'
+        ? message.imageGenerationMode
+        : undefined,
     simRoleName: typeof message.simRoleName === 'string' ? message.simRoleName : undefined,
     simRoleIcon: typeof message.simRoleIcon === 'string' ? message.simRoleIcon : undefined,
+    citations: Array.isArray(message.citations) ? message.citations as ApiSourceCitation[] : undefined,
+  };
+}
+
+function sanitizeMessageForHistory(message: DiscussionMessage): DiscussionMessage {
+  return {
+    ...message,
+    generatedImages: message.generatedImages?.map((image) => ({
+      mimeType: image.mimeType,
+      thumbnailDataUrl: image.thumbnailDataUrl ?? image.dataUrl,
+      prompt: image.prompt,
+      revisedPrompt: image.revisedPrompt,
+      sourceModel: image.sourceModel,
+      aspectRatio: image.aspectRatio,
+    })),
   };
 }
 
@@ -124,6 +157,7 @@ export function saveDiscussionToHistory(record: Omit<DiscussionRecord, 'id' | 't
     const existing = getDiscussionHistory();
     const newRecord: DiscussionRecord = {
       ...record,
+      messages: record.messages.map(sanitizeMessageForHistory),
       id: `hist-${Date.now()}`,
       timestamp: Date.now(),
     };
@@ -148,10 +182,10 @@ export function upsertDiscussionHistory(id: string, record: Omit<DiscussionRecor
     const existing = getDiscussionHistory();
     const idx = existing.findIndex((historyRecord) => historyRecord.id === id);
     if (idx !== -1) {
-      existing[idx] = { ...existing[idx], ...record, messages: record.messages };
-      persistHistory(existing);
+      existing[idx] = { ...existing[idx], ...record, messages: record.messages.map(sanitizeMessageForHistory) };
+      persistHistoryWithTrimFallback(existing);
     } else {
-      const newRecord: DiscussionRecord = { ...record, id, timestamp: Date.now() };
+      const newRecord: DiscussionRecord = { ...record, messages: record.messages.map(sanitizeMessageForHistory), id, timestamp: Date.now() };
       const updated = [newRecord, ...existing].slice(0, MAX_HISTORY);
       persistHistoryWithTrimFallback(updated);
     }

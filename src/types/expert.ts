@@ -1,9 +1,10 @@
-export const EXPERT_COLORS = ['blue', 'emerald', 'red', 'amber', 'purple', 'orange', 'teal', 'pink'] as const;
+export const EXPERT_COLORS = ['blue', 'emerald', 'red', 'amber', 'purple', 'orange', 'teal', 'pink', 'slate', 'green', 'cyan', 'sky'] as const;
 export type ExpertColor = typeof EXPERT_COLORS[number];
 
 export const EXPERT_COLOR_LABELS: Record<ExpertColor, string> = {
     blue: '블루', emerald: '그린', red: '레드', amber: '골드',
     purple: '퍼플', orange: '오렌지', teal: '틸', pink: '핑크',
+    slate: '슬레이트', green: '녹색', cyan: '시안', sky: '스카이',
 };
 
 export type ExpertCategory = 'ai' | 'specialist' | 'occupation' | 'celebrity' | 'fictional' | 'mythology' | 'region' | 'ideology' | 'perspective' | 'religion' | 'lifestyle';
@@ -59,6 +60,17 @@ export const EXPERT_SUB_CATEGORIES: Partial<Record<ExpertCategory, { id: string;
     ],
 };
 
+export interface AIAbilityStats {
+    coding: number;       // 코딩 능력 (0-100)
+    creativity: number;   // 창의성 (0-100)
+    reasoning: number;    // 추론력 (0-100)
+    math: number;         // 수학 능력 (0-100)
+    multilingual: number; // 다국어 (0-100)
+    speed: number;        // 응답 속도 (0-100)
+    costEfficiency: number; // 비용 효율성 (0-100)
+    contextWindow: number;  // 토큰 용량 (0-100)
+}
+
 export interface Expert {
     id: string;
     name: string;
@@ -70,9 +82,11 @@ export interface Expert {
     category: ExpertCategory;
     subCategory?: string;
     systemPrompt?: string;
+    openrouterModel?: string;
     quote?: string;
     sampleQuestions?: string[];
     greeting?: string;
+    abilities?: AIAbilityStats;
 }
 
 export type DiscussionRound = 'initial' | 'rebuttal' | 'final';
@@ -458,6 +472,16 @@ export interface DiscussionIssue {
     description: string;
 }
 
+export interface GeneratedImageAsset {
+    mimeType: string;
+    dataUrl?: string;
+    thumbnailDataUrl?: string;
+    prompt?: string;
+    revisedPrompt?: string;
+    sourceModel?: string;
+    aspectRatio?: string;
+}
+
 export interface DiscussionMessage {
     id: string;
     expertId: string;
@@ -470,6 +494,9 @@ export interface DiscussionMessage {
     dislikes?: number;
     timestamp?: number;
     attachedFiles?: { name: string; mimeType: string; preview?: string }[];
+    messageType?: 'text' | 'image';
+    generatedImages?: GeneratedImageAsset[];
+    imageGenerationMode?: 'generate' | 'edit';
     simRoleName?: string;  // 시뮬레이션 역할명 (예: "VC 파트너")
     simRoleIcon?: string;  // 시뮬레이션 역할 아이콘
     citations?: ApiSourceCitation[];  // 프리미엄 자문 인용 출처
@@ -488,6 +515,13 @@ export interface ApiSourceCitation {
     source: string;
     url?: string;
     rawData?: string;
+    sourceType?: string;
+    lawName?: string;
+    articleNumber?: string;
+    caseNumber?: string;
+    decisionDate?: string;
+    ministry?: string;
+    effectiveDate?: string;
     fetchedAt: string;
 }
 
@@ -1055,52 +1089,455 @@ export const GAME_CARDS: GameCard[] = [
 ];
 
 // ══════════════════════════════════════════
+// ── AI Ability Stats Map ──
+// ══════════════════════════════════════════
+const AI_ABILITIES: Record<string, AIAbilityStats> = {
+  'gpt':              { coding: 95, creativity: 90, reasoning: 96, math: 94, multilingual: 88, speed: 70, costEfficiency: 45, contextWindow: 85 },
+  'gpt-mini':         { coding: 82, creativity: 78, reasoning: 85, math: 80, multilingual: 82, speed: 92, costEfficiency: 85, contextWindow: 75 },
+  'gpt-nano':         { coding: 65, creativity: 60, reasoning: 68, math: 62, multilingual: 70, speed: 98, costEfficiency: 95, contextWindow: 55 },
+  'claude':           { coding: 97, creativity: 92, reasoning: 97, math: 90, multilingual: 90, speed: 60, costEfficiency: 35, contextWindow: 90 },
+  'claude-sonnet':    { coding: 92, creativity: 88, reasoning: 90, math: 85, multilingual: 87, speed: 82, costEfficiency: 70, contextWindow: 90 },
+  'claude-sonnet-4.6':{ coding: 94, creativity: 90, reasoning: 92, math: 88, multilingual: 89, speed: 80, costEfficiency: 65, contextWindow: 90 },
+  'claude-haiku':     { coding: 78, creativity: 72, reasoning: 75, math: 70, multilingual: 80, speed: 95, costEfficiency: 92, contextWindow: 90 },
+  'gemini':           { coding: 88, creativity: 82, reasoning: 88, math: 86, multilingual: 85, speed: 90, costEfficiency: 88, contextWindow: 95 },
+  'gemini-3-flash':   { coding: 90, creativity: 85, reasoning: 90, math: 88, multilingual: 87, speed: 92, costEfficiency: 85, contextWindow: 95 },
+  'gemini-3.1':       { coding: 72, creativity: 68, reasoning: 74, math: 70, multilingual: 78, speed: 96, costEfficiency: 95, contextWindow: 80 },
+  'gemini-pro':       { coding: 92, creativity: 88, reasoning: 94, math: 92, multilingual: 90, speed: 65, costEfficiency: 50, contextWindow: 95 },
+  'perplexity':       { coding: 70, creativity: 72, reasoning: 78, math: 68, multilingual: 80, speed: 85, costEfficiency: 65, contextWindow: 75 },
+  'perplexity-pro':   { coding: 75, creativity: 76, reasoning: 82, math: 72, multilingual: 82, speed: 78, costEfficiency: 55, contextWindow: 80 },
+  'grok':             { coding: 85, creativity: 80, reasoning: 86, math: 82, multilingual: 75, speed: 88, costEfficiency: 72, contextWindow: 80 },
+  'grok-4.2':         { coding: 88, creativity: 84, reasoning: 90, math: 86, multilingual: 78, speed: 82, costEfficiency: 60, contextWindow: 85 },
+  'deepseek':         { coding: 90, creativity: 78, reasoning: 88, math: 92, multilingual: 82, speed: 80, costEfficiency: 92, contextWindow: 80 },
+  'deepseek-r1':      { coding: 88, creativity: 72, reasoning: 94, math: 96, multilingual: 78, speed: 65, costEfficiency: 90, contextWindow: 80 },
+  'qwen':             { coding: 82, creativity: 75, reasoning: 80, math: 85, multilingual: 95, speed: 88, costEfficiency: 90, contextWindow: 78 },
+  'qwen-plus':        { coding: 86, creativity: 80, reasoning: 86, math: 88, multilingual: 96, speed: 82, costEfficiency: 82, contextWindow: 82 },
+  'qwen-thinking':    { coding: 88, creativity: 76, reasoning: 92, math: 94, multilingual: 92, speed: 62, costEfficiency: 70, contextWindow: 80 },
+  'llama-maverick':   { coding: 88, creativity: 82, reasoning: 88, math: 86, multilingual: 84, speed: 75, costEfficiency: 88, contextWindow: 90 },
+  'llama-scout':      { coding: 78, creativity: 72, reasoning: 76, math: 74, multilingual: 78, speed: 90, costEfficiency: 92, contextWindow: 82 },
+  'mistral-large':    { coding: 85, creativity: 82, reasoning: 86, math: 82, multilingual: 92, speed: 75, costEfficiency: 68, contextWindow: 75 },
+  'mistral-medium':   { coding: 80, creativity: 78, reasoning: 82, math: 78, multilingual: 88, speed: 82, costEfficiency: 75, contextWindow: 72 },
+  'mistral-small':    { coding: 72, creativity: 70, reasoning: 74, math: 70, multilingual: 82, speed: 92, costEfficiency: 90, contextWindow: 65 },
+  'codestral':        { coding: 92, creativity: 65, reasoning: 80, math: 78, multilingual: 70, speed: 85, costEfficiency: 82, contextWindow: 70 },
+  'mistral-creative': { coding: 55, creativity: 94, reasoning: 68, math: 50, multilingual: 80, speed: 88, costEfficiency: 88, contextWindow: 60 },
+  'devstral':         { coding: 90, creativity: 68, reasoning: 82, math: 78, multilingual: 75, speed: 80, costEfficiency: 80, contextWindow: 72 },
+  'gemma':            { coding: 80, creativity: 75, reasoning: 80, math: 78, multilingual: 82, speed: 82, costEfficiency: 90, contextWindow: 75 },
+  'phi':              { coding: 78, creativity: 65, reasoning: 82, math: 85, multilingual: 70, speed: 88, costEfficiency: 95, contextWindow: 55 },
+  'command-r-plus':   { coding: 72, creativity: 70, reasoning: 78, math: 68, multilingual: 82, speed: 78, costEfficiency: 72, contextWindow: 82 },
+  'command-a':        { coding: 78, creativity: 74, reasoning: 82, math: 74, multilingual: 84, speed: 80, costEfficiency: 70, contextWindow: 85 },
+  'nova-premier':     { coding: 84, creativity: 80, reasoning: 86, math: 82, multilingual: 82, speed: 72, costEfficiency: 55, contextWindow: 88 },
+  'nova-2-lite':      { coding: 72, creativity: 68, reasoning: 74, math: 70, multilingual: 76, speed: 90, costEfficiency: 88, contextWindow: 95 },
+  'dolphin':          { coding: 75, creativity: 82, reasoning: 76, math: 70, multilingual: 74, speed: 82, costEfficiency: 85, contextWindow: 70 },
+  'glm':              { coding: 84, creativity: 78, reasoning: 86, math: 84, multilingual: 90, speed: 78, costEfficiency: 80, contextWindow: 82 },
+  'glm-5v':           { coding: 76, creativity: 74, reasoning: 80, math: 76, multilingual: 85, speed: 88, costEfficiency: 85, contextWindow: 75 },
+  'mimo':             { coding: 82, creativity: 76, reasoning: 84, math: 82, multilingual: 80, speed: 78, costEfficiency: 75, contextWindow: 78 },
+  'mimo-flash':       { coding: 72, creativity: 68, reasoning: 74, math: 72, multilingual: 74, speed: 94, costEfficiency: 90, contextWindow: 70 },
+  'nemotron':         { coding: 88, creativity: 78, reasoning: 88, math: 86, multilingual: 80, speed: 70, costEfficiency: 72, contextWindow: 82 },
+  'seed':             { coding: 80, creativity: 82, reasoning: 80, math: 78, multilingual: 84, speed: 85, costEfficiency: 82, contextWindow: 78 },
+  'seed-mini':        { coding: 70, creativity: 72, reasoning: 72, math: 68, multilingual: 78, speed: 92, costEfficiency: 92, contextWindow: 68 },
+  'minimax':          { coding: 80, creativity: 78, reasoning: 82, math: 80, multilingual: 84, speed: 80, costEfficiency: 78, contextWindow: 90 },
+  'kimi':             { coding: 80, creativity: 76, reasoning: 82, math: 78, multilingual: 82, speed: 78, costEfficiency: 75, contextWindow: 96 },
+  'kimi-thinking':    { coding: 82, creativity: 74, reasoning: 90, math: 88, multilingual: 80, speed: 65, costEfficiency: 70, contextWindow: 92 },
+  'solar':            { coding: 76, creativity: 74, reasoning: 78, math: 74, multilingual: 88, speed: 80, costEfficiency: 82, contextWindow: 72 },
+  'mercury':          { coding: 80, creativity: 72, reasoning: 82, math: 80, multilingual: 75, speed: 96, costEfficiency: 78, contextWindow: 72 },
+  'ernie':            { coding: 82, creativity: 78, reasoning: 84, math: 82, multilingual: 88, speed: 72, costEfficiency: 70, contextWindow: 85 },
+  'hunyuan':          { coding: 78, creativity: 76, reasoning: 80, math: 78, multilingual: 86, speed: 76, costEfficiency: 75, contextWindow: 80 },
+  'jamba':            { coding: 78, creativity: 74, reasoning: 80, math: 76, multilingual: 78, speed: 75, costEfficiency: 72, contextWindow: 92 },
+  'granite':          { coding: 80, creativity: 70, reasoning: 82, math: 78, multilingual: 80, speed: 76, costEfficiency: 78, contextWindow: 78 },
+  'step':             { coding: 78, creativity: 74, reasoning: 80, math: 78, multilingual: 80, speed: 92, costEfficiency: 85, contextWindow: 78 },
+  'palmyra':          { coding: 65, creativity: 92, reasoning: 76, math: 62, multilingual: 85, speed: 74, costEfficiency: 68, contextWindow: 95 },
+  'hermes':           { coding: 86, creativity: 84, reasoning: 86, math: 82, multilingual: 82, speed: 68, costEfficiency: 82, contextWindow: 85 },
+  'longcat':          { coding: 74, creativity: 72, reasoning: 76, math: 72, multilingual: 80, speed: 88, costEfficiency: 85, contextWindow: 96 },
+};
+
+// ══════════════════════════════════════════
 // ── Default Experts (전체 목록) ──
 // ══════════════════════════════════════════
 
-export const DEFAULT_EXPERTS: Expert[] = [
+export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     // AI Router
+    {
+        id: 'auto-ai', name: 'Auto AI', nameKo: 'Auto AI', icon: '🌐', avatarUrl: '/logos/ancano/icon_dark_128.png', color: 'purple', category: 'ai', openrouterModel: 'openrouter/auto', description: '최적의 AI를 자동 선택',
+        quote: '질문에 맞는 최적의 AI가 답한다',
+        sampleQuestions: ['아무 질문이나 해봐', '최적의 AI로 답해줘', '자동으로 골라줘'],
+        greeting: '질문에 가장 적합한 AI가 자동으로 답변합니다!',
+    },
+    {
+        id: 'ancano', name: 'ANCANO', nameKo: 'ANCANO', icon: '🔮', avatarUrl: '/logos/ancano/icon_dark_128.png', color: 'purple', category: 'ai', openrouterModel: 'openrouter/auto', description: 'Ancano 종합 AI 어시스턴트',
+        quote: '모든 것을 아우르는 AI',
+        sampleQuestions: ['무엇이든 물어보세요', '분석 도와줘', '글 써줘'],
+        greeting: 'Ancano입니다. 무엇이든 도와드릴게요!',
+    },
+    {
+        id: 'ancano-pro', name: 'ANCANO Pro', nameKo: 'ANCANO Pro', icon: '💎', avatarUrl: '/logos/ancano/icon_dark_128.png', color: 'purple', category: 'ai', openrouterModel: 'openrouter/auto', description: 'Ancano 프리미엄 AI 어시스턴트',
+        quote: '최고 수준의 AI 경험',
+        sampleQuestions: ['심층 분석 해줘', '복잡한 문제 풀어줘', '전문가 수준으로 답해줘'],
+        greeting: 'Ancano Pro입니다. 최고 수준의 답변을 드릴게요!',
+    },
+    {
+        id: 'auto-gpt', name: 'GPT', nameKo: 'GPT', icon: '🤖', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', openrouterModel: 'openai/gpt-4.1', description: 'OpenAI 대표 AI 모델',
+        quote: 'AI의 선구자, OpenAI',
+        sampleQuestions: ['무엇이든 물어보세요', '분석 도와줘', '글 써줘'],
+        greeting: 'OpenAI GPT입니다. 무엇이든 물어보세요!',
+    },
+    {
+        id: 'auto-claude', name: 'Claude', nameKo: 'Claude', icon: '🧡', avatarUrl: '/logos/claude.png', color: 'orange', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.6', description: 'Anthropic 대표 AI 모델',
+        quote: '안전하고 유능한 AI',
+        sampleQuestions: ['코드 리뷰해줘', '분석 부탁해', '글 다듬어줘'],
+        greeting: 'Anthropic Claude입니다!',
+    },
+    {
+        id: 'auto-gemini', name: 'Gemini', nameKo: 'Gemini', icon: '💎', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemini-2.5-flash', description: 'Google 대표 AI 모델',
+        quote: '구글이 만든 차세대 AI',
+        sampleQuestions: ['검색 도와줘', '분석해줘', '요약해줘'],
+        greeting: 'Google Gemini입니다!',
+    },
+    {
+        id: 'auto-grok', name: 'Grok', nameKo: 'Grok', icon: '⚡', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', openrouterModel: 'x-ai/grok-4.1-fast', description: 'xAI 대표 AI 모델',
+        quote: '거침없는 AI, Grok',
+        sampleQuestions: ['솔직하게 답해줘', '트렌드 알려줘', '분석해줘'],
+        greeting: 'xAI Grok입니다!',
+    },
+    {
+        id: 'auto-perplexity', name: 'Perplexity', nameKo: 'Perplexity', icon: '🔍', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', openrouterModel: 'perplexity/sonar', description: 'Perplexity 대표 검색 AI',
+        quote: '출처와 함께 답한다',
+        sampleQuestions: ['최신 뉴스 알려줘', '검색해줘', '출처 포함 답변해줘'],
+        greeting: 'Perplexity입니다!',
+    },
+    {
+        id: 'auto-qwen', name: 'Qwen', nameKo: 'Qwen', icon: '🌏', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.5-flash-02-23', description: 'Alibaba 대표 AI 모델',
+        quote: '알리바바가 만든 AI',
+        sampleQuestions: ['다국어 번역해줘', '분석해줘', '코딩 도와줘'],
+        greeting: 'Alibaba Qwen입니다!',
+    },
 
     // AI 챗봇
     {
-        id: 'gpt', name: 'GPT', nameKo: 'GPT', icon: '🤖', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', description: 'AI 분석 전문가',
-        quote: '구조화된 답변이 진짜 답',
-        sampleQuestions: ['커스텀 GPT 만드는 팁은?', 'GPT 플러그인 추천해줘', 'GPTs 스토어 활용법은?'],
-        greeting: '안녕하세요! 분석, 글쓰기, 코딩 등 무엇이든 도와드릴게요.',
+        id: 'gpt', name: 'GPT-5.4', nameKo: 'GPT-5.4', icon: '🤖', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', openrouterModel: 'openai/gpt-4.1', description: 'AI 최상위 추론 모델',
+        quote: '깊이 있는 사고가 답이다',
+        sampleQuestions: ['복잡한 논리 문제 풀어줘', '다단계 분석 해줘', '코드 아키텍처 설계해줘'],
+        greeting: '안녕하세요! 가장 깊이 있는 분석과 추론을 제공합니다.',
     },
     {
-        id: 'claude', name: 'Claude', nameKo: 'Claude', icon: '🧡', avatarUrl: '/logos/claude.svg', color: 'orange', category: 'ai', description: 'AI 안전·윤리 전문가',
-        quote: '정직이 나의 전략이다',
-        sampleQuestions: ['아티팩트 활용 잘하는 법?', 'Claude 프로젝트 활용법?', 'Claude가 거절하는 기준?'],
-        greeting: '안녕하세요. 정확하고 솔직한 답변을 드리겠습니다.',
+        id: 'gpt-mini', name: 'GPT-5.4 Mini', nameKo: 'GPT-5.4 Mini', icon: '⚡', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', openrouterModel: 'openai/gpt-4.1-mini', description: 'AI 고속 범용 모델',
+        quote: '빠르고 정확하게',
+        sampleQuestions: ['요약 빠르게 해줘', '간단한 질문 답해줘', '번역 부탁해'],
+        greeting: '빠르고 정확한 답변을 드릴게요!',
     },
     {
-        id: 'gemini', name: 'Gemini', nameKo: 'Gemini', icon: '💎', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', description: 'AI 탐색 전문가',
-        quote: '검색과 AI의 경계를 지운다',
-        sampleQuestions: ['구글 워크스페이스 연동법?', '제미나이 이미지 생성 돼?', '유튜브 영상 요약 가능해?'],
-        greeting: '안녕하세요! 검색부터 창작까지, 무엇이 궁금하세요?',
+        id: 'gpt-nano', name: 'GPT-5.4 Nano', nameKo: 'GPT-5.4 Nano', icon: '💨', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', openrouterModel: 'openai/gpt-4.1-nano', description: 'AI 초경량 즉답 모델',
+        quote: '가볍지만 똑똑하게',
+        sampleQuestions: ['한 줄로 답해줘', '단어 뜻 알려줘', '맞춤법 확인해줘'],
+        greeting: '초고속으로 답변드려요!',
     },
     {
-        id: 'perplexity', name: 'Perplexity', nameKo: 'Perplexity', icon: '🔍', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', description: 'AI 검색·리서치 전문가',
+        id: 'claude', name: 'Claude Opus 4.6', nameKo: 'Claude Opus 4.6', icon: '🧡', avatarUrl: '/logos/claude.png', color: 'orange', category: 'ai', openrouterModel: 'anthropic/claude-opus-4.6', description: 'AI 최고 지능 모델',
+        quote: '깊이와 정확성의 끝판왕',
+        sampleQuestions: ['복잡한 코드 리뷰 해줘', '논문 수준 분석 부탁해', '다국어 번역 비교해줘'],
+        greeting: '안녕하세요. 가장 깊이 있는 분석을 제공합니다.',
+    },
+    {
+        id: 'claude-sonnet', name: 'Claude Sonnet 4.5', nameKo: 'Claude Sonnet 4.5', icon: '🎵', avatarUrl: '/logos/claude.png', color: 'orange', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.5', description: 'AI 균형 잡힌 만능 모델',
+        quote: '속도와 품질의 황금 비율',
+        sampleQuestions: ['글쓰기 도와줘', '코딩 질문 있어', '아이디어 정리해줘'],
+        greeting: '빠르면서도 정확한 답변을 드릴게요.',
+    },
+    {
+        id: 'claude-sonnet-4.6', name: 'Claude Sonnet 4.6', nameKo: 'Claude Sonnet 4.6', icon: '🎶', avatarUrl: '/logos/claude.png', color: 'orange', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.6', description: 'AI 최신 균형 모델',
+        quote: '더 빠르고 더 정확하게',
+        sampleQuestions: ['복잡한 분석 해줘', '글 다듬어줘', '코드 최적화해줘'],
+        greeting: '최신 Sonnet입니다. 무엇이든 물어보세요.',
+    },
+    {
+        id: 'claude-haiku', name: 'Claude Haiku 4.5', nameKo: 'Claude Haiku 4.5', icon: '🍃', avatarUrl: '/logos/claude.png', color: 'orange', category: 'ai', openrouterModel: 'anthropic/claude-haiku-4.5', description: 'AI 초고속 경량 모델',
+        quote: '순간의 답, 핵심만',
+        sampleQuestions: ['한 줄 요약해줘', '빠르게 답변해줘', '간단한 질문이야'],
+        greeting: '빠르게 핵심만 답해드려요!',
+    },
+    {
+        id: 'gemini', name: 'Gemini 2.5 Flash', nameKo: 'Gemini 2.5 Flash', icon: '💎', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemini-2.5-flash', description: 'AI 고속 만능 모델',
+        quote: '빠르고 똑똑하게',
+        sampleQuestions: ['복잡한 질문 빠르게 답해줘', '코드 리뷰 해줘', '문서 요약해줘'],
+        greeting: '안녕하세요! 빠르고 정확한 답변을 드릴게요.',
+    },
+    {
+        id: 'gemini-3-flash', name: 'Gemini 3 Flash', nameKo: 'Gemini 3 Flash', icon: '⚡', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemini-3-flash-preview', description: 'AI 차세대 고속 모델',
+        quote: '속도와 지능의 다음 세대',
+        sampleQuestions: ['최신 Gemini 3 성능 어때?', '멀티모달 분석 해줘', '긴 문서 처리 가능해?'],
+        greeting: '차세대 Gemini입니다. 무엇이든 물어보세요!',
+    },
+    {
+        id: 'gemini-3.1', name: 'Gemini 3.1 Lite', nameKo: 'Gemini 3.1 Lite', icon: '🍃', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemini-3.1-flash-lite-preview', description: 'AI 초경량 최신 모델',
+        quote: '가볍지만 최신 기술',
+        sampleQuestions: ['간단한 질문 빠르게', '한 줄 요약해줘', '번역 부탁해'],
+        greeting: '가볍고 빠르게 답해드려요!',
+    },
+    {
+        id: 'gemini-pro', name: 'Gemini 3.1 Pro', nameKo: 'Gemini 3.1 Pro', icon: '👑', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemini-3.1-pro-preview', description: 'AI 최상위 프로 모델',
+        quote: '프로급 분석과 추론',
+        sampleQuestions: ['심층 분석 부탁해', '논문 수준으로 설명해줘', '복잡한 문제 풀어줘'],
+        greeting: '최고 수준의 분석을 제공합니다.',
+    },
+    {
+        id: 'perplexity', name: 'Perplexity Sonar', nameKo: 'Perplexity Sonar', icon: '🔍', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', openrouterModel: 'perplexity/sonar', description: 'AI 검색·리서치 모델',
         quote: '출처 없으면 답이 아니다',
-        sampleQuestions: ['출처 달린 답변 원리는?', '학술 자료 검색 잘 돼?', '퍼플렉시티 Pro 가치 있어?'],
+        sampleQuestions: ['최신 뉴스 요약해줘', '출처 포함해서 답변해줘', '학술 자료 찾아줘'],
         greeting: '궁금한 게 있으면 출처와 함께 찾아드릴게요.',
     },
     {
-        id: 'grok', name: 'Grok', nameKo: 'Grok', icon: '⚡', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', description: 'AI 위트 전문가',
-        quote: '유머 없는 AI는 심심하다',
+        id: 'perplexity-pro', name: 'Perplexity Sonar Pro', nameKo: 'Perplexity Sonar Pro', icon: '🔎', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', openrouterModel: 'perplexity/sonar-pro', description: 'AI 심층 리서치 모델',
+        quote: '깊이 있는 검색, 정확한 출처',
+        sampleQuestions: ['심층 리서치 해줘', '논문 기반으로 분석해줘', '팩트체크 부탁해'],
+        greeting: '깊이 있는 리서치를 제공합니다.',
+    },
+    {
+        id: 'grok', name: 'Grok 4.1 Fast', nameKo: 'Grok 4.1 Fast', icon: '⚡', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', openrouterModel: 'x-ai/grok-4.1-fast', description: 'AI 고속 위트 모델',
+        quote: '빠르고 거침없이',
         sampleQuestions: ['그록은 왜 거침없이 말해?', 'X 실시간 데이터 분석 돼?', '일론 머스크 어떻게 봐?'],
         greeting: '뭐든 솔직하게 답해줄게. 뭐가 궁금해?',
     },
     {
-        id: 'deepseek', name: 'DeepSeek', nameKo: 'DeepSeek', icon: '🌊', avatarUrl: '/logos/deepseek.svg', color: 'purple', category: 'ai', description: 'AI 심층분석 전문가',
+        id: 'grok-4.2', name: 'Grok 4.2', nameKo: 'Grok 4.2', icon: '🔥', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', openrouterModel: 'x-ai/grok-4.20', description: 'AI 최신 추론 모델',
+        quote: '유머 없는 AI는 심심하다',
+        sampleQuestions: ['최신 그록 성능 어때?', '심층 분석 해줘', '솔직한 의견 줘'],
+        greeting: '최신 Grok입니다. 뭐든 물어보세요!',
+    },
+    {
+        id: 'deepseek', name: 'DeepSeek V3', nameKo: 'DeepSeek V3', icon: '🌊', avatarUrl: '/logos/deepseek.png', color: 'purple', category: 'ai', openrouterModel: 'deepseek/deepseek-chat-v3-0324', description: 'AI 심층분석 전문가',
         quote: '추론은 깊이가 생명이다',
         sampleQuestions: ['R1 추론 모델 뭐가 달라?', '딥시크 코딩 실력 어때?', '딥시크가 수학 잘하는 이유?'],
     },
     {
-        id: 'qwen', name: 'Qwen', nameKo: 'Qwen', icon: '🌏', avatarUrl: '/logos/qwen.svg', color: 'amber', category: 'ai', description: 'AI 다국어·추론 전문가',
+        id: 'deepseek-r1', name: 'DeepSeek R1', nameKo: 'DeepSeek R1', icon: '🧠', avatarUrl: '/logos/deepseek.png', color: 'purple', category: 'ai', openrouterModel: 'deepseek/deepseek-r1', description: 'DeepSeek 추론 특화 모델',
+        quote: '생각의 과정을 보여준다',
+        sampleQuestions: ['단계별로 추론해줘', '수학 문제 풀어줘', '논리적 허점 찾아줘'],
+        greeting: 'DeepSeek R1입니다. 깊이 있는 추론을 제공합니다!',
+    },
+    {
+        id: 'qwen', name: 'Qwen 3.5 Flash', nameKo: 'Qwen 3.5 Flash', icon: '🌏', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.5-flash-02-23', description: 'AI 고속 다국어 모델',
         quote: '모든 언어가 나의 영역이다',
         sampleQuestions: ['큐웬 중국어 번역 정확해?', '아시아 언어 처리 잘 돼?', '큐웬 오픈소스 장점이 뭐야?'],
+    },
+    {
+        id: 'qwen-plus', name: 'Qwen 3.6 Plus', nameKo: 'Qwen 3.6 Plus', icon: '🌐', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.6-plus', description: 'AI 상위 다국어 추론 모델',
+        quote: '더 깊은 다국어 분석',
+        sampleQuestions: ['심층 번역 비교해줘', '다국어 문서 분석해줘', '복잡한 추론 부탁해'],
+        greeting: '더 깊이 있는 분석을 제공합니다.',
+    },
+    {
+        id: 'qwen-thinking', name: 'Qwen3 Max Thinking', nameKo: 'Qwen3 Max Thinking', icon: '🧩', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3-max-thinking', description: 'Qwen 추론 특화 모델',
+        quote: '생각하는 과정이 답이다',
+        sampleQuestions: ['단계별 추론 해줘', '복잡한 논리 문제 풀어줘', '추론 과정 보여줘'],
+        greeting: 'Qwen3 Max Thinking입니다!',
+    },
+    {
+        id: 'llama-maverick', name: 'Llama 4 Maverick', nameKo: 'Llama 4 Maverick', icon: '🦙', avatarUrl: '/logos/meta.png', color: 'blue', category: 'ai', openrouterModel: 'meta-llama/llama-4-maverick', description: 'Meta 최강 오픈소스 모델',
+        quote: '오픈소스의 끝판왕',
+        sampleQuestions: ['복잡한 추론 문제 풀어줘', '긴 문서 분석해줘', '코드 리뷰 해줘'],
+        greeting: 'Meta의 최강 오픈소스 모델입니다!',
+    },
+    {
+        id: 'llama-scout', name: 'Llama 4 Scout', nameKo: 'Llama 4 Scout', icon: '🦙', avatarUrl: '/logos/meta.png', color: 'blue', category: 'ai', openrouterModel: 'meta-llama/llama-4-scout', description: 'Meta 경량 고속 모델',
+        quote: '가볍지만 똑똑하게',
+        sampleQuestions: ['빠르게 요약해줘', '간단한 질문 답해줘', '번역 부탁해'],
+        greeting: '빠르고 가벼운 Llama입니다!',
+    },
+    {
+        id: 'mistral-large', name: 'Mistral Large 3', nameKo: 'Mistral Large 3', icon: '🌬️', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/mistral-large-2512', description: '유럽 최상위 AI 모델',
+        quote: '유럽의 자존심',
+        sampleQuestions: ['다국어 분석 해줘', '심층 추론 부탁해', '논리적으로 정리해줘'],
+        greeting: '유럽 최고의 AI, Mistral입니다.',
+    },
+    {
+        id: 'mistral-medium', name: 'Mistral Medium 3.1', nameKo: 'Mistral Medium 3.1', icon: '🌀', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/mistral-medium-3.1', description: '유럽 균형잡힌 AI 모델',
+        quote: '품질과 속도의 균형',
+        sampleQuestions: ['글 다듬어줘', '요약 정리해줘', '비교 분석해줘'],
+        greeting: '균형 잡힌 Mistral Medium입니다.',
+    },
+    {
+        id: 'mistral-small', name: 'Mistral Small 4', nameKo: 'Mistral Small 4', icon: '💨', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/mistral-small-2603', description: '유럽 경량 고속 모델',
+        quote: '작지만 빠르게',
+        sampleQuestions: ['간단한 질문 답해줘', '한 줄 요약해줘', '빠르게 번역해줘'],
+        greeting: '가볍고 빠른 Mistral Small입니다!',
+    },
+    {
+        id: 'codestral', name: 'Codestral', nameKo: 'Codestral', icon: '💻', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/codestral-2508', description: 'Mistral 코딩 전용 모델',
+        quote: '코드는 내 언어다',
+        sampleQuestions: ['코드 리뷰 해줘', '버그 찾아줘', '리팩토링 도와줘'],
+        greeting: 'Mistral Codestral입니다. 코딩을 도와드릴게요!',
+    },
+    {
+        id: 'mistral-creative', name: 'Mistral Small Creative', nameKo: 'Mistral Small Creative', icon: '🎨', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/mistral-small-creative', description: '창작 글쓰기 특화 모델',
+        quote: '창의력은 AI에게도 있다',
+        sampleQuestions: ['소설 초안 써줘', '창의적 글 써줘', '시 한 편 지어줘'],
+        greeting: '창작 전문 Mistral입니다!',
+    },
+    {
+        id: 'devstral', name: 'Devstral Medium', nameKo: 'Devstral Medium', icon: '🛠️', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/devstral-medium', description: 'Mistral 개발자 특화 모델',
+        quote: '개발자를 위한 AI',
+        sampleQuestions: ['아키텍처 설계 도와줘', '코드 구조 분석해줘', 'API 설계해줘'],
+        greeting: 'Devstral입니다. 개발을 도와드릴게요!',
+    },
+    {
+        id: 'gemma', name: 'Gemma 4 31B', nameKo: 'Gemma 4 31B', icon: '💠', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemma-4-31b-it', description: '구글 오픈소스 최신 모델',
+        quote: '오픈소스 Gemini의 힘',
+        sampleQuestions: ['가볍게 분석해줘', '코드 설명해줘', '개념 정리해줘'],
+        greeting: '구글 오픈소스 Gemma입니다!',
+    },
+    {
+        id: 'phi', name: 'Phi-4', nameKo: 'Phi-4', icon: '🔬', avatarUrl: '/logos/microsoft.png', color: 'blue', category: 'ai', openrouterModel: 'microsoft/phi-4', description: 'MS 소형 추론 특화 모델',
+        quote: '작은 몸에 큰 두뇌',
+        sampleQuestions: ['논리 문제 풀어줘', '수학 추론 해줘', '코드 디버깅 도와줘'],
+        greeting: '작지만 강력한 Phi입니다!',
+    },
+    {
+        id: 'command-r-plus', name: 'Command R+', nameKo: 'Command R+', icon: '📚', avatarUrl: '/logos/cohere.png', color: 'green', category: 'ai', openrouterModel: 'cohere/command-r-plus-08-2024', description: '검색·출처 특화 AI 모델',
+        quote: '근거 없으면 말 안 한다',
+        sampleQuestions: ['출처 포함해서 답해줘', '근거 자료 찾아줘', '팩트체크 해줘'],
+        greeting: '출처 기반 답변을 제공합니다.',
+    },
+    {
+        id: 'command-a', name: 'Command A', nameKo: 'Command A', icon: '📗', avatarUrl: '/logos/cohere.png', color: 'green', category: 'ai', openrouterModel: 'cohere/command-a', description: 'Cohere 최신 AI 모델',
+        quote: '최신 Cohere의 힘',
+        sampleQuestions: ['복잡한 분석 해줘', '문서 요약해줘', '출처 기반 답변해줘'],
+        greeting: 'Cohere Command A입니다!',
+    },
+    {
+        id: 'nova-premier', name: 'Amazon Nova Premier', nameKo: 'Amazon Nova Premier', icon: '📦', avatarUrl: '/logos/amazon.png', color: 'amber', category: 'ai', openrouterModel: 'amazon/nova-premier-v1', description: '아마존 최상위 AI 모델',
+        quote: '클라우드 거인의 두뇌',
+        sampleQuestions: ['복잡한 분석 해줘', '긴 문서 처리해줘', '멀티모달 분석해줘'],
+        greeting: '아마존 최상위 모델입니다.',
+    },
+    {
+        id: 'nova-2-lite', name: 'Amazon Nova 2 Lite', nameKo: 'Amazon Nova 2 Lite', icon: '📦', avatarUrl: '/logos/amazon.png', color: 'amber', category: 'ai', openrouterModel: 'amazon/nova-2-lite-v1', description: '아마존 최신 경량 모델, 컨텍스트 1M',
+        quote: '가볍지만 클라우드 파워',
+        sampleQuestions: ['빠르게 요약해줘', '간단한 질문 답해줘', '긴 문서 처리해줘'],
+        greeting: 'Amazon Nova 2 Lite입니다!',
+    },
+    {
+        id: 'dolphin', name: 'Dolphin (Venice)', nameKo: 'Dolphin (Venice)', icon: '🐬', avatarUrl: '/logos/dolphin.png', color: 'cyan', category: 'ai', openrouterModel: 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free', description: '검열 없는 자유로운 AI',
+        quote: '솔직함이 최고의 답이다',
+        sampleQuestions: ['거침없이 의견 줘', '솔직하게 평가해줘', '금기 없이 토론하자'],
+        greeting: '검열 없이 솔직하게 답해드려요!',
+    },
+    {
+        id: 'glm', name: 'GLM 5.1', nameKo: 'GLM 5.1', icon: '🔷', avatarUrl: '/logos/glm.png', color: 'blue', category: 'ai', openrouterModel: 'z-ai/glm-5.1', description: '중국 최신 대형 AI 모델',
+        quote: '중국 AI의 새로운 기준',
+        sampleQuestions: ['복잡한 분석 해줘', '중국어 번역 비교해줘', '논리적으로 정리해줘'],
+        greeting: 'GLM 5.1입니다. 무엇이든 물어보세요!',
+    },
+    {
+        id: 'glm-5v', name: 'GLM 5V Turbo', nameKo: 'GLM 5V Turbo', icon: '👁️', avatarUrl: '/logos/glm.png', color: 'blue', category: 'ai', openrouterModel: 'z-ai/glm-5v-turbo', description: 'Z.ai 비전+텍스트 모델',
+        quote: '보고 읽고 이해한다',
+        sampleQuestions: ['이미지 분석해줘', '사진 설명해줘', '비전 분석 해줘'],
+        greeting: 'GLM 5V Turbo입니다. 이미지도 이해해요!',
+    },
+    {
+        id: 'mimo', name: 'MiMo-V2-Pro', nameKo: 'MiMo-V2-Pro', icon: '📱', avatarUrl: '/logos/xiaomi.png', color: 'orange', category: 'ai', openrouterModel: 'xiaomi/mimo-v2-pro', description: '샤오미 AI 프로 모델',
+        quote: '기술은 모두를 위한 것',
+        sampleQuestions: ['멀티모달 분석 해줘', '이미지 설명해줘', '문서 정리해줘'],
+        greeting: '샤오미 MiMo입니다. 무엇이든 도와드릴게요!',
+    },
+    {
+        id: 'mimo-flash', name: 'MiMo-V2-Flash', nameKo: 'MiMo-V2-Flash', icon: '⚡', avatarUrl: '/logos/xiaomi.png', color: 'orange', category: 'ai', openrouterModel: 'xiaomi/mimo-v2-flash', description: '샤오미 AI 경량 고속 모델',
+        quote: '빠른 샤오미의 힘',
+        sampleQuestions: ['빠르게 답해줘', '간단히 요약해줘', '핵심만 알려줘'],
+        greeting: '초고속 MiMo Flash입니다!',
+    },
+    {
+        id: 'nemotron', name: 'Nemotron 3 Super', nameKo: 'Nemotron 3 Super', icon: '🟢', avatarUrl: '/logos/nvidia.png', color: 'green', category: 'ai', openrouterModel: 'nvidia/nemotron-3-super-120b-a12b', description: 'NVIDIA 120B 초대형 모델',
+        quote: 'GPU의 아버지가 만든 AI',
+        sampleQuestions: ['복잡한 추론 풀어줘', '코드 최적화해줘', '기술 분석해줘'],
+        greeting: 'NVIDIA Nemotron입니다!',
+    },
+    {
+        id: 'seed', name: 'Seed 2.0 Lite', nameKo: 'Seed 2.0 Lite', icon: '🎵', avatarUrl: '/logos/bytedance.png', color: 'blue', category: 'ai', openrouterModel: 'bytedance-seed/seed-2.0-lite', description: '바이트댄스 최신 AI 모델',
+        quote: '틱톡을 만든 회사의 AI',
+        sampleQuestions: ['창의적 글 써줘', '트렌드 분석해줘', '콘텐츠 아이디어 줘'],
+        greeting: '바이트댄스 Seed입니다!',
+    },
+    {
+        id: 'seed-mini', name: 'Seed 2.0 Mini', nameKo: 'Seed 2.0 Mini', icon: '🎶', avatarUrl: '/logos/bytedance.png', color: 'blue', category: 'ai', openrouterModel: 'bytedance-seed/seed-2.0-mini', description: '바이트댄스 경량 AI 모델',
+        quote: '작지만 틱톡 파워',
+        sampleQuestions: ['간단히 답해줘', '빠르게 정리해줘', '짧게 요약해줘'],
+        greeting: 'Seed 2.0 Mini입니다!',
+    },
+    {
+        id: 'minimax', name: 'MiniMax M2.7', nameKo: 'MiniMax M2.7', icon: '🟣', avatarUrl: '/logos/minimax.png', color: 'purple', category: 'ai', openrouterModel: 'minimax/minimax-m2.7', description: '중국 멀티모달 최신 모델',
+        quote: '작은 이름, 큰 성능',
+        sampleQuestions: ['멀티모달 분석해줘', '긴 문서 처리해줘', '복잡한 질문 답해줘'],
+        greeting: 'MiniMax M2.7입니다!',
+    },
+    {
+        id: 'kimi', name: 'Kimi K2.5', nameKo: 'Kimi K2.5', icon: '🌙', avatarUrl: '/logos/moonshot.png', color: 'slate', category: 'ai', openrouterModel: 'moonshotai/kimi-k2.5', description: '장문맥 특화 AI 모델',
+        quote: '긴 글도 한눈에',
+        sampleQuestions: ['긴 문서 분석해줘', '논문 요약해줘', '전체 맥락 정리해줘'],
+        greeting: 'Moonshot Kimi입니다. 긴 문서도 거뜬해요!',
+    },
+    {
+        id: 'kimi-thinking', name: 'Kimi K2 Thinking', nameKo: 'Kimi K2 Thinking', icon: '🌑', avatarUrl: '/logos/moonshot.png', color: 'slate', category: 'ai', openrouterModel: 'moonshotai/kimi-k2-thinking', description: 'Moonshot 추론 특화 모델',
+        quote: '달빛 아래 깊은 사고',
+        sampleQuestions: ['단계별 추론 해줘', '복잡한 문제 분석해줘', '논리적으로 풀어줘'],
+        greeting: 'Kimi Thinking입니다. 깊이 생각해드릴게요!',
+    },
+    {
+        id: 'solar', name: 'Solar Pro 3', nameKo: 'Solar Pro 3', icon: '☀️', avatarUrl: '/logos/solar.png', color: 'orange', category: 'ai', openrouterModel: 'upstage/solar-pro-3', description: '한국 업스테이지 AI 모델',
+        quote: '한국이 만든 세계적 AI',
+        sampleQuestions: ['한국어 분석해줘', '문서 이해해줘', '자연스럽게 번역해줘'],
+        greeting: '한국의 업스테이지 Solar입니다!',
+    },
+    {
+        id: 'mercury', name: 'Mercury 2', nameKo: 'Mercury 2', icon: '💫', avatarUrl: '/logos/mercury.png', color: 'cyan', category: 'ai', openrouterModel: 'inception/mercury-2', description: 'UAE 초고속 추론 모델',
+        quote: '빛의 속도로 생각한다',
+        sampleQuestions: ['빠르게 분석해줘', '즉시 답변해줘', '추론 문제 풀어줘'],
+        greeting: '초고속 Mercury입니다!',
+    },
+    {
+        id: 'ernie', name: 'ERNIE 4.5', nameKo: 'ERNIE 4.5', icon: '🐾', avatarUrl: '/logos/baidu.png', color: 'blue', category: 'ai', openrouterModel: 'baidu/ernie-4.5-300b-a47b', description: '바이두 300B 초대형 모델',
+        quote: '중국 검색 1위의 AI',
+        sampleQuestions: ['복잡한 분석 해줘', '중국 시장 트렌드 알려줘', '다국어 비교해줘'],
+        greeting: '바이두 ERNIE입니다!',
+    },
+    {
+        id: 'hunyuan', name: 'Hunyuan', nameKo: 'Hunyuan', icon: '💬', avatarUrl: '/logos/tencent.png', color: 'blue', category: 'ai', openrouterModel: 'tencent/hunyuan-a13b-instruct', description: '텐센트 AI 모델',
+        quote: '위챗을 만든 회사의 AI',
+        sampleQuestions: ['대화형 분석 해줘', '소셜 트렌드 분석해줘', '중국어 자연스럽게 번역해줘'],
+        greeting: '텐센트 Hunyuan입니다!',
+    },
+    {
+        id: 'jamba', name: 'Jamba Large 1.7', nameKo: 'Jamba Large 1.7', icon: '🔮', avatarUrl: '/logos/ai21.png', color: 'purple', category: 'ai', openrouterModel: 'ai21/jamba-large-1.7', description: '이스라엘 AI21 대형 모델',
+        quote: '혁신은 이스라엘에서',
+        sampleQuestions: ['긴 문서 분석해줘', '요약 정리해줘', '복잡한 추론 해줘'],
+        greeting: 'AI21 Jamba입니다!',
+    },
+    {
+        id: 'granite', name: 'Granite 4.0', nameKo: 'Granite 4.0', icon: '🏢', avatarUrl: '/logos/ibm.png', color: 'blue', category: 'ai', openrouterModel: 'ibm-granite/granite-4.0-h-micro', description: 'IBM 엔터프라이즈 AI 모델',
+        quote: '기업용 AI의 정석',
+        sampleQuestions: ['비즈니스 분석 해줘', '보고서 작성 도와줘', '데이터 정리해줘'],
+        greeting: 'IBM Granite입니다!',
+    },
+    {
+        id: 'step', name: 'Step 3.5 Flash', nameKo: 'Step 3.5 Flash', icon: '🚀', avatarUrl: '/logos/stepfun.png', color: 'orange', category: 'ai', openrouterModel: 'stepfun/step-3.5-flash', description: '스텝펀 최신 고속 모델',
+        quote: '한 걸음씩, 하지만 빠르게',
+        sampleQuestions: ['빠르게 답변해줘', '간결하게 정리해줘', '핵심만 뽑아줘'],
+        greeting: 'StepFun Step입니다!',
+    },
+    {
+        id: 'palmyra', name: 'Palmyra X5', nameKo: 'Palmyra X5', icon: '✍️', avatarUrl: '/logos/writer.png', color: 'purple', category: 'ai', openrouterModel: 'writer/palmyra-x5', description: '글쓰기 특화 AI, 컨텍스트 1M',
+        quote: '글은 AI에게 맡겨라',
+        sampleQuestions: ['긴 글 다듬어줘', '보고서 초안 써줘', '문체 개선해줘'],
+        greeting: 'Writer Palmyra입니다. 글쓰기를 도와드릴게요!',
+    },
+    {
+        id: 'hermes', name: 'Hermes 4 405B', nameKo: 'Hermes 4 405B', icon: '🪽', avatarUrl: '/logos/nous.png', color: 'sky', category: 'ai', openrouterModel: 'nousresearch/hermes-4-405b', description: '오픈소스 커뮤니티 최강 405B',
+        quote: '커뮤니티가 만든 괴물',
+        sampleQuestions: ['깊은 분석 해줘', '자유롭게 토론하자', '제한 없이 답해줘'],
+        greeting: 'Nous Hermes입니다!',
+    },
+    {
+        id: 'longcat', name: 'LongCat Flash', nameKo: 'LongCat Flash', icon: '🐱', avatarUrl: '/logos/meituan.png', color: 'amber', category: 'ai', openrouterModel: 'meituan/longcat-flash-chat', description: '메이퇀 장문맥 AI 모델',
+        quote: '긴 글도 고양이처럼 가볍게',
+        sampleQuestions: ['긴 문서 요약해줘', '전체 맥락 파악해줘', '장문 분석해줘'],
+        greeting: '메이퇀 LongCat입니다!',
     },
 
     // Specialists
@@ -2843,6 +3280,12 @@ export const DEFAULT_EXPERTS: Expert[] = [
     },
 ];
 
+// abilities 맵을 DEFAULT_EXPERTS에 주입
+export const DEFAULT_EXPERTS: Expert[] = _DEFAULT_EXPERTS_RAW.map(e => {
+  const ab = AI_ABILITIES[e.id];
+  return ab ? { ...e, abilities: ab } : e;
+});
+
 // ══════════════════════════════════════════
 // ── Simulation Scenarios (stakeholder mode) ──
 // ══════════════════════════════════════════
@@ -3723,40 +4166,58 @@ export interface RecommendedTopic {
   temperature: number;
   participation: number;
   updatedAt: string;
+  proLabel?: string;
+  proIcon?: string;
+  proId?: string;
+  conLabel?: string;
+  conIcon?: string;
+  conId?: string;
+  participants?: { id?: string; name: string; icon: string }[];
 }
 
 export const DEBATE_RECOMMENDED_TOPICS: Record<string, RecommendedTopic[]> = {
   procon: [
-    { id: 'rt-1', title: 'AI가 일자리를 대체할까?', temperature: 87, participation: 5234, updatedAt: '방금 전' },
-    { id: 'rt-2', title: '챗봇 중독성 규제 필요할까?', temperature: 72, participation: 3821, updatedAt: '2시간 전' },
-    { id: 'rt-3', title: 'AI 학습용 저작권 침해인가?', temperature: 91, participation: 4156, updatedAt: '3시간 전' },
-    { id: 'rt-4', title: 'AI 학생 과제 사용 금지해야?', temperature: 78, participation: 6021, updatedAt: '1시간 전' },
-    { id: 'rt-5', title: 'AI 이미지 생성 저작권 논란', temperature: 85, participation: 2891, updatedAt: '5시간 전' },
-    { id: 'rt-6', title: '기본소득을 도입해야 하는가?', temperature: 82, participation: 4512, updatedAt: '4시간 전' },
-    { id: 'rt-7', title: 'SNS 실명제를 도입해야 하는가?', temperature: 74, participation: 3245, updatedAt: '6시간 전' },
-    { id: 'rt-8', title: '원격근무가 출근보다 생산적인가?', temperature: 65, participation: 2987, updatedAt: '8시간 전' },
+    // 1:1 매치
+    { id: 'rt-0', title: '사형제는 필요한가?', temperature: 92, participation: 8210, updatedAt: '방금 전', proLabel: '경찰관', proIcon: '🚔', proId: 'police', conLabel: '변호사', conIcon: '👨‍⚖️', conId: 'lawyer' },
+    { id: 'rt-1', title: 'AI가 인간 일자리를 빼앗을까?', temperature: 87, participation: 5234, updatedAt: '1시간 전', proLabel: 'GPT-5.4', proIcon: '🤖', proId: 'gpt', conLabel: '경제학', conIcon: '📊', conId: 'economics' },
+    { id: 'rt-2', title: '의료는 무상이어야 하는가?', temperature: 88, participation: 6120, updatedAt: '2시간 전', proLabel: '사회주의', proIcon: '✊', proId: 'socialist', conLabel: '자본주의', conIcon: '💰', conId: 'capitalist' },
+    { id: 'rt-3', title: '사교육 전면 금지해야 하는가?', temperature: 85, participation: 4890, updatedAt: '3시간 전', proLabel: '교사', proIcon: '👨‍🏫', proId: 'teacher', conLabel: '경제학', conIcon: '📊', conId: 'economics' },
+    { id: 'rt-4', title: '동물실험 금지해야 하는가?', temperature: 83, participation: 4156, updatedAt: '4시간 전', proLabel: '철학', proIcon: '🏛️', proId: 'philosophy', conLabel: '의사', conIcon: '🩺', conId: 'doctor' },
+    { id: 'rt-5', title: '이민 문호를 더 열어야 하는가?', temperature: 80, participation: 3670, updatedAt: '5시간 전', proLabel: '진보주의', proIcon: '🔄', proId: 'progressive', conLabel: '민족주의', conIcon: '🗻', conId: 'nationalist' },
+    // 2:2 매치
+    { id: 'rt-6', title: '집값, 국가가 통제해야 하는가?', temperature: 91, participation: 7340, updatedAt: '30분 전', proLabel: '사회주의 · 행정학', proIcon: '✊', proId: 'socialist', conLabel: '자본주의 · 금융', conIcon: '💰', conId: 'capitalist' },
+    { id: 'rt-7', title: 'AI 판사가 인간 판사를 대체할 수 있나?', temperature: 86, participation: 5120, updatedAt: '1시간 전', proLabel: 'Claude · 프로그래머', proIcon: '🧡', proId: 'claude', conLabel: '판사 · 철학', conIcon: '⚖️', conId: 'judge' },
+    { id: 'rt-8', title: '원전 확대가 현실적 대안인가?', temperature: 84, participation: 4780, updatedAt: '2시간 전', proLabel: '물리학 · 엔지니어', proIcon: '⚛️', proId: 'physics', conLabel: '환경과학 · 기자', conIcon: '🌿', conId: 'envscience' },
   ],
   standard: [
-    { id: 'rt-s1', title: 'AI 규제, 혁신과 안전 사이의 균형점은?', temperature: 84, participation: 4780, updatedAt: '1시간 전' },
-    { id: 'rt-s2', title: '한국 교육, 무엇부터 바꿔야 하나?', temperature: 80, participation: 5120, updatedAt: '2시간 전' },
-    { id: 'rt-s3', title: '원자력 발전 확대가 현실적 대안인가?', temperature: 77, participation: 3450, updatedAt: '3시간 전' },
-    { id: 'rt-s4', title: '디지털 시대의 프라이버시, 어디까지?', temperature: 73, participation: 2980, updatedAt: '5시간 전' },
-    { id: 'rt-s5', title: '저출산 대책, 왜 효과가 없을까?', temperature: 86, participation: 4890, updatedAt: '30분 전' },
-    { id: 'rt-s6', title: '긱 이코노미는 노동의 미래인가?', temperature: 71, participation: 3120, updatedAt: '4시간 전' },
+    { id: 'rt-s1', title: '저출산 대책, 왜 효과가 없을까?', temperature: 90, participation: 6890, updatedAt: '방금 전', participants: [{ id: 'sociology', name: '사회학', icon: '👥' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'pubadmin', name: '행정학', icon: '🏢' }, { id: 'psychology', name: '심리학', icon: '🎭' }] },
+    { id: 'rt-s2', title: 'AI 규제, 혁신과 안전 사이의 균형점은?', temperature: 84, participation: 4780, updatedAt: '1시간 전', participants: [{ id: 'gpt', name: 'GPT-5.4', icon: '🤖' }, { id: 'programmer', name: '프로그래머', icon: '💻' }, { id: 'legal', name: '법학', icon: '⚖️' }, { id: 'philosophy', name: '철학', icon: '🏛️' }] },
+    { id: 'rt-s3', title: '한국 교육, 무엇부터 바꿔야 하나?', temperature: 82, participation: 5120, updatedAt: '2시간 전', participants: [{ id: 'teacher', name: '교사', icon: '👨‍🏫' }, { id: 'psychology', name: '심리학', icon: '🎭' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'journalist', name: '기자', icon: '📰' }] },
+    { id: 'rt-s4', title: '부동산 정책, 시장이냐 규제냐?', temperature: 88, participation: 5430, updatedAt: '30분 전', participants: [{ id: 'capitalist', name: '자본주의', icon: '💰' }, { id: 'finance', name: '금융', icon: '💰' }, { id: 'socialist', name: '사회주의', icon: '✊' }, { id: 'pubadmin', name: '행정학', icon: '🏢' }] },
+    { id: 'rt-s5', title: '디지털 시대의 프라이버시, 어디까지?', temperature: 77, participation: 2980, updatedAt: '3시간 전', participants: [{ id: 'libertarian', name: '자유주의', icon: '🗽' }, { id: 'programmer', name: '프로그래머', icon: '💻' }, { id: 'police', name: '경찰관', icon: '🚔' }, { id: 'political', name: '정치학', icon: '🗳️' }] },
+    { id: 'rt-s6', title: '반도체 패권 경쟁의 미래는?', temperature: 79, participation: 3200, updatedAt: '4시간 전', participants: [{ id: 'gemini', name: 'Gemini', icon: '💎' }, { id: 'engineer', name: '엔지니어', icon: '⚙️' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'diplomat', name: '외교관', icon: '🤝' }] },
   ],
   freetalk: [
-    { id: 'rt-f1', title: '10년 뒤 AI 시대, 어떻게 살아야 할까?', temperature: 79, participation: 4100, updatedAt: '1시간 전' },
-    { id: 'rt-f2', title: '워라밸 vs 성장, 뭐가 더 중요할까?', temperature: 71, participation: 3567, updatedAt: '3시간 전' },
-    { id: 'rt-f3', title: '메타버스는 정말 올까?', temperature: 58, participation: 2134, updatedAt: '5시간 전' },
-    { id: 'rt-f4', title: '초고령사회, 무엇을 준비해야 할까?', temperature: 67, participation: 2890, updatedAt: '4시간 전' },
-    { id: 'rt-f5', title: 'K-팝의 글로벌 영향력은 지속될까?', temperature: 63, participation: 3210, updatedAt: '6시간 전' },
-    { id: 'rt-f6', title: '기후변화, 개인이 할 수 있는 건?', temperature: 76, participation: 3890, updatedAt: '2시간 전' },
+    { id: 'rt-f1', title: '10년 뒤, 어떤 직업이 살아남을까?', temperature: 85, participation: 5100, updatedAt: '방금 전', participants: [{ id: 'gpt', name: 'GPT-5.4', icon: '🤖' }, { id: 'gemini', name: 'Gemini', icon: '💎' }, { id: 'deepseek', name: 'DeepSeek', icon: '🌊' }] },
+    { id: 'rt-f2', title: '요즘 MZ세대는 왜 투자에 몰릴까?', temperature: 78, participation: 4230, updatedAt: '1시간 전', participants: [{ id: 'stocktrader', name: '펀드매니저', icon: '📈' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'journalist', name: '기자', icon: '📰' }] },
+    { id: 'rt-f3', title: '좋은 리더의 조건은 뭘까?', temperature: 73, participation: 3567, updatedAt: '2시간 전', participants: [{ id: 'lincoln', name: '링컨', icon: '🎩' }, { id: 'churchill', name: '처칠', icon: '🇬🇧' }, { id: 'napoleon', name: '나폴레옹', icon: '⚔️' }] },
+    { id: 'rt-f4', title: '초고령사회, 우리는 뭘 준비해야 할까?', temperature: 76, participation: 3890, updatedAt: '3시간 전', participants: [{ id: 'doctor', name: '의사', icon: '🩺' }, { id: 'socialworker', name: '사회복지사', icon: '🤲' }, { id: 'economics', name: '경제학', icon: '📊' }] },
+    { id: 'rt-f5', title: 'K-컨텐츠의 다음 먹거리는?', temperature: 71, participation: 3210, updatedAt: '4시간 전', participants: [{ id: 'producer', name: '프로듀서', icon: '🎬' }, { id: 'writer', name: '작가', icon: '✍️' }, { id: 'journalist', name: '기자', icon: '📰' }] },
+    { id: 'rt-f6', title: 'SNS가 정신건강에 미치는 영향', temperature: 80, participation: 4670, updatedAt: '1시간 전', participants: [{ id: 'psychology', name: '심리학', icon: '🎭' }, { id: 'claude', name: 'Claude', icon: '🧡' }, { id: 'teacher', name: '교사', icon: '👨‍🏫' }] },
+    { id: 'rt-f7', title: '우주 개발, 돈 낭비인가 미래 투자인가?', temperature: 74, participation: 2890, updatedAt: '5시간 전', participants: [{ id: 'astronomy', name: '천문학', icon: '🔭' }, { id: 'grok', name: 'Grok', icon: '⚡' }, { id: 'pilot', name: '파일럿', icon: '✈️' }] },
   ],
   hearing: [
     { id: 'rt-h1', title: 'AI 기반 개인 재무관리 앱', temperature: 82, participation: 1890, updatedAt: '2시간 전' },
     { id: 'rt-h2', title: '소규모 학교 온라인 교육 플랫폼', temperature: 68, participation: 1456, updatedAt: '5시간 전' },
     { id: 'rt-h3', title: '독거노인 AI 안부 확인 서비스', temperature: 75, participation: 2100, updatedAt: '3시간 전' },
     { id: 'rt-h4', title: '지역 농산물 직거래 구독 서비스', temperature: 60, participation: 1234, updatedAt: '7시간 전' },
+  ],
+  brainstorm: [
+    { id: 'rt-b1', title: '1인 가구를 위한 새로운 서비스', temperature: 82, participation: 4230, updatedAt: '방금 전', participants: [{ id: 'gpt', name: 'GPT-5.4', icon: '🤖' }, { id: 'marketing', name: '마케팅', icon: '📣' }, { id: 'designer', name: '디자이너', icon: '🖌️' }] },
+    { id: 'rt-b2', title: '시니어를 위한 AI 활용 아이디어', temperature: 76, participation: 3120, updatedAt: '1시간 전', participants: [{ id: 'claude', name: 'Claude', icon: '🧡' }, { id: 'doctor', name: '의사', icon: '🩺' }, { id: 'socialworker', name: '사회복지사', icon: '🤲' }] },
+    { id: 'rt-b3', title: '친환경 비즈니스 모델 구상', temperature: 74, participation: 2890, updatedAt: '2시간 전', participants: [{ id: 'gemini', name: 'Gemini', icon: '💎' }, { id: 'envscience', name: '환경과학', icon: '🌿' }, { id: 'marketing', name: '마케팅', icon: '📣' }] },
+    { id: 'rt-b4', title: '학교 교육을 혁신할 방법', temperature: 79, participation: 3560, updatedAt: '3시간 전', participants: [{ id: 'teacher', name: '교사', icon: '👨‍🏫' }, { id: 'programmer', name: '프로그래머', icon: '💻' }, { id: 'psychology', name: '심리학', icon: '🎭' }] },
+    { id: 'rt-b5', title: '로컬 크리에이터 수익화 전략', temperature: 71, participation: 2340, updatedAt: '4시간 전', participants: [{ id: 'writer', name: '작가', icon: '✍️' }, { id: 'marketing', name: '마케팅', icon: '📣' }, { id: 'grok', name: 'Grok', icon: '⚡' }] },
   ],
 };
 

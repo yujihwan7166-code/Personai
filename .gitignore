@@ -31,3 +31,7 @@ dist-ssr
 .next/
 next-env.d.ts
 .playwright-cli/
+.claude/worktrees/
+output/
+tmp/
+services/**/.venv/

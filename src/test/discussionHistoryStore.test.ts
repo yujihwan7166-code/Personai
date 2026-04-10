@@ -139,4 +139,41 @@ describe('discussionHistoryStore', () => {
       },
     ]);
   });
+
+  it('drops generated image data URLs when saving history', () => {
+    saveDiscussionToHistory(createRecord({
+      messages: [
+        {
+          ...createMessage('이미지를 만들었어요.'),
+          messageType: 'image',
+          imageGenerationMode: 'generate',
+          generatedImages: [
+            {
+              mimeType: 'image/png',
+              dataUrl: 'data:image/png;base64,abc123',
+              thumbnailDataUrl: 'data:image/webp;base64,thumb123',
+              prompt: '우주복 입은 고양이',
+              sourceModel: 'google/gemini-2.5-flash-image',
+            },
+          ],
+        },
+      ],
+    }));
+
+    const history = getDiscussionHistory();
+
+    expect(history[0]?.messages[0]).toMatchObject({
+      messageType: 'image',
+      imageGenerationMode: 'generate',
+      generatedImages: [
+        {
+          mimeType: 'image/png',
+          thumbnailDataUrl: 'data:image/webp;base64,thumb123',
+          prompt: '우주복 입은 고양이',
+          sourceModel: 'google/gemini-2.5-flash-image',
+        },
+      ],
+    });
+    expect(history[0]?.messages[0]?.generatedImages?.[0]).not.toHaveProperty('dataUrl');
+  });
 });

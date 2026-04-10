@@ -81,6 +81,43 @@ function MessageContent({ content, isStreaming, noCollapse }: { content: string;
   return null;
 }
 
+function GeneratedImageGallery({ message }: { message: DiscussionMessageType }) {
+  const generatedImages = message.generatedImages ?? [];
+  if (generatedImages.length === 0) {
+    return null;
+  }
+
+  const visibleImages = generatedImages.filter((image) =>
+    (typeof image.dataUrl === 'string' && image.dataUrl.length > 0) ||
+    (typeof image.thumbnailDataUrl === 'string' && image.thumbnailDataUrl.length > 0),
+  );
+  const missingImageCount = generatedImages.length - visibleImages.length;
+
+  return (
+    <div className="mb-3 space-y-2.5">
+      {visibleImages.length > 0 && (
+        <div className={cn('grid gap-2', visibleImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1')}>
+          {visibleImages.map((image, index) => (
+            <div key={`${message.id}-image-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              <img
+                src={image.dataUrl || image.thumbnailDataUrl}
+                alt={image.prompt || 'Generated image'}
+                className="block h-full w-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {missingImageCount > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+          세션에서 만든 이미지라 새로 불러온 기록에는 원본이 남아 있지 않아요.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DiscussionMessageCard({ message, expert, variant = 'default', onRebuttal, onLike, onDislike, onDevelop }: Props) {
   const [copied, setCopied] = useState(false);
   const [showRebuttal, setShowRebuttal] = useState(false);
@@ -122,6 +159,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           </div>
           <div className="px-4 pb-4 pt-0">
             <div className={cn('text-[13px] leading-relaxed text-slate-600', proseClasses, 'prose-p:text-[13px] prose-li:text-[13px] prose-headings:text-[15px] prose-headings:font-bold prose-strong:text-slate-800')}>
+              <GeneratedImageGallery message={message} />
               <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
             </div>
           </div>
@@ -138,6 +176,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
           <div className="bg-white border border-slate-100 border-l-[4px] border-l-indigo-400 rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
+              <GeneratedImageGallery message={message} />
               <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
             </div>
             {!message.isStreaming && message.content && (
@@ -210,6 +249,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         </div>
         <div className="px-3.5 py-3">
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
+            <GeneratedImageGallery message={message} />
             <MessageContent content={displayContent} isStreaming={message.isStreaming} />
           </div>
         </div>
@@ -234,6 +274,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
             </div>
             <div className="bg-white border border-slate-100 rounded-lg px-3.5 py-2.5 shadow-sm">
               <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
+                <GeneratedImageGallery message={message} />
                 <MessageContent content={displayContent} isStreaming={message.isStreaming} />
               </div>
             </div>
@@ -256,6 +297,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           </div>
           <div className="px-4 py-3.5">
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
+              <GeneratedImageGallery message={message} />
               <MessageContent content={displayContent} isStreaming={message.isStreaming} />
             </div>
           </div>
@@ -294,6 +336,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         {/* Content */}
         <div className="px-3.5 pb-3 pt-0">
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
+            <GeneratedImageGallery message={message} />
             <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse={isSummary} />
           </div>
         </div>

@@ -58,6 +58,23 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+// CSS 색상 값 검증 — CSS injection 방지
+function sanitizeCssColor(color: string): string | null {
+  // HEX, RGB, HSL, 네임드 컬러만 허용
+  if (/^#([0-9a-fA-F]{3}){1,2}$/.test(color)) return color;
+  if (/^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/.test(color)) return color;
+  if (/^hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)$/.test(color)) return color;
+  if (/^[a-zA-Z]{1,30}$/.test(color)) return color; // 네임드 컬러 (red, blue 등)
+  if (/^var\(--[a-zA-Z0-9-]+\)$/.test(color)) return color; // CSS 변수
+  return null; // 위험한 값은 무시
+}
+
+// CSS 속성 키 검증
+function sanitizeCssKey(key: string): string | null {
+  if (/^[a-zA-Z0-9-]+$/.test(key)) return key;
+  return null;
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
@@ -74,8 +91,10 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
+    const safeKey = sanitizeCssKey(key);
     const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    const safeColor = color ? sanitizeCssColor(color) : null;
+    return safeKey && safeColor ? `  --color-${safeKey}: ${safeColor};` : null;
   })
   .join("\n")}
 }

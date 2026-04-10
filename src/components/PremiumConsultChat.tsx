@@ -552,6 +552,9 @@ function SourceCard({ citation, index, accent }: { citation: ApiSourceCitation; 
     drug_interaction: '\uD83D\uDC8A', economic_indicator: '\uD83D\uDCCA', financial_product: '\uD83C\uDFE6',
     real_estate_data: '\uD83C\uDFE0', tax_reference: '\uD83E\uDDFE', labor_reference: '\uD83D\uDC77', public_guideline: '\uD83D\uDCCB',
   };
+  const metaLine = [citation.articleNumber, citation.caseNumber, citation.decisionDate, citation.effectiveDate]
+    .filter((item): item is string => Boolean(item))
+    .join(' · ');
 
   return (
     <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
@@ -565,12 +568,19 @@ function SourceCard({ citation, index, accent }: { citation: ApiSourceCitation; 
         <span className="text-[11px]">{typeIcons[citation.type] || '\uD83D\uDCCE'}</span>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{citation.label}</p>
+          {metaLine && <p className="text-[8px] text-slate-500 truncate">{metaLine}</p>}
           <p className="text-[8px] text-slate-400">{citation.source}</p>
         </div>
         <ChevronDown className={cn('w-3 h-3 text-slate-400 transition-transform shrink-0', expanded && 'rotate-180')} />
       </button>
       {expanded && citation.rawData && (
         <div className="px-3 pb-2.5 pt-0 border-t border-slate-100 dark:border-slate-700">
+          {(citation.lawName || citation.ministry) && (
+            <div className="mt-2 space-y-0.5">
+              {citation.lawName && <p className="text-[8px] text-slate-500">법령명: {citation.lawName}</p>}
+              {citation.ministry && <p className="text-[8px] text-slate-500">소관부처: {citation.ministry}</p>}
+            </div>
+          )}
           <p className="text-[9px] leading-relaxed text-slate-500 whitespace-pre-wrap mt-2">{citation.rawData}</p>
           {citation.url && (
             <a href={citation.url} target="_blank" rel="noopener noreferrer" className={cn('mt-1.5 inline-block text-[9px] hover:underline', accent.text)}>

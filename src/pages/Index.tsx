@@ -10,6 +10,15 @@ import { DiscussionRecord, upsertDiscussionHistory } from '@/lib/discussionHisto
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
 import type { AttachedFile } from '@/lib/fileProcessor';
+import {
+  createGeneratedImageThumbnail,
+  detectGeneralImageAspectRatio,
+  detectGeneralImageIntent,
+  findLatestGeneratedImage,
+  isImageMimeType,
+  stripDataUrlPrefix,
+  type GeneralImageIntent,
+} from '@/lib/generalImage';
 import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, ArrowLeft, FileText, X, MessageSquare } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
@@ -19,12 +28,38 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
 const CHAT_URL = '/api/chat';
+const GENERAL_IMAGE_URL = '/api/general-image';
+const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
 const LazyGamePlayer = lazy(() => import('@/components/GamePlayer').then((module) => ({ default: module.GamePlayer })));
 const LazyQuestionInput = lazy(() => import('@/components/QuestionInput').then((module) => ({ default: module.QuestionInput })));
 const LazyPremiumConsultChat = lazy(() => import('@/components/PremiumConsultChat').then((module) => ({ default: module.PremiumConsultChat })));
 let pptGeneratorPromise: Promise<typeof import('@/lib/pptGenerator')> | null = null;
+
+type GeneralImageHistoryMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+type GeneralImageRequestFile = {
+  name: string;
+  mimeType: string;
+  base64: string;
+  extractedText?: string;
+};
+
+type GeneralImageApiResponse = {
+  mode: GeneralImageIntent;
+  text?: string;
+  images?: Array<{
+    mimeType: string;
+    data: string;
+  }>;
+  aspectRatio?: string;
+  sourceModel?: string;
+  error?: string;
+};
 
 async function loadPptGenerator() {
   if (!pptGeneratorPromise) {
@@ -198,6 +233,50 @@ ${p.roles.map(r => `| ${r} | | |`).join('\n')}
 한국어로 작성하세요.`;
 }
 
+function buildGeneralImageHistory(messages: DiscussionMessage[], experts: Expert[]): GeneralImageHistoryMessage[] {
+  return messages
+    .filter((message) => message.expertId !== '__round__' && message.expertId !== '__summary__' && message.content.trim().length > 0)
+    .map((message) => {
+      if (message.expertId === '__user__') {
+        return {
+          role: 'user' as const,
+          content: message.content,
+        };
+      }
+
+      const expert = experts.find((item) => item.id === message.expertId);
+      return {
+        role: 'assistant' as const,
+        content: `${expert?.nameKo || 'AI'}: ${message.content}`,
+      };
+    })
+    .slice(-6);
+}
+
+function pickGeneralImageExpert(currentExpert: Expert | undefined, experts: Expert[], question: string, messages: DiscussionMessage[]): Expert | undefined {
+  if (currentExpert && currentExpert.id !== 'router') {
+    return currentExpert;
+  }
+
+  const lastAssistant = [...messages]
+    .reverse()
+    .find((message) => message.expertId !== '__user__' && message.expertId !== '__round__' && message.expertId !== '__summary__' && message.expertId !== 'router');
+
+  if (lastAssistant) {
+    const matchedExpert = experts.find((expert) => expert.id === lastAssistant.expertId);
+    if (matchedExpert) {
+      return matchedExpert;
+    }
+  }
+
+  const candidates = experts.filter((expert) => expert.id !== 'router' && expert.category === 'ai');
+  if (currentExpert?.id === 'router' && candidates.length > 0) {
+    return mockRoute(question, candidates).expert;
+  }
+
+  return candidates[0];
+}
+
 async function streamExpert({
   question, expert, previousResponses, round, onDelta, onDone, signal, files
 
@@ -211,7 +290,7 @@ async function streamExpert({
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + QUALITY_GUARDRAIL + basePrompt, question, previousResponses, files: files && files.length > 0 ? files : undefined }),
+    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + QUALITY_GUARDRAIL + basePrompt, question, previousResponses, files: files && files.length > 0 ? files : undefined, openrouterModel: expert.openrouterModel }),
     signal
   });
 
@@ -265,12 +344,17 @@ const Index = () => {
       if (saved) {
         const parsed = JSON.parse(saved) as Expert[];
         // Merge: keep saved customizations but add any new default experts
-        const savedIds = new Set(parsed.map((e) => e.id));
-        const newExperts = DEFAULT_EXPERTS.filter((e) => !savedIds.has(e.id));
-        return applyExpertOverrides([...parsed.map((e) => {
-          const def = DEFAULT_EXPERTS.find(d => d.id === e.id);
-          return { ...e, category: e.category || 'ai', icon: e.icon || def?.icon || '', avatarUrl: def?.avatarUrl || e.avatarUrl, quote: def?.quote || e.quote, description: def?.description || e.description, sampleQuestions: def?.sampleQuestions || e.sampleQuestions };
-        }), ...newExperts]);
+        const savedMap = new Map(parsed.map((e) => [e.id, e]));
+        // Merge saved customizations with defaults, following DEFAULT_EXPERTS order
+        const merged = DEFAULT_EXPERTS.map((def) => {
+          const saved = savedMap.get(def.id);
+          if (!saved) return def;
+          return { ...saved, name: def.name || saved.name, nameKo: def.nameKo || saved.nameKo, openrouterModel: def.openrouterModel || saved.openrouterModel, category: saved.category || 'ai', icon: saved.icon || def.icon || '', avatarUrl: def.avatarUrl || saved.avatarUrl, quote: def.quote || saved.quote, description: def.description || saved.description, sampleQuestions: def.sampleQuestions || saved.sampleQuestions, abilities: def.abilities || saved.abilities };
+        });
+        // Append any user-created custom experts not in DEFAULT_EXPERTS
+        const defaultIds = new Set(DEFAULT_EXPERTS.map((e) => e.id));
+        const customExperts = parsed.filter((e) => !defaultIds.has(e.id));
+        return applyExpertOverrides([...merged, ...customExperts]);
       }
       return applyExpertOverrides(DEFAULT_EXPERTS);
     } catch {return applyExpertOverrides(DEFAULT_EXPERTS);}
@@ -478,6 +562,147 @@ const Index = () => {
   }, [experts, messages, currentQuestion, isDiscussing]);
 
   const activeExperts = experts.filter((e) => selectedExpertIds.includes(e.id));
+
+  const runGeneralImageTurn = useCallback(async ({
+    question,
+    expert,
+    previousMessages,
+    userMessage,
+    sourceFiles,
+    recentImageDataUrl,
+    mode,
+  }: {
+    question: string;
+    expert: Expert;
+    previousMessages: GeneralImageHistoryMessage[];
+    userMessage?: DiscussionMessage;
+    sourceFiles?: GeneralImageRequestFile[];
+    recentImageDataUrl?: string;
+    mode: GeneralImageIntent;
+  }) => {
+    setIsDiscussing(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setActiveExpertId(expert.id);
+
+    const replyId = `${expert.id}-image-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      ...(userMessage ? [userMessage] : []),
+      {
+        id: replyId,
+        expertId: expert.id,
+        content: '',
+        isStreaming: true,
+        messageType: 'image',
+        imageGenerationMode: mode,
+      },
+    ]);
+
+    try {
+      const imageInputs = (sourceFiles ?? []).filter((file) => isImageMimeType(file.mimeType));
+      const response = await fetch(GENERAL_IMAGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: question,
+          mode,
+          files: imageInputs.length > 0 ? imageInputs : undefined,
+          referenceImage: recentImageDataUrl
+            ? {
+                name: 'previous-image.png',
+                mimeType: 'image/png',
+                base64: stripDataUrlPrefix(recentImageDataUrl),
+              }
+            : undefined,
+          previousMessages,
+          aspectRatio: detectGeneralImageAspectRatio(question),
+        }),
+        signal: controller.signal,
+      });
+
+      const data = await response.json().catch(() => ({})) as GeneralImageApiResponse;
+
+      if (!response.ok || !data.images || data.images.length === 0) {
+        throw new Error(data.error || '이미지를 만들지 못했어요.');
+      }
+
+      const generatedImages = await Promise.all(data.images.map(async (image) => {
+        const dataUrl = `data:${image.mimeType};base64,${image.data}`;
+
+        return {
+          mimeType: image.mimeType,
+          dataUrl,
+          thumbnailDataUrl: await createGeneratedImageThumbnail(dataUrl),
+          prompt: question,
+          sourceModel: data.sourceModel || GENERAL_IMAGE_MODEL,
+          aspectRatio: data.aspectRatio,
+        };
+      }));
+
+      setMessages((prev) => prev.map((message) => (
+        message.id === replyId
+          ? {
+              ...message,
+              content: data.text || (mode === 'edit' ? '요청한 방향으로 이미지를 수정했어요.' : '요청한 느낌으로 이미지를 만들었어요.'),
+              isStreaming: false,
+              messageType: 'image',
+              imageGenerationMode: mode,
+              generatedImages,
+            }
+          : message
+      )));
+      void logUsageEvent({
+        mode: `general_image_${mode}`,
+        status: 'success',
+        metadata: {
+          promptLength: question.length,
+          fileCount: sourceFiles?.length ?? 0,
+          imageCount: generatedImages.length,
+          aspectRatio: data.aspectRatio,
+        },
+      });
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        setMessages((prev) => prev.map((message) => (
+          message.id === replyId
+            ? {
+                ...message,
+                content: '이미지 생성을 중단했어요.',
+                isStreaming: false,
+                generatedImages: undefined,
+                messageType: 'text',
+              }
+            : message
+        )));
+      } else {
+        setMessages((prev) => prev.map((message) => (
+          message.id === replyId
+            ? {
+                ...message,
+                content: `⚠️ ${error instanceof Error ? error.message : '이미지 생성 중 문제가 생겼어요.'}`,
+                isStreaming: false,
+                messageType: 'text',
+                generatedImages: undefined,
+              }
+            : message
+        )));
+        void logUsageEvent({
+          mode: `general_image_${mode}`,
+          status: 'error',
+          metadata: {
+            promptLength: question.length,
+            fileCount: sourceFiles?.length ?? 0,
+            errorMessage: error instanceof Error ? error.message : 'unknown-error',
+          },
+        });
+      }
+    }
+
+    setActiveExpertId(undefined);
+    setIsDiscussing(false);
+    setStopRequested(false);
+  }, [logUsageEvent]);
 
   const startAivsBattle = useCallback((draft: AivsBattleDraft) => {
     const topic = AIVS_USER_TOPIC_PRESETS.find(item => item.id === draft.topicId) || AIVS_USER_TOPIC_PRESETS[0];
@@ -805,10 +1030,11 @@ const Index = () => {
     autoSaveCurrentChat();
     // 진행 중이면 중단
     if (isDiscussing) { abortControllerRef.current?.abort(); }
+    setDiscussionMode('general');
     setMessages([]);
     setCurrentQuestion('');
     setProconDebateTopic('');
-    setSelectedExpertIds([]);
+    setSelectedExpertIds(['gpt']);
     setProconStances({});
     setSimChoices([]);
     setSimPhaseIndex(0);
@@ -816,8 +1042,20 @@ const Index = () => {
     setAivsJudgments([]);
     setHasAivsBattleStarted(false);
     setActiveAivsBattleConfig(null);
+    setSelectedPremiumDomain(null);
+    setPremiumMessages([]);
+    setPremiumStreaming(false);
+    setPremiumCitations([]);
+    setPremiumTrustHeader(undefined);
+    setPremiumError(undefined);
+    setPremiumSteps([]);
+    setActiveGame(null);
     setIsDiscussing(false);
     setActiveExpertId(undefined);
+    setShowDebateSettings(false);
+    setSelectedFramework(null);
+    setDiscussionIssues([]);
+    setCollapsedRounds(new Set());
     skipClarifyRef.current = false;
     clarifyAttemptsRef.current = 0;
     sessionIdRef.current = `hist-${Date.now()}`;
@@ -1181,6 +1419,51 @@ ${difficultyDesc}
     }
 
     if (useMode === 'general' || useMode === 'player') {
+      if (useMode === 'general') {
+        const imageIntent = detectGeneralImageIntent(question, {
+          files: pendingFiles,
+        });
+
+        if (imageIntent) {
+          const expertForImage = pickGeneralImageExpert(
+            discussionExperts[0],
+            experts,
+            question,
+            [],
+          );
+
+          if (!expertForImage) {
+            setMessages([
+              {
+                id: `general-image-missing-${Date.now()}`,
+                expertId: '__round__',
+                content: '⚠️ 이미지 응답을 맡을 AI를 찾지 못했어요. 다시 시도해주세요.',
+              },
+            ]);
+            setIsDiscussing(false);
+            setActiveExpertId(undefined);
+            setStopRequested(false);
+            return;
+          }
+
+          await runGeneralImageTurn({
+            question,
+            expert: expertForImage,
+            previousMessages: [],
+            userMessage: {
+              id: `user-image-${Date.now()}`,
+              expertId: '__user__',
+              content: displayQuestion || question,
+              attachedFiles: filesBadges,
+            },
+            sourceFiles: filesToSend,
+            mode: imageIntent,
+          });
+          setStopRequested(false);
+          return;
+        }
+      }
+
       // 단일 AI만: 명확화 질문 (첫 질문, 스킵 안 된 경우만) — player 모드는 스킵
       const expert0 = discussionExperts[0];
       if (expert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS && useMode !== 'player') {
@@ -2807,8 +3090,37 @@ ${conversationText}`;
 
     // 단일 AI / 어시스턴트: 같은 AI에게 이어서 대화
     if (mode === 'general' || discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'player') {
-      const expert = activeExperts[0];
+      const expert = mode === 'general'
+        ? pickGeneralImageExpert(activeExperts[0], experts, question, messages)
+        : activeExperts[0];
       if (!expert) return;
+
+      if (mode === 'general') {
+        const recentImage = findLatestGeneratedImage(messages);
+        const imageIntent = detectGeneralImageIntent(question, {
+          files: followUpFiles,
+          hasRecentGeneratedImage: Boolean(recentImage),
+        });
+
+        if (imageIntent) {
+          await runGeneralImageTurn({
+            question,
+            expert,
+            previousMessages: buildGeneralImageHistory(messages, allExperts),
+            userMessage: {
+              id: `user-${Date.now()}`,
+              expertId: '__user__',
+              content: question,
+              attachedFiles: followUpFilesBadges,
+            },
+            sourceFiles: followUpFilesToSend,
+            recentImageDataUrl: imageIntent === 'edit' ? recentImage?.dataUrl : undefined,
+            mode: imageIntent,
+          });
+          return;
+        }
+      }
+
       setIsDiscussing(true);
       const controller = new AbortController();
       abortControllerRef.current = controller;

@@ -1,5 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { buildGeminiUrl, extractGeminiText, extractJsonObject } from './_lib/gemini.js';
+import {
+  DEFAULT_OPENROUTER_TEXT_MODEL,
+  extractJsonObject,
+  extractOpenRouterText,
+  getOpenRouterApiKey,
+  getOpenRouterHeaders,
+  OPENROUTER_API_URL,
+} from './_lib/openrouter.js';
 
 interface SimulationRole {
   name: string;
@@ -48,14 +55,12 @@ interface OrchestratorResult {
   reason?: string;
 }
 
-const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getOpenRouterApiKey();
   if (!apiKey) {
     return res.status(500).json({ error: 'API key not configured' });
   }
@@ -78,25 +83,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : buildRoleplayPrompt(scenario, conversationHistory, turnCount ?? conversationHistory.length, intensity ?? 5, prepContext);
 
   try {
-    const geminiRes = await fetch(buildGeminiUrl(DEFAULT_MODEL, apiKey), {
+    const openRouterRes = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getOpenRouterHeaders(apiKey),
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.35,
-          maxOutputTokens: 1024,
-        },
+        model: DEFAULT_OPENROUTER_TEXT_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.35,
+        max_tokens: 1024,
       }),
     });
 
-    if (!geminiRes.ok) {
+    if (!openRouterRes.ok) {
       return res.status(200).json({ ...fallback, reason: 'upstream error' });
     }
 
-    const payload = await geminiRes.json();
-    const rawText = extractGeminiText(payload);
-    const parsed = extractJsonObject<Partial<OrchestratorResult>>(rawText);
+    const payload = await openRouterRes.json();
+    const parsed = extractJsonObject<Partial<OrchestratorResult>>(extractOpenRouterText(payload));
 
     if (!parsed) {
       return res.status(200).json({ ...fallback, reason: 'parse error' });
@@ -108,10 +111,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-function normalizeResult(
-  parsed: Partial<OrchestratorResult>,
-  fallback: OrchestratorResult,
-): OrchestratorResult {
+function normalizeResult(parsed: Partial<OrchestratorResult>, fallback: OrchestratorResult): OrchestratorResult {
   const phase =
     parsed.phase === 'final' || parsed.phase === 'wrapping_up' || parsed.phase === 'ongoing'
       ? parsed.phase
@@ -148,10 +148,7 @@ function normalizeResult(
   };
 }
 
-function buildConsultationFallback(
-  currentPhase: CurrentPhase,
-  conversationHistory: ConversationEntry[],
-): OrchestratorResult {
+function buildConsultationFallback(currentPhase: CurrentPhase, conversationHistory: ConversationEntry[]): OrchestratorResult {
   const roleTurns = conversationHistory.filter((entry) => entry.speaker === currentPhase.role.name).length;
   const userTurns = Math.max(0, conversationHistory.length - roleTurns);
   const enoughInfo = roleTurns >= 1 && userTurns >= 2;
@@ -159,16 +156,14 @@ function buildConsultationFallback(
   return {
     next_speaker: currentPhase.role.name,
     speak_direction: enoughInfo
-      ? '지금까지 들은 내용을 짧게 정리하고, 다음 단계로 넘길지 판단해 주세요.'
-      : `${currentPhase.role.focus} 관점에서 가장 중요한 확인 질문을 한두 가지 해주세요.`,
+      ? '지금까지 받은 내용을 한 번 정리하고, 다음 단계로 넘어갈지 판단해 주세요.'
+      : `${currentPhase.role.focus} 관점에서 가장 중요한 확인 질문을 한두 가지 던져 주세요.`,
     follow_up_speaker: null,
     follow_up_direction: null,
     user_choices: [],
     phase: 'ongoing',
     next_phase: enoughInfo,
-    phase_summary: enoughInfo
-      ? `${currentPhase.role.name} 단계에서 필요한 핵심 정보를 대체로 확인했습니다.`
-      : '',
+    phase_summary: enoughInfo ? `${currentPhase.role.name} 단계에서 필요한 핵심 정보가 대체로 모였습니다.` : '',
     reason: enoughInfo ? 'fallback phase advance' : 'fallback continue current phase',
   };
 }
@@ -191,8 +186,8 @@ function buildRoleplayFallback(
     next_speaker: phase === 'final' ? null : roleNames[nextIndex] ?? null,
     speak_direction:
       phase === 'wrapping_up'
-        ? '지금까지의 흐름을 바탕으로 핵심 평가와 최종 의견에 가까운 발언을 해주세요.'
-        : '직전 대화에 자연스럽게 반응하면서, 자신의 관점에서 가장 중요한 질문이나 피드백을 말해주세요.',
+        ? '지금까지의 흐름을 바탕으로 핵심 평가와 마무리 발언에 가까운 내용을 말해 주세요.'
+        : '직전 대화에 자연스럽게 반응하면서 자신의 관점에서 가장 중요한 질문이나 피드백을 이어가 주세요.',
     follow_up_speaker: null,
     follow_up_direction: null,
     user_choices: [],

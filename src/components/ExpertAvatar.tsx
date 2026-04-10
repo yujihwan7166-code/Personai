@@ -93,65 +93,53 @@ const specialistPaletteMap: Record<ExpertColor, {
   icon: string;
 }> = {
   blue: {
-    base: 'bg-sky-50 ring-1 ring-sky-200/80',
-    active: 'bg-sky-100 ring-2 ring-sky-300 shadow-sm scale-105',
-    icon: 'text-sky-700',
+    base: 'bg-slate-100',
+    active: 'bg-slate-200 shadow-md scale-105',
+    icon: 'text-slate-600',
   },
   emerald: {
-    base: 'bg-emerald-50 ring-1 ring-emerald-200/80',
-    active: 'bg-emerald-100 ring-2 ring-emerald-300 shadow-sm scale-105',
-    icon: 'text-emerald-700',
+    base: 'bg-slate-100',
+    active: 'bg-slate-200 shadow-md scale-105',
+    icon: 'text-slate-600',
   },
   red: {
-    base: 'bg-rose-50 ring-1 ring-rose-200/80',
-    active: 'bg-rose-100 ring-2 ring-rose-300 shadow-sm scale-105',
-    icon: 'text-rose-700',
+    base: 'bg-slate-100',
+    active: 'bg-slate-200 shadow-md scale-105',
+    icon: 'text-slate-600',
   },
   amber: {
-    base: 'bg-amber-50 ring-1 ring-amber-200/80',
-    active: 'bg-amber-100 ring-2 ring-amber-300 shadow-sm scale-105',
-    icon: 'text-amber-700',
+    base: 'bg-slate-100',
+    active: 'bg-slate-200 shadow-md scale-105',
+    icon: 'text-slate-600',
   },
   purple: {
-    base: 'bg-violet-50 ring-1 ring-violet-200/80',
-    active: 'bg-violet-100 ring-2 ring-violet-300 shadow-sm scale-105',
-    icon: 'text-violet-700',
+    base: 'bg-slate-100',
+    active: 'bg-slate-200 shadow-md scale-105',
+    icon: 'text-slate-600',
   },
   orange: {
-    base: 'bg-orange-50 ring-1 ring-orange-200/80',
-    active: 'bg-orange-100 ring-2 ring-orange-300 shadow-sm scale-105',
-    icon: 'text-orange-700',
+    base: 'bg-slate-100',
+    active: 'bg-slate-200 shadow-md scale-105',
+    icon: 'text-slate-600',
   },
   teal: {
-    base: 'bg-teal-50 ring-1 ring-teal-200/80',
-    active: 'bg-teal-100 ring-2 ring-teal-300 shadow-sm scale-105',
-    icon: 'text-teal-700',
+    base: 'bg-slate-100',
+    active: 'bg-slate-200 shadow-md scale-105',
+    icon: 'text-slate-600',
   },
   pink: {
-    base: 'bg-pink-50 ring-1 ring-pink-200/80',
-    active: 'bg-pink-100 ring-2 ring-pink-300 shadow-sm scale-105',
-    icon: 'text-pink-700',
+    base: 'bg-slate-100',
+    active: 'bg-slate-200 shadow-md scale-105',
+    icon: 'text-slate-600',
   },
 };
 
 function getCategoryFrame(category: Expert['category']) {
   switch (category) {
     case 'ai':
-      return 'bg-slate-100 ring-1 ring-slate-200/80';
-    case 'specialist':
-      return 'bg-emerald-50 ring-1 ring-emerald-100';
-    case 'occupation':
-      return 'bg-blue-50 ring-1 ring-blue-100';
-    case 'perspective':
-      return 'bg-violet-50 ring-1 ring-violet-100';
-    case 'ideology':
-      return 'bg-amber-50 ring-1 ring-amber-100';
-    case 'celebrity':
-    case 'fictional':
-    case 'mythology':
-      return 'bg-pink-50 ring-1 ring-pink-100';
+      return 'bg-slate-100';
     default:
-      return 'bg-slate-100 ring-1 ring-slate-200/80';
+      return 'bg-slate-100';
   }
 }
 
@@ -180,27 +168,32 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
   const frameClass = getCategoryFrame(expert.category);
   const specialistIcon = specialistIconMap[expert.id];
 
-  if (expert.category === 'specialist' && specialistIcon) {
-    const palette = specialistPaletteMap[expert.color] ?? specialistPaletteMap.blue;
-    const SpecialistIcon = specialistIcon;
-
-    return (
-      <div
-        className={cn(
-          'flex items-center justify-center shrink-0 transition-all duration-200',
-          roundedClass,
-          containerClasses[size],
-          active ? palette.active : palette.base
-        )}
-      >
-        <SpecialistIcon
-          aria-hidden="true"
-          className={cn(specialistIconSizeClasses[size], palette.icon)}
-          strokeWidth={1.9}
-        />
-      </div>
-    );
+  // 전문가 & 직업: Twemoji 렌더링
+  if ((expert.category === 'specialist' || expert.category === 'occupation') && expert.icon) {
+    const twemojiUrl = getTwemojiUrl(expert.icon);
+    if (twemojiUrl) {
+      const palette = specialistPaletteMap[expert.color] ?? specialistPaletteMap.blue;
+      return (
+        <div
+          className={cn(
+            'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+            roundedClass,
+            containerClasses[size],
+            active ? palette.active : palette.base
+          )}
+        >
+          <img
+            src={twemojiUrl}
+            alt={expert.nameKo}
+            className={cn('object-contain', logoSizeClasses[size])}
+            draggable={false}
+          />
+        </div>
+      );
+    }
   }
+
+  const isAncano = expert.id.startsWith('ancano') || expert.id === 'auto-ai';
 
   if (expert.avatarUrl) {
     return (
@@ -209,13 +202,16 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
           'flex items-center justify-center shrink-0 transition-all duration-200',
           roundedClass,
           containerClasses[size],
-          active ? 'bg-white shadow-sm ring-2 ring-slate-300 scale-105' : frameClass
+          active ? 'shadow-md scale-105' : 'bg-transparent'
         )}
       >
         <img
           src={expert.avatarUrl}
           alt={expert.nameKo}
-          className={cn('object-contain', logoSizeClasses[size])}
+          className={cn(
+            'object-contain',
+            isAncano ? 'w-[85%] h-[85%]' : logoSizeClasses[size],
+          )}
           onError={(event) => {
             (event.target as HTMLImageElement).style.display = 'none';
           }}
@@ -234,7 +230,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
             'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
             roundedClass,
             containerClasses[size],
-            active ? 'bg-white shadow-md ring-2 ring-violet-200 scale-105' : frameClass
+            active ? 'bg-white shadow-md scale-105' : frameClass
           )}
         >
           <img
@@ -258,7 +254,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
             'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
             roundedClass,
             containerClasses[size],
-            active ? 'bg-white shadow-md ring-2 ring-amber-200 scale-105' : frameClass
+            active ? 'bg-white shadow-md scale-105' : frameClass
           )}
         >
           <img
@@ -283,7 +279,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
           'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
           roundedClass,
           containerClasses[size],
-          active ? 'bg-white shadow-md ring-2 ring-slate-300 scale-105' : frameClass
+          active ? 'bg-white shadow-md scale-105' : frameClass
         )}
       >
         {expert.icon}
@@ -302,7 +298,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
         'flex items-center justify-center shrink-0 select-none font-semibold text-slate-500 transition-all duration-200',
         roundedClass,
         containerClasses[size],
-        active ? 'bg-white shadow-sm ring-2 ring-slate-300 scale-105' : frameClass
+        active ? 'bg-white shadow-md scale-105' : frameClass
       )}
     >
       {initials}
