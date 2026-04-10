@@ -7,7 +7,6 @@ import {
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
   DEBATE_SUB_MODE_LABELS, getMainMode, DebateSettings,
   THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
-  ASSISTANT_CARDS, AssistantCard,
   GAME_CARDS, GameCard,
   SimulationScenario, SIMULATION_SCENARIOS,
   StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS,
@@ -22,6 +21,7 @@ import { AivsBattleConfigModal } from './AivsBattleConfigModal';
 import { PremiumDomainLanding } from './PremiumDomainLanding';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
+import { AssistantCardsPanel } from './AssistantCardsPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import type { AttachedFile } from '@/lib/fileProcessor';
@@ -76,6 +76,9 @@ interface Props {
   hasAivsBattleStarted?: boolean;
   onStartAivsBattle?: (draft: AivsBattleDraft) => void;
   onResetAivsBattle?: () => void;
+  selectedAssistantCardId?: string | null;
+  onAssistantCardChange?: (cardId: string | null) => void;
+  onAssistantSubmit?: (cardId: string, question: string) => void;
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant', 'player'];
@@ -1559,111 +1562,6 @@ function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onS
   );
 }
 
-// ── Assistant Cards Panel ──
-function AssistantCardsPanel({ onSubmit, isDiscussing }: {
-  onSubmit: SubmitDiscussion;
-  isDiscussing: boolean;
-}) {
-  const [selectedCard, setSelectedCard] = useState<AssistantCard | null>(null);
-  const [question, setQuestion] = useState('');
-
-  const categoryColors: Record<string, string> = {
-    study: 'bg-blue-50 text-blue-600',
-    document: 'bg-emerald-50 text-emerald-600',
-    creative: 'bg-orange-50 text-orange-600',
-    productivity: 'bg-purple-50 text-purple-600',
-    analysis: 'bg-pink-50 text-pink-600',
-  };
-
-  const categoryLabels: Record<string, string> = {
-    study: '학습',
-    document: '문서',
-    creative: '창작',
-    productivity: '생산성',
-    analysis: '분석',
-  };
-
-  return (
-    <div className="space-y-5">
-      {/* Cards grid — 4 per row, clean compact design */}
-      <div className="grid grid-cols-4 gap-2.5">
-        {ASSISTANT_CARDS.map(card => {
-          const isSelected = selectedCard?.id === card.id;
-          return (
-            <button
-              key={card.id}
-              onClick={() => { setSelectedCard(isSelected ? null : card); setQuestion(''); }}
-              className={cn(
-                'relative text-left rounded-xl border transition-all duration-200 overflow-hidden group',
-                isSelected
-                  ? 'border-slate-700 bg-slate-900 shadow-lg ring-1 ring-slate-600'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-              )}
-            >
-              {/* Top accent */}
-              <div className={cn('h-0.5', isSelected ? 'bg-gradient-to-r from-blue-400 to-purple-400' : `bg-gradient-to-r ${card.gradient}`)} />
-
-              <div className="p-3">
-                {/* Category */}
-                <div className={cn('inline-flex text-[7px] font-bold px-1.5 py-0.5 rounded-full mb-2', isSelected ? 'bg-white/10 text-slate-400' : categoryColors[card.category])}>
-                  {categoryLabels[card.category]}
-                </div>
-
-                {/* Icon */}
-                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-base mb-2', isSelected ? 'bg-white/10' : `bg-gradient-to-br ${card.gradient}`)}>
-                  {card.icon}
-                </div>
-
-                {/* Title */}
-                <h3 className={cn('text-[11px] font-bold leading-tight', isSelected ? 'text-white' : 'text-slate-800')}>{card.name}</h3>
-                <p className={cn('text-[9px] mt-0.5 leading-snug line-clamp-2', isSelected ? 'text-slate-400' : 'text-slate-500')}>{card.description}</p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Input area */}
-      {selectedCard && (
-        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className={cn('px-4 py-3 border-b border-slate-100 flex items-center gap-3 bg-gradient-to-r', selectedCard.gradient, 'bg-opacity-30')}>
-            <div className="w-9 h-9 rounded-lg bg-white/80 flex items-center justify-center text-lg shadow-sm">
-              {selectedCard.icon}
-            </div>
-            <div>
-              <p className="text-[12px] font-bold text-slate-800">{selectedCard.name}</p>
-              <div className="flex gap-1 mt-0.5">
-                {selectedCard.features.map((f, i) => (
-                  <span key={i} className="text-[8px] bg-white/60 text-slate-600 px-1.5 py-0.5 rounded-full border border-slate-200/50">{f}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="p-4">
-            <div className="flex gap-2">
-              <input
-                value={question}
-                onChange={e => setQuestion(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && question.trim()) onSubmit(question); }}
-                placeholder={selectedCard.placeholder}
-                disabled={isDiscussing}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-[12px] outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-all bg-slate-50/50"
-              />
-              <button
-                onClick={() => question.trim() && onSubmit(question)}
-                disabled={!question.trim() || isDiscussing}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[12px] font-semibold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                시작 <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── 툴팁 능력치 섹션 (레이더 + 바) ──
 const TIP_BAR_COLORS: Record<string, string> = {
   blue: 'bg-blue-400', emerald: 'bg-emerald-400', red: 'bg-red-400', amber: 'bg-amber-400',
@@ -1720,6 +1618,9 @@ export function ExpertSelectionPanel({
   hasAivsBattleStarted,
   onStartAivsBattle,
   onResetAivsBattle,
+  selectedAssistantCardId,
+  onAssistantCardChange,
+  onAssistantSubmit,
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
@@ -2307,7 +2208,12 @@ export function ExpertSelectionPanel({
 
       {/* ── Assistant Mode ── */}
       {mainMode === 'assistant' && (
-        <AssistantCardsPanel onSubmit={onSubmit} isDiscussing={isDiscussing} />
+        <AssistantCardsPanel
+          selectedCardId={selectedAssistantCardId}
+          onSelectCard={(cardId) => onAssistantCardChange?.(cardId)}
+          onSubmitAssistant={(cardId, question) => onAssistantSubmit?.(cardId, question)}
+          isDiscussing={isDiscussing}
+        />
       )}
 
       {/* ── Player Mode (Game Lobby) ── */}

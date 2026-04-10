@@ -1,12 +1,10 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
-import { applyExpertOverrides } from '@/data/expertOverrides';
+import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 // RightMemoSidebar removed
-import { DiscussionRecord, upsertDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
 import type { AttachedFile } from '@/lib/fileProcessor';
@@ -26,6 +24,10 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import { useAssistantSelectionState } from '@/hooks/useAssistantSelectionState';
+import { useAssistantRun } from '@/hooks/useAssistantRun';
+import { useDiscussionHistoryPersistence } from '@/hooks/useDiscussionHistoryPersistence';
+import { usePersistedExpertState } from '@/hooks/usePersistedExpertState';
 
 const CHAT_URL = '/api/chat';
 const GENERAL_IMAGE_URL = '/api/general-image';
@@ -277,20 +279,40 @@ function pickGeneralImageExpert(currentExpert: Expert | undefined, experts: Expe
   return candidates[0];
 }
 
+type PreSearchContext = { query: string; sources: { title: string; link: string }[]; formatted: string } | null;
+
+async function fetchSearchContext(question: string): Promise<PreSearchContext> {
+  try {
+    const resp = await fetch('/api/search-context', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.searchContext || null;
+  } catch {
+    return null;
+  }
+}
+
 async function streamExpert({
-  question, expert, previousResponses, round, onDelta, onDone, signal, files
-
-
-
-
-
-
-}: {question: string;expert: Expert;previousResponses: {name: string;content: string;}[];round: DiscussionRound | 'summary';onDelta: (text: string) => void;onDone: () => void;signal?: AbortSignal;files?: {name: string; mimeType: string; base64: string; extractedText?: string}[];}) {
+  question,
+  expert,
+  previousResponses,
+  round,
+  onDelta,
+  onDone,
+  signal,
+  files,
+  onSearchSources,
+  preSearchContext,
+}: {question: string;expert: Expert;previousResponses: {name: string;content: string;}[];round: DiscussionRound | 'summary';onDelta: (text: string) => void;onDone: () => void;signal?: AbortSignal;files?: {name: string; mimeType: string; base64: string; extractedText?: string}[];onSearchSources?: (sources: {query: string; sources: {title: string; link: string}[]}) => void;preSearchContext?: {query: string; sources: {title: string; link: string}[]; formatted: string} | null;}) {
   const basePrompt = await getExpertPrompt(expert);
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + QUALITY_GUARDRAIL + basePrompt, question, previousResponses, files: files && files.length > 0 ? files : undefined, openrouterModel: expert.openrouterModel }),
+    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + QUALITY_GUARDRAIL + basePrompt, question, previousResponses, files: files && files.length > 0 ? files : undefined, openrouterModel: expert.openrouterModel, ...(preSearchContext !== undefined ? { preSearchContext } : {}) }),
     signal
   });
 
@@ -309,6 +331,7 @@ async function streamExpert({
   const decoder = new TextDecoder();
   let textBuffer = '';
   let streamDone = false;
+  let currentEvent = 'message';
 
   while (!streamDone) {
     const { done, value } = await reader.read();
@@ -319,11 +342,18 @@ async function streamExpert({
       let line = textBuffer.slice(0, newlineIndex);
       textBuffer = textBuffer.slice(newlineIndex + 1);
       if (line.endsWith('\r')) line = line.slice(0, -1);
-      if (line.startsWith(':') || line.trim() === '') continue;
+      if (line.trim() === '') { currentEvent = 'message'; continue; }
+      if (line.startsWith(':')) continue;
+      if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
       if (!line.startsWith('data: ')) continue;
       const jsonStr = line.slice(6).trim();
       if (jsonStr === '[DONE]') {streamDone = true;break;}
       try {
+        if (currentEvent === 'search') {
+          const searchData = JSON.parse(jsonStr);
+          if (onSearchSources) onSearchSources(searchData);
+          continue;
+        }
         const parsed = JSON.parse(jsonStr);
         const content = parsed.choices?.[0]?.delta?.content as string | undefined;
         if (content) onDelta(content);
@@ -338,35 +368,8 @@ async function streamExpert({
 
 const Index = () => {
   const { user } = useAuth();
-  const [experts, setExperts] = useState<Expert[]>(() => {
-    try {
-      const saved = localStorage.getItem('ai-debate-experts-v65');
-      if (saved) {
-        const parsed = JSON.parse(saved) as Expert[];
-        // Merge: keep saved customizations but add any new default experts
-        const savedMap = new Map(parsed.map((e) => [e.id, e]));
-        // Merge saved customizations with defaults, following DEFAULT_EXPERTS order
-        const merged = DEFAULT_EXPERTS.map((def) => {
-          const saved = savedMap.get(def.id);
-          if (!saved) return def;
-          return { ...saved, name: def.name || saved.name, nameKo: def.nameKo || saved.nameKo, openrouterModel: def.openrouterModel || saved.openrouterModel, category: saved.category || 'ai', icon: saved.icon || def.icon || '', avatarUrl: def.avatarUrl || saved.avatarUrl, quote: def.quote || saved.quote, description: def.description || saved.description, sampleQuestions: def.sampleQuestions || saved.sampleQuestions, abilities: def.abilities || saved.abilities };
-        });
-        // Append any user-created custom experts not in DEFAULT_EXPERTS
-        const defaultIds = new Set(DEFAULT_EXPERTS.map((e) => e.id));
-        const customExperts = parsed.filter((e) => !defaultIds.has(e.id));
-        return applyExpertOverrides([...merged, ...customExperts]);
-      }
-      return applyExpertOverrides(DEFAULT_EXPERTS);
-    } catch {return applyExpertOverrides(DEFAULT_EXPERTS);}
-  });
-  const [selectedExpertIds, setSelectedExpertIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('ai-debate-selected-v5');
-      const parsed = saved ? JSON.parse(saved) : ['gpt'];
-      // 단일 AI 모드 기본이므로 1개만 유지
-      return Array.isArray(parsed) && parsed.length > 0 ? [parsed[0]] : ['gpt'];
-    } catch {return ['gpt'];}
-  });
+  const { experts, setExperts, selectedExpertIds, setSelectedExpertIds } = usePersistedExpertState();
+  const { selectedAssistantCardId, selectedAssistantCardRef, setSelectedAssistantCard } = useAssistantSelectionState();
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
@@ -406,6 +409,13 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingFilesRef = useRef<AttachedFile[]>([]);
 
+  const { runAssistant } = useAssistantRun({
+    streamExpert,
+    setMessages,
+    setActiveExpertId,
+    loadPptGenerator,
+  });
+
   const logUsageEvent = useCallback(async ({
     mode,
     premiumDomain,
@@ -431,18 +441,6 @@ const Index = () => {
       console.warn('[usage] failed to record usage event', error);
     }
   }, [user?.id]);
-
-  useEffect(() => {
-    localStorage.setItem('ai-debate-experts-v65', JSON.stringify(applyExpertOverrides(experts)));
-  }, [experts]);
-
-  useEffect(() => {
-    setSelectedExpertIds((prev) => prev.filter((id) => experts.some((e) => e.id === id)));
-  }, [experts]);
-
-  useEffect(() => {
-    localStorage.setItem('ai-debate-selected-v5', JSON.stringify(selectedExpertIds));
-  }, [selectedExpertIds]);
 
   const userScrolledUpRef = useRef(false);
   // 자동 스크롤: 유저가 위로 스크롤하지 않았을 때만 + 새 메시지 추가 시에만 (스트리밍 중 매 토큰 스크롤 방지)
@@ -996,36 +994,6 @@ const Index = () => {
     setSimChoices([]);
   };
 
-  // 브라우저 닫기/새로고침 시 자동 저장
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (messages.length > 0 && (sessionTitleRef.current || currentQuestion)) {
-        upsertDiscussionHistory(sessionIdRef.current, {
-          question: sessionTitleRef.current || currentQuestion,
-          mode: discussionMode,
-          messages: messages.map(m => ({ ...m, isStreaming: false })),
-          expertIds: selectedExpertIds,
-          proconStances,
-        });
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [messages, currentQuestion, discussionMode, selectedExpertIds]);
-
-  // 현재 대화 자동 저장 (나가기 전)
-  const autoSaveCurrentChat = useCallback(() => {
-    if (messages.length > 0 && (sessionTitleRef.current || currentQuestion)) {
-      upsertDiscussionHistory(sessionIdRef.current, {
-        question: sessionTitleRef.current || currentQuestion,
-        mode: discussionMode,
-        messages: messages.map(m => ({ ...m, isStreaming: false })),
-        expertIds: selectedExpertIds,
-        proconStances,
-      });
-    }
-  }, [messages, currentQuestion, discussionMode, selectedExpertIds]);
-
   const handleNewDiscussion = () => {
     autoSaveCurrentChat();
     // 진행 중이면 중단
@@ -1187,7 +1155,7 @@ ${role.focus} 관점에서 반응하세요.
         ? ['gpt']
       : (overrideExpertIds || selectedExpertIds);
     const discussionExperts = experts.filter((e) => useIds.includes(e.id));
-    if (discussionExperts.length < 1 && useMode !== 'stakeholder' && useMode !== 'aivsuser') return;
+    if (discussionExperts.length < 1 && useMode !== 'stakeholder' && useMode !== 'aivsuser' && useMode !== 'assistant') return;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -1561,6 +1529,7 @@ ${difficultyDesc}
             onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
             signal: controller.signal,
             files: filesToSend,
+            onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
@@ -1612,6 +1581,9 @@ ${difficultyDesc}
         setChatClarify(null);
       }
 
+      // 검색 1회 실행 후 결과 공유
+      const multiSearchCtx = await fetchSearchContext(question);
+
       setMessages((prev) => [...prev, { id: `round-sep-multi-${Date.now()}`, expertId: '__round__', content: '다중 AI 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
       for (const expert of shuffled) {
@@ -1629,6 +1601,8 @@ ${difficultyDesc}
             onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
             signal: controller.signal,
             files: filesToSend,
+            preSearchContext: multiSearchCtx,
+            onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
@@ -1664,6 +1638,8 @@ ${difficultyDesc}
         : debateSettings.rounds === 4
         ? [{ round: 'initial' as DiscussionRound, label: '1라운드 · 초기 의견' }, { round: 'rebuttal' as DiscussionRound, label: '2라운드 · 반론' }, { round: 'rebuttal' as DiscussionRound, label: '3라운드 · 심층 반론' }, { round: 'final' as DiscussionRound, label: '4라운드 · 최종 입장' }]
         : [{ round: 'initial' as DiscussionRound, label: ROUND_LABELS.initial }, { round: 'rebuttal' as DiscussionRound, label: ROUND_LABELS.rebuttal }, { round: 'final' as DiscussionRound, label: ROUND_LABELS.final }];
+      // 검색 1회 실행 후 결과 공유
+      const standardSearchCtx = await fetchSearchContext(question);
       for (const { round, label } of roundConfig) {
         if (shouldStop()) break;
         const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
@@ -1675,11 +1651,13 @@ ${difficultyDesc}
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
           let fullContent = '';
           try {
-            await streamExpert({ question, expert: await buildExpertWithPrompt(expert, issueContext + lengthExtra), previousResponses: allResponses, round, mode: 'standard',
+            await streamExpert({ question, expert: await buildExpertWithPrompt(expert, issueContext + lengthExtra), previousResponses: allResponses, round,
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal,
               files: filesToSend,
+              preSearchContext: standardSearchCtx,
+              onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
             });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
@@ -1776,6 +1754,8 @@ ${difficultyDesc}
         `\n근거와 사례를 ${debateSettings.evidenceCount}개 이상 제시하세요.` +
         (debateSettings.allowEmotional ? '\n감정적 호소도 적절히 활용 가능합니다.' : '\n감정적 호소는 자제하고 논리와 근거 중심으로 토론하세요.');
 
+      // 검색 1회 실행 후 결과 공유
+      const proconSearchCtx = await fetchSearchContext(question);
       for (const { label, round, experts: sideExperts, side } of rounds) {
         if (shouldStop()) break;
         setMessages((prev) => [...prev, { id: `round-sep-${label}-${Date.now()}`, expertId: '__round__', content: label, round }]);
@@ -1800,6 +1780,8 @@ ${sideLabel === '찬성' ? '이 명제에 "찬성(동의)"하는 입장에서만
               onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
               signal: controller.signal,
               files: filesToSend,
+              preSearchContext: proconSearchCtx,
+              onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
             });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
@@ -1844,6 +1826,8 @@ ${sideLabel === '찬성' ? '이 명제에 "찬성(동의)"하는 입장에서만
         balanced: '현실적 아이디어와 혁신적 아이디어를 균형있게 제시하세요.',
         radical: '파격적이고 급진적인 아이디어를 과감하게 제시하세요. 기존 틀을 완전히 깨세요.',
       };
+      // 검색 1회 실행 후 결과 공유
+      const brainstormSearchCtx = await fetchSearchContext(question);
       const fw = selectedFramework || THINKING_FRAMEWORKS.find(f => f.id === 'free')!;
       const fwRounds = fw.rounds;
       const roundMap: DiscussionRound[] = ['initial', 'rebuttal', 'final', 'rebuttal', 'final', 'rebuttal'];
@@ -1897,6 +1881,7 @@ ${sideLabel === '찬성' ? '이 명제에 "찬성(동의)"하는 입장에서만
                 onDone: () => {},
                 signal: controller.signal,
                 files: filesToSend,
+                preSearchContext: brainstormSearchCtx,
               });
             } catch (err) {
               if ((err as Error).name === 'AbortError') break;
@@ -2045,6 +2030,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
                 },
                 signal: controller.signal,
                 files: filesToSend,
+                preSearchContext: brainstormSearchCtx,
               });
             } catch (err) {
               if ((err as Error).name === 'AbortError') break;
@@ -2097,6 +2083,8 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           ? [hearingPhases[0], hearingPhases[1], hearingPhases[3]]
           : hearingPhases;
 
+      // 검색 1회 실행 후 결과 공유
+      const hearingSearchCtx = await fetchSearchContext(question);
       for (const phase of activeHearingPhases) {
         if (shouldStop()) break;
         const roundExperts = [...discussionExperts].sort(() => Math.random() - 0.5);
@@ -2117,6 +2105,8 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
               onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
               signal: controller.signal,
               files: filesToSend,
+              preSearchContext: hearingSearchCtx,
+              onSearchSources: (data) => {setMessages(prev => prev.map(m => m.id === msgId ? { ...m, searchSources: data } : m));},
             });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
@@ -2199,6 +2189,9 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
 - "~할 수 있다고 봐요"를 2회 이상 연속 사용 금지. 다른 종결어미를 쓰세요.`;
       };
 
+      // 검색 1회 실행 후 결과 공유
+      const freetalkSearchCtx = await fetchSearchContext(question);
+
       while (msgCount < maxMessages && !shouldStop()) {
         for (const expert of discussionExperts) {
           if (shouldStop() || msgCount >= maxMessages) break;
@@ -2234,6 +2227,7 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
               },
               signal: controller.signal,
               files: filesToSend,
+              preSearchContext: freetalkSearchCtx,
             });
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
@@ -2431,46 +2425,19 @@ ${infoInstruction}
       setActiveExpertId(undefined);
       return;
     } else if (useMode === 'assistant') {
-      // Assistant mode
-      const expert = discussionExperts[0];
-      if (expert) {
-        // PPT 어시스턴트인 경우 프롬프트 오버라이드
-        const isPpt = expert.id === 'ppt' || expert.name?.toLowerCase().includes('ppt');
-        const pptTools = isPpt ? await loadPptGenerator() : null;
-        const effectiveExpert = isPpt ? { ...expert, systemPrompt: pptTools?.PPT_SYSTEM_PROMPT } : expert;
-
-        setActiveExpertId(expert.id);
-        const msgId = `${expert.id}-assistant-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
-        let fullContent = '';
-        try {
-          await streamExpert({
-            question, expert: effectiveExpert,
-            previousResponses: [],
-            round: 'initial',
-            onDelta: (chunk) => { fullContent += chunk; setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => {
-              setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));
-              // PPT인 경우 JSON 파싱 시도 → 다운로드 버튼 메시지 추가
-              if (pptTools) {
-                const pptData = pptTools.parsePptJson(fullContent);
-                if (pptData) {
-                  const btnId = `ppt-download-${Date.now()}`;
-                  setMessages((prev) => [...prev, {
-                    id: btnId,
-                    expertId: '__ppt_download__',
-                    content: JSON.stringify(pptData),
-                  }]);
-                }
-              }
-            },
-            signal: controller.signal,
-          });
-        } catch (err) {
-          if ((err as Error).name !== 'AbortError') {
-            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`, isStreaming: false } : m));
-          }
-        }
+      const assistantCard = findAssistantCardById(selectedAssistantCardRef.current);
+      if (!assistantCard) {
+        setMessages([{
+          id: `assistant-select-${Date.now()}`,
+          expertId: '__round__',
+          content: '⚠️ 먼저 사용할 어시스턴트를 선택해주세요.',
+        }]);
+      } else if (assistantCard.runtime === 'chat') {
+        await runAssistant({
+          question,
+          card: assistantCard,
+          signal: controller.signal,
+        });
       }
       setActiveExpertId(undefined);
       setIsDiscussing(false);
@@ -2553,7 +2520,7 @@ Rules:
     setActiveExpertId(undefined);
     setIsDiscussing(false);
     setStopRequested(false);
-  }, [experts, selectedExpertIds, discussionMode, debateSettings, stakeholderSettings, activeAivsBattleConfig, selectedFramework]);
+  }, [experts, selectedExpertIds, discussionMode, debateSettings, stakeholderSettings, activeAivsBattleConfig, selectedFramework, runAssistant]);
 
   const runDiscussionWithUsage = useCallback(async (
     question: string,
@@ -2563,6 +2530,10 @@ Rules:
   ) => {
     const useMode = overrideMode || discussionMode;
     const useIds = overrideExpertIds || selectedExpertIds;
+    const assistantCardId = useMode === 'assistant' ? selectedAssistantCardRef.current ?? undefined : undefined;
+    const expertCount = useMode === 'assistant'
+      ? (assistantCardId ? 1 : 0)
+      : useIds.length;
 
     try {
       await runDiscussion(question, overrideExpertIds, overrideMode, displayQuestion);
@@ -2570,9 +2541,10 @@ Rules:
         mode: useMode,
         status: 'success',
         metadata: {
-          expertCount: useIds.length,
+          expertCount,
           questionLength: question.length,
           mainMode: getMainMode(useMode),
+          assistantCardId,
         },
       });
     } catch (error) {
@@ -2581,15 +2553,21 @@ Rules:
         mode: useMode,
         status: 'error',
         metadata: {
-          expertCount: useIds.length,
+          expertCount,
           questionLength: question.length,
           mainMode: getMainMode(useMode),
+          assistantCardId,
           error: errorMessage,
         },
       });
       throw error;
     }
   }, [discussionMode, logUsageEvent, runDiscussion, selectedExpertIds]);
+
+  const handleAssistantSubmit = useCallback((cardId: string, question: string) => {
+    setSelectedAssistantCard(cardId);
+    void runDiscussionWithUsage(question, undefined, 'assistant');
+  }, [runDiscussionWithUsage, setSelectedAssistantCard]);
 
   // Topic clarification — 토론 모드에서 주제 확인 UI 표시
   const clarifyTopic = useCallback((input: string, mode: DiscussionMode) => {
@@ -2653,35 +2631,7 @@ Rules:
     startDiscussion(question, overrideExpertIds, overrideMode);
   }, [startDiscussion]);
 
-  // Save to history when discussion completes — upsert로 중복 방지
-  useEffect(() => {
-    if (!isDiscussing && messages.length > 0 && currentQuestion) {
-      upsertDiscussionHistory(sessionIdRef.current, {
-        question: sessionTitleRef.current || currentQuestion, mode: discussionMode,
-        messages: messages.map((m) => ({ ...m, isStreaming: false })),
-        expertIds: selectedExpertIds,
-        proconStances
-      });
-    }
-  }, [isDiscussing]);
-
-  const loadHistory = useCallback((record: DiscussionRecord) => {
-    autoSaveCurrentChat();
-    if (isDiscussing) { abortControllerRef.current?.abort(); }
-    setCurrentQuestion(record.question);
-    setMessages(record.messages);
-    setDiscussionMode(record.mode);
-    setSelectedExpertIds(record.expertIds || []);
-    setProconStances(record.proconStances || {});
-    setIsDiscussing(false);
-    setActiveExpertId(undefined);
-    sessionIdRef.current = record.id;
-    sessionTitleRef.current = record.question;
-    summaryCountRef.current = 0;
-    skipClarifyRef.current = true;
-  }, [autoSaveCurrentChat, isDiscussing]);
-
-  const allExperts = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
+  const allExperts = [...experts, ...ASSISTANT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
   const isDone = messages.length > 0 && !isDiscussing;
   const selectable = !isDiscussing && messages.length === 0;
 
@@ -2918,6 +2868,30 @@ ${conversationText}`;
   const clarifyAttemptsRef = useRef(0);
   const sessionIdRef = useRef<string>(`hist-${Date.now()}`);
   const sessionTitleRef = useRef<string>('');
+  const { autoSaveCurrentChat, loadHistory } = useDiscussionHistoryPersistence({
+    messages,
+    currentQuestion,
+    discussionMode,
+    selectedExpertIds,
+    selectedAssistantCardId,
+    proconStances,
+    isDiscussing,
+    sessionIdRef,
+    sessionTitleRef,
+    summaryCountRef,
+    skipClarifyRef,
+    setCurrentQuestion,
+    setMessages,
+    setDiscussionMode,
+    setSelectedExpertIds,
+    setSelectedAssistantCard,
+    setProconStances,
+    setIsDiscussing,
+    setActiveExpertId,
+    abortCurrentDiscussion: () => {
+      abortControllerRef.current?.abort();
+    },
+  });
   const MAX_CLARIFY_ATTEMPTS = 1;
   const [chatClarify, setChatClarify] = useState<{
     show: boolean;
@@ -4710,6 +4684,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     onStakeholderSettingsChange={setStakeholderSettings}
                     onSelectPremiumDomain={handleSelectPremiumDomain}
                     selectedPremiumDomain={selectedPremiumDomain}
+                    selectedAssistantCardId={selectedAssistantCardId}
+                    onAssistantCardChange={setSelectedAssistantCard}
+                    onAssistantSubmit={handleAssistantSubmit}
                   />
                 </Suspense>
               )}

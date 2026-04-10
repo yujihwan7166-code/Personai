@@ -74,6 +74,22 @@ describe('discussionHistoryStore', () => {
     });
   });
 
+  it('preserves assistant card metadata when saving and loading history', () => {
+    saveDiscussionToHistory(createRecord({
+      mode: 'assistant',
+      expertIds: [],
+      assistantCardId: 'summary',
+    }));
+
+    const history = getDiscussionHistory();
+
+    expect(history[0]).toMatchObject({
+      mode: 'assistant',
+      assistantCardId: 'summary',
+      expertIds: [],
+    });
+  });
+
   it('deletes a record by id and ignores malformed persisted data', () => {
     localStorage.setItem('ai-debate-history-v1', JSON.stringify([
       {

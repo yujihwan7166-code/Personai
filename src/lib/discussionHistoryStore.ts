@@ -7,6 +7,7 @@ export interface DiscussionRecord {
   messages: DiscussionMessage[];
   expertIds: string[];
   timestamp: number;
+  assistantCardId?: string;
   proconStances?: Record<string, 'pro' | 'con'>;
   premiumDomain?: PremiumDomainId;
   premiumCitations?: ApiSourceCitation[];
@@ -117,6 +118,7 @@ function normalizeRecord(record: unknown): DiscussionRecord | null {
     messages,
     expertIds: record.expertIds,
     timestamp: record.timestamp,
+    assistantCardId: typeof record.assistantCardId === 'string' ? record.assistantCardId : undefined,
     proconStances,
     premiumDomain: typeof record.premiumDomain === 'string' ? record.premiumDomain as PremiumDomainId : undefined,
     premiumCitations: Array.isArray(record.premiumCitations) ? record.premiumCitations as ApiSourceCitation[] : undefined,

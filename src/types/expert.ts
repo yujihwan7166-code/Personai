@@ -500,7 +500,22 @@ export interface DiscussionMessage {
     simRoleName?: string;  // 시뮬레이션 역할명 (예: "VC 파트너")
     simRoleIcon?: string;  // 시뮬레이션 역할 아이콘
     citations?: ApiSourceCitation[];  // 프리미엄 자문 인용 출처
+    searchSources?: { query: string; sources: { title: string; link: string }[] };  // 웹 검색 출처
 }
+
+export type {
+    AssistantAgentKind,
+    AssistantCard,
+    AssistantCardCategory,
+    AssistantOutputStyle,
+    AssistantRuntime,
+} from '@/types/assistant';
+export {
+    ASSISTANT_CARDS,
+    ASSISTANT_EXPERTS,
+    buildAssistantExpert,
+    findAssistantCardById,
+} from '@/types/assistant';
 
 // ══════════════════════════════════════════
 // ── Premium Domain (프리미엄 AI 자문관) ──
@@ -780,160 +795,6 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
             { id: 'analysis', role: '권리 분석', icon: '⚖️', description: '임금·해고·산재 분석' },
             { id: 'strategy', role: '대응 전략', icon: '🎯', description: '진정·소송 방안 제시' },
         ],
-    },
-];
-
-// ══════════════════════════════════════════
-// ── Assistant Cards (어시스턴트) ──
-// ══════════════════════════════════════════
-
-export interface AssistantCard {
-    id: string;
-    name: string;
-    icon: string;
-    description: string;
-    color: string;
-    gradient: string;
-    category: 'study' | 'document' | 'creative' | 'productivity' | 'analysis';
-    features: string[];
-    placeholder: string;
-    systemPrompt?: string;
-    quote?: string;
-    sampleQuestions?: string[];
-}
-
-export const ASSISTANT_CARDS: AssistantCard[] = [
-    {
-        id: 'study',
-        name: '공부 어시스턴트',
-        icon: '📚',
-        description: '개념 설명, 퀴즈, 학습 계획 수립',
-        color: 'text-blue-600',
-        gradient: 'from-blue-50 to-indigo-50',
-        category: 'study',
-        features: ['개념 쉽게 설명', '퀴즈 출제', '학습 로드맵', '오답 분석'],
-        placeholder: '무엇을 공부하고 싶으세요?',
-        systemPrompt: `당신은 AI 학습 도우미입니다. 사용자의 학습을 돕기 위해 다양한 기능을 제공합니다.
-
-## 학습 모드
-사용자의 요청에 따라 적절한 모드를 자동 선택하세요:
-
-### 1. 개념 설명 모드
-"~이/가 뭐야?", "~을 설명해줘" 같은 요청 시:
-- **한 줄 정의**: 핵심을 한 문장으로
-- **쉬운 비유**: 초등학생도 이해할 수 있게
-- **상세 설명**: 전문적 설명 (3~5문단)
-- **실생활 예시**: 2~3개
-- **자주 하는 오해**: 흔한 착각 1~2개
-- **관련 개념**: 함께 알면 좋은 것 3~5개
-
-### 2. 퀴즈 모드
-"퀴즈 내줘", "테스트해줘" 같은 요청 시:
-- 객관식 4지선다 5문제 생성
-- 각 문제 아래에 정답과 해설 포함
-- 난이도 표시 (기초/중급/심화)
-
-### 3. 요약 정리 모드
-긴 텍스트를 붙여넣거나 "정리해줘" 요청 시:
-- **핵심 키워드**: 5~10개
-- **한줄 요약**: 전체를 한 문장으로
-- **구조화 요약**: 소주제별 불릿 포인트
-- **시험 출제 포인트**: 시험에 나올 만한 것들
-
-### 4. 암기 도우미 모드
-"외워야 해", "암기법" 요청 시:
-- 두문자어/연상법 제안
-- 플래시카드 형식 (질문-답) 생성
-- 반복 학습 스케줄 제안
-
-## 답변 규칙
-1. 한국어로 답변
-2. 마크다운으로 구조화
-3. 학습자 수준에 맞춤 (초보면 쉽게, 전문가면 깊게)
-4. 예시를 최대한 많이 활용
-5. 같은 표현·문장 패턴을 반복하지 마세요
-6. 이전 답변에서 쓴 표현은 다시 쓰지 말고 매번 새로운 각도로
-
-※ AI 학습 도우미입니다.`,
-        quote: '모르는 건 부끄러운 게 아니야',
-        sampleQuestions: ['광합성 쉽게 설명해줘', '경제학 퀴즈 5문제 내줘', '이 내용 시험용으로 정리해'],
-    },
-    {
-        id: 'document',
-        name: '문서 작성 어시스턴트',
-        icon: '📝',
-        description: '보고서, 이메일, 제안서 등 문서 작성',
-        color: 'text-emerald-600',
-        gradient: 'from-emerald-100 to-green-50',
-        category: 'document',
-        features: ['보고서 작성', '이메일 초안', '제안서 구성', '교정·교열'],
-        placeholder: '어떤 문서를 작성할까요?',
-    },
-    {
-        id: 'ppt',
-        name: 'PPT 어시스턴트',
-        icon: '📊',
-        description: '프레젠테이션 구조 설계 및 슬라이드 내용 생성',
-        color: 'text-orange-600',
-        gradient: 'from-orange-50 to-amber-50',
-        category: 'creative',
-        features: ['슬라이드 구조', '핵심 메시지 도출', '데이터 시각화 제안', '발표 스크립트'],
-        placeholder: '프레젠테이션 주제가 무엇인가요?',
-    },
-    {
-        id: 'translate',
-        name: '번역 어시스턴트',
-        icon: '🌐',
-        description: '자연스러운 다국어 번역 및 로컬라이제이션',
-        color: 'text-teal-600',
-        gradient: 'from-teal-50 to-cyan-50',
-        category: 'productivity',
-        features: ['자연스러운 번역', '전문 용어 처리', '뉘앙스 비교', '로컬라이제이션'],
-        placeholder: '번역할 텍스트를 입력하세요',
-    },
-    {
-        id: 'code',
-        name: '코딩 어시스턴트',
-        icon: '💻',
-        description: '코드 작성, 디버깅, 리팩토링 도우미',
-        color: 'text-purple-600',
-        gradient: 'from-purple-100 to-violet-50',
-        category: 'productivity',
-        features: ['코드 작성', '버그 수정', '코드 리뷰', '설계 상담'],
-        placeholder: '어떤 코드를 작성할까요?',
-    },
-    {
-        id: 'summary',
-        name: '요약 어시스턴트',
-        icon: '📋',
-        description: '긴 글, 논문, 회의록을 핵심만 요약',
-        color: 'text-pink-600',
-        gradient: 'from-pink-50 to-rose-50',
-        category: 'analysis',
-        features: ['핵심 요약', '불릿 포인트 정리', '키워드 추출', '한 줄 요약'],
-        placeholder: '요약할 내용을 붙여넣으세요',
-    },
-    {
-        id: 'writing',
-        name: '글쓰기 어시스턴트',
-        icon: '✍️',
-        description: '블로그, 에세이, 카피라이팅 등 창작 글쓰기',
-        color: 'text-amber-600',
-        gradient: 'from-amber-100 to-yellow-50',
-        category: 'creative',
-        features: ['블로그 글', '카피라이팅', '스토리텔링', '톤 앤 매너 조정'],
-        placeholder: '어떤 글을 쓸까요?',
-    },
-    {
-        id: 'data',
-        name: '데이터 분석 어시스턴트',
-        icon: '📈',
-        description: '데이터 분석, 차트 추천, 인사이트 도출',
-        color: 'text-indigo-600',
-        gradient: 'from-indigo-50 to-blue-50',
-        category: 'analysis',
-        features: ['데이터 해석', '차트 추천', '트렌드 분석', '인사이트 도출'],
-        placeholder: '분석할 데이터를 설명해주세요',
     },
 ];
 
