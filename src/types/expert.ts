@@ -1103,6 +1103,7 @@ const AI_ABILITIES: Record<string, AIAbilityStats> = {
   'gemini-3-flash':   { coding: 90, creativity: 85, reasoning: 90, math: 88, multilingual: 87, speed: 92, costEfficiency: 85, contextWindow: 95 },
   'gemini-3.1':       { coding: 72, creativity: 68, reasoning: 74, math: 70, multilingual: 78, speed: 96, costEfficiency: 95, contextWindow: 80 },
   'gemini-pro':       { coding: 92, creativity: 88, reasoning: 94, math: 92, multilingual: 90, speed: 65, costEfficiency: 50, contextWindow: 95 },
+  'gemini-flash-lite':{ coding: 70, creativity: 68, reasoning: 72, math: 70, multilingual: 80, speed: 95, costEfficiency: 92, contextWindow: 85 },
   'perplexity':       { coding: 70, creativity: 72, reasoning: 78, math: 68, multilingual: 80, speed: 85, costEfficiency: 65, contextWindow: 75 },
   'perplexity-pro':   { coding: 75, creativity: 76, reasoning: 82, math: 72, multilingual: 82, speed: 78, costEfficiency: 55, contextWindow: 80 },
   'grok':             { coding: 85, creativity: 80, reasoning: 86, math: 82, multilingual: 75, speed: 88, costEfficiency: 72, contextWindow: 80 },
@@ -1110,6 +1111,7 @@ const AI_ABILITIES: Record<string, AIAbilityStats> = {
   'deepseek':         { coding: 90, creativity: 78, reasoning: 88, math: 92, multilingual: 82, speed: 80, costEfficiency: 92, contextWindow: 80 },
   'deepseek-r1':      { coding: 88, creativity: 72, reasoning: 94, math: 96, multilingual: 78, speed: 65, costEfficiency: 90, contextWindow: 80 },
   'qwen':             { coding: 82, creativity: 75, reasoning: 80, math: 85, multilingual: 95, speed: 88, costEfficiency: 90, contextWindow: 78 },
+  'qwen-9b':          { coding: 83, creativity: 74, reasoning: 82, math: 90, multilingual: 88, speed: 92, costEfficiency: 96, contextWindow: 72 },
   'qwen-plus':        { coding: 86, creativity: 80, reasoning: 86, math: 88, multilingual: 96, speed: 82, costEfficiency: 82, contextWindow: 82 },
   'qwen-thinking':    { coding: 88, creativity: 76, reasoning: 92, math: 94, multilingual: 92, speed: 62, costEfficiency: 70, contextWindow: 80 },
   'llama-maverick':   { coding: 88, creativity: 82, reasoning: 88, math: 86, multilingual: 84, speed: 75, costEfficiency: 88, contextWindow: 90 },
@@ -1278,6 +1280,12 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: '최고 수준의 분석을 제공합니다.',
     },
     {
+        id: 'gemini-flash-lite', name: 'Gemini 2.5 Flash Lite', nameKo: 'Gemini 2.5 Flash Lite', icon: '🪶', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemini-2.5-flash-lite', description: 'AI 초경량 가성비 모델',
+        quote: '가볍지만 충분히 똑똑하게',
+        sampleQuestions: ['빠르게 요약해줘', '간단한 질문 답해줘', '가볍게 번역해줘'],
+        greeting: '가볍고 효율적인 Gemini Flash Lite입니다!',
+    },
+    {
         id: 'perplexity', name: 'Perplexity Sonar', nameKo: 'Perplexity Sonar', icon: '🔍', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', openrouterModel: 'perplexity/sonar', description: 'AI 검색·리서치 모델',
         quote: '출처 없으면 답이 아니다',
         sampleQuestions: ['최신 뉴스 요약해줘', '출처 포함해서 답변해줘', '학술 자료 찾아줘'],
@@ -1316,6 +1324,12 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         id: 'qwen', name: 'Qwen 3.5 Flash', nameKo: 'Qwen 3.5 Flash', icon: '🌏', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.5-flash-02-23', description: 'AI 고속 다국어 모델',
         quote: '모든 언어가 나의 영역이다',
         sampleQuestions: ['큐웬 중국어 번역 정확해?', '아시아 언어 처리 잘 돼?', '큐웬 오픈소스 장점이 뭐야?'],
+    },
+    {
+        id: 'qwen-9b', name: 'Qwen 3.5 9B', nameKo: 'Qwen 3.5 9B', icon: '🧬', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.5-9b', description: 'AI 소형 고성능 오픈소스 모델',
+        quote: '작지만 거인을 이긴다',
+        sampleQuestions: ['9B 모델인데 성능 괜찮아?', '가성비 좋은 AI 추천해줘', '오픈소스 모델 장점이 뭐야?'],
+        greeting: '작지만 강력한 Qwen 3.5 9B입니다!',
     },
     {
         id: 'qwen-plus', name: 'Qwen 3.6 Plus', nameKo: 'Qwen 3.6 Plus', icon: '🌐', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.6-plus', description: 'AI 상위 다국어 추론 모델',

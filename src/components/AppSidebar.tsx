@@ -5,6 +5,7 @@ import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } f
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { ExpertAvatar } from './ExpertAvatar';
+import { AIAbilityRadar } from './AIAbilityRadar';
 import {
   PanelLeft, House, Bot, Search,
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
@@ -51,6 +52,122 @@ type SidebarSettings = {
 };
 
 const PROJECT_ICONS = ['📁', '💼', '📊', '📚', '🎯', '💡', '🔬', '🎨', '🏠', '✈️', '💰', '🎮', '📝', '🔧', '🌍', '❤️'];
+
+/* ──────────────────────────────────────────────
+   프로젝트 컨텍스트 메뉴 (v2 — 독립 컴포넌트)
+   ────────────────────────────────────────────── */
+function ProjectContextMenu({ projectMenuId, menuPos, projects, onRename, onIconChange, onDelete, onClose }: {
+  projectMenuId: string | null;
+  menuPos: { top: number; left: number };
+  projects: { id: string; name: string; icon?: string }[];
+  onRename: (id: string, name: string) => void;
+  onIconChange: (id: string) => void;
+  onDelete: (id: string) => void;
+  onClose: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!projectMenuId) return;
+    const handle = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    // 다음 틱에서 리스너 등록 (메뉴 열기 클릭이 바로 닫히지 않도록)
+    const timer = setTimeout(() => document.addEventListener('mousedown', handle), 0);
+    return () => { clearTimeout(timer); document.removeEventListener('mousedown', handle); };
+  }, [projectMenuId, onClose]);
+
+  if (!projectMenuId) return null;
+  const proj = projects.find(p => p.id === projectMenuId);
+  if (!proj) return null;
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      className="fixed w-40 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg z-[9999] animate-in fade-in zoom-in-95 duration-150"
+      style={{ top: menuPos.top, left: menuPos.left }}
+    >
+      <button
+        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onRename(proj.id, proj.name); }}
+        className="w-full px-3 py-1.5 text-left text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+      >
+        <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
+      </button>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onIconChange(proj.id); }}
+        className="w-full px-3 py-1.5 text-left text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+      >
+        <span className="w-3.5 h-3.5 flex items-center justify-center text-[10px]">{proj.icon || '📁'}</span> 아이콘 변경
+      </button>
+      <div className="my-0.5 border-t border-slate-100 dark:border-slate-700" />
+      <button
+        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(proj.id); }}
+        className="w-full px-3 py-1.5 text-left text-[11px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
+      >
+        <Trash2 className="w-3.5 h-3.5" /> 삭제
+      </button>
+    </div>,
+    document.body
+  );
+}
+
+function ProjectDeleteModal({ projectId, projects, onConfirm, onCancel }: {
+  projectId: string | null;
+  projects: { id: string; name: string; icon?: string }[];
+  onConfirm: (id: string) => void;
+  onCancel: () => void;
+}) {
+  if (!projectId) return null;
+  const project = projects.find(p => p.id === projectId);
+  if (!project) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/20" onClick={onCancel} />
+      <div className="relative w-72 p-5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1">프로젝트를 삭제할까요?</p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-4 truncate">{project.icon || '📁'} {project.name}</p>
+        <div className="flex gap-2 justify-end">
+          <button onClick={onCancel} className="px-3.5 py-1.5 text-[11px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
+          <button onClick={() => onConfirm(projectId)} className="px-3.5 py-1.5 text-[11px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function ProjectIconPickerModal({ projectId, projects, onSelect, onClose }: {
+  projectId: string | null;
+  projects: { id: string; name: string; icon?: string }[];
+  onSelect: (projId: string, icon: string) => void;
+  onClose: () => void;
+}) {
+  if (!projectId) return null;
+  const proj = projects.find(p => p.id === projectId);
+  if (!proj) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+      <div className="relative w-64 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-3">{proj.name} 아이콘 선택</p>
+        <div className="flex flex-wrap gap-1.5">
+          {PROJECT_ICONS.map(icon => (
+            <button key={icon} onClick={() => onSelect(proj.id, icon)}
+              className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-[17px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors",
+                (proj.icon || '📁') === icon && 'bg-slate-100 dark:bg-slate-700 ring-2 ring-blue-400')}>
+              {icon}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 const PROJECTS_KEY = 'ai-projects';
 const PROJECT_MAP_KEY = 'ai-project-map';
@@ -211,7 +328,7 @@ export function AppSidebar({
 
   // Bot browser modal state
   const [showBotBrowser, setShowBotBrowser] = useState(false);
-  const [botBrowserCat, setBotBrowserCat] = useState('인기');
+  const [botBrowserCat, setBotBrowserCat] = useState('전체');
   const [botMoreOpen, setBotMoreOpen] = useState(false);
   const [selectedBotProfile, setSelectedBotProfile] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -756,7 +873,7 @@ export function AppSidebar({
         <nav className={cn("shrink-0 space-y-0.5", isOpen ? 'px-2' : 'px-1')}>
           {[
             { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
-            { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('인기'); setShowBotBrowser(true); } },
+            { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
             { icon: Search, label: '검색', onClick: () => { setSearchModalOpen(true); setModalSearchQuery(''); }, active: searchModalOpen },
           ].map(item => (
             <button
@@ -888,17 +1005,40 @@ export function AppSidebar({
                       {historyRecords.filter(r => projectMap[r.id] === project.id).map(r => {
                         const expert = experts.find(e => r.expertIds?.includes(e.id));
                         return (
-                          <button
+                          <div
                             key={r.id}
-                            onClick={e => { e.stopPropagation(); handleLoadHistory(r); }}
                             className={cn(
-                              "w-full px-2 py-1 rounded-md flex items-center gap-2 text-left transition-colors",
+                              "w-full px-2 py-1 rounded-md flex items-center gap-2 text-left transition-colors cursor-pointer group/conv",
                               activeRecordId === r.id ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                             )}
+                            onClick={e => { e.stopPropagation(); handleLoadHistory(r); }}
                           >
-                            <span className="text-[10px] shrink-0">{expert?.icon || '💬'}</span>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{r.question}</span>
-                          </button>
+                            {expert ? (
+                              <ExpertAvatar expert={expert} size="xs" />
+                            ) : (
+                              <span className="text-[10px] shrink-0">💬</span>
+                            )}
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex-1">{r.question}</span>
+                            {/* 점 세 개 메뉴 */}
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                if (menuOpenId === r.id) { setMenuOpenId(null); return; }
+                                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                const spaceBelow = window.innerHeight - rect.bottom;
+                                const menuH = 220;
+                                setMenuPos({
+                                  top: spaceBelow < menuH ? rect.top - menuH : rect.bottom + 4,
+                                  left: rect.right - 176,
+                                });
+                                setMenuOpenId(r.id);
+                              }}
+                              className={cn("shrink-0 p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-opacity",
+                                menuOpenId === r.id ? 'opacity-100' : 'opacity-0 group-hover/conv:opacity-100')}
+                            >
+                              <MoreHorizontal className="w-3 h-3" />
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -938,82 +1078,35 @@ export function AppSidebar({
           );
         })()}
 
-        {deletingProjectId && (() => {
-          const project = projects.find(p => p.id === deletingProjectId);
-          if (!project) return null;
-          return (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setDeletingProjectId(null)}>
-              <div className="absolute inset-0 bg-black/20"></div>
-              <div onClick={e => e.stopPropagation()} className="relative w-72 p-5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-                <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1">프로젝트를 삭제할까요?</p>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-4 truncate">{project.icon || '📁'} {project.name}</p>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => setDeletingProjectId(null)} className="px-3.5 py-1.5 text-[11px] font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">취소</button>
-                  <button onClick={() => deleteProject(deletingProjectId)} className="px-3.5 py-1.5 text-[11px] font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">삭제</button>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {/* ═══ Project Context Menu (v2 — useEffect 외부클릭) ═══ */}
+        <ProjectContextMenu
+          projectMenuId={projectMenuId}
+          menuPos={menuPos}
+          projects={projects}
+          onRename={(id, name) => { setProjectMenuId(null); setEditingProjectId(id); setEditProjectName(name); }}
+          onIconChange={(id) => { setProjectMenuId(null); setShowIconPicker(id); }}
+          onDelete={(id) => { setProjectMenuId(null); setDeletingProjectId(id); }}
+          onClose={() => setProjectMenuId(null)}
+        />
 
-        {/* Project context menu — portal to body */}
-        {projectMenuId && (() => {
-          const proj = projects.find(p => p.id === projectMenuId);
-          if (!proj) return null;
-          return createPortal(
-            <div className="fixed inset-0 z-[9998]" onClick={() => setProjectMenuId(null)}>
-              <div className="fixed w-40 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg animate-in fade-in zoom-in-95 duration-150"
-                style={{ top: menuPos.top, left: menuPos.left }}
-                onClick={e => e.stopPropagation()}>
-                <button
-                  onClick={() => { setEditingProjectId(proj.id); setEditProjectName(proj.name); setProjectMenuId(null); }}
-                  className="w-full px-3 py-1.5 text-left text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5 text-slate-400" /> 이름 변경
-                </button>
-                <button
-                  onClick={() => { setProjectMenuId(null); setTimeout(() => setShowIconPicker(proj.id), 50); }}
-                  className="w-full px-3 py-1.5 text-left text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
-                >
-                  <span className="w-3.5 h-3.5 flex items-center justify-center text-[10px]">{proj.icon || '📁'}</span> 아이콘 변경
-                </button>
-                <div className="my-0.5 border-t border-slate-100 dark:border-slate-700" />
-                <button
-                  onClick={() => { setProjectMenuId(null); setDeletingProjectId(proj.id); }}
-                  className="w-full px-3 py-1.5 text-left text-[11px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> 삭제
-                </button>
-              </div>
-            </div>,
-            document.body
-          );
-        })()}
+        {/* ═══ Delete Confirmation Modal ═══ */}
+        <ProjectDeleteModal
+          projectId={deletingProjectId}
+          projects={projects}
+          onConfirm={(id) => deleteProject(id)}
+          onCancel={() => setDeletingProjectId(null)}
+        />
 
-        {/* Icon Picker Modal — portal to body to avoid sidebar overflow/contain issues */}
-        {showIconPicker && showIconPicker !== 'new' && (() => {
-          const proj = projects.find(p => p.id === showIconPicker);
-          if (!proj) return null;
-          return createPortal(
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={() => setShowIconPicker(null)}>
-              <div className="absolute inset-0 bg-black/20" />
-              <div onClick={e => e.stopPropagation()} className="relative w-64 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-                <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-3">{proj.name} 아이콘 선택</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {PROJECT_ICONS.map(icon => (
-                    <button key={icon} onClick={() => {
-                      setProjects(prev => { const updated = prev.map(p => p.id === proj.id ? { ...p, icon } : p); saveProjects(updated); return updated; });
-                      setShowIconPicker(null);
-                    }} className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-[17px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors", (proj.icon || '📁') === icon && 'bg-slate-100 dark:bg-slate-700 ring-2 ring-blue-400')}>
-                      {icon}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>,
-            document.body
-          );
-        })()}
+        {/* ═══ Icon Picker Modal ═══ */}
+        <ProjectIconPickerModal
+          projectId={showIconPicker && showIconPicker !== 'new' ? showIconPicker : null}
+          projects={projects}
+          onSelect={(projId, icon) => {
+            setProjects(prev => { const updated = prev.map(p => p.id === projId ? { ...p, icon } : p); saveProjects(updated); return updated; });
+            setShowIconPicker(null);
+          }}
+          onClose={() => setShowIconPicker(null)}
+        />
 
         {/* ── 4. Conversation List Header ── */}
         {isOpen && <div className="shrink-0 px-2 py-1.5">
@@ -1695,17 +1788,17 @@ export function AppSidebar({
                             className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left group"
                           >
                             {/* AI icon */}
-                            <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-[12px]">
-                              {imageThumbnail ? (
-                                <img
-                                  src={imageThumbnail}
-                                  alt={record.question}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                firstExpert?.icon || <Bot className="w-3.5 h-3.5 text-slate-400" />
-                              )}
-                            </div>
+                            {imageThumbnail ? (
+                              <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                                <img src={imageThumbnail} alt={record.question} className="h-full w-full object-cover" />
+                              </div>
+                            ) : firstExpert ? (
+                              <ExpertAvatar expert={firstExpert} size="xs" />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                                <Bot className="w-3.5 h-3.5 text-slate-400" />
+                              </div>
+                            )}
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
@@ -1752,7 +1845,7 @@ export function AppSidebar({
 
             {/* Category tabs */}
             <div className="shrink-0 flex gap-1 px-4 py-2 border-b border-slate-100 dark:border-slate-800/50 flex-wrap">
-              {['전체', '인기', 'AI 모델', '전문가', '직업', '인물', '캐릭터'].map(cat => (
+              {['전체', 'AI 모델', '직업', '전문가', '인물', '캐릭터', '신화', '이념'].map(cat => (
                 <button key={cat}
                   onClick={() => setBotBrowserCat(cat)}
                   className={cn("px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors shrink-0",
@@ -1765,16 +1858,16 @@ export function AppSidebar({
                 <button
                   onClick={() => setBotMoreOpen(!botMoreOpen)}
                   className={cn("px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors shrink-0",
-                    ['라이프스타일','페르소나','신화','이념','철학/종교'].includes(botBrowserCat)
+                    ['라이프스타일','페르소나','철학/종교'].includes(botBrowserCat)
                       ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
                       : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                   )}
                 >
-                  {['라이프스타일','페르소나','신화','이념','철학/종교'].includes(botBrowserCat) ? botBrowserCat : '더보기'} ▾
+                  {['라이프스타일','페르소나','철학/종교'].includes(botBrowserCat) ? botBrowserCat : '더보기'} ▾
                 </button>
                 {botMoreOpen && (
                   <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg py-1 min-w-[120px] animate-in fade-in slide-in-from-top-1 duration-150">
-                    {['라이프스타일', '페르소나', '신화', '이념', '철학/종교'].map(cat => (
+                    {['라이프스타일', '페르소나', '철학/종교'].map(cat => (
                       <button key={cat} onClick={() => { setBotBrowserCat(cat); setBotMoreOpen(false); }}
                         className="w-full px-3 py-1.5 text-left text-[11px] font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                         {cat}
@@ -1790,8 +1883,9 @@ export function AppSidebar({
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {experts
                   .filter(e => {
+                    const hiddenBaseModels = ['gpt', 'claude', 'gemini', 'grok', 'perplexity', 'qwen'];
+                    if (hiddenBaseModels.includes(e.id)) return false;
                     if (botBrowserCat === '전체') return true;
-                    if (botBrowserCat === '인기') return ['gpt','claude','gemini','sherlock','doctor','lawyer'].includes(e.id);
                     const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '라이프스타일': 'lifestyle', '페르소나': 'perspective', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion' };
                     return e.category === catMap[botBrowserCat];
                   })
@@ -1835,46 +1929,87 @@ export function AppSidebar({
                       </div>
                       <h3 className="text-[17px] font-bold text-slate-800 dark:text-white">{bot.nameKo}</h3>
                       <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{bot.description}</p>
-                      {bot.quote && (
+                      {bot.category !== 'ai' && bot.quote && (
                         <p className="text-[11px] text-indigo-500 dark:text-indigo-400 font-medium mt-2 italic">"{bot.quote}"</p>
                       )}
                     </div>
 
-                    {/* Sample Questions */}
-                    {bot.sampleQuestions && bot.sampleQuestions.length > 0 && (
-                      <div className="mb-6">
-                        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">추천 질문</p>
-                        <div className="space-y-1.5">
-                          {bot.sampleQuestions.map((q, i) => (
-                            <button
-                              key={i}
-                              onClick={() => {
-                                setShowBotBrowser(false);
-                                setSelectedBotProfile(null);
-                                onStartChat?.(bot.id, 'question', q);
-                              }}
-                              className="w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
-                            >
-                              {q}
-                            </button>
-                          ))}
+                    {/* AI 모델: 스탯 뷰 */}
+                    {bot.category === 'ai' && bot.abilities ? (
+                      <div className="mb-6 space-y-4">
+                        {/* 레이더 차트 (크게) */}
+                        <div className="flex justify-center">
+                          <div className="w-[200px]">
+                            <AIAbilityRadar abilities={bot.abilities} color={bot.color} name={bot.nameKo} />
+                          </div>
+                        </div>
+                        {/* 스탯 바 */}
+                        <div className="space-y-[5px] px-2">
+                          {([
+                            { key: 'coding', label: '코딩' },
+                            { key: 'creativity', label: '창의성' },
+                            { key: 'reasoning', label: '추론' },
+                            { key: 'math', label: '수학' },
+                            { key: 'multilingual', label: '다국어' },
+                            { key: 'speed', label: '속도' },
+                            { key: 'costEfficiency', label: '가성비' },
+                            { key: 'contextWindow', label: '컨텍스트' },
+                          ] as const).map(({ key, label }) => {
+                            const v = bot.abilities![key as keyof typeof bot.abilities];
+                            return (
+                              <div key={key} className="flex items-center gap-1.5">
+                                <span className="text-[9px] text-slate-400 dark:text-slate-500 w-[42px] text-right shrink-0">{label}</span>
+                                <div className="flex-1 h-[5px] bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={cn('h-full rounded-full transition-all', v >= 90 ? 'bg-amber-400' : 'bg-indigo-400')}
+                                    style={{ width: `${v}%` }}
+                                  />
+                                </div>
+                                <span className={cn('text-[9px] w-[20px] text-right tabular-nums font-medium', v >= 90 ? 'text-amber-500' : 'text-slate-500 dark:text-slate-400')}>{v}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    )}
+                    ) : (
+                      <>
+                        {/* 비AI: 추천 질문 */}
+                        {bot.sampleQuestions && bot.sampleQuestions.length > 0 && (
+                          <div className="mb-6">
+                            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">추천 질문</p>
+                            <div className="space-y-1.5">
+                              {bot.sampleQuestions.map((q, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => {
+                                    setShowBotBrowser(false);
+                                    setSelectedBotProfile(null);
+                                    onStartChat?.(bot.id, 'question', q);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
+                                >
+                                  {q}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
-                    {/* Info */}
-                    <div className="space-y-2 mb-6">
-                      {bot.subCategory && (
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400">분야</span>
-                          <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.subCategory}</span>
+                        {/* 비AI: Info */}
+                        <div className="space-y-2 mb-6">
+                          {bot.subCategory && (
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-slate-400">분야</span>
+                              <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.subCategory}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">카테고리</span>
+                            <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.category}</span>
+                          </div>
                         </div>
-                      )}
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-slate-400">카테고리</span>
-                        <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.category}</span>
-                      </div>
-                    </div>
+                      </>
+                    )}
 
                     {/* Start Chat Button */}
                     <button

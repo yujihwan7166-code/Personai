@@ -5237,7 +5237,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                   <ExpertAvatar expert={expert} size="xs" active={allMsgs.some(m => m.isStreaming)} />
                                   <div className="flex-1 min-w-0 text-left">
                                     <span className="text-[12px] font-bold text-slate-800">{expert.nameKo}</span>
-                                    <span className="text-[9px] text-slate-500 ml-1.5">{allMsgs.length > 1 ? `${allMsgs.length}개 답변` : expert.description}</span>
+                                    {allMsgs.length > 1 && <span className="text-[9px] text-slate-500 ml-1.5">{allMsgs.length}개 답변</span>}
                                   </div>
                                   {allMsgs.some(m => m.isStreaming) && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /></span>}
                                 </button>

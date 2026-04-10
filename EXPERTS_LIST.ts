@@ -134,6 +134,14 @@ export const DEFAULT_EXPERTS: Expert[] = [
         abilities: { coding: 92, creativity: 88, reasoning: 94, math: 92, multilingual: 90, speed: 65, costEfficiency: 50, contextWindow: 95 },
     },
     {
+        id: 'gemini-flash-lite', name: 'Gemini 2.5 Flash Lite', nameKo: 'Gemini 2.5 Flash Lite', icon: '🪶', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', description: 'AI 초경량 가성비 모델',
+        openrouterModel: 'google/gemini-2.5-flash-lite',
+        quote: '가볍지만 충분히 똑똑하게',
+        sampleQuestions: ['빠르게 요약해줘', '간단한 질문 답해줘', '가볍게 번역해줘'],
+        greeting: '가볍고 효율적인 Gemini Flash Lite입니다!',
+        abilities: { coding: 70, creativity: 68, reasoning: 72, math: 70, multilingual: 80, speed: 95, costEfficiency: 92, contextWindow: 85 },
+    },
+    {
         id: 'perplexity', name: 'Perplexity Sonar', nameKo: 'Perplexity Sonar', icon: '🔍', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', description: 'AI 검색·리서치 모델',
         quote: '출처 없으면 답이 아니다',
         sampleQuestions: ['최신 뉴스 요약해줘', '출처 포함해서 답변해줘', '학술 자료 찾아줘'],
@@ -179,6 +187,14 @@ export const DEFAULT_EXPERTS: Expert[] = [
         quote: '모든 언어가 나의 영역이다',
         sampleQuestions: ['큐웬 중국어 번역 정확해?', '아시아 언어 처리 잘 돼?', '큐웬 오픈소스 장점이 뭐야?'],
         abilities: { coding: 82, creativity: 75, reasoning: 80, math: 85, multilingual: 95, speed: 88, costEfficiency: 90, contextWindow: 78 },
+    },
+    {
+        id: 'qwen-9b', name: 'Qwen 3.5 9B', nameKo: 'Qwen 3.5 9B', icon: '🧬', avatarUrl: '/logos/qwen.svg', color: 'amber', category: 'ai', description: 'AI 소형 고성능 오픈소스 모델',
+        openrouterModel: 'qwen/qwen-3.5-9b',
+        quote: '작지만 거인을 이긴다',
+        sampleQuestions: ['9B 모델인데 성능 괜찮아?', '가성비 좋은 AI 추천해줘', '오픈소스 모델 장점이 뭐야?'],
+        greeting: '작지만 강력한 Qwen 3.5 9B입니다!',
+        abilities: { coding: 83, creativity: 74, reasoning: 82, math: 90, multilingual: 88, speed: 92, costEfficiency: 96, contextWindow: 72 },
     },
     {
         id: 'qwen-plus', name: 'Qwen 3.6 Plus', nameKo: 'Qwen 3.6 Plus', icon: '🌐', avatarUrl: '/logos/qwen.svg', color: 'amber', category: 'ai', description: 'AI 상위 다국어 추론 모델',

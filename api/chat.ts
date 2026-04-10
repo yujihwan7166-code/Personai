@@ -84,8 +84,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
+  // 현재 날짜/시간 정보를 시스템 프롬프트에 주입
+  const now = new Date();
+  const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+  const dateInfo = `[현재 시각 정보] 오늘은 ${koreaTime.getFullYear()}년 ${koreaTime.getMonth() + 1}월 ${koreaTime.getDate()}일 ${weekdays[koreaTime.getDay()]}요일입니다. 현재 한국 시각은 ${koreaTime.getHours()}시 ${koreaTime.getMinutes()}분입니다. 답변 시 이 날짜를 기준으로 해주세요.\n\n`;
+
   const messages = [
-    ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
+    ...(systemPrompt ? [{ role: 'system' as const, content: dateInfo + systemPrompt }] : [{ role: 'system' as const, content: dateInfo }]),
     {
       role: 'user' as const,
       content: [
@@ -101,16 +107,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const abortCtrl = new AbortController();
     const timeoutId = setTimeout(() => abortCtrl.abort(), hasFiles ? 60000 : 30000);
 
+    const model = requestedModel || DEFAULT_OPENROUTER_TEXT_MODEL;
+
+    // Thinking/reasoning 모델은 reasoning effort를 꺼서 content 필드에 직접 응답받기
+    const THINKING_MODELS = ['qwen/qwen3.5-9b', 'qwen/qwen3-max-thinking', 'deepseek/deepseek-r1'];
+    const isThinkingModel = THINKING_MODELS.some(m => model.includes(m));
+
     const openRouterRes = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
       headers: getOpenRouterHeaders(apiKey),
       body: JSON.stringify({
-        model: requestedModel || DEFAULT_OPENROUTER_TEXT_MODEL,
+        model,
         messages,
         plugins,
         stream: true,
         temperature: 0.8,
         max_tokens: 2048,
+        ...(isThinkingModel ? { reasoning: { effort: 'none' } } : {}),
       }),
       signal: abortCtrl.signal,
     });
