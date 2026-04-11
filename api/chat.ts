@@ -9,10 +9,17 @@ import {
   OPENROUTER_API_URL,
   parseOpenRouterStreamBuffer,
 } from './_lib/openrouter.js';
+import { getSearchContext, formatSearchContext } from './_lib/search/searchOrchestrator.js';
 
 interface PreviousResponse {
   name: string;
   content: string;
+}
+
+interface PreSearchContext {
+  query: string;
+  sources: { title: string; link: string }[];
+  formatted: string;
 }
 
 interface ChatRequestBody {
@@ -21,6 +28,7 @@ interface ChatRequestBody {
   previousResponses?: PreviousResponse[];
   files?: unknown;
   openrouterModel?: string;
+  preSearchContext?: PreSearchContext | null;
 }
 
 function sanitizePreviousResponses(previousResponses: unknown): PreviousResponse[] {
@@ -90,8 +98,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
   const dateInfo = `[현재 시각 정보] 오늘은 ${koreaTime.getFullYear()}년 ${koreaTime.getMonth() + 1}월 ${koreaTime.getDate()}일 ${weekdays[koreaTime.getDay()]}요일입니다. 현재 한국 시각은 ${koreaTime.getHours()}시 ${koreaTime.getMinutes()}분입니다. 답변 시 이 날짜를 기준으로 해주세요.\n\n`;
 
+  // 3단계 웹 검색 필터 실행 (preSearchContext가 있으면 스킵)
+  const preSearch = body.preSearchContext;
+  let searchContext: Awaited<ReturnType<typeof getSearchContext>> = null;
+  let searchInfo = '';
+  if (preSearch && preSearch.formatted) {
+    // 토론 모드: 프론트엔드에서 이미 검색 완료
+    searchInfo = '\n\n' + preSearch.formatted;
+  } else if (preSearch === undefined) {
+    // 단일 모드: 직접 검색
+    searchContext = await getSearchContext(question);
+    searchInfo = searchContext ? '\n\n' + formatSearchContext(searchContext) : '';
+  }
+  // preSearch === null → 검색 불필요 판정 완료, 스킵
+
   const messages = [
-    ...(systemPrompt ? [{ role: 'system' as const, content: dateInfo + systemPrompt }] : [{ role: 'system' as const, content: dateInfo }]),
+    ...(systemPrompt ? [{ role: 'system' as const, content: dateInfo + systemPrompt + searchInfo }] : [{ role: 'system' as const, content: dateInfo + searchInfo }]),
     {
       role: 'user' as const,
       content: [
@@ -146,6 +168,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Connection', 'keep-alive');
     const allowedOrigin = req.headers.origin || '';
     res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+
+    // 검색 결과가 있으면 출처 정보를 첫 이벤트로 전송
+    if (searchContext) {
+      const sources = searchContext.results.map(r => ({ title: r.title, link: r.link }));
+      res.write(`event: search\ndata: ${JSON.stringify({ query: searchContext.query, sources })}\n\n`);
+    } else if (preSearch && preSearch.sources?.length > 0) {
+      res.write(`event: search\ndata: ${JSON.stringify({ query: preSearch.query, sources: preSearch.sources })}\n\n`);
+    }
 
     const reader = openRouterRes.body?.getReader();
     if (!reader) {

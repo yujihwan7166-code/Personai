@@ -4,7 +4,7 @@ import { ExpertAvatar } from './ExpertAvatar';
 import { LazyMarkdown } from './LazyMarkdown';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { cn } from '@/lib/utils';
-import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap, Globe, ExternalLink } from 'lucide-react';
 
 export type ChatVariant = 'default' | 'messenger' | 'general-card' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
 
@@ -118,6 +118,30 @@ function GeneratedImageGallery({ message }: { message: DiscussionMessageType }) 
   );
 }
 
+function SearchSourcesCollapsible({ sources }: { sources: { title: string; link: string }[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2 pt-2 border-t border-slate-100">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600 transition-colors">
+        <Globe className="w-3 h-3" />
+        <span>참고 자료 ({sources.length})</span>
+        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-1">
+          {sources.map((s, i) => (
+            <a key={i} href={s.link} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 truncate">
+              <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate">{s.title}</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DiscussionMessageCard({ message, expert, variant = 'default', onRebuttal, onLike, onDislike, onDevelop }: Props) {
   const [copied, setCopied] = useState(false);
   const [showRebuttal, setShowRebuttal] = useState(false);
@@ -153,6 +177,11 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <div className="flex items-center gap-2 px-4 py-3">
             <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
             <span className="text-[13px] font-semibold text-slate-700">{expert.nameKo}</span>
+            {message.searchSources && (
+              <span className="flex items-center gap-1 text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                <Globe className="w-2.5 h-2.5" /> 웹 검색 반영
+              </span>
+            )}
             {!message.isStreaming && message.content && (
               <CopyBtn className="ml-auto text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 sm:opacity-40 sm:group-hover:opacity-100" />
             )}
@@ -162,6 +191,9 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
               <GeneratedImageGallery message={message} />
               <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
             </div>
+            {message.searchSources && message.searchSources.sources.length > 0 && !message.isStreaming && (
+              <SearchSourcesCollapsible sources={message.searchSources.sources} />
+            )}
           </div>
         </div>
       </div>

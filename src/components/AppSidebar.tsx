@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Expert, DiscussionMode } from '@/types/expert';
+import { Expert, DiscussionMode, AIAbilityStats } from '@/types/expert';
 import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ import {
   PanelLeft, House, Bot, Search,
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
   Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
-  FolderOpen, ChevronRight, ChevronLeft, Plus, X,
+  FolderOpen, ChevronRight, Plus, X,
   LogOut, Shield, User, ExternalLink,
 } from 'lucide-react';
 
@@ -52,6 +52,43 @@ type SidebarSettings = {
 };
 
 const PROJECT_ICONS = ['📁', '💼', '📊', '📚', '🎯', '💡', '🔬', '🎨', '🏠', '✈️', '💰', '🎮', '📝', '🔧', '🌍', '❤️'];
+
+/* ── 봇 브라우저 툴팁 능력치 섹션 (레이더 + 바) ── */
+const BOT_TIP_BAR_COLORS: Record<string, string> = {
+  blue: 'bg-blue-400', emerald: 'bg-emerald-400', red: 'bg-red-400', amber: 'bg-amber-400',
+  purple: 'bg-purple-400', orange: 'bg-orange-400', teal: 'bg-teal-400', pink: 'bg-pink-400',
+  slate: 'bg-slate-400', green: 'bg-green-400', cyan: 'bg-cyan-400', sky: 'bg-sky-400',
+};
+const BOT_TIP_STATS: { key: string; label: string }[] = [
+  { key: 'coding', label: '코딩' }, { key: 'creativity', label: '창의성' },
+  { key: 'reasoning', label: '추론력' }, { key: 'math', label: '수학' },
+  { key: 'multilingual', label: '다국어' }, { key: 'speed', label: '속도' },
+  { key: 'costEfficiency', label: '비용효율' }, { key: 'contextWindow', label: '토큰용량' },
+];
+function BotTipAbilitySection({ abilities, color, name }: { abilities: AIAbilityStats; color: string; name: string }) {
+  const bc = BOT_TIP_BAR_COLORS[color] || 'bg-indigo-400';
+  return (
+    <div className="pb-1.5">
+      <div className="px-1.5">
+        <AIAbilityRadar abilities={abilities} color={color} name={name} size="sm" />
+      </div>
+      <div className="space-y-[2px] -mt-1 pl-2 pr-3.5">
+        {BOT_TIP_STATS.map(({ key, label }) => {
+          const v = abilities[key as keyof typeof abilities];
+          return (
+            <div key={key} className="flex items-center gap-1">
+              <span className="text-[7px] text-slate-400 w-[34px] text-center shrink-0">{label}</span>
+              <div className="flex-1 h-[3px] bg-white/10 rounded-full overflow-hidden">
+                <div className={cn('h-full rounded-full', v >= 90 ? 'bg-amber-400' : bc)} style={{ width: `${v}%` }} />
+              </div>
+              <span className={cn('text-[7px] w-[16px] text-right tabular-nums', v >= 95 ? 'text-amber-400 font-bold' : v >= 85 ? 'text-white font-semibold' : 'text-slate-400')}>{v}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /* ──────────────────────────────────────────────
    프로젝트 컨텍스트 메뉴 (v2 — 독립 컴포넌트)
@@ -331,6 +368,24 @@ export function AppSidebar({
   const [botBrowserCat, setBotBrowserCat] = useState('전체');
   const [botMoreOpen, setBotMoreOpen] = useState(false);
   const [selectedBotProfile, setSelectedBotProfile] = useState<string | null>(null);
+  // Bot browser portal tooltip
+  const [hoveredBotExpert, setHoveredBotExpert] = useState<Expert | null>(null);
+  const [botTipPos, setBotTipPos] = useState<{ x: number; y: number } | null>(null);
+  const botTipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showBotTip = useCallback((expert: Expert, el: HTMLElement) => {
+    if (botTipTimerRef.current) clearTimeout(botTipTimerRef.current);
+    const delay = hoveredBotExpert ? 0 : 300;
+    botTipTimerRef.current = setTimeout(() => {
+      const rect = el.getBoundingClientRect();
+      setHoveredBotExpert(expert);
+      setBotTipPos({ x: rect.right + 8, y: rect.top + rect.height / 2 });
+    }, delay);
+  }, [hoveredBotExpert]);
+  const hideBotTip = useCallback(() => {
+    if (botTipTimerRef.current) clearTimeout(botTipTimerRef.current);
+    setHoveredBotExpert(null);
+    setBotTipPos(null);
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>('general');
   const [sidebarSettings, setSidebarSettings] = useState<SidebarSettings>(() => loadSidebarSettings());
@@ -1829,7 +1884,7 @@ export function AppSidebar({
 
       {/* Bot Browser Modal */}
       {showBotBrowser && (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-8" onClick={() => { setShowBotBrowser(false); setSelectedBotProfile(null); }}>
+        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-8" onClick={() => { setShowBotBrowser(false); setSelectedBotProfile(null); hideBotTip(); }}>
           <div className="absolute inset-0 bg-black/30"></div>
           <div
             className="relative w-full max-w-[640px] max-h-[85vh] mx-4 rounded-xl bg-white dark:bg-[#1a1a1a] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
@@ -1889,11 +1944,32 @@ export function AppSidebar({
                     const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '라이프스타일': 'lifestyle', '페르소나': 'perspective', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion' };
                     return e.category === catMap[botBrowserCat];
                   })
-                  .map(expert => (
-                    <button
-                      key={expert.id}
-                      onClick={() => setSelectedBotProfile(expert.id)}
-                      className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700 transition-all text-left group"
+                  .map(expert => {
+                    const defaultGreetings: Record<string, string> = {
+                      ai: '안녕하세요! 무엇이든 물어보세요.',
+                      specialist: '안녕하세요! 전문 분야에 대해 물어보세요.',
+                      occupation: '안녕하세요! 현장 경험을 바탕으로 답해드릴게요.',
+                      celebrity: '반갑습니다. 어떤 이야기를 나눠볼까요?',
+                      fictional: '어서 오게. 무슨 이야기를 듣고 싶은가?',
+                      mythology: '인간이여, 무엇이 궁금한가?',
+                      ideology: '어떤 주제에 대해 논해볼까요?',
+                      religion: '어떤 질문이든 함께 생각해보겠습니다.',
+                      lifestyle: '안녕하세요! 어떤 고민이 있으세요?',
+                      perspective: '뭐, 한번 들어볼게.',
+                      region: '안녕하세요! 문화에 대해 이야기해볼까요?',
+                    };
+                    const greeting = expert.greeting || defaultGreetings[expert.category] || '안녕하세요! 무엇이 궁금하신가요?';
+                    return (
+                    <button key={expert.id}
+                      onClick={() => {
+                        setShowBotBrowser(false);
+                        setSelectedBotProfile(null);
+                        hideBotTip();
+                        onStartChat?.(expert.id, 'greeting', greeting);
+                      }}
+                      onMouseEnter={e => showBotTip(expert, e.currentTarget)}
+                      onMouseLeave={hideBotTip}
+                      className="w-full flex items-center gap-2.5 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700 transition-all text-left group"
                     >
                       <div className="shrink-0 group-hover:scale-110 transition-transform">
                         <ExpertAvatar expert={expert} size="md" />
@@ -1903,145 +1979,98 @@ export function AppSidebar({
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{expert.quote || expert.description}</p>
                       </div>
                     </button>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
 
-          {/* Bot Profile Card Overlay */}
-            {selectedBotProfile && (() => {
-              const bot = experts.find(e => e.id === selectedBotProfile);
-              if (!bot) return null;
-              return (
-                <div className="absolute inset-0 z-10 bg-white dark:bg-[#1a1a1a] flex flex-col animate-in fade-in duration-200">
-                  {/* Back button */}
-                  <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-                    <button onClick={() => setSelectedBotProfile(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <span className="text-[12px] font-medium text-slate-500">봇 목록으로</span>
-                  </div>
-
-                  {/* Profile */}
-                  <div className="flex-1 overflow-y-auto px-6 py-6">
-                    <div className="flex flex-col items-center text-center mb-6">
-                      <div className="mb-3">
-                        <ExpertAvatar expert={bot} size="xl" />
-                      </div>
-                      <h3 className="text-[17px] font-bold text-slate-800 dark:text-white">{bot.nameKo}</h3>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{bot.description}</p>
-                      {bot.category !== 'ai' && bot.quote && (
-                        <p className="text-[11px] text-indigo-500 dark:text-indigo-400 font-medium mt-2 italic">"{bot.quote}"</p>
-                      )}
-                    </div>
-
-                    {/* AI 모델: 스탯 뷰 */}
-                    {bot.category === 'ai' && bot.abilities ? (
-                      <div className="mb-6 space-y-4">
-                        {/* 레이더 차트 (크게) */}
-                        <div className="flex justify-center">
-                          <div className="w-[200px]">
-                            <AIAbilityRadar abilities={bot.abilities} color={bot.color} name={bot.nameKo} />
-                          </div>
-                        </div>
-                        {/* 스탯 바 */}
-                        <div className="space-y-[5px] px-2">
-                          {([
-                            { key: 'coding', label: '코딩' },
-                            { key: 'creativity', label: '창의성' },
-                            { key: 'reasoning', label: '추론' },
-                            { key: 'math', label: '수학' },
-                            { key: 'multilingual', label: '다국어' },
-                            { key: 'speed', label: '속도' },
-                            { key: 'costEfficiency', label: '가성비' },
-                            { key: 'contextWindow', label: '컨텍스트' },
-                          ] as const).map(({ key, label }) => {
-                            const v = bot.abilities![key as keyof typeof bot.abilities];
-                            return (
-                              <div key={key} className="flex items-center gap-1.5">
-                                <span className="text-[9px] text-slate-400 dark:text-slate-500 w-[42px] text-right shrink-0">{label}</span>
-                                <div className="flex-1 h-[5px] bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                  <div
-                                    className={cn('h-full rounded-full transition-all', v >= 90 ? 'bg-amber-400' : 'bg-indigo-400')}
-                                    style={{ width: `${v}%` }}
-                                  />
-                                </div>
-                                <span className={cn('text-[9px] w-[20px] text-right tabular-nums font-medium', v >= 90 ? 'text-amber-500' : 'text-slate-500 dark:text-slate-400')}>{v}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* 비AI: 추천 질문 */}
-                        {bot.sampleQuestions && bot.sampleQuestions.length > 0 && (
-                          <div className="mb-6">
-                            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">추천 질문</p>
-                            <div className="space-y-1.5">
-                              {bot.sampleQuestions.map((q, i) => (
-                                <button
-                                  key={i}
-                                  onClick={() => {
-                                    setShowBotBrowser(false);
-                                    setSelectedBotProfile(null);
-                                    onStartChat?.(bot.id, 'question', q);
-                                  }}
-                                  className="w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
-                                >
-                                  {q}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 비AI: Info */}
-                        <div className="space-y-2 mb-6">
-                          {bot.subCategory && (
-                            <div className="flex items-center justify-between text-[10px]">
-                              <span className="text-slate-400">분야</span>
-                              <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.subCategory}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between text-[10px]">
-                            <span className="text-slate-400">카테고리</span>
-                            <span className="text-slate-600 dark:text-slate-300 font-medium">{bot.category}</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Start Chat Button */}
-                    <button
-                      onClick={() => {
-                        const defaultGreetings: Record<string, string> = {
-                          ai: '안녕하세요! 무엇이든 물어보세요.',
-                          specialist: '안녕하세요! 전문 분야에 대해 물어보세요.',
-                          occupation: '안녕하세요! 현장 경험을 바탕으로 답해드릴게요.',
-                          celebrity: '반갑습니다. 어떤 이야기를 나눠볼까요?',
-                          fictional: '어서 오게. 무슨 이야기를 듣고 싶은가?',
-                          mythology: '인간이여, 무엇이 궁금한가?',
-                          ideology: '어떤 주제에 대해 논해볼까요?',
-                          religion: '어떤 질문이든 함께 생각해보겠습니다.',
-                          lifestyle: '안녕하세요! 어떤 고민이 있으세요?',
-                          perspective: '뭐, 한번 들어볼게.',
-                          region: '안녕하세요! 문화에 대해 이야기해볼까요?',
-                        };
-                        const greeting = bot.greeting || defaultGreetings[bot.category] || '안녕하세요! 무엇이 궁금하신가요?';
-                        setShowBotBrowser(false);
-                        setSelectedBotProfile(null);
-                        onStartChat?.(bot.id, 'greeting', greeting);
-                      }}
-                      className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold text-[13px] transition-colors shadow-md"
-                    >
-                      대화 시작하기
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         </div>
+      )}
+
+      {/* Bot browser portal 기반 플로팅 툴팁 */}
+      {hoveredBotExpert && botTipPos && createPortal(
+        <div
+          className="fixed z-[9999] pointer-events-none"
+          style={{
+            left: `${botTipPos.x}px`,
+            top: `${botTipPos.y}px`,
+            transform: 'translateY(-50%)',
+          }}
+        >
+        <div className="animate-in fade-in slide-in-from-left-2 duration-200 ease-out flex items-center">
+          <div className={cn(
+            'relative bg-gradient-to-b from-slate-800 to-slate-900 text-white rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.38)] overflow-hidden border border-white/[0.06]',
+            hoveredBotExpert.abilities && !hoveredBotExpert.id.startsWith('auto-') ? 'w-52' : 'w-44'
+          )}>
+            {/* 이름 + 아이콘 */}
+            <div className="px-2.5 pt-2 pb-1 flex items-center justify-center gap-1">
+              {hoveredBotExpert.category === 'ai' && (
+                hoveredBotExpert.avatarUrl ? (
+                  (/\/(gpt|perplexity|grok)\.svg$/).test(hoveredBotExpert.avatarUrl) ? (
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white shrink-0">
+                      <img src={hoveredBotExpert.avatarUrl} alt="" className="w-3 h-3 rounded-full object-contain" />
+                    </span>
+                  ) : (
+                    <img src={hoveredBotExpert.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full" />
+                  )
+                ) : (
+                  <span className="text-xs">{hoveredBotExpert.icon}</span>
+                )
+              )}
+              <p className="text-[11px] font-bold tracking-tight leading-tight">{hoveredBotExpert.nameKo}</p>
+            </div>
+            {/* 컬러바 */}
+            <div className={cn('h-[2px] mx-2.5 rounded-full bg-gradient-to-r', {
+              'from-blue-400 via-blue-300 to-blue-400': hoveredBotExpert.color === 'blue',
+              'from-emerald-400 via-green-300 to-emerald-400': hoveredBotExpert.color === 'emerald',
+              'from-red-400 via-rose-300 to-red-400': hoveredBotExpert.color === 'red',
+              'from-amber-400 via-yellow-300 to-amber-400': hoveredBotExpert.color === 'amber',
+              'from-purple-400 via-violet-300 to-purple-400': hoveredBotExpert.color === 'purple',
+              'from-orange-400 via-orange-300 to-orange-400': hoveredBotExpert.color === 'orange',
+              'from-teal-400 via-teal-300 to-teal-400': hoveredBotExpert.color === 'teal',
+              'from-pink-400 via-pink-300 to-pink-400': hoveredBotExpert.color === 'pink',
+              'from-slate-400 via-slate-300 to-slate-400': hoveredBotExpert.color === 'slate',
+              'from-green-400 via-green-300 to-green-400': hoveredBotExpert.color === 'green',
+              'from-cyan-400 via-cyan-300 to-cyan-400': hoveredBotExpert.color === 'cyan',
+              'from-sky-400 via-sky-300 to-sky-400': hoveredBotExpert.color === 'sky',
+            })} />
+            {/* 설명 */}
+            <div className="px-2.5 pt-1 pb-1.5 text-center">
+              <p className="text-[9px] text-slate-300 leading-relaxed">{hoveredBotExpert.description}</p>
+            </div>
+            {/* AI 모델: 레이더 차트 + 스텟 바 */}
+            {hoveredBotExpert.abilities && !hoveredBotExpert.id.startsWith('auto-') && hoveredBotExpert.id !== 'ancano' && hoveredBotExpert.id !== 'ancano-pro' && (
+              <BotTipAbilitySection abilities={hoveredBotExpert.abilities} color={hoveredBotExpert.color} name={hoveredBotExpert.nameKo} />
+            )}
+            {/* 비AI: quote + 추천질문 */}
+            {!hoveredBotExpert.abilities && (
+              <>
+                {hoveredBotExpert.quote && (
+                  <div className="px-2.5 pb-1 text-center">
+                    <p className="text-[8px] text-amber-300 font-medium leading-tight">"{hoveredBotExpert.quote}"</p>
+                  </div>
+                )}
+                {hoveredBotExpert.sampleQuestions && hoveredBotExpert.sampleQuestions.length > 0 && (
+                  <div className="mx-2.5 mb-2 mt-0.5 relative">
+                    <div className="rounded-md border border-white/15 bg-white/[0.02] pt-1.5 pb-1 px-2">
+                      <span className="absolute -top-[5px] left-1/2 -translate-x-1/2 px-1.5 text-[6px] text-slate-400 tracking-wider font-medium" style={{ backgroundColor: '#1a2030' }}>추천 질문</span>
+                      {hoveredBotExpert.sampleQuestions.map((q, qi) => (
+                        <p key={qi} className="text-[8px] text-slate-300 text-center leading-normal py-0.5 truncate">{q}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {/* 왼쪽 화살표 */}
+          <div className="absolute left-0 top-1/2 -translate-x-[4px] -translate-y-1/2">
+            <div className="w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-white/[0.06]" />
+          </div>
+        </div>
+        </div>,
+        document.body
       )}
     </>
   );

@@ -41,9 +41,10 @@ interface AIAbilityRadarProps {
   abilities: AIAbilityStats;
   color: string;
   name: string;
+  size?: 'default' | 'sm';
 }
 
-export function AIAbilityRadar({ abilities, color, name }: AIAbilityRadarProps) {
+export function AIAbilityRadar({ abilities, color, name, size = 'default' }: AIAbilityRadarProps) {
   const strokeColor = COLOR_MAP[color] || '#818cf8';
   const data = (Object.keys(AXIS_LABELS) as (keyof AIAbilityStats)[]).map(key => ({
     axis: AXIS_LABELS[key],
@@ -51,9 +52,11 @@ export function AIAbilityRadar({ abilities, color, name }: AIAbilityRadarProps) 
     fullMark: 100,
   }));
 
+  const sm = size === 'sm';
+
   return (
     <div className="w-full flex flex-col items-center">
-      <ResponsiveContainer width="100%" height={180}>
+      <ResponsiveContainer width="100%" height={sm ? 140 : 180}>
         <RadarChart cx="50%" cy="50%" outerRadius="68%" data={data}>
           <PolarGrid
             stroke="rgba(148,163,184,0.25)"
@@ -61,7 +64,7 @@ export function AIAbilityRadar({ abilities, color, name }: AIAbilityRadarProps) 
           />
           <PolarAngleAxis
             dataKey="axis"
-            tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 500 }}
+            tick={{ fill: '#94a3b8', fontSize: sm ? 7 : 9, fontWeight: 500 }}
             tickLine={false}
           />
           <PolarRadiusAxis
@@ -76,8 +79,8 @@ export function AIAbilityRadar({ abilities, color, name }: AIAbilityRadarProps) 
             stroke={strokeColor}
             fill={strokeColor}
             fillOpacity={0.15}
-            strokeWidth={2}
-            dot={{ r: 2.5, fill: strokeColor, strokeWidth: 0 }}
+            strokeWidth={sm ? 1.5 : 2}
+            dot={{ r: sm ? 2 : 2.5, fill: strokeColor, strokeWidth: 0 }}
           />
         </RadarChart>
       </ResponsiveContainer>

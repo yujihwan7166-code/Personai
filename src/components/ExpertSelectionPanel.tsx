@@ -82,6 +82,13 @@ interface Props {
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant', 'player'];
+
+function isInstantChatLayoutSwitch(from: MainMode, to: MainMode) {
+  return (
+    (from === 'general' && to === 'multi') ||
+    (from === 'multi' && to === 'general')
+  );
+}
 const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'freetalk'];
 
 const mainModeLabels: Record<MainMode, string> = {
@@ -1861,6 +1868,12 @@ export function ExpertSelectionPanel({
   const effectiveCategory = aiBlocked
     ? (validCats.find(c => c === 'specialist') || validCats[0] || 'ai')
     : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'ai');
+  const previousMainModeRef = useRef<MainMode>(mainMode);
+  const skipHeroAnimation = isInstantChatLayoutSwitch(previousMainModeRef.current, mainMode);
+
+  useEffect(() => {
+    previousMainModeRef.current = mainMode;
+  }, [mainMode]);
 
   const applyModeChange = (m: MainMode) => {
     setAutoAssign(false);
@@ -1876,6 +1889,10 @@ export function ExpertSelectionPanel({
 
   const handleMainModeChange = (m: MainMode) => {
     if (m === mainMode || transitionPhase !== 0) return;
+    if (isInstantChatLayoutSwitch(mainMode, m)) {
+      applyModeChange(m);
+      return;
+    }
     const toPlayer = m === 'player';
     const fromPlayer = mainMode === 'player';
 
@@ -2055,7 +2072,10 @@ export function ExpertSelectionPanel({
         isLeavingPlayer && transitionPhase >= 2 && 'opacity-100'
       )}>
         {/* AccountStatus 제거 — 사이드바 하단으로 이동됨 */}
-        <h2 key={mainMode} className="text-xl sm:text-2xl font-bold text-foreground tracking-tight animate-in fade-in duration-700">
+        <h2 key={mainMode} className={cn(
+          "text-xl sm:text-2xl font-bold text-foreground tracking-tight",
+          !skipHeroAnimation && "animate-in fade-in duration-700"
+        )}>
           {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
             : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
               : mainMode === 'debate' ? (
@@ -2070,7 +2090,10 @@ export function ExpertSelectionPanel({
                         : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
                           : ''}
         </h2>
-        <p key={`sub-${mainMode}`} className="mt-1 text-[13px] text-muted-foreground animate-in fade-in duration-700">
+        <p key={`sub-${mainMode}`} className={cn(
+          "mt-1 text-[13px] text-muted-foreground",
+          !skipHeroAnimation && "animate-in fade-in duration-700"
+        )}>
           {mainMode === 'general' ? 'GPT, Claude, Gemini 등 원하는 AI를 골라 자유롭게 대화하세요'
             : mainMode === 'multi' ? '여러 AI의 답변을 비교하고 종합 결론을 받아보세요'
               : mainMode === 'debate' ? (

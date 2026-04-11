@@ -1403,12 +1403,6 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: 'Writer Palmyra입니다. 글쓰기를 도와드릴게요!',
     },
     {
-        id: 'hermes', name: 'Hermes 4 405B', nameKo: 'Hermes 4 405B', icon: '🪽', avatarUrl: '/logos/nous.png', color: 'sky', category: 'ai', openrouterModel: 'nousresearch/hermes-4-405b', description: '오픈소스 커뮤니티 최강 405B',
-        quote: '커뮤니티가 만든 괴물',
-        sampleQuestions: ['깊은 분석 해줘', '자유롭게 토론하자', '제한 없이 답해줘'],
-        greeting: 'Nous Hermes입니다!',
-    },
-    {
         id: 'longcat', name: 'LongCat Flash', nameKo: 'LongCat Flash', icon: '🐱', avatarUrl: '/logos/meituan.png', color: 'amber', category: 'ai', openrouterModel: 'meituan/longcat-flash-chat', description: '메이퇀 장문맥 AI 모델',
         quote: '긴 글도 고양이처럼 가볍게',
         sampleQuestions: ['긴 문서 요약해줘', '전체 맥락 파악해줘', '장문 분석해줘'],
