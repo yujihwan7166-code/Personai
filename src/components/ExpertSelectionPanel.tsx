@@ -2354,7 +2354,7 @@ export function ExpertSelectionPanel({
                 {isAiCategory && !searchMode && (
                   <div>
                     <div className={cn("px-3 pt-1.5 pb-1.5 overflow-y-auto scrollbar-thin",
-                      isModelCategory ? 'max-h-[220px]' : ''
+                      isModelCategory ? 'max-h-[134px]' : ''
                     )}>
                       {displayItems.length === 0 ? (
                         <div className="py-6 text-center">
