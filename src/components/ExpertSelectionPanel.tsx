@@ -1858,59 +1858,76 @@ export function ExpertSelectionPanel({
     { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
     { cat: 'ai-agent', label: 'AI 에이전트', items: AI_AGENT_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
     { cat: 'ai-model', label: 'AI 모델', items: (() => {
-      // 모델 개별 출시일 순서 (최신 → 오래된 순)
+      // OpenRouter 실제 출시일 기준 (최신 → 오래된 순)
       const AI_MODEL_ORDER = [
-        // 2026
-        'gemini-pro',        // Gemini 3.1 Pro (2026)
-        'gemini-3.1',        // Gemini 3.1 Lite (2026)
-        'grok-4.2',          // Grok 4.2 (2026)
-        'claude',            // Claude Opus 4.6 (2026)
-        'claude-sonnet-4.6', // Claude Sonnet 4.6 (2026)
-        'qwen-plus',         // Qwen 3.6 Plus (2026)
-        'gemma',             // Gemma 4 31B (2026)
-        'nova-2-lite',       // Amazon Nova 2 Lite (2026)
-        'mimo', 'mimo-flash',// MiMo V2 (2026)
-        'glm', 'glm-5v',    // GLM 5.1 (2026)
-        'minimax',           // MiniMax M2.7 (2026)
-        'kimi', 'kimi-thinking', // Kimi K2.5 (2026)
-        'ernie',             // ERNIE 4.5 (2026)
-        'granite',           // Granite 4.0 (2026)
-        'mercury',           // Mercury 2 (2026)
-        'longcat',           // LongCat Flash (2026)
-        // 2025 후반
-        'gemini-3-flash',    // Gemini 3 Flash (2025.10)
-        'mistral-small',     // Mistral Small 4 (2025.09)
-        'devstral',          // Devstral Medium (2025.08)
-        'codestral',         // Codestral (2025.08)
-        'mistral-creative',  // Mistral Small Creative (2025.07)
-        'seed', 'seed-mini', // Seed 2.0 (2025.07)
-        'nemotron',          // Nemotron 3 Super (2025.07)
-        'step',              // Step 3.5 Flash (2025.07)
-        'palmyra',           // Palmyra X5 (2025.06)
-        'qwen', 'qwen-9b',  // Qwen 3.5 (2025.06)
-        'qwen-thinking',     // Qwen3 Max Thinking (2025.05)
-        'grok',              // Grok 4.1 Fast (2025.05)
-        'mistral-medium',    // Mistral Medium 3.1 (2025.05)
-        'jamba',             // Jamba Large 1.7 (2025.05)
-        'command-a',         // Command A (2025.05)
-        'hunyuan',           // Hunyuan (2025.05)
-        // 2025 전반
-        'gpt', 'gpt-mini', 'gpt-nano', // GPT-4.1 시리즈 (2025.04)
-        'llama-maverick', 'llama-scout', // Llama 4 (2025.04)
-        'nova-premier',      // Amazon Nova Premier (2025.04)
-        'mistral-large',     // Mistral Large 3 (2025.03)
-        'gemini-flash-lite', // Gemini 2.5 Flash Lite (2025.03)
-        'gemini',            // Gemini 2.5 Flash (2025.03)
-        'solar',             // Solar Pro 3 (2025.03)
-        'claude-sonnet',     // Claude Sonnet 4.5 (2025.02)
-        'claude-haiku',      // Claude Haiku 4.5 (2025.02)
-        'perplexity', 'perplexity-pro', // Sonar (2025.02)
+        // 2026.04
+        'glm',               // GLM 5.1 (Apr 7, 2026)
+        'qwen-plus',         // Qwen 3.6 Plus (Apr 2, 2026)
+        'gemma',             // Gemma 4 31B (Apr 2, 2026)
+        'glm-5v',            // GLM 5V Turbo (Apr 1, 2026)
+        'grok-4.2',          // Grok 4.2 (Mar 31, 2026)
+        // 2026.03
+        'mimo',              // MiMo-V2-Pro (Mar 18, 2026)
+        'minimax',           // MiniMax M2.7 (Mar 18, 2026)
+        'mistral-small',     // Mistral Small 4 (Mar 16, 2026)
+        'nemotron',          // Nemotron 3 Super (Mar 11, 2026)
+        'qwen-9b',           // Qwen 3.5 9B (Mar 10, 2026)
+        'seed',              // Seed 2.0 Lite (Mar 10, 2026)
+        'mercury',           // Mercury 2 (Mar 4, 2026)
+        'gemini-3.1',        // Gemini 3.1 Lite (Mar 3, 2026)
+        // 2026.02
+        'seed-mini',         // Seed 2.0 Mini (Feb 26, 2026)
+        'qwen',              // Qwen 3.5 Flash (Feb 25, 2026)
+        'gemini-pro',        // Gemini 3.1 Pro (Feb 19, 2026)
+        'claude-sonnet-4.6', // Claude Sonnet 4.6 (Feb 17, 2026)
+        'qwen-thinking',     // Qwen3 Max Thinking (Feb 9, 2026)
+        'claude',            // Claude Opus 4.6 (Feb 4, 2026)
+        // 2026.01
+        'step',              // Step 3.5 Flash (Jan 29, 2026)
+        'solar',             // Solar Pro 3 (Jan 27, 2026)
+        'kimi',              // Kimi K2.5 (Jan 27, 2026)
+        'palmyra',           // Palmyra X5 (Jan 21, 2026)
+        // 2025.12
+        'gemini-3-flash',    // Gemini 3 Flash (Dec 17, 2025)
+        'mistral-creative',  // Mistral Small Creative (Dec 16, 2025)
+        'mimo-flash',        // MiMo-V2-Flash (Dec 14, 2025)
+        'nova-2-lite',       // Amazon Nova 2 Lite (Dec 2, 2025)
+        'mistral-large',     // Mistral Large 3 (Dec 1, 2025)
+        // 2025.11
+        'grok',              // Grok 4.1 Fast (Nov 19, 2025)
+        'kimi-thinking',     // Kimi K2 Thinking (Nov 6, 2025)
+        // 2025.10
+        'nova-premier',      // Amazon Nova Premier (Oct 31, 2025)
+        'granite',           // Granite 4.0 (Oct 20, 2025)
+        'claude-haiku',      // Claude Haiku 4.5 (Oct 15, 2025)
+        // 2025.09
+        'claude-sonnet',     // Claude Sonnet 4.5 (Sep 29, 2025)
+        'longcat',           // LongCat Flash (Sep 9, 2025)
+        // 2025.08
+        'mistral-medium',    // Mistral Medium 3.1 (Aug 13, 2025)
+        'jamba',             // Jamba Large 1.7 (Aug 8, 2025)
+        'codestral',         // Codestral (Aug 1, 2025)
+        // 2025.07
+        'gemini-flash-lite', // Gemini 2.5 Flash Lite (Jul 22, 2025)
+        'devstral',          // Devstral Medium (Jul 10, 2025)
+        'dolphin',           // Dolphin Venice (Jul 9, 2025)
+        'hunyuan',           // Hunyuan (Jul 8, 2025)
+        // 2025.06
+        'ernie',             // ERNIE 4.5 (Jun 30, 2025)
+        'gemini',            // Gemini 2.5 Flash (Jun 17, 2025)
+        // 2025.04
+        'gpt', 'gpt-mini', 'gpt-nano', // GPT-4.1 시리즈 (Apr 14, 2025)
+        'llama-maverick', 'llama-scout', // Llama 4 (Apr 5, 2025)
+        // 2025.03
+        'deepseek',          // DeepSeek V3 (Mar 24, 2025)
+        'command-a',         // Command A (Mar 13, 2025)
+        'perplexity-pro',    // Sonar Pro (Mar 7, 2025)
+        // 2025.01
+        'perplexity',        // Sonar (Jan 27, 2025)
+        'deepseek-r1',       // DeepSeek R1 (Jan 20, 2025)
+        'phi',               // Phi-4 (Jan 10, 2025)
         // 2024
-        'deepseek-r1',       // DeepSeek R1 (2025.01)
-        'deepseek',          // DeepSeek V3 (2024.12)
-        'phi',               // Phi-4 (2024.12)
-        'command-r-plus',    // Command R+ (2024.08)
-        'dolphin',           // Dolphin (2024)
+        'command-r-plus',    // Command R+ (Aug 30, 2024)
         'auto-ai', 'ancano', // ANCANO
       ];
       const aiModels = experts.filter(e => e.category === 'ai' && !AI_AGENT_IDS.includes(e.id));
