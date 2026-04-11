@@ -240,6 +240,18 @@
     animation: skeleton-pulse 1.8s ease-in-out infinite;
   }
 
+  /* Agent ellipsis animation */
+  @keyframes ellipsis-anim {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+  }
+  .animate-ellipsis::after {
+    content: '';
+    animation: ellipsis-anim 1.4s steps(1) infinite;
+  }
+
   /* Debate sub-mode tab — rainbow border spin */
   @keyframes border-color-spin {
     0%   { border-color: #f87171; }

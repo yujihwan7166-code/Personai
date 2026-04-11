@@ -28,6 +28,11 @@ import { useAssistantSelectionState } from '@/hooks/useAssistantSelectionState';
 import { useAssistantRun } from '@/hooks/useAssistantRun';
 import { useDiscussionHistoryPersistence } from '@/hooks/useDiscussionHistoryPersistence';
 import { usePersistedExpertState } from '@/hooks/usePersistedExpertState';
+import { classifyQuestion } from '@/utils/agent/questionClassifier';
+import { runAgentPipeline } from '@/utils/agent/agentPipeline';
+import { runFakeAgentPipeline } from '@/utils/agent/fakeAgentPipeline';
+import { AUTO_AGENT_CONFIG } from '@/utils/agent/config';
+import type { AgentState } from '@/utils/agent/types';
 
 const CHAT_URL = '/api/chat';
 const GENERAL_IMAGE_URL = '/api/general-image';
@@ -1518,23 +1523,119 @@ ${difficultyDesc}
       for (const expert of expertsToRun) {
         if (shouldStop()) break;
         setActiveExpertId(expert.id);
-        const msgId = `${expert.id}-general-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
-        let fullContent = '';
-        try {
-          await streamExpert({
-            question, expert,
-            previousResponses: [], round: 'initial',
-            onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-            onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
-            signal: controller.signal,
-            files: filesToSend,
-            onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
-          });
-        } catch (err) {
-          if ((err as Error).name === 'AbortError') break;
-          fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-          setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+
+        // ── AUTO 에이전트 모드 분기 (전 브랜드 공통) ──
+        const autoConfig = AUTO_AGENT_CONFIG[expert.id];
+
+        if (autoConfig && (autoConfig.enableAgent || autoConfig.fakeAgent)) {
+          // ── 에이전트 대상 AUTO 모델 ──
+          const agentModel = autoConfig.agentModel;
+
+          // 가짜 에이전트 (Claude): 항상 에이전트 UI + 단일 호출
+          // 진짜 에이전트: classifyQuestion으로 판별
+          const useAgentMode = autoConfig.fakeAgent
+            ? true
+            : classifyQuestion(question).mode === 'agent';
+
+          if (!autoConfig.fakeAgent) {
+            const classification = classifyQuestion(question);
+            console.log(`[AUTO ${expert.id}] Classification:`, JSON.stringify(classification), 'question:', question);
+          }
+
+          if (useAgentMode) {
+            // ── 에이전트 모드 (진짜 or 가짜) ──
+            const msgId = `${expert.id}-agent-${Date.now()}`;
+            const initialAgentState: AgentState = {
+              status: 'analyzing',
+              strategy: null,
+              tasks: [],
+              finalAnswer: '',
+              totalTokensUsed: 0,
+              elapsedMs: 0,
+            };
+            setMessages((prev) => [...prev, {
+              id: msgId,
+              expertId: expert.id,
+              content: '',
+              isStreaming: true,
+              agentState: initialAgentState,
+            }]);
+
+            let fullContent = '';
+            try {
+              const basePrompt = await getExpertPrompt(expert);
+              const pipelineFn = autoConfig.fakeAgent ? runFakeAgentPipeline : runAgentPipeline;
+              await pipelineFn({
+                message: question,
+                model: agentModel,
+                systemPrompt: SAFETY_GUARDRAIL + QUALITY_GUARDRAIL + basePrompt,
+                onStateChange: (state: AgentState) => {
+                  setMessages((prev) => prev.map((m) =>
+                    m.id === msgId ? { ...m, agentState: { ...state } } : m
+                  ));
+                },
+                onStreamToken: (token: string) => {
+                  fullContent += token;
+                  setMessages((prev) => prev.map((m) =>
+                    m.id === msgId ? { ...m, content: fullContent } : m
+                  ));
+                },
+                signal: controller.signal,
+              });
+            } catch (err) {
+              if ((err as Error).name === 'AbortError') break;
+              fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
+            }
+
+            setMessages((prev) => prev.map((m) =>
+              m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m
+            ));
+          } else {
+            // ── 심플 모드: 저렴 모델 1회 호출 ──
+            const msgId = `${expert.id}-general-${Date.now()}`;
+            const cheapExpert = { ...expert, openrouterModel: agentModel };
+            setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+            let fullContent = '';
+            try {
+              await streamExpert({
+                question, expert: cheapExpert,
+                previousResponses: [], round: 'initial',
+                onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
+                onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
+                signal: controller.signal,
+                files: filesToSend,
+                onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
+              });
+            } catch (err) {
+              if ((err as Error).name === 'AbortError') break;
+              fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
+              setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+            }
+          }
+        } else {
+          // ── 기존 일반 모델 + Perplexity AUTO (에이전트 없이 단일 호출) ──
+          const msgId = `${expert.id}-general-${Date.now()}`;
+          // Perplexity AUTO는 config에 agentModel이 있으면 그걸로, 없으면 기본 openrouterModel
+          const effectiveExpert = autoConfig && !autoConfig.enableAgent && !autoConfig.fakeAgent
+            ? { ...expert, openrouterModel: autoConfig.agentModel }
+            : expert;
+          setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+          let fullContent = '';
+          try {
+            await streamExpert({
+              question, expert: effectiveExpert,
+              previousResponses: [], round: 'initial',
+              onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
+              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
+              signal: controller.signal,
+              files: filesToSend,
+              onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
+            });
+          } catch (err) {
+            if ((err as Error).name === 'AbortError') break;
+            fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
+            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+          }
         }
         await new Promise((r) => setTimeout(r, DELAY_BETWEEN_EXPERTS));
       }

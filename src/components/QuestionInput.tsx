@@ -342,7 +342,7 @@ export function QuestionInput({
                       key={expert.id}
                       type="button"
                       onClick={() => onRemoveExpert(expert.id)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-indigo-600 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-400"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 py-0.5 pl-1 pr-2 text-[11px] font-semibold text-indigo-700 shadow-sm transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-400"
                     >
                       <span className="pointer-events-none">
                         <ExpertAvatar expert={expert} size="xxs" />
@@ -353,7 +353,7 @@ export function QuestionInput({
                   ) : (
                     <span
                       key={expert.id}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 py-0.5 pl-1 pr-2 text-[10px] font-medium text-indigo-600"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 py-0.5 pl-1 pr-2 text-[11px] font-semibold text-indigo-700 shadow-sm"
                     >
                       <ExpertAvatar expert={expert} size="xxs" />
                       {expert.nameKo}

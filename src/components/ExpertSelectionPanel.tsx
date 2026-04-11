@@ -1631,6 +1631,9 @@ export function ExpertSelectionPanel({
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
+  const [aiModelExpanded, setAiModelExpanded] = useState(false);
+  // AI 모델 1줄 표시용 주요 모델 ID (접힌 상태)
+  const AI_FIRST_ROW_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
   const isProcon = discussionMode === 'procon';
   const [proconAssignMode, setProconAssignMode] = useState<'manual' | 'auto'>('manual');
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -2342,16 +2345,146 @@ export function ExpertSelectionPanel({
             const subCats = searchMode ? undefined : EXPERT_SUB_CATEGORIES[cat as ExpertCategory];
             const filtered = !subCats || activeSubCategory === '전체'
               ? items : items.filter(e => e.subCategory === activeSubCategory);
+            const isAiCategory = cat === 'ai';
+            const displayItems = isAiCategory && !searchMode
+              ? (() => {
+                  const firstRow = AI_FIRST_ROW_IDS.map(id => filtered.find(e => e.id === id)).filter(Boolean) as typeof filtered;
+                  if (!aiModelExpanded) return firstRow;
+                  // 펼쳤을 때: firstRow 순서 유지 + 나머지 뒤에
+                  const rest = filtered.filter(e => !AI_FIRST_ROW_IDS.includes(e.id));
+                  return [...firstRow, ...rest];
+                })()
+              : filtered;
             return (
               <div key={cat} className="relative bg-white">
-                <div className="px-3 pt-1.5 pb-1.5 max-h-[134px] overflow-y-auto scrollbar-thin">
-                {filtered.length === 0 ? (
+                {/* AI 카테고리 */}
+                {isAiCategory && !searchMode && (
+                  <div>
+                    <div className={cn("px-3 pt-1.5 pb-1.5 overflow-y-auto scrollbar-thin",
+                      aiModelExpanded ? 'max-h-[220px]' : ''
+                    )}>
+                      {displayItems.length === 0 ? (
+                        <div className="py-6 text-center">
+                          <p className="text-[12px] text-slate-400">이 카테고리에 전문가가 없습니다</p>
+                        </div>
+                      ) : (
+                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
+                        {displayItems.map(expert => {
+                          const isSelected = selectedIds.includes(expert.id);
+                          const stance = proconStances[expert.id];
+                          const isPro = stance === 'pro';
+                          const isCon = stance === 'con';
+                          const isAiModel = expert.category === 'ai';
+                          const isDisabled = isStandardOrProcon && isAiModel;
+                          return (
+                            <div key={expert.id}
+                              draggable={isProcon && !isDisabled}
+                              onDragStart={() => !isDisabled && setDraggedId(expert.id)}
+                              onDragEnd={() => setDraggedId(null)}
+                              onMouseEnter={(e) => { if (!isDisabled) showTip(expert, e.currentTarget); }}
+                              onMouseLeave={hideTip}
+                              className={cn(
+                                'group relative flex flex-col items-center gap-0.5 p-1.5 rounded-xl transition-all duration-200',
+                                isDisabled ? 'opacity-25 cursor-not-allowed' : '',
+                                isProcon && !isDisabled ? 'cursor-grab active:cursor-grabbing' : '',
+                                hintId === expert.id ? 'animate-drag-hint' : '',
+                                !isDisabled && !isProcon && isSelected
+                                  ? 'bg-gradient-to-b from-indigo-50 to-white ring-[1.5px] ring-indigo-300 shadow-[0_2px_8px_rgba(99,102,241,0.15)] scale-[1.03]'
+                                  : '',
+                                !isDisabled && !isSelected ? 'hover:bg-slate-50 hover:scale-[1.02]' : ''
+                              )}>
+                              <button type="button"
+                                disabled={isDisabled}
+                                onClick={() => {
+                                  if (isDisabled) return;
+                                  if (isProcon) {
+                                    if (proconAssignMode === 'auto') {
+                                      onToggle(expert.id);
+                                    } else if (stance) {
+                                      removeStance(expert.id);
+                                    } else {
+                                      const proCount = Object.values(proconStances).filter(s => s === 'pro').length;
+                                      const conCount = Object.values(proconStances).filter(s => s === 'con').length;
+                                      if (proCount < MAX_PER_ZONE && proCount <= conCount) {
+                                        assignStance(expert.id, 'pro');
+                                      } else if (conCount < MAX_PER_ZONE) {
+                                        assignStance(expert.id, 'con');
+                                      } else if (proCount < MAX_PER_ZONE) {
+                                        assignStance(expert.id, 'pro');
+                                      } else {
+                                        setMaxLimitMsg('찬성/반대 모두 가득 찼습니다');
+                                        setTimeout(() => setMaxLimitMsg(null), 2000);
+                                      }
+                                    }
+                                  } else {
+                                    if (mainMode === 'multi' && !isSelected && selectedIds.length >= 3) {
+                                      setMaxLimitMsg('다중 AI는 최대 3개까지 선택할 수 있습니다');
+                                      setTimeout(() => setMaxLimitMsg(null), 2000);
+                                      return;
+                                    }
+                                    if (mainMode === 'debate' && !isProcon && !isSelected && selectedIds.length >= 4) {
+                                      setMaxLimitMsg('최대 4명까지 선택할 수 있습니다');
+                                      setTimeout(() => setMaxLimitMsg(null), 2000);
+                                      return;
+                                    }
+                                    onToggle(expert.id);
+                                  }
+                                }}
+                                className="flex flex-col items-center gap-1 w-full">
+                                {!isProcon && isSelected && !isDisabled && (
+                                  <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm z-10">
+                                    <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </span>
+                                )}
+                                <span onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
+                                  className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer',
+                                    favoriteIds.includes(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
+                                  {favoriteIds.includes(expert.id) ? '★' : '☆'}
+                                </span>
+                                <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
+                                <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
+                                  isDisabled ? 'text-slate-300'
+                                    : isProcon && isPro ? 'text-blue-600 font-semibold'
+                                      : isProcon && isCon ? 'text-red-500 font-semibold'
+                                        : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
+                                          : 'text-slate-400 group-hover:text-slate-700')}>
+                                  {expert.nameKo}
+                                </span>
+                              </button>
+                              {isDisabled && (
+                                <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
+                                  <span className="text-[7px] text-slate-300 font-medium">선택 불가</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      )}
+                    </div>
+                    {/* 하단 바: 전체 모델 보기 */}
+                    <button
+                      onClick={() => setAiModelExpanded(prev => !prev)}
+                      className="w-full py-1 border-t border-slate-200 text-[11px] font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
+                    >
+                      {aiModelExpanded ? '▲ 접기' : '▼ 전체 모델 보기'}
+                    </button>
+                  </div>
+                )}
+                {/* 비-AI 카테고리: 기존 그리드 */}
+                {(!isAiCategory || searchMode) && (
+                <div className={cn("px-3 pt-1.5 pb-1.5 overflow-y-auto scrollbar-thin",
+                  'max-h-[134px]'
+                )}>
+                {displayItems.length === 0 ? (
                   <div className="py-6 text-center">
                     <p className="text-[12px] text-slate-400">{searchMode ? `"${searchQuery}"에 대한 검색 결과가 없습니다` : '이 카테고리에 전문가가 없습니다'}</p>
                   </div>
                 ) : (
                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
-                  {filtered.map(expert => {
+                  {displayItems.map(expert => {
                     const isSelected = selectedIds.includes(expert.id);
                     const stance = proconStances[expert.id];
                     const isPro = stance === 'pro';
@@ -2448,6 +2581,7 @@ export function ExpertSelectionPanel({
                 </div>
                 )}
                 </div>
+                )}
                 <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none rounded-r-xl" />
               </div>
             );
@@ -2626,7 +2760,7 @@ export function ExpertSelectionPanel({
               <p className="text-[10px] text-slate-300 leading-relaxed">{hoveredExpert.description}</p>
             </div>
             {/* AI 모델: 레이더 차트 + 스텟 바 */}
-            {hoveredExpert.abilities && !hoveredExpert.id.startsWith('auto-') && hoveredExpert.id !== 'ancano' && hoveredExpert.id !== 'ancano-pro' && (
+            {hoveredExpert.abilities && hoveredExpert.id !== 'ancano' && hoveredExpert.id !== 'ancano-pro' && (
               <TipAbilitySection abilities={hoveredExpert.abilities} color={hoveredExpert.color} name={hoveredExpert.nameKo} />
             )}
             {/* 비AI (전문가/직업/캐릭터 등): quote + 추천질문 */}

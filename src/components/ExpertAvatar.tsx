@@ -194,6 +194,8 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
   }
 
   const isAncano = expert.id.startsWith('ancano') || expert.id === 'auto-ai';
+  const isGemini = expert.avatarUrl?.includes('gemini');
+  const isDeepseek = expert.avatarUrl?.includes('deepseek');
 
   if (expert.avatarUrl) {
     return (
@@ -210,7 +212,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
           alt={expert.nameKo}
           className={cn(
             'object-contain',
-            isAncano ? 'w-[85%] h-[85%]' : logoSizeClasses[size],
+            isAncano ? 'w-[85%] h-[85%]' : isGemini ? 'w-[95%] h-[95%]' : isDeepseek ? 'w-[95%] h-[95%]' : logoSizeClasses[size],
           )}
           onError={(event) => {
             (event.target as HTMLImageElement).style.display = 'none';

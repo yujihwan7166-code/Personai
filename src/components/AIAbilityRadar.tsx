@@ -56,7 +56,7 @@ export function AIAbilityRadar({ abilities, color, name, size = 'default' }: AIA
 
   return (
     <div className="w-full flex flex-col items-center">
-      <ResponsiveContainer width="100%" height={sm ? 140 : 180}>
+      <ResponsiveContainer width="100%" height={sm ? 130 : 160}>
         <RadarChart cx="50%" cy="50%" outerRadius="68%" data={data}>
           <PolarGrid
             stroke="rgba(148,163,184,0.25)"

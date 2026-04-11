@@ -532,6 +532,12 @@ export function AppSidebar({
   const handleLoadHistory = (record: DiscussionRecord) => {
     setActiveRecordId(record.id);
     onLoadHistory(record);
+    // 프로젝트에 속한 대화면 해당 프로젝트 폴더로 진입
+    const pid = projectMap[record.id];
+    if (pid) {
+      setActiveProjectId(pid);
+      setProjectsExpanded(true);
+    }
     if (isMobile) setIsOpen(false);
   };
 
@@ -643,8 +649,8 @@ export function AppSidebar({
     if (searchQuery) {
       records = records.filter(r => r.question.toLowerCase().includes(searchQuery.toLowerCase()));
     }
-    // 프로젝트 필터 제거 — 트리 형태로 보여주므로 모든 대화 항상 표시
-    return records;
+    // 프로젝트에 속한 대화는 "모든 대화"에서 숨김 (프로젝트 폴더 안에서만 표시)
+    return records.filter(r => !projectMap[r.id]);
   })();
 
   // Group by date
@@ -804,6 +810,7 @@ export function AppSidebar({
                 >
                   <Pencil className="w-4 h-4 text-slate-400" /> 이름 바꾸기
                 </button>
+                {!activeProjectId && (
                 <button
                   onClick={e => { e.stopPropagation(); togglePin(record.id); setMenuOpenId(null); }}
                   className="w-full px-3 py-2 text-left text-[12px] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2.5 transition-colors"
@@ -813,6 +820,7 @@ export function AppSidebar({
                     : <><Pin className="w-4 h-4 text-slate-400" /> 채팅 상단 고정</>
                   }
                 </button>
+                )}
                 {/* 프로젝트로 이동 — Portal 스타일 서브메뉴 */}
                 <div className="relative">
                   <button
@@ -1074,6 +1082,22 @@ export function AppSidebar({
                               <span className="text-[10px] shrink-0">💬</span>
                             )}
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex-1">{r.question}</span>
+                            {r.mode && r.mode !== 'general' && (
+                              <span className={cn("shrink-0 text-[8px] font-medium px-1 py-0.5 rounded-full", {
+                                'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400': r.mode === 'multi',
+                                'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400': r.mode === 'brainstorm',
+                                'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400': r.mode === 'standard' || r.mode === 'procon',
+                                'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400': r.mode === 'hearing',
+                                'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400': r.mode === 'freetalk',
+                                'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400': r.mode === 'stakeholder',
+                                'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400': r.mode === 'expert',
+                                'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400': r.mode === 'assistant',
+                              } as Record<string, boolean>)}>
+                                {r.premiumDomain
+                                  ? { law: '⚖️법률', drug: '💊의약', finance: '💰금융', realestate: '🏠부동산', tax: '🧾세무', labor: '👷노무' }[r.premiumDomain] || '상담'
+                                  : { multi: '멀티', brainstorm: '브레인', standard: '토론', procon: '찬반', hearing: '검증', freetalk: '자유', stakeholder: 'AI시뮬', expert: '상담', assistant: '어시' }[r.mode] || r.mode}
+                              </span>
+                            )}
                             {/* 점 세 개 메뉴 */}
                             <button
                               onClick={e => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DiscussionMessage as DiscussionMessageType, Expert, ROUND_LABELS } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { LazyMarkdown } from './LazyMarkdown';
+import { AgentTaskStream } from './AgentTaskStream';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { cn } from '@/lib/utils';
 import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap, Globe, ExternalLink } from 'lucide-react';
@@ -187,6 +188,10 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
             )}
           </div>
           <div className="px-4 pb-4 pt-0">
+            {/* 에이전트 작업 스트림 */}
+            {message.agentState && (
+              <AgentTaskStream state={message.agentState} />
+            )}
             <div className={cn('text-[13px] leading-relaxed text-slate-600', proseClasses, 'prose-p:text-[13px] prose-li:text-[13px] prose-headings:text-[15px] prose-headings:font-bold prose-strong:text-slate-800')}>
               <GeneratedImageGallery message={message} />
               <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
