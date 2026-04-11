@@ -1631,7 +1631,6 @@ export function ExpertSelectionPanel({
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai-agent');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
-  const [aiModelExpanded, setAiModelExpanded] = useState(false);
   // AI 에이전트 탭에 표시할 모델 ID
   const AI_AGENT_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
   const isProcon = discussionMode === 'procon';
@@ -2348,16 +2347,14 @@ export function ExpertSelectionPanel({
             const isAgentCategory = cat === 'ai-agent';
             const isModelCategory = cat === 'ai-model';
             const isAiCategory = isAgentCategory || isModelCategory;
-            const displayItems = isModelCategory && !searchMode && !aiModelExpanded
-              ? filtered.slice(0, 8)
-              : filtered;
+            const displayItems = filtered;
             return (
               <div key={cat} className="relative bg-white">
                 {/* AI 에이전트 / AI 모델 카테고리 */}
                 {isAiCategory && !searchMode && (
                   <div>
                     <div className={cn("px-3 pt-1.5 pb-1.5 overflow-y-auto scrollbar-thin",
-                      isModelCategory && aiModelExpanded ? 'max-h-[220px]' : ''
+                      isModelCategory ? 'max-h-[220px]' : ''
                     )}>
                       {displayItems.length === 0 ? (
                         <div className="py-6 text-center">
@@ -2460,15 +2457,6 @@ export function ExpertSelectionPanel({
                       </div>
                       )}
                     </div>
-                    {/* AI 모델 탭에서만 전체 모델 보기 버튼 표시 */}
-                    {isModelCategory && filtered.length > 8 && (
-                      <button
-                        onClick={() => setAiModelExpanded(prev => !prev)}
-                        className="w-full py-1 border-t border-slate-200 text-[11px] font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
-                      >
-                        {aiModelExpanded ? '▲ 접기' : '▼ 전체 모델 보기'}
-                      </button>
-                    )}
                   </div>
                 )}
                 {/* 비-AI 카테고리: 기존 그리드 */}
