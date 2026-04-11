@@ -1858,34 +1858,60 @@ export function ExpertSelectionPanel({
     { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
     { cat: 'ai-agent', label: 'AI 에이전트', items: AI_AGENT_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
     { cat: 'ai-model', label: 'AI 모델', items: (() => {
-      // 브랜드별 출시순 정렬
+      // 모델 개별 출시일 순서 (최신 → 오래된 순)
       const AI_MODEL_ORDER = [
-        // OpenAI (2022~)
-        'auto-ai', 'ancano', 'gpt', 'gpt-mini', 'gpt-nano',
-        // Google Gemini (2023~)
-        'gemini-flash-lite', 'gemini', 'gemini-3-flash', 'gemini-3.1', 'gemini-pro', 'gemma',
-        // Anthropic Claude (2024~)
-        'claude-haiku', 'claude-sonnet', 'claude-sonnet-4.6', 'claude',
-        // xAI Grok (2024~)
-        'grok', 'grok-4.2',
-        // Meta Llama (2024~)
-        'llama-scout', 'llama-maverick',
-        // Mistral (2024~)
-        'mistral-small', 'mistral-medium', 'mistral-large', 'codestral', 'mistral-creative', 'devstral',
-        // Perplexity
-        'perplexity', 'perplexity-pro',
-        // DeepSeek (2024~)
-        'deepseek', 'deepseek-r1',
-        // Qwen (2024~)
-        'qwen-9b', 'qwen', 'qwen-plus', 'qwen-thinking',
-        // ByteDance
-        'seed', 'seed-mini',
-        // Xiaomi
-        'mimo', 'mimo-flash',
-        // 기타
-        'solar', 'mercury', 'ernie', 'hunyuan', 'minimax', 'kimi', 'kimi-thinking',
-        'nemotron', 'nova-premier', 'nova-2-lite', 'dolphin', 'glm', 'glm-5v',
-        'jamba', 'granite', 'step', 'palmyra', 'longcat', 'phi', 'command-r-plus', 'command-a',
+        // 2026
+        'gemini-pro',        // Gemini 3.1 Pro (2026)
+        'gemini-3.1',        // Gemini 3.1 Lite (2026)
+        'grok-4.2',          // Grok 4.2 (2026)
+        'claude',            // Claude Opus 4.6 (2026)
+        'claude-sonnet-4.6', // Claude Sonnet 4.6 (2026)
+        'qwen-plus',         // Qwen 3.6 Plus (2026)
+        'gemma',             // Gemma 4 31B (2026)
+        'nova-2-lite',       // Amazon Nova 2 Lite (2026)
+        'mimo', 'mimo-flash',// MiMo V2 (2026)
+        'glm', 'glm-5v',    // GLM 5.1 (2026)
+        'minimax',           // MiniMax M2.7 (2026)
+        'kimi', 'kimi-thinking', // Kimi K2.5 (2026)
+        'ernie',             // ERNIE 4.5 (2026)
+        'granite',           // Granite 4.0 (2026)
+        'mercury',           // Mercury 2 (2026)
+        'longcat',           // LongCat Flash (2026)
+        // 2025 후반
+        'gemini-3-flash',    // Gemini 3 Flash (2025.10)
+        'mistral-small',     // Mistral Small 4 (2025.09)
+        'devstral',          // Devstral Medium (2025.08)
+        'codestral',         // Codestral (2025.08)
+        'mistral-creative',  // Mistral Small Creative (2025.07)
+        'seed', 'seed-mini', // Seed 2.0 (2025.07)
+        'nemotron',          // Nemotron 3 Super (2025.07)
+        'step',              // Step 3.5 Flash (2025.07)
+        'palmyra',           // Palmyra X5 (2025.06)
+        'qwen', 'qwen-9b',  // Qwen 3.5 (2025.06)
+        'qwen-thinking',     // Qwen3 Max Thinking (2025.05)
+        'grok',              // Grok 4.1 Fast (2025.05)
+        'mistral-medium',    // Mistral Medium 3.1 (2025.05)
+        'jamba',             // Jamba Large 1.7 (2025.05)
+        'command-a',         // Command A (2025.05)
+        'hunyuan',           // Hunyuan (2025.05)
+        // 2025 전반
+        'gpt', 'gpt-mini', 'gpt-nano', // GPT-4.1 시리즈 (2025.04)
+        'llama-maverick', 'llama-scout', // Llama 4 (2025.04)
+        'nova-premier',      // Amazon Nova Premier (2025.04)
+        'mistral-large',     // Mistral Large 3 (2025.03)
+        'gemini-flash-lite', // Gemini 2.5 Flash Lite (2025.03)
+        'gemini',            // Gemini 2.5 Flash (2025.03)
+        'solar',             // Solar Pro 3 (2025.03)
+        'claude-sonnet',     // Claude Sonnet 4.5 (2025.02)
+        'claude-haiku',      // Claude Haiku 4.5 (2025.02)
+        'perplexity', 'perplexity-pro', // Sonar (2025.02)
+        // 2024
+        'deepseek-r1',       // DeepSeek R1 (2025.01)
+        'deepseek',          // DeepSeek V3 (2024.12)
+        'phi',               // Phi-4 (2024.12)
+        'command-r-plus',    // Command R+ (2024.08)
+        'dolphin',           // Dolphin (2024)
+        'auto-ai', 'ancano', // ANCANO
       ];
       const aiModels = experts.filter(e => e.category === 'ai' && !AI_AGENT_IDS.includes(e.id));
       const ordered = AI_MODEL_ORDER.map(id => aiModels.find(e => e.id === id)).filter(Boolean) as typeof experts;
