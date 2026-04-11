@@ -1629,11 +1629,11 @@ export function ExpertSelectionPanel({
   onAssistantCardChange,
   onAssistantSubmit,
 }: Props) {
-  const [activeCategory, setActiveCategory] = useState<string>('ai');
+  const [activeCategory, setActiveCategory] = useState<string>('ai-agent');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
   const [aiModelExpanded, setAiModelExpanded] = useState(false);
-  // AI 모델 1줄 표시용 주요 모델 ID (접힌 상태)
-  const AI_FIRST_ROW_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
+  // AI 에이전트 탭에 표시할 모델 ID
+  const AI_AGENT_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
   const isProcon = discussionMode === 'procon';
   const [proconAssignMode, setProconAssignMode] = useState<'manual' | 'auto'>('manual');
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -1842,7 +1842,6 @@ export function ExpertSelectionPanel({
   const isHearing = discussionMode === 'hearing';
   const isStakeholder = discussionMode === 'stakeholder';
 
-  const POPULAR_IDS = ['auto-ai', 'ancano', 'ancano-pro', 'auto-gpt', 'auto-claude', 'auto-gemini', 'auto-grok', 'auto-perplexity', 'auto-qwen', 'gpt', 'claude', 'gemini', 'doctor', 'lawyer', 'pilot', 'italian', 'fire', 'newlywed', 'conspiracy', 'optimist', 'lincoln', 'christian', 'capitalist', 'sherlock', 'zeus'];
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
     try { const s = localStorage.getItem('ai-debate-favorites'); return s ? JSON.parse(s) : []; } catch { return []; }
   });
@@ -1857,9 +1856,10 @@ export function ExpertSelectionPanel({
 
   const favoriteItems = favoriteIds.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts;
   const grouped: { cat: string; label: string; items: typeof experts }[] = [
-    { cat: 'popular', label: '인기', items: POPULAR_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
     { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
-    ...visibleCategories.map(cat => ({
+    { cat: 'ai-agent', label: 'AI 에이전트', items: AI_AGENT_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
+    { cat: 'ai-model', label: 'AI 모델', items: experts.filter(e => e.category === 'ai' && !AI_AGENT_IDS.includes(e.id)) },
+    ...visibleCategories.filter(cat => cat !== 'ai').map(cat => ({
       cat: cat as string,
       label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
       items: experts.filter(e => e.category === cat),
@@ -1867,7 +1867,7 @@ export function ExpertSelectionPanel({
   ].filter(g => g.items.length > 0 || g.cat === 'favorites');
 
   const validCats = grouped.map(g => g.cat);
-  const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
+  const aiBlocked = isStandardOrProcon && (activeCategory === 'ai-agent' || activeCategory === 'ai-model');
   const effectiveCategory = aiBlocked
     ? (validCats.find(c => c === 'specialist') || validCats[0] || 'ai')
     : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'ai');
@@ -2275,9 +2275,9 @@ export function ExpertSelectionPanel({
               ) : (
                 <>
                   <div className="flex flex-1 min-w-0 gap-0.5">
-                    {grouped.filter(g => !['celebrity', 'region', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
+                    {grouped.filter(g => !['perspective', 'region', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
-                      const isAiTab = cat === 'ai';
+                      const isAiTab = cat === 'ai-agent' || cat === 'ai-model';
                       const isAiDisabled = isAiTab && isStandardOrProcon;
                       return (
                         <button key={cat} type="button"
@@ -2292,7 +2292,7 @@ export function ExpertSelectionPanel({
                     })}
                     {/* 더보기 — 호버 시 세로 드롭다운 */}
                     {(() => {
-                      const moreCats = grouped.filter(g => ['region', 'celebrity', 'mythology'].includes(g.cat));
+                      const moreCats = grouped.filter(g => ['region', 'perspective', 'mythology'].includes(g.cat));
                       if (moreCats.length === 0) return null;
                       const isMoreActive = moreCats.some(g => effectiveCategory === g.cat);
                       return (
@@ -2345,23 +2345,19 @@ export function ExpertSelectionPanel({
             const subCats = searchMode ? undefined : EXPERT_SUB_CATEGORIES[cat as ExpertCategory];
             const filtered = !subCats || activeSubCategory === '전체'
               ? items : items.filter(e => e.subCategory === activeSubCategory);
-            const isAiCategory = cat === 'ai';
-            const displayItems = isAiCategory && !searchMode
-              ? (() => {
-                  const firstRow = AI_FIRST_ROW_IDS.map(id => filtered.find(e => e.id === id)).filter(Boolean) as typeof filtered;
-                  if (!aiModelExpanded) return firstRow;
-                  // 펼쳤을 때: firstRow 순서 유지 + 나머지 뒤에
-                  const rest = filtered.filter(e => !AI_FIRST_ROW_IDS.includes(e.id));
-                  return [...firstRow, ...rest];
-                })()
+            const isAgentCategory = cat === 'ai-agent';
+            const isModelCategory = cat === 'ai-model';
+            const isAiCategory = isAgentCategory || isModelCategory;
+            const displayItems = isModelCategory && !searchMode && !aiModelExpanded
+              ? filtered.slice(0, 8)
               : filtered;
             return (
               <div key={cat} className="relative bg-white">
-                {/* AI 카테고리 */}
+                {/* AI 에이전트 / AI 모델 카테고리 */}
                 {isAiCategory && !searchMode && (
                   <div>
                     <div className={cn("px-3 pt-1.5 pb-1.5 overflow-y-auto scrollbar-thin",
-                      aiModelExpanded ? 'max-h-[220px]' : ''
+                      isModelCategory && aiModelExpanded ? 'max-h-[220px]' : ''
                     )}>
                       {displayItems.length === 0 ? (
                         <div className="py-6 text-center">
@@ -2464,13 +2460,15 @@ export function ExpertSelectionPanel({
                       </div>
                       )}
                     </div>
-                    {/* 하단 바: 전체 모델 보기 */}
-                    <button
-                      onClick={() => setAiModelExpanded(prev => !prev)}
-                      className="w-full py-1 border-t border-slate-200 text-[11px] font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
-                    >
-                      {aiModelExpanded ? '▲ 접기' : '▼ 전체 모델 보기'}
-                    </button>
+                    {/* AI 모델 탭에서만 전체 모델 보기 버튼 표시 */}
+                    {isModelCategory && filtered.length > 8 && (
+                      <button
+                        onClick={() => setAiModelExpanded(prev => !prev)}
+                        className="w-full py-1 border-t border-slate-200 text-[11px] font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
+                      >
+                        {aiModelExpanded ? '▲ 접기' : '▼ 전체 모델 보기'}
+                      </button>
+                    )}
                   </div>
                 )}
                 {/* 비-AI 카테고리: 기존 그리드 */}
