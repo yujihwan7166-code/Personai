@@ -1857,7 +1857,41 @@ export function ExpertSelectionPanel({
   const grouped: { cat: string; label: string; items: typeof experts }[] = [
     { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
     { cat: 'ai-agent', label: 'AI 에이전트', items: AI_AGENT_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
-    { cat: 'ai-model', label: 'AI 모델', items: experts.filter(e => e.category === 'ai' && !AI_AGENT_IDS.includes(e.id)) },
+    { cat: 'ai-model', label: 'AI 모델', items: (() => {
+      // 브랜드별 출시순 정렬
+      const AI_MODEL_ORDER = [
+        // OpenAI (2022~)
+        'auto-ai', 'ancano', 'gpt', 'gpt-mini', 'gpt-nano',
+        // Google Gemini (2023~)
+        'gemini-flash-lite', 'gemini', 'gemini-3-flash', 'gemini-3.1', 'gemini-pro', 'gemma',
+        // Anthropic Claude (2024~)
+        'claude-haiku', 'claude-sonnet', 'claude-sonnet-4.6', 'claude',
+        // xAI Grok (2024~)
+        'grok', 'grok-4.2',
+        // Meta Llama (2024~)
+        'llama-scout', 'llama-maverick',
+        // Mistral (2024~)
+        'mistral-small', 'mistral-medium', 'mistral-large', 'codestral', 'mistral-creative', 'devstral',
+        // Perplexity
+        'perplexity', 'perplexity-pro',
+        // DeepSeek (2024~)
+        'deepseek', 'deepseek-r1',
+        // Qwen (2024~)
+        'qwen-9b', 'qwen', 'qwen-plus', 'qwen-thinking',
+        // ByteDance
+        'seed', 'seed-mini',
+        // Xiaomi
+        'mimo', 'mimo-flash',
+        // 기타
+        'solar', 'mercury', 'ernie', 'hunyuan', 'minimax', 'kimi', 'kimi-thinking',
+        'nemotron', 'nova-premier', 'nova-2-lite', 'dolphin', 'glm', 'glm-5v',
+        'jamba', 'granite', 'step', 'palmyra', 'longcat', 'phi', 'command-r-plus', 'command-a',
+      ];
+      const aiModels = experts.filter(e => e.category === 'ai' && !AI_AGENT_IDS.includes(e.id));
+      const ordered = AI_MODEL_ORDER.map(id => aiModels.find(e => e.id === id)).filter(Boolean) as typeof experts;
+      const rest = aiModels.filter(e => !AI_MODEL_ORDER.includes(e.id));
+      return [...ordered, ...rest];
+    })() },
     ...visibleCategories.filter(cat => cat !== 'ai').map(cat => ({
       cat: cat as string,
       label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
