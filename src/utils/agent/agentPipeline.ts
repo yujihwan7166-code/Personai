@@ -12,7 +12,7 @@ import type {
   AgentPipelineOptions,
 } from './types';
 
-const AGENT_STEP_URL = '/api/agent-step';
+const AGENT_STEP_URL = '/api/chat?mode=agent-step';
 const CHAT_URL = '/api/chat';
 
 /** 최대 병렬 태스크 수 */
@@ -286,7 +286,7 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
       status: 'complete',
       finalAnswer: answer,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[AgentPipeline] Fatal error:', err);
 
     // 폴백: 일반 단일 호출

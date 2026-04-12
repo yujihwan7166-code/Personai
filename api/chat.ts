@@ -68,6 +68,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY가 설정되지 않았어요.' });
   }
 
+  // ── Agent Step 모드: 비스트리밍 단일 호출 ──
+  if (req.query.mode === 'agent-step') {
+    const { systemPrompt: agSys, userPrompt, model, maxTokens = 800, temperature = 0.5 } = req.body || {};
+    if (!userPrompt || !model) {
+      return res.status(400).json({ error: 'userPrompt and model are required' });
+    }
+    try {
+      const msgs: { role: string; content: string }[] = [];
+      if (agSys) msgs.push({ role: 'system', content: agSys });
+      msgs.push({ role: 'user', content: userPrompt });
+
+      const agentRes = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: getOpenRouterHeaders(apiKey),
+        body: JSON.stringify({ model, messages: msgs, stream: false, temperature, max_tokens: maxTokens }),
+      });
+      if (!agentRes.ok) {
+        const errText = await agentRes.text();
+        return res.status(agentRes.status).json({ error: errText });
+      }
+      const data = await agentRes.json();
+      const content = data?.choices?.[0]?.message?.content ?? '';
+      const tokensUsed = (data?.usage?.prompt_tokens ?? 0) + (data?.usage?.completion_tokens ?? 0);
+      return res.status(200).json({ content, tokensUsed });
+    } catch (err: unknown) {
+      return res.status(500).json({ error: err instanceof Error ? err.message : 'Internal server error' });
+    }
+  }
+
   const body = (req.body || {}) as ChatRequestBody;
   const question = typeof body.question === 'string' ? body.question.trim() : '';
   const systemPrompt = typeof body.systemPrompt === 'string' ? body.systemPrompt : '';
