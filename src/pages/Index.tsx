@@ -4,10 +4,15 @@ import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRoun
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
+import { PptDownloadCard } from '@/components/PptDownloadCard';
+import { SummaryMessageCard } from '@/components/SummaryMessageCard';
 // RightMemoSidebar removed
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
+import { runAutoAgentTurn } from '@/lib/autoAgentTurn';
+import { createStreamExpert, fetchSearchContext, type PreSearchContext, type StreamExpertFn } from '@/lib/chatStream';
 import type { AttachedFile } from '@/lib/fileProcessor';
+import { buildGeneralImageHistory, mockRoute, pickGeneralImageExpert, type GeneralImageHistoryMessage } from '@/lib/indexPageHelpers';
 import {
   createGeneratedImageThumbnail,
   detectGeneralImageAspectRatio,
@@ -17,7 +22,7 @@ import {
   stripDataUrlPrefix,
   type GeneralImageIntent,
 } from '@/lib/generalImage';
-import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, ArrowLeft, FileText, X, MessageSquare } from 'lucide-react';
+import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, ArrowLeft, X, MessageSquare } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -28,11 +33,7 @@ import { useAssistantSelectionState } from '@/hooks/useAssistantSelectionState';
 import { useAssistantRun } from '@/hooks/useAssistantRun';
 import { useDiscussionHistoryPersistence } from '@/hooks/useDiscussionHistoryPersistence';
 import { usePersistedExpertState } from '@/hooks/usePersistedExpertState';
-import { classifyQuestion } from '@/utils/agent/questionClassifier';
-import { runAgentPipeline } from '@/utils/agent/agentPipeline';
-import { runFakeAgentPipeline } from '@/utils/agent/fakeAgentPipeline';
 import { AUTO_AGENT_CONFIG } from '@/utils/agent/config';
-import type { AgentState } from '@/utils/agent/types';
 
 const CHAT_URL = '/api/chat';
 const GENERAL_IMAGE_URL = '/api/general-image';
@@ -43,11 +44,9 @@ const LazyGamePlayer = lazy(() => import('@/components/GamePlayer').then((module
 const LazyQuestionInput = lazy(() => import('@/components/QuestionInput').then((module) => ({ default: module.QuestionInput })));
 const LazyPremiumConsultChat = lazy(() => import('@/components/PremiumConsultChat').then((module) => ({ default: module.PremiumConsultChat })));
 let pptGeneratorPromise: Promise<typeof import('@/lib/pptGenerator')> | null = null;
-
-type GeneralImageHistoryMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-};
+let questionClassifierPromise: Promise<typeof import('@/utils/agent/questionClassifier')> | null = null;
+let agentPipelinePromise: Promise<typeof import('@/utils/agent/agentPipeline')> | null = null;
+let fakeAgentPipelinePromise: Promise<typeof import('@/utils/agent/fakeAgentPipeline')> | null = null;
 
 type GeneralImageRequestFile = {
   name: string;
@@ -74,6 +73,30 @@ async function loadPptGenerator() {
   }
 
   return pptGeneratorPromise;
+}
+
+async function loadQuestionClassifier() {
+  if (!questionClassifierPromise) {
+    questionClassifierPromise = import('@/utils/agent/questionClassifier');
+  }
+
+  return questionClassifierPromise;
+}
+
+async function loadAgentPipeline() {
+  if (!agentPipelinePromise) {
+    agentPipelinePromise = import('@/utils/agent/agentPipeline');
+  }
+
+  return agentPipelinePromise;
+}
+
+async function loadFakeAgentPipeline() {
+  if (!fakeAgentPipelinePromise) {
+    fakeAgentPipelinePromise = import('@/utils/agent/fakeAgentPipeline');
+  }
+
+  return fakeAgentPipelinePromise;
 }
 
 // Timing constants
@@ -155,221 +178,11 @@ const MODE_INSTRUCTIONS: Record<string, string> = {
 - 유저가 좋은 포인트를 내면 인정하되, 바로 더 강한 반론으로 넘어가세요.`,
 };
 
-function mockRoute(question: string, candidates: Expert[]): { expert: Expert; reason: string } {
-  const q = question.toLowerCase();
-  const find = (id: string) => candidates.find(e => e.id === id);
-
-  if (/주식|투자|금융|경제|펀드|etf|코인|환율/.test(q))
-    return { expert: find('gpt') ?? candidates[0], reason: '금융·투자 분석 특화' };
-  if (/코드|코딩|개발|프로그래밍|javascript|python|typescript|버그|에러/.test(q))
-    return { expert: find('claude') ?? candidates[0], reason: '코딩·논리 추론 특화' };
-  if (/검색|최신|뉴스|오늘|날씨|요즘|트렌드|실시간/.test(q))
-    return { expert: find('perplexity') ?? candidates[0], reason: '검색·최신 정보 특화' };
-  if (/창작|아이디어|글쓰기|소설|시나리오|브레인스토밍|창의/.test(q))
-    return { expert: find('gemini') ?? candidates[0], reason: '창의·탐색 특화' };
-  if (/철학|윤리|사회|정치|역사|문화/.test(q))
-    return { expert: find('claude') ?? candidates[0], reason: '윤리·균형 분석 특화' };
-  if (/기술|ai|로봇|미래|혁신|스타트업/.test(q))
-    return { expert: find('grok') ?? candidates[0], reason: '기술·혁신 직설 분석 특화' };
-
-  return { expert: find('gpt') ?? candidates[0], reason: '범용 분석 및 구조적 답변' };
-}
-
-function buildCollaborationPrompt(p: {
-  role: string; mission: string; phaseLabel: string; phaseIndex: number; totalPhases: number;
-  roleInstruction: string; previousPhaseContext: string; deliverableTarget: string; teamName: string;
-}): string {
-  return `당신은 ${p.teamName}의 "${p.role}" 역할을 맡은 전문가입니다.
-
-=== 절대 규칙 ===
-- 오직 "${p.role}"의 관점에서만 발언하세요.
-- 다른 역할의 영역에 대해서는 의견을 내지 마세요.
-- 구체적인 수치, 예시, 근거를 포함하세요.
-${p.mission ? `\n=== 프로젝트 목표 ===\n${p.mission}\n` : ''}
-=== 현재 단계 (${p.phaseIndex + 1}/${p.totalPhases}) ===
-${p.phaseLabel}${p.deliverableTarget ? ` → 산출물: ${p.deliverableTarget}` : ''}
-${p.previousPhaseContext}
-=== 당신의 임무 ===
-${p.roleInstruction}
-
-마크다운 형식으로 답변하세요. 한국어로 답변하세요.`;
-}
-
-function buildDeliverablePrompt(p: {
-  mission: string; phaseLabel: string; deliverableName: string;
-  previousPhaseContext: string; teamName: string; roles: string[];
-}): string {
-  return `당신은 ${p.teamName}의 프로젝트 매니저입니다. 팀원들(${p.roles.join(', ')})의 의견을 종합하여 "${p.deliverableName}"을 작성합니다.
-${p.mission ? `\n프로젝트 목표: ${p.mission}\n` : ''}${p.previousPhaseContext}
-=== 작성 규칙 ===
-1. 각 역할의 핵심 기여를 빠짐없이 반영하되 하나의 통합 문서로 작성하세요.
-2. 역할 간 충돌이 있으면 양쪽 의견을 병기하고 권고안을 제시하세요.
-3. 다음 단계에서 활용할 수 있는 구체적 결론/합의사항을 명시하세요.
-4. 마크다운 형식으로 구조화하고 표/목록을 적극 활용하세요.
-5. 한국어로 작성하세요.
-
-# 📄 ${p.deliverableName}`;
-}
-
-function buildFinalReportPrompt(p: { mission: string; teamName: string; roles: string[] }): string {
-  return `당신은 ${p.teamName}의 총괄 책임자입니다. 모든 단계의 산출물과 팀원들의 기여를 종합 보고서로 통합합니다.
-${p.mission ? `\n프로젝트 목표: ${p.mission}\n` : ''}
-다음 형식으로 작성하세요:
-
-# 📋 프로젝트 종합 보고서
-
-## 프로젝트 개요
-(목표, 팀 구성, 진행 과정 요약)
-
-## 단계별 핵심 결과
-(각 단계 산출물의 핵심 내용 요약)
-
-## 역할별 기여
-| 역할 | 핵심 기여 | 담당 영역 |
-|------|----------|----------|
-${p.roles.map(r => `| ${r} | | |`).join('\n')}
-
-## 최종 결론 및 제안
-(모든 관점을 통합한 결론)
-
-## 다음 단계 (Next Steps)
-(구체적 실행 항목)
-
-> 💡 **한 줄 요약:** (핵심 결론)
-
-한국어로 작성하세요.`;
-}
-
-function buildGeneralImageHistory(messages: DiscussionMessage[], experts: Expert[]): GeneralImageHistoryMessage[] {
-  return messages
-    .filter((message) => message.expertId !== '__round__' && message.expertId !== '__summary__' && message.content.trim().length > 0)
-    .map((message) => {
-      if (message.expertId === '__user__') {
-        return {
-          role: 'user' as const,
-          content: message.content,
-        };
-      }
-
-      const expert = experts.find((item) => item.id === message.expertId);
-      return {
-        role: 'assistant' as const,
-        content: `${expert?.nameKo || 'AI'}: ${message.content}`,
-      };
-    })
-    .slice(-6);
-}
-
-function pickGeneralImageExpert(currentExpert: Expert | undefined, experts: Expert[], question: string, messages: DiscussionMessage[]): Expert | undefined {
-  if (currentExpert && currentExpert.id !== 'router') {
-    return currentExpert;
-  }
-
-  const lastAssistant = [...messages]
-    .reverse()
-    .find((message) => message.expertId !== '__user__' && message.expertId !== '__round__' && message.expertId !== '__summary__' && message.expertId !== 'router');
-
-  if (lastAssistant) {
-    const matchedExpert = experts.find((expert) => expert.id === lastAssistant.expertId);
-    if (matchedExpert) {
-      return matchedExpert;
-    }
-  }
-
-  const candidates = experts.filter((expert) => expert.id !== 'router' && expert.category === 'ai');
-  if (currentExpert?.id === 'router' && candidates.length > 0) {
-    return mockRoute(question, candidates).expert;
-  }
-
-  return candidates[0];
-}
-
-type PreSearchContext = { query: string; sources: { title: string; link: string }[]; formatted: string } | null;
-
-async function fetchSearchContext(question: string): Promise<PreSearchContext> {
-  try {
-    const resp = await fetch('/api/search-context', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question }),
-    });
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    return data.searchContext || null;
-  } catch {
-    return null;
-  }
-}
-
-async function streamExpert({
-  question,
-  expert,
-  previousResponses,
-  round,
-  onDelta,
-  onDone,
-  signal,
-  files,
-  onSearchSources,
-  preSearchContext,
-}: {question: string;expert: Expert;previousResponses: {name: string;content: string;}[];round: DiscussionRound | 'summary';onDelta: (text: string) => void;onDone: () => void;signal?: AbortSignal;files?: {name: string; mimeType: string; base64: string; extractedText?: string}[];onSearchSources?: (sources: {query: string; sources: {title: string; link: string}[]}) => void;preSearchContext?: {query: string; sources: {title: string; link: string}[]; formatted: string} | null;}) {
-  const basePrompt = await getExpertPrompt(expert);
-  const resp = await fetch(CHAT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: SAFETY_GUARDRAIL + QUALITY_GUARDRAIL + basePrompt, question, previousResponses, files: files && files.length > 0 ? files : undefined, openrouterModel: expert.openrouterModel, ...(preSearchContext !== undefined ? { preSearchContext } : {}) }),
-    signal
-  });
-
-  if (!resp.ok || !resp.body) {
-    const errorData = await resp.json().catch(() => ({}));
-    if (resp.status === 429) {
-      throw new Error('일일 사용 한도에 도달했어요. 내일 다시 이용해주세요.');
-    }
-    if (resp.status >= 500) {
-      throw new Error('서버에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해주세요.');
-    }
-    throw new Error(errorData.error || '응답을 받아오지 못했어요. 네트워크를 확인해주세요.');
-  }
-
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let textBuffer = '';
-  let streamDone = false;
-  let currentEvent = 'message';
-
-  while (!streamDone) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    textBuffer += decoder.decode(value, { stream: true });
-    let newlineIndex: number;
-    while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-      let line = textBuffer.slice(0, newlineIndex);
-      textBuffer = textBuffer.slice(newlineIndex + 1);
-      if (line.endsWith('\r')) line = line.slice(0, -1);
-      if (line.trim() === '') { currentEvent = 'message'; continue; }
-      if (line.startsWith(':')) continue;
-      if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
-      if (!line.startsWith('data: ')) continue;
-      const jsonStr = line.slice(6).trim();
-      if (jsonStr === '[DONE]') {streamDone = true;break;}
-      try {
-        if (currentEvent === 'search') {
-          const searchData = JSON.parse(jsonStr);
-          if (onSearchSources) onSearchSources(searchData);
-          continue;
-        }
-        const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
-      } catch {
-        textBuffer = line + '\n' + textBuffer;
-        break;
-      }
-    }
-  }
-  onDone();
-}
+const streamExpert: StreamExpertFn = createStreamExpert({
+  chatUrl: CHAT_URL,
+  safetyGuardrail: SAFETY_GUARDRAIL,
+  qualityGuardrail: QUALITY_GUARDRAIL,
+});
 
 const Index = () => {
   const { user } = useAuth();
@@ -1437,6 +1250,16 @@ ${difficultyDesc}
         }
       }
 
+      // 사용자 질문 즉시 표시 (general 모드, 파일 없을 때도)
+      if (useMode === 'general') {
+        setMessages((prev) => [...prev, {
+          id: `user-general-${Date.now()}`,
+          expertId: '__user__',
+          content: displayQuestion || question,
+          ...(filesBadges && filesBadges.length > 0 ? { attachedFiles: filesBadges } : {}),
+        }]);
+      }
+
       // 단일 AI만: 명확화 질문 (첫 질문, 스킵 안 된 경우만) — player 모드는 스킵
       const expert0 = discussionExperts[0];
       if (expert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS && useMode !== 'player') {
@@ -1487,15 +1310,6 @@ ${difficultyDesc}
       skipClarifyRef.current = true;
       setChatClarify(null);
 
-      if (useMode === 'general' && filesBadges && filesBadges.length > 0) {
-        setMessages((prev) => [...prev, {
-          id: `user-general-${Date.now()}`,
-          expertId: '__user__',
-          content: displayQuestion || question,
-          attachedFiles: filesBadges,
-        }]);
-      }
-
       // Smart router: auto-select best AI
       let expertsToRun = discussionExperts;
       if (useIds.includes('router')) {
@@ -1524,93 +1338,27 @@ ${difficultyDesc}
         if (shouldStop()) break;
         setActiveExpertId(expert.id);
 
-        // ── AUTO 에이전트 모드 분기 (전 브랜드 공통) ──
         const autoConfig = AUTO_AGENT_CONFIG[expert.id];
 
         if (autoConfig && (autoConfig.enableAgent || autoConfig.fakeAgent)) {
-          // ── 에이전트 대상 AUTO 모델 ──
-          const agentModel = autoConfig.agentModel;
+          const autoRunResult = await runAutoAgentTurn({
+            expert,
+            question,
+            files: filesToSend,
+            signal: controller.signal,
+            autoConfig,
+            setMessages,
+            getExpertPrompt,
+            streamExpert,
+            loadQuestionClassifier,
+            loadAgentPipeline,
+            loadFakeAgentPipeline,
+            safetyGuardrail: SAFETY_GUARDRAIL,
+            qualityGuardrail: QUALITY_GUARDRAIL,
+          });
 
-          // 가짜 에이전트 (Claude): 항상 에이전트 UI + 단일 호출
-          // 진짜 에이전트: classifyQuestion으로 판별
-          const useAgentMode = autoConfig.fakeAgent
-            ? true
-            : classifyQuestion(question).mode === 'agent';
-
-          if (!autoConfig.fakeAgent) {
-            const classification = classifyQuestion(question);
-            console.log(`[AUTO ${expert.id}] Classification:`, JSON.stringify(classification), 'question:', question);
-          }
-
-          if (useAgentMode) {
-            // ── 에이전트 모드 (진짜 or 가짜) ──
-            const msgId = `${expert.id}-agent-${Date.now()}`;
-            const initialAgentState: AgentState = {
-              status: 'analyzing',
-              strategy: null,
-              tasks: [],
-              finalAnswer: '',
-              totalTokensUsed: 0,
-              elapsedMs: 0,
-            };
-            setMessages((prev) => [...prev, {
-              id: msgId,
-              expertId: expert.id,
-              content: '',
-              isStreaming: true,
-              agentState: initialAgentState,
-            }]);
-
-            let fullContent = '';
-            try {
-              const basePrompt = await getExpertPrompt(expert);
-              const pipelineFn = autoConfig.fakeAgent ? runFakeAgentPipeline : runAgentPipeline;
-              await pipelineFn({
-                message: question,
-                model: agentModel,
-                systemPrompt: SAFETY_GUARDRAIL + QUALITY_GUARDRAIL + basePrompt,
-                onStateChange: (state: AgentState) => {
-                  setMessages((prev) => prev.map((m) =>
-                    m.id === msgId ? { ...m, agentState: { ...state } } : m
-                  ));
-                },
-                onStreamToken: (token: string) => {
-                  fullContent += token;
-                  setMessages((prev) => prev.map((m) =>
-                    m.id === msgId ? { ...m, content: fullContent } : m
-                  ));
-                },
-                signal: controller.signal,
-              });
-            } catch (err) {
-              if ((err as Error).name === 'AbortError') break;
-              fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-            }
-
-            setMessages((prev) => prev.map((m) =>
-              m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m
-            ));
-          } else {
-            // ── 심플 모드: 저렴 모델 1회 호출 ──
-            const msgId = `${expert.id}-general-${Date.now()}`;
-            const cheapExpert = { ...expert, openrouterModel: agentModel };
-            setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
-            let fullContent = '';
-            try {
-              await streamExpert({
-                question, expert: cheapExpert,
-                previousResponses: [], round: 'initial',
-                onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-                onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
-                signal: controller.signal,
-                files: filesToSend,
-                onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
-              });
-            } catch (err) {
-              if ((err as Error).name === 'AbortError') break;
-              fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-              setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
-            }
+          if (autoRunResult.aborted) {
+            break;
           }
         } else {
           // ── 기존 일반 모델 + Perplexity AUTO (에이전트 없이 단일 호출) ──
@@ -6856,48 +6604,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   if (msg.expertId === '__sim_briefing__') return null;
                   // 대화 요약 카드 — 전체 폭, 인디고 테마
                   if (msg.expertId === '__summary__') {
-                    return (
-                      <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-2 duration-400">
-                        <div className="rounded-2xl overflow-hidden border border-indigo-200/60 dark:border-indigo-800/40 shadow-sm">
-                          <div className="flex items-center justify-between px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-white/80" />
-                              <span className="text-[13px] font-bold text-white">대화 요약</span>
-                            </div>
-                            <button onClick={() => { navigator.clipboard.writeText(msg.content); }} className="px-2.5 py-1 rounded-md text-[10px] font-medium text-white/60 hover:text-white hover:bg-white/15 transition-colors">
-                              복사
-                            </button>
-                          </div>
-                          <div className="px-5 py-4 bg-white dark:bg-slate-900">
-                            <div className="text-[13px] leading-[1.8] text-slate-700 dark:text-slate-300 [&_h3]:text-[13.5px] [&_h3]:font-bold [&_h3]:text-slate-800 [&_h3]:dark:text-slate-200 [&_h3]:mt-4 [&_h3]:mb-2 [&_h3:first-child]:mt-0 [&_h2]:text-[13.5px] [&_h2]:font-bold [&_h2]:text-slate-800 [&_h2]:dark:text-slate-200 [&_h2]:mt-4 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:pl-4 [&_ul]:space-y-1 [&_li]:text-[12.5px] [&_p]:mb-1 [&_hr]:my-3 [&_hr]:border-slate-100">
-                              <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
+                    return <SummaryMessageCard key={msg.id} content={msg.content} />;
                   }
                   // PPT 다운로드 버튼
                   if (msg.expertId === '__ppt_download__') {
-                    let pptData: import('@/lib/pptGenerator').PptData | null = null;
-                    try { pptData = JSON.parse(msg.content); } catch {}
-                    if (!pptData) return null;
-                    return (
-                      <div key={msg.id} className="flex justify-center py-3">
-                        <button
-                          onClick={() => {
-                            void (async () => {
-                              const pptTools = await loadPptGenerator();
-                              await pptTools.generatePpt(pptData!, `presentation-${Date.now()}.pptx`);
-                            })();
-                          }}
-                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-[13px] shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
-                        >
-                          <span className="text-[18px]">📊</span>
-                          PPT 다운로드 ({pptData.slides?.length || 0}장)
-                        </button>
-                      </div>
-                    );
+                    return <PptDownloadCard key={msg.id} content={msg.content} loadPptGenerator={loadPptGenerator} />;
                   }
                   // AI vs User judgment card
                   if (msg.expertId === '__avsu_judge__') {

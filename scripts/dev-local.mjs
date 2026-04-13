@@ -117,7 +117,7 @@ if (hasLawCredential) {
 }
 
 console.log("Starting local API on http://127.0.0.1:3000 ...");
-startProcess("api", "npx", ["vercel", "dev", "--listen", "3000"]);
+startProcess("api", "npx", ["vercel", "dev", "--listen", "3000", "--yes"]);
 
 setTimeout(() => {
   console.log("Starting web app on http://127.0.0.1:3001 ...");

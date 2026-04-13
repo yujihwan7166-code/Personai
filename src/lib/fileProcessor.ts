@@ -13,8 +13,8 @@ export const MAX_TOTAL_SIZE = 20 * 1024 * 1024;
 export const MAX_FILES = 5;
 export const MAX_EXTRACTED_TEXT_LENGTH = 15000;
 
-let mammothModulePromise: Promise<typeof import('mammoth')> | null = null;
 let xlsxModulePromise: Promise<typeof import('xlsx')> | null = null;
+let jsZipModulePromise: Promise<typeof import('jszip')> | null = null;
 
 export const SUPPORTED_TYPES = [
   'image/png',
@@ -39,20 +39,20 @@ const EXTENSION_TO_MIME_TYPE: Record<string, string> = {
 
 type AttachmentLike = Pick<AttachedFile, 'name' | 'mimeType'>;
 
-function loadMammoth() {
-  if (!mammothModulePromise) {
-    mammothModulePromise = import('mammoth');
-  }
-
-  return mammothModulePromise;
-}
-
 function loadXlsx() {
   if (!xlsxModulePromise) {
     xlsxModulePromise = import('xlsx');
   }
 
   return xlsxModulePromise;
+}
+
+function loadJsZip() {
+  if (!jsZipModulePromise) {
+    jsZipModulePromise = import('jszip');
+  }
+
+  return jsZipModulePromise;
 }
 
 function getFileExtension(name: string) {
@@ -68,6 +68,57 @@ export function resolveMimeType(mimeType: string | undefined, fileName: string):
 
   const extension = getFileExtension(fileName);
   return EXTENSION_TO_MIME_TYPE[extension] ?? normalizedMimeType;
+}
+
+export function extractDocxTextFromXml(xml: string): string {
+  const parser = new DOMParser();
+  const document = parser.parseFromString(xml, 'application/xml');
+  const paragraphs = Array.from(document.getElementsByTagNameNS('*', 'p'));
+
+  const paragraphTexts = paragraphs.map((paragraph) => {
+    const fragments: string[] = [];
+
+    const collectText = (node: Node) => {
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return;
+      }
+
+      const element = node as Element;
+
+      if (element.localName === 't' && element.textContent) {
+        fragments.push(element.textContent);
+      } else if (element.localName === 'tab') {
+        fragments.push('\t');
+      } else if (element.localName === 'br' || element.localName === 'cr') {
+        fragments.push('\n');
+      }
+
+      for (const child of Array.from(element.childNodes)) {
+        collectText(child);
+      }
+    };
+
+    for (const child of Array.from(paragraph.childNodes)) {
+      collectText(child);
+    }
+
+    return fragments.join('').trim();
+  });
+
+  return paragraphTexts.filter(Boolean).join('\n');
+}
+
+async function extractDocxTextFromArrayBuffer(arrayBuffer: ArrayBuffer): Promise<string> {
+  const JSZip = await loadJsZip();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const mainDocument = zip.file('word/document.xml');
+
+  if (!mainDocument) {
+    throw new Error('DOCX main document XML not found');
+  }
+
+  const xml = await mainDocument.async('string');
+  return extractDocxTextFromXml(xml);
 }
 
 function getAttachmentCategory(mimeType: string) {
@@ -152,9 +203,8 @@ export async function processFile(file: File): Promise<AttachedFile> {
   if (mimeType.includes('wordprocessingml')) {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const mammoth = await loadMammoth();
-      const { value } = await mammoth.extractRawText({ arrayBuffer });
-      result.extractedText = value.slice(0, MAX_EXTRACTED_TEXT_LENGTH);
+      const text = await extractDocxTextFromArrayBuffer(arrayBuffer);
+      result.extractedText = text.slice(0, MAX_EXTRACTED_TEXT_LENGTH);
       result.base64 = '';
     } catch {
       result.extractedText = '[Word 파일 텍스트 추출 실패]';

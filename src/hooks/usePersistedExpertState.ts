@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { applyExpertOverrides } from '@/data/expertOverrides';
 import { DEFAULT_EXPERTS, type Expert } from '@/types/expert';
 
-const EXPERTS_STORAGE_KEY = 'ai-debate-experts-v65';
+const EXPERTS_STORAGE_KEY = 'ai-debate-experts-v66';
 const SELECTED_EXPERTS_STORAGE_KEY = 'ai-debate-selected-v5';
 
 function loadPersistedExperts(): Expert[] {
@@ -38,7 +38,8 @@ function loadPersistedExperts(): Expert[] {
     });
 
     const defaultIds = new Set(DEFAULT_EXPERTS.map((expert) => expert.id));
-    const customExperts = parsed.filter((expert) => !defaultIds.has(expert.id));
+    const removedIds = new Set(['auto-ai', 'ancano']);
+    const customExperts = parsed.filter((expert) => !defaultIds.has(expert.id) && !removedIds.has(expert.id));
 
     return applyExpertOverrides([...merged, ...customExperts]);
   } catch {

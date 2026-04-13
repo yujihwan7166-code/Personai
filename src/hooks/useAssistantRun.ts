@@ -1,27 +1,15 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 
+import type { StreamExpertFn } from '@/lib/chatStream';
 import { buildAssistantExpert, type AssistantCard } from '@/types/assistant';
-import type { DiscussionMessage, DiscussionRound, Expert } from '@/types/expert';
+import type { DiscussionMessage } from '@/types/expert';
 
-type StreamExpertArgs = {
-  question: string;
-  expert: Expert;
-  previousResponses: { name: string; content: string }[];
-  round: DiscussionRound | 'summary';
-  onDelta: (text: string) => void;
-  onDone: () => void;
-  signal?: AbortSignal;
-  files?: { name: string; mimeType: string; base64: string; extractedText?: string }[];
-  preSearchContext?: { query: string; sources: { title: string; link: string }[]; formatted: string } | null;
-};
-
-type StreamExpert = (args: StreamExpertArgs) => Promise<void>;
 type SetMessages = Dispatch<SetStateAction<DiscussionMessage[]>>;
 type SetActiveExpertId = Dispatch<SetStateAction<string | undefined>>;
 type LoadPptGenerator = () => Promise<typeof import('@/lib/pptGenerator')>;
 
 interface UseAssistantRunOptions {
-  streamExpert: StreamExpert;
+  streamExpert: StreamExpertFn;
   setMessages: SetMessages;
   setActiveExpertId: SetActiveExpertId;
   loadPptGenerator: LoadPptGenerator;

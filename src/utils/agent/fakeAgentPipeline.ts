@@ -161,8 +161,8 @@ export async function runFakeAgentPipeline(options: AgentPipelineOptions): Promi
       status: 'complete',
       finalAnswer: answer,
     });
-  } catch (err: any) {
-    if (err.name === 'AbortError') throw err;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') throw err;
 
     console.error('[FakeAgentPipeline] Error:', err);
     updateState({ status: 'error' });

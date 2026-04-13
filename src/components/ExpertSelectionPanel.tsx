@@ -16,13 +16,18 @@ import {
   BATTLE_AI_CHARACTERS,
   DEBATE_RECOMMENDED_TOPICS,
 } from '@/types/expert';
-import { AIAbilityRadar } from './AIAbilityRadar';
 import { AivsBattleConfigModal } from './AivsBattleConfigModal';
+import { ExpertHoverTip } from './ExpertHoverTip';
+import { MainModeTabs } from './MainModeTabs';
 import { PremiumDomainLanding } from './PremiumDomainLanding';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
 import { AssistantCardsPanel } from './AssistantCardsPanel';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFavoriteExperts } from '@/hooks/useFavoriteExperts';
+import { useHoverExpertTip } from '@/hooks/useHoverExpertTip';
+import { useMainModeTransition } from '@/hooks/useMainModeTransition';
+import { buildExpertSelectionGroups } from '@/lib/expertSelectionGroups';
 import { cn } from '@/lib/utils';
 import type { AttachedFile } from '@/lib/fileProcessor';
 import {
@@ -82,6 +87,7 @@ interface Props {
 }
 
 const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant', 'player'];
+const AI_AGENT_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
 
 function isInstantChatLayoutSwitch(from: MainMode, to: MainMode) {
   return (
@@ -1569,43 +1575,6 @@ function PlayerLobby({ onSubmit, isDiscussing, onStartGame, onBackToHub }: { onS
   );
 }
 
-// ── 툴팁 능력치 섹션 (레이더 + 바) ──
-const TIP_BAR_COLORS: Record<string, string> = {
-  blue: 'bg-blue-400', emerald: 'bg-emerald-400', red: 'bg-red-400', amber: 'bg-amber-400',
-  purple: 'bg-purple-400', orange: 'bg-orange-400', teal: 'bg-teal-400', pink: 'bg-pink-400',
-  slate: 'bg-slate-400', green: 'bg-green-400', cyan: 'bg-cyan-400', sky: 'bg-sky-400',
-};
-const TIP_STATS: { key: string; label: string }[] = [
-  { key: 'coding', label: '코딩' }, { key: 'creativity', label: '창의성' },
-  { key: 'reasoning', label: '추론력' }, { key: 'math', label: '수학' },
-  { key: 'multilingual', label: '다국어' }, { key: 'speed', label: '속도' },
-  { key: 'costEfficiency', label: '비용효율' }, { key: 'contextWindow', label: '토큰용량' },
-];
-function TipAbilitySection({ abilities, color, name }: { abilities: import('@/types/expert').AIAbilityStats; color: string; name: string }) {
-  const bc = TIP_BAR_COLORS[color] || 'bg-indigo-400';
-  return (
-    <div className="pb-2.5">
-      <div className="px-2.5">
-        <AIAbilityRadar abilities={abilities} color={color} name={name} />
-      </div>
-      <div className="space-y-[3px] mt-1 pl-3 pr-5">
-        {TIP_STATS.map(({ key, label }) => {
-          const v = abilities[key as keyof typeof abilities];
-          return (
-            <div key={key} className="flex items-center gap-1.5">
-              <span className="text-[8px] text-slate-400 w-[38px] text-center shrink-0">{label}</span>
-              <div className="flex-1 h-[4px] bg-white/10 rounded-full overflow-hidden">
-                <div className={cn('h-full rounded-full', v >= 90 ? 'bg-amber-400' : bc)} style={{ width: `${v}%` }} />
-              </div>
-              <span className={cn('text-[8px] w-[18px] text-right tabular-nums', v >= 95 ? 'text-amber-400 font-bold' : v >= 85 ? 'text-white font-semibold' : 'text-slate-400')}>{v}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 // ══════════════════════════════════════════
 // ── Main ExpertSelectionPanel ──
 // ══════════════════════════════════════════
@@ -1631,8 +1600,7 @@ export function ExpertSelectionPanel({
 }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('ai-agent');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
-  // AI 에이전트 탭에 표시할 모델 ID
-  const AI_AGENT_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
+  const [aiModelExpanded, setAiModelExpanded] = useState(false);
   const isProcon = discussionMode === 'procon';
   const [proconAssignMode, setProconAssignMode] = useState<'manual' | 'auto'>('manual');
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -1644,43 +1612,15 @@ export function ExpertSelectionPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [prefilledQuestion, setPrefilledQuestion] = useState('');
 
-  // ── Mode transition states ──
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [pendingMode, setPendingMode] = useState<MainMode | null>(null);
-  const [transitionPhase, setTransitionPhase] = useState<0 | 1 | 2 | 3>(0);
-  // Phase 0: idle, Phase 1: content fade out, Phase 2: bg darken + tabs shift, Phase 3: new content fade in
+  const maxLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { hoveredExpert, tipPos, showTip, hideTip } = useHoverExpertTip();
 
-  // Portal 기반 hover 툴팁
-  const [hoveredExpert, setHoveredExpert] = useState<Expert | null>(null);
-  const [tipPos, setTipPos] = useState<{ x: number; y: number } | null>(null);
-  const tipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showTip = useCallback((expert: Expert, el: HTMLElement) => {
-    if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
-    const delay = hoveredExpert ? 0 : 300;
-    tipTimerRef.current = setTimeout(() => {
-      const rect = el.getBoundingClientRect();
-      setHoveredExpert(expert);
-      setTipPos({ x: rect.right + 8, y: rect.top + rect.height / 2 });
-    }, delay);
-  }, [hoveredExpert]);
-  const hideTip = useCallback(() => {
-    if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
-    setHoveredExpert(null);
-    setTipPos(null);
+  useEffect(() => () => {
+    if (maxLimitTimeoutRef.current) clearTimeout(maxLimitTimeoutRef.current);
   }, []);
 
   const MAX_PER_ZONE = debateSettings?.proconTeamSize || 3;
   const mainMode = getMainMode(discussionMode);
-  const prevMainModeRef = useRef(mainMode);
-  const debateDirection = useRef(1); // 1 = entering debate, -1 = leaving
-  useEffect(() => {
-    if (mainMode === 'debate' && prevMainModeRef.current !== 'debate') {
-      debateDirection.current = 1;
-    } else if (mainMode !== 'debate' && prevMainModeRef.current === 'debate') {
-      debateDirection.current = -1;
-    }
-    prevMainModeRef.current = mainMode;
-  }, [mainMode]);
   const proconProCount = Object.values(proconStances).filter((stance) => stance === 'pro').length;
   const proconConCount = Object.values(proconStances).filter((stance) => stance === 'con').length;
   const isProconTeamComplete = proconProCount === MAX_PER_ZONE && proconConCount === MAX_PER_ZONE;
@@ -1784,27 +1724,97 @@ export function ExpertSelectionPanel({
   };
 
   const supportsAutoAssign = discussionMode === 'standard' || discussionMode === 'brainstorm' || discussionMode === 'hearing' || discussionMode === 'freetalk' || discussionMode === 'stakeholder';
+  const handleAutoAssignChange = useCallback((value: boolean) => {
+    setAutoAssign(value);
+    if (value) {
+      onBulkSelect?.([]);
+    }
+  }, [onBulkSelect]);
 
-  const triggerDragHint = (id: string) => {
-    setHintId(id);
-    setTimeout(() => setHintId(null), 500);
-  };
+  const showTransientMaxLimitMessage = useCallback((message: string) => {
+    setMaxLimitMsg(message);
+    if (maxLimitTimeoutRef.current) {
+      clearTimeout(maxLimitTimeoutRef.current);
+    }
+    maxLimitTimeoutRef.current = setTimeout(() => {
+      setMaxLimitMsg(null);
+      maxLimitTimeoutRef.current = null;
+    }, 2000);
+  }, []);
 
-  const assignStance = (expertId: string, stance: ProconStance) => {
+  const assignStance = useCallback((expertId: string, stance: ProconStance) => {
     const count = Object.values(proconStances).filter(s => s === stance).length;
     const alreadyInZone = proconStances[expertId] === stance;
     if (!alreadyInZone && count >= MAX_PER_ZONE) return;
     const next = { ...proconStances, [expertId]: stance };
     onProconStancesChange?.(next);
     if (!selectedIds.includes(expertId)) onToggle(expertId);
-  };
+  }, [MAX_PER_ZONE, onProconStancesChange, onToggle, proconStances, selectedIds]);
 
-  const removeStance = (expertId: string) => {
+  const removeStance = useCallback((expertId: string) => {
     const next = { ...proconStances };
     delete next[expertId];
     onProconStancesChange?.(next);
     if (selectedIds.includes(expertId)) onToggle(expertId);
-  };
+  }, [onProconStancesChange, onToggle, proconStances, selectedIds]);
+
+  const handleExpertSelection = useCallback((expertId: string, isSelected: boolean, stance?: ProconStance) => {
+    if (isProcon) {
+      if (proconAssignMode === 'auto') {
+        onToggle(expertId);
+        return;
+      }
+
+      if (stance) {
+        removeStance(expertId);
+        return;
+      }
+
+      const proCount = Object.values(proconStances).filter((value) => value === 'pro').length;
+      const conCount = Object.values(proconStances).filter((value) => value === 'con').length;
+
+      if (proCount < MAX_PER_ZONE && proCount <= conCount) {
+        assignStance(expertId, 'pro');
+        return;
+      }
+
+      if (conCount < MAX_PER_ZONE) {
+        assignStance(expertId, 'con');
+        return;
+      }
+
+      if (proCount < MAX_PER_ZONE) {
+        assignStance(expertId, 'pro');
+        return;
+      }
+
+      showTransientMaxLimitMessage('찬성/반대 모두 가득 찼습니다');
+      return;
+    }
+
+    if (mainMode === 'multi' && !isSelected && selectedIds.length >= 3) {
+      showTransientMaxLimitMessage('멀티 AI는 최대 3개까지 선택할 수 있습니다');
+      return;
+    }
+
+    if (mainMode === 'debate' && !isSelected && selectedIds.length >= 4) {
+      showTransientMaxLimitMessage('최대 4명까지 선택할 수 있습니다');
+      return;
+    }
+
+    onToggle(expertId);
+  }, [
+    MAX_PER_ZONE,
+    assignStance,
+    isProcon,
+    mainMode,
+    onToggle,
+    proconAssignMode,
+    proconStances,
+    removeStance,
+    selectedIds.length,
+    showTransientMaxLimitMessage,
+  ]);
 
   const subtitleText = mainMode === 'general'
     ? 'GPT, Claude, Gemini 등 원하는 AI를 선택하고 자유롭게 대화하세요'
@@ -1841,109 +1851,17 @@ export function ExpertSelectionPanel({
   const isHearing = discussionMode === 'hearing';
   const isStakeholder = discussionMode === 'stakeholder';
 
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
-    try { const s = localStorage.getItem('ai-debate-favorites'); return s ? JSON.parse(s) : []; } catch { return []; }
-  });
-  const toggleFavorite = (id: string) => {
-    setFavoriteIds(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-      localStorage.setItem('ai-debate-favorites', JSON.stringify(next));
-      return next;
-    });
-  };
+  const { favoriteIds, favoriteSet, toggleFavorite } = useFavoriteExperts();
   const visibleCategories = EXPERT_CATEGORY_ORDER;
-
-  const favoriteItems = favoriteIds.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts;
-  const grouped: { cat: string; label: string; items: typeof experts }[] = [
-    { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
-    { cat: 'ai-agent', label: 'AI 에이전트', items: AI_AGENT_IDS.map(id => experts.find(e => e.id === id)).filter(Boolean) as typeof experts },
-    { cat: 'ai-model', label: 'AI 모델', items: (() => {
-      // OpenRouter 실제 출시일 기준 (최신 → 오래된 순)
-      const AI_MODEL_ORDER = [
-        // 2026.04
-        'glm',               // GLM 5.1 (Apr 7, 2026)
-        'qwen-plus',         // Qwen 3.6 Plus (Apr 2, 2026)
-        'gemma',             // Gemma 4 31B (Apr 2, 2026)
-        'glm-5v',            // GLM 5V Turbo (Apr 1, 2026)
-        'grok-4.2',          // Grok 4.2 (Mar 31, 2026)
-        // 2026.03
-        'mimo',              // MiMo-V2-Pro (Mar 18, 2026)
-        'minimax',           // MiniMax M2.7 (Mar 18, 2026)
-        'mistral-small',     // Mistral Small 4 (Mar 16, 2026)
-        'nemotron',          // Nemotron 3 Super (Mar 11, 2026)
-        'qwen-9b',           // Qwen 3.5 9B (Mar 10, 2026)
-        'seed',              // Seed 2.0 Lite (Mar 10, 2026)
-        'mercury',           // Mercury 2 (Mar 4, 2026)
-        'gemini-3.1',        // Gemini 3.1 Lite (Mar 3, 2026)
-        // 2026.02
-        'seed-mini',         // Seed 2.0 Mini (Feb 26, 2026)
-        'qwen',              // Qwen 3.5 Flash (Feb 25, 2026)
-        'gemini-pro',        // Gemini 3.1 Pro (Feb 19, 2026)
-        'claude-sonnet-4.6', // Claude Sonnet 4.6 (Feb 17, 2026)
-        'qwen-thinking',     // Qwen3 Max Thinking (Feb 9, 2026)
-        'claude',            // Claude Opus 4.6 (Feb 4, 2026)
-        // 2026.01
-        'step',              // Step 3.5 Flash (Jan 29, 2026)
-        'solar',             // Solar Pro 3 (Jan 27, 2026)
-        'kimi',              // Kimi K2.5 (Jan 27, 2026)
-        'palmyra',           // Palmyra X5 (Jan 21, 2026)
-        // 2025.12
-        'gemini-3-flash',    // Gemini 3 Flash (Dec 17, 2025)
-        'mistral-creative',  // Mistral Small Creative (Dec 16, 2025)
-        'mimo-flash',        // MiMo-V2-Flash (Dec 14, 2025)
-        'nova-2-lite',       // Amazon Nova 2 Lite (Dec 2, 2025)
-        'mistral-large',     // Mistral Large 3 (Dec 1, 2025)
-        // 2025.11
-        'grok',              // Grok 4.1 Fast (Nov 19, 2025)
-        'kimi-thinking',     // Kimi K2 Thinking (Nov 6, 2025)
-        // 2025.10
-        'nova-premier',      // Amazon Nova Premier (Oct 31, 2025)
-        'granite',           // Granite 4.0 (Oct 20, 2025)
-        'claude-haiku',      // Claude Haiku 4.5 (Oct 15, 2025)
-        // 2025.09
-        'claude-sonnet',     // Claude Sonnet 4.5 (Sep 29, 2025)
-        'longcat',           // LongCat Flash (Sep 9, 2025)
-        // 2025.08
-        'mistral-medium',    // Mistral Medium 3.1 (Aug 13, 2025)
-        'jamba',             // Jamba Large 1.7 (Aug 8, 2025)
-        'codestral',         // Codestral (Aug 1, 2025)
-        // 2025.07
-        'gemini-flash-lite', // Gemini 2.5 Flash Lite (Jul 22, 2025)
-        'devstral',          // Devstral Medium (Jul 10, 2025)
-        'dolphin',           // Dolphin Venice (Jul 9, 2025)
-        'hunyuan',           // Hunyuan (Jul 8, 2025)
-        // 2025.06
-        'ernie',             // ERNIE 4.5 (Jun 30, 2025)
-        'gemini',            // Gemini 2.5 Flash (Jun 17, 2025)
-        // 2025.04
-        'gpt', 'gpt-mini', 'gpt-nano', // GPT-4.1 시리즈 (Apr 14, 2025)
-        'llama-maverick', 'llama-scout', // Llama 4 (Apr 5, 2025)
-        // 2025.03
-        'deepseek',          // DeepSeek V3 (Mar 24, 2025)
-        'command-a',         // Command A (Mar 13, 2025)
-        'perplexity-pro',    // Sonar Pro (Mar 7, 2025)
-        // 2025.01
-        'perplexity',        // Sonar (Jan 27, 2025)
-        'deepseek-r1',       // DeepSeek R1 (Jan 20, 2025)
-        'phi',               // Phi-4 (Jan 10, 2025)
-        // 2024
-        'command-r-plus',    // Command R+ (Aug 30, 2024)
-        'auto-ai', 'ancano', // ANCANO
-      ];
-      const aiModels = experts.filter(e => e.category === 'ai' && !AI_AGENT_IDS.includes(e.id));
-      const ordered = AI_MODEL_ORDER.map(id => aiModels.find(e => e.id === id)).filter(Boolean) as typeof experts;
-      const rest = aiModels.filter(e => !AI_MODEL_ORDER.includes(e.id));
-      return [...ordered, ...rest];
-    })() },
-    ...visibleCategories.filter(cat => cat !== 'ai').map(cat => ({
-      cat: cat as string,
-      label: EXPERT_CATEGORY_LABELS[cat as ExpertCategory],
-      items: experts.filter(e => e.category === cat),
-    })),
-  ].filter(g => g.items.length > 0 || g.cat === 'favorites');
+  const grouped = useMemo(() => buildExpertSelectionGroups({
+    experts,
+    favoriteIds,
+    visibleCategories,
+    aiAgentIds: AI_AGENT_IDS,
+  }), [experts, favoriteIds, visibleCategories]);
 
   const validCats = grouped.map(g => g.cat);
-  const aiBlocked = isStandardOrProcon && (activeCategory === 'ai-agent' || activeCategory === 'ai-model');
+  const aiBlocked = isStandardOrProcon && activeCategory === 'ai-agent';
   const effectiveCategory = aiBlocked
     ? (validCats.find(c => c === 'specialist') || validCats[0] || 'ai')
     : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'ai');
@@ -1954,7 +1872,7 @@ export function ExpertSelectionPanel({
     previousMainModeRef.current = mainMode;
   }, [mainMode]);
 
-  const applyModeChange = (m: MainMode) => {
+  const applyModeChange = useCallback((m: MainMode) => {
     setAutoAssign(false);
     if (m === 'general') onModeChange('general');
     else if (m === 'multi') onModeChange('multi');
@@ -1964,175 +1882,45 @@ export function ExpertSelectionPanel({
     else if (m === 'assistant') onModeChange('assistant');
     else if (m === 'player') onModeChange('player');
     else onModeChange('procon');
-  };
+  }, [onModeChange]);
 
-  const handleMainModeChange = (m: MainMode) => {
-    if (m === mainMode || transitionPhase !== 0) return;
-    if (isInstantChatLayoutSwitch(mainMode, m)) {
-      applyModeChange(m);
-      return;
-    }
-    const toPlayer = m === 'player';
-    const fromPlayer = mainMode === 'player';
+  const {
+    pendingMode,
+    transitionPhase,
+    handleMainModeChange,
+    contentVisible,
+    showPlayerBg,
+  } = useMainModeTransition({
+    mainMode,
+    applyModeChange,
+    isInstantSwitch: isInstantChatLayoutSwitch,
+  });
 
-    if (toPlayer || fromPlayer) {
-      // 3-phase cinematic transition for player mode
-      setPendingMode(m);
-      setIsTransitioning(true);
-
-      // Phase 1: fade out current content (200ms)
-      setTransitionPhase(1);
-      setTimeout(() => {
-        // Phase 2: darken/lighten bg + shrink tabs (400ms)
-        setTransitionPhase(2);
-        setTimeout(() => {
-          // Apply actual mode change
-          applyModeChange(m);
-          // Phase 3: fade in new content (300ms)
-          setTransitionPhase(3);
-          setTimeout(() => {
-            setTransitionPhase(0);
-            setIsTransitioning(false);
-            setPendingMode(null);
-          }, 300);
-        }, 400);
-      }, 200);
-    } else {
-      // Smooth transition for non-player modes
-      const isDebateTransition = m === 'debate' || mainMode === 'debate';
-      const fadeOutDuration = isDebateTransition ? 350 : 200;
-      const fadeInDuration = isDebateTransition ? 400 : 250;
-      setPendingMode(m);
-      setIsTransitioning(true);
-      setTransitionPhase(1); // fade out
-      setTimeout(() => {
-        applyModeChange(m);
-        setTransitionPhase(3); // fade in
-        setTimeout(() => {
-          setTransitionPhase(0);
-          setIsTransitioning(false);
-          setPendingMode(null);
-        }, fadeInDuration);
-      }, fadeOutDuration);
-    }
-  };
-
-  // Determine if player mode is active or transitioning to/from player
   const isPlayerActive = mainMode === 'player';
+  const isLeavingPlayer = mainMode === 'player' && pendingMode !== null && pendingMode !== 'player';
   const isGoingToPlayer = pendingMode === 'player';
-  const isLeavingPlayer = mainMode === 'player' && pendingMode && pendingMode !== 'player';
-  // Show dark bg from phase 2 onward when going to player, or while in player (until phase 2 when leaving)
-  const showPlayerBg = isPlayerActive ? (isLeavingPlayer ? transitionPhase < 2 : true) : (isGoingToPlayer && transitionPhase >= 2);
-  // Content visibility: hidden during phase 1 (fade out) and phase 2 (bg transition), visible in phase 0 and 3
-  const contentVisible = transitionPhase === 0 || transitionPhase === 3;
-  const debateSuggestionSection = (() => {
-    interface TopicSuggestion {
-      topic: string;
-      icon: string;
-      expertIds: string[];
-      proIds?: string[];
-      conIds?: string[];
-    }
+  const resolvedQuestionSubmit = autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit;
+  const resolvedQuestionSubmitWithFiles = autoAssign && supportsAutoAssign ? handleAutoSubmitWithFiles : onSubmitWithFiles;
+  const questionInputDisabled = isDiscussing
+    || (!autoAssign && selectedIds.length < 1)
+    || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2)
+    || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2)
+    || (discussionMode === 'procon' && !isProconTeamComplete)
+    || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2);
+  const selectedExpertsForInput = useMemo(() => (
+    (discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')
+      ? []
+      : experts.filter((expert) => selectedIds.includes(expert.id))
+  ), [discussionMode, experts, isBrainstorm, isHearing, isStakeholder, selectedIds]);
 
-    const topicSuggestions: Record<string, TopicSuggestion[]> = {
-      procon: [
-        { topic: 'AI 교재를 학교 수업에 적극 도입해야 하나?', icon: '📚', expertIds: ['education', 'compsci', 'teacher', 'philosophy'], proIds: ['education', 'compsci'], conIds: ['teacher', 'philosophy'] },
-        { topic: 'SNS 실명제가 필요할까?', icon: '🪪', expertIds: ['legal', 'criminology', 'psychology', 'journalist'], proIds: ['legal', 'criminology'], conIds: ['psychology', 'journalist'] },
-      ],
-      freetalk: [
-        { topic: '2026년 투자 환경은 어떻게 변할까?', icon: '📈', expertIds: ['gpt', 'claude', 'perplexity'] },
-        { topic: 'AI 기술이 교육을 어떻게 바꿀까?', icon: '🎓', expertIds: ['gemini', 'claude', 'deepseek'] },
-      ],
-      standard: [
-        { topic: '저출산 문제는 어디서부터 해결해야 할까', icon: '👶', expertIds: ['gpt', 'claude', 'gemini'] },
-        { topic: '기후 위기가 산업 구조에 미치는 영향', icon: '🌍', expertIds: ['perplexity', 'deepseek', 'gpt'] },
-      ],
-    };
-
-    const suggestions = topicSuggestions[discussionMode];
-    if (!suggestions) return null;
-
-    const isProconMode = discussionMode === 'procon';
-    const formatExpertName = (expert: Expert) => expert.nameKo || expert.name;
-
-    const handleSuggestionClick = (suggestion: TopicSuggestion) => {
-      if (isProconMode) {
-        onBulkSelect?.(suggestion.expertIds);
-
-        const nextStances: Record<string, ProconStance> = {};
-        suggestion.proIds?.forEach((id) => {
-          nextStances[id] = 'pro';
-        });
-        suggestion.conIds?.forEach((id) => {
-          nextStances[id] = 'con';
-        });
-        if (Object.keys(nextStances).length > 0) {
-          onProconStancesChange?.(nextStances);
-        }
-
-        setPrefilledQuestion(suggestion.topic);
-        return;
-      }
-
-      if (onBulkSelect) onBulkSelect(suggestion.expertIds);
-      onSubmit(suggestion.topic, suggestion.expertIds);
-    };
-
-    const renderSuggestionCard = (suggestion: TopicSuggestion, index: number) => {
-      const proExperts = (suggestion.proIds?.map((id) => experts.find((expert) => expert.id === id)).filter(Boolean) || []) as Expert[];
-      const conExperts = (suggestion.conIds?.map((id) => experts.find((expert) => expert.id === id)).filter(Boolean) || []) as Expert[];
-      const cardExperts = suggestion.expertIds.map((id) => experts.find((expert) => expert.id === id)).filter(Boolean) as Expert[];
-      const hasTeams = isProconMode && proExperts.length > 0 && conExperts.length > 0;
-
-      return (
-        <button
-          key={index}
-          type="button"
-          aria-label={`${suggestion.topic} 추천 주제`}
-          onClick={() => handleSuggestionClick(suggestion)}
-          className="group relative w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-left transition-all duration-200 hover:border-indigo-300 hover:shadow-[0_4px_16px_-4px_rgba(99,102,241,0.12)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-        >
-          <p className="relative text-[12px] font-bold text-slate-800 group-hover:text-slate-950 leading-snug text-center">
-            {suggestion.topic}
-          </p>
-          {hasTeams ? (
-            <div className="relative flex items-center justify-center gap-1.5 mt-2.5">
-              <div className="flex items-center gap-1">
-                {proExperts.map((expert) => (
-                  <span key={expert.id} className="inline-flex items-center gap-0.5">
-                    <ExpertAvatar expert={expert} size="xs" />
-                    <span className="text-[8.5px] font-semibold text-blue-600/80">{formatExpertName(expert)}</span>
-                  </span>
-                ))}
-              </div>
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-[8px] font-black text-slate-400 shrink-0">vs</span>
-              <div className="flex items-center gap-1">
-                {conExperts.map((expert) => (
-                  <span key={expert.id} className="inline-flex items-center gap-0.5">
-                    <ExpertAvatar expert={expert} size="xs" />
-                    <span className="text-[8.5px] font-semibold text-red-500/80">{formatExpertName(expert)}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="relative flex items-center justify-center gap-1.5 mt-2">
-              <div className="flex -space-x-1">
-                {cardExperts.slice(0, 3).map((expert) => <ExpertAvatar key={expert.id} expert={expert} size="xs" />)}
-              </div>
-              <span className="text-[10px] font-medium text-slate-400 truncate">{formatExpertName(cardExperts[0])}{'  '}+ {cardExperts.length - 1}명</span>
-            </div>
-          )}
-        </button>
-      );
-    };
-
-    return (
-      <div className="grid grid-cols-2 gap-1.5">
-        {suggestions.map((suggestion, index) => renderSuggestionCard(suggestion, index))}
-      </div>
-    );
-  })();
+  const sharedQuestionInputProps = {
+    onSubmit: resolvedQuestionSubmit,
+    onSubmitWithFiles: resolvedQuestionSubmitWithFiles,
+    disabled: questionInputDisabled,
+    discussionMode,
+    debateSettings,
+    onDebateSettingsChange,
+  };
 
   return (
     <div className={cn("space-y-1.5 relative transition-all duration-500", isPlayerActive ? 'py-1' : 'py-4')}>
@@ -2260,37 +2048,16 @@ export function ExpertSelectionPanel({
               exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
             >
-            {mainModes.map(m => {
-              const isActive = mainMode === m || pendingMode === m;
-              return (
-                <button key={m} onClick={() => handleMainModeChange(m)} disabled={isDiscussing || transitionPhase !== 0}
-                  className={cn(
-                    'relative flex items-center justify-center gap-1 min-w-0 px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-colors duration-200',
-                    isActive
-                      ? 'text-white font-semibold'
-                      : showPlayerBg ? 'text-slate-400 font-medium hover:text-slate-200' : 'text-slate-600 font-medium hover:text-slate-900'
-                  )}>
-                  <AnimatePresence>
-                    {isActive && (
-                      <motion.div
-                        key={`main-pill-${m}`}
-                        initial={{ opacity: 0, scale: 0.85 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.85 }}
-                        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                        className={cn(
-                          'absolute inset-0 rounded-full shadow-sm',
-                          m === 'player'
-                            ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/25'
-                            : 'bg-indigo-500'
-                        )}
-                      />
-                    )}
-                  </AnimatePresence>
-                  <span className="relative z-10">{mainModeLabels[m]}</span>
-                </button>
-              );
-            })}
+            <MainModeTabs
+              modes={mainModes}
+              labels={mainModeLabels}
+              currentMode={mainMode}
+              pendingMode={pendingMode}
+              isDiscussing={isDiscussing}
+              transitionPhase={transitionPhase}
+              showPlayerBg={showPlayerBg}
+              onChange={handleMainModeChange}
+            />
             </motion.div>
           )}
           </AnimatePresence>
@@ -2353,7 +2120,7 @@ export function ExpertSelectionPanel({
                   <div className="flex flex-1 min-w-0 gap-0.5">
                     {grouped.filter(g => !['perspective', 'region', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
-                      const isAiTab = cat === 'ai-agent' || cat === 'ai-model';
+                      const isAiTab = cat === 'ai-agent';
                       const isAiDisabled = isAiTab && isStandardOrProcon;
                       return (
                         <button key={cat} type="button"
@@ -2422,24 +2189,24 @@ export function ExpertSelectionPanel({
             const filtered = !subCats || activeSubCategory === '전체'
               ? items : items.filter(e => e.subCategory === activeSubCategory);
             const isAgentCategory = cat === 'ai-agent';
-            const isModelCategory = cat === 'ai-model';
-            const isAiCategory = isAgentCategory || isModelCategory;
+            const isAiCategory = isAgentCategory;
+            const agentItems = isAgentCategory ? filtered.filter(e => AI_AGENT_IDS.includes(e.id)) : [];
+            const modelItems = isAgentCategory ? filtered.filter(e => !AI_AGENT_IDS.includes(e.id)) : [];
             const displayItems = filtered;
             return (
               <div key={cat} className="relative bg-white">
-                {/* AI 에이전트 / AI 모델 카테고리 */}
+                {/* AI 에이전트 카테고리: 에이전트(항상) + 모델(펼치기) */}
                 {isAiCategory && !searchMode && (
                   <div>
-                    <div className={cn("px-3 pt-1.5 pb-1.5 overflow-y-auto scrollbar-thin",
-                      isModelCategory ? 'max-h-[134px]' : ''
-                    )}>
-                      {displayItems.length === 0 ? (
+                    {/* 에이전트 항목 (항상 표시) */}
+                    <div className="px-3 pt-1.5 pb-1">
+                      {agentItems.length === 0 ? (
                         <div className="py-6 text-center">
                           <p className="text-[12px] text-slate-400">이 카테고리에 전문가가 없습니다</p>
                         </div>
                       ) : (
                       <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
-                        {displayItems.map(expert => {
+                        {agentItems.map(expert => {
                           const isSelected = selectedIds.includes(expert.id);
                           const stance = proconStances[expert.id];
                           const isPro = stance === 'pro';
@@ -2465,41 +2232,7 @@ export function ExpertSelectionPanel({
                               )}>
                               <button type="button"
                                 disabled={isDisabled}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  if (isProcon) {
-                                    if (proconAssignMode === 'auto') {
-                                      onToggle(expert.id);
-                                    } else if (stance) {
-                                      removeStance(expert.id);
-                                    } else {
-                                      const proCount = Object.values(proconStances).filter(s => s === 'pro').length;
-                                      const conCount = Object.values(proconStances).filter(s => s === 'con').length;
-                                      if (proCount < MAX_PER_ZONE && proCount <= conCount) {
-                                        assignStance(expert.id, 'pro');
-                                      } else if (conCount < MAX_PER_ZONE) {
-                                        assignStance(expert.id, 'con');
-                                      } else if (proCount < MAX_PER_ZONE) {
-                                        assignStance(expert.id, 'pro');
-                                      } else {
-                                        setMaxLimitMsg('찬성/반대 모두 가득 찼습니다');
-                                        setTimeout(() => setMaxLimitMsg(null), 2000);
-                                      }
-                                    }
-                                  } else {
-                                    if (mainMode === 'multi' && !isSelected && selectedIds.length >= 3) {
-                                      setMaxLimitMsg('다중 AI는 최대 3개까지 선택할 수 있습니다');
-                                      setTimeout(() => setMaxLimitMsg(null), 2000);
-                                      return;
-                                    }
-                                    if (mainMode === 'debate' && !isProcon && !isSelected && selectedIds.length >= 4) {
-                                      setMaxLimitMsg('최대 4명까지 선택할 수 있습니다');
-                                      setTimeout(() => setMaxLimitMsg(null), 2000);
-                                      return;
-                                    }
-                                    onToggle(expert.id);
-                                  }
-                                }}
+                                onClick={() => handleExpertSelection(expert.id, isSelected, stance)}
                                 className="flex flex-col items-center gap-1 w-full">
                                 {!isProcon && isSelected && !isDisabled && (
                                   <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm z-10">
@@ -2510,8 +2243,8 @@ export function ExpertSelectionPanel({
                                 )}
                                 <span onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
                                   className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer',
-                                    favoriteIds.includes(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
-                                  {favoriteIds.includes(expert.id) ? '★' : '☆'}
+                                    favoriteSet.has(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
+                                  {favoriteSet.has(expert.id) ? '★' : '☆'}
                                 </span>
                                 <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
                                 <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
@@ -2534,6 +2267,115 @@ export function ExpertSelectionPanel({
                       </div>
                       )}
                     </div>
+                    {/* 전체 모델 보기 / 구분 바 */}
+                    {modelItems.length > 0 && (
+                      <>
+                        <div className="px-3 pb-1">
+                          {aiModelExpanded ? (
+                            /* 펼침 상태: 한 줄 설명 바 */
+                            <div className="flex items-center gap-2 py-1.5 px-2 my-1 bg-slate-100/80 rounded-md border border-slate-200/60">
+                              <span className="flex-1 flex items-center justify-around text-[11px] font-medium">
+                                <span className="text-slate-500"><span className="text-slate-600 font-bold">↓</span> 선택한 AI 모델에 직접 질문합니다(출시순 정렬)</span>
+                                <span className="w-[1.5px] h-4 bg-slate-400" />
+                                <span className="text-slate-600"><span className="text-indigo-500 font-bold">↑</span> 에이전트는 다수의 AI가 협업해 조사·분석·검증을 거쳐 정밀한 답변을 제공합니다</span>
+                              </span>
+                            </div>
+                          ) : (
+                            /* 접힘 상태: 전체 모델 보기 버튼 */
+                            <button
+                              type="button"
+                              onClick={() => setAiModelExpanded(true)}
+                              className="w-full flex items-center justify-center gap-1 py-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 transition-colors rounded-md hover:bg-slate-50"
+                            >
+                              {`전체 모델 보기 (${modelItems.length})`}
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        {/* 펼쳐진 모델 목록 */}
+                        {aiModelExpanded && (
+                          <>
+                            <div className="relative">
+                            <div className="px-3 pb-1 overflow-y-auto scrollbar-thin max-h-[220px] bg-slate-50/60">
+                              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
+                                {modelItems.map(expert => {
+                                  const isSelected = selectedIds.includes(expert.id);
+                                  const stance = proconStances[expert.id];
+                                  const isPro = stance === 'pro';
+                                  const isCon = stance === 'con';
+                                  const isAiModel = expert.category === 'ai';
+                                  const isDisabled = isStandardOrProcon && isAiModel;
+                                  return (
+                                    <div key={expert.id}
+                                      draggable={isProcon && !isDisabled}
+                                      onDragStart={() => !isDisabled && setDraggedId(expert.id)}
+                                      onDragEnd={() => setDraggedId(null)}
+                                      onMouseEnter={(e) => { if (!isDisabled) showTip(expert, e.currentTarget); }}
+                                      onMouseLeave={hideTip}
+                                      className={cn(
+                                        'group relative flex flex-col items-center gap-0.5 p-1 rounded-lg transition-all duration-150',
+                                        isDisabled ? 'opacity-25 cursor-not-allowed' : '',
+                                        isProcon && !isDisabled ? 'cursor-grab active:cursor-grabbing' : '',
+                                        hintId === expert.id ? 'animate-drag-hint' : '',
+                                        !isDisabled && !isProcon && isSelected
+                                          ? 'bg-gradient-to-b from-indigo-50 to-white ring-[1.5px] ring-indigo-300 shadow-[0_2px_8px_rgba(99,102,241,0.15)] scale-[1.03]'
+                                          : '',
+                                        !isDisabled && !isSelected ? 'hover:bg-slate-50 hover:scale-[1.02]' : ''
+                                      )}>
+                                      <button type="button"
+                                        disabled={isDisabled}
+                                        onClick={() => handleExpertSelection(expert.id, isSelected, stance)}
+                                        className="flex flex-col items-center gap-1 w-full">
+                                        {!isProcon && isSelected && !isDisabled && (
+                                          <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm z-10">
+                                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                          </span>
+                                        )}
+                                        <span onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
+                                          className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer',
+                                            favoriteSet.has(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
+                                          {favoriteSet.has(expert.id) ? '★' : '☆'}
+                                        </span>
+                                        <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
+                                        <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
+                                          isDisabled ? 'text-slate-300'
+                                            : isProcon && isPro ? 'text-blue-600 font-semibold'
+                                              : isProcon && isCon ? 'text-red-500 font-semibold'
+                                                : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
+                                                  : 'text-slate-400 group-hover:text-slate-700')}>
+                                          {expert.nameKo}
+                                        </span>
+                                      </button>
+                                      {isDisabled && (
+                                        <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
+                                          <span className="text-[7px] text-slate-300 font-medium">선택 불가</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            {/* 스크롤 힌트 그라데이션 */}
+                            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-slate-100 to-transparent pointer-events-none rounded-b-md" />
+                            </div>
+                            {/* 맨 아래 접기 버튼 */}
+                            <div className="px-3 pb-1">
+                              <button
+                                type="button"
+                                onClick={() => setAiModelExpanded(false)}
+                                className="w-full flex items-center justify-center gap-1 py-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 transition-colors rounded-md hover:bg-slate-50"
+                              >
+                                접기
+                                <ChevronDown className="w-3 h-3 rotate-180" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
                 {/* 비-AI 카테고리: 기존 그리드 */}
@@ -2570,43 +2412,7 @@ export function ExpertSelectionPanel({
                         )}>
                         <button type="button"
                           disabled={isDisabled}
-                          onClick={() => {
-                            if (isDisabled) return;
-                            if (isProcon) {
-                              if (proconAssignMode === 'auto') {
-                                // 자동 배정: 그냥 선택/해제
-                                onToggle(expert.id);
-                              } else if (stance) {
-                                removeStance(expert.id);
-                              } else {
-                                // 수동 배정: 클릭으로 빈자리에 자동 배치
-                                const proCount = Object.values(proconStances).filter(s => s === 'pro').length;
-                                const conCount = Object.values(proconStances).filter(s => s === 'con').length;
-                                if (proCount < MAX_PER_ZONE && proCount <= conCount) {
-                                  assignStance(expert.id, 'pro');
-                                } else if (conCount < MAX_PER_ZONE) {
-                                  assignStance(expert.id, 'con');
-                                } else if (proCount < MAX_PER_ZONE) {
-                                  assignStance(expert.id, 'pro');
-                                } else {
-                                  setMaxLimitMsg('찬성/반대 모두 가득 찼습니다');
-                                  setTimeout(() => setMaxLimitMsg(null), 2000);
-                                }
-                              }
-                            } else {
-                              if (mainMode === 'multi' && !isSelected && selectedIds.length >= 3) {
-                                setMaxLimitMsg('다중 AI는 최대 3개까지 선택할 수 있습니다');
-                                setTimeout(() => setMaxLimitMsg(null), 2000);
-                                return;
-                              }
-                              if (mainMode === 'debate' && !isProcon && !isSelected && selectedIds.length >= 4) {
-                                setMaxLimitMsg('최대 4명까지 선택할 수 있습니다');
-                                setTimeout(() => setMaxLimitMsg(null), 2000);
-                                return;
-                              }
-                              onToggle(expert.id);
-                            }
-                          }}
+                          onClick={() => handleExpertSelection(expert.id, isSelected, stance)}
                           className="flex flex-col items-center gap-1 w-full">
                           {!isProcon && isSelected && !isDisabled && (
                             <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm z-10">
@@ -2618,8 +2424,8 @@ export function ExpertSelectionPanel({
                           {/* 즐겨찾기 별 */}
                           <span onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
                             className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer',
-                              favoriteIds.includes(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
-                            {favoriteIds.includes(expert.id) ? '★' : '☆'}
+                              favoriteSet.has(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
+                            {favoriteSet.has(expert.id) ? '★' : '☆'}
                           </span>
                           <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
                           <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
@@ -2676,14 +2482,9 @@ export function ExpertSelectionPanel({
           topContent={null}
           bottomContent={(
             <QuestionInput
-              onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
-              onSubmitWithFiles={autoAssign && supportsAutoAssign ? handleAutoSubmitWithFiles : onSubmitWithFiles}
-              disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2) || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2)}
-              discussionMode={discussionMode}
+              {...sharedQuestionInputProps}
               selectedExperts={[]}
               onRemoveExpert={undefined}
-              debateSettings={debateSettings}
-              onDebateSettingsChange={onDebateSettingsChange}
               externalValue={prefilledQuestion}
               onExternalValueConsumed={() => setPrefilledQuestion('')}
             />
@@ -2697,7 +2498,7 @@ export function ExpertSelectionPanel({
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
           selectedExperts={experts.filter(e => selectedIds.includes(e.id))}
           experts={experts}
-          autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
+          autoAssign={autoAssign} onAutoAssignChange={handleAutoAssignChange}
           onToggle={onToggle}
           onModeChange={onModeChange}
           onTopicSelect={onSampleQuestionClick}
@@ -2709,7 +2510,7 @@ export function ExpertSelectionPanel({
           selectedIds={selectedIds} experts={experts}
           selectedFramework={selectedFramework} onFrameworkChange={onFrameworkChange}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
+          autoAssign={autoAssign} onAutoAssignChange={handleAutoAssignChange}
           onToggle={onToggle}
           onModeChange={onModeChange}
           onTopicSelect={onSampleQuestionClick}
@@ -2720,7 +2521,7 @@ export function ExpertSelectionPanel({
         <HearingSettingsPanel
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
+          autoAssign={autoAssign} onAutoAssignChange={handleAutoAssignChange}
           onToggle={onToggle}
           onModeChange={onModeChange}
         />
@@ -2730,7 +2531,7 @@ export function ExpertSelectionPanel({
         <FreetalkSettingsPanel
           experts={experts} selectedIds={selectedIds}
           debateSettings={debateSettings} onDebateSettingsChange={onDebateSettingsChange}
-          autoAssign={autoAssign} onAutoAssignChange={(v: boolean) => { setAutoAssign(v); if (v && onBulkSelect) onBulkSelect([]); }}
+          autoAssign={autoAssign} onAutoAssignChange={handleAutoAssignChange}
           onToggle={onToggle}
           onModeChange={onModeChange}
           onTopicSelect={setPrefilledQuestion}
@@ -2755,106 +2556,15 @@ export function ExpertSelectionPanel({
       {/* Question Input — not shown for expert/assistant/player (they have their own inputs or modal flow) */}
       {mainMode !== 'expert' && mainMode !== 'assistant' && mainMode !== 'player' && mainMode !== 'stakeholder_main' && mainMode !== 'premium_main' && !isProcon && (
         <QuestionInput
-          onSubmit={autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit}
-          onSubmitWithFiles={autoAssign && supportsAutoAssign ? handleAutoSubmitWithFiles : onSubmitWithFiles}
-          disabled={isDiscussing || (!autoAssign && selectedIds.length < 1) || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2) || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2) || (discussionMode === 'procon' && !isProconTeamComplete) || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2)}
-          discussionMode={discussionMode}
-          selectedExperts={
-            (discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')
-              ? [] : experts.filter(e => selectedIds.includes(e.id))
-          }
+          {...sharedQuestionInputProps}
+          selectedExperts={selectedExpertsForInput}
           onRemoveExpert={isGeneral ? undefined : onToggle}
-          debateSettings={debateSettings}
-          onDebateSettingsChange={onDebateSettingsChange}
         />
       )}
 
       </div>{/* end content transition wrapper */}
 
-      {/* Portal 기반 플로팅 툴팁 — overflow 영향 안 받음 */}
-      {hoveredExpert && tipPos && createPortal(
-        <div
-          className="fixed z-[9999] pointer-events-none"
-          style={{
-            left: `${tipPos.x}px`,
-            top: `${tipPos.y}px`,
-            transform: 'translateY(-50%)',
-          }}
-        >
-        <div className="animate-in fade-in slide-in-from-left-2 duration-200 ease-out flex items-center">
-          <div className={cn(
-            'relative bg-gradient-to-b from-slate-800 to-slate-900 text-white rounded-xl shadow-[0_12px_36px_rgba(0,0,0,0.38)] overflow-hidden border border-white/[0.06]',
-            hoveredExpert.abilities && !hoveredExpert.id.startsWith('auto-') ? 'w-64' : 'w-56'
-          )}>
-            {/* 이름 + 아이콘 (AI 모델만 아이콘 표시) */}
-            <div className="px-3 pt-2.5 pb-1.5 flex items-center justify-center gap-1.5">
-              {hoveredExpert.category === 'ai' && (
-                hoveredExpert.avatarUrl ? (
-                  (/\/(gpt|perplexity|grok)\.svg$/).test(hoveredExpert.avatarUrl) ? (
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white shrink-0">
-                      <img src={hoveredExpert.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-contain" />
-                    </span>
-                  ) : (
-                    <img src={hoveredExpert.avatarUrl} alt="" className="w-4 h-4 rounded-full" />
-                  )
-                ) : (
-                  <span className="text-sm">{hoveredExpert.icon}</span>
-                )
-              )}
-              <p className="text-[13px] font-bold tracking-tight leading-tight">{hoveredExpert.nameKo}</p>
-            </div>
-            {/* 컬러바 */}
-            <div className={cn('h-[3px] mx-3 rounded-full bg-gradient-to-r', {
-              'from-blue-400 via-blue-300 to-blue-400': hoveredExpert.color === 'blue',
-              'from-emerald-400 via-green-300 to-emerald-400': hoveredExpert.color === 'emerald',
-              'from-red-400 via-rose-300 to-red-400': hoveredExpert.color === 'red',
-              'from-amber-400 via-yellow-300 to-amber-400': hoveredExpert.color === 'amber',
-              'from-purple-400 via-violet-300 to-purple-400': hoveredExpert.color === 'purple',
-              'from-orange-400 via-orange-300 to-orange-400': hoveredExpert.color === 'orange',
-              'from-teal-400 via-teal-300 to-teal-400': hoveredExpert.color === 'teal',
-              'from-pink-400 via-pink-300 to-pink-400': hoveredExpert.color === 'pink',
-              'from-slate-400 via-slate-300 to-slate-400': hoveredExpert.color === 'slate',
-              'from-green-400 via-green-300 to-green-400': hoveredExpert.color === 'green',
-              'from-cyan-400 via-cyan-300 to-cyan-400': hoveredExpert.color === 'cyan',
-              'from-sky-400 via-sky-300 to-sky-400': hoveredExpert.color === 'sky',
-            })} />
-            {/* 설명 */}
-            <div className="px-3 pt-1.5 pb-2 text-center">
-              <p className="text-[10px] text-slate-300 leading-relaxed">{hoveredExpert.description}</p>
-            </div>
-            {/* AI 모델: 레이더 차트 + 스텟 바 */}
-            {hoveredExpert.abilities && hoveredExpert.id !== 'ancano' && hoveredExpert.id !== 'ancano-pro' && (
-              <TipAbilitySection abilities={hoveredExpert.abilities} color={hoveredExpert.color} name={hoveredExpert.nameKo} />
-            )}
-            {/* 비AI (전문가/직업/캐릭터 등): quote + 추천질문 */}
-            {!hoveredExpert.abilities && (
-              <>
-                {hoveredExpert.quote && (
-                  <div className="px-3 pb-1.5 text-center">
-                    <p className="text-[9px] text-amber-300 font-medium leading-tight">"{hoveredExpert.quote}"</p>
-                  </div>
-                )}
-                {hoveredExpert.sampleQuestions && hoveredExpert.sampleQuestions.length > 0 && (
-                  <div className="mx-3 mb-3 mt-0.5 relative">
-                    <div className="rounded-lg border border-white/15 bg-white/[0.02] pt-2 pb-1.5 px-2.5">
-                      <span className="absolute -top-[5px] left-1/2 -translate-x-1/2 px-1.5 text-[7px] text-slate-400 tracking-wider font-medium" style={{ backgroundColor: '#1a2030' }}>추천 질문</span>
-                      {hoveredExpert.sampleQuestions.map((q, qi) => (
-                        <p key={qi} className="text-[9px] text-slate-300 text-center leading-normal py-1 truncate">{q}</p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          {/* 왼쪽 화살표 */}
-          <div className="absolute left-0 top-1/2 -translate-x-[5px] -translate-y-1/2">
-            <div className="w-2.5 h-2.5 bg-slate-800 rotate-45 border-l border-b border-white/[0.06]" />
-          </div>
-        </div>
-        </div>,
-        document.body
-      )}
+      <ExpertHoverTip expert={hoveredExpert} position={tipPos} />
 
     </div>
   );

@@ -71,7 +71,7 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-[360px] bg-gradient-to-b from-slate-800 to-slate-900 border-white/10 text-white rounded-2xl overflow-hidden">
+      <DialogContent className="p-0 gap-0 max-w-[360px] !bg-gradient-to-b !from-slate-800 !to-slate-900 !border-white/10 !text-white rounded-2xl overflow-hidden">
         <DialogTitle className="sr-only">{expert.nameKo} 상세 정보</DialogTitle>
 
         {/* 컬러 액센트 바 */}
@@ -85,7 +85,7 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
             ) : (
               <span className="text-xl">{expert.icon}</span>
             )}
-            <h3 className="text-lg font-bold tracking-tight">{expert.nameKo}</h3>
+            <h3 className="text-lg font-bold tracking-tight text-white">{expert.nameKo}</h3>
           </div>
 
           {isAuto && (
@@ -125,7 +125,7 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
                         style={{ width: `${value}%` }}
                       />
                     </div>
-                    <span className={cn('text-[11px] w-6 text-right tabular-nums', getStatTier(value))}>
+                    <span className={cn('text-[11px] w-7 text-right tabular-nums shrink-0', getStatTier(value))}>
                       {value}
                     </span>
                   </div>

@@ -1025,19 +1025,6 @@ const AI_ABILITIES: Record<string, AIAbilityStats> = {
 // ══════════════════════════════════════════
 
 export const _DEFAULT_EXPERTS_RAW: Expert[] = [
-    // AI Router
-    {
-        id: 'auto-ai', name: 'Auto AI', nameKo: 'Auto AI', icon: '🌐', avatarUrl: '/logos/ancano/icon_dark_128.png', color: 'purple', category: 'ai', openrouterModel: 'openrouter/auto', description: '최적의 AI를 자동 선택',
-        quote: '질문에 맞는 최적의 AI가 답한다',
-        sampleQuestions: ['아무 질문이나 해봐', '최적의 AI로 답해줘', '자동으로 골라줘'],
-        greeting: '질문에 가장 적합한 AI를 자동으로 선택해주는 Auto AI입니다. 어떤 질문이든 최적의 모델이 답변하니, 모델 고민 없이 편하게 물어보세요!',
-    },
-    {
-        id: 'ancano', name: 'ANCANO', nameKo: 'ANCANO', icon: '🔮', avatarUrl: '/logos/ancano/icon_dark_128.png', color: 'purple', category: 'ai', openrouterModel: 'openrouter/auto', description: 'Ancano 종합 AI 어시스턴트',
-        quote: '모든 것을 아우르는 AI',
-        sampleQuestions: ['무엇이든 물어보세요', '분석 도와줘', '글 써줘'],
-        greeting: 'Ancano 종합 AI 어시스턴트입니다. 질문에 따라 최적의 AI를 자동으로 연결해 분석, 코딩, 글쓰기까지 폭넓게 지원합니다. 무엇이든 편하게 물어보세요!',
-    },
     {
         id: 'ancano-pro', name: 'ANCANO Pro', nameKo: 'ANCANO Pro', icon: '💎', avatarUrl: '/logos/ancano/icon_dark_128.png', color: 'purple', category: 'ai', openrouterModel: 'openrouter/auto', description: 'Ancano 프리미엄 AI 어시스턴트',
         quote: '최고 수준의 AI 경험',
