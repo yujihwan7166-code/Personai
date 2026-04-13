@@ -1861,7 +1861,7 @@ export function ExpertSelectionPanel({
   }), [experts, favoriteIds, visibleCategories]);
 
   const validCats = grouped.map(g => g.cat);
-  const aiBlocked = isStandardOrProcon && activeCategory === 'ai-agent';
+  const aiBlocked = isStandardOrProcon && (activeCategory === 'ai-agent' || activeCategory === 'ai-model');
   const effectiveCategory = aiBlocked
     ? (validCats.find(c => c === 'specialist') || validCats[0] || 'ai')
     : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'ai');
@@ -2120,7 +2120,7 @@ export function ExpertSelectionPanel({
                   <div className="flex flex-1 min-w-0 gap-0.5">
                     {grouped.filter(g => !['perspective', 'region', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
-                      const isAiTab = cat === 'ai-agent';
+                      const isAiTab = cat === 'ai-agent' || cat === 'ai-model';
                       const isAiDisabled = isAiTab && isStandardOrProcon;
                       return (
                         <button key={cat} type="button"
@@ -2189,192 +2189,81 @@ export function ExpertSelectionPanel({
             const filtered = !subCats || activeSubCategory === '전체'
               ? items : items.filter(e => e.subCategory === activeSubCategory);
             const isAgentCategory = cat === 'ai-agent';
-            const isAiCategory = isAgentCategory;
-            const agentItems = isAgentCategory ? filtered.filter(e => AI_AGENT_IDS.includes(e.id)) : [];
-            const modelItems = isAgentCategory ? filtered.filter(e => !AI_AGENT_IDS.includes(e.id)) : [];
+            const isModelCategory = cat === 'ai-model';
+            const isAiCategory = isAgentCategory || isModelCategory;
             const displayItems = filtered;
             return (
               <div key={cat} className="relative bg-white">
-                {/* AI 에이전트 카테고리: 에이전트(항상) + 모델(펼치기) */}
+                {/* AI 에이전트 / 일반 모델 카테고리 */}
                 {isAiCategory && !searchMode && (
-                  <div>
-                    {/* 에이전트 항목 (항상 표시) */}
-                    <div className="px-3 pt-1.5 pb-1">
-                      {agentItems.length === 0 ? (
-                        <div className="py-6 text-center">
-                          <p className="text-[12px] text-slate-400">이 카테고리에 전문가가 없습니다</p>
-                        </div>
-                      ) : (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
-                        {agentItems.map(expert => {
-                          const isSelected = selectedIds.includes(expert.id);
-                          const stance = proconStances[expert.id];
-                          const isPro = stance === 'pro';
-                          const isCon = stance === 'con';
-                          const isAiModel = expert.category === 'ai';
-                          const isDisabled = isStandardOrProcon && isAiModel;
-                          return (
-                            <div key={expert.id}
-                              draggable={isProcon && !isDisabled}
-                              onDragStart={() => !isDisabled && setDraggedId(expert.id)}
-                              onDragEnd={() => setDraggedId(null)}
-                              onMouseEnter={(e) => { if (!isDisabled) showTip(expert, e.currentTarget); }}
-                              onMouseLeave={hideTip}
-                              className={cn(
-                                'group relative flex flex-col items-center gap-0.5 p-1.5 rounded-xl transition-all duration-200',
-                                isDisabled ? 'opacity-25 cursor-not-allowed' : '',
-                                isProcon && !isDisabled ? 'cursor-grab active:cursor-grabbing' : '',
-                                hintId === expert.id ? 'animate-drag-hint' : '',
-                                !isDisabled && !isProcon && isSelected
-                                  ? 'bg-gradient-to-b from-indigo-50 to-white ring-[1.5px] ring-indigo-300 shadow-[0_2px_8px_rgba(99,102,241,0.15)] scale-[1.03]'
-                                  : '',
-                                !isDisabled && !isSelected ? 'hover:bg-slate-50 hover:scale-[1.02]' : ''
-                              )}>
-                              <button type="button"
-                                disabled={isDisabled}
-                                onClick={() => handleExpertSelection(expert.id, isSelected, stance)}
-                                className="flex flex-col items-center gap-1 w-full">
-                                {!isProcon && isSelected && !isDisabled && (
-                                  <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm z-10">
-                                    <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </span>
-                                )}
-                                <span onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
-                                  className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer',
-                                    favoriteSet.has(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
-                                  {favoriteSet.has(expert.id) ? '★' : '☆'}
-                                </span>
-                                <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
-                                <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
-                                  isDisabled ? 'text-slate-300'
-                                    : isProcon && isPro ? 'text-blue-600 font-semibold'
-                                      : isProcon && isCon ? 'text-red-500 font-semibold'
-                                        : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
-                                          : 'text-slate-400 group-hover:text-slate-700')}>
-                                  {expert.nameKo}
-                                </span>
-                              </button>
-                              {isDisabled && (
-                                <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
-                                  <span className="text-[7px] text-slate-300 font-medium">선택 불가</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                  <div className={cn("px-3 pt-1.5 pb-1.5 overflow-y-auto scrollbar-thin",
+                    isModelCategory ? 'max-h-[220px]' : ''
+                  )}>
+                    {displayItems.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-[12px] text-slate-400">이 카테고리에 전문가가 없습니다</p>
                       </div>
-                      )}
-                    </div>
-                    {/* 전체 모델 보기 / 구분 바 */}
-                    {modelItems.length > 0 && (
-                      <>
-                        <div className="px-3 pb-1">
-                          {aiModelExpanded ? (
-                            /* 펼침 상태: 한 줄 설명 바 */
-                            <div className="flex items-center gap-2 py-1.5 px-2 my-1 bg-slate-100/80 rounded-md border border-slate-200/60">
-                              <span className="flex-1 flex items-center justify-around text-[11px] font-medium">
-                                <span className="text-slate-500"><span className="text-slate-600 font-bold">↓</span> 선택한 AI 모델에 직접 질문합니다(출시순 정렬)</span>
-                                <span className="w-[1.5px] h-4 bg-slate-400" />
-                                <span className="text-slate-600"><span className="text-indigo-500 font-bold">↑</span> 에이전트는 다수의 AI가 협업해 조사·분석·검증을 거쳐 정밀한 답변을 제공합니다</span>
+                    ) : (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
+                      {displayItems.map(expert => {
+                        const isSelected = selectedIds.includes(expert.id);
+                        const stance = proconStances[expert.id];
+                        const isPro = stance === 'pro';
+                        const isCon = stance === 'con';
+                        const isAiModel = expert.category === 'ai';
+                        const isDisabled = isStandardOrProcon && isAiModel;
+                        return (
+                          <div key={expert.id}
+                            draggable={isProcon && !isDisabled}
+                            onDragStart={() => !isDisabled && setDraggedId(expert.id)}
+                            onDragEnd={() => setDraggedId(null)}
+                            onMouseEnter={(e) => { if (!isDisabled) showTip(expert, e.currentTarget); }}
+                            onMouseLeave={hideTip}
+                            className={cn(
+                              'group relative flex flex-col items-center gap-0.5 p-1.5 rounded-xl transition-all duration-200',
+                              isDisabled ? 'opacity-25 cursor-not-allowed' : '',
+                              isProcon && !isDisabled ? 'cursor-grab active:cursor-grabbing' : '',
+                              hintId === expert.id ? 'animate-drag-hint' : '',
+                              !isDisabled && !isProcon && isSelected
+                                ? 'bg-gradient-to-b from-indigo-50 to-white ring-[1.5px] ring-indigo-300 shadow-[0_2px_8px_rgba(99,102,241,0.15)] scale-[1.03]'
+                                : '',
+                              !isDisabled && !isSelected ? 'hover:bg-slate-50 hover:scale-[1.02]' : ''
+                            )}>
+                            <button type="button"
+                              disabled={isDisabled}
+                              onClick={() => handleExpertSelection(expert.id, isSelected, stance)}
+                              className="flex flex-col items-center gap-1 w-full">
+                              {!isProcon && isSelected && !isDisabled && (
+                                <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm z-10">
+                                  <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </span>
+                              )}
+                              <span onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
+                                className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer',
+                                  favoriteSet.has(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
+                                {favoriteSet.has(expert.id) ? '★' : '☆'}
                               </span>
-                            </div>
-                          ) : (
-                            /* 접힘 상태: 전체 모델 보기 버튼 */
-                            <button
-                              type="button"
-                              onClick={() => setAiModelExpanded(true)}
-                              className="w-full flex items-center justify-center gap-1 py-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 transition-colors rounded-md hover:bg-slate-50"
-                            >
-                              {`전체 모델 보기 (${modelItems.length})`}
-                              <ChevronDown className="w-3 h-3" />
+                              <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
+                              <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
+                                isDisabled ? 'text-slate-300'
+                                  : isProcon && isPro ? 'text-blue-600 font-semibold'
+                                    : isProcon && isCon ? 'text-red-500 font-semibold'
+                                      : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
+                                        : 'text-slate-400 group-hover:text-slate-700')}>
+                                {expert.nameKo}
+                              </span>
                             </button>
-                          )}
-                        </div>
-                        {/* 펼쳐진 모델 목록 */}
-                        {aiModelExpanded && (
-                          <>
-                            <div className="relative">
-                            <div className="px-3 pb-1 overflow-y-auto scrollbar-thin max-h-[220px] bg-slate-50/60">
-                              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
-                                {modelItems.map(expert => {
-                                  const isSelected = selectedIds.includes(expert.id);
-                                  const stance = proconStances[expert.id];
-                                  const isPro = stance === 'pro';
-                                  const isCon = stance === 'con';
-                                  const isAiModel = expert.category === 'ai';
-                                  const isDisabled = isStandardOrProcon && isAiModel;
-                                  return (
-                                    <div key={expert.id}
-                                      draggable={isProcon && !isDisabled}
-                                      onDragStart={() => !isDisabled && setDraggedId(expert.id)}
-                                      onDragEnd={() => setDraggedId(null)}
-                                      onMouseEnter={(e) => { if (!isDisabled) showTip(expert, e.currentTarget); }}
-                                      onMouseLeave={hideTip}
-                                      className={cn(
-                                        'group relative flex flex-col items-center gap-0.5 p-1 rounded-lg transition-all duration-150',
-                                        isDisabled ? 'opacity-25 cursor-not-allowed' : '',
-                                        isProcon && !isDisabled ? 'cursor-grab active:cursor-grabbing' : '',
-                                        hintId === expert.id ? 'animate-drag-hint' : '',
-                                        !isDisabled && !isProcon && isSelected
-                                          ? 'bg-gradient-to-b from-indigo-50 to-white ring-[1.5px] ring-indigo-300 shadow-[0_2px_8px_rgba(99,102,241,0.15)] scale-[1.03]'
-                                          : '',
-                                        !isDisabled && !isSelected ? 'hover:bg-slate-50 hover:scale-[1.02]' : ''
-                                      )}>
-                                      <button type="button"
-                                        disabled={isDisabled}
-                                        onClick={() => handleExpertSelection(expert.id, isSelected, stance)}
-                                        className="flex flex-col items-center gap-1 w-full">
-                                        {!isProcon && isSelected && !isDisabled && (
-                                          <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm z-10">
-                                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                          </span>
-                                        )}
-                                        <span onClick={(e) => { e.stopPropagation(); toggleFavorite(expert.id); }}
-                                          className={cn('absolute top-0 left-0 w-5 h-5 flex items-center justify-center text-[14px] opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer',
-                                            favoriteSet.has(expert.id) ? 'opacity-100 text-amber-400' : 'text-slate-300 hover:text-amber-400')}>
-                                          {favoriteSet.has(expert.id) ? '★' : '☆'}
-                                        </span>
-                                        <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
-                                        <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
-                                          isDisabled ? 'text-slate-300'
-                                            : isProcon && isPro ? 'text-blue-600 font-semibold'
-                                              : isProcon && isCon ? 'text-red-500 font-semibold'
-                                                : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
-                                                  : 'text-slate-400 group-hover:text-slate-700')}>
-                                          {expert.nameKo}
-                                        </span>
-                                      </button>
-                                      {isDisabled && (
-                                        <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
-                                          <span className="text-[7px] text-slate-300 font-medium">선택 불가</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                            {isDisabled && (
+                              <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
+                                <span className="text-[7px] text-slate-300 font-medium">선택 불가</span>
                               </div>
-                            </div>
-                            {/* 스크롤 힌트 그라데이션 */}
-                            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-slate-100 to-transparent pointer-events-none rounded-b-md" />
-                            </div>
-                            {/* 맨 아래 접기 버튼 */}
-                            <div className="px-3 pb-1">
-                              <button
-                                type="button"
-                                onClick={() => setAiModelExpanded(false)}
-                                className="w-full flex items-center justify-center gap-1 py-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 transition-colors rounded-md hover:bg-slate-50"
-                              >
-                                접기
-                                <ChevronDown className="w-3 h-3 rotate-180" />
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                     )}
                   </div>
                 )}

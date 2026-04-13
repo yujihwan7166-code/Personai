@@ -105,7 +105,12 @@ export function buildExpertSelectionGroups({
     {
       cat: 'ai-agent',
       label: 'AI 에이전트',
-      items: [...agentItems, ...modelItems],
+      items: agentItems,
+    },
+    {
+      cat: 'ai-model',
+      label: '일반 모델',
+      items: modelItems,
     },
     ...visibleCategories
       .filter((category) => category !== 'ai')
