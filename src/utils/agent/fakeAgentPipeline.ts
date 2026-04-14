@@ -97,6 +97,7 @@ export async function runFakeAgentPipeline(options: AgentPipelineOptions): Promi
         question: message,
         previousResponses: [],
         openrouterModel: model,
+        searchPolicy: options.profile?.searchPolicy ?? 'auto',
       }),
       signal,
     });
@@ -117,6 +118,7 @@ export async function runFakeAgentPipeline(options: AgentPipelineOptions): Promi
           question: message,
           previousResponses: [],
           openrouterModel: model,
+          searchPolicy: options.profile?.searchPolicy ?? 'auto',
         }),
         signal,
       });

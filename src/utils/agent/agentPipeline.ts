@@ -1,67 +1,123 @@
-// ══════════════════════════════════════════
-// Agent Pipeline — 3단계 심층 분석
-// Step 1: 질문 분석 + 전략 선택 (Nano 1회)
-// Step 2: 병렬 태스크 실행 (Nano N회)
-// Step 3: 종합 정리 (Nano 1회, 스트리밍)
-// ══════════════════════════════════════════
-
 import type {
+  AgentPipelineOptions,
   AgentState,
   AgentStrategy,
   AgentTask,
-  AgentPipelineOptions,
+  ClassificationMode,
+  StrategyType,
 } from './types';
-import { attachPublicNotes } from './agentDisplay';
+import { attachPublicNotes, buildFakeAgentStrategy } from './agentDisplay';
 import { streamSseContent } from './streamSseContent';
 
 const AGENT_STEP_URL = '/api/chat?mode=agent-step';
 const CHAT_URL = '/api/chat';
+const PIPELINE_TIMEOUT_MS = 45_000;
 
-/** 최대 병렬 태스크 수 */
-const MAX_TASKS = 4;
+const STEP1_SYSTEM = `당신은 질문을 여러 단계로 풀어내는 AI 에이전트의 플래너입니다.
+사용자 질문을 보고 어떤 방식으로 답해야 가장 좋은지 먼저 정한 뒤, 실제로 병렬 실행할 작업들을 JSON으로 설계하세요.
 
-/** 파이프라인 전체 타임아웃 (30초) */
-const PIPELINE_TIMEOUT_MS = 30_000;
-
-// ── Step 1 프롬프트 ──
-
-const STEP1_SYSTEM = `너는 질문 분석 에이전트야. 유저 질문을 분석해서 최적의 답변 전략과 세부 작업을 JSON으로 출력해.
+반드시 지켜야 할 규칙:
+- tasks는 최소 2개, 최대 4개
+- 각 task는 서로 다른 관점이나 역할을 가져야 함
+- label은 UI에 그대로 노출될 수 있게 짧고 명확한 한국어
+- prompt는 해당 작업을 독립적으로 수행할 수 있을 만큼 구체적이어야 함
+- publicPlan은 사용자가 봐도 되는 공개용 한 줄 계획
+- publicSteps는 사용자가 보는 진행 단계 설명 2~4개
 
 전략 유형:
-- multi_perspective: 여러 관점에서 분석이 필요한 질문 (예: "AI가 사회에 미칠 영향은?")
-- comparison: 둘 이상의 대상을 비교하는 질문 (예: "React vs Vue 뭐가 나아?")
-- step_by_step: 단계별 설명이 필요한 질문 (예: "스타트업 창업 절차 알려줘")
-- pros_cons: 찬반/장단점 분석이 필요한 질문 (예: "원격근무 도입해야 할까?")
-- deep_dive: 하나의 주제를 깊게 파야 하는 질문 (예: "양자컴퓨터 원리를 자세히 설명해줘")
+- multi_perspective: 여러 관점 통합
+- comparison: 둘 이상 비교
+- step_by_step: 단계별 안내
+- pros_cons: 장단점/찬반 검토
+- deep_dive: 원인, 구조, 맥락까지 깊이 파고드는 분석
 
-규칙:
-- tasks는 최소 2개, 최대 4개. 절대 5개 이상 만들지 마.
-- 각 task의 prompt는 독립적으로 실행 가능한 구체적 지시문이어야 해.
-- reasoning은 한 문장으로 왜 이 전략을 골랐는지 한국어로 설명해.
-- label도 한국어로 짧게 (예: "경제 동향 분석", "성능 비교")
-
-응답 형식 (JSON만, 다른 텍스트 없이):
+응답은 JSON만 출력:
 {
   "type": "comparison",
-  "reasoning": "두 대상의 항목별 비교가 필요한 질문입니다",
+  "reasoning": "어떤 기준으로 답변할지 짧게 설명",
+  "publicPlan": "사용자에게 보여줄 한 줄 계획",
+  "publicSteps": ["단계1", "단계2", "단계3"],
+  "needsSearch": true,
+  "depth": "deep",
   "tasks": [
-    { "id": "t1", "label": "성능 비교", "prompt": "..." },
-    { "id": "t2", "label": "생태계 비교", "prompt": "..." }
+    { "id": "t1", "label": "비교 기준 정리", "prompt": "..." },
+    { "id": "t2", "label": "차이점 분석", "prompt": "..." }
   ]
 }`;
 
-const STEP2_SYSTEM = `너는 전문 분석가야. 주어진 주제에 대해 구체적이고 정보가 풍부한 분석을 해줘. 불필요한 인사나 서론 없이 바로 본론으로 들어가. 한국어로 답변해.`;
+const STEP2_SYSTEM = `당신은 에이전트의 개별 분석 담당입니다.
+주어진 작업 하나만 깊고 구체적으로 수행하세요.
+불필요한 서론 없이 바로 본론으로 들어가고, 근거/수치/예시가 있으면 적극 활용하세요.`;
 
-const STEP3_SYSTEM = `너는 전문 종합 분석가야. 아래에 여러 관점의 분석 결과가 주어진다. 이것들을 종합해서 유저의 원래 질문에 대한 완성도 높은 최종 답변을 작성해줘.
+const STEP3_SYSTEM = `당신은 여러 개의 분석 결과를 종합하는 최종 작성 담당입니다.
+사용자 질문에 직접 답하는 완성된 최종 답변을 작성하세요.
 
 규칙:
-- 단순히 분석 결과를 이어붙이지 말고, 통합적 시각으로 재구성해.
-- 핵심 인사이트를 먼저 제시하고, 세부 내용을 뒤에 배치해.
-- 분석 간 모순이 있으면 양쪽을 공정하게 다루고 네 판단을 밝혀.
-- 마크다운 형식으로 읽기 좋게 구성해.
-- 한국어로 답변해.`;
+- 첫 문장부터 결론 또는 핵심 판단 제시
+- 필요한 경우 소제목, 번호 목록, 표 사용
+- 여러 분석의 차이와 공통점을 자연스럽게 통합
+- 비교/전망/전략 질문은 결론, 근거, 적용 포인트를 모두 포함
+- 너무 짧게 끝내지 말고 충분한 설명과 맥락을 담을 것`;
 
-// ── Helper: 비스트리밍 API 호출 ──
+const REVIEW_SYSTEM = `당신은 최종 답변의 품질 검토자입니다.
+이미 작성된 답변이 너무 짧거나 맥락이 부족하면, 빠진 핵심만 보강해서 이어붙일 추가 단락을 작성하세요.
+
+규칙:
+- 기존 답변을 반복하지 말고 부족한 부분만 보강
+- 비교 질문이면 "어떤 상황에서 무엇을 고를지"를 보강
+- 전망/분석 질문이면 근거와 변수, 예외까지 보강
+- 결과는 이어붙일 텍스트만 출력`;
+
+type AgentStepResult = {
+  content: string;
+  tokensUsed: number;
+};
+
+function parseStrategyJson(raw: string): AgentStrategy | null {
+  const direct = raw.trim();
+  try {
+    return JSON.parse(direct);
+  } catch {
+    const fencedMatch = direct.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (!fencedMatch) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(fencedMatch[1].trim());
+    } catch {
+      return null;
+    }
+  }
+}
+
+function normalizeStrategy(
+  strategy: AgentStrategy | null,
+  fallbackMessage: string,
+  intentHint?: StrategyType,
+  complexityMode: ClassificationMode = 'standard',
+  maxTasks = 4,
+): AgentStrategy {
+  const fallback = buildFakeAgentStrategy(fallbackMessage, undefined, intentHint);
+  const resolved = strategy && Array.isArray(strategy.tasks) && strategy.tasks.length > 0
+    ? strategy
+    : fallback;
+
+  const tasks = resolved.tasks
+    .filter((task) => task?.id && task?.label && task?.prompt)
+    .slice(0, Math.max(2, maxTasks));
+
+  return {
+    ...resolved,
+    type: resolved.type ?? fallback.type,
+    reasoning: resolved.reasoning || fallback.reasoning,
+    publicPlan: resolved.publicPlan || fallback.reasoning,
+    publicSteps: resolved.publicSteps?.slice(0, 4) ?? tasks.map((task) => task.label).slice(0, 4),
+    needsSearch: typeof resolved.needsSearch === 'boolean' ? resolved.needsSearch : undefined,
+    depth: resolved.depth ?? complexityMode,
+    tasks: tasks.length > 0 ? tasks : fallback.tasks.slice(0, Math.max(2, maxTasks)),
+  };
+}
 
 async function callAgentStep(
   systemPrompt: string,
@@ -69,63 +125,168 @@ async function callAgentStep(
   model: string,
   maxTokens: number,
   temperature: number,
-  signal?: AbortSignal
-): Promise<{ content: string; tokensUsed: number }> {
-  const resp = await fetch(AGENT_STEP_URL, {
+  signal?: AbortSignal,
+): Promise<AgentStepResult> {
+  const response = await fetch(AGENT_STEP_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt, userPrompt, model, maxTokens, temperature }),
+    body: JSON.stringify({
+      systemPrompt,
+      userPrompt,
+      model,
+      maxTokens,
+      temperature,
+    }),
     signal,
   });
 
-  if (!resp.ok) {
-    throw new Error(`Agent step failed: ${resp.status}`);
+  if (!response.ok) {
+    throw new Error(`Agent step failed: ${response.status}`);
   }
 
-  return resp.json();
+  return response.json();
 }
 
-// ── Helper: JSON 파싱 (코드블록 대응) ──
+function combineAbortSignals(...signals: AbortSignal[]) {
+  const controller = new AbortController();
 
-function parseStrategyJson(raw: string): AgentStrategy | null {
-  try {
-    // 직접 JSON 파싱 시도
-    return JSON.parse(raw);
-  } catch {
-    // 마크다운 코드블록 안의 JSON 추출
-    const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match) {
-      try {
-        return JSON.parse(match[1].trim());
-      } catch {
-        return null;
-      }
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      return controller.signal;
     }
-    return null;
+
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
   }
+
+  return controller.signal;
 }
 
-// ── Helper: 기본 폴백 전략 ──
+function shouldRunReviewPass(
+  answer: string,
+  strategyType: StrategyType,
+  complexityMode: ClassificationMode,
+  minChars: number,
+) {
+  if (answer.trim().length >= minChars) {
+    return false;
+  }
 
-function fallbackStrategy(message: string): AgentStrategy {
-  return {
-    type: 'multi_perspective',
-    reasoning: '질문을 여러 관점에서 분석하겠습니다',
-    tasks: [
-      { id: 't1', label: '핵심 분석', prompt: `다음 질문의 핵심 내용을 분석해줘: ${message}` },
-      { id: 't2', label: '추가 관점', prompt: `다음 질문에 대해 다른 관점에서 추가 분석해줘: ${message}` },
-    ],
-  };
+  if (complexityMode === 'deep') {
+    return true;
+  }
+
+  return ['comparison', 'deep_dive', 'multi_perspective', 'pros_cons'].includes(strategyType);
 }
 
-// ── 메인 파이프라인 ──
+function buildReviewPrompt(message: string, answer: string, strategyType: StrategyType) {
+  return [
+    `원래 질문: ${message}`,
+    '',
+    `전략 유형: ${strategyType}`,
+    '',
+    '현재 초안:',
+    answer,
+    '',
+    '부족한 설명만 추가 단락으로 보강하세요.',
+  ].join('\n');
+}
+
+function resolveSearchPolicy(
+  profileSearchPolicy: 'auto' | 'always' | 'never' | undefined,
+  needsSearch?: boolean,
+) {
+  if (profileSearchPolicy === 'never') {
+    return 'never' as const;
+  }
+
+  if (needsSearch || profileSearchPolicy === 'always') {
+    return 'always' as const;
+  }
+
+  return 'auto' as const;
+}
+
+function resolveTaskBudget(
+  profile: AgentPipelineOptions['profile'],
+  complexityMode: ClassificationMode,
+) {
+  const base = profile?.maxTasks ?? 4;
+  const qualityTier = profile?.qualityTier ?? 'balanced';
+
+  if (complexityMode === 'deep') {
+    return Math.min(base + (qualityTier === 'premium' || qualityTier === 'search-first' ? 1 : 0), 6);
+  }
+
+  if (qualityTier === 'premium') {
+    return Math.min(base + 1, 5);
+  }
+
+  return base;
+}
+
+function resolveFinalTokenBudget(
+  profile: AgentPipelineOptions['profile'],
+  complexityMode: ClassificationMode,
+) {
+  const base = profile?.maxFinalTokens ?? 2400;
+  const qualityTier = profile?.qualityTier ?? 'balanced';
+
+  if (complexityMode === 'deep') {
+    return Math.min(base + (qualityTier === 'premium' ? 600 : 450), 4096);
+  }
+
+  if (qualityTier === 'search-first') {
+    return Math.min(base + 250, 4096);
+  }
+
+  return base;
+}
+
+function resolveReviewThreshold(
+  profile: AgentPipelineOptions['profile'],
+  complexityMode: ClassificationMode,
+) {
+  const base = profile?.reviewMinChars ?? 800;
+  const qualityTier = profile?.qualityTier ?? 'balanced';
+
+  if (complexityMode === 'deep') {
+    return base + (qualityTier === 'premium' ? 220 : 140);
+  }
+
+  if (qualityTier === 'search-first') {
+    return base + 80;
+  }
+
+  return base;
+}
 
 export async function runAgentPipeline(options: AgentPipelineOptions): Promise<void> {
-  const { message, model, systemPrompt, onStateChange, onStreamToken, signal, expertId, intentHint } = options;
+  const {
+    message,
+    model,
+    systemPrompt,
+    onStateChange,
+    onStreamToken,
+    signal,
+    expertId,
+    intentHint,
+    complexityMode = 'standard',
+    profile,
+    onSearchSources,
+  } = options;
+
+  const plannerModel = profile?.plannerModel ?? model;
+  const workerModel = profile?.workerModel ?? model;
+  const finalModel = profile?.finalModel ?? model;
+  const reviewModel = profile?.reviewModel ?? finalModel;
+  const maxTasks = resolveTaskBudget(profile, complexityMode);
+  const maxFinalTokens = resolveFinalTokenBudget(profile, complexityMode);
+  const reviewMinChars = resolveReviewThreshold(profile, complexityMode);
+
   const startTime = Date.now();
   let displayTasks: AgentTask[] = [];
 
-  // 초기 상태
   const state: AgentState = {
     status: 'analyzing',
     strategy: null,
@@ -135,6 +296,7 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
     elapsedMs: 0,
     agentBrand: expertId,
     intent: intentHint,
+    complexityMode,
   };
 
   const updateState = (partial: Partial<AgentState>) => {
@@ -142,82 +304,87 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
     onStateChange({ ...state });
   };
 
-  // 타임아웃 AbortController
   const timeoutController = new AbortController();
   const timeoutId = setTimeout(() => timeoutController.abort(), PIPELINE_TIMEOUT_MS);
-
-  // 외부 signal과 타임아웃 signal 결합
   const combinedSignal = signal
     ? combineAbortSignals(signal, timeoutController.signal)
     : timeoutController.signal;
 
   try {
-    // ═══ Step 1: 질문 분석 + 전략 선택 ═══
     updateState({ status: 'analyzing' });
 
-    let strategy: AgentStrategy;
+    let strategy = normalizeStrategy(null, message, intentHint, complexityMode, maxTasks);
+
     try {
-      const step1Result = await callAgentStep(
+      updateState({ status: 'planning' });
+      const step1 = await callAgentStep(
         STEP1_SYSTEM,
         message,
-        model,
-        500,
-        0.3,
-        combinedSignal
+        plannerModel,
+        900,
+        0.2,
+        combinedSignal,
       );
-      state.totalTokensUsed += step1Result.tokensUsed;
-
-      const parsed = parseStrategyJson(step1Result.content);
-      if (parsed && parsed.tasks && parsed.tasks.length > 0) {
-        // tasks 상한 적용
-        parsed.tasks = parsed.tasks.slice(0, MAX_TASKS);
-        strategy = parsed;
-      } else {
-        strategy = fallbackStrategy(message);
-      }
-    } catch (err) {
-      console.warn('[AgentPipeline] Step 1 failed, using fallback:', err);
-      strategy = fallbackStrategy(message);
+      state.totalTokensUsed += step1.tokensUsed;
+      strategy = normalizeStrategy(parseStrategyJson(step1.content), message, intentHint, complexityMode, maxTasks);
+    } catch (error) {
+      console.warn('[AgentPipeline] Step 1 failed, using fallback strategy:', error);
     }
 
-    // ═══ Step 2: 병렬 태스크 실행 ═══
-    const tasks: AgentTask[] = strategy.tasks.map(t => ({
-      id: t.id,
-      label: t.label,
-      status: 'pending' as const,
+    const baseTasks: AgentTask[] = strategy.tasks.map((task) => ({
+      id: task.id,
+      label: task.label,
+      status: 'pending',
       result: '',
     }));
-    displayTasks = attachPublicNotes(tasks, strategy.type);
+    displayTasks = attachPublicNotes(baseTasks, strategy.type);
 
     updateState({
       status: 'processing',
       strategy,
       tasks: [...displayTasks],
       intent: strategy.type,
+      complexityMode: strategy.depth ?? complexityMode,
     });
 
-    // 병렬 실행
-    const taskPromises = strategy.tasks.map(async (taskDef, idx) => {
-      // running 표시
-      displayTasks[idx].status = 'running';
+    const taskPromises = displayTasks.map(async (task, index) => {
+      const taskDef = strategy.tasks[index];
+      if (!taskDef) {
+        return;
+      }
+
+      displayTasks[index] = {
+        ...displayTasks[index],
+        status: 'running',
+        startedAt: Date.now(),
+      };
       updateState({ tasks: [...displayTasks] });
 
       try {
         const result = await callAgentStep(
           STEP2_SYSTEM,
           taskDef.prompt,
-          model,
-          800,
-          0.5,
-          combinedSignal
+          workerModel,
+          1000,
+          0.45,
+          combinedSignal,
         );
-        displayTasks[idx].status = 'done';
-        displayTasks[idx].result = result.content;
+
         state.totalTokensUsed += result.tokensUsed;
-      } catch (err) {
-        displayTasks[idx].status = 'error';
-        displayTasks[idx].result = '';
-        console.warn(`[AgentPipeline] Task ${taskDef.id} failed:`, err);
+        displayTasks[index] = {
+          ...displayTasks[index],
+          status: 'done',
+          result: result.content,
+          completedAt: Date.now(),
+        };
+      } catch (error) {
+        console.warn(`[AgentPipeline] Task ${taskDef.id} failed:`, error);
+        displayTasks[index] = {
+          ...displayTasks[index],
+          status: 'error',
+          result: '',
+          completedAt: Date.now(),
+        };
       }
 
       updateState({ tasks: [...displayTasks] });
@@ -225,73 +392,103 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
 
     await Promise.allSettled(taskPromises);
 
-    // 전체 실패 체크
-    const completedTasks = displayTasks.filter(t => t.status === 'done');
+    const completedTasks = displayTasks.filter((task) => task.status === 'done' && task.result.trim().length > 0);
     if (completedTasks.length === 0) {
-      throw new Error('All tasks failed');
+      throw new Error('All agent tasks failed');
     }
 
-    // ═══ Step 3: 종합 정리 (스트리밍) ═══
     updateState({ status: 'synthesizing', tasks: [...displayTasks] });
 
-    // 종합 프롬프트 조립
     const analysisResults = completedTasks
-      .map(t => `[${t.label}]\n${t.result}`)
+      .map((task) => `[${task.label}]\n${task.result}`)
       .join('\n\n---\n\n');
 
-    const step3UserPrompt = `원래 질문: ${message}\n\n분석 결과:\n---\n${analysisResults}\n---\n\n위 분석을 종합해서 최종 답변을 작성해줘.`;
+    const finalUserPrompt = [
+      `원래 질문: ${message}`,
+      '',
+      `공개 계획: ${strategy.publicPlan ?? strategy.reasoning}`,
+      '',
+      '분석 결과:',
+      analysisResults,
+      '',
+      '위 결과를 종합해서 최종 답변을 작성하세요.',
+    ].join('\n');
 
-    // 기존 /api/chat 엔드포인트로 스트리밍 요청
-    const chatResp = await fetch(CHAT_URL, {
+    const finalResponse = await fetch(CHAT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        systemPrompt: (systemPrompt ? systemPrompt + '\n\n' : '') + STEP3_SYSTEM,
-        question: step3UserPrompt,
+        systemPrompt: `${systemPrompt ? `${systemPrompt}\n\n` : ''}${STEP3_SYSTEM}`,
+        question: finalUserPrompt,
         previousResponses: [],
-        openrouterModel: model,
+        openrouterModel: finalModel,
+        maxTokens: maxFinalTokens,
+        searchPolicy: resolveSearchPolicy(profile?.searchPolicy, strategy.needsSearch),
       }),
       signal: combinedSignal,
     });
 
-    const answer = await streamSseContent(chatResp, onStreamToken);
+    let answer = await streamSseContent(finalResponse, onStreamToken, onSearchSources);
     if (!answer.trim()) {
       throw new Error('Step 3 streaming returned no content');
     }
 
-    // 완료
+    const effectiveComplexity = strategy.depth ?? complexityMode;
+    if (shouldRunReviewPass(answer, strategy.type, effectiveComplexity, reviewMinChars)) {
+      updateState({ status: 'reviewing', tasks: [...displayTasks], finalAnswer: answer });
+
+      try {
+        const review = await callAgentStep(
+          REVIEW_SYSTEM,
+          buildReviewPrompt(message, answer, strategy.type),
+          reviewModel,
+          1100,
+          0.35,
+          combinedSignal,
+        );
+
+        state.totalTokensUsed += review.tokensUsed;
+        const appendix = review.content.trim();
+        if (appendix) {
+          const separator = answer.trim().endsWith('\n') ? '\n' : '\n\n';
+          const combined = `${separator}${appendix}`;
+          onStreamToken(combined);
+          answer += combined;
+        }
+      } catch (error) {
+        console.warn('[AgentPipeline] Review pass skipped:', error);
+      }
+    }
+
     updateState({
       status: 'complete',
       finalAnswer: answer,
       tasks: [...displayTasks],
     });
-  } catch (err: unknown) {
-    console.error('[AgentPipeline] Fatal error:', err);
-
-    // 폴백: 일반 단일 호출
+  } catch (error) {
+    console.error('[AgentPipeline] Fatal error:', error);
     updateState({ status: 'error', tasks: [...displayTasks] });
 
     try {
-      const chatResp = await fetch(CHAT_URL, {
+      const fallbackResponse = await fetch(CHAT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemPrompt: systemPrompt || '',
           question: message,
           previousResponses: [],
-          openrouterModel: model,
+          openrouterModel: profile?.directModel ?? model,
+          maxTokens: profile?.maxDirectTokens ?? 1600,
+          searchPolicy: resolveSearchPolicy(profile?.searchPolicy, strategy.needsSearch),
         }),
         signal,
       });
 
-      if (!chatResp.ok || !chatResp.body) {
-        throw new Error(`Fallback streaming failed: ${chatResp.status}`);
-      }
-
-      const answer = await streamSseContent(chatResp, onStreamToken);
+      const answer = await streamSseContent(fallbackResponse, onStreamToken, onSearchSources);
       if (!answer.trim()) {
         throw new Error('Fallback streaming returned no content');
       }
+
       updateState({
         status: 'complete',
         finalAnswer: answer,
@@ -304,18 +501,4 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
   } finally {
     clearTimeout(timeoutId);
   }
-}
-
-// ── Helper: AbortSignal 결합 ──
-
-function combineAbortSignals(...signals: AbortSignal[]): AbortSignal {
-  const controller = new AbortController();
-  for (const sig of signals) {
-    if (sig.aborted) {
-      controller.abort(sig.reason);
-      return controller.signal;
-    }
-    sig.addEventListener('abort', () => controller.abort(sig.reason), { once: true });
-  }
-  return controller.signal;
 }

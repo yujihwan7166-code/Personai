@@ -7,8 +7,8 @@ interface AgentTaskStreamProps {
   state: AgentState;
 }
 
-function StatusIcon({ status }: { status: AgentTask['status'] | 'analyzing' | 'synthesizing' }) {
-  if (status === 'running' || status === 'analyzing' || status === 'synthesizing') {
+function StatusIcon({ status }: { status: AgentTask['status'] | 'analyzing' | 'planning' | 'synthesizing' | 'reviewing' }) {
+  if (status === 'running' || status === 'analyzing' || status === 'planning' || status === 'synthesizing' || status === 'reviewing') {
     return (
       <span className="relative flex h-3.5 w-3.5 items-center justify-center">
         <span className="absolute h-3 w-3 rounded-full bg-primary/15 animate-ping" />
@@ -49,20 +49,19 @@ function Dots() {
 }
 
 function noteFor(task: AgentTask) {
-  return task.publicNote || '핵심 포인트를 답변에 반영했습니다.';
+  return task.publicNote || '핵심 포인트를 답변에 반영하고 있습니다.';
 }
 
 export function AgentTaskStream({ state }: AgentTaskStreamProps) {
   const [expanded, setExpanded] = useState(false);
   const presentation = useMemo(() => getAgentStreamPresentation(state), [state]);
-
   const doneTasks = state.tasks.filter((task) => task.status === 'done');
   const runningTask = state.tasks.find((task) => task.status === 'running');
 
   if (state.status === 'error') {
     return (
       <div className="mb-3 rounded-xl border border-amber-200/70 bg-amber-50/70 px-3.5 py-3 text-[11px] text-amber-700">
-        분석 과정을 단순화하고 바로 답변을 이어가고 있습니다.
+        분석 단계를 단순화하고 바로 답변을 이어가고 있습니다.
       </div>
     );
   }
@@ -93,6 +92,11 @@ export function AgentTaskStream({ state }: AgentTaskStreamProps) {
               </span>
             </div>
             <div className="space-y-2.5">
+              {state.strategy?.publicPlan && (
+                <div className="rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-[10px] leading-relaxed text-slate-500">
+                  {state.strategy.publicPlan}
+                </div>
+              )}
               {state.tasks.map((task) => (
                 <div key={task.id} className="flex items-start gap-2.5">
                   <StatusIcon status={task.status} />
@@ -122,7 +126,7 @@ export function AgentTaskStream({ state }: AgentTaskStreamProps) {
 
       <div className="mt-2 text-[12px] font-medium text-slate-700">
         {presentation.headline}
-        {(state.status === 'analyzing' || state.status === 'processing' || state.status === 'synthesizing') && <Dots />}
+        <Dots />
       </div>
 
       <div className="mt-3 space-y-2">
@@ -131,6 +135,7 @@ export function AgentTaskStream({ state }: AgentTaskStreamProps) {
           <div className="min-w-0">
             <div className={cn('text-[11px] font-medium', state.status === 'analyzing' ? 'text-slate-700' : 'text-slate-500')}>
               {state.status === 'analyzing' ? presentation.analyzeLabel : '질문 해석 완료'}
+              {state.status === 'analyzing' && <Dots />}
             </div>
             {state.status !== 'analyzing' && (
               <div className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
@@ -139,6 +144,23 @@ export function AgentTaskStream({ state }: AgentTaskStreamProps) {
             )}
           </div>
         </div>
+
+        {state.strategy?.publicPlan && (
+          <div className="flex items-start gap-2.5">
+            <StatusIcon status={state.status === 'planning' ? 'planning' : 'done'} />
+            <div className="min-w-0">
+              <div className={cn('text-[11px] font-medium', state.status === 'planning' ? 'text-slate-700' : 'text-slate-500')}>
+                {state.status === 'planning' ? presentation.planningLabel : '답변 구조 정리 완료'}
+                {state.status === 'planning' && <Dots />}
+              </div>
+              {state.status !== 'planning' && (
+                <div className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                  {state.strategy.publicPlan}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {state.tasks.map((task) => (
           <div key={task.id} className="flex items-start gap-2.5">
@@ -151,7 +173,7 @@ export function AgentTaskStream({ state }: AgentTaskStreamProps) {
                 task.status === 'error' ? 'text-rose-400' :
                 'text-slate-300',
               )}>
-                {task.status === 'running' ? task.label : task.label}
+                {task.label}
                 {task.status === 'running' && <Dots />}
               </div>
               {task.status === 'done' && (
@@ -164,12 +186,12 @@ export function AgentTaskStream({ state }: AgentTaskStreamProps) {
         ))}
 
         <div className="flex items-start gap-2.5">
-          <StatusIcon status={state.status === 'synthesizing' ? 'synthesizing' : state.status === 'complete' ? 'done' : 'pending'} />
+          <StatusIcon status={state.status === 'synthesizing' ? 'synthesizing' : state.status === 'reviewing' || state.status === 'complete' ? 'done' : 'pending'} />
           <div className="min-w-0">
             <div className={cn(
               'text-[11px] font-medium',
               state.status === 'synthesizing' ? 'text-slate-700' :
-              state.status === 'analyzing' || state.status === 'processing' ? 'text-slate-300' :
+              state.status === 'analyzing' || state.status === 'planning' || state.status === 'processing' ? 'text-slate-300' :
               'text-slate-500',
             )}>
               {presentation.synthesizeLabel}
@@ -178,8 +200,28 @@ export function AgentTaskStream({ state }: AgentTaskStreamProps) {
             {(state.status === 'synthesizing' || doneTasks.length > 0) && state.status !== 'analyzing' && (
               <div className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
                 {runningTask
-                  ? `${runningTask.label} 결과까지 반영해 최종 답변으로 묶는 중입니다.`
-                  : `${doneTasks.length || state.tasks.length}개 관점을 한 답변으로 정리하고 있습니다.`}
+                  ? `${runningTask.label} 결과까지 반영해 최종 답변으로 묶고 있습니다.`
+                  : `${doneTasks.length || state.tasks.length}개 관점을 하나의 답으로 정리하고 있습니다.`}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2.5">
+          <StatusIcon status={state.status === 'reviewing' ? 'reviewing' : state.status === 'complete' ? 'done' : 'pending'} />
+          <div className="min-w-0">
+            <div className={cn(
+              'text-[11px] font-medium',
+              state.status === 'reviewing' ? 'text-slate-700' :
+              state.status === 'complete' ? 'text-slate-500' :
+              'text-slate-300',
+            )}>
+              {presentation.reviewLabel}
+              {state.status === 'reviewing' && <Dots />}
+            </div>
+            {(state.status === 'reviewing' || state.status === 'complete') && (
+              <div className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                부족한 설명이나 빠진 맥락이 없는지 마지막으로 점검합니다.
               </div>
             )}
           </div>

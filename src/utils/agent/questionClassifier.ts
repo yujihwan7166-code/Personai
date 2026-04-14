@@ -1,149 +1,162 @@
-// ══════════════════════════════════════════
-// Question Complexity Classifier
-// 비용 0 — 프론트엔드 동기 실행
-// ══════════════════════════════════════════
-
+import { inferAgentIntent } from './agentDisplay';
 import type { ClassificationResult } from './types';
 
-/** 즉시 simple 판정 패턴 */
 const GREETING_PATTERNS = [
-  /^(안녕|하이|헬로|hi|hello|hey|ㅎㅇ|ㅎㅎ|ㅋㅋ|ㅎ|반갑|잘\s?지내|좋은\s?아침|좋은\s?하루)/i,
-  /^(고마워|감사|땡큐|thank|thx|ㄳ|ㅇㅋ|ㅇㅇ|넵|네|응|ㅎ|ok|okay|ㅇㅇㅇ)/i,
-  /^(ㅋ{2,}|ㅎ{2,}|ㅠ{2,}|ㅜ{2,}|\.{1,3}|ㄱㄱ|ㄴㄴ|ㅇㅋ|ㄷㄷ)/,
+  /^(안녕|하이|헬로|hi|hello|hey|반가워|좋은 아침|좋은 오후|좋은 저녁)/i,
+  /^(고마워|감사|thanks?|thx|오케이|okay|ok)\b/i,
+  /^(ㅎㅎ+|ㅋㅋ+|...|굿|오|음|응)$/i,
 ];
 
-/** 후속 질문 패턴 (이전 답변 기반 → 에이전트 불필요) */
-const FOLLOWUP_PATTERNS = [
-  /^(더\s?(알려|설명|자세히)|자세히|예시|예를\s?들|계속|이어서|그래서|그러면|근데)/,
-  /^(요약|정리|한줄로|짧게|간단히|다시\s?말|번역)/,
+const FOLLOW_UP_PATTERNS = [
+  /^(더 알려|더 설명|자세히|자세하게|계속|이어서|그럼|그런데)/,
+  /^(요약|정리|짧게|간단히|다시|번역)/,
 ];
 
-/** 분석/비교 명시 키워드 (+3점) */
-const ANALYSIS_KEYWORDS = [
-  '분석해', '분석좀', '분석 좀', '비교해', '비교좀', '비교 좀',
-  '평가해', '검토해', '리뷰해', '진단해', '감사해줘',
-  '분석하고', '비교하고', '평가하고',
+const STRONG_DEEP_KEYWORDS = [
+  '전망', '예측', '전략', '로드맵', '비교', '차이', '장단점', '찬반', '왜', '원인',
+  '영향', '분석', '구조', '리스크', '미래', '추세', '추천', '어떻게', '구현',
 ];
 
-/** 전략/계획 키워드 (+3점) */
-const STRATEGY_KEYWORDS = [
-  '전략', '계획 세워', '로드맵', '방안', '대책',
-  '계획을', '플랜', '설계해', '기획해',
+const SEARCH_KEYWORDS = [
+  '최신', '최근', '오늘', '지금', '현재', '뉴스', '시장', '가격', '주가', '유가',
+  '환율', '금리', '데이터', '통계', '수치', '근거',
 ];
 
-/** 다각도 키워드 (+2점) */
-const MULTI_ANGLE_KEYWORDS = [
-  '장단점', '찬반', '여러 관점', '다각도', '종합적',
-  '장점과 단점', '긍정과 부정', '양면',
-];
+const COMPARISON_KEYWORDS = ['비교', '차이', 'vs', 'versus', '뭐가', '어느 쪽', '더 낫'];
+const STRATEGY_KEYWORDS = ['전략', '계획', '로드맵', '방안', '플랜', '단계', '실행'];
+const PROS_CONS_KEYWORDS = ['찬반', '장단점', '장점', '단점', 'pros', 'cons'];
+const CAUSAL_KEYWORDS = ['왜', '원인', '영향', '이유', '배경', '구조', '전망', '추세'];
+const DEEP_HINTS = ['깊게', '깊이', '상세', '심층', '구체적', '자세히', '꼼꼼하게'];
+const DECISION_CONTEXT_KEYWORDS = ['어떤 상황', '언제', '추천', '선택', '고르면', '써야', '적합'];
+const CONJUNCTION_KEYWORDS = ['그리고', '또한', '추가로', '반면', '한편', '동시에'];
 
-/** 인과/추론 키워드 (+2점) */
-const CAUSAL_KEYWORDS = [
-  '왜 그런', '원인', '영향', '전망', '예측', '어떻게 될',
-  '앞으로', '미래', '추세', '트렌드', '향후',
-];
+function includesAny(text: string, keywords: string[]) {
+  return keywords.some((keyword) => text.includes(keyword));
+}
 
-/** 복수 주제 연결 패턴 (+2점, 2개 이상 출현 시) */
-const CONJUNCTION_KEYWORDS = [
-  '그리고', '또한', '추가로', '더불어', '아울러', '뿐만 아니라',
-];
+function countMatches(text: string, keywords: string[]) {
+  return keywords.filter((keyword) => text.includes(keyword)).length;
+}
 
-/**
- * 질문 복잡도를 판별한다.
- * API 호출 없이 키워드 + 가중치 스코어링으로 동기 실행.
- */
 export function classifyQuestion(message: string): ClassificationResult {
   const trimmed = message.trim();
+  const normalized = trimmed.toLowerCase();
   const reasons: string[] = [];
 
-  // ── 즉시 simple 판정 ──
-  if (trimmed.length <= 5) {
-    return { mode: 'simple', score: 0, reasons: ['5자 이하'] };
+  if (!trimmed) {
+    return { mode: 'simple', score: 0, reasons: ['empty'], intent: inferAgentIntent(trimmed), needsSearch: false };
   }
 
-  for (const pat of GREETING_PATTERNS) {
-    if (pat.test(trimmed)) {
-      return { mode: 'simple', score: 0, reasons: ['인사/잡담'] };
+  for (const pattern of GREETING_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      return { mode: 'simple', score: 0, reasons: ['greeting'], intent: inferAgentIntent(trimmed), needsSearch: false };
     }
   }
 
-  for (const pat of FOLLOWUP_PATTERNS) {
-    if (pat.test(trimmed)) {
-      return { mode: 'simple', score: 0, reasons: ['후속 질문'] };
+  for (const pattern of FOLLOW_UP_PATTERNS) {
+    if (pattern.test(trimmed) && trimmed.length <= 20) {
+      return { mode: 'simple', score: 1, reasons: ['short_followup'], intent: inferAgentIntent(trimmed), needsSearch: false };
     }
   }
 
-  // ── 가중치 점수 산출 ──
+  const hasStrongDeepKeyword = includesAny(normalized, STRONG_DEEP_KEYWORDS);
+  const needsSearch = includesAny(normalized, SEARCH_KEYWORDS);
+
   let score = 0;
-  const lower = trimmed.toLowerCase();
 
-  // +3: 분석/비교 키워드
-  if (ANALYSIS_KEYWORDS.some(kw => lower.includes(kw))) {
+  if (includesAny(normalized, COMPARISON_KEYWORDS)) {
     score += 3;
-    reasons.push('분석/비교 키워드');
+    reasons.push('comparison');
   }
 
-  // +3: 전략/계획 키워드
-  if (STRATEGY_KEYWORDS.some(kw => lower.includes(kw))) {
+  if (includesAny(normalized, STRATEGY_KEYWORDS)) {
     score += 3;
-    reasons.push('전략/계획 키워드');
+    reasons.push('strategy');
   }
 
-  // +2: 다각도 키워드
-  if (MULTI_ANGLE_KEYWORDS.some(kw => lower.includes(kw))) {
+  if (includesAny(normalized, PROS_CONS_KEYWORDS)) {
     score += 2;
-    reasons.push('다각도 키워드');
+    reasons.push('pros_cons');
   }
 
-  // +2: 인과/추론 키워드
-  if (CAUSAL_KEYWORDS.some(kw => lower.includes(kw))) {
+  if (includesAny(normalized, CAUSAL_KEYWORDS)) {
     score += 2;
-    reasons.push('인과/추론 키워드');
+    reasons.push('causal');
   }
 
-  // +2: 복수 주제 연결 (2개 이상)
-  const conjCount = CONJUNCTION_KEYWORDS.filter(kw => lower.includes(kw)).length;
-  if (conjCount >= 2) {
+  if (includesAny(normalized, DEEP_HINTS)) {
     score += 2;
-    reasons.push('복수 주제 연결');
+    reasons.push('deep_hint');
   }
 
-  // +2: 코드 블록 포함
+  if (includesAny(normalized, DECISION_CONTEXT_KEYWORDS)) {
+    score += 2;
+    reasons.push('decision_context');
+  }
+
+  if (needsSearch) {
+    score += 2;
+    reasons.push('search');
+  }
+
+  if (countMatches(normalized, CONJUNCTION_KEYWORDS) >= 2) {
+    score += 2;
+    reasons.push('multi_clause');
+  }
+
   if (trimmed.includes('```')) {
     score += 2;
-    reasons.push('코드 블록 포함');
+    reasons.push('code_block');
   }
 
-  // +1: 80자 이상
-  if (trimmed.length >= 80) {
+  if (trimmed.length >= 25) {
     score += 1;
-    reasons.push('80자 이상');
+    reasons.push('length_25');
   }
 
-  // +1: 150자 이상 (중복 가산)
-  if (trimmed.length >= 150) {
+  if (trimmed.length >= 40) {
     score += 1;
-    reasons.push('150자 이상');
+    reasons.push('length_40');
   }
 
-  // +1: 물음표 2개 이상
-  const qCount = (trimmed.match(/\?/g) || []).length;
-  if (qCount >= 2) {
+  if (trimmed.length >= 100) {
     score += 1;
-    reasons.push('물음표 2개 이상');
+    reasons.push('length_100');
   }
 
-  // +1: 숫자/데이터 포함
   if (/\d{2,}/.test(trimmed)) {
     score += 1;
-    reasons.push('숫자/데이터 포함');
+    reasons.push('numbers');
   }
 
-  // ── 임계값: 4점 이상이면 에이전트 모드 ──
-  const THRESHOLD = 4;
+  if (/[0-9]+\s*(개월|년|일|주|%|원|달러|명|개)/.test(trimmed)) {
+    score += 1;
+    reasons.push('time_or_metric');
+  }
+
+  const questionMarkCount = (trimmed.match(/\?/g) || []).length;
+  if (questionMarkCount >= 2) {
+    score += 1;
+    reasons.push('multi_question_marks');
+  }
+
+  if (hasStrongDeepKeyword && trimmed.length <= 12) {
+    score += 4;
+    reasons.push('short_but_complex');
+  }
+
+  let mode: ClassificationResult['mode'] = 'simple';
+  if (score >= 6) {
+    mode = 'deep';
+  } else if (score >= 3) {
+    mode = 'standard';
+  }
+
   return {
-    mode: score >= THRESHOLD ? 'agent' : 'simple',
+    mode,
     score,
     reasons,
+    intent: inferAgentIntent(trimmed),
+    needsSearch,
   };
 }

@@ -4,7 +4,7 @@ import { ExpertAvatar } from './ExpertAvatar';
 import { LazyMarkdown } from './LazyMarkdown';
 import { AgentRichMarkdown } from './AgentRichMarkdown';
 import { AgentTaskStream } from './AgentTaskStream';
-import { isAiAgentId } from '@/lib/aiAgent';
+import { isManagedAutoAgent } from '@/lib/aiAgent';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { cn } from '@/lib/utils';
 import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap, Globe, ExternalLink } from 'lucide-react';
@@ -48,6 +48,31 @@ function StreamingIndicator() {
 
 function StreamingCursor() {
   return <span className="inline-block w-0.5 h-3.5 bg-primary/40 ml-0.5 cursor-blink rounded-full" />;
+}
+
+function ResponseProgressBanner({ message }: { message: DiscussionMessageType }) {
+  if (message.agentState) return null;
+  if (!message.isStreaming) return null;
+
+  const label = message.progressLabel || '답변을 준비하고 있어요.';
+  if (!label) return null;
+
+  return (
+    <div className="mb-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5">
+      <div className="flex items-start gap-2">
+        <span className="relative mt-0.5 flex h-3.5 w-3.5 items-center justify-center">
+          <span className="absolute h-3 w-3 rounded-full bg-primary/15 animate-ping" />
+          <span className="relative h-1.5 w-1.5 rounded-full bg-primary" />
+        </span>
+        <div className="min-w-0">
+          <div className="text-[11px] font-medium text-slate-700">{label}</div>
+          {message.progressDetail && (
+            <div className="mt-0.5 text-[10px] leading-relaxed text-slate-400">{message.progressDetail}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const COLLAPSE_THRESHOLD = 300; // ~9-10줄
@@ -188,7 +213,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
 
   // ── Messenger (단일 AI) ──
   if (variant === 'general-card' || variant === 'agent-card') {
-    const isAgentCard = variant === 'agent-card' || isAiAgentId(expert.id);
+    const isAgentCard = variant === 'agent-card' || isManagedAutoAgent(expert.id);
     return (
       <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
         <div className={cn(
@@ -219,6 +244,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
             {message.agentState && (
               <AgentTaskStream state={message.agentState} />
             )}
+            <ResponseProgressBanner message={message} />
             <div className={cn(
               'text-[13px] leading-relaxed',
               isAgentCard
@@ -244,6 +270,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         <div className="flex-1 min-w-0 max-w-[85%]">
           <span className="text-[11px] font-medium text-slate-400 mb-0.5 block">{expert.nameKo}</span>
           <div className="bg-white border border-slate-100 border-l-[4px] border-l-indigo-400 rounded-2xl rounded-tl-md px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+            <ResponseProgressBanner message={message} />
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
               <GeneratedImageGallery message={message} />
               <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
@@ -275,6 +302,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
           <span className="text-[11px] font-semibold text-slate-600">{expert.nameKo}</span>
         </div>
+        <ResponseProgressBanner message={message} />
         <div className={cn('text-[12px] leading-relaxed text-slate-600 max-h-[140px] overflow-hidden', proseClasses)}>
           <MessageContent content={displayContent} isStreaming={message.isStreaming} />
         </div>
@@ -317,6 +345,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
         </div>
         <div className="px-3.5 py-3">
+          <ResponseProgressBanner message={message} />
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
             <GeneratedImageGallery message={message} />
             <MessageContent content={displayContent} isStreaming={message.isStreaming} />
@@ -342,6 +371,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
               {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
             </div>
             <div className="bg-white border border-slate-100 rounded-lg px-3.5 py-2.5 shadow-sm">
+              <ResponseProgressBanner message={message} />
               <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
                 <GeneratedImageGallery message={message} />
                 <MessageContent content={displayContent} isStreaming={message.isStreaming} />
@@ -365,6 +395,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
             {!message.isStreaming && message.content && <CopyBtn className="ml-auto opacity-0 group-hover:opacity-100 sm:opacity-30 sm:group-hover:opacity-100 text-slate-300 hover:text-slate-500" />}
           </div>
           <div className="px-4 py-3.5">
+            <ResponseProgressBanner message={message} />
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
               <GeneratedImageGallery message={message} />
               <MessageContent content={displayContent} isStreaming={message.isStreaming} />
@@ -404,6 +435,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
 
         {/* Content */}
         <div className="px-3.5 pb-3 pt-0">
+          <ResponseProgressBanner message={message} />
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
             <GeneratedImageGallery message={message} />
             <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse={isSummary} />

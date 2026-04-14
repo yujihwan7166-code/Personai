@@ -1,3 +1,5 @@
+import type { ResponseState } from '@/lib/responseProgress';
+
 export const EXPERT_COLORS = ['blue', 'emerald', 'red', 'amber', 'purple', 'orange', 'teal', 'pink', 'slate', 'green', 'cyan', 'sky'] as const;
 export type ExpertColor = typeof EXPERT_COLORS[number];
 
@@ -487,6 +489,9 @@ export interface DiscussionMessage {
     expertId: string;
     content: string;
     isStreaming?: boolean;
+    responseState?: ResponseState;
+    progressLabel?: string;
+    progressDetail?: string;
     isSummary?: boolean;
     isDirectFollowUp?: boolean;
     round?: DiscussionRound;

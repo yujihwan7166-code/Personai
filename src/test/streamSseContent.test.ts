@@ -49,4 +49,35 @@ describe('streamSseContent', () => {
     expect(answer).toBe('Done');
     expect(streamed).toEqual(['Done']);
   });
+
+  it('forwards search payloads when requested', async () => {
+    const streamed: string[] = [];
+    const captured: unknown[] = [];
+    const response = createStreamingResponse([
+      'event: search\n',
+      'data: {"query":"유가 전망","sources":[{"title":"Source A","link":"https://example.com"}]}\n',
+      '\n',
+      'data: {"choices":[{"delta":{"content":"Done"}}]}\n',
+      'data: [DONE]\n',
+    ]);
+
+    const answer = await streamSseContent(
+      response,
+      (token) => {
+        streamed.push(token);
+      },
+      (payload) => {
+        captured.push(payload);
+      },
+    );
+
+    expect(answer).toBe('Done');
+    expect(streamed).toEqual(['Done']);
+    expect(captured).toEqual([
+      {
+        query: '유가 전망',
+        sources: [{ title: 'Source A', link: 'https://example.com' }],
+      },
+    ]);
+  });
 });

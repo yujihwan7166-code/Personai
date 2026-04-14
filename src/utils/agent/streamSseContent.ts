@@ -1,6 +1,7 @@
 export async function streamSseContent(
   response: Response,
   onToken: (token: string) => void,
+  onSearchSources?: (sources: import('@/lib/chatStream').SearchSourcePayload) => void,
 ): Promise<string> {
   if (!response.ok || !response.body) {
     throw new Error(`Streaming failed: ${response.status}`);
@@ -17,6 +18,11 @@ export async function streamSseContent(
     const jsonString = line.slice(6).trim();
     if (jsonString === '[DONE]') {
       streamDone = true;
+      return;
+    }
+
+    if (currentEvent === 'search') {
+      onSearchSources?.(JSON.parse(jsonString));
       return;
     }
 

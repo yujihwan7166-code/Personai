@@ -28,7 +28,18 @@ interface ChatRequestBody {
   previousResponses?: PreviousResponse[];
   files?: unknown;
   openrouterModel?: string;
+  maxTokens?: number;
+  searchPolicy?: 'auto' | 'always' | 'never';
   preSearchContext?: PreSearchContext | null;
+}
+
+function writeProgress(
+  res: VercelResponse,
+  state: string,
+  label: string,
+  detail?: string,
+) {
+  res.write(`event: progress\ndata: ${JSON.stringify({ state, label, detail })}\n\n`);
 }
 
 function sanitizePreviousResponses(previousResponses: unknown): PreviousResponse[] {
@@ -101,6 +112,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const question = typeof body.question === 'string' ? body.question.trim() : '';
   const systemPrompt = typeof body.systemPrompt === 'string' ? body.systemPrompt : '';
   const requestedModel = typeof body.openrouterModel === 'string' ? body.openrouterModel.trim() : '';
+  const requestedMaxTokens = typeof body.maxTokens === 'number' && Number.isFinite(body.maxTokens)
+    ? Math.max(256, Math.min(4096, Math.floor(body.maxTokens)))
+    : undefined;
+  const searchPolicy = body.searchPolicy === 'always' || body.searchPolicy === 'never'
+    ? body.searchPolicy
+    : 'auto';
 
   if (!question) {
     return res.status(400).json({ error: '질문이 비어 있어요.' });
@@ -134,9 +151,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (preSearch && preSearch.formatted) {
     // 토론 모드: 프론트엔드에서 이미 검색 완료
     searchInfo = '\n\n' + preSearch.formatted;
-  } else if (preSearch === undefined) {
+  } else if (preSearch === undefined && searchPolicy !== 'never') {
     // 단일 모드: 직접 검색
-    searchContext = await getSearchContext(question);
+    searchContext = await getSearchContext(question, {
+      force: searchPolicy === 'always',
+    });
     searchInfo = searchContext ? '\n\n' + formatSearchContext(searchContext) : '';
   }
   // preSearch === null → 검색 불필요 판정 완료, 스킵
@@ -173,7 +192,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         plugins,
         stream: true,
         temperature: 0.8,
-        max_tokens: 2048,
+        max_tokens: requestedMaxTokens ?? 2048,
         ...(isThinkingModel ? { reasoning: { effort: 'none' } } : {}),
       }),
       signal: abortCtrl.signal,
@@ -198,13 +217,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const allowedOrigin = req.headers.origin || '';
     res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
 
+    writeProgress(res, 'analyzing', '질문을 해석하고 있어요.', '요청 의도와 답변 방향을 먼저 정리하고 있습니다.');
+
     // 검색 결과가 있으면 출처 정보를 첫 이벤트로 전송
     if (searchContext) {
+      writeProgress(res, 'searching', '관련 정보를 찾고 있어요.', '검색 결과와 참고 맥락을 함께 정리하고 있습니다.');
       const sources = searchContext.results.map(r => ({ title: r.title, link: r.link }));
       res.write(`event: search\ndata: ${JSON.stringify({ query: searchContext.query, sources })}\n\n`);
     } else if (preSearch && preSearch.sources?.length > 0) {
+      writeProgress(res, 'searching', '관련 정보를 정리하고 있어요.', '이미 수집된 검색 결과를 답변에 반영하고 있습니다.');
       res.write(`event: search\ndata: ${JSON.stringify({ query: preSearch.query, sources: preSearch.sources })}\n\n`);
     }
+
+    writeProgress(res, 'drafting', '답변 초안을 작성하고 있어요.', '핵심 내용을 자연스럽게 풀어쓰는 중입니다.');
 
     const reader = openRouterRes.body?.getReader();
     if (!reader) {
@@ -213,6 +238,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const decoder = new TextDecoder();
     let buffer = '';
+
+    let sentFinalizingProgress = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -223,6 +250,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       buffer = parsed.remainder;
 
       for (const text of parsed.texts) {
+        if (!sentFinalizingProgress) {
+          writeProgress(res, 'finalizing', '최종 답변으로 정리하고 있어요.', '표현을 다듬고 마무리 문장을 이어가고 있습니다.');
+          sentFinalizingProgress = true;
+        }
         res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
       }
 

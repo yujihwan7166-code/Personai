@@ -31,7 +31,7 @@ function createState(overrides?: Partial<AgentState>): AgentState {
 
 describe('agentDisplay helpers', () => {
   it('infers comparison and step intents from Korean prompts', () => {
-    expect(inferAgentIntent('GPT랑 Claude 차이 비교해줘')).toBe('comparison');
+    expect(inferAgentIntent('GPT와 Claude 차이 비교해줘')).toBe('comparison');
     expect(inferAgentIntent('배포 순서를 단계별로 알려줘')).toBe('step_by_step');
   });
 
@@ -40,11 +40,12 @@ describe('agentDisplay helpers', () => {
     expect(inferAgentIntent('이 문제의 원인과 구조를 깊게 분석해줘')).toBe('deep_dive');
   });
 
-  it('builds fake strategies with brand-aware reasoning and three tasks', () => {
+  it('builds fake strategies with public plan and three tasks', () => {
     const strategy = buildFakeAgentStrategy('GPT와 Claude 비교해줘', 'auto-gpt');
 
     expect(strategy.type).toBe('comparison');
-    expect(strategy.reasoning).toContain('GPT가 비교형 응답 방식으로 질문을 나눠 봅니다.');
+    expect(strategy.reasoning).toContain('GPT');
+    expect(strategy.publicPlan).toContain('비교형');
     expect(strategy.tasks).toHaveLength(3);
     expect(strategy.tasks.map((task) => task.label)).toEqual([
       '비교 기준 정리',
@@ -56,28 +57,36 @@ describe('agentDisplay helpers', () => {
   it('attaches fallback public notes without overwriting existing notes', () => {
     const tasks = attachPublicNotes([
       createTask({ id: 't1', label: '비교 기준 정리' }),
-      createTask({ id: 't2', label: '항목별 차이 검토', publicNote: '이미 계산된 메모' }),
+      createTask({ id: 't2', label: '항목별 차이 검토', publicNote: '이미 계산한 메모' }),
     ], 'comparison');
 
-    expect(tasks[0]?.publicNote).toBe('비교 축을 3개 안팎으로 압축했습니다.');
-    expect(tasks[1]?.publicNote).toBe('이미 계산된 메모');
+    expect(tasks[0]?.publicNote).toBe('비교 축을 3개 안팎으로 확정했습니다.');
+    expect(tasks[1]?.publicNote).toBe('이미 계산한 메모');
   });
 
-  it('builds running presentation with brand-specific phase copy', () => {
+  it('builds running presentation with planning and review labels', () => {
     const presentation = getAgentStreamPresentation(createState({
       status: 'processing',
       agentBrand: 'auto-claude',
       intent: 'pros_cons',
+      strategy: {
+        type: 'pros_cons',
+        reasoning: '',
+        publicPlan: '찬반 기준을 나눠 본 뒤 결론을 정리합니다.',
+        publicSteps: [],
+        tasks: [],
+      },
       tasks: [
-        createTask({ id: 't1', label: '찬성 논거 정리', status: 'done' }),
-        createTask({ id: 't2', label: '반대 논거 검토', status: 'running' }),
+        createTask({ id: 't1', label: '찬성 근거 정리', status: 'done' }),
+        createTask({ id: 't2', label: '반대 근거 검토', status: 'running' }),
       ],
     }));
 
     expect(presentation.agentLabel).toBe('Claude');
     expect(presentation.intentLabel).toBe('찬반형 검토');
-    expect(presentation.headline).toBe('반대 논거 검토 중');
-    expect(presentation.synthesizeLabel).toContain('신중한 판단');
+    expect(presentation.headline).toBe('반대 근거 검토 중');
+    expect(presentation.planningLabel).toContain('찬반 기준');
+    expect(presentation.reviewLabel).toContain('보강');
   });
 
   it('builds completion summaries with elapsed time and task count', () => {

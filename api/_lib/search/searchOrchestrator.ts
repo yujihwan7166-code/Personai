@@ -15,14 +15,16 @@ import { getCached, setCache, cleanupCache } from './searchCache.js';
  * @returns SearchContext (검색 결과) 또는 null (검색 불필요/실패)
  */
 export async function getSearchContext(
-  userMessage: string
+  userMessage: string,
+  options: { force?: boolean } = {},
 ): Promise<SearchContext | null> {
   try {
+    const force = options.force === true;
     // 주기적 캐시 정리
     cleanupCache();
 
     // ── 1단계: 패턴 매칭 ──
-    const decision = shouldSearch(userMessage);
+    const decision = force ? 'SEARCH_REQUIRED' : shouldSearch(userMessage);
 
     if (decision === 'SEARCH_NOT_NEEDED') {
       return null;

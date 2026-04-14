@@ -1,4 +1,5 @@
 import { getExpertPrompt } from '@/lib/expertPromptLoader';
+import type { ResponseProgress } from '@/lib/responseProgress';
 import type { DiscussionRound, Expert } from '@/types/expert';
 
 export type SearchSource = {
@@ -17,6 +18,8 @@ export type PreSearchContext = {
   formatted: string;
 } | null;
 
+export type SearchPolicy = 'auto' | 'always' | 'never';
+
 export type StreamRequestFile = {
   name: string;
   mimeType: string;
@@ -31,8 +34,11 @@ export type StreamExpertArgs = {
   round: DiscussionRound | 'summary';
   onDelta: (text: string) => void;
   onDone: () => void;
+  onProgress?: (progress: ResponseProgress) => void;
   signal?: AbortSignal;
   files?: StreamRequestFile[];
+  maxTokens?: number;
+  searchPolicy?: SearchPolicy;
   onSearchSources?: (sources: SearchSourcePayload) => void;
   preSearchContext?: PreSearchContext;
 };
@@ -76,8 +82,11 @@ export function createStreamExpert({
     round,
     onDelta,
     onDone,
+    onProgress,
     signal,
     files,
+    maxTokens,
+    searchPolicy,
     onSearchSources,
     preSearchContext,
   }: StreamExpertArgs) {
@@ -91,6 +100,8 @@ export function createStreamExpert({
         previousResponses,
         files: files && files.length > 0 ? files : undefined,
         openrouterModel: expert.openrouterModel,
+        ...(typeof maxTokens === 'number' ? { maxTokens } : {}),
+        ...(searchPolicy ? { searchPolicy } : {}),
         ...(preSearchContext !== undefined ? { preSearchContext } : {}),
       }),
       signal,
@@ -161,6 +172,11 @@ export function createStreamExpert({
           if (currentEvent === 'search') {
             const searchData = JSON.parse(jsonString);
             onSearchSources?.(searchData);
+            continue;
+          }
+
+          if (currentEvent === 'progress') {
+            onProgress?.(JSON.parse(jsonString));
             continue;
           }
 

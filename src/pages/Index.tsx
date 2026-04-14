@@ -11,8 +11,9 @@ import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
 import { runAutoAgentTurn } from '@/lib/autoAgentTurn';
 import { createStreamExpert, fetchSearchContext, type PreSearchContext, type StreamExpertFn } from '@/lib/chatStream';
-import { isAiAgentId } from '@/lib/aiAgent';
+import { isManagedAutoAgent } from '@/lib/aiAgent';
 import { buildAgentResponsePrompt } from '@/lib/prompts/agentResponsePrompt';
+import { getDefaultProgress, type ResponseProgress } from '@/lib/responseProgress';
 import type { AttachedFile } from '@/lib/fileProcessor';
 import { buildGeneralImageHistory, mockRoute, pickGeneralImageExpert, type GeneralImageHistoryMessage } from '@/lib/indexPageHelpers';
 import {
@@ -49,7 +50,6 @@ const LazyPremiumConsultChat = lazy(() => import('@/components/PremiumConsultCha
 let pptGeneratorPromise: Promise<typeof import('@/lib/pptGenerator')> | null = null;
 let questionClassifierPromise: Promise<typeof import('@/utils/agent/questionClassifier')> | null = null;
 let agentPipelinePromise: Promise<typeof import('@/utils/agent/agentPipeline')> | null = null;
-let fakeAgentPipelinePromise: Promise<typeof import('@/utils/agent/fakeAgentPipeline')> | null = null;
 
 type GeneralImageRequestFile = {
   name: string;
@@ -92,14 +92,6 @@ async function loadAgentPipeline() {
   }
 
   return agentPipelinePromise;
-}
-
-async function loadFakeAgentPipeline() {
-  if (!fakeAgentPipelinePromise) {
-    fakeAgentPipelinePromise = import('@/utils/agent/fakeAgentPipeline');
-  }
-
-  return fakeAgentPipelinePromise;
 }
 
 // Timing constants
@@ -187,6 +179,62 @@ const streamExpert: StreamExpertFn = createStreamExpert({
   qualityGuardrail: QUALITY_GUARDRAIL,
 });
 
+function progressFields(progress: ResponseProgress) {
+  return {
+    responseState: progress.state,
+    progressLabel: progress.label,
+    progressDetail: progress.detail,
+  };
+}
+
+function createStreamingMessage({
+  id,
+  expertId,
+  content = '',
+  progress = getDefaultProgress('analyzing'),
+  ...rest
+}: Pick<DiscussionMessage, 'id' | 'expertId'> & Partial<DiscussionMessage> & { progress?: ResponseProgress }): DiscussionMessage {
+  return {
+    id,
+    expertId,
+    content,
+    isStreaming: true,
+    ...progressFields(progress),
+    ...rest,
+  };
+}
+
+function buildMultiResponsePlan(question: string, expertCount: number) {
+  const normalized = question.trim();
+  const isDeepPrompt = /비교|차이|전망|원인|영향|전략|분석|추천|어떻게|왜|장단점|리스크|시장|가격|유가|금리|환율/.test(normalized);
+  const isLongPrompt = normalized.length >= 90;
+
+  let maxTokens = 1200;
+  if (expertCount <= 2) {
+    maxTokens = isDeepPrompt || isLongPrompt ? 1700 : 1400;
+  } else if (expertCount === 3) {
+    maxTokens = isDeepPrompt || isLongPrompt ? 1450 : 1200;
+  } else {
+    maxTokens = isDeepPrompt || isLongPrompt ? 1200 : 1000;
+  }
+
+  return {
+    maxTokens,
+    prompt: [
+      '',
+      '',
+      '다중 관점 모드입니다.',
+      '1. 첫 문장에서 당신의 핵심 판단을 먼저 말하세요.',
+      '2. 왜 그렇게 보는지 근거와 맥락을 충분히 설명하세요.',
+      '3. 다른 AI와 겹치지 않도록 당신만의 관점이나 기준을 분명히 드러내세요.',
+      '4. 핵심만 축약하지 말고, 필요한 경우 짧은 소제목이나 bullet로 구조화하세요.',
+      expertCount <= 2
+        ? '5. 너무 짧게 끝내지 말고 최소 2개 이상 핵심 포인트를 설명하세요.'
+        : '5. 다른 참여자와 겹치지 않도록 당신의 전문 관점을 중심으로 2개 이상 포인트를 설명하세요.',
+    ].join('\n'),
+  };
+}
+
 const Index = () => {
   const { user } = useAuth();
   const { experts, setExperts, selectedExpertIds, setSelectedExpertIds } = usePersistedExpertState();
@@ -230,6 +278,14 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingFilesRef = useRef<AttachedFile[]>([]);
+
+  const updateMessageProgress = useCallback((messageId: string, progress: ResponseProgress) => {
+    setMessages((prev) => prev.map((message) => (
+      message.id === messageId
+        ? { ...message, ...progressFields(progress) }
+        : message
+    )));
+  }, []);
 
   const { runAssistant } = useAssistantRun({
     streamExpert,
@@ -349,7 +405,14 @@ const Index = () => {
     }]);
 
     const replyId = `rebuttal-reply-${Date.now()}`;
-    setMessages((prev) => [...prev, { id: replyId, expertId: expert.id, content: '', isStreaming: true }]);
+    setMessages((prev) => [...prev, createStreamingMessage({
+      id: replyId,
+      expertId: expert.id,
+      progress: getDefaultProgress('analyzing', {
+        label: '반박 내용을 검토하고 답변을 준비하고 있어요.',
+        detail: '이전 주장과 새 반박을 함께 비교하고 있습니다.',
+      }),
+    })]);
 
     const allResponses = messages.
     filter((m) => m.expertId !== '__round__' && m.expertId !== '__user__' && m.content).
@@ -367,14 +430,15 @@ const Index = () => {
         question: currentQuestion,
         expert: await buildExpertWithPrompt(expert, '\n\n사용자가 당신의 의견에 반박했습니다. 사용자의 반박에 대해 정중하지만 논리적으로 응답해주세요. 동의할 부분은 인정하고, 반대할 부분은 근거를 들어 설명해주세요. 2문단 이내로 답변해주세요.'),
         previousResponses: allResponses, round: 'rebuttal',
+        onProgress: (progress) => updateMessageProgress(replyId, progress),
         onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, content: fullContent } : m));},
-        onDone: () => {setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, isStreaming: false } : m));},
+        onDone: () => {setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, isStreaming: false, responseState: 'complete' } : m));},
         signal: controller.signal
       });
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-        setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, content: fullContent, isStreaming: false } : m));
+        setMessages((prev) => prev.map((m) => m.id === replyId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
       }
     }
     setActiveExpertId(undefined);
@@ -1101,7 +1165,15 @@ ${difficultyDesc}
 - 한국어로만 답해.`;
 
         const provMsgId = `avsu-provocation-${Date.now()}`;
-        setMessages(prev => [...prev, { id: provMsgId, expertId: firstAi.id, content: '', isStreaming: true, timestamp: Date.now() }]);
+        setMessages(prev => [...prev, createStreamingMessage({
+          id: provMsgId,
+          expertId: firstAi.id,
+          timestamp: Date.now(),
+          progress: getDefaultProgress('analyzing', {
+            label: '첫 도발 문장을 빠르게 만들고 있어요.',
+            detail: '주제 핵심을 건드리는 짧은 반응을 고르고 있습니다.',
+          }),
+        })]);
         setActiveExpertId(firstAi.id);
 
         let provContent = '';
@@ -1111,12 +1183,15 @@ ${difficultyDesc}
             expert: { ...firstAi, systemPrompt: provocationPrompt },
             previousResponses: [],
             round: 'initial' as DiscussionRound,
+            onProgress: (progress) => updateMessageProgress(provMsgId, progress),
             onDelta: chunk => { provContent += chunk; setMessages(prev => prev.map(m => m.id === provMsgId ? { ...m, content: provContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === provMsgId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === provMsgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
             signal: controller.signal,
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') { setIsDiscussing(false); return; }
+          provContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
+          setMessages(prev => prev.map(m => m.id === provMsgId ? { ...m, content: provContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
         }
 
         setIsDiscussing(false);
@@ -1150,7 +1225,16 @@ ${difficultyDesc}
 
         if (ri > 0) await new Promise(r => setTimeout(r, 200));
         const aiMsgId = `avsu-opening-ai-${ri}-${Date.now()}`;
-        setMessages(prev => [...prev, { id: aiMsgId, expertId: aiExpert.id, content: '', isStreaming: true, simRoleName: aiExpert.nameKo, timestamp: Date.now() }]);
+        setMessages(prev => [...prev, createStreamingMessage({
+          id: aiMsgId,
+          expertId: aiExpert.id,
+          simRoleName: aiExpert.nameKo,
+          timestamp: Date.now(),
+          progress: getDefaultProgress('analyzing', {
+            label: '첫 반론 포인트를 정리하고 있어요.',
+            detail: '유저 주장에 바로 대응할 핵심 논점을 고르고 있습니다.',
+          }),
+        })]);
         setActiveExpertId(aiExpert.id);
 
         let aiContent = '';
@@ -1160,8 +1244,9 @@ ${difficultyDesc}
             expert: { ...aiExpert, systemPrompt: aiPrompt },
             previousResponses: convHistory.map(m => ({ name: m.speaker, content: m.content })),
             round: 'initial' as DiscussionRound,
+            onProgress: (progress) => updateMessageProgress(aiMsgId, progress),
             onDelta: chunk => { aiContent += chunk; setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: aiContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
             signal: controller.signal,
             files: filesToSend,
           });
@@ -1185,15 +1270,16 @@ ${difficultyDesc}
       if (expert) {
         setActiveExpertId(expert.id);
         const msgId = `${expert.id}-expert-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+        setMessages((prev) => [...prev, createStreamingMessage({ id: msgId, expertId: expert.id })]);
         let fullContent = '';
         const expertExtra = `\n\n=== 전문가 상담 모드 ===\n당신은 해당 분야의 최고 전문가입니다. 사용자의 질문에 대해 깊이 있고 실용적인 전문 상담을 제공하세요.\n- 전문 용어를 사용하되 쉽게 설명해주세요\n- 구체적인 사례, 수치, 근거를 포함하세요\n- 단계별 실행 방안이 있다면 제시하세요\n- 주의사항이나 리스크도 언급하세요\n마크다운 형식으로 구조화하여 답변하세요.`;
         try {
           await streamExpert({
             question, expert: await buildExpertWithPrompt(expert, expertExtra),
             previousResponses: [], round: 'initial',
+            onProgress: (progress) => updateMessageProgress(msgId, progress),
             onDelta: (chunk) => { fullContent += chunk; setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => { setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => { setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
             signal: controller.signal,
             files: filesToSend,
           });
@@ -1346,7 +1432,7 @@ ${difficultyDesc}
 
         const autoConfig = AUTO_AGENT_CONFIG[expert.id];
 
-        if (autoConfig && (autoConfig.enableAgent || autoConfig.fakeAgent)) {
+        if (autoConfig && autoConfig.enableAgent) {
           const autoRunResult = await runAutoAgentTurn({
             expert,
             question,
@@ -1358,7 +1444,6 @@ ${difficultyDesc}
             streamExpert,
             loadQuestionClassifier,
             loadAgentPipeline,
-            loadFakeAgentPipeline,
             safetyGuardrail: SAFETY_GUARDRAIL,
             qualityGuardrail: QUALITY_GUARDRAIL,
           });
@@ -1370,10 +1455,10 @@ ${difficultyDesc}
           // ── 기존 일반 모델 + Perplexity AUTO (에이전트 없이 단일 호출) ──
           const msgId = `${expert.id}-general-${Date.now()}`;
           // Perplexity AUTO는 config에 agentModel이 있으면 그걸로, 없으면 기본 openrouterModel
-          const baseEffectiveExpert = autoConfig && !autoConfig.enableAgent && !autoConfig.fakeAgent
-            ? { ...expert, openrouterModel: autoConfig.agentModel }
+          const baseEffectiveExpert = autoConfig && !autoConfig.enableAgent
+            ? { ...expert, openrouterModel: autoConfig.directModel }
             : expert;
-          const effectiveExpert = isAiAgentId(expert.id)
+          const effectiveExpert = isManagedAutoAgent(expert.id)
             ? await buildExpertWithPrompt(
                 baseEffectiveExpert,
                 buildAgentResponsePrompt({
@@ -1383,14 +1468,15 @@ ${difficultyDesc}
                 }),
               )
             : baseEffectiveExpert;
-          setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+          setMessages((prev) => [...prev, createStreamingMessage({ id: msgId, expertId: expert.id })]);
           let fullContent = '';
           try {
             await streamExpert({
               question, expert: effectiveExpert,
               previousResponses: [], round: 'initial',
+              onProgress: (progress) => updateMessageProgress(msgId, progress),
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
+              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m));},
               signal: controller.signal,
               files: filesToSend,
               onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
@@ -1398,7 +1484,7 @@ ${difficultyDesc}
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
             fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
           }
         }
         await new Promise((r) => setTimeout(r, DELAY_BETWEEN_EXPERTS));
@@ -1449,21 +1535,40 @@ ${difficultyDesc}
       // 검색 1회 실행 후 결과 공유
       const multiSearchCtx = await fetchSearchContext(question);
 
-      setMessages((prev) => [...prev, { id: `round-sep-multi-${Date.now()}`, expertId: '__round__', content: '다중 AI 의견 수집', round: 'initial' }]);
       const shuffled = [...discussionExperts].sort(() => Math.random() - 0.5);
+      const multiPlan = buildMultiResponsePlan(question, shuffled.length);
+      const multiMessageIds = new Map<string, string>(
+        shuffled.map((expert, index) => [expert.id, `${expert.id}-conclusion-${Date.now()}-${index}`]),
+      );
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `round-sep-multi-${Date.now()}`, expertId: '__round__', content: '다중 AI 의견 수집', round: 'initial' },
+        ...shuffled.map((expert) => createStreamingMessage({
+          id: multiMessageIds.get(expert.id)!,
+          expertId: expert.id,
+          round: 'initial',
+          progress: getDefaultProgress('queued', {
+            label: '질문을 각 AI 관점으로 배분하고 있어요.',
+            detail: '곧 모든 AI가 동시에 자신의 관점에서 답변을 시작합니다.',
+          }),
+        })),
+      ]);
+
       for (const expert of shuffled) {
         if (shouldStop()) break;
         setActiveExpertId(expert.id);
-        const msgId = `${expert.id}-conclusion-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round: 'initial' }]);
+        const msgId = multiMessageIds.get(expert.id) ?? `${expert.id}-conclusion-${Date.now()}`;
         let fullContent = '';
         try {
           await streamExpert({
             question,
-            expert: await buildExpertWithPrompt(expert, '\n\n빠른 토론 모드입니다. 핵심만 1문단(3-4문장)으로 간결하게 답변해주세요.'),
+            expert: await buildExpertWithPrompt(expert, multiPlan.prompt),
             previousResponses: [], round: 'initial',
+            maxTokens: multiPlan.maxTokens,
+            onProgress: (progress) => updateMessageProgress(msgId, progress),
             onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-            onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
+            onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m));},
             signal: controller.signal,
             files: filesToSend,
             preSearchContext: multiSearchCtx,
@@ -1472,13 +1577,70 @@ ${difficultyDesc}
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
           fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-          setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+          setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
         }
         allResponses.push({ name: expert.nameKo, content: fullContent });
         await new Promise((r) => setTimeout(r, DELAY_BETWEEN_EXPERTS));
       }
 
-      // 결론은 자동으로 내지 않음 — 사용자가 "결론 내리기" 버튼을 눌러야 생성
+      if (!shouldStop() && allResponses.length >= 2) {
+        const summaryId = `multi-summary-${Date.now()}`;
+        setMessages((prev) => [...prev, createStreamingMessage({
+          id: summaryId,
+          expertId: SUMMARIZER_EXPERT.id,
+          isSummary: true,
+          progress: getDefaultProgress('finalizing', {
+            label: '다중 AI 의견을 한 번에 정리하고 있어요.',
+            detail: '공통점, 차이점, 추천 결론을 짧게 묶고 있습니다.',
+          }),
+        })]);
+
+        let summaryContent = '';
+        try {
+          const summaryPrompt = `당신은 여러 AI의 답변을 정리하는 큐레이터입니다.
+질문: ${question}
+
+각 AI 답변:
+${allResponses.map((response) => `- ${response.name}: ${response.content}`).join('\n')}
+
+다음 형식으로 한국어 요약을 작성하세요.
+## 한눈에 보기
+- 공통 판단
+- 갈리는 포인트
+
+## AI별 핵심 차이
+- 각 AI의 고유한 관점 1줄씩
+
+## 추천 결론
+- 사용자가 바로 판단할 수 있는 결론`;
+
+          await streamExpert({
+            question: summaryPrompt,
+            expert: {
+              ...SUMMARIZER_EXPERT,
+              systemPrompt: '당신은 여러 AI의 차이와 공통점을 구조화해 정리하는 큐레이터입니다. 짧지 않게, 읽기 쉽게 정리하세요.',
+            },
+            previousResponses: [],
+            round: 'summary',
+            maxTokens: 1600,
+            onProgress: (progress) => updateMessageProgress(summaryId, progress),
+            onDelta: (chunk) => {
+              summaryContent += chunk;
+              setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent } : m));
+            },
+            onDone: () => {
+              setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, isStreaming: false, responseState: 'complete' } : m));
+            },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            summaryContent = `⚠️ ${err instanceof Error ? err.message : '요약을 받아오지 못했어요.'}`;
+            setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
+          }
+        }
+      }
+
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       setStopRequested(false);
@@ -1513,12 +1675,13 @@ ${difficultyDesc}
           if (shouldStop()) break;
           setActiveExpertId(expert.id);
           const msgId = `${expert.id}-${round}-${Date.now()}`;
-          setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
+          setMessages((prev) => [...prev, createStreamingMessage({ id: msgId, expertId: expert.id, round })]);
           let fullContent = '';
           try {
             await streamExpert({ question, expert: await buildExpertWithPrompt(expert, issueContext + lengthExtra), previousResponses: allResponses, round,
+              onProgress: (progress) => updateMessageProgress(msgId, progress),
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
+              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m));},
               signal: controller.signal,
               files: filesToSend,
               preSearchContext: standardSearchCtx,
@@ -1527,7 +1690,7 @@ ${difficultyDesc}
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
             fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${label})`, content: fullContent });
           await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
@@ -1637,12 +1800,13 @@ ${sideLabel === '찬성' ? '이 명제에 "찬성(동의)"하는 입장에서만
 - 상대 논리의 허점을 공격하고, 자기 입장의 근거를 강화하세요.` :
           `\n\n최종 라운드입니다. 당신은 "${sideLabel}" 측이었습니다. 자신의 핵심 주장을 요약하고 최종 입장을 정리하세요. 입장 변경은 불필요합니다.`) + proconSettingsExtra + lengthExtra;
           const msgId = `${expert.id}-${round}-${side}-${Date.now()}`;
-          setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
+          setMessages((prev) => [...prev, createStreamingMessage({ id: msgId, expertId: expert.id, round })]);
           let fullContent = '';
           try {
             await streamExpert({ question, expert: await buildExpertWithPrompt(expert, extra), previousResponses: allResponses, round,
+              onProgress: (progress) => updateMessageProgress(msgId, progress),
               onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
-              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));},
+              onDone: () => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m));},
               signal: controller.signal,
               files: filesToSend,
               preSearchContext: proconSearchCtx,
@@ -1651,7 +1815,7 @@ ${sideLabel === '찬성' ? '이 명제에 "찬성(동의)"하는 입장에서만
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
             fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+            setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${sideLabel}, ${label})`, content: fullContent });
           await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
@@ -1830,7 +1994,16 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           // 프로그레스 제거 + 결과 메시지 추가
           setMessages((prev) => [
             ...prev.filter(m => m.id !== progressId),
-            { id: curatorId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true, round: fw.id as DiscussionRound }
+            createStreamingMessage({
+              id: curatorId,
+              expertId: SUMMARIZER_EXPERT.id,
+              isSummary: true,
+              round: fw.id as DiscussionRound,
+              progress: getDefaultProgress('finalizing', {
+                label: '아이디어를 하나의 결과로 정리하고 있어요.',
+                detail: '프레임워크별 인사이트를 묶어 최종 구조를 만들고 있습니다.',
+              }),
+            }),
           ]);
 
           let curatorContent = '';
@@ -1838,12 +2011,13 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
             await streamExpert({
               question, expert: { ...SUMMARIZER_EXPERT, systemPrompt: curatorPrompts[fw.id] || curatorPrompts.free },
               previousResponses: allResponses, round: 'summary',
+              onProgress: (progress) => updateMessageProgress(curatorId, progress),
               onDelta: (chunk) => { curatorContent += chunk; setMessages((prev) => prev.map(m => m.id === curatorId ? { ...m, content: curatorContent } : m)); },
-              onDone: () => { setMessages((prev) => prev.map(m => m.id === curatorId ? { ...m, isStreaming: false } : m)); },
+              onDone: () => { setMessages((prev) => prev.map(m => m.id === curatorId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
               signal: controller.signal });
           } catch (err) {
             if ((err as Error).name !== 'AbortError') {
-              setMessages((prev) => prev.map(m => m.id === curatorId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false } : m));
+              setMessages((prev) => prev.map(m => m.id === curatorId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
             }
           }
         } else {
@@ -1876,10 +2050,11 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
               `\n현재 단계 (${ri + 1}/${fwRounds.length}): ${fwRound.label}` +
               `\n지시사항: ${fwRound.instruction}` + bsSettingsExtra;
             const msgId = `${expert.id}-brainstorm-${ri}-${Date.now()}`;
-            setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round }]);
+            setMessages((prev) => [...prev, createStreamingMessage({ id: msgId, expertId: expert.id, round })]);
             let fullContent = '';
             try {
               await streamExpert({ question, expert: await buildExpertWithPrompt(expert, extra + lengthExtra), previousResponses: allResponses, round,
+                onProgress: (progress) => updateMessageProgress(msgId, progress),
                 onDelta: (chunk) => {fullContent += chunk;setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent } : m));},
                 onDone: () => {
                   const ideas = fullContent.split('---IDEA---').map(s => s.replace(/---END---/g, '').trim()).filter(s => s.length > 0);
@@ -1890,7 +2065,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
                       return [...without, ...ideaMsgs];
                     });
                   } else {
-                    setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false } : m));
+                    setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m));
                   }
                 },
                 signal: controller.signal,
@@ -1900,7 +2075,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
             } catch (err) {
               if ((err as Error).name === 'AbortError') break;
               fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-              setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+              setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
             }
             allResponses.push({ name: `${expert.nameKo} (${fwRound.label})`, content: fullContent });
             await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ROUNDS));
@@ -1959,15 +2134,24 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           setActiveExpertId(expert.id);
           const instruction = phase.instruction.replace('{expertName}', expert.nameKo);
           const msgId = `${expert.id}-hearing-${phase.label}-${Date.now()}`;
-          setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, round: phase.round }]);
+          setMessages(prev => [...prev, createStreamingMessage({
+            id: msgId,
+            expertId: expert.id,
+            round: phase.round,
+            progress: getDefaultProgress('analyzing', {
+              label: `${phase.label} 준비 중`,
+              detail: '이 단계에서 물어볼 핵심 논점과 판단 기준을 정리하고 있습니다.',
+            }),
+          })]);
           let fullContent = '';
           try {
             await streamExpert({
               question,
               expert: await buildExpertWithPrompt(expert, '\n\n' + instruction + lengthExtra),
               previousResponses: allResponses, round: phase.round,
+              onProgress: (progress) => updateMessageProgress(msgId, progress),
               onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
-              onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+              onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
               signal: controller.signal,
               files: filesToSend,
               preSearchContext: hearingSearchCtx,
@@ -1976,7 +2160,7 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
           } catch (err) {
             if ((err as Error).name === 'AbortError') break;
             fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false } : m));
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
           }
           allResponses.push({ name: `${expert.nameKo} (${phase.label})`, content: fullContent });
           await new Promise(r => setTimeout(r, DELAY_BETWEEN_ROUNDS));
@@ -2062,7 +2246,14 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
           if (shouldStop() || msgCount >= maxMessages) break;
 
           const msgId = `${expert.id}-freetalk-${Date.now()}-${msgCount}`;
-          setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
+          setMessages(prev => [...prev, createStreamingMessage({
+            id: msgId,
+            expertId: expert.id,
+            progress: getDefaultProgress('analyzing', {
+              label: '자유 토론 발언을 준비하고 있어요.',
+              detail: '직전 대화를 보고 이번 턴의 핵심 포인트를 고르고 있습니다.',
+            }),
+          })]);
           setActiveExpertId(expert.id);
 
           let fullContent = '';
@@ -2083,12 +2274,13 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
               expert: { ...expert, systemPrompt: await buildFreetalkPrompt(expert) },
               previousResponses: prevAll,
               round: 'initial',
+              onProgress: (progress) => updateMessageProgress(msgId, progress),
               onDelta: chunk => {
                 fullContent += chunk;
                 setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m));
               },
               onDone: () => {
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m));
               },
               signal: controller.signal,
               files: filesToSend,
@@ -2113,7 +2305,15 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
       if (!shouldStop() && allResponses.length > 0) {
         setActiveExpertId(SUMMARIZER_EXPERT.id);
         const summaryId = `summary-freetalk-${Date.now()}`;
-        setMessages(prev => [...prev, { id: summaryId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+        setMessages(prev => [...prev, createStreamingMessage({
+          id: summaryId,
+          expertId: SUMMARIZER_EXPERT.id,
+          isSummary: true,
+          progress: getDefaultProgress('finalizing', {
+            label: '자유 토론을 한눈에 정리하고 있어요.',
+            detail: '핵심 결론과 주요 쟁점을 다시 묶고 있습니다.',
+          }),
+        })]);
         let summaryContent = '';
         try {
           await streamExpert({
@@ -2138,14 +2338,15 @@ Rules:
 - 한국어. 간결하게.` },
             previousResponses: allResponses,
             round: 'summary',
+            onProgress: (progress) => updateMessageProgress(summaryId, progress),
             onDelta: chunk => { summaryContent += chunk; setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
             signal: controller.signal,
           });
         } catch (err) {
           if ((err as Error).name !== 'AbortError') {
             summaryContent = `⚠️ ${err instanceof Error ? err.message : '요약 생성 실패'}`;
-            setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false } : m));
+            setMessages(prev => prev.map(m => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
           }
         }
       }
@@ -2247,14 +2448,23 @@ Rules:
       if (firstExpert) {
 
         const introMsgId = `${firstExpert.id}-intro-${Date.now()}`;
-        setMessages(prev => [...prev, { id: introMsgId, expertId: firstExpert.id, content: '', isStreaming: true, simRoleName: firstRole.name, simRoleIcon: firstRole.icon }]);
+        setMessages(prev => [...prev, createStreamingMessage({
+          id: introMsgId,
+          expertId: firstExpert.id,
+          simRoleName: firstRole.name,
+          simRoleIcon: firstRole.icon,
+          progress: getDefaultProgress('analyzing', {
+            label: '첫 질문을 자연스럽게 준비하고 있어요.',
+            detail: '상황 설정과 제공된 정보를 보고 첫 턴의 방향을 잡고 있습니다.',
+          }),
+        })]);
         setActiveExpertId(firstExpert.id);
 
         const fixedText = (infoLevel === 'none') ? fixedOpenings[scenario.id] : undefined;
 
         if (fixedText) {
           // Use fixed opening text for a snappy start
-          setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fixedText, isStreaming: false } : m));
+          setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fixedText, isStreaming: false, responseState: 'complete' } : m));
         } else {
           const intensityDesc = shSettings.intensity <= 3 ? '건설적이고 우호적으로' : shSettings.intensity <= 6 ? '균형 잡힌 톤으로' : '날카롭고 도전적으로';
 
@@ -2279,11 +2489,15 @@ ${infoInstruction}
               expert: { ...firstExpert, systemPrompt: openingPrompt },
               previousResponses: [],
               round: 'initial' as any,
+              onProgress: (progress) => updateMessageProgress(introMsgId, progress),
               onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fullContent } : m)); },
-              onDone: () => { setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isStreaming: false } : m)); },
+              onDone: () => { setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
               signal: controller.signal,
             });
-          } catch { /* ignore */ }
+          } catch (err) {
+            fullContent = `⚠️ ${err instanceof Error ? err.message : '시뮬레이션 시작 응답을 받아오지 못했어요.'}`;
+            setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
+          }
         }
       }
 
@@ -2343,7 +2557,15 @@ ${infoInstruction}
       // Summary
       setActiveExpertId(SUMMARIZER_EXPERT.id);
       const summaryId = `summary-${Date.now()}`;
-      setMessages((prev) => [...prev, { id: summaryId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+      setMessages((prev) => [...prev, createStreamingMessage({
+        id: summaryId,
+        expertId: SUMMARIZER_EXPERT.id,
+        isSummary: true,
+        progress: getDefaultProgress('finalizing', {
+          label: '토론 전체를 하나의 답으로 정리하고 있어요.',
+          detail: '공통점과 차이를 묶어 마지막 결론을 만들고 있습니다.',
+        }),
+      })]);
       let summaryContent = '';
       try {
         await streamExpert({
@@ -2370,13 +2592,14 @@ Rules:
 - 각 논점은 2-3문장 이내. 간결하게.
 - 한국어로 작성.` },
           previousResponses: allResponses, round: 'summary',
+          onProgress: (progress) => updateMessageProgress(summaryId, progress),
           onDelta: (chunk) => {summaryContent += chunk;setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent } : m));},
-          onDone: () => {setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, isStreaming: false } : m));},
+          onDone: () => {setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, isStreaming: false, responseState: 'complete' } : m));},
           signal: controller.signal });
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           summaryContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
-          setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false } : m));
+          setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
         }
       }
 
@@ -2539,7 +2762,7 @@ Rules:
     const mainMode = getMainMode(discussionMode);
     // Keep general mode aligned with DiscussionMessage's `general-card` variant.
     // If this is changed back to `messenger`, the single-AI card design appears to "roll back".
-    if (mainMode === 'general') return isAiAgentId(msg.expertId) ? 'agent-card' : 'general-card';
+    if (mainMode === 'general') return isManagedAutoAgent(msg.expertId) ? 'agent-card' : 'general-card';
     if (discussionMode === 'brainstorm') return 'postit';
     if (discussionMode === 'hearing') return 'hearing';
     if (discussionMode === 'expert') return 'report';
@@ -2694,7 +2917,15 @@ ${conversationText}`;
 
     setActiveExpertId(CONCLUSION_EXPERT.id);
     const conclusionId = `conclusion-ondemand-${Date.now()}`;
-    setMessages(prev => [...prev, { id: conclusionId, expertId: CONCLUSION_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+    setMessages(prev => [...prev, createStreamingMessage({
+      id: conclusionId,
+      expertId: CONCLUSION_EXPERT.id,
+      isSummary: true,
+      progress: getDefaultProgress('finalizing', {
+        label: '여러 의견을 하나의 결론으로 묶고 있어요.',
+        detail: '중복을 덜고 바로 쓸 수 있는 결론으로 정리합니다.',
+      }),
+    })]);
     let conclusionContent = '';
     try {
       await streamExpert({
@@ -2717,13 +2948,14 @@ ${conversationText}`;
 
 전문가 이름을 언급하지 말고, 모든 관점을 통합한 하나의 답변을 작성하세요.` },
         previousResponses: allResponses, round: 'summary',
+        onProgress: (progress) => updateMessageProgress(conclusionId, progress),
         onDelta: chunk => { conclusionContent += chunk; setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: conclusionContent } : m)); },
-        onDone: () => { setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, isStreaming: false } : m)); },
+        onDone: () => { setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
         signal: controller.signal,
       });
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: `⚠️ 결론 생성 실패`, isStreaming: false } : m));
+        setMessages(prev => prev.map(m => m.id === conclusionId ? { ...m, content: `⚠️ 결론 생성 실패`, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
       }
     }
     setActiveExpertId(undefined);
@@ -2898,20 +3130,21 @@ ${conversationText}`;
         isDirectFollowUp: true,
         attachedFiles: followUpFilesBadges,
       },
-      { id: msgId, expertId, content: '', isStreaming: true, isDirectFollowUp: true }
+      createStreamingMessage({ id: msgId, expertId, isDirectFollowUp: true })
     ]);
     let fullContent = '';
     try {
       await streamExpert({ question: followUpQ, expert: await buildExpertWithPrompt(expert, '\n\n이전에 이 주제에 대해 답변한 적이 있습니다. 사용자의 추가 질문에 이전 답변을 바탕으로 더 깊이 답변해주세요.'),
         previousResponses: prevResponses, round: 'initial',
+        onProgress: (progress) => updateMessageProgress(msgId, progress),
         onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
-        onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+        onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
         signal: controller.signal,
         files: followUpFilesToSend,
       });
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false } : m));
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
       }
     }
     setActiveExpertId(undefined);
@@ -2982,12 +3215,12 @@ ${conversationText}`;
       const userMsgId = `user-${Date.now()}`;
       setMessages(prev => [...prev,
         { id: userMsgId, expertId: '__user__', content: question, attachedFiles: followUpFilesBadges },
-        { id: replyId, expertId: expert.id, content: '', isStreaming: true }
+        createStreamingMessage({ id: replyId, expertId: expert.id })
       ]);
 
       let fullContent = '';
       try {
-        const followUpExpert = isAiAgentId(expert.id)
+      const followUpExpert = isManagedAutoAgent(expert.id)
           ? await buildExpertWithPrompt(
               expert,
               `${buildAgentResponsePrompt({
@@ -3001,14 +3234,15 @@ ${conversationText}`;
         await streamExpert({
           question, expert: followUpExpert,
           previousResponses: prevResponses, round: 'initial',
+          onProgress: (progress) => updateMessageProgress(replyId, progress),
           onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: fullContent } : m)); },
-          onDone: () => { setMessages(prev => prev.map(m => m.id === replyId ? { ...m, isStreaming: false } : m)); },
+          onDone: () => { setMessages(prev => prev.map(m => m.id === replyId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
           signal: controller.signal,
           files: followUpFilesToSend,
         });
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
-          setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false } : m));
+          setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: `⚠️ ${(err as Error).message}`, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
         }
       }
       setActiveExpertId(undefined);
@@ -3154,7 +3388,16 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
 
         if (ri > 0) await new Promise(r => setTimeout(r, 200));
         const aiMsgId = `avsu-ai-${ri}-${Date.now()}`;
-        setMessages(prev => [...prev, { id: aiMsgId, expertId: aiExpert.id, content: '', isStreaming: true, simRoleName: aiExpert.nameKo, timestamp: Date.now() }]);
+        setMessages(prev => [...prev, createStreamingMessage({
+          id: aiMsgId,
+          expertId: aiExpert.id,
+          simRoleName: aiExpert.nameKo,
+          timestamp: Date.now(),
+          progress: getDefaultProgress('analyzing', {
+            label: '유저 주장에 대한 반론을 정리하고 있어요.',
+            detail: '직전 대화의 허점과 새 논점을 함께 보고 있습니다.',
+          }),
+        })]);
         setActiveExpertId(aiExpert.id);
 
         let aiContent = '';
@@ -3164,13 +3407,16 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
             expert: { ...aiExpert, systemPrompt: aiPrompt },
             previousResponses: convHistory.slice(-8).map(m => ({ name: m.speaker, content: m.content })),
             round: 'initial' as any,
+            onProgress: (progress) => updateMessageProgress(aiMsgId, progress),
             onDelta: chunk => { aiContent += chunk; setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: aiContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
             signal: controller.signal,
             files: followUpFilesToSend,
           });
         } catch (err) {
           if ((err as Error).name === 'AbortError') { setIsDiscussing(false); return; }
+          aiContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
+          setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: aiContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
         }
       }
 
@@ -3278,7 +3524,16 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
           if (!expert || controller.signal.aborted) continue;
 
           const msgId = `${expert.id}-final-${Date.now()}`;
-          setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, simRoleName: role.name, simRoleIcon: role.icon }]);
+          setMessages(prev => [...prev, createStreamingMessage({
+            id: msgId,
+            expertId: expert.id,
+            simRoleName: role.name,
+            simRoleIcon: role.icon,
+            progress: getDefaultProgress('finalizing', {
+              label: '최종 판정을 정리하고 있어요.',
+              detail: '전체 대화를 바탕으로 역할별 결론을 정리합니다.',
+            }),
+          })]);
           setActiveExpertId(expert.id);
 
           const finalPrompt = `당신은 "${scenario.name}" 시뮬레이션에서 "${role.name}" 역할입니다.
@@ -3303,8 +3558,9 @@ ${simContext ? `\n${simContext}` : ''}
               expert: { ...expert, systemPrompt: finalPrompt },
               previousResponses: allResponses,
               round: 'final' as any,
+              onProgress: (progress) => updateMessageProgress(msgId, progress),
               onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
-              onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+              onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
               signal: controller.signal,
             });
           } catch { /* ignore */ }
@@ -3340,7 +3596,15 @@ ${simContext ? `\n${simContext}` : ''}
         // Generate auto report if enabled
         if (!controller.signal.aborted) {
           const reportMsgId = `sim-report-${Date.now()}`;
-          setMessages(prev => [...prev, { id: reportMsgId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+          setMessages(prev => [...prev, createStreamingMessage({
+            id: reportMsgId,
+            expertId: SUMMARIZER_EXPERT.id,
+            isSummary: true,
+            progress: getDefaultProgress('finalizing', {
+              label: '시뮬레이션 리포트를 작성하고 있어요.',
+              detail: '대화 흐름과 판정을 종합해 보고서 형태로 정리합니다.',
+            }),
+          })]);
           setActiveExpertId(SUMMARIZER_EXPERT.id);
 
           const reportPrompt = `당신은 시뮬레이션 분석가입니다. 전체 대화를 분석하여 종합 리포트를 작성하세요.
@@ -3381,11 +3645,15 @@ ${simContext ? `\n${simContext}` : ''}
               expert: { ...SUMMARIZER_EXPERT, systemPrompt: reportPrompt },
               previousResponses: allResponses,
               round: 'summary' as any,
+              onProgress: (progress) => updateMessageProgress(reportMsgId, progress),
               onDelta: chunk => { reportContent += chunk; setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, content: reportContent } : m)); },
-              onDone: () => { setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, isStreaming: false } : m)); },
+              onDone: () => { setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
               signal: controller.signal,
             });
-          } catch { /* ignore */ }
+          } catch (err) {
+            reportContent = `⚠️ ${err instanceof Error ? err.message : '리포트를 받아오지 못했어요.'}`;
+            setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, content: reportContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
+          }
         }
 
         setIsDiscussing(false);
@@ -3716,7 +3984,16 @@ ${direction}`;
       const expert1 = getExpertForRole(speaker1RoleName);
       if (speaker1Role && expert1 && !controller.signal.aborted) {
         const msgId = `${expert1.id}-sim-${Date.now()}`;
-        setMessages(prev => [...prev, { id: msgId, expertId: expert1.id, content: '', isStreaming: true, simRoleName: speaker1Role.name, simRoleIcon: speaker1Role.icon }]);
+        setMessages(prev => [...prev, createStreamingMessage({
+          id: msgId,
+          expertId: expert1.id,
+          simRoleName: speaker1Role.name,
+          simRoleIcon: speaker1Role.icon,
+          progress: getDefaultProgress('analyzing', {
+            label: '상담 흐름에 맞는 반응을 준비하고 있어요.',
+            detail: '유저 답변과 역할 목표를 함께 보고 다음 질문을 정리합니다.',
+          }),
+        })]);
         setActiveExpertId(expert1.id);
 
         const allResponses = conversationHistory.map(m => ({ name: m.speaker, content: m.content }));
@@ -3727,8 +4004,9 @@ ${direction}`;
             expert: { ...expert1, systemPrompt: buildRolePrompt(speaker1Role, orchestration.speak_direction) },
             previousResponses: allResponses,
             round: 'initial' as any,
+            onProgress: (progress) => updateMessageProgress(msgId, progress),
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
             signal: controller.signal,
             files: followUpFilesToSend,
           });
@@ -3755,7 +4033,16 @@ ${direction}`;
             // Next expert introduces themselves
             const transitionMsgId = `transition-${Date.now()}`;
             const gemini = experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0];
-            setMessages(prev => [...prev, { id: transitionMsgId, expertId: gemini.id, content: '', isStreaming: true, simRoleName: nextRole.name, simRoleIcon: nextRole.icon }]);
+            setMessages(prev => [...prev, createStreamingMessage({
+              id: transitionMsgId,
+              expertId: gemini.id,
+              simRoleName: nextRole.name,
+              simRoleIcon: nextRole.icon,
+              progress: getDefaultProgress('planning', {
+                label: '다음 상담 단계를 이어받고 있어요.',
+                detail: '이전 단계 내용을 한 줄로 정리한 뒤 새 질문을 준비합니다.',
+              }),
+            })]);
             setActiveExpertId(gemini.id);
 
             // 이전 단계 요약 (오케스트레이터가 생성)
@@ -3784,11 +4071,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 expert: { ...gemini, systemPrompt: transitionPrompt },
                 previousResponses: allResponses || conversationHistory.map((m: any) => ({ name: m.speaker, content: m.content })),
                 round: 'initial' as any,
+                onProgress: (progress) => updateMessageProgress(transitionMsgId, progress),
                 onDelta: chunk => { transContent += chunk; setMessages(prev => prev.map(m => m.id === transitionMsgId ? { ...m, content: transContent } : m)); },
-                onDone: () => { setMessages(prev => prev.map(m => m.id === transitionMsgId ? { ...m, isStreaming: false } : m)); },
+                onDone: () => { setMessages(prev => prev.map(m => m.id === transitionMsgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
                 signal: controller.signal,
               });
-            } catch { /* ignore */ }
+            } catch (err) {
+              transContent = `⚠️ ${err instanceof Error ? err.message : '다음 단계 연결에 실패했어요.'}`;
+              setMessages(prev => prev.map(m => m.id === transitionMsgId ? { ...m, content: transContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
+            }
           } else {
             // Last phase done — generate final deliverable
             setMessages(prev => [...prev, {
@@ -4040,7 +4331,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             const outputPrompt = outputPrompts[scenario.id] || '전체 상담 내용을 바탕으로 종합 리포트를 작성하세요.';
             const reportMsgId = `consult-report-${Date.now()}`;
             const gemini = experts.find(e => e.id === 'gemini') || experts.find(e => e.category === 'ai') || experts[0];
-            setMessages(prev => [...prev, { id: reportMsgId, expertId: SUMMARIZER_EXPERT.id, content: '', isStreaming: true, isSummary: true }]);
+            setMessages(prev => [...prev, createStreamingMessage({
+              id: reportMsgId,
+              expertId: SUMMARIZER_EXPERT.id,
+              isSummary: true,
+              progress: getDefaultProgress('finalizing', {
+                label: '상담 전체를 최종 결과물로 정리하고 있어요.',
+                detail: '대화에서 나온 구체적 표현과 판단을 보고서 구조로 묶고 있습니다.',
+              }),
+            })]);
             setActiveExpertId(SUMMARIZER_EXPERT.id);
 
             let reportContent = '';
@@ -4051,11 +4350,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 expert: { ...SUMMARIZER_EXPERT, systemPrompt: outputPrompt + '\n\n## 공통 규칙\n- 한국어로 작성\n- 마크다운 형식\n- 상담에서 나온 구체적 내용을 "인용부호"로 직접 인용\n- 확인되지 않은 항목은 "미확인" 또는 "추가 확인 필요"로 표기\n- 각 섹션에 상담 내용이 반영되어야 함 (빈 섹션 금지)' },
                 previousResponses: allResp,
                 round: 'summary' as any,
+                onProgress: (progress) => updateMessageProgress(reportMsgId, progress),
                 onDelta: chunk => { reportContent += chunk; setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, content: reportContent } : m)); },
-                onDone: () => { setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, isStreaming: false } : m)); },
+                onDone: () => { setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
                 signal: controller.signal,
               });
-            } catch { /* ignore */ }
+            } catch (err) {
+              reportContent = `⚠️ ${err instanceof Error ? err.message : '상담 리포트를 받아오지 못했어요.'}`;
+              setMessages(prev => prev.map(m => m.id === reportMsgId ? { ...m, content: reportContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
+            }
 
             setIsDiscussing(false);
             setActiveExpertId(undefined);
@@ -4097,11 +4400,27 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         attachedFiles: followUpFilesBadges
       }]);
 
+      const followUpMessageIds = new Map<string, string>(
+        targetExperts.map((expert, index) => [expert.id, `${expert.id}-followup-${Date.now()}-${index}`]),
+      );
+      setMessages(prev => [
+        ...prev,
+        ...targetExperts.map((expert) => createStreamingMessage({
+          id: followUpMessageIds.get(expert.id)!,
+          expertId: expert.id,
+          timestamp: Date.now(),
+          progress: getDefaultProgress('queued', {
+            label: '후속 질문을 각 AI 관점에 맞게 준비하고 있어요.',
+            detail: '이전 대화 맥락을 다시 묶은 뒤 답변을 시작합니다.',
+          }),
+        })),
+      ]);
+      const followUpResponses: { name: string; content: string }[] = [];
+
       for (const expert of targetExperts) {
         if (controller.signal.aborted) break;
         setActiveExpertId(expert.id);
-        const msgId = `${expert.id}-followup-${Date.now()}`;
-        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, timestamp: Date.now() }]);
+        const msgId = followUpMessageIds.get(expert.id) ?? `${expert.id}-followup-${Date.now()}`;
         // 이 AI 자신의 이전 답변 + 사용자 메시지만 맥락으로 전달 (다른 AI 답변 제외)
         const ownPrev = messages
           .filter(m => (m.expertId === expert.id || m.expertId === '__user__') && m.content)
@@ -4113,16 +4432,65 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         try {
           await streamExpert({ question, expert: await buildExpertWithPrompt(expert, '\n\n이전 대화 맥락을 참고하여 후속 질문에 답변하세요.'),
             previousResponses: ownPrev, round: 'initial',
+            onProgress: (progress) => updateMessageProgress(msgId, progress),
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
-            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m)); },
+            onDone: () => { setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m)); },
             signal: controller.signal,
             files: followUpFilesToSend });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
-          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false } : m));
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
+        }
+        if (fullContent.trim()) {
+          followUpResponses.push({ name: expert.nameKo, content: fullContent });
         }
         await new Promise(r => setTimeout(r, DELAY_BETWEEN_EXPERTS));
       }
+
+      if (!controller.signal.aborted && followUpResponses.length >= 2) {
+        const summaryId = `multi-followup-summary-${Date.now()}`;
+        setMessages((prev) => [...prev, createStreamingMessage({
+          id: summaryId,
+          expertId: SUMMARIZER_EXPERT.id,
+          isSummary: true,
+          progress: getDefaultProgress('finalizing', {
+            label: '후속 질문에 대한 다중 AI 의견을 다시 정리하고 있어요.',
+            detail: '이번 추가 질문 기준으로 공통점과 차이를 다시 묶고 있습니다.',
+          }),
+        })]);
+
+        let summaryContent = '';
+        try {
+          await streamExpert({
+            question: `후속 질문: ${question}
+
+각 AI 답변:
+${followUpResponses.map((response) => `- ${response.name}: ${response.content}`).join('\n')}`,
+            expert: {
+              ...SUMMARIZER_EXPERT,
+              systemPrompt: '당신은 여러 AI의 후속 답변을 비교 정리하는 큐레이터입니다. 짧지 않게, 공통점과 차이, 추천 결론을 구조화해 한국어로 정리하세요.',
+            },
+            previousResponses: [],
+            round: 'summary',
+            maxTokens: 1600,
+            onProgress: (progress) => updateMessageProgress(summaryId, progress),
+            onDelta: (chunk) => {
+              summaryContent += chunk;
+              setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent } : m));
+            },
+            onDone: () => {
+              setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, isStreaming: false, responseState: 'complete' } : m));
+            },
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            summaryContent = `⚠️ ${err instanceof Error ? err.message : '후속 요약을 받아오지 못했어요.'}`;
+            setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
+          }
+        }
+      }
+
       setActiveExpertId(undefined);
       setIsDiscussing(false);
       void logUsageEvent({
@@ -4162,11 +4530,12 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         if (controller.signal.aborted) break;
         setActiveExpertId(expert.id);
         const msgId = `${expert.id}-debate-followup-${Date.now()}`;
-        setMessages(prev => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true, isDirectFollowUp: true }]);
+        setMessages(prev => [...prev, createStreamingMessage({ id: msgId, expertId: expert.id, isDirectFollowUp: true })]);
         let fullContent = '';
         try {
           await streamExpert({ question, expert: await buildExpertWithPrompt(expert, stanceExtra(expert.id)),
             previousResponses: prevAll, round: 'initial',
+            onProgress: (progress) => updateMessageProgress(msgId, progress),
             onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m)); },
             onDone: () => {
               // brainstorm 후속질문도 아이디어 파싱
@@ -4181,13 +4550,13 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   return;
                 }
               }
-              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false, responseState: 'complete' } : m));
             },
             signal: controller.signal,
             files: followUpFilesToSend });
         } catch (err) {
           if ((err as Error).name === 'AbortError') break;
-          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false } : m));
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: `⚠️ 응답을 받아오지 못했어요.`, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
         }
         prevAll.push({ name: expert.nameKo, content: fullContent });
         await new Promise(r => setTimeout(r, DELAY_BETWEEN_EXPERTS));
@@ -5513,7 +5882,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isAiAgentId(expert.id) ? 'agent-card' : 'general-card'} />
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isManagedAutoAgent(expert.id) ? 'agent-card' : 'general-card'} />
                               );
                             })}
                           </div>
@@ -6284,7 +6653,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isAiAgentId(expert.id) ? 'agent-card' : 'general-card'} />
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isManagedAutoAgent(expert.id) ? 'agent-card' : 'general-card'} />
                               );
                             })}
                           </div>

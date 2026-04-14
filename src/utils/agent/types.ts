@@ -8,11 +8,17 @@ export type StrategyType =
   | 'pros_cons'
   | 'deep_dive';
 
+export type ClassificationMode = 'simple' | 'standard' | 'deep';
+
 /** Step 1 strategy returned by the planner. */
 export interface AgentStrategy {
   type: StrategyType;
   tasks: AgentTaskDef[];
   reasoning: string;
+  publicPlan?: string;
+  publicSteps?: string[];
+  needsSearch?: boolean;
+  depth?: ClassificationMode;
 }
 
 /** Step 1 task definition. */
@@ -30,11 +36,13 @@ export interface AgentTask {
   result: string;
   /** Safe, user-facing summary of what happened in this task. */
   publicNote?: string;
+  startedAt?: number;
+  completedAt?: number;
 }
 
 /** Overall agent state streamed to the chat UI. */
 export interface AgentState {
-  status: 'analyzing' | 'processing' | 'synthesizing' | 'complete' | 'error';
+  status: 'analyzing' | 'planning' | 'processing' | 'synthesizing' | 'reviewing' | 'complete' | 'error';
   strategy: AgentStrategy | null;
   tasks: AgentTask[];
   finalAnswer: string;
@@ -44,13 +52,17 @@ export interface AgentState {
   agentBrand?: string;
   /** Best-known intent for the current run. */
   intent?: StrategyType;
+  /** Complexity mode selected for the current run. */
+  complexityMode?: ClassificationMode;
 }
 
 /** Lightweight local question classification result. */
 export interface ClassificationResult {
-  mode: 'simple' | 'agent';
+  mode: ClassificationMode;
   score: number;
   reasons: string[];
+  intent?: StrategyType;
+  needsSearch?: boolean;
 }
 
 /** Agent pipeline options passed by the chat orchestrator. */
@@ -61,8 +73,11 @@ export interface AgentPipelineOptions {
   conversationHistory?: { role: string; content: string }[];
   expertId?: string;
   intentHint?: StrategyType;
+  complexityMode?: ClassificationMode;
+  profile?: import('./config').AutoAgentConfig;
   onStateChange: (state: AgentState) => void;
   onStreamToken: (token: string) => void;
+  onSearchSources?: (sources: import('@/lib/chatStream').SearchSourcePayload) => void;
   signal?: AbortSignal;
 }
 

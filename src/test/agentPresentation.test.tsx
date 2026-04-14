@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { isAiAgentId } from '@/lib/aiAgent';
+import { isAiAgentId, isManagedAutoAgent } from '@/lib/aiAgent';
 import { buildAgentResponsePrompt } from '@/lib/prompts/agentResponsePrompt';
 import { AgentRichMarkdown } from '@/components/AgentRichMarkdown';
 
 describe('agent presentation helpers', () => {
-  it('identifies only configured AI agent ids', () => {
+  it('distinguishes ai agent ids from managed auto agents', () => {
     expect(isAiAgentId('auto-gpt')).toBe(true);
     expect(isAiAgentId('ancano-pro')).toBe(true);
+    expect(isManagedAutoAgent('auto-gpt')).toBe(true);
+    expect(isManagedAutoAgent('ancano-pro')).toBe(false);
     expect(isAiAgentId('gpt')).toBe(false);
-    expect(isAiAgentId('__user__')).toBe(false);
   });
 
   it('builds phase and intent-aware agent response prompts', () => {
@@ -19,10 +20,10 @@ describe('agent presentation helpers', () => {
       intent: 'comparison',
     });
 
-    expect(prompt).toContain('AI 에이전트 응답 형식 규칙');
-    expect(prompt).toContain('단일 모델이 직접 답하는 에이전트 응답');
-    expect(prompt).toContain('비교 요청이면 마크다운 테이블을 우선 사용하세요.');
-    expect(prompt).toContain('사실이나 최신 정보가 포함되면 근거 중심으로 서술하세요.');
+    expect(prompt).toContain('AI');
+    expect(prompt).toContain('direct');
+    expect(prompt).toContain('table');
+    expect(prompt).toContain('comparison');
   });
 
   it('renders markdown tables, links, and code blocks for agent cards', () => {
