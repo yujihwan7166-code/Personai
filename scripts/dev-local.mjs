@@ -116,10 +116,7 @@ if (hasLawCredential) {
   startProcess("legal-mcp", "npm", ["run", "dev:legal-mcp"]);
 }
 
-console.log("Starting local API on http://127.0.0.1:3000 ...");
-startProcess("api", "npx", ["vercel", "dev", "--listen", "3000", "--yes"]);
-
 setTimeout(() => {
-  console.log("Starting web app on http://127.0.0.1:3001 ...");
+  console.log("Starting web app + local API on http://127.0.0.1:3001 ...");
   startProcess("web", "npm", ["run", "dev:web", "--", "--host", "127.0.0.1", "--port", "3001"]);
-}, hasLawCredential ? 2200 : 1500);
+}, hasLawCredential ? 2200 : 0);

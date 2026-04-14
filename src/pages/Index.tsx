@@ -11,6 +11,8 @@ import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
 import { runAutoAgentTurn } from '@/lib/autoAgentTurn';
 import { createStreamExpert, fetchSearchContext, type PreSearchContext, type StreamExpertFn } from '@/lib/chatStream';
+import { isAiAgentId } from '@/lib/aiAgent';
+import { buildAgentResponsePrompt } from '@/lib/prompts/agentResponsePrompt';
 import type { AttachedFile } from '@/lib/fileProcessor';
 import { buildGeneralImageHistory, mockRoute, pickGeneralImageExpert, type GeneralImageHistoryMessage } from '@/lib/indexPageHelpers';
 import {
@@ -34,6 +36,7 @@ import { useAssistantRun } from '@/hooks/useAssistantRun';
 import { useDiscussionHistoryPersistence } from '@/hooks/useDiscussionHistoryPersistence';
 import { usePersistedExpertState } from '@/hooks/usePersistedExpertState';
 import { AUTO_AGENT_CONFIG } from '@/utils/agent/config';
+import { inferAgentIntent } from '@/utils/agent/agentDisplay';
 
 const CHAT_URL = '/api/chat';
 const GENERAL_IMAGE_URL = '/api/general-image';
@@ -192,6 +195,7 @@ const Index = () => {
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState('');
+  const [currentQuestionDisplay, setCurrentQuestionDisplay] = useState('');
   const [copiedAll, setCopiedAll] = useState(false);
   const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('general');
   const [proconStances, setProconStances] = useState<Record<string, 'pro' | 'con'>>({});
@@ -317,7 +321,7 @@ const Index = () => {
       const expert = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT].find((e) => e.id === msg.expertId);
       return `[${expert?.nameKo || ''}]\n${msg.content}`;
     }).join('\n\n---\n\n');
-    navigator.clipboard.writeText(`질문: ${currentQuestion}\n\n${text}`);
+    navigator.clipboard.writeText(`질문: ${currentQuestionDisplay || currentQuestion}\n\n${text}`);
     setCopiedAll(true);
     setTimeout(() => setCopiedAll(false), 2000);
   };
@@ -819,6 +823,7 @@ const Index = () => {
     setDiscussionMode('general');
     setMessages([]);
     setCurrentQuestion('');
+    setCurrentQuestionDisplay('');
     setProconDebateTopic('');
     setSelectedExpertIds(['gpt']);
     setProconStances({});
@@ -981,6 +986,7 @@ ${role.focus} 관점에서 반응하세요.
     setIsDiscussing(true);
     if (useMode !== 'stakeholder') {
       setCurrentQuestion(question);
+      setCurrentQuestionDisplay(displayQuestion || question);
       if (!sessionTitleRef.current) sessionTitleRef.current = displayQuestion || question;
     }
     setMessages([]);
@@ -1364,9 +1370,19 @@ ${difficultyDesc}
           // ── 기존 일반 모델 + Perplexity AUTO (에이전트 없이 단일 호출) ──
           const msgId = `${expert.id}-general-${Date.now()}`;
           // Perplexity AUTO는 config에 agentModel이 있으면 그걸로, 없으면 기본 openrouterModel
-          const effectiveExpert = autoConfig && !autoConfig.enableAgent && !autoConfig.fakeAgent
+          const baseEffectiveExpert = autoConfig && !autoConfig.enableAgent && !autoConfig.fakeAgent
             ? { ...expert, openrouterModel: autoConfig.agentModel }
             : expert;
+          const effectiveExpert = isAiAgentId(expert.id)
+            ? await buildExpertWithPrompt(
+                baseEffectiveExpert,
+                buildAgentResponsePrompt({
+                  agentId: expert.id,
+                  phase: 'direct',
+                  intent: inferAgentIntent(question),
+                }),
+              )
+            : baseEffectiveExpert;
           setMessages((prev) => [...prev, { id: msgId, expertId: expert.id, content: '', isStreaming: true }]);
           let fullContent = '';
           try {
@@ -2166,6 +2182,7 @@ Rules:
 
       // Fix currentQuestion for history
       setCurrentQuestion(`${scenario.icon} ${scenario.name}`);
+      setCurrentQuestionDisplay(`${scenario.icon} ${scenario.name}`);
       sessionTitleRef.current = `${scenario.icon} ${scenario.name}`;
       setSimPhaseIndex(0);
 
@@ -2483,6 +2500,7 @@ Rules:
   const allExperts = [...experts, ...ASSISTANT_EXPERTS, SUMMARIZER_EXPERT, CONCLUSION_EXPERT];
   const isDone = messages.length > 0 && !isDiscussing;
   const selectable = !isDiscussing && messages.length === 0;
+  const hasUserMessageInThread = messages.some((message) => message.expertId === '__user__');
 
   // Scroll to bottom — smart: pause auto-scroll when user scrolls up
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -2521,7 +2539,7 @@ Rules:
     const mainMode = getMainMode(discussionMode);
     // Keep general mode aligned with DiscussionMessage's `general-card` variant.
     // If this is changed back to `messenger`, the single-AI card design appears to "roll back".
-    if (mainMode === 'general') return 'general-card';
+    if (mainMode === 'general') return isAiAgentId(msg.expertId) ? 'agent-card' : 'general-card';
     if (discussionMode === 'brainstorm') return 'postit';
     if (discussionMode === 'hearing') return 'hearing';
     if (discussionMode === 'expert') return 'report';
@@ -2720,6 +2738,7 @@ ${conversationText}`;
   const { autoSaveCurrentChat, loadHistory } = useDiscussionHistoryPersistence({
     messages,
     currentQuestion,
+    currentQuestionDisplay,
     discussionMode,
     selectedExpertIds,
     selectedAssistantCardId,
@@ -2730,6 +2749,7 @@ ${conversationText}`;
     summaryCountRef,
     skipClarifyRef,
     setCurrentQuestion,
+    setCurrentQuestionDisplay,
     setMessages,
     setDiscussionMode,
     setSelectedExpertIds,
@@ -2967,8 +2987,19 @@ ${conversationText}`;
 
       let fullContent = '';
       try {
+        const followUpExpert = isAiAgentId(expert.id)
+          ? await buildExpertWithPrompt(
+              expert,
+              `${buildAgentResponsePrompt({
+                agentId: expert.id,
+                phase: 'direct',
+                intent: inferAgentIntent(question),
+              })}\n\n이전 대화 맥락을 참고하여 후속 질문에 답변하세요.`,
+            )
+          : expert;
+
         await streamExpert({
-          question, expert,
+          question, expert: followUpExpert,
           previousResponses: prevResponses, round: 'initial',
           onDelta: chunk => { fullContent += chunk; setMessages(prev => prev.map(m => m.id === replyId ? { ...m, content: fullContent } : m)); },
           onDone: () => { setMessages(prev => prev.map(m => m.id === replyId ? { ...m, isStreaming: false } : m)); },
@@ -4216,6 +4247,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     isStreaming: false,
                   }]);
                   setCurrentQuestion('');
+                  setCurrentQuestionDisplay('');
                   sessionTitleRef.current = '';
                 }, 100);
               }
@@ -4896,12 +4928,12 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               )}
 
               {/* Question header — 모드별 분기 (게임 모드에서는 숨김) */}
-              {!activeGame && currentQuestion && messages.length > 0 && discussionMode !== 'procon' && discussionMode !== 'standard' && discussionMode !== 'multi' && discussionMode !== 'stakeholder' && (
+              {!activeGame && currentQuestionDisplay && messages.length > 0 && discussionMode !== 'procon' && discussionMode !== 'standard' && discussionMode !== 'multi' && discussionMode !== 'stakeholder' && !(getMainMode(discussionMode) === 'general' && hasUserMessageInThread) && (
                 getMainMode(discussionMode) === 'general' ? (
                   /* 단일 AI — 오른쪽 말풍선 */
                   <div className="flex justify-end">
                     <div className="max-w-[75%] bg-indigo-500 dark:bg-indigo-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
-                      <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{currentQuestion}</p>
+                      <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{currentQuestionDisplay}</p>
                     </div>
                   </div>
                 ) : (
@@ -4909,7 +4941,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   <button type="button" onClick={() => setQuestionExpanded(!questionExpanded)}
                     className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 text-left max-w-[80%] hover:bg-slate-200/70 transition-colors">
                     <p className={cn('text-[13px] text-slate-600 leading-relaxed flex-1', !questionExpanded && 'line-clamp-2')}>
-                      {currentQuestion}
+                      {currentQuestionDisplay}
                     </p>
                     <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 transition-transform', questionExpanded && 'rotate-180')} />
                   </button>
@@ -4918,7 +4950,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
 
               {/* Participants display — VS layout for procon, normal for others */}
-              {currentQuestion && messages.length > 0 && ['standard', 'procon', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
+              {currentQuestionDisplay && messages.length > 0 && ['standard', 'procon', 'hearing'].includes(discussionMode) && activeExperts.length > 0 && (
                 discussionMode === 'standard' ? (
                   /* 심층토론 스테이지 헤더 */
                   <div className="rounded-2xl overflow-hidden shadow-lg border border-indigo-200/50">
@@ -4944,7 +4976,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       </div>
                     </div>
                     <div className="bg-slate-800 px-5 py-2.5 flex items-center">
-                      <span className="text-[12px] font-medium text-slate-200 flex-1 leading-snug">{currentQuestion}</span>
+                      <span className="text-[12px] font-medium text-slate-200 flex-1 leading-snug">{currentQuestionDisplay}</span>
                     </div>
                   </div>
                 ) : discussionMode === 'procon' ? (
@@ -4990,7 +5022,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     </div>
                     {/* 토론 주제 */}
                     <div className="bg-slate-800 px-5 py-2 flex items-center justify-center gap-2">
-                      <span className="text-[12px] font-medium text-slate-300">{proconDebateTopic || currentQuestion}</span>
+                      <span className="text-[12px] font-medium text-slate-300">{proconDebateTopic || currentQuestionDisplay}</span>
                     </div>
                   </div>
                 ) : (
@@ -5032,10 +5064,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       {/* 헤더 */}
                       {!isDiscussing && (
                         <div className="space-y-3">
-                          {currentQuestion && (
+                          {currentQuestionDisplay && (
                             <div className="flex justify-end">
                               <div className="max-w-[75%] bg-blue-50 text-slate-800 rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
-                                <p className="text-[13px] leading-relaxed line-clamp-3">{currentQuestion}</p>
+                                <p className="text-[13px] leading-relaxed line-clamp-3">{currentQuestionDisplay}</p>
                               </div>
                             </div>
                           )}
@@ -5481,7 +5513,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="general-card" />
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isAiAgentId(expert.id) ? 'agent-card' : 'general-card'} />
                               );
                             })}
                           </div>
@@ -6252,7 +6284,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="general-card" />
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isAiAgentId(expert.id) ? 'agent-card' : 'general-card'} />
                               );
                             })}
                           </div>

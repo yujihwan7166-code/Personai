@@ -11,6 +11,8 @@ import type {
   AgentTask,
   AgentPipelineOptions,
 } from './types';
+import { attachPublicNotes } from './agentDisplay';
+import { streamSseContent } from './streamSseContent';
 
 const AGENT_STEP_URL = '/api/chat?mode=agent-step';
 const CHAT_URL = '/api/chat';
@@ -119,8 +121,9 @@ function fallbackStrategy(message: string): AgentStrategy {
 // ── 메인 파이프라인 ──
 
 export async function runAgentPipeline(options: AgentPipelineOptions): Promise<void> {
-  const { message, model, systemPrompt, onStateChange, onStreamToken, signal } = options;
+  const { message, model, systemPrompt, onStateChange, onStreamToken, signal, expertId, intentHint } = options;
   const startTime = Date.now();
+  let displayTasks: AgentTask[] = [];
 
   // 초기 상태
   const state: AgentState = {
@@ -130,6 +133,8 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
     finalAnswer: '',
     totalTokensUsed: 0,
     elapsedMs: 0,
+    agentBrand: expertId,
+    intent: intentHint,
   };
 
   const updateState = (partial: Partial<AgentState>) => {
@@ -182,18 +187,20 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
       status: 'pending' as const,
       result: '',
     }));
+    displayTasks = attachPublicNotes(tasks, strategy.type);
 
     updateState({
       status: 'processing',
       strategy,
-      tasks: [...tasks],
+      tasks: [...displayTasks],
+      intent: strategy.type,
     });
 
     // 병렬 실행
     const taskPromises = strategy.tasks.map(async (taskDef, idx) => {
       // running 표시
-      tasks[idx].status = 'running';
-      updateState({ tasks: [...tasks] });
+      displayTasks[idx].status = 'running';
+      updateState({ tasks: [...displayTasks] });
 
       try {
         const result = await callAgentStep(
@@ -204,28 +211,28 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
           0.5,
           combinedSignal
         );
-        tasks[idx].status = 'done';
-        tasks[idx].result = result.content;
+        displayTasks[idx].status = 'done';
+        displayTasks[idx].result = result.content;
         state.totalTokensUsed += result.tokensUsed;
       } catch (err) {
-        tasks[idx].status = 'error';
-        tasks[idx].result = '';
+        displayTasks[idx].status = 'error';
+        displayTasks[idx].result = '';
         console.warn(`[AgentPipeline] Task ${taskDef.id} failed:`, err);
       }
 
-      updateState({ tasks: [...tasks] });
+      updateState({ tasks: [...displayTasks] });
     });
 
     await Promise.allSettled(taskPromises);
 
     // 전체 실패 체크
-    const completedTasks = tasks.filter(t => t.status === 'done');
+    const completedTasks = displayTasks.filter(t => t.status === 'done');
     if (completedTasks.length === 0) {
       throw new Error('All tasks failed');
     }
 
     // ═══ Step 3: 종합 정리 (스트리밍) ═══
-    updateState({ status: 'synthesizing', tasks: [...tasks] });
+    updateState({ status: 'synthesizing', tasks: [...displayTasks] });
 
     // 종합 프롬프트 조립
     const analysisResults = completedTasks
@@ -247,50 +254,22 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
       signal: combinedSignal,
     });
 
-    if (!chatResp.ok || !chatResp.body) {
-      throw new Error(`Step 3 streaming failed: ${chatResp.status}`);
-    }
-
-    // SSE 스트림 파싱
-    const reader = chatResp.body.getReader();
-    const decoder = new TextDecoder();
-    let answer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const dataStr = line.slice(6).trim();
-        if (dataStr === '[DONE]') continue;
-
-        try {
-          const parsed = JSON.parse(dataStr);
-          const content = parsed?.choices?.[0]?.delta?.content;
-          if (content) {
-            answer += content;
-            onStreamToken(content);
-          }
-        } catch {
-          // JSON 파싱 실패 무시
-        }
-      }
+    const answer = await streamSseContent(chatResp, onStreamToken);
+    if (!answer.trim()) {
+      throw new Error('Step 3 streaming returned no content');
     }
 
     // 완료
     updateState({
       status: 'complete',
       finalAnswer: answer,
+      tasks: [...displayTasks],
     });
   } catch (err: unknown) {
     console.error('[AgentPipeline] Fatal error:', err);
 
     // 폴백: 일반 단일 호출
-    updateState({ status: 'error' });
+    updateState({ status: 'error', tasks: [...displayTasks] });
 
     try {
       const chatResp = await fetch(CHAT_URL, {
@@ -305,27 +284,20 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
         signal,
       });
 
-      if (chatResp.ok && chatResp.body) {
-        const reader = chatResp.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const dataStr = line.slice(6).trim();
-            if (dataStr === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(dataStr);
-              const content = parsed?.choices?.[0]?.delta?.content;
-              if (content) onStreamToken(content);
-            } catch { /* ignore */ }
-          }
-        }
+      if (!chatResp.ok || !chatResp.body) {
+        throw new Error(`Fallback streaming failed: ${chatResp.status}`);
       }
+
+      const answer = await streamSseContent(chatResp, onStreamToken);
+      if (!answer.trim()) {
+        throw new Error('Fallback streaming returned no content');
+      }
+      updateState({
+        status: 'complete',
+        finalAnswer: answer,
+        tasks: [...displayTasks],
+      });
+      return;
     } catch {
       onStreamToken('죄송합니다. 응답 생성 중 오류가 발생했습니다.');
     }

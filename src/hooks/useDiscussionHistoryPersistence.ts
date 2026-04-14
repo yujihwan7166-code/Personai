@@ -8,6 +8,7 @@ type SetState<T> = Dispatch<SetStateAction<T>>;
 interface UseDiscussionHistoryPersistenceOptions {
   messages: DiscussionMessage[];
   currentQuestion: string;
+  currentQuestionDisplay: string;
   discussionMode: DiscussionMode;
   selectedExpertIds: string[];
   selectedAssistantCardId?: string | null;
@@ -18,6 +19,7 @@ interface UseDiscussionHistoryPersistenceOptions {
   summaryCountRef: MutableRefObject<number>;
   skipClarifyRef: MutableRefObject<boolean>;
   setCurrentQuestion: SetState<string>;
+  setCurrentQuestionDisplay: SetState<string>;
   setMessages: SetState<DiscussionMessage[]>;
   setDiscussionMode: SetState<DiscussionMode>;
   setSelectedExpertIds: SetState<string[]>;
@@ -31,6 +33,7 @@ interface UseDiscussionHistoryPersistenceOptions {
 export function useDiscussionHistoryPersistence({
   messages,
   currentQuestion,
+  currentQuestionDisplay,
   discussionMode,
   selectedExpertIds,
   selectedAssistantCardId,
@@ -41,6 +44,7 @@ export function useDiscussionHistoryPersistence({
   summaryCountRef,
   skipClarifyRef,
   setCurrentQuestion,
+  setCurrentQuestionDisplay,
   setMessages,
   setDiscussionMode,
   setSelectedExpertIds,
@@ -51,7 +55,7 @@ export function useDiscussionHistoryPersistence({
   abortCurrentDiscussion,
 }: UseDiscussionHistoryPersistenceOptions) {
   const buildHistoryRecord = useCallback((): Omit<DiscussionRecord, 'id' | 'timestamp'> => ({
-    question: sessionTitleRef.current || currentQuestion,
+    question: sessionTitleRef.current || currentQuestionDisplay || currentQuestion,
     mode: discussionMode,
     messages: messages.map((message) => ({ ...message, isStreaming: false })),
     expertIds: selectedExpertIds,
@@ -59,6 +63,7 @@ export function useDiscussionHistoryPersistence({
     proconStances,
   }), [
     currentQuestion,
+    currentQuestionDisplay,
     discussionMode,
     messages,
     proconStances,
@@ -68,10 +73,10 @@ export function useDiscussionHistoryPersistence({
   ]);
 
   const autoSaveCurrentChat = useCallback(() => {
-    if (messages.length > 0 && (sessionTitleRef.current || currentQuestion)) {
+    if (messages.length > 0 && (sessionTitleRef.current || currentQuestionDisplay || currentQuestion)) {
       upsertDiscussionHistory(sessionIdRef.current, buildHistoryRecord());
     }
-  }, [buildHistoryRecord, currentQuestion, messages.length, sessionIdRef, sessionTitleRef]);
+  }, [buildHistoryRecord, currentQuestion, currentQuestionDisplay, messages.length, sessionIdRef, sessionTitleRef]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -83,10 +88,10 @@ export function useDiscussionHistoryPersistence({
   }, [autoSaveCurrentChat]);
 
   useEffect(() => {
-    if (!isDiscussing && messages.length > 0 && currentQuestion) {
+    if (!isDiscussing && messages.length > 0 && (currentQuestionDisplay || currentQuestion)) {
       upsertDiscussionHistory(sessionIdRef.current, buildHistoryRecord());
     }
-  }, [buildHistoryRecord, currentQuestion, isDiscussing, messages.length, sessionIdRef]);
+  }, [buildHistoryRecord, currentQuestion, currentQuestionDisplay, isDiscussing, messages.length, sessionIdRef]);
 
   const loadHistory = useCallback((record: DiscussionRecord) => {
     autoSaveCurrentChat();
@@ -96,6 +101,7 @@ export function useDiscussionHistoryPersistence({
     }
 
     setCurrentQuestion(record.question);
+    setCurrentQuestionDisplay(record.question);
     setMessages(record.messages);
     setDiscussionMode(record.mode);
     setSelectedExpertIds(record.expertIds || []);
@@ -115,6 +121,7 @@ export function useDiscussionHistoryPersistence({
     sessionTitleRef,
     setActiveExpertId,
     setCurrentQuestion,
+    setCurrentQuestionDisplay,
     setDiscussionMode,
     setIsDiscussing,
     setMessages,

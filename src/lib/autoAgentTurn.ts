@@ -2,6 +2,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { SearchSource, SearchSourcePayload, StreamExpertFn, StreamRequestFile } from '@/lib/chatStream';
 import type { DiscussionMessage, DiscussionRound, Expert } from '@/types/expert';
 import type { AutoAgentConfig } from '@/utils/agent/config';
+import { buildAgentResponsePrompt } from '@/lib/prompts/agentResponsePrompt';
+import { inferAgentIntent } from '@/utils/agent/agentDisplay';
 import type { AgentPipelineOptions, AgentState, ClassificationResult } from '@/utils/agent/types';
 
 type QuestionClassifierLoader = () => Promise<{ classifyQuestion: (message: string) => ClassificationResult }>;
@@ -66,6 +68,7 @@ export async function runAutoAgentTurn({
   qualityGuardrail,
 }: RunAutoAgentTurnParams): Promise<RunAutoAgentTurnResult> {
   const agentModel = autoConfig.agentModel;
+  const intentHint = inferAgentIntent(question);
   const questionClassifier = autoConfig.fakeAgent
     ? null
     : await loadQuestionClassifier();
@@ -87,6 +90,8 @@ export async function runAutoAgentTurn({
       finalAnswer: '',
       totalTokensUsed: 0,
       elapsedMs: 0,
+      agentBrand: expert.id,
+      intent: intentHint,
     };
 
     appendMessage(setMessages, {
@@ -101,6 +106,11 @@ export async function runAutoAgentTurn({
 
     try {
       const basePrompt = await getExpertPrompt(expert);
+      const agentResponsePrompt = buildAgentResponsePrompt({
+        agentId: expert.id,
+        phase: 'final',
+        intent: intentHint,
+      });
       const pipelineFn = autoConfig.fakeAgent
         ? (await loadFakeAgentPipeline()).runFakeAgentPipeline
         : (await loadAgentPipeline()).runAgentPipeline;
@@ -108,7 +118,9 @@ export async function runAutoAgentTurn({
       await pipelineFn({
         message: question,
         model: agentModel,
-        systemPrompt: safetyGuardrail + qualityGuardrail + basePrompt,
+        systemPrompt: safetyGuardrail + qualityGuardrail + basePrompt + agentResponsePrompt,
+        expertId: expert.id,
+        intentHint,
         onStateChange: (state) => {
           updateMessage(setMessages, messageId, (message) => ({
             ...message,
@@ -142,7 +154,16 @@ export async function runAutoAgentTurn({
   }
 
   const messageId = `${expert.id}-general-${Date.now()}`;
-  const cheapExpert = { ...expert, openrouterModel: agentModel };
+  const basePrompt = await getExpertPrompt(expert);
+  const cheapExpert = {
+    ...expert,
+    openrouterModel: agentModel,
+    systemPrompt: `${basePrompt}${buildAgentResponsePrompt({
+      agentId: expert.id,
+      phase: 'direct',
+      intent: intentHint,
+    })}`,
+  };
   let fullContent = '';
 
   appendMessage(setMessages, {

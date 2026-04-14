@@ -1,189 +1,190 @@
-// ══════════════════════════════════════════
-// AgentTaskStream — 에이전트 작업 단계 표시 UI
-// ══════════════════════════════════════════
-
-import { useState } from 'react';
-import type { AgentState } from '@/utils/agent/types';
+import { useMemo, useState } from 'react';
+import type { AgentState, AgentTask } from '@/utils/agent/types';
+import { getAgentStreamPresentation } from '@/utils/agent/agentDisplay';
 import { cn } from '@/lib/utils';
 
 interface AgentTaskStreamProps {
   state: AgentState;
 }
 
+function StatusIcon({ status }: { status: AgentTask['status'] | 'analyzing' | 'synthesizing' }) {
+  if (status === 'running' || status === 'analyzing' || status === 'synthesizing') {
+    return (
+      <span className="relative flex h-3.5 w-3.5 items-center justify-center">
+        <span className="absolute h-3 w-3 rounded-full bg-primary/15 animate-ping" />
+        <span className="relative h-1.5 w-1.5 rounded-full bg-primary" />
+      </span>
+    );
+  }
+
+  if (status === 'done') {
+    return (
+      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-50">
+        <svg className="h-2.5 w-2.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-50">
+        <svg className="h-2.5 w-2.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex h-3.5 w-3.5 items-center justify-center">
+      <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+    </span>
+  );
+}
+
+function Dots() {
+  return <span className="animate-ellipsis ml-0.5 tracking-wider" />;
+}
+
+function noteFor(task: AgentTask) {
+  return task.publicNote || '핵심 포인트를 답변에 반영했습니다.';
+}
+
 export function AgentTaskStream({ state }: AgentTaskStreamProps) {
   const [expanded, setExpanded] = useState(false);
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const presentation = useMemo(() => getAgentStreamPresentation(state), [state]);
 
-  const { status, strategy, tasks } = state;
-  const doneTasks = tasks.filter(t => t.status === 'done');
+  const doneTasks = state.tasks.filter((task) => task.status === 'done');
+  const runningTask = state.tasks.find((task) => task.status === 'running');
 
-  // ── complete: 한 줄 접힌 배지 ──
-  if (status === 'complete') {
+  if (state.status === 'error') {
     return (
-      <div className="mb-2.5">
+      <div className="mb-3 rounded-xl border border-amber-200/70 bg-amber-50/70 px-3.5 py-3 text-[11px] text-amber-700">
+        분석 과정을 단순화하고 바로 답변을 이어가고 있습니다.
+      </div>
+    );
+  }
+
+  if (state.status === 'complete') {
+    return (
+      <div className="mb-3">
         <button
-          onClick={() => setExpanded(prev => !prev)}
-          className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-500 transition-colors"
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
         >
-          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+          <svg className="h-3.5 w-3.5 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
-          <span>에이전트 분석 · {doneTasks.length}단계 · {(state.elapsedMs / 1000).toFixed(1)}초</span>
-          <svg className={cn('w-3 h-3 transition-transform', expanded && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <span>{presentation.completeLabel}</span>
+          <svg className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
 
         {expanded && (
-          <div className="mt-1.5 ml-5 space-y-0.5">
-            {tasks.map(task => (
-              <div key={task.id}>
-                <button
-                  className="flex items-center gap-1.5 py-0.5 text-[10px] text-slate-400 hover:text-slate-500 transition-colors w-full text-left"
-                  onClick={() => setExpandedTaskId(prev => prev === task.id ? null : task.id)}
-                >
-                  <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
-                  <span className="flex-1">{task.label}</span>
-                  {task.result && (
-                    <svg className={cn('w-2.5 h-2.5 text-slate-300 transition-transform', expandedTaskId === task.id && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  )}
-                </button>
-                {expandedTaskId === task.id && task.result && (
-                  <div className="ml-3 mt-0.5 mb-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[10px] text-slate-500 leading-relaxed whitespace-pre-wrap max-h-[120px] overflow-y-auto scrollbar-thin">
-                    {task.result}
+          <div className="mt-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3.5 py-3.5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-slate-700">분석 과정</span>
+              <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-slate-500 shadow-sm">
+                {presentation.intentLabel}
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {state.tasks.map((task) => (
+                <div key={task.id} className="flex items-start gap-2.5">
+                  <StatusIcon status={task.status} />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-medium text-slate-600">{task.label}</div>
+                    <div className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+                      {noteFor(task)}
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
     );
   }
 
-  // ── error ──
-  if (status === 'error') {
-    return (
-      <div className="mb-3 text-[11px] text-slate-400 italic">
-        심층 분석 중 문제가 발생하여 일반 모드로 답변합니다.
-      </div>
-    );
-  }
-
-  // ── 진행 중 ──
-  const steps: { key: string; done: boolean; active: boolean; label: React.ReactNode }[] = [];
-
-  // Step 1
-  steps.push({
-    key: 'analyze',
-    done: status !== 'analyzing',
-    active: status === 'analyzing',
-    label: status === 'analyzing'
-      ? <span>질문을 분석하고 있습니다<Dots /></span>
-      : <span>{strategy?.reasoning || `${tasks.length}가지 관점에서 분석하겠습니다`}</span>,
-  });
-
-  // Step 2 (tasks)
-  if (status === 'processing' || status === 'synthesizing') {
-    const allDone = tasks.every(t => t.status === 'done' || t.status === 'error');
-    steps.push({
-      key: 'tasks',
-      done: allDone,
-      active: status === 'processing',
-      label: (
-        <div className="space-y-0.5">
-          {tasks.map(task => (
-            <div key={task.id} className="flex items-center gap-1.5">
-              {task.status === 'done' ? (
-                <svg className="w-3 h-3 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              ) : task.status === 'running' ? (
-                <span className="relative flex w-3 h-3 items-center justify-center shrink-0">
-                  <span className="absolute w-2.5 h-2.5 rounded-full bg-slate-400/20 animate-ping" />
-                  <span className="relative w-1.5 h-1.5 rounded-full bg-slate-500" />
-                </span>
-              ) : task.status === 'error' ? (
-                <svg className="w-3 h-3 text-red-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <span className="w-3 h-3 flex items-center justify-center shrink-0">
-                  <span className="w-1 h-1 rounded-full bg-slate-300" />
-                </span>
-              )}
-              <span className={cn(
-                'text-[11px]',
-                task.status === 'running' ? 'text-slate-600' :
-                task.status === 'done' ? 'text-slate-400' :
-                task.status === 'error' ? 'text-red-300' :
-                'text-slate-300'
-              )}>
-                {task.label}
-                {task.status === 'running' && <Dots />}
-              </span>
-            </div>
-          ))}
-        </div>
-      ),
-    });
-  }
-
-  // Step 3
-  if (status === 'synthesizing') {
-    steps.push({
-      key: 'synthesize',
-      done: false,
-      active: true,
-      label: <span>종합 정리 중<Dots /></span>,
-    });
-  }
-
   return (
-    <div className="mb-3">
-      <div className="space-y-0">
-        {steps.map((step, i) => (
-          <div key={step.key} className="flex items-start gap-2.5 min-h-[24px]">
-            {/* 타임라인 점 + 세로선 */}
-            <div className="flex flex-col items-center pt-[5px]">
-              {step.active ? (
-                <span className="relative flex w-3.5 h-3.5 items-center justify-center">
-                  <span className="absolute w-3 h-3 rounded-full bg-slate-400/20 animate-ping" />
-                  <span className="relative w-[6px] h-[6px] rounded-full bg-slate-500" />
-                </span>
-              ) : step.done ? (
-                <span className="w-3.5 h-3.5 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-              ) : (
-                <span className="w-3.5 h-3.5 flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                </span>
-              )}
-              {i < steps.length - 1 && (
-                <div className="w-px flex-1 bg-slate-200 mt-1 min-h-[8px]" />
-              )}
-            </div>
+    <div className="mb-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3.5 py-3.5">
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-semibold text-slate-700">{presentation.agentLabel} 분석 과정</span>
+        <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-slate-500 shadow-sm">
+          {presentation.intentLabel}
+        </span>
+      </div>
 
-            {/* 내용 */}
-            <div className={cn(
-              'pb-2 flex-1 min-w-0 text-[12px]',
-              step.active ? 'text-slate-600' : step.done ? 'text-slate-400' : 'text-slate-300'
-            )}>
-              {step.label}
+      <div className="mt-2 text-[12px] font-medium text-slate-700">
+        {presentation.headline}
+        {(state.status === 'analyzing' || state.status === 'processing' || state.status === 'synthesizing') && <Dots />}
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <div className="flex items-start gap-2.5">
+          <StatusIcon status={state.status === 'analyzing' ? 'analyzing' : 'done'} />
+          <div className="min-w-0">
+            <div className={cn('text-[11px] font-medium', state.status === 'analyzing' ? 'text-slate-700' : 'text-slate-500')}>
+              {state.status === 'analyzing' ? presentation.analyzeLabel : '질문 해석 완료'}
+            </div>
+            {state.status !== 'analyzing' && (
+              <div className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                요청 의도와 답변 방향을 먼저 정리했습니다.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {state.tasks.map((task) => (
+          <div key={task.id} className="flex items-start gap-2.5">
+            <StatusIcon status={task.status} />
+            <div className="min-w-0">
+              <div className={cn(
+                'text-[11px] font-medium',
+                task.status === 'running' ? 'text-slate-700' :
+                task.status === 'done' ? 'text-slate-500' :
+                task.status === 'error' ? 'text-rose-400' :
+                'text-slate-300',
+              )}>
+                {task.status === 'running' ? task.label : task.label}
+                {task.status === 'running' && <Dots />}
+              </div>
+              {task.status === 'done' && (
+                <div className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                  {noteFor(task)}
+                </div>
+              )}
             </div>
           </div>
         ))}
+
+        <div className="flex items-start gap-2.5">
+          <StatusIcon status={state.status === 'synthesizing' ? 'synthesizing' : state.status === 'complete' ? 'done' : 'pending'} />
+          <div className="min-w-0">
+            <div className={cn(
+              'text-[11px] font-medium',
+              state.status === 'synthesizing' ? 'text-slate-700' :
+              state.status === 'analyzing' || state.status === 'processing' ? 'text-slate-300' :
+              'text-slate-500',
+            )}>
+              {presentation.synthesizeLabel}
+              {state.status === 'synthesizing' && <Dots />}
+            </div>
+            {(state.status === 'synthesizing' || doneTasks.length > 0) && state.status !== 'analyzing' && (
+              <div className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                {runningTask
+                  ? `${runningTask.label} 결과까지 반영해 최종 답변으로 묶는 중입니다.`
+                  : `${doneTasks.length || state.tasks.length}개 관점을 한 답변으로 정리하고 있습니다.`}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
-}
-
-// ── 말줄임표 애니메이션 ──
-function Dots() {
-  return <span className="animate-ellipsis tracking-wider ml-px" />;
 }

@@ -1,8 +1,6 @@
-// ══════════════════════════════════════════
-// Agent Pipeline Type Definitions
-// ══════════════════════════════════════════
+// Agent pipeline type definitions
 
-/** 에이전트 전략 유형 */
+/** The coarse analysis pattern chosen for the agent run. */
 export type StrategyType =
   | 'multi_perspective'
   | 'comparison'
@@ -10,29 +8,31 @@ export type StrategyType =
   | 'pros_cons'
   | 'deep_dive';
 
-/** Step 1에서 결정하는 분석 전략 */
+/** Step 1 strategy returned by the planner. */
 export interface AgentStrategy {
   type: StrategyType;
   tasks: AgentTaskDef[];
   reasoning: string;
 }
 
-/** 개별 분석 태스크 정의 (Step 1 결과) */
+/** Step 1 task definition. */
 export interface AgentTaskDef {
   id: string;
   label: string;
   prompt: string;
 }
 
-/** 개별 분석 태스크 실행 상태 */
+/** Runtime task state shown in the UI. */
 export interface AgentTask {
   id: string;
   label: string;
   status: 'pending' | 'running' | 'done' | 'error';
   result: string;
+  /** Safe, user-facing summary of what happened in this task. */
+  publicNote?: string;
 }
 
-/** 에이전트 파이프라인 전체 상태 */
+/** Overall agent state streamed to the chat UI. */
 export interface AgentState {
   status: 'analyzing' | 'processing' | 'synthesizing' | 'complete' | 'error';
   strategy: AgentStrategy | null;
@@ -40,27 +40,33 @@ export interface AgentState {
   finalAnswer: string;
   totalTokensUsed: number;
   elapsedMs: number;
+  /** The selected AI agent id, used for brand-aware copy in the UI. */
+  agentBrand?: string;
+  /** Best-known intent for the current run. */
+  intent?: StrategyType;
 }
 
-/** 질문 분류 결과 */
+/** Lightweight local question classification result. */
 export interface ClassificationResult {
   mode: 'simple' | 'agent';
   score: number;
   reasons: string[];
 }
 
-/** 에이전트 파이프라인 옵션 */
+/** Agent pipeline options passed by the chat orchestrator. */
 export interface AgentPipelineOptions {
   message: string;
   model: string;
   systemPrompt?: string;
   conversationHistory?: { role: string; content: string }[];
+  expertId?: string;
+  intentHint?: StrategyType;
   onStateChange: (state: AgentState) => void;
   onStreamToken: (token: string) => void;
   signal?: AbortSignal;
 }
 
-/** Agent Step API 요청 body */
+/** Request body for one internal agent step. */
 export interface AgentStepRequest {
   systemPrompt: string;
   userPrompt: string;
@@ -69,7 +75,7 @@ export interface AgentStepRequest {
   temperature?: number;
 }
 
-/** Agent Step API 응답 */
+/** Response body for one internal agent step. */
 export interface AgentStepResponse {
   content: string;
   tokensUsed: number;

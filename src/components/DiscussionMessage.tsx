@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { DiscussionMessage as DiscussionMessageType, Expert, ROUND_LABELS } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { LazyMarkdown } from './LazyMarkdown';
+import { AgentRichMarkdown } from './AgentRichMarkdown';
 import { AgentTaskStream } from './AgentTaskStream';
+import { isAiAgentId } from '@/lib/aiAgent';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { cn } from '@/lib/utils';
 import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap, Globe, ExternalLink } from 'lucide-react';
 
-export type ChatVariant = 'default' | 'messenger' | 'general-card' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
+export type ChatVariant = 'default' | 'messenger' | 'general-card' | 'agent-card' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
 
 interface Props {
   message: DiscussionMessageType;
@@ -50,7 +52,17 @@ function StreamingCursor() {
 
 const COLLAPSE_THRESHOLD = 300; // ~9-10줄
 
-function MessageContent({ content, isStreaming, noCollapse }: { content: string; isStreaming?: boolean; noCollapse?: boolean }) {
+function MessageContent({
+  content,
+  isStreaming,
+  noCollapse,
+  renderer = 'default',
+}: {
+  content: string;
+  isStreaming?: boolean;
+  noCollapse?: boolean;
+  renderer?: 'default' | 'agent-rich';
+}) {
   const [expanded, setExpanded] = useState(false);
   const isLong = !noCollapse && content.length > COLLAPSE_THRESHOLD && !isStreaming;
   const isError = content.startsWith('⚠️');
@@ -67,7 +79,11 @@ function MessageContent({ content, isStreaming, noCollapse }: { content: string;
     const displayContent = isLong && !expanded ? content.slice(0, COLLAPSE_THRESHOLD) + '...' : content;
     return (
       <>
-        <LazyMarkdown content={displayContent} />
+        {renderer === 'agent-rich' && !isStreaming ? (
+          <AgentRichMarkdown content={displayContent} />
+        ) : (
+          <LazyMarkdown content={displayContent} />
+        )}
         {isStreaming && <StreamingCursor />}
         {isLong && (
           <button onClick={() => setExpanded(!expanded)}
@@ -171,13 +187,24 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   );
 
   // ── Messenger (단일 AI) ──
-  if (variant === 'general-card') {
+  if (variant === 'general-card' || variant === 'agent-card') {
+    const isAgentCard = variant === 'agent-card' || isAiAgentId(expert.id);
     return (
       <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)] overflow-hidden transition-all hover:border-slate-300 hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]">
+        <div className={cn(
+          'rounded-2xl border bg-white overflow-hidden transition-all',
+          isAgentCard
+            ? 'border-indigo-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(245,247,255,0.9))] shadow-[0_8px_24px_rgba(99,102,241,0.08)] hover:border-indigo-300 hover:shadow-[0_12px_30px_rgba(99,102,241,0.12)]'
+            : 'border-slate-200 shadow-[0_2px_10px_rgba(15,23,42,0.04)] hover:border-slate-300 hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]'
+        )}>
           <div className="flex items-center gap-2 px-4 py-3">
             <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
             <span className="text-[13px] font-semibold text-slate-700">{expert.nameKo}</span>
+            {isAgentCard && (
+              <span className="flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600 border border-indigo-100">
+                AI 에이전트
+              </span>
+            )}
             {message.searchSources && (
               <span className="flex items-center gap-1 text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">
                 <Globe className="w-2.5 h-2.5" /> 웹 검색 반영
@@ -192,9 +219,14 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
             {message.agentState && (
               <AgentTaskStream state={message.agentState} />
             )}
-            <div className={cn('text-[13px] leading-relaxed text-slate-600', proseClasses, 'prose-p:text-[13px] prose-li:text-[13px] prose-headings:text-[15px] prose-headings:font-bold prose-strong:text-slate-800')}>
+            <div className={cn(
+              'text-[13px] leading-relaxed',
+              isAgentCard
+                ? 'text-slate-700'
+                : cn(proseClasses, 'text-slate-600 prose-p:text-[13px] prose-li:text-[13px] prose-headings:text-[15px] prose-headings:font-bold prose-strong:text-slate-800')
+            )}>
               <GeneratedImageGallery message={message} />
-              <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
+              <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse renderer={isAgentCard ? 'agent-rich' : 'default'} />
             </div>
             {message.searchSources && message.searchSources.sources.length > 0 && !message.isStreaming && (
               <SearchSourcesCollapsible sources={message.searchSources.sources} />
