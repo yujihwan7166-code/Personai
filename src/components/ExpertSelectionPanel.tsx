@@ -23,7 +23,6 @@ import { PremiumDomainLanding } from './PremiumDomainLanding';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
 import { AssistantCardsPanel } from './AssistantCardsPanel';
-import { ASSISTANT_SUB_CATEGORIES, type AssistantSubCategory } from '@/types/assistant';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavoriteExperts } from '@/hooks/useFavoriteExperts';
 import { useHoverExpertTip } from '@/hooks/useHoverExpertTip';
@@ -1612,7 +1611,6 @@ export function ExpertSelectionPanel({
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [prefilledQuestion, setPrefilledQuestion] = useState('');
-  const [assistantSubCategory, setAssistantSubCategory] = useState<AssistantSubCategory>('all');
 
   const maxLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { hoveredExpert, tipPos, showTip, hideTip } = useHoverExpertTip();
@@ -2041,50 +2039,6 @@ export function ExpertSelectionPanel({
                 );
               })}
             </motion.div>
-          ) : mainMode === 'assistant' && !showPlayerBg ? (
-            <motion.div
-              key="assistant-subtabs"
-              className="flex items-center"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 40 }}
-              transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <button
-                onClick={() => handleMainModeChange('general')}
-                disabled={isDiscussing || transitionPhase !== 0}
-                className="flex items-center gap-1 px-2 py-[3px] rounded-full text-[10px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-800 transition-all"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                <span>돌아가기</span>
-              </button>
-              <div className="w-px h-3.5 bg-slate-200 mx-0.5" />
-              {ASSISTANT_SUB_CATEGORIES.map(t => {
-                const isSubActive = assistantSubCategory === t.key;
-                return (
-                  <button
-                    key={t.key}
-                    onClick={isSubActive ? undefined : () => setAssistantSubCategory(t.key)}
-                    disabled={isDiscussing}
-                    className={cn(
-                      'relative px-3 py-[2px] rounded-full text-[11px] tracking-tight transition-colors duration-200',
-                      isSubActive
-                        ? 'text-white font-semibold'
-                        : 'text-slate-600 font-medium hover:text-slate-900'
-                    )}
-                  >
-                    {isSubActive && (
-                      <motion.div
-                        layoutId="assistant-tab-indicator"
-                        className="absolute inset-0 bg-indigo-500 rounded-full shadow-sm"
-                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                      />
-                    )}
-                    <span className="relative z-10">{t.label}</span>
-                  </button>
-                );
-              })}
-            </motion.div>
           ) : (
             <motion.div
               key="main-tabs"
@@ -2123,12 +2077,14 @@ export function ExpertSelectionPanel({
 
       {/* ── Assistant Mode ── */}
       {mainMode === 'assistant' && (
+        <div className="mt-2.5" />
+      )}
+      {mainMode === 'assistant' && (
         <AssistantCardsPanel
           selectedCardId={selectedAssistantCardId}
           onSelectCard={(cardId) => onAssistantCardChange?.(cardId)}
           onSubmitAssistant={(cardId, question) => onAssistantSubmit?.(cardId, question)}
           isDiscussing={isDiscussing}
-          activeCategory={assistantSubCategory}
         />
       )}
 

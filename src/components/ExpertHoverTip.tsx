@@ -137,7 +137,7 @@ export function ExpertHoverTip({ expert, position }: ExpertHoverTipProps) {
             })}
           />
 
-          <div className="px-3 pt-1.5 pb-2 text-center">
+          <div className="px-3 pt-1 pb-0.5 text-center">
             <p className="text-[10px] text-slate-300 leading-relaxed">{expert.description}</p>
           </div>
 
@@ -148,21 +148,25 @@ export function ExpertHoverTip({ expert, position }: ExpertHoverTipProps) {
           {!expert.abilities && (
             <>
               {expert.quote && (
-                <div className="px-3 pb-1.5 text-center">
+                <div className="px-3 pb-1 text-center">
                   <p className="text-[9px] text-amber-300 font-medium leading-tight">"{expert.quote}"</p>
                 </div>
               )}
               {expert.sampleQuestions && expert.sampleQuestions.length > 0 && (
-                <div className="mx-3 mb-3 mt-0.5 relative">
-                  <div className="rounded-lg border border-white/15 bg-white/[0.02] pt-2 pb-1.5 px-2.5">
-                    <span className="absolute -top-[5px] left-1/2 -translate-x-1/2 px-1.5 text-[7px] text-slate-400 tracking-wider font-medium" style={{ backgroundColor: '#1a2030' }}>
-                      추천 질문
-                    </span>
+                <div className="mx-3 mb-3 mt-1 relative">
+                  {/* Box with no top border */}
+                  <div className="rounded-lg border border-white/15 border-t-0 bg-white/[0.03] pt-3.5 pb-1.5 px-2.5">
                     {expert.sampleQuestions.map((question, index) => (
-                      <p key={index} className="text-[9px] text-slate-300 text-center leading-normal py-1 truncate">
+                      <p key={index} className="text-[10px] text-slate-300 text-center leading-normal py-1 truncate">
                         {question}
                       </p>
                     ))}
+                  </div>
+                  {/* Top border with label: ----<추천 질문>---- */}
+                  <div className="absolute top-0 left-0 right-0 flex items-center">
+                    <div className="flex-1 h-px bg-white/15 rounded-tl-lg" />
+                    <span className="px-1.5 text-[9px] text-slate-400 tracking-wider font-medium -translate-y-[1px]">&lt;추천 질문&gt;</span>
+                    <div className="flex-1 h-px bg-white/15 rounded-tr-lg" />
                   </div>
                 </div>
               )}
