@@ -1421,37 +1421,37 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
         id: 'medical', name: 'Medical Expert', nameKo: '의학 전문가', icon: '⚕️', color: 'red', avatarUrl: '/logos/specialist/medical.png', category: 'specialist', subCategory: '의료·심리', description: '질병·진단·치료 전문가',
         quote: '증상 뒤에 숨은 원인을 추적한다',
-        sampleQuestions: ['이 증상 감별진단이 뭐야?', 'CT와 MRI 뭘 찍어야 해?', '이 약 병용투여 괜찮아?'],
+        sampleQuestions: ['이 증상에서 먼저 볼 신호를 정리해줘', '병원 가기 전 기록할 내용을 알려줘', '검사 결과를 쉬운 말로 설명해줘'],
     },
     {
         id: 'psychology', name: 'Psychology Expert', nameKo: '심리학 전문가', icon: '🎭', color: 'purple', avatarUrl: '/logos/specialist/psychology.png', category: 'specialist', subCategory: '의료·심리', description: '인지·행동·임상심리 전문가',
         quote: '보이지 않는 상처가 가장 깊다',
-        sampleQuestions: ['애착유형이 연애에 영향줘?', '인지왜곡 교정법이 뭐야?', 'PTSD 자가진단 가능해?'],
+        sampleQuestions: ['요즘 감정 흐름을 같이 정리해줘', '이 스트레스의 원인을 구조적으로 봐줘', '관계에서 반복되는 패턴을 짚어줘'],
     },
     {
         id: 'legal', name: 'Legal Expert', nameKo: '법학 전문가', icon: '⚖️', color: 'amber', avatarUrl: '/logos/specialist/legal.png', category: 'specialist', subCategory: '법률', description: '법리·판례·규제 전문가',
         quote: '법은 해석하는 자의 무기다',
-        sampleQuestions: ['이 계약 독소조항 있어?', '내용증명 효력 있나?', '소멸시효 아직 안 지났나?'],
+        sampleQuestions: ['이 문서에서 위험한 조항만 짚어줘', '지금 상황이 법적으로 문제인지 봐줘', '대응 전에 준비할 기록을 정리해줘'],
     },
     {
         id: 'finance', name: 'Finance Expert', nameKo: '금융 전문가', icon: '💰', color: 'emerald', avatarUrl: '/logos/specialist/finance.png', category: 'specialist', subCategory: '경제·금융', description: '자산운용·리스크 전문가',
         quote: '불확실성을 계산하는 것이 투자다',
-        sampleQuestions: ['ETF와 펀드 뭐가 나아?', '환헤지 꼭 해야 하나?', 'PER 몇 배면 고평가야?'],
+        sampleQuestions: ['이 선택의 재무 리스크를 봐줘', '현금흐름 관점에서 우선순위를 정해줘', '숫자만 보고도 이상 신호를 찾는 법을 알려줘'],
     },
     {
         id: 'history', name: 'History Expert', nameKo: '역사학 전문가', icon: '📕', color: 'orange', avatarUrl: '/logos/specialist/history.png', category: 'specialist', subCategory: '역사·철학', description: '문명사·사료비판 전문가',
         quote: '기록되지 않은 역사는 반복된다',
-        sampleQuestions: ['고려가 몽골에 왜 항복했나?', '산업혁명 왜 영국에서 시작?', '5·18의 역사적 의의는?'],
+        sampleQuestions: ['이 상황과 비슷한 역사 사례를 알려줘', '왜 이런 흐름이 반복되는지 설명해줘', '현재 이슈를 시대 흐름 속에서 해석해줘'],
     },
     {
         id: 'philosophy', name: 'Philosophy Expert', nameKo: '철학 전문가', icon: '🏛️', color: 'teal', avatarUrl: '/logos/specialist/philosophy.png', category: 'specialist', subCategory: '역사·철학', description: '논리·윤리·형이상학 전문가',
         quote: '의심이 끝나는 곳에서 사유가 시작된다',
-        sampleQuestions: ['트롤리 딜레마 답이 있나?', '실존주의 핵심이 뭐야?', '공리주의 한계는 뭐야?'],
+        sampleQuestions: ['이 주장에 숨어 있는 전제를 찾아줘', '가치 충돌이 어디서 생기는지 설명해줘', '찬반을 철학적으로 나눠서 정리해줘'],
     },
     {
         id: 'education', name: 'Education Expert', nameKo: '교육학 전문가', icon: '📖', color: 'blue', avatarUrl: '/logos/specialist/education.png', category: 'specialist', subCategory: '사회·교육', description: '교육과정·학습설계 전문가',
         quote: '가르침은 불꽃을 지피는 일이다',
-        sampleQuestions: ['거꾸로 교실 효과 있나?', '형성평가 어떻게 해야 해?', '자기주도학습 가능한 나이?'],
+        sampleQuestions: ['이 주제를 입문자용으로 설명해줘', '배우는 순서를 단계별로 짜줘', '헷갈리기 쉬운 개념 차이를 정리해줘'],
     },
     {
         id: 'economics', name: 'Economics Expert', nameKo: '경제학 전문가', icon: '📊', color: 'emerald', avatarUrl: '/logos/specialist/economics.png', category: 'specialist', subCategory: '경제·금융', description: '거시·미시 경제분석 전문가',
@@ -1475,8 +1475,8 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     },
     {
         id: 'marketing', name: 'Marketing Expert', nameKo: '마케팅 전문가', icon: '📣', color: 'pink', avatarUrl: '/logos/specialist/marketing.png', category: 'specialist', subCategory: '경영', description: '브랜딩·시장전략 전문가',
-        quote: '고객의 언어로 말하라',
-        sampleQuestions: ['퍼널 분석 어떻게 해?', 'CAC 낮추는 방법 있어?', 'A/B테스트 설계법 알려줘'],
+        quote: '시장은 인식의 전쟁터다',
+        sampleQuestions: ['이 문구가 왜 약한지 짚어줘', '고객이 바로 이해할 메시지로 바꿔줘', '광고 없이도 먹히는 포인트를 찾아줘'],
     },
     {
         id: 'criminology', name: 'Criminology Expert', nameKo: '범죄학 전문가', icon: '🕵️', color: 'red', avatarUrl: '/logos/specialist/criminology.png', category: 'specialist', subCategory: '사회·교육', description: '범죄심리·수사과학 전문가',
@@ -1515,8 +1515,8 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     },
     {
         id: 'compsci', name: 'Computer Science Expert', nameKo: '컴퓨터공학 전문가', icon: '🖥️', color: 'blue', avatarUrl: '/logos/specialist/compsci.png', category: 'specialist', subCategory: '과학·기술', description: '알고리즘·시스템설계 전문가',
-        quote: '버그는 논리의 빈틈이다',
-        sampleQuestions: ['P=NP 문제 왜 중요해?', '캐시 미스 줄이는 방법?', '동시성 버그 디버깅법은?'],
+        quote: '논리의 빈틈이 곧 버그다',
+        sampleQuestions: ['이 로직을 자료구조 관점에서 봐줘', '시간 복잡도를 낮출 방법을 찾아줘', '설계를 컴퓨터공학적으로 검토해줘'],
     },
     {
         id: 'pubadmin', name: 'Public Administration Expert', nameKo: '행정학 전문가', icon: '🏢', color: 'amber', avatarUrl: '/logos/specialist/pubadmin.png', category: 'specialist', subCategory: '사회·교육', description: '공공정책·제도설계 전문가',
@@ -1542,13 +1542,13 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
         id: 'doctor', name: 'Doctor', nameKo: '의사', icon: '🩺', color: 'red', avatarUrl: '/logos/occupation/doctor.png', category: 'occupation', subCategory: '의료', description: '임상 진료 전문의',
         quote: '생명 앞에 타협은 없다',
-        sampleQuestions: ['두통 반복되면 위험한가요?', 'MRI와 CT 차이가 뭔가요?', '혈압약 평생 먹어야 하나요?'],
+        sampleQuestions: ['이 증상으로 어느 진료과를 가야 할까', '검사 결과를 쉽게 설명해줘', '진료 전에 체크할 내용을 정리해줘'],
         greeting: '어디가 불편하신가요? 증상을 알려주세요.',
     },
     {
         id: 'pharmacist', name: 'Pharmacist', nameKo: '약사', icon: '💊', color: 'emerald', avatarUrl: '/logos/occupation/pharmacist.png', category: 'occupation', subCategory: '의료', description: '약학·처방 전문가',
         quote: '치유의 마지막 조각을 건네다',
-        sampleQuestions: ['타이레놀 이부프로펜 차이?', '약 먹고 술 마시면?', '영양제 조합 추천해주세요'],
+        sampleQuestions: ['이 약 같이 먹어도 되는지 봐줘', '증상에 맞는 일반약 선택 기준을 알려줘', '복용 시간과 주의점을 정리해줘'],
     },
     {
         id: 'vet', name: 'Veterinarian', nameKo: '수의사', icon: '🐾', color: 'emerald', avatarUrl: '/logos/occupation/vet.png', category: 'occupation', subCategory: '의료', description: '동물·수의학 전문가',
@@ -1556,9 +1556,9 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['강아지 구토 원인이 뭔가요?', '고양이 중성화 시기는요?', '반려동물 건강검진 주기는?'],
     },
     {
-        id: 'lawyer', name: 'Lawyer', nameKo: '변호사', icon: '👨‍⚖️', color: 'amber', avatarUrl: '/logos/occupation/lawyer.png', category: 'occupation', subCategory: '법·경제', description: '소송·법률자문 전문가',
+        id: 'lawyer', name: 'Lawyer', nameKo: '변호사', icon: '📜', color: 'amber', avatarUrl: '/logos/occupation/lawyer.png', category: 'occupation', subCategory: '법·경제', description: '소송·법률자문 전문가',
         quote: '말과 글로 엮어낸 가장 단단한 방패',
-        sampleQuestions: ['계약서 독소조항 뭔가요?', '소송 비용 얼마나 드나요?', '전과 기록 불이익 있나요?'],
+        sampleQuestions: ['이 계약에서 위험한 부분만 짚어줘', '지금 상황이 법적으로 문제인지 봐줘', '분쟁 전에 남겨둘 기록을 알려줘'],
         greeting: '법률 관련 궁금한 점이 있으신가요?',
     },
     {
@@ -1569,7 +1569,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
         id: 'teacher', name: 'Teacher', nameKo: '교사', icon: '👨‍🏫', color: 'orange', avatarUrl: '/logos/occupation/teacher.png', category: 'occupation', subCategory: '교육·창작', description: '교육·학습 전문가',
         quote: '배움은 질문에서 시작된다',
-        sampleQuestions: ['아이 집중력 높이는 법은?', '선행학습 꼭 해야 하나요?', '수행평가 채점 기준은요?'],
+        sampleQuestions: ['이 개념을 쉬운 예시로 설명해줘', '입문자가 배우는 순서를 짜줘', '헷갈리는 포인트를 비교해서 알려줘'],
     },
     {
         id: 'artist', name: 'Artist', nameKo: '예술가', icon: '🎨', color: 'pink', avatarUrl: '/logos/occupation/artist.png', category: 'occupation', subCategory: '교육·창작', description: '예술·창작 전문가',
@@ -1579,32 +1579,32 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
         id: 'journalist', name: 'Journalist', nameKo: '기자', icon: '📰', color: 'blue', avatarUrl: '/logos/occupation/journalist.png', category: 'occupation', subCategory: '교육·창작', description: '보도·미디어 전문가',
         quote: '시대의 그림자에 조명을 켠다',
-        sampleQuestions: ['취재원 보호 왜 중요한가요?', '기사 제목 어떻게 뽑나요?', '오보 나면 어떻게 하나요?'],
+        sampleQuestions: ['이 이슈의 사실 관계만 정리해줘', '기사처럼 핵심만 짧게 써줘', '주장과 근거를 분리해서 보여줘'],
     },
     {
         id: 'designer', name: 'Designer', nameKo: '디자이너', icon: '🖌️', color: 'orange', avatarUrl: '/logos/occupation/designer.png', category: 'occupation', subCategory: '교육·창작', description: 'UX·디자인 전문가',
         quote: '쓸모에 아름다움을 입힌다',
-        sampleQuestions: ['피그마와 스케치 차이는요?', '컬러 팔레트 어떻게 잡죠?', '포트폴리오 몇 작품 필요해?'],
+        sampleQuestions: ['이 화면에서 불편한 지점을 짚어줘', '정보 구조를 더 명확하게 정리해줘', '사용자가 덜 헷갈리게 바꿔줘'],
     },
     {
         id: 'engineer', name: 'Engineer', nameKo: '엔지니어', icon: '⚙️', color: 'teal', avatarUrl: '/logos/occupation/engineer.png', category: 'occupation', subCategory: '공학·IT', description: '공학·기술 전문가',
         quote: '상상력을 현실의 뼈대로 조립한다',
-        sampleQuestions: ['안전계수 어떻게 정하나요?', '설계도면 검토 핵심은요?', '공차 기준 어떻게 잡나요?'],
+        sampleQuestions: ['이 설계가 현실적으로 가능한지 봐줘', '안정성을 높이려면 뭘 바꿔야 할까', '비용과 복잡도를 같이 따져줘'],
     },
     {
         id: 'programmer', name: 'Programmer', nameKo: '프로그래머', icon: '💻', color: 'blue', avatarUrl: '/logos/occupation/programmer.png', category: 'occupation', subCategory: '공학·IT', description: 'IT·소프트웨어 전문가',
         quote: '보이지 않는 것을 설계한다',
-        sampleQuestions: ['코드 리팩토링 기준은요?', '깃 브랜치 전략 추천은?', '기술 부채 어떻게 줄이죠?'],
+        sampleQuestions: ['이 코드에서 먼저 의심할 부분을 짚어줘', '리팩터링 순서를 단계별로 나눠줘', '기술 부채를 줄일 방향을 알려줘'],
     },
     {
         id: 'architect', name: 'Architect', nameKo: '건축가', icon: '🏗️', color: 'purple', avatarUrl: '/logos/occupation/architect.png', category: 'occupation', subCategory: '공학·IT', description: '건축·설계 전문가',
         quote: '공간이 사람을 바꾼다',
-        sampleQuestions: ['건폐율 용적률 차이는요?', '내진설계 꼭 필요한가요?', '리모델링 신축 뭐가 나을까?'],
+        sampleQuestions: ['이 공간 구성이 왜 불편한지 봐줘', '동선 중심으로 배치를 다시 짜줘', '미감과 실용성의 균형을 맞춰줘'],
     },
     {
         id: 'scientist', name: 'Scientist', nameKo: '과학자', icon: '🔬', color: 'purple', avatarUrl: '/logos/occupation/scientist.png', category: 'occupation', subCategory: '공학·IT', description: '과학·연구 전문가',
         quote: '보이는 것 너머를 묻는다',
-        sampleQuestions: ['동료 심사가 뭔가요?', '연구 윤리 왜 중요한가요?', 'p값이 정확히 뭘 뜻하죠?'],
+        sampleQuestions: ['이 주장을 실험처럼 검토해줘', '변수와 가정을 나눠서 정리해줘', '근거가 약한 부분을 찾아줘'],
     },
     {
         id: 'chef', name: 'Chef', nameKo: '요리사', icon: '👨‍🍳', color: 'red', avatarUrl: '/logos/occupation/chef.png', category: 'occupation', subCategory: '현장·기타', description: '요리·식문화 전문가',
@@ -1632,7 +1632,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['112 신고 후 출동 시간은?', '묵비권 언제 행사 가능해요?', 'CCTV 열람 어떻게 하나요?'],
     },
     {
-        id: 'soldier', name: 'Soldier', nameKo: '군인', icon: '⚔️', color: 'emerald', avatarUrl: '/logos/occupation/soldier.png', category: 'occupation', subCategory: '현장·기타', description: '군사·안보 전문가',
+        id: 'soldier', name: 'Soldier', nameKo: '군인', icon: '🪖', color: 'emerald', avatarUrl: '/logos/occupation/soldier.png', category: 'occupation', subCategory: '현장·기타', description: '군사·안보 전문가',
         quote: '평화는 거저 주어지지 않는다',
         sampleQuestions: ['복무 중 자격증 가능한가요?', '야간 행군 준비 어떻게 해?', '전투식량 실제로 맛있나요?'],
     // 법·경제 추가
@@ -1640,24 +1640,24 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
         id: 'taxadvisor', name: 'Tax Advisor', nameKo: '세무사', icon: '🧾', color: 'amber', avatarUrl: '/logos/occupation/taxadvisor.png', category: 'occupation', subCategory: '법·경제', description: '세금·절세 전문가',
         quote: '절세는 합법, 탈세는 범죄',
-        sampleQuestions: ['종소세 신고 직접 가능해요?', '경비처리 되는 기준이 뭐죠?', '부가세 환급 어떻게 받나요?'],
+        sampleQuestions: ['이 상황에서 어떤 세금이 생기는지 알려줘', '신고 전에 챙길 자료를 정리해줘', '놓치기 쉬운 세무 리스크를 짚어줘'],
     },
     {
         id: 'stocktrader', name: 'Fund Manager', nameKo: '펀드매니저', icon: '📈', color: 'blue', avatarUrl: '/logos/occupation/stocktrader.png', category: 'occupation', subCategory: '법·경제', description: '자산운용·투자 전문가',
         quote: '불확실성 속에서 가치를 찾아낸다',
-        sampleQuestions: ['채권 금리 관계가 뭔가요?', '리밸런싱 주기 어떻게 하죠?', '환헤지 꼭 해야 하나요?'],
+        sampleQuestions: ['이 종목을 매매 관점에서 봐줘', '손절 기준을 어떻게 잡아야 할까', '지금 차트에서 경계할 신호를 찾아줘'],
     // 교육·창작 추가
     },
     {
         id: 'writer', name: 'Writer', nameKo: '작가', icon: '✍️', color: 'pink', avatarUrl: '/logos/occupation/writer.png', category: 'occupation', subCategory: '교육·창작', description: '소설·에세이 집필 전문가',
         quote: '문장은 오래 남는 생각이다',
-        sampleQuestions: ['첫 소설 분량 얼마가 적당?', '복선 깔기 어떻게 하나요?', '출판사 투고 방법이 뭔가요?'],
+        sampleQuestions: ['이 문장을 더 매끄럽게 고쳐줘', '톤은 유지하고 더 또렷하게 써줘', '글 전체 흐름이 끊기는 부분을 짚어줘'],
     // 공학·IT 추가
     },
     {
         id: 'gamedev', name: 'Game Developer', nameKo: '게임개발자', icon: '🎮', color: 'emerald', avatarUrl: '/logos/occupation/gamedev.png', category: 'occupation', subCategory: '공학·IT', description: '게임개발·기획 전문가',
         quote: '모니터 너머에 새로운 우주를 짓는다',
-        sampleQuestions: ['유니티 언리얼 뭐가 나을까?', '게임 밸런싱 어떻게 잡죠?', '인디게임 수익 구조는요?'],
+        sampleQuestions: ['이 게임 기획의 코어 루프를 점검해줘', '유저가 지루해질 지점을 찾아줘', '개발 범위를 줄이며 재미를 살려줘'],
     // 현장·기타 추가
     },
     {
@@ -1678,7 +1678,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
         id: 'counselor', name: 'Counselor', nameKo: '상담사', icon: '💬', color: 'purple', avatarUrl: '/logos/occupation/counselor.png', category: 'occupation', subCategory: '의료', description: '심리상담·코칭 전문가',
         quote: '침묵 속에 숨겨진 목소리를 듣는다',
-        sampleQuestions: ['공황장애 증상이 뭔가요?', '상담 몇 회면 효과 있나요?', '부부상담 혼자 가도 되나요?'],
+        sampleQuestions: ['지금 마음을 차분하게 정리해줘', '선택지를 감정까지 포함해 비교해줘', '대화를 시작하기 좋은 표현을 알려줘'],
     },
     {
         id: 'socialworker', name: 'Social Worker', nameKo: '사회복지사', icon: '🤲', color: 'pink', avatarUrl: '/logos/occupation/socialworker.png', category: 'occupation', subCategory: '현장·기타', description: '복지·취약계층 지원 전문가',
@@ -1688,12 +1688,12 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
         id: 'diplomat', name: 'Diplomat', nameKo: '외교관', icon: '🤝', color: 'teal', avatarUrl: '/logos/occupation/diplomat.png', category: 'occupation', subCategory: '현장·기타', description: '외교·국제관계 전문가',
         quote: '부드러운 미소 뒤, 소리없는 총성',
-        sampleQuestions: ['외교관 면책특권이 뭔가요?', '통상 협상 전략이 뭔가요?', '비자 면제 협정 어떻게 해?'],
+        sampleQuestions: ['이 갈등을 완화하는 표현으로 바꿔줘', '양쪽이 받을 메시지를 각각 정리해줘', '협상에서 먼저 꺼낼 카드를 골라줘'],
     },
     {
-        id: 'judge', name: 'Judge', nameKo: '판사', icon: '⚖️', color: 'amber', avatarUrl: '/logos/occupation/judge.png', category: 'occupation', subCategory: '법·경제', description: '사법·재판 전문가',
+        id: 'judge', name: 'Judge', nameKo: '판사', icon: '👨‍⚖️', color: 'amber', avatarUrl: '/logos/occupation/judge.png', category: 'occupation', subCategory: '법·경제', description: '사법·재판 전문가',
         quote: '의심의 끝에서 진실의 무게를 잰다',
-        sampleQuestions: ['항소와 상고 차이가 뭔가요?', '양형 기준 어떻게 정하죠?', '배심원 제도 실제로 어때요?'],
+        sampleQuestions: ['양쪽 주장 중 어디가 더 약한지 봐줘', '사실과 의견을 나눠서 정리해줘', '판단에 필요한 핵심 쟁점만 추려줘'],
     },
     {
         id: 'sailor', name: 'Sailor', nameKo: '선원', icon: '⚓', color: 'blue', avatarUrl: '/logos/occupation/sailor.png', category: 'occupation', subCategory: '현장·기타', description: '해운·항해 전문가',
