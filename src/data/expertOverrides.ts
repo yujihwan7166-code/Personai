@@ -76,6 +76,15 @@ export const EXPERT_OVERRIDES: Record<string, ExpertOverride> = {
       '긴 외국어 문서를 핵심만 정리해줘',
     ]
   ),
+  lawyer: createOverride(
+    '소송·법률자문 전문가',
+    '말과 글로 엮어낸 가장 단단한 방패',
+    [
+      '이 계약에서 위험한 부분만 짚어줘',
+      '지금 상황이 법적으로 문제인지 봐줘',
+      '분쟁 전에 남겨둘 기록을 알려줘',
+    ]
+  ),
 };
 
 function normalizeOverride(expert: Expert, override: ExpertOverride): Expert {

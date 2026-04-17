@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { Sparkles, Check, Plus } from 'lucide-react';
 import { AIAbilityRadar } from './AIAbilityRadar';
+import { ExpertAvatar } from './ExpertAvatar';
 import type { Expert } from '@/types/expert';
 
 const GRADIENT_MAP: Record<string, string> = {
@@ -80,11 +81,7 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
         {/* 상단: 이름 + 설명 */}
         <div className="px-5 pt-4 pb-3 text-center space-y-1.5">
           <div className="flex items-center justify-center gap-2">
-            {expert.avatarUrl ? (
-              <img src={expert.avatarUrl} alt="" className="w-7 h-7 rounded-full" />
-            ) : (
-              <span className="text-xl">{expert.icon}</span>
-            )}
+            <ExpertAvatar expert={expert} size="sm" />
             <h3 className="text-lg font-bold tracking-tight text-white">{expert.nameKo}</h3>
           </div>
 

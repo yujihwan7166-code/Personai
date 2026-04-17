@@ -45,22 +45,22 @@ describe('agentDisplay helpers', () => {
 
     expect(strategy.type).toBe('comparison');
     expect(strategy.reasoning).toContain('GPT');
-    expect(strategy.publicPlan).toContain('비교형');
+    expect(strategy.publicPlan).toContain('비교 판정');
     expect(strategy.tasks).toHaveLength(3);
     expect(strategy.tasks.map((task) => task.label)).toEqual([
-      '비교 기준 정리',
+      '비교 기준 정렬',
       '항목별 차이 검토',
-      '상황별 추천 정리',
+      '조건별 적합도 판정',
     ]);
   });
 
   it('attaches fallback public notes without overwriting existing notes', () => {
     const tasks = attachPublicNotes([
-      createTask({ id: 't1', label: '비교 기준 정리' }),
+      createTask({ id: 't1', label: '비교 기준 정렬' }),
       createTask({ id: 't2', label: '항목별 차이 검토', publicNote: '이미 계산한 메모' }),
     ], 'comparison');
 
-    expect(tasks[0]?.publicNote).toBe('비교 축을 3개 안팎으로 확정했습니다.');
+    expect(tasks[0]?.publicNote).toBe('판단에 필요한 평가 축을 우선순위별로 정리했습니다.');
     expect(tasks[1]?.publicNote).toBe('이미 계산한 메모');
   });
 
@@ -72,21 +72,21 @@ describe('agentDisplay helpers', () => {
       strategy: {
         type: 'pros_cons',
         reasoning: '',
-        publicPlan: '찬반 기준을 나눠 본 뒤 결론을 정리합니다.',
+        publicPlan: '찬반 기준을 나눈 뒤 결론을 정리합니다.',
         publicSteps: [],
         tasks: [],
       },
       tasks: [
-        createTask({ id: 't1', label: '찬성 근거 정리', status: 'done' }),
+        createTask({ id: 't1', label: '찬성 근거 검토', status: 'done' }),
         createTask({ id: 't2', label: '반대 근거 검토', status: 'running' }),
       ],
     }));
 
     expect(presentation.agentLabel).toBe('Claude');
-    expect(presentation.intentLabel).toBe('찬반형 검토');
+    expect(presentation.intentLabel).toBe('찬반 검토');
     expect(presentation.headline).toBe('반대 근거 검토 중');
     expect(presentation.planningLabel).toContain('찬반 기준');
-    expect(presentation.reviewLabel).toContain('보강');
+    expect(presentation.reviewLabel).toContain('논리 공백');
   });
 
   it('builds completion summaries with elapsed time and task count', () => {
@@ -103,6 +103,6 @@ describe('agentDisplay helpers', () => {
     }));
 
     expect(presentation.completeLabel).toBe('Perplexity · 심층 분석 · 3단계 완료 · 4.2초');
-    expect(presentation.headline).toBe('심층 분석 정리를 마쳤습니다.');
+    expect(presentation.headline).toBe('심층 분석 절차를 완료했습니다.');
   });
 });

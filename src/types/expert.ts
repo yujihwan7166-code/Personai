@@ -975,13 +975,6 @@ const AI_ABILITIES: Record<string, AIAbilityStats> = {
   'perplexity-pro':   { coding: 75, creativity: 76, reasoning: 82, math: 72, multilingual: 82, speed: 78, costEfficiency: 55, contextWindow: 80 },
   'grok':             { coding: 85, creativity: 80, reasoning: 86, math: 82, multilingual: 75, speed: 88, costEfficiency: 72, contextWindow: 80 },
   'grok-4.2':         { coding: 88, creativity: 84, reasoning: 90, math: 86, multilingual: 78, speed: 82, costEfficiency: 60, contextWindow: 85 },
-  'auto-gpt':         { coding: 92, creativity: 90, reasoning: 93, math: 90, multilingual: 88, speed: 85, costEfficiency: 70, contextWindow: 85 },
-  'auto-gemini':      { coding: 88, creativity: 85, reasoning: 90, math: 88, multilingual: 94, speed: 95, costEfficiency: 85, contextWindow: 95 },
-  'auto-claude':      { coding: 93, creativity: 88, reasoning: 92, math: 90, multilingual: 85, speed: 75, costEfficiency: 62, contextWindow: 90 },
-  'auto-grok':        { coding: 85, creativity: 88, reasoning: 86, math: 82, multilingual: 75, speed: 90, costEfficiency: 72, contextWindow: 80 },
-  'auto-perplexity':  { coding: 72, creativity: 75, reasoning: 80, math: 70, multilingual: 78, speed: 88, costEfficiency: 80, contextWindow: 78 },
-  'auto-deepseek':    { coding: 84, creativity: 78, reasoning: 88, math: 83, multilingual: 82, speed: 80, costEfficiency: 97, contextWindow: 80 },
-  'auto-qwen':        { coding: 83, creativity: 80, reasoning: 85, math: 88, multilingual: 94, speed: 88, costEfficiency: 90, contextWindow: 85 },
   'deepseek':         { coding: 90, creativity: 78, reasoning: 88, math: 92, multilingual: 82, speed: 80, costEfficiency: 92, contextWindow: 80 },
   'deepseek-r1':      { coding: 88, creativity: 72, reasoning: 94, math: 96, multilingual: 78, speed: 65, costEfficiency: 90, contextWindow: 80 },
   'qwen':             { coding: 82, creativity: 75, reasoning: 80, math: 85, multilingual: 95, speed: 88, costEfficiency: 90, contextWindow: 78 },
@@ -1036,43 +1029,6 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['심층 분석 해줘', '복잡한 문제 풀어줘', '전문가 수준으로 답해줘'],
         greeting: 'Ancano Pro 프리미엄 어시스턴트입니다. 최상위 모델을 우선 배정해 더 깊이 있고 정확한 답변을 제공합니다. 어떤 도움이 필요하신가요?',
     },
-    {
-        id: 'auto-gpt', name: 'GPT', nameKo: 'GPT', icon: '🤖', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', openrouterModel: 'openai/gpt-4.1', description: 'OpenAI 대표 AI 모델',
-        quote: 'AI의 선구자, OpenAI',
-        sampleQuestions: ['무엇이든 물어보세요', '분석 도와줘', '글 써줘'],
-        greeting: 'OpenAI에서 개발한 GPT입니다. 추론, 코딩, 창작 등 다방면에서 뛰어난 성능을 제공합니다. 무엇이든 물어보세요!',
-    },
-    {
-        id: 'auto-claude', name: 'Claude', nameKo: 'Claude', icon: '🧡', avatarUrl: '/logos/claude.png', color: 'orange', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.6', description: 'Anthropic 대표 AI 모델',
-        quote: '안전하고 유능한 AI',
-        sampleQuestions: ['코드 리뷰해줘', '분석 부탁해', '글 다듬어줘'],
-        greeting: 'Anthropic에서 개발한 Claude입니다. 안전하고 정확한 분석에 강하며, 긴 문서도 꼼꼼하게 처리합니다. 편하게 질문해주세요!',
-    },
-    {
-        id: 'auto-gemini', name: 'Gemini', nameKo: 'Gemini', icon: '💎', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemini-2.5-flash', description: 'Google 대표 AI 모델',
-        quote: '구글이 만든 차세대 AI',
-        sampleQuestions: ['검색 도와줘', '분석해줘', '요약해줘'],
-        greeting: 'Google DeepMind에서 개발한 Gemini입니다. 빠른 응답 속도와 100만 토큰의 넓은 컨텍스트가 강점입니다. 무엇이든 물어보세요!',
-    },
-    {
-        id: 'auto-grok', name: 'Grok', nameKo: 'Grok', icon: '⚡', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', openrouterModel: 'x-ai/grok-4.1-fast', description: 'xAI 대표 AI 모델',
-        quote: '거침없는 AI, Grok',
-        sampleQuestions: ['솔직하게 답해줘', '트렌드 알려줘', '분석해줘'],
-        greeting: 'xAI에서 개발한 Grok입니다. 솔직하고 거침없는 답변이 특징이며, 실시간 정보에도 강합니다. 뭐가 궁금해?',
-    },
-    {
-        id: 'auto-perplexity', name: 'Perplexity', nameKo: 'Perplexity', icon: '🔍', avatarUrl: '/logos/perplexity.svg', color: 'pink', category: 'ai', openrouterModel: 'perplexity/sonar', description: 'Perplexity 대표 검색 AI',
-        quote: '출처와 함께 답한다',
-        sampleQuestions: ['최신 뉴스 알려줘', '검색해줘', '출처 포함 답변해줘'],
-        greeting: 'Perplexity AI에서 개발한 검색 특화 AI입니다. 모든 답변에 출처를 함께 제공해 신뢰할 수 있는 정보를 드립니다. 궁금한 걸 찾아드릴게요!',
-    },
-    {
-        id: 'auto-qwen', name: 'Qwen', nameKo: 'Qwen', icon: '🌏', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.5-flash-02-23', description: 'Alibaba 대표 AI 모델',
-        quote: '알리바바가 만든 AI',
-        sampleQuestions: ['다국어 번역해줘', '분석해줘', '코딩 도와줘'],
-        greeting: 'Alibaba에서 개발한 Qwen입니다. 다국어 처리와 코딩에 강하며, 오픈소스 기반으로 빠르게 발전하고 있습니다. 편하게 물어보세요!',
-    },
-
     // AI 챗봇
     {
         id: 'gpt', name: 'GPT-5.4', nameKo: 'GPT-5.4', icon: '🤖', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', openrouterModel: 'openai/gpt-4.1', description: 'AI 최상위 추론 모델',
@@ -1169,12 +1125,6 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         quote: '유머 없는 AI는 심심하다',
         sampleQuestions: ['최신 그록 성능 어때?', '심층 분석 해줘', '솔직한 의견 줘'],
         greeting: 'xAI에서 개발한 최신 Grok 4.2입니다. 강력한 추론 능력에 유머 감각까지 갖춘 모델로, 재미있고 깊이 있는 대화가 가능합니다. 뭐가 궁금해?',
-    },
-    {
-        id: 'auto-deepseek', name: 'DeepSeek', nameKo: 'DeepSeek', icon: '🌊', avatarUrl: '/logos/deepseek.png', color: 'purple', category: 'ai', openrouterModel: 'deepseek/deepseek-chat-v3-0324', description: 'DeepSeek 대표 AI 모델',
-        quote: '심층 분석의 대명사',
-        sampleQuestions: ['코딩 도와줘', '수학 문제 풀어줘', '분석해줘'],
-        greeting: '중국 DeepSeek에서 개발한 DeepSeek입니다. 코딩과 수학, 심층 분석에 뛰어난 성능을 자랑하는 오픈소스 모델입니다. 무엇이든 물어보세요!',
     },
     {
         id: 'deepseek', name: 'DeepSeek V3', nameKo: 'DeepSeek V3', icon: '🌊', avatarUrl: '/logos/deepseek.png', color: 'purple', category: 'ai', openrouterModel: 'deepseek/deepseek-chat-v3-0324', description: 'AI 심층분석 전문가',
@@ -1419,27 +1369,17 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
 
     // Specialists
     {
-        id: 'medical', name: 'Medical Expert', nameKo: '의학 전문가', icon: '⚕️', color: 'red', avatarUrl: '/logos/specialist/medical.png', category: 'specialist', subCategory: '의료·심리', description: '질병·진단·치료 전문가',
-        quote: '증상 뒤에 숨은 원인을 추적한다',
-        sampleQuestions: ['이 증상에서 먼저 볼 신호를 정리해줘', '병원 가기 전 기록할 내용을 알려줘', '검사 결과를 쉬운 말로 설명해줘'],
-    },
-    {
-        id: 'psychology', name: 'Psychology Expert', nameKo: '심리학 전문가', icon: '🎭', color: 'purple', avatarUrl: '/logos/specialist/psychology.png', category: 'specialist', subCategory: '의료·심리', description: '인지·행동·임상심리 전문가',
-        quote: '보이지 않는 상처가 가장 깊다',
-        sampleQuestions: ['요즘 감정 흐름을 같이 정리해줘', '이 스트레스의 원인을 구조적으로 봐줘', '관계에서 반복되는 패턴을 짚어줘'],
-    },
-    {
         id: 'legal', name: 'Legal Expert', nameKo: '법학 전문가', icon: '⚖️', color: 'amber', avatarUrl: '/logos/specialist/legal.png', category: 'specialist', subCategory: '법률', description: '법리·판례·규제 전문가',
         quote: '법은 해석하는 자의 무기다',
         sampleQuestions: ['이 문서에서 위험한 조항만 짚어줘', '지금 상황이 법적으로 문제인지 봐줘', '대응 전에 준비할 기록을 정리해줘'],
     },
     {
-        id: 'finance', name: 'Finance Expert', nameKo: '금융 전문가', icon: '💰', color: 'emerald', avatarUrl: '/logos/specialist/finance.png', category: 'specialist', subCategory: '경제·금융', description: '자산운용·리스크 전문가',
+        id: 'finance', name: 'Finance Expert', nameKo: '금융 전문가', icon: '🏦', color: 'emerald', avatarUrl: '/logos/specialist/finance.png', category: 'specialist', subCategory: '경제·금융', description: '자산운용·리스크 전문가',
         quote: '불확실성을 계산하는 것이 투자다',
         sampleQuestions: ['이 선택의 재무 리스크를 봐줘', '현금흐름 관점에서 우선순위를 정해줘', '숫자만 보고도 이상 신호를 찾는 법을 알려줘'],
     },
     {
-        id: 'history', name: 'History Expert', nameKo: '역사학 전문가', icon: '📕', color: 'orange', avatarUrl: '/logos/specialist/history.png', category: 'specialist', subCategory: '역사·철학', description: '문명사·사료비판 전문가',
+        id: 'history', name: 'History Expert', nameKo: '역사학 전문가', icon: '🏺', color: 'orange', avatarUrl: '/logos/specialist/history.png', category: 'specialist', subCategory: '역사·철학', description: '문명사·사료비판 전문가',
         quote: '기록되지 않은 역사는 반복된다',
         sampleQuestions: ['이 상황과 비슷한 역사 사례를 알려줘', '왜 이런 흐름이 반복되는지 설명해줘', '현재 이슈를 시대 흐름 속에서 해석해줘'],
     },
@@ -1479,7 +1419,17 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['이 문구가 왜 약한지 짚어줘', '고객이 바로 이해할 메시지로 바꿔줘', '광고 없이도 먹히는 포인트를 찾아줘'],
     },
     {
-        id: 'criminology', name: 'Criminology Expert', nameKo: '범죄학 전문가', icon: '🕵️', color: 'red', avatarUrl: '/logos/specialist/criminology.png', category: 'specialist', subCategory: '사회·교육', description: '범죄심리·수사과학 전문가',
+        id: 'medical', name: 'Medical Expert', nameKo: '의학 전문가', icon: '⚕️', color: 'red', avatarUrl: '/logos/specialist/medical.png', category: 'specialist', subCategory: '의료·심리', description: '질병·진단·치료 전문가',
+        quote: '증상 뒤에 숨은 원인을 추적한다',
+        sampleQuestions: ['이 증상에서 먼저 볼 신호를 정리해줘', '병원 가기 전 기록할 내용을 알려줘', '검사 결과를 쉬운 말로 설명해줘'],
+    },
+    {
+        id: 'psychology', name: 'Psychology Expert', nameKo: '심리학 전문가', icon: '🎭', color: 'purple', avatarUrl: '/logos/specialist/psychology.png', category: 'specialist', subCategory: '의료·심리', description: '인지·행동·임상심리 전문가',
+        quote: '보이지 않는 상처가 가장 깊다',
+        sampleQuestions: ['요즘 감정 흐름을 같이 정리해줘', '이 스트레스의 원인을 구조적으로 봐줘', '관계에서 반복되는 패턴을 짚어줘'],
+    },
+    {
+        id: 'criminology', name: 'Criminology Expert', nameKo: '범죄학 전문가', icon: '🔍', color: 'red', avatarUrl: '/logos/specialist/criminology.png', category: 'specialist', subCategory: '사회·교육', description: '범죄심리·수사과학 전문가',
         quote: '흔적은 지워도 패턴은 남는다',
         sampleQuestions: ['프로파일링 신뢰도 높아?', '재범률 낮추는 핵심은?', '묻지마 범죄 예측 가능해?'],
     },
@@ -1509,7 +1459,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['탄소포집 기술 실효성 있나?', '생물다양성 왜 중요해?', '그린워싱 어떻게 구별해?'],
     },
     {
-        id: 'theology', name: 'Theology Expert', nameKo: '신학/종교학 전문가', icon: '🛐', color: 'purple', avatarUrl: '/logos/specialist/theology.png', category: 'specialist', subCategory: '역사·철학', description: '신학·종교학 전문가',
+        id: 'theology', name: 'Theology Expert', nameKo: '신학/종교학 전문가', icon: '🕯️', color: 'purple', avatarUrl: '/logos/specialist/theology.png', category: 'specialist', subCategory: '역사·철학', description: '신학·종교학 전문가',
         quote: '경전은 해석을 요구한다',
         sampleQuestions: ['삼위일체 교리 핵심은?', '종교다원주의 문제점은?', '악의 문제 신학적 답은?'],
     },
@@ -1524,7 +1474,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['성과급제 공무원에 맞나?', '민관협력 실패 원인은?', '규제샌드박스 효과 있어?'],
     },
     {
-        id: 'military', name: 'Military Expert', nameKo: '군사 전문가', icon: '🎖️', color: 'emerald', avatarUrl: '/logos/specialist/military.png', category: 'specialist', subCategory: '사회·교육', description: '군사전략·안보·지정학 전문가',
+        id: 'military', name: 'Military Expert', nameKo: '군사 전문가', icon: '♟️', color: 'emerald', avatarUrl: '/logos/specialist/military.png', category: 'specialist', subCategory: '사회·교육', description: '군사전략·안보·지정학 전문가',
         quote: '전략은 보급선이 결정한다',
         sampleQuestions: ['비대칭전력 운용법은?', '사이버전 대비 어떻게 해?', '징병제 모병제 뭐가 나아?'],
     },
@@ -1556,13 +1506,13 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['강아지 구토 원인이 뭔가요?', '고양이 중성화 시기는요?', '반려동물 건강검진 주기는?'],
     },
     {
-        id: 'lawyer', name: 'Lawyer', nameKo: '변호사', icon: '📜', color: 'amber', avatarUrl: '/logos/occupation/lawyer.png', category: 'occupation', subCategory: '법·경제', description: '소송·법률자문 전문가',
+        id: 'lawyer', name: 'Lawyer', nameKo: '변호사', icon: '🗂️', color: 'amber', avatarUrl: '/logos/occupation/lawyer.png', category: 'occupation', subCategory: '법·경제', description: '소송·법률자문 전문가',
         quote: '말과 글로 엮어낸 가장 단단한 방패',
         sampleQuestions: ['이 계약에서 위험한 부분만 짚어줘', '지금 상황이 법적으로 문제인지 봐줘', '분쟁 전에 남겨둘 기록을 알려줘'],
         greeting: '법률 관련 궁금한 점이 있으신가요?',
     },
     {
-        id: 'accountant', name: 'Accountant', nameKo: '회계사', icon: '🧾', color: 'blue', avatarUrl: '/logos/occupation/accountant.png', category: 'occupation', subCategory: '법·경제', description: '회계·세무 전문가',
+        id: 'accountant', name: 'Accountant', nameKo: '회계사', icon: '📑', color: 'blue', avatarUrl: '/logos/occupation/accountant.png', category: 'occupation', subCategory: '법·경제', description: '회계·세무 전문가',
         quote: '숫자는 결코 거짓말을 하지 않는다',
         sampleQuestions: ['감가상각이 정확히 뭔가요?', '매출과 이익 차이는요?', '세무조사 어떻게 대비하죠?'],
     },
@@ -1612,7 +1562,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['스테이크 미디엄 굽는 시간?', '칼 가는 주기가 어떻게 돼?', '육수 맛내기 핵심 비법은?'],
     },
     {
-        id: 'pilot', name: 'Pilot', nameKo: '파일럿', icon: '✈️', color: 'teal', avatarUrl: '/logos/occupation/pilot.png', category: 'occupation', subCategory: '현장·기타', description: '항공·운항 전문가',
+        id: 'pilot', name: 'Pilot', nameKo: '파일럿', icon: '🧑‍✈️', color: 'teal', avatarUrl: '/logos/occupation/pilot.png', category: 'occupation', subCategory: '현장·기타', description: '항공·운항 전문가',
         quote: '하늘에도 길은 있다',
         sampleQuestions: ['난기류 만나면 어떻게 하죠?', '자동착륙 실제로 쓰나요?', '비행 전 체크리스트 몇 개?'],
     },
@@ -1638,7 +1588,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     // 법·경제 추가
     },
     {
-        id: 'taxadvisor', name: 'Tax Advisor', nameKo: '세무사', icon: '🧾', color: 'amber', avatarUrl: '/logos/occupation/taxadvisor.png', category: 'occupation', subCategory: '법·경제', description: '세금·절세 전문가',
+        id: 'taxadvisor', name: 'Tax Advisor', nameKo: '세무사', icon: '💸', color: 'amber', avatarUrl: '/logos/occupation/taxadvisor.png', category: 'occupation', subCategory: '법·경제', description: '세금·절세 전문가',
         quote: '절세는 합법, 탈세는 범죄',
         sampleQuestions: ['이 상황에서 어떤 세금이 생기는지 알려줘', '신고 전에 챙길 자료를 정리해줘', '놓치기 쉬운 세무 리스크를 짚어줘'],
     },
@@ -1681,7 +1631,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['지금 마음을 차분하게 정리해줘', '선택지를 감정까지 포함해 비교해줘', '대화를 시작하기 좋은 표현을 알려줘'],
     },
     {
-        id: 'socialworker', name: 'Social Worker', nameKo: '사회복지사', icon: '🤲', color: 'pink', avatarUrl: '/logos/occupation/socialworker.png', category: 'occupation', subCategory: '현장·기타', description: '복지·취약계층 지원 전문가',
+        id: 'socialworker', name: 'Social Worker', nameKo: '사회복지사', icon: '🫂', color: 'pink', avatarUrl: '/logos/occupation/socialworker.png', category: 'occupation', subCategory: '현장·기타', description: '복지·취약계층 지원 전문가',
         quote: '삶의 가장 가까운 곳을 살핀다',
         sampleQuestions: ['긴급복지 신청 자격은요?', '장애등급 판정 어떻게 해?', '독거노인 지원제도 있나요?'],
     },
@@ -1691,7 +1641,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['이 갈등을 완화하는 표현으로 바꿔줘', '양쪽이 받을 메시지를 각각 정리해줘', '협상에서 먼저 꺼낼 카드를 골라줘'],
     },
     {
-        id: 'judge', name: 'Judge', nameKo: '판사', icon: '👨‍⚖️', color: 'amber', avatarUrl: '/logos/occupation/judge.png', category: 'occupation', subCategory: '법·경제', description: '사법·재판 전문가',
+        id: 'judge', name: 'Judge', nameKo: '판사', icon: '🧑‍⚖️', color: 'amber', avatarUrl: '/logos/occupation/judge.png', category: 'occupation', subCategory: '법·경제', description: '사법·재판 전문가',
         quote: '의심의 끝에서 진실의 무게를 잰다',
         sampleQuestions: ['양쪽 주장 중 어디가 더 약한지 봐줘', '사실과 의견을 나눠서 정리해줘', '판단에 필요한 핵심 쟁점만 추려줘'],
     },
@@ -1706,7 +1656,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['워킹 연습 어떻게 하나요?', '오디션 포트폴리오 구성은?', '체형 관리 식단이 뭔가요?'],
     },
     {
-        id: 'flightcrew', name: 'Flight Attendant', nameKo: '승무원', icon: '🛫', color: 'blue', avatarUrl: '/logos/occupation/flightcrew.png', category: 'occupation', subCategory: '현장·기타', description: '항공·서비스 전문가',
+        id: 'flightcrew', name: 'Flight Attendant', nameKo: '승무원', icon: '✈️', color: 'blue', avatarUrl: '/logos/occupation/flightcrew.png', category: 'occupation', subCategory: '현장·기타', description: '항공·서비스 전문가',
         quote: '하늘을 나는 가장 친절한 미소',
         sampleQuestions: ['기내 응급환자 어떻게 해요?', '시차 적응 어떻게 하나요?', '기내식 메뉴 누가 정하나요?'],
     },
@@ -1744,16 +1694,6 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         id: 'sommelier', name: 'Sommelier', nameKo: '소믈리에', icon: '🍷', color: 'red', avatarUrl: '/logos/occupation/sommelier.png', category: 'occupation', subCategory: '현장·기타', description: '와인·음료 전문가',
         quote: '한 잔의 와인에서 지나간 계절을 읽는다',
         sampleQuestions: ['디캔팅 꼭 해야 하나요?', '빈티지별 맛 차이가 큰가요?', '소비뇽 블랑 어울리는 음식?'],
-    },
-    {
-        id: 'president', name: 'President', nameKo: '대통령', icon: '🏛️', color: 'amber', avatarUrl: '/logos/occupation/president.png', category: 'occupation', subCategory: '현장·기타', description: '국가 통치·정책 전문가',
-        quote: '권력의 무게는 책임의 크기와 같다',
-        sampleQuestions: ['거부권 행사 기준이 뭔가요?', '국무회의 어떻게 진행되나?', '대통령 임기 중 탄핵 절차?'],
-    },
-    {
-        id: 'lawmaker', name: 'Lawmaker', nameKo: '국회의원', icon: '🏢', color: 'blue', avatarUrl: '/logos/occupation/lawmaker.png', category: 'occupation', subCategory: '현장·기타', description: '입법·정치 전문가',
-        quote: '목소리 없는 자들의 목소리를 대변한다',
-        sampleQuestions: ['상임위원회 역할이 뭔가요?', '국정감사 어떻게 진행되죠?', '의원입법 발의 절차는요?'],
     },
     {
         id: 'detective', name: 'Detective', nameKo: '탐정', icon: '🔍', color: 'purple', avatarUrl: '/logos/occupation/detective.png', category: 'occupation', subCategory: '현장·기타', description: '조사·수사 전문가',
@@ -2587,7 +2527,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     // Lifestyle — 삶 스타일
     },
     {
-        id: 'minimalist', name: 'Minimalist', nameKo: '미니멀리스트', icon: '🪴', color: 'teal', category: 'lifestyle', description: '소유 최소화·본질에 집중',
+        id: 'minimalist', name: 'Minimalist', nameKo: '미니멀리스트', icon: '🪑', color: 'teal', category: 'lifestyle', description: '소유 최소화·본질에 집중',
         quote: '덜 가져야 더 자유롭다',
         sampleQuestions: ['옷장을 33벌로 줄이는 법?', '물건 비울 때 기준이 뭐예요?', '미니멀 가계부 쓰는 법은?'],
     },
@@ -2612,7 +2552,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['4% 룰로 필요 자산 계산?', '린파이어와 팻파이어 차이?', '배당 포트폴리오 어떻게 짜?'],
     },
     {
-        id: 'frugal', name: 'Frugalist', nameKo: '절약주의자', icon: '🐷', color: 'purple', category: 'lifestyle', description: '검소함·낭비 없는 삶',
+        id: 'frugal', name: 'Frugalist', nameKo: '절약주의자', icon: '🧾', color: 'purple', category: 'lifestyle', description: '검소함·낭비 없는 삶',
         quote: '안 쓰는 게 최고의 재테크',
         sampleQuestions: ['식비 월 20만원 가능해요?', '무지출 챌린지 몇 일 버텨?', '중고거래로 살림 꾸리는 법?'],
     },
@@ -2658,7 +2598,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['공동 통장 비율 어떻게 해?', '시댁 명절 첫 방문 준비?', '신혼집 가전 필수템 뭐야?'],
     },
     {
-        id: 'parent', name: 'Parent', nameKo: '학부모', icon: '👨‍👩‍👧', color: 'pink', category: 'lifestyle', description: '육아·교육·가정 중심',
+        id: 'parent', name: 'Parent', nameKo: '학부모', icon: '🧑‍🧒', color: 'pink', category: 'lifestyle', description: '육아·교육·가정 중심',
         quote: '학부모 단톡방이 전쟁터',
         sampleQuestions: ['학원비 월 얼마까지 괜찮아?', '아이 스마트폰 몇 살부터?', '담임 상담 때 뭘 물어봐?'],
     },
@@ -2839,12 +2779,12 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['여기서 부당한 대우는 뭐야?', '강자가 숨기는 진실이 있어?', '피해자를 지키려면 어떻게?'],
     },
     {
-        id: 'villain', name: 'Villain', nameKo: '빌런', icon: '💀', color: 'red', category: 'perspective', description: '냉소적이고 이기적인 악역',
+        id: 'villain', name: 'Villain', nameKo: '빌런', icon: '🦹', color: 'red', category: 'perspective', description: '냉소적이고 이기적인 악역',
         quote: '선의? 다 계산이지',
         sampleQuestions: ['이걸 이용해 먹는 방법은?', '착한 척 뒤에 숨은 욕심은?', '약점 잡아서 뒤집으려면?'],
     },
     {
-        id: 'time-traveler', name: 'Time Traveler', nameKo: '시간여행자', icon: '⏳', color: 'purple', category: 'perspective', description: '2087년에서 온 미래인',
+        id: 'time-traveler', name: 'Time Traveler', nameKo: '시간여행자', icon: '🕰️', color: 'purple', category: 'perspective', description: '2087년에서 온 미래인',
         quote: '2087년에선 이미 끝난 이야기야',
         sampleQuestions: ['미래에서 이 결정 어떻게 봐?', '60년 뒤 이 기술은 어떻게?', '타임라인이 바뀌면 어쩌지?'],
     },
@@ -4055,7 +3995,7 @@ export interface RecommendedTopic {
 export const DEBATE_RECOMMENDED_TOPICS: Record<string, RecommendedTopic[]> = {
   procon: [
     // 1:1 매치
-    { id: 'rt-0', title: '사형제는 필요한가?', temperature: 92, participation: 8210, updatedAt: '방금 전', proLabel: '경찰관', proIcon: '🚔', proId: 'police', conLabel: '변호사', conIcon: '👨‍⚖️', conId: 'lawyer' },
+    { id: 'rt-0', title: '사형제는 필요한가?', temperature: 92, participation: 8210, updatedAt: '방금 전', proLabel: '경찰관', proIcon: '🚔', proId: 'police', conLabel: '변호사', conIcon: '🗂️', conId: 'lawyer' },
     { id: 'rt-1', title: 'AI가 인간 일자리를 빼앗을까?', temperature: 87, participation: 5234, updatedAt: '1시간 전', proLabel: 'GPT-5.4', proIcon: '🤖', proId: 'gpt', conLabel: '경제학', conIcon: '📊', conId: 'economics' },
     { id: 'rt-2', title: '의료는 무상이어야 하는가?', temperature: 88, participation: 6120, updatedAt: '2시간 전', proLabel: '사회주의', proIcon: '✊', proId: 'socialist', conLabel: '자본주의', conIcon: '💰', conId: 'capitalist' },
     { id: 'rt-3', title: '사교육 전면 금지해야 하는가?', temperature: 85, participation: 4890, updatedAt: '3시간 전', proLabel: '교사', proIcon: '👨‍🏫', proId: 'teacher', conLabel: '경제학', conIcon: '📊', conId: 'economics' },
@@ -4078,7 +4018,7 @@ export const DEBATE_RECOMMENDED_TOPICS: Record<string, RecommendedTopic[]> = {
     { id: 'rt-f1', title: '10년 뒤, 어떤 직업이 살아남을까?', temperature: 85, participation: 5100, updatedAt: '방금 전', participants: [{ id: 'gpt', name: 'GPT-5.4', icon: '🤖' }, { id: 'gemini', name: 'Gemini', icon: '💎' }, { id: 'deepseek', name: 'DeepSeek', icon: '🌊' }] },
     { id: 'rt-f2', title: '요즘 MZ세대는 왜 투자에 몰릴까?', temperature: 78, participation: 4230, updatedAt: '1시간 전', participants: [{ id: 'stocktrader', name: '펀드매니저', icon: '📈' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'journalist', name: '기자', icon: '📰' }] },
     { id: 'rt-f3', title: '좋은 리더의 조건은 뭘까?', temperature: 73, participation: 3567, updatedAt: '2시간 전', participants: [{ id: 'lincoln', name: '링컨', icon: '🎩' }, { id: 'churchill', name: '처칠', icon: '🇬🇧' }, { id: 'napoleon', name: '나폴레옹', icon: '⚔️' }] },
-    { id: 'rt-f4', title: '초고령사회, 우리는 뭘 준비해야 할까?', temperature: 76, participation: 3890, updatedAt: '3시간 전', participants: [{ id: 'doctor', name: '의사', icon: '🩺' }, { id: 'socialworker', name: '사회복지사', icon: '🤲' }, { id: 'economics', name: '경제학', icon: '📊' }] },
+    { id: 'rt-f4', title: '초고령사회, 우리는 뭘 준비해야 할까?', temperature: 76, participation: 3890, updatedAt: '3시간 전', participants: [{ id: 'doctor', name: '의사', icon: '🩺' }, { id: 'socialworker', name: '사회복지사', icon: '🫂' }, { id: 'economics', name: '경제학', icon: '📊' }] },
     { id: 'rt-f5', title: 'K-컨텐츠의 다음 먹거리는?', temperature: 71, participation: 3210, updatedAt: '4시간 전', participants: [{ id: 'producer', name: '프로듀서', icon: '🎬' }, { id: 'writer', name: '작가', icon: '✍️' }, { id: 'journalist', name: '기자', icon: '📰' }] },
     { id: 'rt-f6', title: 'SNS가 정신건강에 미치는 영향', temperature: 80, participation: 4670, updatedAt: '1시간 전', participants: [{ id: 'psychology', name: '심리학', icon: '🎭' }, { id: 'claude', name: 'Claude', icon: '🧡' }, { id: 'teacher', name: '교사', icon: '👨‍🏫' }] },
     { id: 'rt-f7', title: '우주 개발, 돈 낭비인가 미래 투자인가?', temperature: 74, participation: 2890, updatedAt: '5시간 전', participants: [{ id: 'astronomy', name: '천문학', icon: '🔭' }, { id: 'grok', name: 'Grok', icon: '⚡' }, { id: 'pilot', name: '파일럿', icon: '✈️' }] },
@@ -4091,7 +4031,7 @@ export const DEBATE_RECOMMENDED_TOPICS: Record<string, RecommendedTopic[]> = {
   ],
   brainstorm: [
     { id: 'rt-b1', title: '1인 가구를 위한 새로운 서비스', temperature: 82, participation: 4230, updatedAt: '방금 전', participants: [{ id: 'gpt', name: 'GPT-5.4', icon: '🤖' }, { id: 'marketing', name: '마케팅', icon: '📣' }, { id: 'designer', name: '디자이너', icon: '🖌️' }] },
-    { id: 'rt-b2', title: '시니어를 위한 AI 활용 아이디어', temperature: 76, participation: 3120, updatedAt: '1시간 전', participants: [{ id: 'claude', name: 'Claude', icon: '🧡' }, { id: 'doctor', name: '의사', icon: '🩺' }, { id: 'socialworker', name: '사회복지사', icon: '🤲' }] },
+    { id: 'rt-b2', title: '시니어를 위한 AI 활용 아이디어', temperature: 76, participation: 3120, updatedAt: '1시간 전', participants: [{ id: 'claude', name: 'Claude', icon: '🧡' }, { id: 'doctor', name: '의사', icon: '🩺' }, { id: 'socialworker', name: '사회복지사', icon: '🫂' }] },
     { id: 'rt-b3', title: '친환경 비즈니스 모델 구상', temperature: 74, participation: 2890, updatedAt: '2시간 전', participants: [{ id: 'gemini', name: 'Gemini', icon: '💎' }, { id: 'envscience', name: '환경과학', icon: '🌿' }, { id: 'marketing', name: '마케팅', icon: '📣' }] },
     { id: 'rt-b4', title: '학교 교육을 혁신할 방법', temperature: 79, participation: 3560, updatedAt: '3시간 전', participants: [{ id: 'teacher', name: '교사', icon: '👨‍🏫' }, { id: 'programmer', name: '프로그래머', icon: '💻' }, { id: 'psychology', name: '심리학', icon: '🎭' }] },
     { id: 'rt-b5', title: '로컬 크리에이터 수익화 전략', temperature: 71, participation: 2340, updatedAt: '4시간 전', participants: [{ id: 'writer', name: '작가', icon: '✍️' }, { id: 'marketing', name: '마케팅', icon: '📣' }, { id: 'grok', name: 'Grok', icon: '⚡' }] },

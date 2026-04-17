@@ -1,4 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- 십자가 (crucifix 스타일 — 가톨릭 고유의 끝이 넓어지는 십자가) -->
-  <path d="M29 8 L35 8 L35 20 L48 20 L48 26 L35 26 L35 56 L29 56 L29 26 L16 26 L16 20 L29 20 Z" fill="#7C3AED"/>
+  <path d="M24 16H40V23C40 31.4 35.6 37.8 32 41C28.4 37.8 24 31.4 24 23V16Z" stroke="#7C3AED" stroke-width="2.8" stroke-linejoin="round"/>
+  <path d="M28 41H36L39.5 50H24.5L28 41Z" stroke="#7C3AED" stroke-width="2.8" stroke-linejoin="round"/>
+  <ellipse cx="32" cy="12.5" rx="8" ry="4.5" stroke="#7C3AED" stroke-width="2.4"/>
+  <line x1="50" y1="12" x2="50" y2="28" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="44" y1="18" x2="56" y2="18" stroke="#7C3AED" stroke-width="2.8" stroke-linecap="round"/>
 </svg>

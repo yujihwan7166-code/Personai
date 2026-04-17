@@ -11,6 +11,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Mockup = lazy(() => import("./pages/Mockup"));
 
 function RouteFallback() {
   return <div className="min-h-screen bg-background" aria-hidden="true" />;
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/mockup" element={<Mockup />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

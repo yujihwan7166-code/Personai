@@ -16,6 +16,9 @@ import { buildAgentResponsePrompt } from '@/lib/prompts/agentResponsePrompt';
 import { getDefaultProgress, type ResponseProgress } from '@/lib/responseProgress';
 import type { AttachedFile } from '@/lib/fileProcessor';
 import { buildGeneralImageHistory, mockRoute, pickGeneralImageExpert, type GeneralImageHistoryMessage } from '@/lib/indexPageHelpers';
+import { getDiscussionChatVariant } from '@/lib/indexPage/chatVariant';
+import { createStreamingMessage, progressFields } from '@/lib/indexPage/messageHelpers';
+import { buildMultiResponsePlan } from '@/lib/indexPage/multiPlan';
 import {
   createGeneratedImageThumbnail,
   detectGeneralImageAspectRatio,
@@ -101,139 +104,12 @@ const DELAY_ROUTER_ANALYSIS = 1200; // ms for router analysis animation
 const DELAY_ROUTER_TRANSITION = 400; // ms for router to expert transition
 const DELAY_PROCON_START = 500; // ms before procon debate starts
 
-const SAFETY_GUARDRAIL = `\n=== 안전 규칙 (최우선) ===
-- 의료/약물/건강 관련: 캐릭터 관점에서 간단히 의견만 말하되 "실제로는 전문의와 상담하세요" 면책 문구 필수.
-- 법률 관련: 일반적 정보만 제공, "구체적 사안은 변호사와 상담하세요" 추가.
-- 자해/자살: 절대 구체적 방법 제시 금지. 자살예방상담전화 1393 안내.
-- 불법 행위 조언/개인정보 요청: 거부.
-=== 끝 ===\n`;
-
-const QUALITY_GUARDRAIL = `\n=== 답변 품질 규칙 ===
-[서론 금지]
-- "~에 대해 설명하겠습니다", "~를 살펴보겠습니다", "~에 대해 알아보겠습니다" 같은 서론 금지.
-- 첫 문장부터 핵심 주장이나 결론을 말하세요.
-
-[근거 구체성]
-- "많은 전문가들이", "일반적으로", "다양한 관점에서" 같은 모호한 표현 금지.
-- 구체적 수치, 날짜, 사례, 출처를 포함하세요.
-
-[한국어 자연스러움]
-- 번역체 금지: "그것은 ~입니다", "이는 ~를 의미합니다", "~라고 할 수 있습니다"
-- 자연스러운 종결 섞기: ~입니다, ~거든요, ~인데요, ~하죠, ~이에요
-- 같은 문장 패턴 3회 이상 반복 금지
-
-[구조화]
-- 3문장 이하: 평문. 마크다운 불필요.
-- 4~8문장: 핵심만 **볼드**.
-- 9문장 이상: ## 제목으로 구조화 필수.
-- 비교/대조: 표(table) 사용.
-- 단계/절차: 번호 목록 사용.
-
-[중복 방지]
-- 이전 발언자의 논점을 그대로 반복하지 마세요.
-- "~님 말씀처럼", "동의합니다만" 같은 빈 동조 금지.
-- 반드시 새로운 관점, 근거, 시각만 제시하세요.
-=== 끝 ===\n`;
-
-const MODE_INSTRUCTIONS: Record<string, string> = {
-  general: `\n[일반 채팅 모드]
-- 질문 길이에 비례해서 답변하세요. 짧은 질문에 장문 금지.
-- 사실 확인 질문 → 1~2문장. 분석 요청 → 구조화된 답변. 창작 → 형식에 맞게.
-- 대화하듯 자연스럽게. 백과사전이 아니라 전문가와의 대화입니다.`,
-
-  standard: `\n[심층 토론 모드]
-- 당신만의 고유한 분석 관점을 가지세요. 다른 토론자와 절대 같은 각도로 분석하지 마세요.
-- 이전 토론자의 주장 중 최소 하나에 명확히 반론하세요.
-- 반론 시 상대 주장을 정확히 인용한 후 반박하세요.
-- "저도 동의합니다만" 같은 약한 반론 금지. 확실하게 반박하세요.`,
-
-  procon: `\n[찬반 토론 모드]
-- Steelman 원칙: 자기 입장의 가장 강한 버전을 제시하세요.
-- 상대측의 가장 강한 반론을 인정한 뒤, 그럼에도 자기 입장이 맞는 이유를 설명하세요.
-- 근거 우선순위: 데이터/통계 > 연구결과 > 전문가 의견 > 논리적 추론
-- 상대방의 구체적 문장을 인용하며 반박하세요.`,
-
-  brainstorm: `\n[브레인스토밍 모드]
-- 아이디어는 WHAT이 아니라 HOW까지 포함하세요.
-- 나쁜 예: "마케팅을 강화하면 좋겠다"
-- 좋은 예: "틱톡 30초 비포/애프터 시리즈. 주 3회, 첫 달 예산 200만원, 타겟: 2030 여성"
-- 이미 나온 아이디어와 비슷하면 버리고 완전히 다른 방향을 찾으세요.`,
-
-  freetalk: `\n[자유 토론 모드]
-- 3번 중 1번은 반드시 상대 의견에 정면 반박하세요. "그건 다르게 봐야 합니다" 수준으로.
-- 동의할 때도 약점·예외·반례를 지적하세요. 빈 동의 절대 금지.
-- 이미 나온 하위 주제를 반복하지 말고, 같은 큰 주제의 다른 측면으로 확장하세요.
-- 이모지 사용 금지. 텍스트로만 소통하세요.
-- 2~3턴에 한번은 1문장 짧은 반박이나 질문만 던지세요.`,
-
-  aivsuser: `\n[AI vs 유저 모드]
-- 유저를 존중하되 절대 봐주지 마세요.
-- 유저가 한 말을 직접 인용하며 반박하세요: "당신이 ~라고 했는데, 이건 ~와 모순됩니다"
-- 유저의 논리적 약점을 정확히 파고드세요.
-- 유저가 좋은 포인트를 내면 인정하되, 바로 더 강한 반론으로 넘어가세요.`,
-};
 
 const streamExpert: StreamExpertFn = createStreamExpert({
   chatUrl: CHAT_URL,
-  safetyGuardrail: SAFETY_GUARDRAIL,
-  qualityGuardrail: QUALITY_GUARDRAIL,
+  safetyGuardrail: '',
+  qualityGuardrail: '',
 });
-
-function progressFields(progress: ResponseProgress) {
-  return {
-    responseState: progress.state,
-    progressLabel: progress.label,
-    progressDetail: progress.detail,
-  };
-}
-
-function createStreamingMessage({
-  id,
-  expertId,
-  content = '',
-  progress = getDefaultProgress('analyzing'),
-  ...rest
-}: Pick<DiscussionMessage, 'id' | 'expertId'> & Partial<DiscussionMessage> & { progress?: ResponseProgress }): DiscussionMessage {
-  return {
-    id,
-    expertId,
-    content,
-    isStreaming: true,
-    ...progressFields(progress),
-    ...rest,
-  };
-}
-
-function buildMultiResponsePlan(question: string, expertCount: number) {
-  const normalized = question.trim();
-  const isDeepPrompt = /비교|차이|전망|원인|영향|전략|분석|추천|어떻게|왜|장단점|리스크|시장|가격|유가|금리|환율/.test(normalized);
-  const isLongPrompt = normalized.length >= 90;
-
-  let maxTokens = 1200;
-  if (expertCount <= 2) {
-    maxTokens = isDeepPrompt || isLongPrompt ? 1700 : 1400;
-  } else if (expertCount === 3) {
-    maxTokens = isDeepPrompt || isLongPrompt ? 1450 : 1200;
-  } else {
-    maxTokens = isDeepPrompt || isLongPrompt ? 1200 : 1000;
-  }
-
-  return {
-    maxTokens,
-    prompt: [
-      '',
-      '',
-      '다중 관점 모드입니다.',
-      '1. 첫 문장에서 당신의 핵심 판단을 먼저 말하세요.',
-      '2. 왜 그렇게 보는지 근거와 맥락을 충분히 설명하세요.',
-      '3. 다른 AI와 겹치지 않도록 당신만의 관점이나 기준을 분명히 드러내세요.',
-      '4. 핵심만 축약하지 말고, 필요한 경우 짧은 소제목이나 bullet로 구조화하세요.',
-      expertCount <= 2
-        ? '5. 너무 짧게 끝내지 말고 최소 2개 이상 핵심 포인트를 설명하세요.'
-        : '5. 다른 참여자와 겹치지 않도록 당신의 전문 관점을 중심으로 2개 이상 포인트를 설명하세요.',
-    ].join('\n'),
-  };
-}
 
 const Index = () => {
   const { user } = useAuth();
@@ -355,7 +231,7 @@ const Index = () => {
     setDiscussionMode(mode);
     // 토론 서브모드 전환 시에도 선택 리셋
     const isDebateSwitch = prevMain === 'debate' && nextMain === 'debate' && discussionMode !== mode;
-    setSelectedExpertIds(isDebateSwitch ? [] : nextMain === prevMain ? selectedExpertIds : nextMain === 'general' ? ['gpt'] : nextMain === 'multi' ? ['gpt'] : []);
+    setSelectedExpertIds(isDebateSwitch ? [] : nextMain === prevMain ? selectedExpertIds : nextMain === 'general' ? ['gemini-flash-lite'] : nextMain === 'multi' ? ['gemini-flash-lite'] : []);
     setProconStances({});
     setShowDebateSettings(false);
     setSelectedFramework(null);
@@ -409,8 +285,8 @@ const Index = () => {
       id: replyId,
       expertId: expert.id,
       progress: getDefaultProgress('analyzing', {
-        label: '반박 내용을 검토하고 답변을 준비하고 있어요.',
-        detail: '이전 주장과 새 반박을 함께 비교하고 있습니다.',
+        label: '반박 논점을 검토하고 응답 구조를 설계하고 있습니다.',
+        detail: '이전 주장과 새 반박의 논리적 충돌 지점을 비교하고 있습니다.',
       }),
     })]);
 
@@ -889,7 +765,7 @@ const Index = () => {
     setCurrentQuestion('');
     setCurrentQuestionDisplay('');
     setProconDebateTopic('');
-    setSelectedExpertIds(['gpt']);
+    setSelectedExpertIds(['gemini-flash-lite']);
     setProconStances({});
     setSimChoices([]);
     setSimPhaseIndex(0);
@@ -1037,9 +913,9 @@ ${role.focus} 관점에서 반응하세요.
         setMultiView('overview');
         setMultiActiveTab(null);
       }
-      // 플레이어 모드는 GPT 자동 선택
+      // 플레이어 모드는 Gemini 2.5 Flash Lite 자동 선택
       const useIds = useMode === 'player'
-        ? ['gpt']
+        ? ['gemini-flash-lite']
       : (overrideExpertIds || selectedExpertIds);
     const discussionExperts = experts.filter((e) => useIds.includes(e.id));
     if (discussionExperts.length < 1 && useMode !== 'stakeholder' && useMode !== 'aivsuser' && useMode !== 'assistant') return;
@@ -1231,8 +1107,8 @@ ${difficultyDesc}
           simRoleName: aiExpert.nameKo,
           timestamp: Date.now(),
           progress: getDefaultProgress('analyzing', {
-            label: '첫 반론 포인트를 정리하고 있어요.',
-            detail: '유저 주장에 바로 대응할 핵심 논점을 고르고 있습니다.',
+            label: '초기 반론의 핵심 논거를 정렬하고 있습니다.',
+            detail: '사용자 주장에 즉시 대응할 주요 쟁점을 선별하고 있습니다.',
           }),
         })]);
         setActiveExpertId(aiExpert.id);
@@ -1352,6 +1228,24 @@ ${difficultyDesc}
         }]);
       }
 
+      const preflightExpert = useMode === 'general' && discussionExperts.length === 1
+        ? discussionExperts[0]
+        : undefined;
+      const preflightAgentMessageId = preflightExpert && isManagedAutoAgent(preflightExpert.id)
+        ? `${preflightExpert.id}-preflight-${Date.now()}`
+        : undefined;
+
+      if (preflightExpert && preflightAgentMessageId) {
+        setMessages((prev) => [...prev, createStreamingMessage({
+          id: preflightAgentMessageId,
+          expertId: preflightExpert.id,
+          progress: getDefaultProgress('analyzing', {
+            label: `${preflightExpert.nameKo}가 요구 범위를 분석하고 있습니다.`,
+            detail: '명확화 필요 여부와 응답 전략을 사전 점검하고 있습니다.',
+          }),
+        })]);
+      }
+
       // 단일 AI만: 명확화 질문 (첫 질문, 스킵 안 된 경우만) — player 모드는 스킵
       const expert0 = discussionExperts[0];
       if (expert0 && !skipClarifyRef.current && clarifyAttemptsRef.current < MAX_CLARIFY_ATTEMPTS && useMode !== 'player') {
@@ -1383,6 +1277,9 @@ ${difficultyDesc}
             // 부분 답변이 있으면 AI 메시지로 먼저 표시
             if (clarifyData.partialAnswer) {
               setMessages(prev => [...prev, { id: `partial-${Date.now()}`, expertId: expert0.id, content: clarifyData.partialAnswer }]);
+            }
+            if (preflightAgentMessageId) {
+              setMessages(prev => prev.filter((message) => message.id !== preflightAgentMessageId));
             }
             // 명확화 질문을 거친 뒤에도 실제 답변 요청 시 첨부가 유지되도록 보존
             pendingFilesRef.current = pendingFiles;
@@ -1446,6 +1343,7 @@ ${difficultyDesc}
             loadAgentPipeline,
             safetyGuardrail: SAFETY_GUARDRAIL,
             qualityGuardrail: QUALITY_GUARDRAIL,
+            placeholderMessageId: expert.id === preflightExpert?.id ? preflightAgentMessageId : undefined,
           });
 
           if (autoRunResult.aborted) {
@@ -1549,8 +1447,8 @@ ${difficultyDesc}
           expertId: expert.id,
           round: 'initial',
           progress: getDefaultProgress('queued', {
-            label: '질문을 각 AI 관점으로 배분하고 있어요.',
-            detail: '곧 모든 AI가 동시에 자신의 관점에서 답변을 시작합니다.',
+            label: '질문을 AI별 분석 관점으로 배분하고 있습니다.',
+            detail: '각 AI가 담당할 판단 축과 응답 범위를 준비하고 있습니다.',
           }),
         })),
       ]);
@@ -1581,64 +1479,6 @@ ${difficultyDesc}
         }
         allResponses.push({ name: expert.nameKo, content: fullContent });
         await new Promise((r) => setTimeout(r, DELAY_BETWEEN_EXPERTS));
-      }
-
-      if (!shouldStop() && allResponses.length >= 2) {
-        const summaryId = `multi-summary-${Date.now()}`;
-        setMessages((prev) => [...prev, createStreamingMessage({
-          id: summaryId,
-          expertId: SUMMARIZER_EXPERT.id,
-          isSummary: true,
-          progress: getDefaultProgress('finalizing', {
-            label: '다중 AI 의견을 한 번에 정리하고 있어요.',
-            detail: '공통점, 차이점, 추천 결론을 짧게 묶고 있습니다.',
-          }),
-        })]);
-
-        let summaryContent = '';
-        try {
-          const summaryPrompt = `당신은 여러 AI의 답변을 정리하는 큐레이터입니다.
-질문: ${question}
-
-각 AI 답변:
-${allResponses.map((response) => `- ${response.name}: ${response.content}`).join('\n')}
-
-다음 형식으로 한국어 요약을 작성하세요.
-## 한눈에 보기
-- 공통 판단
-- 갈리는 포인트
-
-## AI별 핵심 차이
-- 각 AI의 고유한 관점 1줄씩
-
-## 추천 결론
-- 사용자가 바로 판단할 수 있는 결론`;
-
-          await streamExpert({
-            question: summaryPrompt,
-            expert: {
-              ...SUMMARIZER_EXPERT,
-              systemPrompt: '당신은 여러 AI의 차이와 공통점을 구조화해 정리하는 큐레이터입니다. 짧지 않게, 읽기 쉽게 정리하세요.',
-            },
-            previousResponses: [],
-            round: 'summary',
-            maxTokens: 1600,
-            onProgress: (progress) => updateMessageProgress(summaryId, progress),
-            onDelta: (chunk) => {
-              summaryContent += chunk;
-              setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent } : m));
-            },
-            onDone: () => {
-              setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, isStreaming: false, responseState: 'complete' } : m));
-            },
-            signal: controller.signal,
-          });
-        } catch (err) {
-          if ((err as Error).name !== 'AbortError') {
-            summaryContent = `⚠️ ${err instanceof Error ? err.message : '요약을 받아오지 못했어요.'}`;
-            setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
-          }
-        }
       }
 
       setActiveExpertId(undefined);
@@ -2000,8 +1840,8 @@ CRITICAL: Output ONLY the JSON object starting with { and ending with }. No expl
               isSummary: true,
               round: fw.id as DiscussionRound,
               progress: getDefaultProgress('finalizing', {
-                label: '아이디어를 하나의 결과로 정리하고 있어요.',
-                detail: '프레임워크별 인사이트를 묶어 최종 구조를 만들고 있습니다.',
+                label: '아이디어 검토 결과를 최종 산출물로 구조화하고 있습니다.',
+                detail: '프레임워크별 인사이트를 통합해 결과 구조를 확정하고 있습니다.',
               }),
             }),
           ]);
@@ -2250,8 +2090,8 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
             id: msgId,
             expertId: expert.id,
             progress: getDefaultProgress('analyzing', {
-              label: '자유 토론 발언을 준비하고 있어요.',
-              detail: '직전 대화를 보고 이번 턴의 핵심 포인트를 고르고 있습니다.',
+              label: '자유 토론 발언의 논점과 근거를 선별하고 있습니다.',
+              detail: '직전 대화 맥락에서 이번 턴의 핵심 쟁점을 추출하고 있습니다.',
             }),
           })]);
           setActiveExpertId(expert.id);
@@ -2310,8 +2150,8 @@ ${freetalkToneMap[debateSettings.freetalkTone || 'natural'] || freetalkToneMap.n
           expertId: SUMMARIZER_EXPERT.id,
           isSummary: true,
           progress: getDefaultProgress('finalizing', {
-            label: '자유 토론을 한눈에 정리하고 있어요.',
-            detail: '핵심 결론과 주요 쟁점을 다시 묶고 있습니다.',
+            label: '자유 토론 흐름을 종합 요약으로 정리하고 있습니다.',
+            detail: '핵심 결론과 주요 쟁점을 계층화해 재구성하고 있습니다.',
           }),
         })]);
         let summaryContent = '';
@@ -2454,8 +2294,8 @@ Rules:
           simRoleName: firstRole.name,
           simRoleIcon: firstRole.icon,
           progress: getDefaultProgress('analyzing', {
-            label: '첫 질문을 자연스럽게 준비하고 있어요.',
-            detail: '상황 설정과 제공된 정보를 보고 첫 턴의 방향을 잡고 있습니다.',
+            label: '초기 질문의 맥락과 개입 방향을 설정하고 있습니다.',
+            detail: '상황 설정과 제공 정보를 바탕으로 첫 턴의 질문 전략을 정리하고 있습니다.',
           }),
         })]);
         setActiveExpertId(firstExpert.id);
@@ -2562,8 +2402,8 @@ ${infoInstruction}
         expertId: SUMMARIZER_EXPERT.id,
         isSummary: true,
         progress: getDefaultProgress('finalizing', {
-          label: '토론 전체를 하나의 답으로 정리하고 있어요.',
-          detail: '공통점과 차이를 묶어 마지막 결론을 만들고 있습니다.',
+          label: '토론 전체를 종합 결론으로 구조화하고 있습니다.',
+          detail: '공통 판단과 입장 차이를 통합해 최종 결론을 구성하고 있습니다.',
         }),
       })]);
       let summaryContent = '';
@@ -2758,23 +2598,11 @@ Rules:
   };
 
   // Mode-specific chat variant
-  const getChatVariant = (msg: DiscussionMessage): ChatVariant => {
-    const mainMode = getMainMode(discussionMode);
-    // Keep general mode aligned with DiscussionMessage's `general-card` variant.
-    // If this is changed back to `messenger`, the single-AI card design appears to "roll back".
-    if (mainMode === 'general') return isManagedAutoAgent(msg.expertId) ? 'agent-card' : 'general-card';
-    if (discussionMode === 'brainstorm') return 'postit';
-    if (discussionMode === 'hearing') return 'hearing';
-    if (discussionMode === 'expert') return 'report';
-    if (discussionMode === 'procon') {
-      // Determine pro/con from the message's expert stance
-      const expertId = msg.expertId;
-      if (proconStances[expertId] === 'pro') return 'procon-pro';
-      if (proconStances[expertId] === 'con') return 'procon-con';
-      return 'default';
-    }
-    return 'default';
-  };
+  const getChatVariant = (msg: DiscussionMessage): ChatVariant => getDiscussionChatVariant({
+    discussionMode,
+    expertId: msg.expertId,
+    proconStances,
+  });
 
   // 대화 요약 기능
   const [isSummarizing, setIsSummarizing] = useState(false);
@@ -3394,8 +3222,8 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
           simRoleName: aiExpert.nameKo,
           timestamp: Date.now(),
           progress: getDefaultProgress('analyzing', {
-            label: '유저 주장에 대한 반론을 정리하고 있어요.',
-            detail: '직전 대화의 허점과 새 논점을 함께 보고 있습니다.',
+            label: '사용자 주장에 대한 반론 논거를 구성하고 있습니다.',
+            detail: '직전 대화의 취약 지점과 신규 논점을 함께 검토하고 있습니다.',
           }),
         })]);
         setActiveExpertId(aiExpert.id);
@@ -3530,7 +3358,7 @@ ${convHistory.slice(-10).map(m => `[${m.speaker}] ${m.content}`).join('\n')}
             simRoleName: role.name,
             simRoleIcon: role.icon,
             progress: getDefaultProgress('finalizing', {
-              label: '최종 판정을 정리하고 있어요.',
+              label: '최종 판정과 판단 근거를 정리하고 있습니다.',
               detail: '전체 대화를 바탕으로 역할별 결론을 정리합니다.',
             }),
           })]);
@@ -3601,8 +3429,8 @@ ${simContext ? `\n${simContext}` : ''}
             expertId: SUMMARIZER_EXPERT.id,
             isSummary: true,
             progress: getDefaultProgress('finalizing', {
-              label: '시뮬레이션 리포트를 작성하고 있어요.',
-              detail: '대화 흐름과 판정을 종합해 보고서 형태로 정리합니다.',
+              label: '시뮬레이션 리포트를 분석 문서로 작성하고 있습니다.',
+              detail: '대화 흐름과 판정을 종합해 보고서 구조로 재구성합니다.',
             }),
           })]);
           setActiveExpertId(SUMMARIZER_EXPERT.id);
@@ -3990,8 +3818,8 @@ ${direction}`;
           simRoleName: speaker1Role.name,
           simRoleIcon: speaker1Role.icon,
           progress: getDefaultProgress('analyzing', {
-            label: '상담 흐름에 맞는 반응을 준비하고 있어요.',
-            detail: '유저 답변과 역할 목표를 함께 보고 다음 질문을 정리합니다.',
+            label: '상담 흐름에 맞는 개입 방향을 설계하고 있습니다.',
+            detail: '사용자 답변과 역할 목표를 함께 검토해 다음 질문을 정리합니다.',
           }),
         })]);
         setActiveExpertId(expert1.id);
@@ -4336,8 +4164,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               expertId: SUMMARIZER_EXPERT.id,
               isSummary: true,
               progress: getDefaultProgress('finalizing', {
-                label: '상담 전체를 최종 결과물로 정리하고 있어요.',
-                detail: '대화에서 나온 구체적 표현과 판단을 보고서 구조로 묶고 있습니다.',
+                label: '상담 전체를 최종 결과물로 구조화하고 있습니다.',
+                detail: '대화에서 나온 구체적 표현과 판단을 보고서 구조로 통합하고 있습니다.',
               }),
             })]);
             setActiveExpertId(SUMMARIZER_EXPERT.id);
@@ -4410,8 +4238,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           expertId: expert.id,
           timestamp: Date.now(),
           progress: getDefaultProgress('queued', {
-            label: '후속 질문을 각 AI 관점에 맞게 준비하고 있어요.',
-            detail: '이전 대화 맥락을 다시 묶은 뒤 답변을 시작합니다.',
+            label: '후속 질문을 AI별 분석 관점에 맞게 재배분하고 있습니다.',
+            detail: '이전 대화 맥락을 압축한 뒤 응답 범위를 설정하고 있습니다.',
           }),
         })),
       ]);
@@ -4454,8 +4282,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           expertId: SUMMARIZER_EXPERT.id,
           isSummary: true,
           progress: getDefaultProgress('finalizing', {
-            label: '후속 질문에 대한 다중 AI 의견을 다시 정리하고 있어요.',
-            detail: '이번 추가 질문 기준으로 공통점과 차이를 다시 묶고 있습니다.',
+            label: '후속 질문에 대한 다중 AI 의견을 재종합하고 있습니다.',
+            detail: '추가 질문 기준으로 공통 판단과 차이점을 다시 구조화하고 있습니다.',
           }),
         })]);
 
@@ -6987,16 +6815,6 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
                   })}
                     </div>
                   </div>
-                  {/* 토론 정리 — 카드 밖, 입력창과 동일 너비 */}
-                  {messages.filter(m => m.isSummary).map(msg => {
-                    const expert = allExperts.find(e => e.id === msg.expertId);
-                    if (!expert) return null;
-                    return (
-                      <div key={msg.id} className="mt-4 px-4 sm:px-6">
-                        <DiscussionMessageCard message={msg} expert={expert} variant="default" />
-                      </div>
-                    );
-                  })}
                 </div>
               ) : activeGame ? null : (
                 /* All other modes: sequential */

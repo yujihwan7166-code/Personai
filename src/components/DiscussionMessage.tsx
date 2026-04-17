@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { DiscussionMessage as DiscussionMessageType, Expert, ROUND_LABELS } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
-import { LazyMarkdown } from './LazyMarkdown';
-import { AgentRichMarkdown } from './AgentRichMarkdown';
 import { AgentTaskStream } from './AgentTaskStream';
+import { GeneratedImageGallery } from './discussion-message/GeneratedImageGallery';
+import { MessageContent } from './discussion-message/MessageContent';
+import { ResponseProgressBanner } from './discussion-message/ResponseProgressBanner';
+import { SearchSourcesCollapsible } from './discussion-message/SearchSourcesCollapsible';
 import { isManagedAutoAgent } from '@/lib/aiAgent';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { cn } from '@/lib/utils';
-import { Copy, Check, ThumbsUp, ThumbsDown, MessageSquareReply, ChevronDown, ChevronUp, Zap, Globe, ExternalLink } from 'lucide-react';
+import { Copy, Check, ThumbsUp, Zap, Globe } from 'lucide-react';
 
 export type ChatVariant = 'default' | 'messenger' | 'general-card' | 'agent-card' | 'procon-pro' | 'procon-con' | 'postit' | 'hearing' | 'report';
 
@@ -50,7 +52,7 @@ function StreamingCursor() {
   return <span className="inline-block w-0.5 h-3.5 bg-primary/40 ml-0.5 cursor-blink rounded-full" />;
 }
 
-function ResponseProgressBanner({ message }: { message: DiscussionMessageType }) {
+function DeprecatedResponseProgressBanner({ message }: { message: DiscussionMessageType }) {
   if (message.agentState) return null;
   if (!message.isStreaming) return null;
 
@@ -77,7 +79,7 @@ function ResponseProgressBanner({ message }: { message: DiscussionMessageType })
 
 const COLLAPSE_THRESHOLD = 300; // ~9-10줄
 
-function MessageContent({
+function DeprecatedMessageContent({
   content,
   isStreaming,
   noCollapse,
@@ -123,7 +125,7 @@ function MessageContent({
   return null;
 }
 
-function GeneratedImageGallery({ message }: { message: DiscussionMessageType }) {
+function DeprecatedGeneratedImageGallery({ message }: { message: DiscussionMessageType }) {
   const generatedImages = message.generatedImages ?? [];
   if (generatedImages.length === 0) {
     return null;
@@ -160,7 +162,7 @@ function GeneratedImageGallery({ message }: { message: DiscussionMessageType }) 
   );
 }
 
-function SearchSourcesCollapsible({ sources }: { sources: { title: string; link: string }[] }) {
+function DeprecatedSearchSourcesCollapsible({ sources }: { sources: { title: string; link: string }[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2 pt-2 border-t border-slate-100">
@@ -214,6 +216,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   // ── Messenger (단일 AI) ──
   if (variant === 'general-card' || variant === 'agent-card') {
     const isAgentCard = variant === 'agent-card' || isManagedAutoAgent(expert.id);
+    const shouldRevealAgentAnswer = !isAgentCard || !message.agentState || Boolean(message.agentState.canRevealAnswer);
     return (
       <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
         <div className={cn(
@@ -235,26 +238,27 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
                 <Globe className="w-2.5 h-2.5" /> 웹 검색 반영
               </span>
             )}
-            {!message.isStreaming && message.content && (
+            {!message.isStreaming && message.content && shouldRevealAgentAnswer && (
               <CopyBtn className="ml-auto text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 sm:opacity-40 sm:group-hover:opacity-100" />
             )}
           </div>
           <div className="px-4 pb-4 pt-0">
-            {/* 에이전트 작업 스트림 */}
+            {/* 에이전트 작업 스트림 — 심층 리서치에서만 표시 */}
             {message.agentState && (
               <AgentTaskStream state={message.agentState} />
             )}
-            <ResponseProgressBanner message={message} />
-            <div className={cn(
-              'text-[13px] leading-relaxed',
-              isAgentCard
-                ? 'text-slate-700'
-                : cn(proseClasses, 'text-slate-600 prose-p:text-[13px] prose-li:text-[13px] prose-headings:text-[15px] prose-headings:font-bold prose-strong:text-slate-800')
-            )}>
-              <GeneratedImageGallery message={message} />
-              <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse renderer={isAgentCard ? 'agent-rich' : 'default'} />
-            </div>
-            {message.searchSources && message.searchSources.sources.length > 0 && !message.isStreaming && (
+            {shouldRevealAgentAnswer && (
+              <div className={cn(
+                'text-[13px] leading-relaxed',
+                isAgentCard
+                  ? 'text-slate-700'
+                  : cn(proseClasses, 'text-slate-600 prose-p:text-[13px] prose-li:text-[13px] prose-headings:text-[15px] prose-headings:font-bold prose-strong:text-slate-800')
+              )}>
+                <GeneratedImageGallery message={message} />
+                <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse renderer={isAgentCard ? 'agent-rich' : 'default'} />
+              </div>
+            )}
+            {shouldRevealAgentAnswer && message.searchSources && message.searchSources.sources.length > 0 && !message.isStreaming && (
               <SearchSourcesCollapsible sources={message.searchSources.sources} />
             )}
           </div>

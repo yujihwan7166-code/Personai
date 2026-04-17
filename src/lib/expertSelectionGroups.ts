@@ -69,8 +69,30 @@ const AI_MODEL_ORDER = [
   'command-r-plus',
 ] as const;
 
-function orderAiModels(experts: Expert[], aiAgentIds: string[]) {
-  const aiModels = experts.filter((expert) => expert.category === 'ai' && !aiAgentIds.includes(expert.id));
+/** 빠른 응답 모델 (브랜드별 가장 빠른 1개) */
+export const FAST_MODEL_IDS = [
+  'gpt-nano',
+  'gemini-flash-lite',
+  'claude-haiku',
+  'grok',
+  'perplexity',
+  'deepseek',
+  'qwen',
+] as const;
+
+/** 심층 리서치 에이전트 (ancano-pro 제외) */
+export const RESEARCH_AGENT_IDS = [
+  'auto-gpt',
+  'auto-claude',
+  'auto-gemini',
+  'auto-grok',
+  'auto-perplexity',
+  'auto-deepseek',
+  'auto-qwen',
+] as const;
+
+function orderAiModels(experts: Expert[], excludeIds: string[]) {
+  const aiModels = experts.filter((expert) => expert.category === 'ai' && !excludeIds.includes(expert.id));
   const orderedModels = AI_MODEL_ORDER
     .map((id) => aiModels.find((expert) => expert.id === id))
     .filter(Boolean) as Expert[];
@@ -94,23 +116,15 @@ export function buildExpertSelectionGroups({
     .map((id) => experts.find((expert) => expert.id === id))
     .filter(Boolean) as Expert[];
 
-  // AI 에이전트 탭 하나에 에이전트(첫줄) + 세부 모델(펼치기) 합침
-  const agentItems = aiAgentIds
-    .map((id) => experts.find((expert) => expert.id === id))
-    .filter(Boolean) as Expert[];
-  const modelItems = orderAiModels(experts, aiAgentIds);
+  // 모든 AI를 하나의 그룹으로 (출시순 정렬, ancano-pro 제외)
+  const allAiItems = orderAiModels(experts, ['ancano-pro']);
 
   return [
     { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
     {
-      cat: 'ai-agent',
-      label: 'AI 에이전트',
-      items: agentItems,
-    },
-    {
-      cat: 'ai-model',
-      label: '일반 모델',
-      items: modelItems,
+      cat: 'ai',
+      label: 'AI 모델',
+      items: allAiItems,
     },
     ...visibleCategories
       .filter((category) => category !== 'ai')

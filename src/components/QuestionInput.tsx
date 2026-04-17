@@ -81,6 +81,25 @@ function getPlaceholder(isFollowUp: boolean | undefined, discussionMode: Discuss
   return '토론하고 싶은 주제를 입력해보세요';
 }
 
+function getSelectedExpertLabel(expert: Expert) {
+  return expert.id === 'auto-gpt' ? '심층 리서치' : expert.nameKo;
+}
+
+function isResearchAgent(expert: Expert) {
+  return expert.id === 'auto-gpt';
+}
+
+function ResearchAgentBadgeIcon() {
+  return (
+    <span className="relative block h-3.5 w-[3.125rem] shrink-0">
+      <img src="/logos/gpt.svg" alt="" className="absolute left-0 top-0 z-[4] h-3.5 w-3.5 rounded-full border border-white bg-white p-[1px] object-contain" />
+      <img src="/logos/claude.png" alt="" className="absolute left-[0.75rem] top-0 z-[3] h-3.5 w-3.5 rounded-full border border-white bg-white p-[1px] object-contain" />
+      <img src="/logos/gemini.svg" alt="" className="absolute left-[1.5rem] top-0 z-[2] h-3.5 w-3.5 rounded-full border border-white bg-white p-[1px] object-contain" />
+      <img src="/logos/perplexity.svg" alt="" className="absolute left-[2.25rem] top-0 z-[1] h-3.5 w-3.5 rounded-full border border-white bg-white p-[1px] object-contain" />
+    </span>
+  );
+}
+
 function openProjectsSidebar() {
   window.dispatchEvent(new CustomEvent('personai:open-projects'));
 }
@@ -328,7 +347,7 @@ export function QuestionInput({
                 <div className="flex items-center gap-1.5">
                   {selectedExperts.map((expert, index) => (
                     <span key={expert.id} className="inline-flex items-center gap-1.5">
-                      <span className="text-[13px] font-semibold text-slate-800">{expert.nameKo}</span>
+                      <span className="text-[13px] font-semibold text-slate-800">{getSelectedExpertLabel(expert)}</span>
                       {index < selectedExperts.length - 1 && <span className="text-slate-300">·</span>}
                     </span>
                   ))}
@@ -345,9 +364,9 @@ export function QuestionInput({
                       className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 py-0.5 pl-1 pr-2 text-[11px] font-semibold text-indigo-700 shadow-sm transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-400"
                     >
                       <span className="pointer-events-none">
-                        <ExpertAvatar expert={expert} size="xxs" />
+                        {isResearchAgent(expert) ? <ResearchAgentBadgeIcon /> : <ExpertAvatar expert={expert} size="xxs" />}
                       </span>
-                      {expert.nameKo}
+                      {getSelectedExpertLabel(expert)}
                       <span className="text-[9px] opacity-60">×</span>
                     </button>
                   ) : (
@@ -355,8 +374,8 @@ export function QuestionInput({
                       key={expert.id}
                       className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 py-0.5 pl-1 pr-2 text-[11px] font-semibold text-indigo-700 shadow-sm"
                     >
-                      <ExpertAvatar expert={expert} size="xxs" />
-                      {expert.nameKo}
+                      {isResearchAgent(expert) ? <ResearchAgentBadgeIcon /> : <ExpertAvatar expert={expert} size="xxs" />}
+                      {getSelectedExpertLabel(expert)}
                     </span>
                   )
                 ))}

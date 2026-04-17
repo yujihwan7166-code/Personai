@@ -29,6 +29,7 @@ interface ChatRequestBody {
   files?: unknown;
   openrouterModel?: string;
   maxTokens?: number;
+  temperature?: number;
   searchPolicy?: 'auto' | 'always' | 'never';
   preSearchContext?: PreSearchContext | null;
 }
@@ -115,6 +116,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const requestedMaxTokens = typeof body.maxTokens === 'number' && Number.isFinite(body.maxTokens)
     ? Math.max(256, Math.min(4096, Math.floor(body.maxTokens)))
     : undefined;
+  const requestedTemperature = typeof body.temperature === 'number' && Number.isFinite(body.temperature)
+    ? Math.max(0.1, Math.min(1.2, body.temperature))
+    : undefined;
   const searchPolicy = body.searchPolicy === 'always' || body.searchPolicy === 'never'
     ? body.searchPolicy
     : 'auto';
@@ -175,7 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const abortCtrl = new AbortController();
-    const timeoutId = setTimeout(() => abortCtrl.abort(), hasFiles ? 60000 : 30000);
+    const timeoutId = setTimeout(() => abortCtrl.abort(), 60000);
 
     const model = requestedModel || DEFAULT_OPENROUTER_TEXT_MODEL;
 
@@ -191,8 +195,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages,
         plugins,
         stream: true,
-        temperature: 0.8,
-        max_tokens: requestedMaxTokens ?? 2048,
+        temperature: requestedTemperature ?? 0.8,
+        max_tokens: requestedMaxTokens ?? 6000,
         ...(isThinkingModel ? { reasoning: { effort: 'none' } } : {}),
       }),
       signal: abortCtrl.signal,

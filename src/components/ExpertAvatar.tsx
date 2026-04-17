@@ -60,6 +60,15 @@ const specialistIconSizeClasses = {
   xl: 'w-8 h-8',
 };
 
+const compactLogoSizeClasses = {
+  xxs: 'w-2 h-2',
+  xs: 'w-3 h-3',
+  sm: 'w-4 h-4',
+  md: 'w-6 h-6',
+  lg: 'w-8 h-8',
+  xl: 'w-10 h-10',
+};
+
 const specialistIconMap: Record<string, LucideIcon> = {
   medical: Stethoscope,
   psychology: Brain,
@@ -134,6 +143,97 @@ const specialistPaletteMap: Record<ExpertColor, {
   },
 };
 
+const philosophyIds = new Set([
+  'stoicism',
+  'existentialism',
+  'nihilism',
+  'hedonism',
+  'skepticism',
+  'rationalism',
+  'empiricism',
+  'pessimism-phil',
+  'relativism',
+  'determinism',
+  'idealism-phil',
+  'materialism-phil',
+  'cynicism',
+  'postmodernism',
+  'asceticism',
+]);
+
+const religionSymbolMap: Record<string, { text: string; className?: string; sizeClasses?: Partial<typeof religionSymbolSizeClasses> }> = {
+  stoicism: { text: 'Π' },
+  existentialism: { text: '∃' },
+  nihilism: { text: '∅' },
+  hedonism: { text: '☼' },
+  skepticism: { text: '?' },
+  rationalism: { text: '∴' },
+  empiricism: { text: '◉' },
+  'pessimism-phil': { text: '☾' },
+  relativism: { text: '≈' },
+  determinism: { text: '⛓' },
+  'idealism-phil': { text: '✧' },
+  'materialism-phil': { text: '▣' },
+  cynicism: { text: '☀' },
+  postmodernism: { text: '⌗' },
+  asceticism: { text: '∥' },
+  buddhist: { text: '🪷' },
+  christian: { text: '\u2627\uFE0E' },
+  catholic: {
+    text: 'IHS',
+    className: 'font-serif font-bold tracking-[-0.08em]',
+    sizeClasses: {
+      xxs: 'text-[8px]',
+      xs: 'text-[10px]',
+      sm: 'text-[12px]',
+      md: 'text-[14px]',
+      lg: 'text-[17px]',
+      xl: 'text-[20px]',
+    },
+  },
+  islamic: { text: '\u262A\uFE0E' },
+  confucian: { text: '仁', className: 'font-serif font-semibold' },
+  atheist: { text: '∄' },
+  agnostic: { text: '?' },
+  hindu: { text: 'ॐ', className: 'font-serif' },
+  jewish: { text: '\u2721\uFE0E' },
+  protestant: { text: '\u271D\uFE0E' },
+  orthodox: { text: '\u2626\uFE0E' },
+  sikh: { text: '☬' },
+  taoist: { text: '☯' },
+  shinto: { text: '⛩' },
+};
+
+const religionSymbolSizeClasses = {
+  xxs: 'text-[11px]',
+  xs: 'text-[16px]',
+  sm: 'text-[18px]',
+  md: 'text-[28px]',
+  lg: 'text-[34px]',
+  xl: 'text-[40px]',
+};
+
+const religionColorClasses: Record<ExpertColor, string> = {
+  blue: 'text-blue-500',
+  emerald: 'text-emerald-500',
+  red: 'text-red-500',
+  amber: 'text-amber-600',
+  purple: 'text-violet-500',
+  orange: 'text-orange-500',
+  teal: 'text-teal-500',
+  pink: 'text-pink-500',
+};
+
+const ideologySymbolMap: Record<string, { text: string; className?: string; sizeClasses?: Partial<typeof religionSymbolSizeClasses> }> = {
+  socialist: { text: '✊' },
+  communist: { text: '\u262D\uFE0E' },
+  nationalist: { text: '\u2691\uFE0E' },
+  totalitarian: { text: '\u26D3\uFE0E' },
+  utilitarian: { text: '\u2696\uFE0E' },
+  populist: { text: '🗣' },
+  pacifist: { text: '\u262E\uFE0E' },
+};
+
 function getCategoryFrame(category: Expert['category']) {
   switch (category) {
     case 'ai':
@@ -162,11 +262,102 @@ function getFluentEmojiUrl(emoji: string): string | null {
   }
 }
 
+function getTwemojiImageClass(expert: Expert, size: keyof typeof logoSizeClasses) {
+  if (expert.id === 'medical' && expert.icon === '⚕️') {
+    return compactLogoSizeClasses[size];
+  }
+
+  return logoSizeClasses[size];
+}
+
 export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps) {
   const isCompact = size === 'xxs' || size === 'xs' || size === 'sm';
   const roundedClass = isCompact ? 'rounded-lg' : 'rounded-xl';
   const frameClass = getCategoryFrame(expert.category);
   const specialistIcon = specialistIconMap[expert.id];
+  const useNeutralFrame = expert.category !== 'ai';
+  const inactiveFrameClass = useNeutralFrame ? frameClass : 'bg-transparent';
+  const activeFrameClass = useNeutralFrame ? 'bg-white shadow-md scale-105' : 'shadow-md scale-105';
+
+  if (expert.category === 'religion') {
+    if (philosophyIds.has(expert.id) && expert.icon) {
+      const twemojiUrl = getTwemojiUrl(expert.icon);
+
+      if (twemojiUrl) {
+        return (
+          <div
+            className={cn(
+              'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+              roundedClass,
+              containerClasses[size],
+              active ? 'bg-white shadow-md scale-105' : frameClass
+            )}
+          >
+            <img
+              src={twemojiUrl}
+              alt={expert.nameKo}
+              className={cn('object-contain', logoSizeClasses[size])}
+              draggable={false}
+            />
+          </div>
+        );
+      }
+    }
+
+    const symbol = religionSymbolMap[expert.id];
+
+    if (symbol) {
+      return (
+        <div
+          className={cn(
+            'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+            roundedClass,
+            containerClasses[size],
+            active ? activeFrameClass : inactiveFrameClass
+          )}
+        >
+          <span
+            className={cn(
+              'leading-none',
+              symbol.sizeClasses?.[size] ?? religionSymbolSizeClasses[size],
+              religionColorClasses[expert.color] ?? religionColorClasses.blue,
+              symbol.className
+            )}
+          >
+            {symbol.text}
+          </span>
+        </div>
+      );
+    }
+  }
+
+  if (expert.category === 'ideology') {
+    const symbol = ideologySymbolMap[expert.id];
+
+    if (symbol) {
+      return (
+        <div
+          className={cn(
+            'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+            roundedClass,
+            containerClasses[size],
+            active ? activeFrameClass : inactiveFrameClass
+          )}
+        >
+          <span
+            className={cn(
+              'leading-none',
+              symbol.sizeClasses?.[size] ?? religionSymbolSizeClasses[size],
+              religionColorClasses[expert.color] ?? religionColorClasses.blue,
+              symbol.className
+            )}
+          >
+            {symbol.text}
+          </span>
+        </div>
+      );
+    }
+  }
 
   // 전문가 & 직업: Twemoji 렌더링
   if ((expert.category === 'specialist' || expert.category === 'occupation') && expert.icon) {
@@ -185,7 +376,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
           <img
             src={twemojiUrl}
             alt={expert.nameKo}
-            className={cn('object-contain', logoSizeClasses[size])}
+            className={cn('object-contain', getTwemojiImageClass(expert, size))}
             draggable={false}
           />
         </div>
@@ -204,7 +395,7 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
           'flex items-center justify-center shrink-0 transition-all duration-200',
           roundedClass,
           containerClasses[size],
-          active ? 'shadow-md scale-105' : 'bg-transparent'
+          active ? activeFrameClass : inactiveFrameClass
         )}
       >
         <img

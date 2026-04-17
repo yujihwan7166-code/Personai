@@ -34,6 +34,17 @@ function normalizeLabel(value: unknown): string {
   return value.replace(/\s+/g, ' ').trim();
 }
 
+const GENERIC_REFERENT_PATTERN = /(이거|그거|저거|이건|그건|저건|이게|그게|저게|이건가|그건가|저건가|어때|어떰|괜찮아|괜찮을까|도와줘|도움|설명해줘|정리해줘)$/;
+const CONCRETE_TOPIC_PATTERN = /(전망|비교|차이|영향|분석|추천|전략|장단점|가격|주가|유가|금리|환율|시장|부동산|코인|비트코인|매수|매도|투자|GDP|실업률|원인|해석|요약|로드맵|취업|면접|세금|법률|의료|약물|번역|코드|디버깅|버그|기획|사업계획)/i;
+
+export function shouldSkipClarifyForConcretePrompt(message: string) {
+  const normalized = normalizeLabel(message);
+  if (!normalized) return false;
+  if (normalized.length > 24) return false;
+  if (GENERIC_REFERENT_PATTERN.test(normalized)) return false;
+  return CONCRETE_TOPIC_PATTERN.test(normalized);
+}
+
 function normalizeQuestions(rawQuestions: unknown, maxQuestions: number): ClarifyQuestion[] {
   if (!Array.isArray(rawQuestions)) return [];
 
@@ -175,6 +186,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const isFollowUp = Number(attempt || 1) >= 2;
   const isBrainstorm = mode === 'brainstorm';
+
+  if (!isBrainstorm && shouldSkipClarifyForConcretePrompt(message)) {
+    return res.status(200).json({ type: 'answer' });
+  }
+
   const prompt = isBrainstorm
     ? buildBrainstormPrompt(message, isFollowUp)
     : buildGeneralPrompt({

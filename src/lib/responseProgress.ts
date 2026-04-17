@@ -19,43 +19,43 @@ export type ResponseProgress = {
 const DEFAULT_PROGRESS: Record<ResponseState, ResponseProgress> = {
   queued: {
     state: 'queued',
-    label: '응답 대기 중',
-    detail: '이제 바로 답변 준비를 시작합니다.',
+    label: '응답 대기열에 등록했습니다.',
+    detail: '요청 처리 순서와 실행 컨텍스트를 준비하고 있습니다.',
   },
   analyzing: {
     state: 'analyzing',
-    label: '질문을 해석하고 있어요.',
-    detail: '요청 의도와 답변 방향을 먼저 정리하고 있습니다.',
+    label: '요구 범위를 분석하고 있습니다.',
+    detail: '질문 의도, 전제 조건, 필요한 응답 깊이를 식별하고 있습니다.',
   },
   searching: {
     state: 'searching',
-    label: '관련 정보를 찾고 있어요.',
-    detail: '필요한 검색 결과와 맥락을 모으고 있습니다.',
+    label: '근거 자료를 수집하고 있습니다.',
+    detail: '응답에 필요한 최신 정보와 참조 맥락을 선별하고 있습니다.',
   },
   planning: {
     state: 'planning',
-    label: '답변 구조를 짜고 있어요.',
-    detail: '어떤 순서와 관점으로 답할지 정리하고 있습니다.',
+    label: '응답 전략을 설계하고 있습니다.',
+    detail: '어떤 기준과 순서로 답변을 구성할지 구조화하고 있습니다.',
   },
   processing: {
     state: 'processing',
-    label: '핵심 포인트를 검토하고 있어요.',
-    detail: '질문에 맞는 근거와 관점을 추려내고 있습니다.',
+    label: '핵심 쟁점을 검토하고 있습니다.',
+    detail: '질문에 맞는 근거, 변수, 관점을 우선순위별로 정리하고 있습니다.',
   },
   drafting: {
     state: 'drafting',
-    label: '답변 초안을 작성하고 있어요.',
-    detail: '핵심 내용을 자연스럽게 풀어쓰는 중입니다.',
+    label: '초안 구조를 작성하고 있습니다.',
+    detail: '분석 내용을 답변 가능한 문단 구조로 전환하고 있습니다.',
   },
   reviewing: {
     state: 'reviewing',
-    label: '답변을 더 탄탄하게 다듬고 있어요.',
-    detail: '빠진 맥락이나 부족한 설명이 없는지 다시 보고 있습니다.',
+    label: '논리와 누락 항목을 검수하고 있습니다.',
+    detail: '결론의 일관성, 빠진 맥락, 과도한 단정을 다시 점검하고 있습니다.',
   },
   finalizing: {
     state: 'finalizing',
-    label: '최종 답변으로 정리하고 있어요.',
-    detail: '지금까지 정리한 내용을 보기 좋게 마무리하는 중입니다.',
+    label: '최종 응답을 정제하고 있습니다.',
+    detail: '분석 결과를 읽기 쉬운 구조와 결론 중심의 답변으로 마무리하고 있습니다.',
   },
   complete: {
     state: 'complete',
@@ -63,7 +63,7 @@ const DEFAULT_PROGRESS: Record<ResponseState, ResponseProgress> = {
   },
   error: {
     state: 'error',
-    label: '응답 중 문제가 발생했어요.',
+    label: '응답 처리 중 오류가 발생했습니다.',
   },
 };
 

@@ -1,4 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- 물(水) — 유교의 핵심 덕목 인(仁)을 상징, 논어의 지혜 -->
-  <text x="32" y="46" text-anchor="middle" font-size="40" font-weight="bold" fill="#0D9488" font-family="serif">仁</text>
+  <rect x="18" y="14" width="28" height="36" rx="3" stroke="#0D9488" stroke-width="2.8"/>
+  <line x1="24" y1="18" x2="24" y2="46" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="30" y1="18" x2="30" y2="46" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="36" y1="18" x2="36" y2="46" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="42" y1="18" x2="42" y2="46" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M18 24H46" stroke="#0D9488" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="4" stroke="#0D9488" stroke-width="2.2"/>
 </svg>

@@ -1,5 +1,7 @@
 // Agent pipeline type definitions
 
+import type { QuestionPattern, QuestionPatternAuxTag } from './questionPattern';
+
 /** The coarse analysis pattern chosen for the agent run. */
 export type StrategyType =
   | 'multi_perspective'
@@ -54,6 +56,16 @@ export interface AgentState {
   intent?: StrategyType;
   /** Complexity mode selected for the current run. */
   complexityMode?: ClassificationMode;
+  /** UI-only question pattern used for the progress panel. */
+  questionPattern?: QuestionPattern;
+  patternLabel?: string;
+  patternFocus?: string;
+  patternSteps?: string[];
+  patternStageIndex?: number;
+  /** True when the visible progress steps came from the agent planner for this exact question. */
+  generatedProgressSteps?: boolean;
+  canRevealAnswer?: boolean;
+  auxTags?: QuestionPatternAuxTag[];
 }
 
 /** Lightweight local question classification result. */
@@ -74,6 +86,12 @@ export interface AgentPipelineOptions {
   expertId?: string;
   intentHint?: StrategyType;
   complexityMode?: ClassificationMode;
+  questionPattern?: QuestionPattern;
+  patternLabel?: string;
+  patternFocus?: string;
+  patternSteps?: string[];
+  auxTags?: QuestionPatternAuxTag[];
+  needsSearchHint?: boolean;
   profile?: import('./config').AutoAgentConfig;
   onStateChange: (state: AgentState) => void;
   onStreamToken: (token: string) => void;
