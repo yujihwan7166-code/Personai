@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 920" fill="none">
+  <rect width="800" height="920" fill="#fff"/>
+
+  <!-- ===== CASE 1 TITLE ===== -->
+  <text x="30" y="36" font-family="sans-serif" font-size="18" font-weight="bold" fill="#1e293b">Case 1: AI 모델 탭</text>
+  <line x1="30" y1="46" x2="770" y2="46" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- TAB BAR 1 -->
+  <rect x="30" y="58" width="740" height="36" rx="8" fill="#f1f5f9"/>
+  <rect x="226" y="60" width="80" height="32" rx="6" fill="#7C3AED"/>
+  <text x="266" y="81" font-family="sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">AI 모델</text>
+  <text x="72" y="81" font-family="sans-serif" font-size="12" fill="#64748b" text-anchor="middle">인기</text>
+  <text x="152" y="81" font-family="sans-serif" font-size="12" fill="#64748b" text-anchor="middle">즐겨찾기</text>
+  <text x="366" y="81" font-family="sans-serif" font-size="12" fill="#64748b" text-anchor="middle">직업</text>
+  <text x="436" y="81" font-family="sans-serif" font-size="12" fill="#64748b" text-anchor="middle">전문가</text>
+  <text x="506" y="81" font-family="sans-serif" font-size="12" fill="#64748b" text-anchor="middle">이념</text>
+  <text x="566" y="81" font-family="sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">...</text>
+
+  <!-- ===== 기본 상태 (1줄) ===== -->
+  <text x="30" y="120" font-family="sans-serif" font-size="14" font-weight="bold" fill="#334155">기본 상태 (1줄)</text>
+  <rect x="30" y="130" width="740" height="80" rx="10" fill="#faf5ff" stroke="#c4b5fd" stroke-width="1"/>
+
+  <!-- 모델 칩 1줄 -->
+  <rect x="44" y="142" width="72" height="30" rx="15" fill="#fff" stroke="#d4d4d8" stroke-width="1.2"/>
+  <circle cx="60" cy="157" r="8" fill="#10a37f"/>
+  <text x="82" y="162" font-family="sans-serif" font-size="11" fill="#334155">GPT</text>
+
+  <rect x="124" y="142" width="82" height="30" rx="15" fill="#fff" stroke="#d4d4d8" stroke-width="1.2"/>
+  <circle cx="140" cy="157" r="8" fill="#D97706"/>
+  <text x="156" y="162" font-family="sans-serif" font-size="11" fill="#334155">Claude</text>
+
+  <rect x="214" y="142" width="84" height="30" rx="15" fill="#fff" stroke="#d4d4d8" stroke-width="1.2"/>
+  <circle cx="230" cy="157" r="8" fill="#4285f4"/>
+  <text x="246" y="162" font-family="sans-serif" font-size="11" fill="#334155">Gemini</text>
+
+  <rect x="306" y="142" width="72" height="30" rx="15" fill="#fff" stroke="#d4d4d8" stroke-width="1.2"/>
+  <circle cx="322" cy="157" r="8" fill="#1d9bf0"/>
+  <text x="340" y="162" font-family="sans-serif" font-size="11" fill="#334155">Grok</text>
+
+  <rect x="386" y="142" width="100" height="30" rx="15" fill="#fff" stroke="#d4d4d8" stroke-width="1.2"/>
+  <circle cx="402" cy="157" r="8" fill="#20808d"/>
+  <text x="418" y="162" font-family="sans-serif" font-size="11" fill="#334155">Perplexity</text>
+
+  <rect x="494" y="142" width="76" height="30" rx="15" fill="#fff" stroke="#d4d4d8" stroke-width="1.2"/>
+  <circle cx="510" cy="157" r="8" fill="#6366f1"/>
+  <text x="528" y="162" font-family="sans-serif" font-size="11" fill="#334155">Qwen</text>
+
+  <!-- 구분선 -->
+  <line x1="582" y1="144" x2="582" y2="170" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Auto / Pro / Ultra 작은 칩 -->
+  <rect x="594" y="145" width="48" height="24" rx="12" fill="#f3e8ff" stroke="#c084fc" stroke-width="1"/>
+  <text x="618" y="161" font-family="sans-serif" font-size="10" fill="#7C3AED" text-anchor="middle">Auto</text>
+
+  <rect x="648" y="145" width="40" height="24" rx="12" fill="#f3e8ff" stroke="#c084fc" stroke-width="1"/>
+  <text x="668" y="161" font-family="sans-serif" font-size="10" fill="#7C3AED" text-anchor="middle">Pro</text>
+
+  <rect x="694" y="145" width="48" height="24" rx="12" fill="#f3e8ff" stroke="#c084fc" stroke-width="1"/>
+  <text x="718" y="161" font-family="sans-serif" font-size="10" fill="#7C3AED" text-anchor="middle">Ultra</text>
+
+  <!-- 확장 버튼 -->
+  <rect x="280" y="180" width="180" height="26" rx="13" fill="none" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="370" y="198" font-family="sans-serif" font-size="12" fill="#7C3AED" text-anchor="middle">▼ 전체 모델 보기</text>
+
+  <!-- ===== 화살표 ===== -->
+  <text x="400" y="236" font-family="sans-serif" font-size="22" fill="#7C3AED" text-anchor="middle">⬇</text>
+
+  <!-- ===== 확장 상태 (~2.5줄) ===== -->
+  <text x="30" y="264" font-family="sans-serif" font-size="14" font-weight="bold" fill="#334155">확장 상태 (~2.5줄)</text>
+  <rect x="30" y="274" width="740" height="170" rx="10" fill="#faf5ff" stroke="#c4b5fd" stroke-width="1"/>
+
+  <!-- 1줄: 동일 -->
+  <rect x="44" y="286" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="80" y="304" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">GPT</text>
+  <rect x="122" y="286" width="78" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="161" y="304" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Claude</text>
+  <rect x="206" y="286" width="80" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="246" y="304" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Gemini</text>
+  <rect x="292" y="286" width="66" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="325" y="304" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Grok</text>
+  <rect x="364" y="286" width="94" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="411" y="304" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Perplexity</text>
+  <rect x="464" y="286" width="68" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="498" y="304" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Qwen</text>
+  <line x1="544" y1="288" x2="544" y2="312" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="556" y="288" width="46" height="24" rx="12" fill="#f3e8ff" stroke="#c084fc" stroke-width="1"/>
+  <text x="579" y="304" font-family="sans-serif" font-size="10" fill="#7C3AED" text-anchor="middle">Auto</text>
+  <rect x="608" y="288" width="38" height="24" rx="12" fill="#f3e8ff" stroke="#c084fc" stroke-width="1"/>
+  <text x="627" y="304" font-family="sans-serif" font-size="10" fill="#7C3AED" text-anchor="middle">Pro</text>
+  <rect x="652" y="288" width="46" height="24" rx="12" fill="#f3e8ff" stroke="#c084fc" stroke-width="1"/>
+  <text x="675" y="304" font-family="sans-serif" font-size="10" fill="#7C3AED" text-anchor="middle">Ultra</text>
+
+  <!-- 2줄 -->
+  <rect x="44" y="322" width="86" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="87" y="340" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">DeepSeek</text>
+  <rect x="136" y="322" width="66" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="169" y="340" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Meta</text>
+  <rect x="208" y="322" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="244" y="340" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Mistral</text>
+  <rect x="286" y="322" width="86" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="329" y="340" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Microsoft</text>
+  <rect x="378" y="322" width="76" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="416" y="340" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Dolphin</text>
+  <rect x="460" y="322" width="74" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="497" y="340" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Cohere</text>
+  <rect x="540" y="322" width="80" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="580" y="340" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Amazon</text>
+
+  <!-- 3줄 (반줄) -->
+  <rect x="44" y="358" width="62" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="75" y="376" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">GLM</text>
+  <rect x="112" y="358" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="148" y="376" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Xiaomi</text>
+  <rect x="190" y="358" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="226" y="376" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Nvidia</text>
+  <rect x="268" y="358" width="90" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="313" y="376" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">ByteDance</text>
+  <rect x="364" y="358" width="86" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="407" y="376" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Moonshot</text>
+  <rect x="456" y="358" width="66" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="489" y="376" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">Solar</text>
+  <text x="534" y="376" font-family="sans-serif" font-size="13" fill="#94a3b8">...</text>
+
+  <!-- 접기 버튼 -->
+  <rect x="310" y="396" width="120" height="26" rx="13" fill="none" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="370" y="414" font-family="sans-serif" font-size="12" fill="#7C3AED" text-anchor="middle">▲ 접기</text>
+
+  <!-- ===== 구분선 ===== -->
+  <line x1="30" y1="460" x2="770" y2="460" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="8,4"/>
+
+  <!-- ===== CASE 2 TITLE ===== -->
+  <text x="30" y="490" font-family="sans-serif" font-size="18" font-weight="bold" fill="#1e293b">Case 2: 다른 탭 (직업 등) -- 변경 없음</text>
+  <line x1="30" y1="500" x2="770" y2="500" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- TAB BAR 2 -->
+  <rect x="30" y="512" width="740" height="36" rx="8" fill="#f1f5f9"/>
+  <text x="80" y="535" font-family="sans-serif" font-size="12" fill="#64748b" text-anchor="middle">AI 모델</text>
+  <rect x="126" y="514" width="60" height="32" rx="6" fill="#3B82F6"/>
+  <text x="156" y="535" font-family="sans-serif" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">직업</text>
+  <text x="240" y="535" font-family="sans-serif" font-size="12" fill="#64748b" text-anchor="middle">전문가</text>
+  <text x="310" y="535" font-family="sans-serif" font-size="12" fill="#64748b" text-anchor="middle">이념</text>
+  <text x="370" y="535" font-family="sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">...</text>
+
+  <!-- 기존 2줄 -->
+  <text x="30" y="574" font-family="sans-serif" font-size="14" font-weight="bold" fill="#334155">기존 그대로 (2줄)</text>
+  <rect x="30" y="584" width="740" height="120" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>
+
+  <!-- 1줄 -->
+  <rect x="44" y="596" width="62" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="75" y="614" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">의사</text>
+  <rect x="112" y="596" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="148" y="614" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">변호사</text>
+  <rect x="190" y="596" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="226" y="614" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">요리사</text>
+  <rect x="268" y="596" width="82" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="309" y="614" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">디자이너</text>
+  <rect x="356" y="596" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="392" y="614" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">분석가</text>
+  <rect x="434" y="596" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="470" y="614" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">건축가</text>
+  <rect x="512" y="596" width="62" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="543" y="614" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">작가</text>
+
+  <!-- 2줄 -->
+  <rect x="44" y="632" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="80" y="650" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">음악가</text>
+  <rect x="122" y="632" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="158" y="650" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">과학자</text>
+  <rect x="200" y="632" width="58" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="229" y="650" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">CEO</text>
+  <rect x="264" y="632" width="62" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="295" y="650" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">감독</text>
+  <rect x="332" y="632" width="58" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="361" y="650" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">기자</text>
+  <rect x="396" y="632" width="62" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="427" y="650" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">교수</text>
+  <rect x="464" y="632" width="72" height="28" rx="14" fill="#fff" stroke="#d4d4d8" stroke-width="1"/>
+  <text x="500" y="650" font-family="sans-serif" font-size="11" fill="#334155" text-anchor="middle">우주인</text>
+
+  <!-- 스크롤 안내 -->
+  <text x="370" y="690" font-family="sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">↕ 스크롤하면 더 보임</text>
+
+  <!-- ===== 구분선 ===== -->
+  <line x1="30" y1="720" x2="770" y2="720" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="8,4"/>
+
+  <!-- ===== 하단 요약 박스 ===== -->
+  <rect x="30" y="740" width="740" height="60" rx="12" fill="#fff7ed" stroke="#fb923c" stroke-width="2"/>
+  <rect x="30" y="740" width="6" height="60" rx="3" fill="#EA580C"/>
+  <text x="54" y="764" font-family="sans-serif" font-size="13" font-weight="bold" fill="#9a3412">핵심 차이</text>
+  <text x="54" y="786" font-family="sans-serif" font-size="13" fill="#78350f">AI 모델 탭 = 1줄 기본 + 확장 버튼(▼)  |  나머지 탭 = 기존 2줄 유지 (변경 없음)</text>
+
+  <!-- 워터마크 -->
+  <text x="770" y="910" font-family="sans-serif" font-size="10" fill="#cbd5e1" text-anchor="end">wireframe v1 - expert-chat-forum</text>
+</svg>

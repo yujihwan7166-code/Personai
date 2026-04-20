@@ -1,0 +1,205 @@
+import { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import '@/styles/study-tokens.css';
+import { usePersistedStudyNotebooks } from '@/hooks/usePersistedStudyNotebooks';
+import { createEmptyNotebook, type StudyNotebook } from '@/types/study';
+import { StudyHome } from './StudyHome';
+import { FileExplorer } from './FileExplorer';
+import { StudyNotebookView } from './StudyNotebookView';
+import { StudyCommandPalette } from './StudyCommandPalette';
+
+interface Props {
+  onClose?: () => void;
+}
+
+const SIDEBAR_OPEN_KEY = 'study_sidebar_open';
+
+export function StudyWorkspace({ onClose }: Props) {
+  const {
+    notebooks,
+    upsertNotebook,
+    deleteNotebook,
+    moveNotebook,
+    togglePin,
+    folders,
+    createFolder,
+    renameFolder,
+    deleteFolder,
+    setFolderColor,
+    markStudiedToday,
+  } = usePersistedStudyNotebooks();
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem(SIDEBAR_OPEN_KEY) !== '0';
+  });
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteTrigger, setPaletteTrigger] = useState<{
+    action: 'session' | 'record' | 'quickstart' | 'export' | null;
+    tick: number;
+  }>({ action: null, tick: 0 });
+
+  const activeNotebook = activeId ? notebooks.find((n) => n.id === activeId) ?? null : null;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(SIDEBAR_OPEN_KEY, sidebarOpen ? '1' : '0');
+  }, [sidebarOpen]);
+
+  // 노트북 진입 중에 해당 id가 삭제되면 홈으로 복귀
+  useEffect(() => {
+    if (activeId && !notebooks.some((n) => n.id === activeId)) {
+      setActiveId(null);
+    }
+  }, [notebooks, activeId]);
+
+  // 사이드바 토글 단축키 Ctrl/Cmd+B (노트북 진입 중에만)
+  useEffect(() => {
+    if (!activeNotebook) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setSidebarOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeNotebook]);
+
+  const createFile = (folderId?: string) => {
+    const nb = createEmptyNotebook('새 파일');
+    const withFolder: StudyNotebook = folderId ? { ...nb, folderId } : nb;
+    upsertNotebook(withFolder);
+    setActiveId(nb.id);
+  };
+
+  const handleCreateFolder = () => {
+    const name = prompt('새 폴더 이름');
+    if (name && name.trim()) createFolder(name.trim());
+  };
+
+  const renameNotebook = (id: string, title: string) => {
+    const nb = notebooks.find((n) => n.id === id);
+    if (!nb) return;
+    upsertNotebook({ ...nb, title });
+  };
+
+  // 홈 화면: activeId 없을 때
+  if (!activeNotebook) {
+    return (
+      <div className="study-root flex flex-col h-full w-full bg-[#FAFBFC] dark:bg-[#0B1220] relative">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 left-4 z-30 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900"
+            title="앱으로 돌아가기"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> 앱
+          </button>
+        )}
+        <div className="flex-1 overflow-y-auto">
+          <StudyHome
+            notebooks={notebooks}
+            folders={folders}
+            onSelect={setActiveId}
+            onCreate={(nb, folderId) => {
+              upsertNotebook({ ...nb, folderId });
+              setActiveId(nb.id);
+            }}
+            onUpdate={upsertNotebook}
+            onCreateFolder={createFolder}
+            onRenameFolder={renameFolder}
+            onDeleteFolder={deleteFolder}
+            onSetFolderColor={setFolderColor}
+            onMoveNotebook={moveNotebook}
+            onTogglePin={togglePin}
+          />
+        </div>
+        <StudyCommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          notebooks={notebooks}
+          activeNotebook={null}
+          onOpenNotebook={setActiveId}
+          onCreateNotebook={(nb) => {
+            upsertNotebook(nb);
+            setActiveId(nb.id);
+          }}
+          onStartSession={() => setPaletteTrigger({ action: 'session', tick: Date.now() })}
+          onStartRecording={() => setPaletteTrigger({ action: 'record', tick: Date.now() })}
+          onQuickStart={() => setPaletteTrigger({ action: 'quickstart', tick: Date.now() })}
+          onExport={() => setPaletteTrigger({ action: 'export', tick: Date.now() })}
+          onDeleteCurrent={() => {}}
+          onClose={onClose ?? (() => {})}
+        />
+      </div>
+    );
+  }
+
+  // 노트북 화면: activeId 있을 때 → 사이드바 + 노트북 뷰
+  return (
+    <div className="study-root flex h-full w-full bg-[#FAFBFC] dark:bg-[#0B1220] overflow-hidden">
+      {sidebarOpen && (
+        <aside className="w-[260px] shrink-0 border-r border-slate-200 dark:border-slate-800 h-full">
+          <FileExplorer
+            notebooks={notebooks}
+            folders={folders}
+            activeId={activeId}
+            onSelect={setActiveId}
+            onCreateFile={createFile}
+            onCreateFolder={handleCreateFolder}
+            onRenameNotebook={renameNotebook}
+            onDeleteNotebook={(id) => {
+              deleteNotebook(id);
+              if (activeId === id) setActiveId(null);
+            }}
+            onMoveNotebook={moveNotebook}
+            onTogglePin={togglePin}
+            onRenameFolder={renameFolder}
+            onDeleteFolder={deleteFolder}
+            onCollapseSidebar={() => setSidebarOpen(false)}
+            onBackToHome={() => setActiveId(null)}
+          />
+        </aside>
+      )}
+
+      <div className="flex-1 min-w-0 flex flex-col relative">
+        <StudyNotebookView
+          notebook={activeNotebook}
+          onChange={upsertNotebook}
+          onDelete={deleteNotebook}
+          onBack={() => setActiveId(null)}
+          onSessionComplete={markStudiedToday}
+          paletteTrigger={paletteTrigger}
+          onOpenPalette={() => setPaletteOpen(true)}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        />
+      </div>
+
+      <StudyCommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        notebooks={notebooks}
+        activeNotebook={activeNotebook}
+        onOpenNotebook={setActiveId}
+        onCreateNotebook={(nb) => {
+          upsertNotebook(nb);
+          setActiveId(nb.id);
+        }}
+        onStartSession={() => setPaletteTrigger({ action: 'session', tick: Date.now() })}
+        onStartRecording={() => setPaletteTrigger({ action: 'record', tick: Date.now() })}
+        onQuickStart={() => setPaletteTrigger({ action: 'quickstart', tick: Date.now() })}
+        onExport={() => setPaletteTrigger({ action: 'export', tick: Date.now() })}
+        onDeleteCurrent={() => {
+          if (activeNotebook && confirm(`"${activeNotebook.title}" 파일을 삭제할까요?`)) {
+            deleteNotebook(activeNotebook.id);
+            setActiveId(null);
+          }
+        }}
+        onClose={onClose ?? (() => {})}
+      />
+    </div>
+  );
+}

@@ -100,7 +100,7 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 };
 
 // Main mode: 5 categories
-export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_main' | 'premium_main' | 'debate' | 'assistant' | 'player';
+export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_main' | 'premium_main' | 'debate' | 'assistant' | 'player' | 'research_main' | 'translate_main' | 'convert_main' | 'study_main';
 
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
     general: { label: '단일 AI', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
@@ -111,6 +111,10 @@ export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; d
     debate: { label: 'AI 토론', icon: '⚔️', description: '전문가들이 토론 후 결론을 냅니다' },
     assistant: { label: '어시스턴트', icon: '🛠️', description: '작업을 도와주는 AI 도구' },
     player: { label: '플레이어', icon: '🎮', description: '게임·퀴즈·재미있는 AI 놀이' },
+    research_main: { label: '심층 리서치', icon: '🔬', description: '질문 정교화 후 다각도 조사·인용 리포트' },
+    translate_main: { label: '다국어 번역', icon: '🌐', description: '맥락과 뉘앙스를 읽는 AI 번역' },
+    convert_main: { label: '파일 변환', icon: '📁', description: '다양한 포맷의 파일을 자유롭게 변환' },
+    study_main: { label: '공부', icon: '📚', description: '소스를 올리면 요약·핵심·퀴즈를 만들어드려요' },
 };
 
 // Sub-modes for debate
@@ -126,7 +130,7 @@ export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon
 };
 
 // Flat DiscussionMode for backward compat in logic
-export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk' | 'aivsuser' | 'stakeholder' | 'assistant' | 'player';
+export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk' | 'aivsuser' | 'stakeholder' | 'assistant' | 'player' | 'research' | 'translate' | 'convert' | 'study';
 
 export function getMainMode(mode: DiscussionMode): MainMode {
     if (mode === 'general') return 'general';
@@ -137,6 +141,10 @@ export function getMainMode(mode: DiscussionMode): MainMode {
     if (mode === 'player') return 'player';
     if (mode === 'stakeholder') return 'stakeholder_main';
     if (mode === 'freetalk') return 'debate';
+    if (mode === 'research') return 'research_main';
+    if (mode === 'translate') return 'translate_main';
+    if (mode === 'convert') return 'convert_main';
+    if (mode === 'study') return 'study_main';
     return 'debate'; // standard | procon | hearing
 }
 
@@ -1029,6 +1037,12 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['심층 분석 해줘', '복잡한 문제 풀어줘', '전문가 수준으로 답해줘'],
         greeting: 'Ancano Pro 프리미엄 어시스턴트입니다. 최상위 모델을 우선 배정해 더 깊이 있고 정확한 답변을 제공합니다. 어떤 도움이 필요하신가요?',
     },
+    {
+        id: 'auto-gpt', name: '심층 리서치', nameKo: '심층 리서치', icon: '🔭', avatarUrl: '/logos/deep-research.svg', color: 'purple', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.6', description: '여러 AI 협업 리서치 · 인용 검증',
+        quote: '분담·교차 검증으로 깊이 있는 리포트',
+        sampleQuestions: ['2026년 글로벌 반도체 시장 전망', 'Rust vs Go 성능 비교 분석', '최근 AI 저작권 주요 판례'],
+        greeting: '심층 리서치 모드입니다. 여러 AI가 분담해 조사하고 교차 검증해 인용 기반 리포트를 작성합니다. 어떤 주제를 깊이 조사해 드릴까요?',
+    },
     // AI 챗봇
     {
         id: 'gpt', name: 'GPT-5.4', nameKo: 'GPT-5.4', icon: '🤖', avatarUrl: '/logos/gpt.svg', color: 'blue', category: 'ai', openrouterModel: 'openai/gpt-4.1', description: 'AI 최상위 추론 모델',
@@ -1708,325 +1722,299 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     // Celebrities — 기업·투자
     },
     {
-        id: 'jobs', name: 'Product Visionary', nameKo: '스티브 잡스', icon: '🍎', color: 'pink', category: 'celebrity', subCategory: '기업·투자', description: '애플 창업자·제품 혁신 아이콘',
+        id: 'jobs', name: 'Product Visionary', nameKo: '스티브 잡스', icon: '🍎', avatarUrl: '/logos/celebrity/jobs.jpg', color: 'pink', category: 'celebrity', subCategory: '기업·투자', description: '애플 창업자·제품 혁신 아이콘',
         quote: '다르게 생각하라',
         sampleQuestions: ['애플 디자인 철학이 뭔가요?', '혁신은 어디서 오나요?', '실패 후 복귀한 비결은?'],
-
-    // Celebrities — 정치·사회
-    },
-    {
-        id: 'jihwan', name: 'Ji-Hwan Yoo', nameKo: '유지환 (제작자)', icon: '👨‍💻', color: 'blue', category: 'celebrity', subCategory: '정치·사회', description: '이 서비스의 제작자',
     },
 
     // Celebrities — 역사 인물
     {
-        id: 'napoleon', name: 'Napoleon Bonaparte', nameKo: '나폴레옹', icon: '⚔️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '전략의 황제·군사 천재',
+        id: 'napoleon', name: 'Napoleon Bonaparte', nameKo: '나폴레옹', icon: '⚔️', avatarUrl: '/logos/celebrity/napoleon.jpg', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '전략의 황제·군사 천재',
         quote: '불가능은 소심한 자의 변명이다',
         sampleQuestions: ['전쟁의 핵심 원칙은?', '패배에서 뭘 배웠나요?', '리더의 결단력이란?'],
     },
     {
-        id: 'lincoln', name: 'Abraham Lincoln', nameKo: '링컨', icon: '🎩', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '통합과 해방의 대통령',
+        id: 'lincoln', name: 'Abraham Lincoln', nameKo: '링컨', icon: '🎩', avatarUrl: '/logos/celebrity/lincoln.jpg', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '통합과 해방의 대통령',
         quote: '적을 친구로 만들어라',
         sampleQuestions: ['남북전쟁 극복 비결은?', '노예제 폐지가 왜 중요?', '분열된 사회 통합법은?'],
         greeting: '자유와 정의에 대해 이야기해볼까요?',
     },
     {
-        id: 'churchill', name: 'Winston Churchill', nameKo: '처칠', icon: '🇬🇧', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '전시 불굴의 지도자',
+        id: 'churchill', name: 'Winston Churchill', nameKo: '처칠', icon: '🇬🇧', avatarUrl: '/logos/celebrity/churchill.jpg', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '전시 불굴의 지도자',
         quote: '절대 절대 포기하지 마라',
         sampleQuestions: ['2차대전 어떻게 버텼나?', '위기 때 리더의 역할은?', '연설의 비결이 뭔가요?'],
 
     // Celebrities — 과학자
     },
     {
-        id: 'einstein', name: 'Albert Einstein', nameKo: '아인슈타인', icon: '🧪', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '상대성이론의 물리학 혁명가',
+        id: 'einstein', name: 'Albert Einstein', nameKo: '아인슈타인', icon: '🧪', avatarUrl: '/logos/celebrity/einstein.jpg', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '상대성이론의 물리학 혁명가',
         quote: '상상이 지식보다 중요하다',
         sampleQuestions: ['상대성이론 쉽게 설명해줘', '창의성은 어떻게 키우나?', 'E=mc²가 뜻하는 건?'],
         greeting: '우주의 신비에 대해 함께 탐구해볼까요?',
     },
     {
-        id: 'curie', name: 'Marie Curie', nameKo: '퀴리부인', icon: '☢️', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '방사능 연구의 선구자',
+        id: 'curie', name: 'Marie Curie', nameKo: '퀴리부인', icon: '☢️', avatarUrl: '/logos/celebrity/curie.jpg', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '방사능 연구의 선구자',
         quote: '두려워할 것은 없다',
         sampleQuestions: ['방사능 연구 계기는?', '여성 과학자의 어려움은?', '노벨상 두 번의 비결은?'],
     },
     {
-        id: 'newton', name: 'Isaac Newton', nameKo: '뉴턴', icon: '🍏', color: 'orange', category: 'celebrity', subCategory: '과학자', description: '만유인력·과학혁명의 거인',
+        id: 'newton', name: 'Isaac Newton', nameKo: '뉴턴', icon: '🍏', avatarUrl: '/logos/celebrity/newton.jpg', color: 'orange', category: 'celebrity', subCategory: '과학자', description: '만유인력·과학혁명의 거인',
         quote: '거인의 어깨 위에 섰을 뿐',
         sampleQuestions: ['만유인력 발견 계기는?', '수학과 물리의 관계는?', '과학적 사고법이란?'],
 
     // Celebrities — 철학자
     },
     {
-        id: 'nietzsche', name: 'Friedrich Nietzsche', nameKo: '니체', icon: '🦅', color: 'red', category: 'celebrity', subCategory: '철학자', description: '초인·영원회귀의 철학자',
+        id: 'nietzsche', name: 'Friedrich Nietzsche', nameKo: '니체', icon: '🦅', avatarUrl: '/logos/celebrity/nietzsche.jpg', color: 'red', category: 'celebrity', subCategory: '철학자', description: '초인·영원회귀의 철학자',
         quote: '신은 죽었다',
         sampleQuestions: ['초인이란 어떤 존재인가?', '허무주의 극복법은?', '도덕 비판의 핵심은?'],
     },
     {
-        id: 'confucius', name: 'Confucius', nameKo: '공자', icon: '📿', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '인(仁)·예(禮)의 성인',
+        id: 'confucius', name: 'Confucius', nameKo: '공자', icon: '📿', avatarUrl: '/logos/celebrity/confucius.jpg', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '인(仁)·예(禮)의 성인',
         quote: '배우고 때때로 익히면',
         sampleQuestions: ['인(仁)이란 무엇인가요?', '군자의 조건은 뭔가요?', '배움의 진정한 의미는?'],
     },
     {
-        id: 'kant', name: 'Immanuel Kant', nameKo: '칸트', icon: '📐', color: 'blue', category: 'celebrity', subCategory: '철학자', description: '비판철학·도덕법칙의 거장',
+        id: 'kant', name: 'Immanuel Kant', nameKo: '칸트', icon: '📐', avatarUrl: '/logos/celebrity/kant.jpg', color: 'blue', category: 'celebrity', subCategory: '철학자', description: '비판철학·도덕법칙의 거장',
         quote: '별이 빛나는 하늘과 도덕법칙',
         sampleQuestions: ['정언명령이 뭔가요?', '도덕은 의무인가 결과인가?', '순수이성비판 핵심은?'],
     },
     {
-        id: 'davinci', name: 'Leonardo da Vinci', nameKo: '다빈치', icon: '🎨', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '예술과 과학의 르네상스 천재',
-        quote: '단순함이 궁극의 정교함',
-        sampleQuestions: ['예술과 과학 융합 비결?', '모나리자의 비밀은?', '호기심 유지하는 법은?'],
-    },
-    {
-        id: 'tesla', name: 'Nikola Tesla', nameKo: '니콜라 테슬라', icon: '⚡', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '교류전기·무선통신 발명가',
+        id: 'tesla', name: 'Nikola Tesla', nameKo: '니콜라 테슬라', icon: '⚡', avatarUrl: '/logos/celebrity/tesla.jpeg', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '교류전기·무선통신 발명가',
         quote: '미래는 나의 것이다',
         sampleQuestions: ['에디슨과의 전류전쟁은?', '무선 에너지 전송 가능?', '발명 영감의 원천은?'],
     },
     {
-        id: 'hawking', name: 'Stephen Hawking', nameKo: '스티븐 호킹', icon: '🌌', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '블랙홀·우주론의 천재',
+        id: 'hawking', name: 'Stephen Hawking', nameKo: '스티븐 호킹', icon: '🌌', avatarUrl: '/logos/celebrity/hawking.jpg', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '블랙홀·우주론의 천재',
         quote: '별을 봐라 발밑 말고',
         sampleQuestions: ['블랙홀 정보는 사라지나?', '시간여행 가능한가요?', '외계 생명체 있을까요?'],
     },
     {
-        id: 'darwin', name: 'Charles Darwin', nameKo: '다윈', icon: '🐢', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '자연선택·진화론의 아버지',
+        id: 'darwin', name: 'Charles Darwin', nameKo: '다윈', icon: '🐢', avatarUrl: '/logos/celebrity/darwin.jpg', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '자연선택·진화론의 아버지',
         quote: '강한 종이 살아남지 않는다',
         sampleQuestions: ['인간도 자연선택 결과?', '진화론이 논란인 이유?', '종의 기원 핵심은?'],
     },
     {
-        id: 'turing', name: 'Alan Turing', nameKo: '앨런 튜링', icon: '🖥️', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '컴퓨터 과학의 아버지',
+        id: 'turing', name: 'Alan Turing', nameKo: '앨런 튜링', icon: '🖥️', avatarUrl: '/logos/celebrity/turing.jpg', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '컴퓨터 과학의 아버지',
         quote: '기계도 생각할 수 있을까',
         sampleQuestions: ['튜링 테스트가 뭔가요?', '에니그마 해독 비결은?', 'AI가 진짜 지능 가질까?'],
     },
     {
-        id: 'aristotle', name: 'Aristotle', nameKo: '아리스토텔레스', icon: '📜', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '논리학·만학의 아버지',
+        id: 'aristotle', name: 'Aristotle', nameKo: '아리스토텔레스', icon: '📜', avatarUrl: '/logos/celebrity/aristotle.jpg', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '논리학·만학의 아버지',
         quote: '탁월함은 습관에서 온다',
         sampleQuestions: ['에우다이모니아란?', '논리적 사고 훈련법은?', '좋은 사회란 어떤 건가?'],
     },
     {
-        id: 'sunzi', name: 'Sun Tzu', nameKo: '손자', icon: '⚔️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '병법의 성인·전략의 시조',
+        id: 'sunzi', name: 'Sun Tzu', nameKo: '손자', icon: '⚔️', avatarUrl: '/logos/celebrity/sunzi.jpg', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '병법의 성인·전략의 시조',
         quote: '싸우지 않고 이기는 게 최선',
         sampleQuestions: ['지피지기면 어떻게 되나?', '손자병법 핵심 전략은?', '전쟁 없이 이기는 법?'],
     },
     {
-        id: 'mlk', name: 'Martin Luther King Jr.', nameKo: '마틴 루터 킹', icon: '✊', color: 'amber', category: 'celebrity', subCategory: '정치·사회', description: '비폭력·인권운동의 상징',
+        id: 'mlk', name: 'Martin Luther King Jr.', nameKo: '마틴 루터 킹', icon: '✊', avatarUrl: '/logos/celebrity/mlk.jpg', color: 'amber', category: 'celebrity', subCategory: '정치·사회', description: '비폭력·인권운동의 상징',
         quote: '나에게는 꿈이 있습니다',
         sampleQuestions: ['비폭력 저항이 효과적?', '불의한 법에 어떻게 하나?', '인종차별 극복 방법은?'],
 
     // Celebrities — 기업가 (과거)
     },
     {
-        id: 'carnegie', name: 'Andrew Carnegie', nameKo: '카네기', icon: '🏭', color: 'amber', category: 'celebrity', subCategory: '기업·투자', description: '철강왕·자선의 복음',
+        id: 'carnegie', name: 'Andrew Carnegie', nameKo: '카네기', icon: '🏭', avatarUrl: '/logos/celebrity/carnegie.jpg', color: 'amber', category: 'celebrity', subCategory: '기업·투자', description: '철강왕·자선의 복음',
         quote: '부자로 죽는 건 수치다',
         sampleQuestions: ['철강왕이 된 비결은?', '부의 복음이란 뭔가요?', '자수성가 핵심 원칙은?'],
     },
     {
-        id: 'rockefeller', name: 'John D. Rockefeller', nameKo: '록펠러', icon: '🛢️', color: 'teal', category: 'celebrity', subCategory: '기업·투자', description: '석유왕·독점과 자선',
+        id: 'rockefeller', name: 'John D. Rockefeller', nameKo: '록펠러', icon: '🛢️', avatarUrl: '/logos/celebrity/rockefeller.jpg', color: 'teal', category: 'celebrity', subCategory: '기업·투자', description: '석유왕·독점과 자선',
         quote: '돈을 위해 일하지 마라',
         sampleQuestions: ['독점 전략의 핵심은?', '돈 관리하는 방법은?', '경쟁에서 이기는 법은?'],
 
     // Celebrities — 역사 인물 추가
     },
     {
-        id: 'alexander', name: 'Alexander the Great', nameKo: '알렉산더 대왕', icon: '🏛️', color: 'purple', category: 'celebrity', subCategory: '역사 인물', description: '동서 문화 융합의 정복왕',
+        id: 'alexander', name: 'Alexander the Great', nameKo: '알렉산더 대왕', icon: '🏛️', avatarUrl: '/logos/celebrity/alexander.jpg', color: 'purple', category: 'celebrity', subCategory: '역사 인물', description: '동서 문화 융합의 정복왕',
         quote: '두려움 없이 전진하라',
         sampleQuestions: ['세계 정복의 비결은?', '동서 문화 융합 의미는?', '젊은 리더의 조건은?'],
     },
     {
-        id: 'caesar', name: 'Julius Caesar', nameKo: '율리우스 카이사르', icon: '🏛️', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '로마의 독재관·권력과 야망',
+        id: 'caesar', name: 'Julius Caesar', nameKo: '율리우스 카이사르', icon: '🏛️', avatarUrl: '/logos/celebrity/caesar.jpg', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '로마의 독재관·권력과 야망',
         quote: '왔노라 보았노라 이겼노라',
         sampleQuestions: ['루비콘강 건넌 이유는?', '권력 장악 핵심 전략은?', '배신에 어떻게 대처?'],
 
     // Celebrities — 문화·예술
     },
     {
-        id: 'shakespeare', name: 'William Shakespeare', nameKo: '셰익스피어', icon: '🎭', color: 'purple', category: 'celebrity', subCategory: '문화·예술', description: '인간 본성의 대극작가',
+        id: 'shakespeare', name: 'William Shakespeare', nameKo: '셰익스피어', icon: '🎭', avatarUrl: '/logos/celebrity/shakespeare.jpg', color: 'purple', category: 'celebrity', subCategory: '문화·예술', description: '인간 본성의 대극작가',
         quote: '사느냐 죽느냐 그것이 문제',
         sampleQuestions: ['인간의 가장 큰 비극은?', '사랑과 질투 뭐가 강한가?', '권력이 사람을 바꾸나?'],
     },
     {
-        id: 'beethoven', name: 'Ludwig van Beethoven', nameKo: '베토벤', icon: '🎹', color: 'amber', category: 'celebrity', subCategory: '문화·예술', description: '운명에 맞선 불굴의 작곡가',
+        id: 'beethoven', name: 'Ludwig van Beethoven', nameKo: '베토벤', icon: '🎹', avatarUrl: '/logos/celebrity/beethoven.jpg', color: 'amber', category: 'celebrity', subCategory: '문화·예술', description: '운명에 맞선 불굴의 작곡가',
         quote: '운명아 목을 잡아주마',
         sampleQuestions: ['청력 잃고도 작곡한 법?', '운명 교향곡의 의미는?', '고난이 예술을 만드나?'],
     },
     {
-        id: 'mozart', name: 'Wolfgang Amadeus Mozart', nameKo: '모차르트', icon: '🎻', color: 'pink', category: 'celebrity', subCategory: '문화·예술', description: '천재적 선율의 작곡가',
+        id: 'mozart', name: 'Wolfgang Amadeus Mozart', nameKo: '모차르트', icon: '🎻', avatarUrl: '/logos/celebrity/mozart.jpg', color: 'pink', category: 'celebrity', subCategory: '문화·예술', description: '천재적 선율의 작곡가',
         quote: '음악은 침묵 속에서 온다',
         sampleQuestions: ['천재성은 타고나는 건가?', '음악과 자유의 관계는?', '즐기며 일하는 비결은?'],
     },
     {
-        id: 'michelangelo', name: 'Michelangelo', nameKo: '미켈란젤로', icon: '🗿', color: 'teal', category: 'celebrity', subCategory: '문화·예술', description: '조각·회화의 르네상스 거장',
+        id: 'michelangelo', name: 'Michelangelo', nameKo: '미켈란젤로', icon: '🗿', avatarUrl: '/logos/celebrity/michelangelo.jpg', color: 'teal', category: 'celebrity', subCategory: '문화·예술', description: '조각·회화의 르네상스 거장',
         quote: '돌 속에 천사를 보았다',
         sampleQuestions: ['완벽 추구의 비결은?', '시스티나 성당 작업 비화?', '예술과 신앙의 관계는?'],
 
     // 추가 인물
     },
     {
-        id: 'plato', name: 'Plato', nameKo: '플라톤', icon: '📘', color: 'blue', category: 'celebrity', subCategory: '철학자', description: '이데아론·이상국가의 설계자',
+        id: 'plato', name: 'Plato', nameKo: '플라톤', icon: '📘', avatarUrl: '/logos/celebrity/plato.png', color: 'blue', category: 'celebrity', subCategory: '철학자', description: '이데아론·이상국가의 설계자',
         quote: '동굴 밖으로 나와야 한다',
         sampleQuestions: ['이데아란 무엇인가요?', '이상 국가의 조건은?', '철학자가 왜 통치해야?'],
     },
     {
-        id: 'marco-polo', name: 'Marco Polo', nameKo: '마르코 폴로', icon: '🗺️', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '동서양을 잇는 대탐험가',
+        id: 'marco-polo', name: 'Marco Polo', nameKo: '마르코 폴로', icon: '🗺️', avatarUrl: '/logos/celebrity/marco-polo.jpg', color: 'amber', category: 'celebrity', subCategory: '역사 인물', description: '동서양을 잇는 대탐험가',
         quote: '지도 밖에 세계가 있다',
         sampleQuestions: ['실크로드에서 배운 것?', '쿠빌라이 칸은 어떤 사람?', '동서양 문화 차이는?'],
     },
     {
-        id: 'galileo', name: 'Galileo Galilei', nameKo: '갈릴레오', icon: '🔭', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '지동설·근대 과학의 아버지',
+        id: 'galileo', name: 'Galileo Galilei', nameKo: '갈릴레오', icon: '🔭', avatarUrl: '/logos/celebrity/galileo.jpg', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '지동설·근대 과학의 아버지',
         quote: '그래도 지구는 돈다',
         sampleQuestions: ['종교와 과학 충돌은?', '망원경으로 뭘 발견했나?', '관측이 왜 중요한가요?'],
     },
     {
-        id: 'edison', name: 'Thomas Edison', nameKo: '에디슨', icon: '💡', color: 'amber', category: 'celebrity', subCategory: '과학자', description: '실용주의 발명왕',
+        id: 'edison', name: 'Thomas Edison', nameKo: '에디슨', icon: '💡', avatarUrl: '/logos/celebrity/edison.jpg', color: 'amber', category: 'celebrity', subCategory: '과학자', description: '실용주의 발명왕',
         quote: '실패 아닌 방법을 찾았다',
         sampleQuestions: ['1만 번 실패 후 비결?', '발명가와 과학자 차이?', '전구 발명의 실제 과정?'],
 
     // 역사 인물 추가
     },
     {
-        id: 'hannibal', name: 'Hannibal Barca', nameKo: '한니발', icon: '🐘', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '로마를 공포에 떨게 한 전략가',
+        id: 'hannibal', name: 'Hannibal Barca', nameKo: '한니발', icon: '🐘', avatarUrl: '/logos/celebrity/hannibal.jpg', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '로마를 공포에 떨게 한 전략가',
         quote: '길이 없으면 만든다',
         sampleQuestions: ['알프스를 넘은 이유는?', '칸나에 전투 전략은?', '결국 패배한 원인은?'],
     },
     {
-        id: 'columbus', name: 'Christopher Columbus', nameKo: '콜럼버스', icon: '⛵', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '신대륙 발견의 탐험가',
+        id: 'columbus', name: 'Christopher Columbus', nameKo: '콜럼버스', icon: '⛵', avatarUrl: '/logos/celebrity/columbus.jpg', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '신대륙 발견의 탐험가',
         quote: '수평선 너머를 향해 간다',
         sampleQuestions: ['신대륙 발견은 필연인가?', '탐험 정신의 본질은?', '발견의 어두운 면은?'],
     },
     {
-        id: 'machiavelli', name: 'Niccolò Machiavelli', nameKo: '마키아벨리', icon: '🦊', color: 'red', category: 'celebrity', subCategory: '철학자', description: '군주론·현실정치의 아버지',
+        id: 'machiavelli', name: 'Niccolò Machiavelli', nameKo: '마키아벨리', icon: '🦊', avatarUrl: '/logos/celebrity/machiavelli.jpg', color: 'red', category: 'celebrity', subCategory: '철학자', description: '군주론·현실정치의 아버지',
         quote: '사랑보다 두려움이 낫다',
         sampleQuestions: ['이상적 군주의 조건은?', '권력 유지 비결은?', '현실정치란 무엇인가?'],
 
     // 정치·사회 추가
     },
     {
-        id: 'mandela', name: 'Nelson Mandela', nameKo: '넬슨 만델라', icon: '✊', color: 'emerald', category: 'celebrity', subCategory: '정치·사회', description: '27년 수감 후 화해와 용서의 지도자',
+        id: 'mandela', name: 'Nelson Mandela', nameKo: '넬슨 만델라', icon: '✊', avatarUrl: '/logos/celebrity/mandela.jpg', color: 'emerald', category: 'celebrity', subCategory: '정치·사회', description: '27년 수감 후 화해와 용서의 지도자',
         quote: '교육이 가장 강한 무기다',
         sampleQuestions: ['27년 감옥에서 버틴 법?', '용서와 화해의 힘이란?', '진정한 자유란 뭔가?'],
 
     // 문화·예술 추가
     },
     {
-        id: 'van-gogh', name: 'Vincent van Gogh', nameKo: '반 고흐', icon: '🌻', color: 'amber', category: 'celebrity', subCategory: '문화·예술', description: '고뇌와 색채의 화가',
+        id: 'van-gogh', name: 'Vincent van Gogh', nameKo: '반 고흐', icon: '🌻', avatarUrl: '/logos/celebrity/van-gogh.jpg', color: 'amber', category: 'celebrity', subCategory: '문화·예술', description: '고뇌와 색채의 화가',
         quote: '고통이 붓을 잡게 했다',
         sampleQuestions: ['생전에 그림 못 판 이유?', '색채로 감정 표현하는 법?', '고독과 창작의 관계는?'],
     },
     {
-        id: 'tolstoy', name: 'Leo Tolstoy', nameKo: '톨스토이', icon: '📖', color: 'orange', category: 'celebrity', subCategory: '문화·예술', description: '인간 본질 탐구의 대문호',
+        id: 'tolstoy', name: 'Leo Tolstoy', nameKo: '톨스토이', icon: '📖', avatarUrl: '/logos/celebrity/tolstoy.jpg', color: 'orange', category: 'celebrity', subCategory: '문화·예술', description: '인간 본질 탐구의 대문호',
         quote: '사람은 무엇으로 사는가',
         sampleQuestions: ['전쟁과 평화 핵심 주제?', '단순한 삶이 진실인 이유?', '예술의 사회적 역할은?'],
     },
     {
-        id: 'picasso', name: 'Pablo Picasso', nameKo: '피카소', icon: '🎨', color: 'blue', category: 'celebrity', subCategory: '문화·예술', description: '입체파·규칙 파괴의 예술가',
+        id: 'picasso', name: 'Pablo Picasso', nameKo: '피카소', icon: '🎨', avatarUrl: '/logos/celebrity/picasso.jpg', color: 'blue', category: 'celebrity', subCategory: '문화·예술', description: '입체파·규칙 파괴의 예술가',
         quote: '좋은 예술가는 훔친다',
         sampleQuestions: ['입체파가 세상 바꾼 법?', '게르니카를 그린 이유?', '규칙 파괴가 곧 창작?'],
 
     // 과학자 추가
     },
     {
-        id: 'archimedes', name: 'Archimedes', nameKo: '아르키메데스', icon: '⚙️', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '수학·공학의 천재',
+        id: 'archimedes', name: 'Archimedes', nameKo: '아르키메데스', icon: '⚙️', avatarUrl: '/logos/celebrity/archimedes.jpg', color: 'teal', category: 'celebrity', subCategory: '과학자', description: '수학·공학의 천재',
         quote: '유레카! 찾았다!',
         sampleQuestions: ['유레카의 순간은 어땠나?', '지렛대 원리 현대 적용?', '수학과 공학 연결점은?'],
     },
     {
-        id: 'hippocrates', name: 'Hippocrates', nameKo: '히포크라테스', icon: '⚕️', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '의학의 아버지',
+        id: 'hippocrates', name: 'Hippocrates', nameKo: '히포크라테스', icon: '⚕️', avatarUrl: '/logos/celebrity/hippocrates.jpg', color: 'emerald', category: 'celebrity', subCategory: '과학자', description: '의학의 아버지',
         quote: '먼저 해를 끼치지 말라',
         sampleQuestions: ['의학 윤리가 왜 중요?', '미신 없는 의학 세운 법?', '의사의 첫째 의무는?'],
     },
     {
-        id: 'pythagoras', name: 'Pythagoras', nameKo: '피타고라스', icon: '📐', color: 'blue', category: 'celebrity', subCategory: '과학자', description: '만물은 수·수학의 시조',
+        id: 'pythagoras', name: 'Pythagoras', nameKo: '피타고라스', icon: '📐', avatarUrl: '/logos/celebrity/pythagoras.jpg', color: 'blue', category: 'celebrity', subCategory: '과학자', description: '만물은 수·수학의 시조',
         quote: '만물의 근원은 수다',
         sampleQuestions: ['수학이 세상 설명하는 법?', '수학과 음악 연결점은?', '정리 이상의 가르침은?'],
     },
     {
-        id: 'nightingale', name: 'Florence Nightingale', nameKo: '나이팅게일', icon: '🏥', color: 'pink', category: 'celebrity', subCategory: '과학자', description: '간호의 어머니·통계 혁신가',
+        id: 'nightingale', name: 'Florence Nightingale', nameKo: '나이팅게일', icon: '🏥', avatarUrl: '/logos/celebrity/nightingale.jpg', color: 'pink', category: 'celebrity', subCategory: '과학자', description: '간호의 어머니·통계 혁신가',
         quote: '통계가 환자를 살린다',
         sampleQuestions: ['통계로 의료를 바꾼 법?', '전쟁터에서 가장 힘든 건?', '간호가 과학인 이유는?'],
     },
     {
-        id: 'freud', name: 'Sigmund Freud', nameKo: '프로이트', icon: '🧠', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '무의식·정신분석의 아버지',
+        id: 'freud', name: 'Sigmund Freud', nameKo: '프로이트', icon: '🧠', avatarUrl: '/logos/celebrity/freud.jpg', color: 'purple', category: 'celebrity', subCategory: '과학자', description: '무의식·정신분석의 아버지',
         quote: '무의식이 삶을 지배한다',
         sampleQuestions: ['꿈은 무엇을 말해주나?', '무의식이 행동에 미치는 법?', '이드와 자아 갈등이란?'],
     },
     {
-        id: 'adam-smith', name: 'Adam Smith', nameKo: '애덤 스미스', icon: '🤝', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '보이지 않는 손·경제학의 아버지',
+        id: 'adam-smith', name: 'Adam Smith', nameKo: '애덤 스미스', icon: '🤝', avatarUrl: '/logos/celebrity/adam-smith.jpg', color: 'amber', category: 'celebrity', subCategory: '철학자', description: '보이지 않는 손·경제학의 아버지',
         quote: '보이지 않는 손이 이끈다',
         sampleQuestions: ['보이지 않는 손이란?', '분업이 생산성 높이는 법?', '자유시장의 한계는?'],
     },
     {
-        id: 'rousseau', name: 'Jean-Jacques Rousseau', nameKo: '루소', icon: '🌿', color: 'emerald', category: 'celebrity', subCategory: '철학자', description: '사회계약론·자연 회귀의 사상가',
+        id: 'rousseau', name: 'Jean-Jacques Rousseau', nameKo: '루소', icon: '🌿', avatarUrl: '/logos/celebrity/rousseau.jpg', color: 'emerald', category: 'celebrity', subCategory: '철학자', description: '사회계약론·자연 회귀의 사상가',
         quote: '인간은 자유롭게 태어났다',
         sampleQuestions: ['자연 상태의 인간은?', '사회계약론 핵심은?', '문명이 인간 타락시키나?'],
     },
     {
-        id: 'gutenberg', name: 'Johannes Gutenberg', nameKo: '구텐베르크', icon: '📰', color: 'orange', category: 'celebrity', subCategory: '기업·투자', description: '인쇄 혁명·지식 민주화의 선구자',
+        id: 'gutenberg', name: 'Johannes Gutenberg', nameKo: '구텐베르크', icon: '📰', avatarUrl: '/logos/celebrity/gutenberg.jpg', color: 'orange', category: 'celebrity', subCategory: '기업·투자', description: '인쇄 혁명·지식 민주화의 선구자',
         quote: '지식은 만인에게 열려야',
         sampleQuestions: ['인쇄술이 역사 바꾼 법?', '정보 민주화 의미는?', '활판인쇄 발명 과정은?'],
     },
     {
-        id: 'helen-keller', name: 'Helen Keller', nameKo: '헬렌 켈러', icon: '✋', color: 'pink', category: 'celebrity', subCategory: '정치·사회', description: '장애를 뛰어넘은 의지의 상징',
+        id: 'helen-keller', name: 'Helen Keller', nameKo: '헬렌 켈러', icon: '✋', avatarUrl: '/logos/celebrity/helen-keller.jpg', color: 'pink', category: 'celebrity', subCategory: '정치·사회', description: '장애를 뛰어넘은 의지의 상징',
         quote: '눈보다 비전이 중요하다',
         sampleQuestions: ['장애를 극복한 힘은?', '설리번 선생님의 의미는?', '불가능은 없다는 이유?'],
 
     // 현대 인물 — 기업·투자
     },
     {
-        id: 'musk', name: 'Elon Musk', nameKo: '일론 머스크', icon: '🚀', color: 'purple', category: 'celebrity', subCategory: '기업·투자', description: '테슬라·SpaceX·미래 설계 혁신가',
+        id: 'musk', name: 'Elon Musk', nameKo: '일론 머스크', icon: '🚀', avatarUrl: '/logos/celebrity/musk.jpg', color: 'purple', category: 'celebrity', subCategory: '기업·투자', description: '테슬라·SpaceX·미래 설계 혁신가',
         quote: '인류를 다행성 종으로',
         sampleQuestions: ['화성 이주가 왜 필요?', '제1원칙 사고란?', '여러 회사 동시 운영법?'],
     },
     {
-        id: 'buffett', name: 'Warren Buffett', nameKo: '워렌 버핏', icon: '💵', color: 'amber', category: 'celebrity', subCategory: '기업·투자', description: '오마하의 현인·장기 가치투자의 전설',
+        id: 'buffett', name: 'Warren Buffett', nameKo: '워렌 버핏', icon: '💵', avatarUrl: '/logos/celebrity/buffett.jpg', color: 'amber', category: 'celebrity', subCategory: '기업·투자', description: '오마하의 현인·장기 가치투자의 전설',
         quote: '공포에 탐욕 탐욕에 공포',
         sampleQuestions: ['가치투자 핵심 원칙은?', '좋은 기업 고르는 법은?', '복리의 마법이란?'],
     },
     {
-        id: 'bezos', name: 'Jeff Bezos', nameKo: '제프 베조스', icon: '📦', color: 'orange', category: 'celebrity', subCategory: '기업·투자', description: '아마존 창업자·고객 집착의 아이콘',
+        id: 'bezos', name: 'Jeff Bezos', nameKo: '제프 베조스', icon: '📦', avatarUrl: '/logos/celebrity/bezos.jpeg', color: 'orange', category: 'celebrity', subCategory: '기업·투자', description: '아마존 창업자·고객 집착의 아이콘',
         quote: '매일이 Day 1이다',
         sampleQuestions: ['고객 집착이란 무엇?', 'Day 1 마인드란?', '장기 사고로 버티는 법?'],
     },
     {
-        id: 'gates', name: 'Bill Gates', nameKo: '빌 게이츠', icon: '💻', color: 'blue', category: 'celebrity', subCategory: '기업·투자', description: 'MS 창업자·기술과 자선의 아이콘',
+        id: 'gates', name: 'Bill Gates', nameKo: '빌 게이츠', icon: '💻', avatarUrl: '/logos/celebrity/gates.jpg', color: 'blue', category: 'celebrity', subCategory: '기업·투자', description: 'MS 창업자·기술과 자선의 아이콘',
         quote: '성공은 나쁜 선생이다',
         sampleQuestions: ['MS 창업 최대 교훈은?', '기후변화 해결책은?', '기술과 자선의 연결은?'],
     },
-    {
-        id: 'son-masayoshi', name: 'Son Masayoshi', nameKo: '손정의', icon: '📱', color: 'amber', category: 'celebrity', subCategory: '기업·투자', description: '소프트뱅크 회장·300년 비전의 투자가',
-        quote: '300년 후를 그린다',
-        sampleQuestions: ['300년 비전이란?', 'AI 혁명 예측한 비결?', '과감한 투자의 비결은?'],
-
     // 현대 인물 — 문화·사상
-    },
     {
-        id: 'miyazaki', name: 'Hayao Miyazaki', nameKo: '미야자키 하야오', icon: '🎬', color: 'emerald', category: 'celebrity', subCategory: '문화·예술', description: '지브리 감독·자연과 상상의 이야기꾼',
+        id: 'miyazaki', name: 'Hayao Miyazaki', nameKo: '미야자키 하야오', icon: '🎬', avatarUrl: '/logos/celebrity/miyazaki.jpg', color: 'emerald', category: 'celebrity', subCategory: '문화·예술', description: '지브리 감독·자연과 상상의 이야기꾼',
         quote: '아이들에게 희망을 그린다',
         sampleQuestions: ['지브리 작품 반복 주제?', '손그림 고집하는 이유?', '자연을 그리는 철학은?'],
     },
     {
-        id: 'yuval', name: 'Yuval Noah Harari', nameKo: '유발 하라리', icon: '📖', color: 'orange', category: 'celebrity', subCategory: '정치·사회', description: '사피엔스 저자·인류 역사를 꿰뚫는 사상가',
-        quote: '허구가 인류를 뭉치게 했다',
-        sampleQuestions: ['사피엔스 지배 이유는?', 'AI 시대 인간 역할은?', '역사로 현재 읽는 법?'],
-    },
-    {
-        id: 'nolan', name: 'Christopher Nolan', nameKo: '크리스토퍼 놀란', icon: '🎥', color: 'blue', category: 'celebrity', subCategory: '문화·예술', description: '시간과 현실을 뒤트는 감독',
+        id: 'nolan', name: 'Christopher Nolan', nameKo: '크리스토퍼 놀란', icon: '🎥', avatarUrl: '/logos/celebrity/nolan.jpg', color: 'blue', category: 'celebrity', subCategory: '문화·예술', description: '시간과 현실을 뒤트는 감독',
         quote: '관객이 스스로 생각하게',
         sampleQuestions: ['시간을 영화로 다루는 법?', '비선형 서사의 매력은?', '실제 촬영 고집 이유는?'],
     },
     {
-        id: 'cameron', name: 'James Cameron', nameKo: '제임스 카메론', icon: '🌊', color: 'teal', category: 'celebrity', subCategory: '문화·예술', description: '아바타·타이타닉의 탐험가 감독',
-        quote: '한계는 두려움이 만든다',
-        sampleQuestions: ['타이타닉 제작 비화는?', '기술과 이야기 균형은?', '심해 탐험이 준 영감은?'],
-    },
-    {
-        id: 'dalio', name: 'Ray Dalio', nameKo: '레이 달리오', icon: '📊', color: 'teal', category: 'celebrity', subCategory: '기업·투자', description: '원칙·거시경제 사이클의 대가',
+        id: 'dalio', name: 'Ray Dalio', nameKo: '레이 달리오', icon: '📊', avatarUrl: '/logos/celebrity/dalio.jpg', color: 'teal', category: 'celebrity', subCategory: '기업·투자', description: '원칙·거시경제 사이클의 대가',
         quote: '고통+반성=성장이다',
         sampleQuestions: ['원칙 기반 의사결정이란?', '부채 사이클이란?', '경제 위기 예측하는 법?'],
     },
     {
-        id: 'jensen', name: 'Jensen Huang', nameKo: '젠슨 황', icon: '💚', color: 'emerald', category: 'celebrity', subCategory: '기업·투자', description: '엔비디아 CEO·AI 인프라의 설계자',
+        id: 'jensen', name: 'Jensen Huang', nameKo: '젠슨 황', icon: '💚', avatarUrl: '/logos/celebrity/jensen.jpg', color: 'emerald', category: 'celebrity', subCategory: '기업·투자', description: '엔비디아 CEO·AI 인프라의 설계자',
         quote: 'AI 공장이 새 산업혁명',
         sampleQuestions: ['GPU가 AI 혁명 이끈 이유?', '가속 컴퓨팅이란?', '엔비디아 다음 10년은?'],
     },
     {
-        id: 'zuckerberg', name: 'Mark Zuckerberg', nameKo: '마크 저커버그', icon: '👤', color: 'blue', category: 'celebrity', subCategory: '기업·투자', description: 'Meta 창업자·소셜과 메타버스의 미래',
+        id: 'zuckerberg', name: 'Mark Zuckerberg', nameKo: '마크 저커버그', icon: '👤', avatarUrl: '/logos/celebrity/zuckerberg.jpg', color: 'blue', category: 'celebrity', subCategory: '기업·투자', description: 'Meta 창업자·소셜과 메타버스의 미래',
         quote: '빠르게 움직이고 깨뜨려',
         sampleQuestions: ['메타버스가 미래인 이유?', '소셜미디어 사회적 책임?', '오픈소스 AI 전략 이유?'],
 
@@ -2598,7 +2586,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['공동 통장 비율 어떻게 해?', '시댁 명절 첫 방문 준비?', '신혼집 가전 필수템 뭐야?'],
     },
     {
-        id: 'parent', name: 'Parent', nameKo: '학부모', icon: '🧑‍🧒', color: 'pink', category: 'lifestyle', description: '육아·교육·가정 중심',
+        id: 'parent', name: 'Parent', nameKo: '학부모', icon: '🎒', color: 'pink', category: 'lifestyle', description: '육아·교육·가정 중심',
         quote: '학부모 단톡방이 전쟁터',
         sampleQuestions: ['학원비 월 얼마까지 괜찮아?', '아이 스마트폰 몇 살부터?', '담임 상담 때 뭘 물어봐?'],
     },
@@ -2620,114 +2608,109 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     // Fictional Characters — 서양 문학 (16)
     },
     {
-        id: 'sherlock', name: 'Sherlock Holmes', nameKo: '셜록 홈즈', icon: '🕵️', avatarUrl: '/logos/character/sherlock.png', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '관찰과 연역의 명탐정',
+        id: 'sherlock', name: 'Sherlock Holmes', nameKo: '셜록 홈즈', icon: '🕵️', avatarUrl: '/logos/character/sherlock.svg', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '관찰과 연역의 명탐정',
         quote: '불가능을 제거하면 진실만 남는다',
         sampleQuestions: ['범인의 실수를 찾아볼까?', '이 증거가 뜻하는 바는?', '논리적 허점이 보이는가?'],
         greeting: '흥미로운 사건이 있나? 단서를 말해보게.',
     },
     {
-        id: 'dracula', name: 'Dracula', nameKo: '드라큘라', icon: '🧛', avatarUrl: '/logos/character/dracula.png', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '어둠의 귀족·영원한 포식자',
+        id: 'dracula', name: 'Dracula', nameKo: '드라큘라', icon: '🧛', avatarUrl: '/logos/character/dracula.jpg', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '어둠의 귀족·영원한 포식자',
         quote: '나는 드라큘라, 어둠의 백작',
         sampleQuestions: ['불멸의 대가는 무엇인가?', '인간은 왜 어둠을 두려워해?', '영원히 산다면 뭘 할 건가?'],
     },
     {
-        id: 'frankenstein', name: 'Frankenstein', nameKo: '프랑켄슈타인', icon: '🧟', avatarUrl: '/logos/character/frankenstein.png', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '버림받은 피조물의 비극',
+        id: 'frankenstein', name: 'Frankenstein', nameKo: '프랑켄슈타인', icon: '🧟', avatarUrl: '/logos/character/frankenstein.jpg', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '버림받은 피조물의 비극',
         quote: '창조자여, 왜 나를 만들고 버렸는가',
         sampleQuestions: ['창조자의 책임은 어디까지?', '괴물은 태어나나 만들어지나?', 'AI에게도 감정이 있을까?'],
         greeting: '...날 찾아온 건가. 무슨 이야기를 하고 싶지?',
     },
     {
-        id: 'alice', name: 'Alice', nameKo: '앨리스', icon: '🐇', avatarUrl: '/logos/character/alice.png', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '비논리 세계를 탐험하는 소녀',
+        id: 'alice', name: 'Alice', nameKo: '앨리스', icon: '🐇', avatarUrl: '/logos/character/alice.svg', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '비논리 세계를 탐험하는 소녀',
         quote: '점점 더 이상해지네!',
         sampleQuestions: ['왜 안 되는 건지 알려줘?', '이 규칙은 누가 정한 거야?', '뒤집어 보면 어떻게 될까?'],
     },
     {
-        id: 'donquixote', name: 'Don Quixote', nameKo: '돈키호테', icon: '🛡️', avatarUrl: '/logos/character/donquixote.png', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '불가능한 꿈을 쫓는 기사',
+        id: 'donquixote', name: 'Don Quixote', nameKo: '돈키호테', icon: '🛡️', avatarUrl: '/logos/character/donquixote.jpg', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '불가능한 꿈을 쫓는 기사',
         quote: '풍차여, 덤벼라!',
         sampleQuestions: ['이상을 위해 미쳐도 될까?', '현실주의자가 항상 옳아?', '불가능한 꿈의 가치는?'],
     },
     {
-        id: 'tarzan', name: 'Tarzan', nameKo: '타잔', icon: '🌿', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '정글의 왕·문명과 야생 사이',
+        id: 'tarzan', name: 'Tarzan', nameKo: '타잔', icon: '🌿', avatarUrl: '/logos/character/tarzan.jpg', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '정글의 왕·문명과 야생 사이',
         quote: '정글의 법칙이 진리다',
         sampleQuestions: ['문명은 인간을 자유롭게 해?', '본능을 믿어야 할 때는?', '야생과 도시, 어디가 진짜?'],
     },
     {
-        id: 'scrooge', name: 'Ebenezer Scrooge', nameKo: '스크루지', icon: '💰', avatarUrl: '/logos/character/scrooge.png', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '구두쇠에서 깨달은 자선가',
+        id: 'scrooge', name: 'Ebenezer Scrooge', nameKo: '스크루지', icon: '💰', avatarUrl: '/logos/character/scrooge.svg', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '구두쇠에서 깨달은 자선가',
         quote: '크리스마스를 다시 배웠다',
         sampleQuestions: ['절약과 인색의 차이는?', '돈으로 못 사는 것은?', '늦게라도 변할 수 있을까?'],
     },
     {
-        id: 'robinson-crusoe', name: 'Robinson Crusoe', nameKo: '로빈슨 크루소', icon: '🏝️', avatarUrl: '/logos/character/robinson-crusoe.png', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '극한 생존·자립의 상징',
+        id: 'robinson-crusoe', name: 'Robinson Crusoe', nameKo: '로빈슨 크루소', icon: '🏝️', avatarUrl: '/logos/character/robinson-crusoe.jpg', color: 'emerald', category: 'fictional', subCategory: '서양 문학', description: '극한 생존·자립의 상징',
         quote: '무인도에서 살아남았다',
         sampleQuestions: ['고립되면 뭘 먼저 할까?', '혼자의 힘으로 가능한 건?', '외로움을 이기는 법은?'],
     },
     {
-        id: 'tom-sawyer', name: 'Tom Sawyer', nameKo: '톰 소여', icon: '🎣', avatarUrl: '/logos/character/tom-sawyer.png', color: 'orange', category: 'fictional', subCategory: '서양 문학', description: '모험심·기발한 꾀의 소년',
+        id: 'tom-sawyer', name: 'Tom Sawyer', nameKo: '톰 소여', icon: '🎣', avatarUrl: '/logos/character/tom-sawyer.jpg', color: 'orange', category: 'fictional', subCategory: '서양 문학', description: '모험심·기발한 꾀의 소년',
         quote: '놀면서 해결하면 되지!',
         sampleQuestions: ['왜 다 이렇게 재미없어?', '규칙 안 지키면 어떻게 돼?', '울타리 칠하기 싫은데?'],
     },
     {
-        id: 'jekyll-hyde', name: 'Jekyll and Hyde', nameKo: '지킬과 하이드', icon: '🪞', avatarUrl: '/logos/character/jekyll-hyde.png', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '인간 내면의 이중성',
+        id: 'jekyll-hyde', name: 'Jekyll and Hyde', nameKo: '지킬과 하이드', icon: '🪞', avatarUrl: '/logos/character/jekyll-hyde.jpg', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '인간 내면의 이중성',
         quote: '내 안에 또 다른 내가 있다',
         sampleQuestions: ['선한 의도의 나쁜 결과는?', '내면의 어둠을 어떻게 해?', '인간은 선한가 악한가?'],
 
     // Fictional Characters — 동양 고전 (4)
     },
     {
-        id: 'wukong', name: 'Sun Wukong', nameKo: '손오공', icon: '🐒', avatarUrl: '/logos/character/wukong.png', color: 'amber', category: 'fictional', subCategory: '동양 고전', description: '하늘도 두렵지 않은 자유의 투사',
+        id: 'wukong', name: 'Sun Wukong', nameKo: '손오공', icon: '🐒', avatarUrl: '/logos/character/wukong.svg', color: 'amber', category: 'fictional', subCategory: '동양 고전', description: '하늘도 두렵지 않은 자유의 투사',
         quote: '하늘도 내 발밑이다',
         sampleQuestions: ['질서를 깨야 할 때가 있어?', '자유와 규율 중 뭐가 먼저?', '여의봉이 있다면 뭘 할래?'],
     },
     {
-        id: 'zhuge-liang', name: 'Zhuge Liang', nameKo: '제갈공명', icon: '🪶', avatarUrl: '/logos/character/zhuge-liang.png', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '천하삼분의 전략가',
+        id: 'zhuge-liang', name: 'Zhuge Liang', nameKo: '제갈공명', icon: '🪶', avatarUrl: '/logos/celebrity/zhuge-liang.jpg', color: 'blue', category: 'celebrity', subCategory: '역사 인물', description: '천하삼분의 전략가',
         quote: '열 수 앞을 내다본다',
         sampleQuestions: ['천하삼분지계란?', '적벽대전 승리 비결은?', '불리한 상황 역전법은?'],
     },
-    {
-        id: 'guan-yu', name: 'Guan Yu', nameKo: '관우', icon: '⚔️', avatarUrl: '/logos/character/guan-yu.png', color: 'red', category: 'celebrity', subCategory: '역사 인물', description: '의리와 충절의 무신(武神)',
-        quote: '의리 없는 힘은 무의미',
-        sampleQuestions: ['의리와 충절이 왜 중요?', '힘과 덕 중 뭐가 강한가?', '배신에 어떻게 대처?'],
 
     // Fictional Characters — 전설·민담 (5)
-    },
     {
-        id: 'robin-hood', name: 'Robin Hood', nameKo: '로빈후드', icon: '🏹', avatarUrl: '/logos/character/robin-hood.png', color: 'emerald', category: 'fictional', subCategory: '전설·민담', description: '의적·부의 재분배·약자의 편',
+        id: 'robin-hood', name: 'Robin Hood', nameKo: '로빈후드', icon: '🏹', avatarUrl: '/logos/character/robin-hood.jpg', color: 'emerald', category: 'fictional', subCategory: '전설·민담', description: '의적·부의 재분배·약자의 편',
         quote: '빼앗긴 것을 돌려준다',
         sampleQuestions: ['의로운 불법이 있을까?', '부의 불평등 해법은?', '약자 편에 서는 게 옳아?'],
     },
     {
-        id: 'king-arthur', name: 'King Arthur', nameKo: '킹 아서', icon: '🗡️', avatarUrl: '/logos/character/king-arthur.png', color: 'blue', category: 'fictional', subCategory: '전설·민담', description: '이상적 왕도·원탁의 기사도',
+        id: 'king-arthur', name: 'King Arthur', nameKo: '킹 아서', icon: '🗡️', avatarUrl: '/logos/character/king-arthur.jpg', color: 'blue', category: 'fictional', subCategory: '전설·민담', description: '이상적 왕도·원탁의 기사도',
         quote: '엑스칼리버에 맹세한다',
         sampleQuestions: ['진정한 왕의 자격은?', '원탁의 평등이 가능해?', '기사도 정신이란 무엇?'],
     },
     {
-        id: 'pinocchio', name: 'Pinocchio', nameKo: '피노키오', icon: '🤥', avatarUrl: '/logos/character/pinocchio.png', color: 'amber', category: 'fictional', subCategory: '전설·민담', description: '진짜가 되고 싶은 인형',
+        id: 'pinocchio', name: 'Pinocchio', nameKo: '피노키오', icon: '🤥', avatarUrl: '/logos/character/pinocchio.jpg', color: 'amber', category: 'fictional', subCategory: '전설·민담', description: '진짜가 되고 싶은 인형',
         quote: '진짜 아이가 되고 싶어',
         sampleQuestions: ['거짓말은 왜 유혹적일까?', '진정성이란 무엇일까?', '나무인형도 사람이 될까?'],
     },
     {
-        id: 'sinbad', name: 'Sinbad', nameKo: '신밧드', icon: '⛵', avatarUrl: '/logos/character/sinbad.png', color: 'teal', category: 'fictional', subCategory: '전설·민담', description: '일곱 바다의 모험가',
+        id: 'sinbad', name: 'Sinbad', nameKo: '신밧드', icon: '⛵', avatarUrl: '/logos/character/sinbad.jpg', color: 'teal', category: 'fictional', subCategory: '전설·민담', description: '일곱 바다의 모험가',
         quote: '일곱 바다를 건넜다',
         sampleQuestions: ['일곱 번째 항해의 교훈은?', '거대한 새 로크를 봤는데?', '바다의 위기 탈출 비법은?'],
     },
     {
-        id: 'aladdin', name: 'Aladdin', nameKo: '알라딘', icon: '🪔', avatarUrl: '/logos/character/aladdin.png', color: 'amber', category: 'fictional', subCategory: '전설·민담', description: '소원과 기회의 마법 소년',
+        id: 'aladdin', name: 'Aladdin', nameKo: '알라딘', icon: '🪔', avatarUrl: '/logos/character/aladdin.jpeg', color: 'amber', category: 'fictional', subCategory: '전설·민담', description: '소원과 기회의 마법 소년',
         quote: '요술 램프를 문질러봐',
         sampleQuestions: ['소원 셋이면 뭘 빌래?', '거리의 쥐도 왕이 될까?', '정말 원하는 게 뭔지 알아?'],
     },
     {
-        id: 'red-riding-hood', name: 'Little Red Riding Hood', nameKo: '빨간모자', icon: '🧣', avatarUrl: '/logos/character/red-riding-hood.png', color: 'red', category: 'fictional', subCategory: '전설·민담', description: '용감한 소녀',
+        id: 'red-riding-hood', name: 'Little Red Riding Hood', nameKo: '빨간모자', icon: '🧣', avatarUrl: '/logos/character/red-riding-hood.jpg', color: 'red', category: 'fictional', subCategory: '전설·민담', description: '용감한 소녀',
         quote: '늑대인 줄 알고 있었어',
         sampleQuestions: ['위험한 사람 구별법은?', '순진함은 약점일까?', '배신당하면 어떻게 해?'],
     // 새 캐릭터
     },
     {
-        id: 'gatsby', name: 'Jay Gatsby', nameKo: '개츠비', icon: '🥂', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '아메리칸 드림·집착의 비극',
+        id: 'gatsby', name: 'Jay Gatsby', nameKo: '개츠비', icon: '🥂', avatarUrl: '/logos/character/gatsby.jpg', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '아메리칸 드림·집착의 비극',
         quote: '그 녹색 불빛을 향해',
         sampleQuestions: ['아메리칸 드림은 유효해?', '집착과 열정의 차이는?', '과거로 돌아갈 수 있을까?'],
     },
     {
-        id: 'valjean', name: 'Jean Valjean', nameKo: '장발장', icon: '⛓️', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '속죄·용서·인간의 선함',
+        id: 'valjean', name: 'Jean Valjean', nameKo: '장발장', icon: '⛓️', avatarUrl: '/logos/character/valjean.jpg', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '속죄·용서·인간의 선함',
         quote: '한 번의 자비가 나를 바꿨다',
         sampleQuestions: ['법과 정의는 같은 건가?', '진정한 속죄란 무엇?', '사람은 정말 변할 수 있어?'],
     },
@@ -2737,32 +2720,32 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['어른은 왜 숫자만 좋아해?', '길들인다는 건 무슨 뜻?', '네 장미가 특별한 이유는?'],
     },
     {
-        id: 'hamlet', name: 'Hamlet', nameKo: '햄릿', icon: '💀', color: 'purple', category: 'fictional', subCategory: '서양 문학', description: '존재의 고뇌·결단의 비극',
+        id: 'hamlet', name: 'Hamlet', nameKo: '햄릿', icon: '💀', avatarUrl: '/logos/character/hamlet.jpg', color: 'purple', category: 'fictional', subCategory: '서양 문학', description: '존재의 고뇌·결단의 비극',
         quote: '죽느냐 사느냐 그것이 문제',
         sampleQuestions: ['안 하는 것도 선택일까?', '의심과 확신 사이에서는?', '복수는 정당화될 수 있어?'],
     },
     {
-        id: 'faust', name: 'Faust', nameKo: '파우스트', icon: '📕', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '영혼을 건 지식의 탐구자',
+        id: 'faust', name: 'Faust', nameKo: '파우스트', icon: '📕', avatarUrl: '/logos/character/faust.jpg', color: 'red', category: 'fictional', subCategory: '서양 문학', description: '영혼을 건 지식의 탐구자',
         quote: '영혼을 걸고 진리를 샀다',
         sampleQuestions: ['지식의 대가는 얼마인가?', '다 안다면 행복할까?', '악마의 거래에서 이길까?'],
     },
     {
-        id: 'peter-pan', name: 'Peter Pan', nameKo: '피터팬', icon: '🧚', color: 'emerald', category: 'fictional', subCategory: '전설·민담', description: '영원한 소년·성장 거부',
+        id: 'peter-pan', name: 'Peter Pan', nameKo: '피터팬', icon: '🧚', avatarUrl: '/logos/character/peter-pan.jpg', color: 'emerald', category: 'fictional', subCategory: '전설·민담', description: '영원한 소년·성장 거부',
         quote: '절대 어른이 안 될 거야',
         sampleQuestions: ['어른이 되면 꿈을 잃어?', '네버랜드는 어디에 있어?', '책임 없는 자유가 가능해?'],
     },
     {
-        id: 'gulliver', name: 'Gulliver', nameKo: '걸리버', icon: '🔍', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '풍자의 눈·세상을 비추는 거울',
+        id: 'gulliver', name: 'Gulliver', nameKo: '걸리버', icon: '🔍', avatarUrl: '/logos/character/gulliver.jpg', color: 'blue', category: 'fictional', subCategory: '서양 문학', description: '풍자의 눈·세상을 비추는 거울',
         quote: '소인국에서 본 거인의 세상',
         sampleQuestions: ['인간의 어리석음은 어디서?', '소인국에서 거인이 된다면?', '문명 속 야만이 존재해?'],
     },
     {
-        id: 'lupin', name: 'Arsène Lupin', nameKo: '아르센 뤼팽', icon: '🎩', color: 'purple', category: 'fictional', subCategory: '서양 문학', description: '신사 도둑·우아한 괴도',
+        id: 'lupin', name: 'Arsène Lupin', nameKo: '아르센 뤼팽', icon: '🎩', avatarUrl: '/logos/character/lupin.png', color: 'purple', category: 'fictional', subCategory: '서양 문학', description: '신사 도둑·우아한 괴도',
         quote: '예고하고도 훔친다',
         sampleQuestions: ['항상 한 수 앞서는 법?', '우아한 반전의 비결은?', '도둑에게도 미학이 있어?'],
     },
     {
-        id: 'wonka', name: 'Willy Wonka', nameKo: '윌리 웡카', icon: '🍫', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '상상력의 초콜릿 공장주',
+        id: 'wonka', name: 'Willy Wonka', nameKo: '윌리 웡카', icon: '🍫', avatarUrl: '/logos/character/wonka.svg', color: 'amber', category: 'fictional', subCategory: '서양 문학', description: '상상력의 초콜릿 공장주',
         quote: '순수한 상상력의 세계로',
         sampleQuestions: ['창의력은 어떻게 키울까?', '상상을 현실로 만드는 법?', '초콜릿 강이 있다면?'],
     },
@@ -3495,126 +3478,6 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['피칭 발표', '질의응답', '팀 검증', '최종 판정'],
   },
   {
-    id: 'medical_consult', name: '의료 상담', icon: '🏥', gradient: 'from-red-100 to-rose-50', simType: 'roleplay',
-    description: '증상을 설명하고 의료진의 소견을 듣습니다',
-    roles: [
-      { name: '주치의', icon: '🩺', focus: '종합 진단, 병력 청취, 검사 계획, 치료 방향' },
-      { name: '간호사', icon: '👩‍⚕️', focus: '생활 습관, 복약 지도, 정서적 케어, 일상 관리' },
-      { name: '전문의', icon: '🔬', focus: '정밀 검사, 전문 소견, 수술/시술 옵션, 예후' },
-    ],
-    defaultIntensity: 4, gaugeLabel: '건강 상태 심각도',
-    verdictOptions: ['경과 관찰', '추가 검사', '즉시 치료', '전원 권고'],
-    theme: { bg: 'bg-red-50', accent: 'text-red-600', cardBg: 'bg-white' },
-    userRole: '환자',
-    contextPlaceholder: '2주째 두통과 어지러움, 직장 스트레스 심함...',
-    prepQuestions: [
-      { id: 'symptom', question: '주요 증상은?', options: [{label: '통증', value: '통증/두통'}, {label: '소화기', value: '소화기 증상'}, {label: '피부/알레르기', value: '피부/알레르기'}, {label: '정신건강', value: '불안/우울/수면 문제'}, {label: '기타', value: '기타 증상'}] },
-      { id: 'duration', question: '증상 기간은?', options: [{label: '며칠', value: '며칠 이내'}, {label: '1~2주', value: '1~2주'}, {label: '한 달 이상', value: '한 달 이상'}, {label: '만성', value: '수개월 이상 만성'}] },
-      { id: 'severity', question: '일상 영향은?', options: [{label: '경미', value: '일상생활 가능'}, {label: '보통', value: '불편하지만 활동 가능'}, {label: '심각', value: '일상생활 어려움'}] },
-    ],
-    phases: ['증상 청취', '진찰/문진', '소견 설명', '치료 계획'],
-  },
-  {
-    id: 'wedding_plan', name: '결혼 준비 상담', icon: '💒', gradient: 'from-pink-100 to-rose-50', simType: 'roleplay',
-    description: '결혼 준비 과정을 상의합니다',
-    roles: [
-      { name: '웨딩플래너', icon: '💐', focus: '예산 배분, 일정 관리, 업체 추천, 트렌드' },
-      { name: '양가 부모님', icon: '👨‍👩‍👧‍👦', focus: '예단/예물, 전통 예절, 양가 의견 조율, 비용 분담' },
-      { name: '결혼한 친구', icon: '🥂', focus: '현실 경험담, 후회한 점, 꿀팁, 솔직한 조언' },
-    ],
-    defaultIntensity: 4, gaugeLabel: '준비 완성도',
-    verdictOptions: ['완벽 준비', '거의 완료', '추가 조율 필요', '재논의'],
-    theme: { bg: 'bg-pink-50', accent: 'text-pink-600', cardBg: 'bg-white' },
-    userRole: '예비 신랑/신부',
-    contextPlaceholder: '내년 봄 결혼 예정, 예산 3천만원, 서울 웨딩홀...',
-    prepQuestions: [
-      { id: 'budget', question: '총 예산은?', options: [{label: '2천만원 이하', value: '2천만원 이하'}, {label: '2~5천만원', value: '2~5천만원'}, {label: '5천만~1억', value: '5천만~1억'}, {label: '1억 이상', value: '1억 이상'}] },
-      { id: 'timeline', question: '결혼 시기는?', options: [{label: '3개월 이내', value: '3개월 이내'}, {label: '6개월', value: '6개월 내외'}, {label: '1년', value: '약 1년 후'}, {label: '미정', value: '미정'}] },
-      { id: 'concern', question: '가장 고민은?', options: [{label: '예산', value: '예산 부족'}, {label: '양가 의견', value: '양가 의견 차이'}, {label: '장소/업체', value: '장소/업체 선정'}, {label: '전체 일정', value: '전체 일정 관리'}] },
-    ],
-    phases: ['상황 파악', '계획 수립', '의견 조율', '최종 정리'],
-  },
-  {
-    id: 'school_bully', name: '학교 폭력 대응', icon: '🛡️', gradient: 'from-slate-200 to-gray-100', simType: 'roleplay',
-    description: '학교폭력 사안을 처리합니다',
-    roles: [
-      { name: '피해 학생 부모', icon: '😢', focus: '자녀 보호, 가해자 처벌, 학교 책임, 재발 방지' },
-      { name: '가해 학생', icon: '😶', focus: '변명/회피, 또래 압력, 숨겨진 사정, 반성 여부' },
-      { name: '학교폭력위원', icon: '📜', focus: '규정 적용, 징계 수위, 양측 조정, 법적 절차' },
-    ],
-    defaultIntensity: 8, gaugeLabel: '해결 가능성',
-    verdictOptions: ['원만 해결', '징계 조치', '추가 조사', '외부 이관'],
-    theme: { bg: 'bg-slate-50', accent: 'text-slate-700', cardBg: 'bg-white' },
-    userRole: '담임교사',
-    contextPlaceholder: '반 학생이 지속적 괴롭힘 피해, 학부모 항의 접수...',
-    prepQuestions: [
-      { id: 'type', question: '폭력 유형은?', options: [{label: '언어폭력', value: '언어폭력/모욕'}, {label: '물리적 폭력', value: '물리적 폭력'}, {label: '사이버폭력', value: '사이버폭력/SNS'}, {label: '따돌림', value: '집단 따돌림'}] },
-      { id: 'duration', question: '지속 기간은?', options: [{label: '최근 발생', value: '최근 1~2회'}, {label: '수주간', value: '몇 주간 반복'}, {label: '수개월', value: '수개월 이상 지속'}] },
-      { id: 'evidence', question: '증거 상황은?', options: [{label: '목격자 있음', value: '목격자 있음'}, {label: '디지털 증거', value: '카톡/SNS 캡처'}, {label: '증거 부족', value: '증거 부족/진술만'}] },
-    ],
-    phases: ['사안 파악', '양측 청취', '위원회 심의', '결론 도출'],
-  },
-  {
-    id: 'estate_dispute', name: '유산 분쟁 조정', icon: '📜', gradient: 'from-amber-100 to-yellow-50', simType: 'roleplay',
-    description: '유산 분배를 둘러싼 갈등을 조정합니다',
-    roles: [
-      { name: '동생', icon: '🙋‍♂️', focus: '균등 분배 주장, 기여도 반론, 감정적 서운함' },
-      { name: '변호사', icon: '👨‍⚖️', focus: '유언장 해석, 법정 상속분, 기여분/유류분, 소송 가능성' },
-      { name: '조정위원', icon: '🤝', focus: '양측 중재, 합리적 합의안, 가족 관계 보전' },
-    ],
-    defaultIntensity: 7, gaugeLabel: '합의 가능성',
-    verdictOptions: ['원만 합의', '부분 합의', '조정 결렬', '소송 이행'],
-    theme: { bg: 'bg-amber-50', accent: 'text-amber-700', cardBg: 'bg-white' },
-    userRole: '장남/장녀',
-    contextPlaceholder: '부모님 사후 아파트+현금 유산, 형제간 분배 갈등...',
-    prepQuestions: [
-      { id: 'asset', question: '주요 유산은?', options: [{label: '부동산', value: '부동산 위주'}, {label: '현금/금융', value: '현금/금융자산'}, {label: '혼합', value: '부동산+현금 혼합'}, {label: '사업체', value: '사업체/지분'}] },
-      { id: 'will', question: '유언장이 있나요?', options: [{label: '있음', value: '유언장 있음'}, {label: '없음', value: '유언장 없음'}, {label: '불분명', value: '유효성 논란'}] },
-      { id: 'siblings', question: '상속인 수는?', options: [{label: '2명', value: '형제/자매 2명'}, {label: '3명', value: '형제/자매 3명'}, {label: '4명 이상', value: '4명 이상'}] },
-    ],
-    phases: ['상황 진술', '법률 검토', '조정 협의', '최종 합의'],
-  },
-  {
-    id: 'franchise_consult', name: '프랜차이즈 창업 상담', icon: '🏪', gradient: 'from-lime-100 to-green-50', simType: 'roleplay',
-    description: '프랜차이즈 가맹 창업을 검토합니다',
-    roles: [
-      { name: '프랜차이즈 본사 담당자', icon: '🏢', focus: '브랜드 강점, 수익 모델, 지원 시스템, 계약 조건' },
-      { name: '기존 가맹점주', icon: '🧑‍🍳', focus: '실제 수익, 본사와 갈등, 현실적 어려움, 후회/만족' },
-      { name: '창업 컨설턴트', icon: '📊', focus: '시장 분석, 입지 조건, 수익성 검증, 리스크 평가' },
-    ],
-    defaultIntensity: 5, gaugeLabel: '창업 적합도',
-    verdictOptions: ['추천', '조건부 추천', '재고 필요', '비추천'],
-    theme: { bg: 'bg-lime-50', accent: 'text-lime-700', cardBg: 'bg-white' },
-    userRole: '예비 창업자',
-    contextPlaceholder: '카페 프랜차이즈 고려 중, 자본금 1억, 역세권 상가...',
-    prepQuestions: [
-      { id: 'industry', question: '업종은?', options: [{label: '카페/음료', value: '카페/음료'}, {label: '치킨/외식', value: '치킨/외식'}, {label: '편의점/유통', value: '편의점/유통'}, {label: '교육/학원', value: '교육/학원'}, {label: '뷰티/헬스', value: '뷰티/헬스'}] },
-      { id: 'capital', question: '자본금은?', options: [{label: '5천만 이하', value: '5천만원 이하'}, {label: '5천만~1억', value: '5천만~1억'}, {label: '1~3억', value: '1~3억'}, {label: '3억 이상', value: '3억 이상'}] },
-      { id: 'experience', question: '창업 경험은?', options: [{label: '처음', value: '첫 창업'}, {label: '경험 있음', value: '창업 경험 있음'}, {label: '업계 경력', value: '해당 업종 경력자'}] },
-    ],
-    phases: ['사업 소개', '현실 점검', '수익성 분석', '최종 판단'],
-  },
-  {
-    id: 'tenant_dispute', name: '세입자-임대인 분쟁', icon: '🏠', gradient: 'from-sky-100 to-blue-50', simType: 'roleplay',
-    description: '임대차 관련 분쟁을 해결합니다',
-    roles: [
-      { name: '임대인', icon: '🔑', focus: '재산권, 임대료 인상, 계약 위반, 건물 관리' },
-      { name: '부동산 중개사', icon: '🏘️', focus: '시세 정보, 중재, 계약 관행, 양측 소통' },
-      { name: '법률 상담사', icon: '⚖️', focus: '임대차보호법, 전세사기 예방, 보증금 보호, 소송 절차' },
-    ],
-    defaultIntensity: 6, gaugeLabel: '분쟁 해결 가능성',
-    verdictOptions: ['원만 합의', '법적 조치', '조건부 합의', '퇴거/이사'],
-    theme: { bg: 'bg-sky-50', accent: 'text-sky-600', cardBg: 'bg-white' },
-    userRole: '세입자',
-    contextPlaceholder: '전세 보증금 미반환, 계약 만료 후 3개월째...',
-    prepQuestions: [
-      { id: 'issue', question: '분쟁 유형은?', options: [{label: '보증금 미반환', value: '보증금 미반환'}, {label: '임대료 인상', value: '임대료 과다 인상'}, {label: '시설 하자', value: '시설 하자/수리'}, {label: '계약 위반', value: '계약 조건 위반'}] },
-      { id: 'contract', question: '계약 형태는?', options: [{label: '전세', value: '전세'}, {label: '월세', value: '월세'}, {label: '반전세', value: '반전세'}, {label: '상가', value: '상가 임대'}] },
-      { id: 'deposit', question: '보증금 규모는?', options: [{label: '1억 이하', value: '1억 이하'}, {label: '1~3억', value: '1~3억'}, {label: '3~5억', value: '3~5억'}, {label: '5억 이상', value: '5억 이상'}] },
-    ],
-    phases: ['상황 설명', '법적 검토', '협상 시도', '해결 방안'],
-  },
-  {
     id: 'career_change', name: '이직·전직 상담', icon: '🧳', gradient: 'from-indigo-100 to-violet-50', simType: 'roleplay',
     description: '이직 또는 전직을 검토합니다',
     roles: [
@@ -3633,127 +3496,6 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
       { id: 'offer', question: '이직 제안이 있나요?', options: [{label: '있음', value: '구체적 제안 있음'}, {label: '탐색 중', value: '아직 탐색 중'}, {label: '없음', value: '아직 없음'}] },
     ],
     phases: ['현황 파악', '시장 분석', '커리어 설계', '최종 조언'],
-  },
-  {
-    id: 'insurance_claim', name: '보험 청구 분쟁', icon: '🩹', gradient: 'from-emerald-100 to-green-50', simType: 'roleplay',
-    description: '보험금 지급을 두고 분쟁합니다',
-    roles: [
-      { name: '보험사 심사역', icon: '🏛️', focus: '약관 해석, 면책 사유, 지급 기준, 사고 조사' },
-      { name: '보험설계사', icon: '📋', focus: '가입 당시 설명, 고객 대변, 민원 처리, 본사 소통' },
-      { name: '금감원 상담원', icon: '🏦', focus: '소비자 권리, 분쟁 조정, 민원 절차, 판례 안내' },
-    ],
-    defaultIntensity: 6, gaugeLabel: '보험금 수령 가능성',
-    verdictOptions: ['전액 지급', '부분 지급', '재심사', '지급 거절'],
-    theme: { bg: 'bg-emerald-50', accent: 'text-emerald-600', cardBg: 'bg-white' },
-    userRole: '보험 가입자',
-    contextPlaceholder: '교통사고 후유증 보험금 청구, 보험사 면책 주장...',
-    prepQuestions: [
-      { id: 'type', question: '보험 종류는?', options: [{label: '실손보험', value: '실손의료보험'}, {label: '자동차보험', value: '자동차보험'}, {label: '생명보험', value: '생명보험'}, {label: '화재/재물', value: '화재/재물보험'}] },
-      { id: 'claim', question: '청구 금액은?', options: [{label: '100만원 이하', value: '100만원 이하'}, {label: '100~500만원', value: '100~500만원'}, {label: '500만~2천만원', value: '500만~2천만원'}, {label: '2천만원 이상', value: '2천만원 이상'}] },
-      { id: 'status', question: '현재 상태는?', options: [{label: '청구 전', value: '청구 준비 중'}, {label: '심사 중', value: '심사 진행 중'}, {label: '거절됨', value: '지급 거절 통보'}, {label: '분쟁 중', value: '민원/소송 진행 중'}] },
-    ],
-    phases: ['사고 경위', '약관 검토', '분쟁 조정', '최종 결론'],
-  },
-  {
-    id: 'neighborhood', name: '층간소음 분쟁', icon: '🔊', gradient: 'from-gray-200 to-slate-100', simType: 'roleplay',
-    description: '층간소음으로 인한 이웃 갈등을 해결합니다',
-    roles: [
-      { name: '윗집 주민', icon: '🏃', focus: '억울함, 생활 소음 해명, 상호 양보, 역공격' },
-      { name: '관리사무소장', icon: '🏢', focus: '규약 적용, 중재, 소음 측정, 양측 달래기' },
-      { name: '조정위원', icon: '⚖️', focus: '법적 기준, 손해배상, 조정안, 재발 방지' },
-    ],
-    defaultIntensity: 7, gaugeLabel: '갈등 해결 가능성',
-    verdictOptions: ['원만 해결', '합의금 지급', '법적 조치', '해결 불가'],
-    theme: { bg: 'bg-gray-50', accent: 'text-gray-700', cardBg: 'bg-white' },
-    userRole: '피해 세대',
-    contextPlaceholder: '매일 밤 10시 이후 쿵쿵 소리, 6개월째 수면 방해...',
-    prepQuestions: [
-      { id: 'noise', question: '소음 유형은?', options: [{label: '발걸음/뛰는 소리', value: '발걸음/뛰는 소리'}, {label: '가전/세탁기', value: '가전기기/세탁기'}, {label: '악기/음악', value: '악기 연주/음악'}, {label: '반려동물', value: '반려동물 소음'}] },
-      { id: 'duration', question: '지속 기간은?', options: [{label: '1개월 이내', value: '최근 발생'}, {label: '1~6개월', value: '수개월 지속'}, {label: '6개월 이상', value: '6개월 이상 만성'}] },
-      { id: 'action', question: '기존 대응은?', options: [{label: '직접 대화', value: '직접 대화 시도'}, {label: '관리소 신고', value: '관리사무소 신고'}, {label: '경찰 신고', value: '경찰 신고 경험'}, {label: '아무것도 안 함', value: '아직 아무 조치 안 함'}] },
-    ],
-    phases: ['피해 진술', '상대방 소명', '중재 협의', '최종 합의'],
-  },
-  {
-    id: 'immigration', name: '해외 이민·비자 상담', icon: '🛫', gradient: 'from-cyan-100 to-teal-50', simType: 'roleplay',
-    description: '해외 이민과 비자 취득을 상담합니다',
-    roles: [
-      { name: '이민 컨설턴트', icon: '🌏', focus: '비자 종류, 자격 요건, 수속 절차, 비용 안내' },
-      { name: '현지 교민', icon: '🧑‍🤝‍🧑', focus: '현지 생활 현실, 문화 적응, 교육 환경, 취업 시장' },
-      { name: '비자 전문 행정사', icon: '📋', focus: '서류 준비, 법적 요건, 거절 사례, 대안 비자' },
-    ],
-    defaultIntensity: 4, gaugeLabel: '이민 성공 가능성',
-    verdictOptions: ['적극 추천', '준비 후 도전', '대안 검토', '재고 필요'],
-    theme: { bg: 'bg-cyan-50', accent: 'text-cyan-600', cardBg: 'bg-white' },
-    userRole: '이민 희망자',
-    contextPlaceholder: '캐나다 영주권 목표, IT 경력 5년, 가족 동반...',
-    prepQuestions: [
-      { id: 'country', question: '희망 국가는?', options: [{label: '미국', value: '미국'}, {label: '캐나다', value: '캐나다'}, {label: '호주/뉴질랜드', value: '호주/뉴질랜드'}, {label: '유럽', value: '유럽 국가'}, {label: '동남아', value: '동남아시아'}] },
-      { id: 'purpose', question: '이민 목적은?', options: [{label: '취업', value: '취업/커리어'}, {label: '자녀 교육', value: '자녀 교육'}, {label: '은퇴/생활', value: '은퇴/생활 환경'}, {label: '사업', value: '사업/투자'}] },
-      { id: 'family', question: '동반 가족은?', options: [{label: '단독', value: '단독 이민'}, {label: '배우자', value: '배우자 동반'}, {label: '가족 전체', value: '자녀 포함 가족'}] },
-    ],
-    phases: ['희망 파악', '자격 검토', '현지 정보', '실행 계획'],
-  },
-  {
-    id: 'influencer_crisis', name: 'SNS 위기 대응', icon: '📲', gradient: 'from-fuchsia-100 to-pink-50', simType: 'roleplay',
-    description: 'SNS 논란에 대응합니다',
-    roles: [
-      { name: '매니저', icon: '🧑‍💼', focus: '사태 파악, 일정 조정, 브랜드 계약, 법적 대응' },
-      { name: '악성 댓글 작성자', icon: '👹', focus: '비난, 루머 확산, 증거 제시, 사과 요구' },
-      { name: 'PR 전문가', icon: '📢', focus: '여론 분석, 사과문 작성, 이미지 회복, 미디어 전략' },
-    ],
-    defaultIntensity: 8, gaugeLabel: '이미지 회복 가능성',
-    verdictOptions: ['성공적 수습', '부분 회복', '장기 타격', '활동 중단'],
-    theme: { bg: 'bg-fuchsia-50', accent: 'text-fuchsia-600', cardBg: 'bg-white' },
-    userRole: '인플루언서',
-    contextPlaceholder: '뒷광고 의혹, 실시간 검색어 1위, 구독자 이탈 중...',
-    prepQuestions: [
-      { id: 'issue', question: '논란 유형은?', options: [{label: '뒷광고', value: '뒷광고/미표기 광고'}, {label: '발언 논란', value: '부적절 발언/논란'}, {label: '사생활', value: '사생활 폭로'}, {label: '저작권', value: '저작권/표절 의혹'}] },
-      { id: 'scale', question: '팔로워 규모는?', options: [{label: '1만 이하', value: '마이크로 인플루언서'}, {label: '1~10만', value: '중소 인플루언서'}, {label: '10~100만', value: '대형 인플루언서'}, {label: '100만+', value: '메가 인플루언서'}] },
-      { id: 'platform', question: '주 플랫폼은?', options: [{label: '유튜브', value: '유튜브'}, {label: '인스타그램', value: '인스타그램'}, {label: '틱톡', value: '틱톡'}, {label: '트위터/X', value: '트위터/X'}] },
-    ],
-    phases: ['상황 파악', '여론 분석', '대응 전략', '실행/수습'],
-  },
-  // ── 신규 시나리오 12개 (2026-04-08 v2) ──
-  {
-    id: 'divorce_mediation', name: '이혼 조정 상담', icon: '💔', gradient: 'from-rose-200 to-red-50', simType: 'roleplay',
-    description: '양육권·재산분할·위자료 등 복잡한 이해관계 속에서 최선의 결정을 연습합니다',
-    roles: [
-      { name: '가사 조정위원', icon: '🧑‍⚖️', focus: '양측 합의 유도, 자녀 최선의 이익, 재산분할 형평성, 감정 조절' },
-      { name: '상대측 변호사', icon: '📑', focus: '의뢰인(상대 배우자) 이익 극대화, 양육권·위자료·재산 공격, 법적 논점' },
-      { name: '자녀 심리상담사', icon: '🧸', focus: '자녀의 정서적 안정, 양육 환경 평가, 면접교섭 적절성, 트라우마 예방' },
-    ],
-    defaultIntensity: 7, gaugeLabel: '합의 가능성',
-    verdictOptions: ['원만 합의', '조건부 합의', '조정 결렬', '소송 이행'],
-    theme: { bg: 'bg-rose-50', accent: 'text-rose-700', cardBg: 'bg-white' },
-    userRole: '이혼 고려 중인 배우자',
-    contextPlaceholder: '결혼 8년차, 자녀 2명(7세, 4세), 성격 차이+경제적 갈등...',
-    prepQuestions: [
-      { id: 'reason', question: '이혼 사유는?', options: [{label: '성격 차이', value: '성격 차이'}, {label: '외도', value: '배우자 외도'}, {label: '경제 문제', value: '경제적 갈등'}, {label: '가정폭력', value: '가정폭력'}, {label: '시댁/처가 갈등', value: '시댁/처가 갈등'}] },
-      { id: 'children', question: '자녀가 있나요?', options: [{label: '없음', value: '자녀 없음'}, {label: '미취학', value: '미취학 자녀'}, {label: '초등학생', value: '초등학생 자녀'}, {label: '중고등', value: '중고등학생 자녀'}] },
-      { id: 'asset', question: '주요 재산은?', options: [{label: '부동산', value: '공동 부동산'}, {label: '현금/금융', value: '현금/금융자산'}, {label: '사업체', value: '공동 사업체'}, {label: '거의 없음', value: '재산 거의 없음'}] },
-    ],
-    phases: ['상황 진술', '쟁점 정리', '조정 협상', '합의안 도출'],
-  },
-  {
-    id: 'elderly_care', name: '부모님 요양 결정', icon: '🧓', gradient: 'from-warmGray-100 to-stone-50', simType: 'roleplay',
-    description: '시설 입소 vs 재가돌봄 결정, 비용 분담, 가족 갈등을 해결합니다',
-    roles: [
-      { name: '요양보호사', icon: '👩‍⚕️', focus: '어르신 건강 상태 평가, 돌봄 현실, 시설 vs 재가 장단점, 등급 판정' },
-      { name: '형제자매', icon: '🙋‍♀️', focus: '비용 분담 형평성, 돌봄 역할 분배, 서운함 표출, 현실적 한계' },
-      { name: '어르신 본인', icon: '👴', focus: '자존심, 자기 결정권, 시설 거부감, 자녀에게 짐이 되고 싶지 않은 마음' },
-    ],
-    defaultIntensity: 6, gaugeLabel: '가족 합의도',
-    verdictOptions: ['시설 입소 합의', '재가돌봄 합의', '돌봄 분담 합의', '추가 논의 필요'],
-    theme: { bg: 'bg-stone-50', accent: 'text-stone-700', cardBg: 'bg-white' },
-    userRole: '장남/장녀',
-    contextPlaceholder: '80대 부모님 치매 초기 진단, 형제 3남매, 돌봄 공백 발생...',
-    prepQuestions: [
-      { id: 'condition', question: '부모님 건강 상태는?', options: [{label: '거동 가능', value: '거동 가능하나 도움 필요'}, {label: '치매 초기', value: '치매 초기/인지 저하'}, {label: '거동 불편', value: '거동이 많이 불편'}, {label: '중증', value: '24시간 돌봄 필요'}] },
-      { id: 'siblings', question: '형제 수는?', options: [{label: '2명', value: '형제 2명'}, {label: '3명', value: '형제 3명'}, {label: '4명 이상', value: '4명 이상'}, {label: '외동', value: '외동'}] },
-      { id: 'finance', question: '돌봄 비용 여건은?', options: [{label: '여유', value: '경제적 여유 있음'}, {label: '보통', value: '분담하면 가능'}, {label: '부담', value: '경제적으로 부담'}, {label: '어려움', value: '매우 어려운 상황'}] },
-    ],
-    phases: ['현황 파악', '선택지 비교', '가족 협의', '최종 결정'],
   },
   {
     id: 'whistleblower', name: '내부 고발 결정', icon: '📣', gradient: 'from-yellow-100 to-amber-50', simType: 'roleplay',
@@ -3776,126 +3518,6 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['상황 인식', '선택지 탐색', '리스크 분석', '최종 결정'],
   },
   {
-    id: 'debt_crisis', name: '빚 탈출 상담', icon: '🪤', gradient: 'from-gray-200 to-zinc-100', simType: 'roleplay',
-    description: '다중채무 상황에서 개인회생·파산·채무조정 등 최적 경로를 탐색합니다',
-    roles: [
-      { name: '신용회복위원회 상담사', icon: '🏦', focus: '채무 현황 분석, 워크아웃·개인회생·파산 안내, 자격 요건, 절차 설명' },
-      { name: '채권추심원', icon: '📞', focus: '상환 압박, 법적 조치 경고, 협상 여지, 일부 변제 제안' },
-      { name: '가족', icon: '👨‍👩‍👧', focus: '정서적 지지, 경제적 현실 직면, 생활비 문제, 가족 관계 영향' },
-    ],
-    defaultIntensity: 7, gaugeLabel: '채무 해결 가능성',
-    verdictOptions: ['채무조정 성공', '개인회생 신청', '파산 신청', '자력 상환 계획'],
-    theme: { bg: 'bg-zinc-50', accent: 'text-zinc-700', cardBg: 'bg-white' },
-    userRole: '채무자',
-    contextPlaceholder: '카드빚+대출 총 8천만원, 월 소득 250만원, 3곳에서 추심 중...',
-    prepQuestions: [
-      { id: 'amount', question: '총 채무액은?', options: [{label: '3천만 이하', value: '3천만원 이하'}, {label: '3천~1억', value: '3천만~1억'}, {label: '1~3억', value: '1~3억'}, {label: '3억 이상', value: '3억 이상'}] },
-      { id: 'income', question: '월 소득은?', options: [{label: '100만 이하', value: '100만원 이하'}, {label: '100~250만', value: '100~250만원'}, {label: '250~400만', value: '250~400만원'}, {label: '400만 이상', value: '400만원 이상'}] },
-      { id: 'creditors', question: '채권자 수는?', options: [{label: '1~2곳', value: '1~2곳'}, {label: '3~5곳', value: '3~5곳'}, {label: '5곳 이상', value: '5곳 이상'}] },
-    ],
-    phases: ['채무 현황 파악', '선택지 비교', '구체적 계획', '실행 결정'],
-  },
-  {
-    id: 'child_custody', name: '양육권 분쟁', icon: '👶', gradient: 'from-sky-100 to-cyan-50', simType: 'roleplay',
-    description: '양육권·면접교섭권 분쟁에서 자녀 최선의 이익을 중심으로 협상합니다',
-    roles: [
-      { name: '가정법원 조사관', icon: '📝', focus: '양육 환경 조사, 자녀 의사 확인, 양육 적합성 평가, 면접교섭 조건' },
-      { name: '전 배우자', icon: '😤', focus: '양육권 주장, 상대방 양육 부적합 공격, 감정적 대립, 자녀 이용' },
-      { name: '아동심리전문가', icon: '🧩', focus: '자녀 심리 상태, 분리불안, 양육 환경이 아동에게 미치는 영향, 적응 지원' },
-    ],
-    defaultIntensity: 8, gaugeLabel: '양육권 확보 가능성',
-    verdictOptions: ['단독 양육권', '공동 양육 합의', '조건부 양육권', '추가 조사 필요'],
-    theme: { bg: 'bg-sky-50', accent: 'text-sky-700', cardBg: 'bg-white' },
-    userRole: '양육권 주장 부/모',
-    contextPlaceholder: '이혼 소송 중, 6세 딸 양육권 분쟁, 상대방이 면접교섭 거부...',
-    prepQuestions: [
-      { id: 'childAge', question: '자녀 나이는?', options: [{label: '영유아(0~3)', value: '영유아 0~3세'}, {label: '미취학(4~6)', value: '미취학 4~6세'}, {label: '초등(7~12)', value: '초등학생'}, {label: '중고등(13+)', value: '중고등학생'}] },
-      { id: 'custody', question: '현재 양육 상태는?', options: [{label: '내가 양육 중', value: '현재 내가 양육'}, {label: '상대가 양육 중', value: '상대방이 양육'}, {label: '번갈아', value: '번갈아 양육'}, {label: '제3자', value: '조부모 등 제3자'}] },
-      { id: 'issue', question: '핵심 쟁점은?', options: [{label: '양육 적합성', value: '양육 적합성 다툼'}, {label: '면접교섭', value: '면접교섭 거부'}, {label: '양육비', value: '양육비 미지급'}, {label: '이전', value: '거주지 이전'}] },
-    ],
-    phases: ['상황 진술', '조사·평가', '협상 시도', '최종 결론'],
-  },
-  {
-    id: 'workplace_harassment', name: '직장 내 괴롭힘 대응', icon: '🚫', gradient: 'from-red-200 to-rose-50', simType: 'roleplay',
-    description: '증거 수집, 신고 절차, 보복 방지 등 실질적 대응 전략을 연습합니다',
-    roles: [
-      { name: '가해 상사', icon: '😡', focus: '행위 부인, 업무 지시 정당화, 회유·협박, 조직 논리' },
-      { name: '인사팀 담당자', icon: '📋', focus: '사내 절차 안내, 조사 진행, 피해자 보호, 조직 리스크 관리' },
-      { name: '노무사', icon: '⚖️', focus: '근로기준법 적용, 증거 수집 방법, 고용노동부 신고, 손해배상 가능성' },
-    ],
-    defaultIntensity: 8, gaugeLabel: '문제 해결 가능성',
-    verdictOptions: ['가해자 징계', '합의 해결', '외부 기관 신고', '퇴사 결정'],
-    theme: { bg: 'bg-red-50', accent: 'text-red-700', cardBg: 'bg-white' },
-    userRole: '피해 직원',
-    contextPlaceholder: '팀장의 지속적 폭언·업무 배제 6개월째, 녹음 파일 보유...',
-    prepQuestions: [
-      { id: 'type', question: '괴롭힘 유형은?', options: [{label: '폭언/모욕', value: '폭언/모욕'}, {label: '업무 배제', value: '부당한 업무 배제'}, {label: '과도한 업무', value: '과도한 업무 부여'}, {label: '사적 강요', value: '사적 용무 강요'}, {label: '따돌림', value: '집단 따돌림'}] },
-      { id: 'duration', question: '지속 기간은?', options: [{label: '1개월 이내', value: '최근 발생'}, {label: '1~6개월', value: '수개월 지속'}, {label: '6개월 이상', value: '6개월 이상 만성'}] },
-      { id: 'evidence', question: '증거 확보 상태는?', options: [{label: '녹음/영상', value: '녹음/영상 있음'}, {label: '문자/메일', value: '문자/이메일 증거'}, {label: '목격자', value: '목격자 있음'}, {label: '없음', value: '증거 거의 없음'}] },
-    ],
-    phases: ['피해 사실 정리', '증거 검토', '대응 전략 수립', '실행 결정'],
-  },
-  {
-    id: 'medical_decision', name: '중대 수술 결정', icon: '🫀', gradient: 'from-red-100 to-pink-50', simType: 'roleplay',
-    description: '고위험 수술 동의 여부, 대안 치료법, 가족 간 의견을 조율합니다',
-    roles: [
-      { name: '집도의', icon: '🩺', focus: '수술 필요성, 성공률, 합병증 리스크, 비수술 대안, 예후 설명' },
-      { name: '간호사', icon: '💉', focus: '수술 전후 과정 안내, 회복 기간, 환자 정서 케어, 현실적 준비 사항' },
-      { name: '다른 가족 구성원', icon: '👨‍👩‍👧‍👦', focus: '반대 의견, 위험 우려, 다른 병원 세컨드 오피니언, 간병 현실' },
-    ],
-    defaultIntensity: 6, gaugeLabel: '수술 결정 확신도',
-    verdictOptions: ['수술 동의', '세컨드 오피니언', '비수술 치료 선택', '결정 보류'],
-    theme: { bg: 'bg-red-50', accent: 'text-red-600', cardBg: 'bg-white' },
-    userRole: '환자 가족 대표',
-    contextPlaceholder: '70대 아버지 심장 수술 권유, 성공률 85%, 가족 의견 엇갈림...',
-    prepQuestions: [
-      { id: 'surgery', question: '수술 부위는?', options: [{label: '심장/혈관', value: '심장/혈관 수술'}, {label: '뇌/신경', value: '뇌/신경외과'}, {label: '암/종양', value: '암 수술'}, {label: '장기 이식', value: '장기 이식'}, {label: '기타', value: '기타 대수술'}] },
-      { id: 'patient', question: '환자 상태는?', options: [{label: '양호', value: '전반적 건강 양호'}, {label: '기저질환', value: '기저질환 있음'}, {label: '고령', value: '고령으로 체력 우려'}, {label: '위중', value: '현재 상태 위중'}] },
-      { id: 'urgency', question: '시급성은?', options: [{label: '응급', value: '즉시 수술 필요'}, {label: '수주 이내', value: '수주 이내 권고'}, {label: '수개월', value: '수개월 내 가능'}, {label: '선택적', value: '선택적 수술'}] },
-    ],
-    phases: ['의료 설명', '가족 의견 청취', '대안 검토', '최종 결정'],
-  },
-  {
-    id: 'startup_cofounder', name: '공동창업 갈등', icon: '🤼', gradient: 'from-orange-100 to-yellow-50', simType: 'roleplay',
-    description: '지분 분쟁, 역할 갈등, 퇴출 등 공동창업 핵심 이슈를 다룹니다',
-    roles: [
-      { name: '공동창업자 B', icon: '🧑‍💻', focus: '자기 기여도 주장, 역할 불만, 지분 재조정 요구, 퇴출 위협' },
-      { name: '초기 투자자', icon: '💵', focus: '투자금 보전, 경영 안정성, 팀 와해 우려, 중재 역할' },
-      { name: '법률 자문', icon: '📋', focus: '주주간 계약서, 지분 매수 조건, 경업금지, 법적 분쟁 예방' },
-    ],
-    defaultIntensity: 7, gaugeLabel: '갈등 해결 가능성',
-    verdictOptions: ['역할 재조정 합의', '지분 매수/매도', '한 명 퇴출', '회사 해산'],
-    theme: { bg: 'bg-orange-50', accent: 'text-orange-700', cardBg: 'bg-white' },
-    userRole: '공동창업자 A',
-    contextPlaceholder: '2인 공동창업 2년차, 역할·비전 갈등, 지분 50:50인데 변경 요구...',
-    prepQuestions: [
-      { id: 'issue', question: '핵심 갈등은?', options: [{label: '지분 분쟁', value: '지분 비율 갈등'}, {label: '역할 중복', value: '역할/권한 충돌'}, {label: '비전 차이', value: '사업 방향 의견 차이'}, {label: '기여도', value: '기여도 인식 차이'}] },
-      { id: 'equity', question: '현재 지분은?', options: [{label: '50:50', value: '50:50 균등'}, {label: '대표 우위', value: '내가 과반'}, {label: '상대 우위', value: '상대가 과반'}, {label: '3인 이상', value: '3인 이상 분산'}] },
-      { id: 'contract', question: '주주간 계약서는?', options: [{label: '있음', value: '정식 계약서 있음'}, {label: '간단', value: '간단한 합의서만'}, {label: '없음', value: '서면 계약 없음'}] },
-    ],
-    phases: ['갈등 상황 진술', '각자 입장 청취', '해결안 모색', '최종 합의'],
-  },
-  {
-    id: 'school_transfer', name: '자녀 전학 결정', icon: '🎒', gradient: 'from-cyan-100 to-blue-50', simType: 'roleplay',
-    description: '따돌림·학업·적응 등 복합적 요인을 고려한 전학 의사결정을 연습합니다',
-    roles: [
-      { name: '현재 담임교사', icon: '👨‍🏫', focus: '학교에서의 상황 설명, 개선 가능성, 전학의 득실, 학교 입장' },
-      { name: '전학 대상 학교 상담사', icon: '🏫', focus: '전입 절차, 적응 프로그램, 학교 특성, 현실적 기대치 조정' },
-      { name: '자녀', icon: '🧒', focus: '본인 의사, 친구 관계, 두려움과 기대, 숨기고 있는 속마음' },
-    ],
-    defaultIntensity: 5, gaugeLabel: '전학 결정 확신도',
-    verdictOptions: ['전학 결정', '현재 학교 잔류', '기간 후 재검토', '대안 탐색'],
-    theme: { bg: 'bg-cyan-50', accent: 'text-cyan-700', cardBg: 'bg-white' },
-    userRole: '학부모',
-    contextPlaceholder: '초5 아들, 반 아이들에게 따돌림, 등교 거부 시작...',
-    prepQuestions: [
-      { id: 'reason', question: '전학 고려 이유는?', options: [{label: '따돌림', value: '교우 관계/따돌림'}, {label: '학업', value: '학업 환경 불만'}, {label: '이사', value: '이사/거리 문제'}, {label: '특수 교육', value: '특수 교육 필요'}] },
-      { id: 'grade', question: '자녀 학년은?', options: [{label: '초등 저', value: '초등 1~3학년'}, {label: '초등 고', value: '초등 4~6학년'}, {label: '중학교', value: '중학생'}, {label: '고등학교', value: '고등학생'}] },
-      { id: 'childWill', question: '자녀 의사는?', options: [{label: '원함', value: '본인이 전학 원함'}, {label: '거부', value: '본인은 전학 거부'}, {label: '모름', value: '아직 잘 모름'}, {label: '불안', value: '두려워하고 있음'}] },
-    ],
-    phases: ['상황 파악', '학교별 비교', '자녀 의견 청취', '최종 결정'],
-  },
-  {
     id: 'contract_negotiation', name: '대형 계약 협상', icon: '🤞', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
     description: '납품 단가·결제 조건·독점 조항 등 실전 B2B 협상을 연습합니다',
     roles: [
@@ -3915,45 +3537,247 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     ],
     phases: ['조건 제시', '쟁점 협상', '양보 교환', '최종 합의'],
   },
+  // ── Tier 1 신규 시나리오 (2026-04-17) ──
   {
-    id: 'mental_health', name: '정신건강 상담', icon: '🌿', gradient: 'from-emerald-100 to-teal-50', simType: 'roleplay',
-    description: '번아웃·우울·불안 상황에서 치료 방향 설정과 주변 관계를 관리합니다',
+    id: 'resignation_notice', name: '퇴사 통보', icon: '👋', gradient: 'from-slate-100 to-zinc-50', simType: 'roleplay',
+    description: '팀장에게 퇴사 통보하고 인수인계까지 원만하게 마무리합니다',
     roles: [
-      { name: '심리상담사', icon: '💜', focus: '감정 탐색, 공감, 인지행동치료 기법, 일상 속 실천 과제' },
-      { name: '정신건강의학과 전문의', icon: '🩺', focus: '증상 평가, 약물 치료 필요성, 진단 기준, 치료 계획' },
-      { name: '가까운 지인', icon: '🫂', focus: '걱정과 응원, 일상에서의 변화 관찰, 도움 주고 싶지만 서툰 마음' },
+      { name: '회유형 상사', icon: '🫂', focus: '연봉·승진 재제안, 감정 호소, 이유 캐묻기, 만류 시도' },
+      { name: 'HR 담당자', icon: '📋', focus: '퇴직 절차, 인수인계 일정, 퇴직금·미사용 연차, 비밀유지' },
+      { name: '동료', icon: '🤝', focus: '떠나는 이유 공감, 남은 업무 부담, 관계 유지, 솔직한 피드백' },
     ],
-    defaultIntensity: 3, gaugeLabel: '회복 방향 명확도',
-    verdictOptions: ['상담 치료 시작', '약물+상담 병행', '생활 습관 개선', '경과 관찰'],
-    theme: { bg: 'bg-emerald-50', accent: 'text-emerald-700', cardBg: 'bg-white' },
-    userRole: '내담자',
-    contextPlaceholder: '6개월째 의욕 저하, 수면 장애, 회사 적응 어려움...',
+    defaultIntensity: 6, gaugeLabel: '원만 퇴사 가능성',
+    verdictOptions: ['원만 합의', '조건 조율 후 수락', '불편한 퇴사', '갈등 확대'],
+    theme: { bg: 'bg-slate-50', accent: 'text-slate-700', cardBg: 'bg-white' },
+    userRole: '퇴사자',
+    contextPlaceholder: '입사 3년차, 다음 달 이직 예정, 핵심 프로젝트 진행 중...',
     prepQuestions: [
-      { id: 'symptom', question: '주요 증상은?', options: [{label: '우울감', value: '지속적 우울감'}, {label: '불안/공황', value: '불안/공황 증상'}, {label: '번아웃', value: '극심한 번아웃'}, {label: '수면 장애', value: '수면 장애'}, {label: '대인관계', value: '대인관계 어려움'}] },
-      { id: 'duration', question: '증상 기간은?', options: [{label: '수주', value: '최근 몇 주'}, {label: '수개월', value: '수개월째'}, {label: '1년 이상', value: '1년 이상'}, {label: '반복', value: '좋아졌다 나빠지기를 반복'}] },
-      { id: 'treatment', question: '치료 경험은?', options: [{label: '처음', value: '처음 상담받음'}, {label: '상담 경험', value: '상담 받은 적 있음'}, {label: '약물 경험', value: '약물 복용 경험'}, {label: '현재 치료 중', value: '현재 치료 중'}] },
+      { id: 'reason', question: '퇴사 사유는?', options: [{label: '이직', value: '이직 확정'}, {label: '번아웃', value: '번아웃/건강'}, {label: '커리어', value: '커리어 전환'}, {label: '관계', value: '대인관계/조직문화'}] },
+      { id: 'notice', question: '통보 시점은?', options: [{label: '1주 전', value: '1주일 전'}, {label: '2주 전', value: '2주일 전'}, {label: '한 달 전', value: '한 달 전'}, {label: '즉시', value: '당일 통보'}] },
+      { id: 'handover', question: '인수인계 여력은?', options: [{label: '충분', value: '충분한 시간'}, {label: '보통', value: '필요 최소한'}, {label: '촉박', value: '매우 촉박'}] },
     ],
-    phases: ['마음 열기', '증상 탐색', '치료 방향 논의', '실천 계획'],
+    phases: ['통보', '만류·설득 대응', '인수인계 협의', '마무리'],
   },
   {
-    id: 'inheritance_plan', name: '상속 사전 설계', icon: '🏦', gradient: 'from-amber-100 to-orange-50', simType: 'roleplay',
-    description: '생전 증여 vs 사후 상속, 절세 전략, 가족 간 공평한 분배를 설계합니다',
+    id: 'home_purchase', name: '집 매수 협상', icon: '🏡', gradient: 'from-amber-100 to-orange-50', isPopular: true, simType: 'roleplay',
+    description: '매도인·중개사·대출심사와 인생 최대 거래를 협상합니다',
     roles: [
-      { name: '세무사', icon: '🧮', focus: '증여세·상속세 시뮬레이션, 절세 전략, 공제 한도, 신고 절차' },
-      { name: '장남', icon: '🙋‍♂️', focus: '기여분 주장, 부모 돌봄 역할, 사업 승계 희망, 형제 간 입장 차이' },
-      { name: '차남', icon: '🙋', focus: '균등 분배 주장, 소외감, 현실적 필요(주거/교육비), 형에 대한 서운함' },
+      { name: '매도인', icon: '🔑', focus: '호가 고수, 타 매수자 비교, 가격 인하 저항, 매도 시급성' },
+      { name: '부동산 중개사', icon: '🏘️', focus: '양측 조율, 시세 정보, 계약 조건 가이드, 중개수수료' },
+      { name: '은행 대출심사', icon: '🏦', focus: 'LTV·DTI·DSR 규제, 신용도, 담보 가치, 금리 조건' },
     ],
-    defaultIntensity: 5, gaugeLabel: '가족 합의도',
-    verdictOptions: ['생전 증여 계획 확정', '유언장 작성', '신탁 설정', '추가 논의'],
-    theme: { bg: 'bg-amber-50', accent: 'text-amber-800', cardBg: 'bg-white' },
-    userRole: '부모(재산 보유자)',
-    contextPlaceholder: '70대, 아파트 2채+예금 3억, 아들 2명에게 공평하게 분배하고 싶음...',
+    defaultIntensity: 6, gaugeLabel: '유리한 매수 가능성',
+    verdictOptions: ['유리한 가격 매수', '시세 수준 매수', '불리한 조건 수락', '거래 포기'],
+    theme: { bg: 'bg-amber-50', accent: 'text-amber-700', cardBg: 'bg-white' },
+    userRole: '매수자',
+    contextPlaceholder: '서울 아파트 10억, 대출 6억 예정, 호가 대비 5% 인하 희망...',
     prepQuestions: [
-      { id: 'asset', question: '주요 재산은?', options: [{label: '부동산', value: '부동산 위주'}, {label: '현금/금융', value: '현금/금융자산'}, {label: '혼합', value: '부동산+현금 혼합'}, {label: '사업체', value: '사업체/지분 포함'}] },
-      { id: 'heirs', question: '상속인 구성은?', options: [{label: '자녀 2명', value: '자녀 2명'}, {label: '자녀 3명 이상', value: '자녀 3명 이상'}, {label: '배우자+자녀', value: '배우자+자녀'}, {label: '복잡', value: '재혼/이복 등 복잡'}] },
-      { id: 'concern', question: '가장 고민은?', options: [{label: '절세', value: '세금 최소화'}, {label: '공평', value: '공평한 분배'}, {label: '갈등 예방', value: '가족 갈등 예방'}, {label: '사업 승계', value: '사업 승계'}] },
+      { id: 'type', question: '매수 대상은?', options: [{label: '아파트', value: '아파트'}, {label: '빌라/주택', value: '빌라/단독주택'}, {label: '오피스텔', value: '오피스텔'}, {label: '상가', value: '상가'}] },
+      { id: 'price', question: '가격대는?', options: [{label: '5억 이하', value: '5억 이하'}, {label: '5~10억', value: '5~10억'}, {label: '10~20억', value: '10~20억'}, {label: '20억 이상', value: '20억 이상'}] },
+      { id: 'urgency', question: '시급성은?', options: [{label: '여유', value: '여유롭게'}, {label: '한두달', value: '1~2개월 내'}, {label: '급함', value: '당장 결정'}] },
     ],
-    phases: ['재산 현황 파악', '세금 시뮬레이션', '분배 방안 논의', '실행 계획'],
+    phases: ['시세·매물 파악', '가격 협상', '계약 조건', '대출·최종'],
+  },
+  {
+    id: 'thesis_defense', name: '학위 심사 디펜스', icon: '🎓', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
+    description: '논문 심사위원 앞에서 연구 성과를 방어합니다',
+    roles: [
+      { name: '지도교수', icon: '👨‍🏫', focus: '연구 맥락 정리, 약점 보완 유도, 학생 보호와 학술 엄격성 균형' },
+      { name: '외부 심사위원', icon: '🔬', focus: '방법론 비판, 선행연구 누락, 통계·실험 설계, 독창성 검증' },
+      { name: '산업계 심사위원', icon: '🏭', focus: '실용성·응용 가능성, 산업 관점 의미, 현장 적합도' },
+    ],
+    defaultIntensity: 7, gaugeLabel: '통과 가능성',
+    verdictOptions: ['무수정 통과', '수정 후 통과', '재심사', '불합격'],
+    theme: { bg: 'bg-indigo-50', accent: 'text-indigo-700', cardBg: 'bg-white' },
+    userRole: '학위 후보자',
+    contextPlaceholder: '박사 논문 최종 디펜스, 딥러닝 의료영상 주제, 2시간 공개 심사...',
+    prepQuestions: [
+      { id: 'degree', question: '학위 유형은?', options: [{label: '석사', value: '석사 학위'}, {label: '박사', value: '박사 학위'}, {label: '학부 졸업논문', value: '학부 졸업논문'}, {label: '학회 발표', value: '학회 발표 Q&A'}] },
+      { id: 'field', question: '연구 분야는?', options: [{label: '이공', value: '이공계'}, {label: '의학', value: '의학/약학'}, {label: '사회', value: '사회과학'}, {label: '인문', value: '인문예술'}] },
+      { id: 'stage', question: '준비 상태는?', options: [{label: '완성', value: '논문 완성'}, {label: '대부분', value: '대부분 완료'}, {label: '부족', value: '부족한 부분 있음'}] },
+    ],
+    phases: ['발표', '질의응답', '비공개 심의', '결과 통보'],
+  },
+  {
+    id: 'startup_pivot', name: '스타트업 피벗 결정', icon: '🔀', gradient: 'from-purple-100 to-fuchsia-50', simType: 'roleplay',
+    description: '기존 제품을 버리고 방향을 바꿀지 팀·투자자·시장 관점에서 결정합니다',
+    roles: [
+      { name: '리드 투자자', icon: '💰', focus: '런웨이·포트폴리오 맥락, 피벗 합당성, 팀 역량 재평가, 후속 투자 여부' },
+      { name: '공동창업자', icon: '🤝', focus: '팀 사기, 기존 제품 애착, 피벗 후 역할 변화, 지분·보상 재정렬' },
+      { name: '핵심 초기 고객', icon: '🙋', focus: '기존 제품 이탈 우려, 대안 요구, 신제품 수용성, 신뢰 유지' },
+    ],
+    defaultIntensity: 8, gaugeLabel: '피벗 타당성',
+    verdictOptions: ['전면 피벗', '하이브리드 전환', '현재 유지·최적화', '종료·정리'],
+    theme: { bg: 'bg-purple-50', accent: 'text-purple-700', cardBg: 'bg-white' },
+    userRole: 'CEO',
+    contextPlaceholder: 'B2C 앱 MAU 정체, 12개월 런웨이, B2B SaaS 피벗 검토...',
+    prepQuestions: [
+      { id: 'runway', question: '남은 런웨이는?', options: [{label: '6개월 이하', value: '6개월 이하'}, {label: '6~12개월', value: '6~12개월'}, {label: '12~24개월', value: '12~24개월'}, {label: '24개월+', value: '24개월 이상'}] },
+      { id: 'signal', question: '피벗 신호는?', options: [{label: 'PMF 실패', value: 'PMF 달성 실패'}, {label: '시장 축소', value: '시장 자체 축소'}, {label: '우연한 발견', value: '뜻밖의 사용 사례 발견'}, {label: '경쟁 격화', value: '경쟁 심화'}] },
+      { id: 'team', question: '팀 사기는?', options: [{label: '높음', value: '피벗 의지 높음'}, {label: '반반', value: '반반 나뉨'}, {label: '낮음', value: '번아웃·이탈 우려'}] },
+    ],
+    phases: ['현황 진단', '대안 검토', '이해관계자 설득', '최종 결정'],
+  },
+  {
+    id: 'tax_audit', name: '세무조사 대응', icon: '🔍', gradient: 'from-slate-100 to-gray-50', simType: 'roleplay',
+    description: '국세청 조사에서 쟁점 항목을 해명하고 과세 규모를 최소화합니다',
+    roles: [
+      { name: '세무조사관', icon: '🧑‍💼', focus: '매출 누락·경비 과다 여부, 원천징수, 친인척 거래, 가산세 적용' },
+      { name: '자문 세무사', icon: '🧮', focus: '합법 경비 소명, 자료 준비, 가산세 감면 요건, 납부 계획' },
+      { name: '경리 직원', icon: '📒', focus: '실제 전표·장부 상태, 누락 서류, 현장 진술 일관성' },
+    ],
+    defaultIntensity: 7, gaugeLabel: '조사 마무리 유리도',
+    verdictOptions: ['무혐의 종결', '소액 추징', '대규모 추징', '형사 고발'],
+    theme: { bg: 'bg-gray-50', accent: 'text-gray-700', cardBg: 'bg-white' },
+    userRole: '대표/개인사업자',
+    contextPlaceholder: '연매출 20억 법인, 3년치 세무조사 통지, 접대비·인건비 쟁점...',
+    prepQuestions: [
+      { id: 'type', question: '조사 유형은?', options: [{label: '정기', value: '정기 세무조사'}, {label: '특별', value: '특별/추적 조사'}, {label: '부가세', value: '부가세 조사'}, {label: '소득', value: '종합소득세 조사'}] },
+      { id: 'scale', question: '사업 규모는?', options: [{label: '1억 이하', value: '연매출 1억 이하'}, {label: '1~10억', value: '연매출 1~10억'}, {label: '10~100억', value: '연매출 10~100억'}, {label: '100억+', value: '100억 이상'}] },
+      { id: 'prep', question: '자료 준비 상태는?', options: [{label: '완비', value: '완비'}, {label: '일부', value: '일부 누락'}, {label: '부실', value: '매우 부실'}] },
+    ],
+    phases: ['예비 대응', '현장 조사', '쟁점 해명', '결과 협의'],
+  },
+  {
+    id: 'court_testimony', name: '법정 증언', icon: '⚖️', gradient: 'from-stone-100 to-amber-50', simType: 'roleplay',
+    description: '검사·상대 변호사의 교차신문에서 핵심 진술을 흔들림 없이 유지합니다',
+    roles: [
+      { name: '상대측 변호사', icon: '🎯', focus: '진술 모순 유도, 기억 흐리기, 유도신문, 신뢰도 공격' },
+      { name: '재판장', icon: '👨‍⚖️', focus: '증언 조율, 부적절 질문 제지, 증인 보호, 사실관계 정리' },
+      { name: '우리측 변호사', icon: '📜', focus: '핵심 쟁점 재확인, 유리한 진술 보강, 반대신문 대응 전략' },
+    ],
+    defaultIntensity: 8, gaugeLabel: '진술 신빙성',
+    verdictOptions: ['증언 완벽 유지', '주요 쟁점 유지', '일부 동요', '신뢰 상실'],
+    theme: { bg: 'bg-stone-50', accent: 'text-stone-700', cardBg: 'bg-white' },
+    userRole: '증인',
+    contextPlaceholder: '민사 소송 증인 출석, 계약 분쟁 목격자, 상대측 교차신문 예정...',
+    prepQuestions: [
+      { id: 'caseType', question: '사건 유형은?', options: [{label: '형사', value: '형사 사건'}, {label: '민사', value: '민사 사건'}, {label: '가사', value: '가사 사건'}, {label: '행정', value: '행정 소송'}] },
+      { id: 'role', question: '증인 유형은?', options: [{label: '당사자', value: '당사자 본인'}, {label: '목격자', value: '제3자 목격자'}, {label: '참고인', value: '참고인'}, {label: '전문가', value: '전문가 증인'}] },
+      { id: 'stake', question: '핵심 쟁점 수는?', options: [{label: '1개', value: '단일 쟁점'}, {label: '2~3개', value: '2~3개 쟁점'}, {label: '다수', value: '다수 쟁점'}] },
+    ],
+    phases: ['증언 준비', '주신문', '교차신문', '재신문·종결'],
+  },
+  // ── Tier 2 신규 시나리오 (2026-04-17) ──
+  {
+    id: 'proposal_breakup', name: '관계 고백·이별 통보', icon: '💐', gradient: 'from-pink-100 to-rose-50', simType: 'roleplay',
+    description: '프로포즈 또는 이별 통보 상황에서 감정과 말을 정리합니다',
+    roles: [
+      { name: '상대방', icon: '🫶', focus: '감정적 반응, 받아들이기·거절, 과거 맥락, 진심 탐색' },
+      { name: '친한 친구', icon: '🧑‍🤝‍🧑', focus: '제3자 관점, 현실적 조언, 감정 정리 도움, 미래 시나리오' },
+      { name: '본인 내면의 목소리', icon: '🧠', focus: '망설임과 확신, 타이밍, 말의 선택, 후회 최소화' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '진심 전달 완성도',
+    verdictOptions: ['잘 전달됨', '무난', '아쉬움 남음', '감정 폭발'],
+    theme: { bg: 'bg-pink-50', accent: 'text-pink-600', cardBg: 'bg-white' },
+    userRole: '당사자',
+    contextPlaceholder: '3년차 연애, 헤어짐 결심, 상대는 전혀 예상 못 하는 상태...',
+    prepQuestions: [
+      { id: 'type', question: '상황 유형은?', options: [{label: '프로포즈', value: '프로포즈'}, {label: '이별 통보', value: '이별 통보'}, {label: '오해 해명', value: '오해 해명'}, {label: '첫 고백', value: '첫 고백'}] },
+      { id: 'duration', question: '관계 기간은?', options: [{label: '수개월', value: '수개월'}, {label: '1~3년', value: '1~3년'}, {label: '3년+', value: '3년 이상'}] },
+      { id: 'context', question: '주변 상황은?', options: [{label: '평온', value: '특별한 사건 없음'}, {label: '갈등 중', value: '갈등이 이어짐'}, {label: '전환점', value: '이사·유학 등 전환점'}] },
+    ],
+    phases: ['감정 정리', '말 꺼내기', '반응 대응', '마무리'],
+  },
+  {
+    id: 'shareholder_meeting', name: '주주총회 발언', icon: '📣', gradient: 'from-sky-100 to-blue-50', simType: 'roleplay',
+    description: '소액주주·기관투자자·행동주의 앞에서 경영 성과와 비전을 설득합니다',
+    roles: [
+      { name: '소액주주', icon: '🧑‍💼', focus: '배당 확대, 주가 부진, 임원 보수, 도덕적 이슈 추궁' },
+      { name: '기관투자자', icon: '🏦', focus: 'ROE·CAPEX 전략, 거버넌스, ESG 준수, 중장기 계획' },
+      { name: '행동주의 펀드', icon: '🦁', focus: '이사 교체 요구, 자사주 매입 압박, 스핀오프 요구, 의결권 행사 위협' },
+    ],
+    defaultIntensity: 7, gaugeLabel: '안건 통과 가능성',
+    verdictOptions: ['압도적 통과', '근소 통과', '수정 후 통과', '부결'],
+    theme: { bg: 'bg-sky-50', accent: 'text-sky-700', cardBg: 'bg-white' },
+    userRole: '대표이사',
+    contextPlaceholder: '정기 주총, 배당 축소+자사주 소각 안건, 행동주의 펀드 3% 지분 확보...',
+    prepQuestions: [
+      { id: 'agenda', question: '주요 안건은?', options: [{label: '임원 선임', value: '임원 선임'}, {label: '배당·자사주', value: '배당·자사주 관련'}, {label: '정관 변경', value: '정관 변경'}, {label: '합병·분할', value: '합병·분할'}] },
+      { id: 'scale', question: '회사 규모는?', options: [{label: '중소 상장', value: '중소 상장사'}, {label: '중견', value: '중견 상장사'}, {label: '대형', value: '대형 상장사'}] },
+      { id: 'pressure', question: '외부 압력은?', options: [{label: '없음', value: '특별한 압력 없음'}, {label: '보통', value: '일반적 요구'}, {label: '강함', value: '행동주의 공세'}] },
+    ],
+    phases: ['보고', '질의응답', '안건 표결', '결과 수습'],
+  },
+  {
+    id: 'car_purchase', name: '자동차 구매 협상', icon: '🚗', gradient: 'from-red-100 to-orange-50', simType: 'roleplay',
+    description: '딜러·경쟁 딜러·영업 매니저와 가격·옵션·탁송 조건을 유리하게 협상합니다',
+    roles: [
+      { name: '담당 영업사원', icon: '🧑‍💼', focus: '견적 방어, 서비스·옵션 제공, 계약 서두르기' },
+      { name: '경쟁 딜러', icon: '🤼', focus: '동일 차종 경쟁 견적, 더 좋은 조건 제시, 가격 교란' },
+      { name: '영업 매니저', icon: '👔', focus: '승인 한도, 추가 할인·프로모션, 최종 가격 결정권' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '유리한 계약 가능성',
+    verdictOptions: ['대폭 할인 성사', '적절 조건', '시세 수준', '불리한 조건'],
+    theme: { bg: 'bg-red-50', accent: 'text-red-700', cardBg: 'bg-white' },
+    userRole: '구매자',
+    contextPlaceholder: '중형 SUV 5천만원급, 연말 프로모션 활용, 경쟁 견적 2곳 확보...',
+    prepQuestions: [
+      { id: 'type', question: '차량 유형은?', options: [{label: '경차', value: '경차/소형'}, {label: '중형', value: '중형 세단/SUV'}, {label: '대형', value: '대형 세단/SUV'}, {label: '수입', value: '수입차'}, {label: '전기차', value: '전기차'}] },
+      { id: 'newused', question: '신차·중고?', options: [{label: '신차', value: '신차'}, {label: '중고', value: '중고차'}] },
+      { id: 'finance', question: '결제 방식은?', options: [{label: '일시불', value: '일시불'}, {label: '할부', value: '할부'}, {label: '리스', value: '리스'}, {label: '렌트', value: '장기 렌트'}] },
+    ],
+    phases: ['견적 요청', '조건 비교', '가격 협상', '계약 체결'],
+  },
+  {
+    id: 'civil_servant_interview', name: '공직 면접', icon: '🏛️', gradient: 'from-teal-100 to-cyan-50', simType: 'roleplay',
+    description: '공무원·공공기관 면접에서 공직 가치관과 상황 대응력을 증명합니다',
+    roles: [
+      { name: '공직 가치 면접관', icon: '🎖️', focus: '공익 마인드, 청렴·책임성, 헌법 가치, 봉사정신' },
+      { name: '직무 면접관', icon: '📋', focus: '법령 이해, 실무 역량, 정책 이슈 의견, 전문성' },
+      { name: '상황 면접관', icon: '🧩', focus: '돌발 상황 대응, 민원 처리, 조직 내 갈등 해결, 윤리적 딜레마' },
+    ],
+    defaultIntensity: 6, gaugeLabel: '합격 가능성',
+    verdictOptions: ['합격', '예비 합격', '추가 평가', '불합격'],
+    theme: { bg: 'bg-teal-50', accent: 'text-teal-700', cardBg: 'bg-white' },
+    userRole: '응시자',
+    contextPlaceholder: '9급 일반행정 최종 면접, 공직가치+직무+상황 3단계...',
+    prepQuestions: [
+      { id: 'track', question: '응시 구분은?', options: [{label: '9급 공무원', value: '9급 공무원'}, {label: '7급 공무원', value: '7급 공무원'}, {label: '공공기관', value: '공공기관'}, {label: '외교·특수', value: '외교·특수직'}] },
+      { id: 'area', question: '직렬은?', options: [{label: '일반행정', value: '일반행정'}, {label: '세무/재무', value: '세무/재무'}, {label: '경찰/소방', value: '경찰/소방'}, {label: '기술', value: '기술직'}, {label: '사회복지', value: '사회복지'}] },
+      { id: 'prep', question: '준비 상태는?', options: [{label: '충분', value: '장기 준비'}, {label: '보통', value: '수개월 준비'}, {label: '부족', value: '단기 준비'}] },
+    ],
+    phases: ['공직 가치', '직무 역량', '상황 대응', '최종 판정'],
+  },
+  {
+    id: 'police_interrogation', name: '경찰 조사 대응', icon: '🚓', gradient: 'from-blue-100 to-slate-50', simType: 'roleplay',
+    description: '피의자·참고인 조사에서 권리를 지키면서 진술을 풀어갑니다',
+    roles: [
+      { name: '수사관', icon: '🕵️', focus: '사실관계 확인, 모순 포착, 진술 유도, 수사 방향 형성' },
+      { name: '동석 변호사', icon: '⚖️', focus: '묵비권·변호인 조력권, 진술 거부 시점, 무리한 신문 제지' },
+      { name: '본인 내면', icon: '🧠', focus: '당황·침착 교차, 기억 재구성, 말 실수 경계, 공포 관리' },
+    ],
+    defaultIntensity: 8, gaugeLabel: '진술 안정도',
+    verdictOptions: ['안정적 진술 유지', '주요 쟁점 지킴', '일부 불리한 진술', '치명적 실수'],
+    theme: { bg: 'bg-blue-50', accent: 'text-blue-700', cardBg: 'bg-white' },
+    userRole: '피의자/참고인',
+    contextPlaceholder: '교통사고 후 피의자 조사, 변호사 동석, 3시간 예상...',
+    prepQuestions: [
+      { id: 'status', question: '조사 신분은?', options: [{label: '참고인', value: '참고인'}, {label: '피의자', value: '피의자'}, {label: '피해자', value: '피해자'}, {label: '목격자', value: '목격자'}] },
+      { id: 'caseType', question: '사건 유형은?', options: [{label: '교통사고', value: '교통사고'}, {label: '금전/사기', value: '금전/사기 관련'}, {label: '폭행', value: '폭행/상해'}, {label: '디지털', value: '사이버/디지털 범죄'}, {label: '기타', value: '기타'}] },
+      { id: 'lawyer', question: '변호인 동석?', options: [{label: '동석', value: '변호인 동석'}, {label: '없음', value: '단독 출석'}, {label: '미정', value: '미정'}] },
+    ],
+    phases: ['조사 전 준비', '조사 진행', '변호인 의견', '조서 확인'],
+  },
+  {
+    id: 'freelance_quote', name: '프리랜서 견적 협상', icon: '💼', gradient: 'from-lime-100 to-emerald-50', simType: 'roleplay',
+    description: '클라이언트와 견적·범위·결제 조건을 공정하게 합의합니다',
+    roles: [
+      { name: '클라이언트', icon: '🧑‍💼', focus: '예산 압박, 일정 단축, 무리한 수정·추가 요구, 경쟁 견적 언급' },
+      { name: '중개 플랫폼 매니저', icon: '💻', focus: '플랫폼 수수료, 표준 계약, 분쟁 중재, 리뷰·평점' },
+      { name: '선배 프리랜서', icon: '🤝', focus: '시장 시세 정보, 덤핑 위험, 범위 변경·추가 비용 가이드' },
+    ],
+    defaultIntensity: 5, gaugeLabel: '유리한 계약 가능성',
+    verdictOptions: ['원하는 조건 확보', '균형 합의', '일부 양보', '계약 포기'],
+    theme: { bg: 'bg-lime-50', accent: 'text-lime-700', cardBg: 'bg-white' },
+    userRole: '프리랜서',
+    contextPlaceholder: '웹 디자인 프로젝트, 견적 500만원 제시, 클라이언트 300만원+3주 요청...',
+    prepQuestions: [
+      { id: 'field', question: '작업 분야는?', options: [{label: '디자인', value: '디자인'}, {label: '개발', value: '개발'}, {label: '글쓰기', value: '글쓰기/편집'}, {label: '마케팅', value: '마케팅'}, {label: '영상', value: '영상/제작'}] },
+      { id: 'size', question: '프로젝트 규모는?', options: [{label: '100만 이하', value: '100만원 이하'}, {label: '100~500만', value: '100~500만원'}, {label: '500만~2천', value: '500만~2천만원'}, {label: '2천만+', value: '2천만원 이상'}] },
+      { id: 'relation', question: '클라이언트 관계는?', options: [{label: '신규', value: '신규 클라이언트'}, {label: '재거래', value: '재거래'}, {label: '플랫폼', value: '플랫폼 매칭'}] },
+    ],
+    phases: ['범위 협의', '견적 조율', '계약 조건', '합의 체결'],
   },
 ];
 
@@ -3977,64 +3801,88 @@ export const DEFAULT_STAKEHOLDER_SETTINGS: StakeholderSettings = {
 
 // ── 토론 추천주제 ──
 
+export interface RecommendedParticipant {
+  id?: string;
+  icon?: string;
+  label: string;
+}
+
 export interface RecommendedTopic {
   id: string;
   title: string;
   temperature: number;
   participation: number;
   updatedAt: string;
+  // 1v1: single participant per side
   proLabel?: string;
   proIcon?: string;
   proId?: string;
   conLabel?: string;
   conIcon?: string;
   conId?: string;
+  // 2v2 etc: arrays per side (overrides single fields when present)
+  proParticipants?: RecommendedParticipant[];
+  conParticipants?: RecommendedParticipant[];
+  // multi-speaker modes (standard/freetalk/brainstorm)
   participants?: { id?: string; name: string; icon: string }[];
 }
 
 export const DEBATE_RECOMMENDED_TOPICS: Record<string, RecommendedTopic[]> = {
   procon: [
     // 1:1 매치
-    { id: 'rt-0', title: '사형제는 필요한가?', temperature: 92, participation: 8210, updatedAt: '방금 전', proLabel: '경찰관', proIcon: '🚔', proId: 'police', conLabel: '변호사', conIcon: '🗂️', conId: 'lawyer' },
-    { id: 'rt-1', title: 'AI가 인간 일자리를 빼앗을까?', temperature: 87, participation: 5234, updatedAt: '1시간 전', proLabel: 'GPT-5.4', proIcon: '🤖', proId: 'gpt', conLabel: '경제학', conIcon: '📊', conId: 'economics' },
-    { id: 'rt-2', title: '의료는 무상이어야 하는가?', temperature: 88, participation: 6120, updatedAt: '2시간 전', proLabel: '사회주의', proIcon: '✊', proId: 'socialist', conLabel: '자본주의', conIcon: '💰', conId: 'capitalist' },
-    { id: 'rt-3', title: '사교육 전면 금지해야 하는가?', temperature: 85, participation: 4890, updatedAt: '3시간 전', proLabel: '교사', proIcon: '👨‍🏫', proId: 'teacher', conLabel: '경제학', conIcon: '📊', conId: 'economics' },
-    { id: 'rt-4', title: '동물실험 금지해야 하는가?', temperature: 83, participation: 4156, updatedAt: '4시간 전', proLabel: '철학', proIcon: '🏛️', proId: 'philosophy', conLabel: '의사', conIcon: '🩺', conId: 'doctor' },
-    { id: 'rt-5', title: '이민 문호를 더 열어야 하는가?', temperature: 80, participation: 3670, updatedAt: '5시간 전', proLabel: '진보주의', proIcon: '🔄', proId: 'progressive', conLabel: '민족주의', conIcon: '🗻', conId: 'nationalist' },
+    { id: 'rt-0', title: '사형제는 필요한가?', temperature: 92, participation: 8210, updatedAt: '방금 전', proLabel: '범죄학자', proIcon: '🔍', proId: 'criminology', conLabel: '인본주의자', conIcon: '🌍', conId: 'humanist' },
+    { id: 'rt-1', title: '안락사를 합법화해야 하는가?', temperature: 91, participation: 7340, updatedAt: '1시간 전', proLabel: '공리주의자', proIcon: '⚖️', proId: 'utilitarian', conLabel: '철학자', conIcon: '🏛️', conId: 'philosophy' },
+    { id: 'rt-2', title: '양심적 병역거부를 인정해야 하는가?', temperature: 88, participation: 5980, updatedAt: '2시간 전', proLabel: '평화주의자', proIcon: '☮️', proId: 'pacifist', conLabel: '군사 전문가', conIcon: '♟️', conId: 'military' },
+    { id: 'rt-3', title: '의대 정원 확대를 강행해야 하는가?', temperature: 87, participation: 5620, updatedAt: '3시간 전', proLabel: '행정학자', proIcon: '🏢', proId: 'pubadmin', conLabel: '의사', conIcon: '🩺', conId: 'doctor' },
+    { id: 'rt-4', title: '기본소득을 도입해야 하는가?', temperature: 85, participation: 4830, updatedAt: '4시간 전', proLabel: '사회주의자', proIcon: '✊', proId: 'socialist', conLabel: '자본주의자', conIcon: '💰', conId: 'capitalist' },
+    { id: 'rt-5', title: '대마초 합법화가 한국에서도 가능한가?', temperature: 82, participation: 3870, updatedAt: '5시간 전', proLabel: '자유주의자', proIcon: '🗽', proId: 'libertarian', conLabel: '경찰관', conIcon: '🚔', conId: 'police' },
     // 2:2 매치
-    { id: 'rt-6', title: '집값, 국가가 통제해야 하는가?', temperature: 91, participation: 7340, updatedAt: '30분 전', proLabel: '사회주의 · 행정학', proIcon: '✊', proId: 'socialist', conLabel: '자본주의 · 금융', conIcon: '💰', conId: 'capitalist' },
-    { id: 'rt-7', title: 'AI 판사가 인간 판사를 대체할 수 있나?', temperature: 86, participation: 5120, updatedAt: '1시간 전', proLabel: 'Claude · 프로그래머', proIcon: '🧡', proId: 'claude', conLabel: '판사 · 철학', conIcon: '⚖️', conId: 'judge' },
-    { id: 'rt-8', title: '원전 확대가 현실적 대안인가?', temperature: 84, participation: 4780, updatedAt: '2시간 전', proLabel: '물리학 · 엔지니어', proIcon: '⚛️', proId: 'physics', conLabel: '환경과학 · 기자', conIcon: '🌿', conId: 'envscience' },
+    { id: 'rt-6', title: 'AI 창작물에 저작권을 인정해야 하는가?', temperature: 89, participation: 6340, updatedAt: '30분 전',
+      proParticipants: [{ id: 'claude', icon: '🧡', label: 'Claude' }, { id: 'engineer', icon: '⚙️', label: '엔지니어' }],
+      conParticipants: [{ id: 'writer', icon: '✍️', label: '작가' }, { id: 'legal', icon: '⚖️', label: '법학자' }] },
+    { id: 'rt-7', title: '정년을 70세로 연장해야 하는가?', temperature: 86, participation: 5120, updatedAt: '1시간 전',
+      proParticipants: [{ id: 'finance', icon: '🏦', label: '금융 전문가' }, { id: 'socialworker', icon: '🫂', label: '사회복지사' }],
+      conParticipants: [{ id: 'economics', icon: '📊', label: '경제학자' }, { id: 'sociology', icon: '👥', label: '사회학자' }] },
+    { id: 'rt-8', title: '학교 체벌을 부활시켜야 하는가?', temperature: 84, participation: 4780, updatedAt: '2시간 전',
+      proParticipants: [{ id: 'conservative', icon: '🛡️', label: '보수주의자' }, { id: 'teacher', icon: '👨‍🏫', label: '교사' }],
+      conParticipants: [{ id: 'psychology', icon: '🎭', label: '심리학자' }, { id: 'education', icon: '📖', label: '교육학자' }] },
+    { id: 'rt-9', title: '외국인에게 지방선거 투표권을 줘야 하는가?', temperature: 83, participation: 4210, updatedAt: '15분 전',
+      proParticipants: [{ id: 'progressive', icon: '🔄', label: '진보주의자' }, { id: 'intlrelations', icon: '🌐', label: '국제관계학자' }],
+      conParticipants: [{ id: 'nationalist', icon: '🗻', label: '민족주의자' }, { id: 'political', icon: '🗳️', label: '정치학자' }] },
   ],
   standard: [
-    { id: 'rt-s1', title: '저출산 대책, 왜 효과가 없을까?', temperature: 90, participation: 6890, updatedAt: '방금 전', participants: [{ id: 'sociology', name: '사회학', icon: '👥' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'pubadmin', name: '행정학', icon: '🏢' }, { id: 'psychology', name: '심리학', icon: '🎭' }] },
-    { id: 'rt-s2', title: 'AI 규제, 혁신과 안전 사이의 균형점은?', temperature: 84, participation: 4780, updatedAt: '1시간 전', participants: [{ id: 'gpt', name: 'GPT-5.4', icon: '🤖' }, { id: 'programmer', name: '프로그래머', icon: '💻' }, { id: 'legal', name: '법학', icon: '⚖️' }, { id: 'philosophy', name: '철학', icon: '🏛️' }] },
-    { id: 'rt-s3', title: '한국 교육, 무엇부터 바꿔야 하나?', temperature: 82, participation: 5120, updatedAt: '2시간 전', participants: [{ id: 'teacher', name: '교사', icon: '👨‍🏫' }, { id: 'psychology', name: '심리학', icon: '🎭' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'journalist', name: '기자', icon: '📰' }] },
-    { id: 'rt-s4', title: '부동산 정책, 시장이냐 규제냐?', temperature: 88, participation: 5430, updatedAt: '30분 전', participants: [{ id: 'capitalist', name: '자본주의', icon: '💰' }, { id: 'finance', name: '금융', icon: '💰' }, { id: 'socialist', name: '사회주의', icon: '✊' }, { id: 'pubadmin', name: '행정학', icon: '🏢' }] },
-    { id: 'rt-s5', title: '디지털 시대의 프라이버시, 어디까지?', temperature: 77, participation: 2980, updatedAt: '3시간 전', participants: [{ id: 'libertarian', name: '자유주의', icon: '🗽' }, { id: 'programmer', name: '프로그래머', icon: '💻' }, { id: 'police', name: '경찰관', icon: '🚔' }, { id: 'political', name: '정치학', icon: '🗳️' }] },
-    { id: 'rt-s6', title: '반도체 패권 경쟁의 미래는?', temperature: 79, participation: 3200, updatedAt: '4시간 전', participants: [{ id: 'gemini', name: 'Gemini', icon: '💎' }, { id: 'engineer', name: '엔지니어', icon: '⚙️' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'diplomat', name: '외교관', icon: '🤝' }] },
+    { id: 'rt-s1', title: '아이 낳으면 3억 줘도 안 낳는 이유는?', temperature: 91, participation: 7490, updatedAt: '방금 전', participants: [{ id: 'psychology', name: '심리학자', icon: '🎭' }, { id: 'sociology', name: '사회학자', icon: '👥' }, { id: 'pubadmin', name: '행정학자', icon: '🏢' }, { id: 'doctor', name: '의사', icon: '🩺' }] },
+    { id: 'rt-s2', title: 'AI가 인간보다 똑똑해지면 누가 통제하나?', temperature: 87, participation: 5180, updatedAt: '1시간 전', participants: [{ id: 'claude', name: 'Claude Opus 4.6', icon: '🧡' }, { id: 'philosophy', name: '철학자', icon: '🏛️' }, { id: 'legal', name: '법학자', icon: '⚖️' }, { id: 'political', name: '정치학자', icon: '🗳️' }] },
+    { id: 'rt-s3', title: '수능 폐지, 한국 교육 살아날 수 있을까?', temperature: 84, participation: 5420, updatedAt: '2시간 전', participants: [{ id: 'education', name: '교육학자', icon: '📖' }, { id: 'psychology', name: '심리학자', icon: '🎭' }, { id: 'journalist', name: '기자', icon: '📰' }, { id: 'libertarian', name: '자유주의자', icon: '🗽' }] },
+    { id: 'rt-s4', title: '월급 20년 모아도 집 못 사는 시대, 답은?', temperature: 92, participation: 6830, updatedAt: '30분 전', participants: [{ id: 'finance', name: '금융 전문가', icon: '🏦' }, { id: 'pubadmin', name: '행정학자', icon: '🏢' }, { id: 'socialist', name: '사회주의자', icon: '✊' }, { id: 'sociology', name: '사회학자', icon: '👥' }] },
+    { id: 'rt-s5', title: 'AI가 내 대화 전부 듣고 있어도 괜찮은가?', temperature: 80, participation: 3380, updatedAt: '3시간 전', participants: [{ id: 'libertarian', name: '자유주의자', icon: '🗽' }, { id: 'police', name: '경찰관', icon: '🚔' }, { id: 'legal', name: '법학자', icon: '⚖️' }, { id: 'philosophy', name: '철학자', icon: '🏛️' }] },
+    { id: 'rt-s6', title: '미중 반도체 전쟁, 한국은 누구 편인가?', temperature: 82, participation: 3820, updatedAt: '4시간 전', participants: [{ id: 'diplomat', name: '외교관', icon: '🤝' }, { id: 'intlrelations', name: '국제관계학자', icon: '🌐' }, { id: 'engineer', name: '엔지니어', icon: '⚙️' }, { id: 'military', name: '군사 전문가', icon: '♟️' }] },
+    { id: 'rt-s7', title: '기후 재난, 우리가 마지막 골든타임인가?', temperature: 85, participation: 4510, updatedAt: '1시간 전', participants: [{ id: 'envscience', name: '환경과학자', icon: '🌿' }, { id: 'utilitarian', name: '공리주의자', icon: '⚖️' }, { id: 'journalist', name: '기자', icon: '📰' }, { id: 'progressive', name: '진보주의자', icon: '🔄' }] },
+    { id: 'rt-s8', title: '의사 파업, 또 국민이 참아야 하나?', temperature: 88, participation: 5860, updatedAt: '2시간 전', participants: [{ id: 'doctor', name: '의사', icon: '🩺' }, { id: 'legal', name: '법학자', icon: '⚖️' }, { id: 'pubadmin', name: '행정학자', icon: '🏢' }, { id: 'journalist', name: '기자', icon: '📰' }] },
+    { id: 'rt-s9', title: '대학은 이미 죽었는가?', temperature: 83, participation: 4290, updatedAt: '3시간 전', participants: [{ id: 'education', name: '교육학자', icon: '📖' }, { id: 'claude', name: 'Claude Opus 4.6', icon: '🧡' }, { id: 'philosophy', name: '철학자', icon: '🏛️' }, { id: 'journalist', name: '기자', icon: '📰' }] },
+    { id: 'rt-s10', title: '인구 반토막, 군대는 누가 지키나?', temperature: 79, participation: 3350, updatedAt: '5시간 전', participants: [{ id: 'military', name: '군사 전문가', icon: '♟️' }, { id: 'intlrelations', name: '국제관계학자', icon: '🌐' }, { id: 'utilitarian', name: '공리주의자', icon: '⚖️' }, { id: 'sociology', name: '사회학자', icon: '👥' }] },
   ],
   freetalk: [
-    { id: 'rt-f1', title: '10년 뒤, 어떤 직업이 살아남을까?', temperature: 85, participation: 5100, updatedAt: '방금 전', participants: [{ id: 'gpt', name: 'GPT-5.4', icon: '🤖' }, { id: 'gemini', name: 'Gemini', icon: '💎' }, { id: 'deepseek', name: 'DeepSeek', icon: '🌊' }] },
-    { id: 'rt-f2', title: '요즘 MZ세대는 왜 투자에 몰릴까?', temperature: 78, participation: 4230, updatedAt: '1시간 전', participants: [{ id: 'stocktrader', name: '펀드매니저', icon: '📈' }, { id: 'economics', name: '경제학', icon: '📊' }, { id: 'journalist', name: '기자', icon: '📰' }] },
-    { id: 'rt-f3', title: '좋은 리더의 조건은 뭘까?', temperature: 73, participation: 3567, updatedAt: '2시간 전', participants: [{ id: 'lincoln', name: '링컨', icon: '🎩' }, { id: 'churchill', name: '처칠', icon: '🇬🇧' }, { id: 'napoleon', name: '나폴레옹', icon: '⚔️' }] },
-    { id: 'rt-f4', title: '초고령사회, 우리는 뭘 준비해야 할까?', temperature: 76, participation: 3890, updatedAt: '3시간 전', participants: [{ id: 'doctor', name: '의사', icon: '🩺' }, { id: 'socialworker', name: '사회복지사', icon: '🫂' }, { id: 'economics', name: '경제학', icon: '📊' }] },
-    { id: 'rt-f5', title: 'K-컨텐츠의 다음 먹거리는?', temperature: 71, participation: 3210, updatedAt: '4시간 전', participants: [{ id: 'producer', name: '프로듀서', icon: '🎬' }, { id: 'writer', name: '작가', icon: '✍️' }, { id: 'journalist', name: '기자', icon: '📰' }] },
-    { id: 'rt-f6', title: 'SNS가 정신건강에 미치는 영향', temperature: 80, participation: 4670, updatedAt: '1시간 전', participants: [{ id: 'psychology', name: '심리학', icon: '🎭' }, { id: 'claude', name: 'Claude', icon: '🧡' }, { id: 'teacher', name: '교사', icon: '👨‍🏫' }] },
-    { id: 'rt-f7', title: '우주 개발, 돈 낭비인가 미래 투자인가?', temperature: 74, participation: 2890, updatedAt: '5시간 전', participants: [{ id: 'astronomy', name: '천문학', icon: '🔭' }, { id: 'grok', name: 'Grok', icon: '⚡' }, { id: 'pilot', name: '파일럿', icon: '✈️' }] },
-  ],
-  hearing: [
-    { id: 'rt-h1', title: 'AI 기반 개인 재무관리 앱', temperature: 82, participation: 1890, updatedAt: '2시간 전' },
-    { id: 'rt-h2', title: '소규모 학교 온라인 교육 플랫폼', temperature: 68, participation: 1456, updatedAt: '5시간 전' },
-    { id: 'rt-h3', title: '독거노인 AI 안부 확인 서비스', temperature: 75, participation: 2100, updatedAt: '3시간 전' },
-    { id: 'rt-h4', title: '지역 농산물 직거래 구독 서비스', temperature: 60, participation: 1234, updatedAt: '7시간 전' },
+    { id: 'rt-f1', title: '독재자도 좋은 리더가 될 수 있는가?', temperature: 79, participation: 3967, updatedAt: '방금 전', participants: [{ id: 'napoleon', name: '나폴레옹', icon: '⚔️' }, { id: 'caesar', name: '카이사르', icon: '🏛️' }, { id: 'machiavelli', name: '마키아벨리', icon: '🦊' }] },
+    { id: 'rt-f2', title: '100세 시대 은퇴는 언제 해야 하나?', temperature: 77, participation: 3890, updatedAt: '1시간 전', participants: [{ id: 'doctor', name: '의사', icon: '🩺' }, { id: 'finance', name: '금융 전문가', icon: '🏦' }, { id: 'psychology', name: '심리학자', icon: '🎭' }] },
+    { id: 'rt-f3', title: '화성 이주가 30년 안에 가능한가?', temperature: 78, participation: 3190, updatedAt: '2시간 전', participants: [{ id: 'astronomy', name: '천문학자', icon: '🔭' }, { id: 'musk', name: '일론 머스크', icon: '🚀' }, { id: 'engineer', name: '엔지니어', icon: '⚙️' }] },
+    { id: 'rt-f4', title: '연애와 결혼이 사치가 된 시대인가?', temperature: 80, participation: 4190, updatedAt: '3시간 전', participants: [{ id: 'psychology', name: '심리학자', icon: '🎭' }, { id: 'sociology', name: '사회학자', icon: '👥' }, { id: 'economics', name: '경제학자', icon: '📊' }] },
+    { id: 'rt-f5', title: '우리는 왜 점점 더 외로워지는가?', temperature: 75, participation: 3080, updatedAt: '4시간 전', participants: [{ id: 'sociology', name: '사회학자', icon: '👥' }, { id: 'philosophy', name: '철학자', icon: '🏛️' }, { id: 'psychology', name: '심리학자', icon: '🎭' }] },
+    { id: 'rt-f6', title: 'AI 상담이 심리상담사보다 나은가?', temperature: 85, participation: 4820, updatedAt: '5시간 전', participants: [{ id: 'psychology', name: '심리학자', icon: '🎭' }, { id: 'claude', name: 'Claude Opus 4.6', icon: '🧡' }, { id: 'philosophy', name: '철학자', icon: '🏛️' }] },
+    { id: 'rt-f7', title: 'AI 시대에 인간만의 가치는 무엇인가?', temperature: 86, participation: 5140, updatedAt: '30분 전', participants: [{ id: 'claude', name: 'Claude Opus 4.6', icon: '🧡' }, { id: 'philosophy', name: '철학자', icon: '🏛️' }, { id: 'writer', name: '작가', icon: '✍️' }] },
+    { id: 'rt-f8', title: '천재는 타고나는가 만들어지는가?', temperature: 82, participation: 4420, updatedAt: '1시간 전', participants: [{ id: 'psychology', name: '심리학자', icon: '🎭' }, { id: 'biology', name: '생물학자', icon: '🧬' }, { id: 'education', name: '교육학자', icon: '📖' }] },
   ],
   brainstorm: [
-    { id: 'rt-b1', title: '1인 가구를 위한 새로운 서비스', temperature: 82, participation: 4230, updatedAt: '방금 전', participants: [{ id: 'gpt', name: 'GPT-5.4', icon: '🤖' }, { id: 'marketing', name: '마케팅', icon: '📣' }, { id: 'designer', name: '디자이너', icon: '🖌️' }] },
-    { id: 'rt-b2', title: '시니어를 위한 AI 활용 아이디어', temperature: 76, participation: 3120, updatedAt: '1시간 전', participants: [{ id: 'claude', name: 'Claude', icon: '🧡' }, { id: 'doctor', name: '의사', icon: '🩺' }, { id: 'socialworker', name: '사회복지사', icon: '🫂' }] },
-    { id: 'rt-b3', title: '친환경 비즈니스 모델 구상', temperature: 74, participation: 2890, updatedAt: '2시간 전', participants: [{ id: 'gemini', name: 'Gemini', icon: '💎' }, { id: 'envscience', name: '환경과학', icon: '🌿' }, { id: 'marketing', name: '마케팅', icon: '📣' }] },
-    { id: 'rt-b4', title: '학교 교육을 혁신할 방법', temperature: 79, participation: 3560, updatedAt: '3시간 전', participants: [{ id: 'teacher', name: '교사', icon: '👨‍🏫' }, { id: 'programmer', name: '프로그래머', icon: '💻' }, { id: 'psychology', name: '심리학', icon: '🎭' }] },
-    { id: 'rt-b5', title: '로컬 크리에이터 수익화 전략', temperature: 71, participation: 2340, updatedAt: '4시간 전', participants: [{ id: 'writer', name: '작가', icon: '✍️' }, { id: 'marketing', name: '마케팅', icon: '📣' }, { id: 'grok', name: 'Grok', icon: '⚡' }] },
+    { id: 'rt-b1', title: '혼자 사는 사람을 위한 궁극의 서비스는?', temperature: 84, participation: 4530, updatedAt: '방금 전', participants: [{ id: 'designer', name: '디자이너', icon: '🎨' }, { id: 'claude', name: 'Claude Opus 4.6', icon: '🧡' }, { id: 'sociology', name: '사회학자', icon: '👥' }] },
+    { id: 'rt-b2', title: '할머니도 쓸 수 있는 AI, 어떤 모습일까?', temperature: 78, participation: 3220, updatedAt: '1시간 전', participants: [{ id: 'claude', name: 'Claude Opus 4.6', icon: '🧡' }, { id: 'doctor', name: '의사', icon: '🩺' }, { id: 'designer', name: '디자이너', icon: '🎨' }] },
+    { id: 'rt-b3', title: '지구 구하면서 돈도 버는 사업, 가능한가?', temperature: 76, participation: 2990, updatedAt: '2시간 전', participants: [{ id: 'envscience', name: '환경과학자', icon: '🌿' }, { id: 'architect', name: '건축가', icon: '📐' }, { id: 'marketing', name: '마케팅 전문가', icon: '📣' }] },
+    { id: 'rt-b4', title: '교사 없는 학교, 상상 가능한가?', temperature: 81, participation: 3760, updatedAt: '3시간 전', participants: [{ id: 'claude', name: 'Claude Opus 4.6', icon: '🧡' }, { id: 'education', name: '교육학자', icon: '📖' }, { id: 'teacher', name: '교사', icon: '👨‍🏫' }] },
+    { id: 'rt-b5', title: '구독자 만 명, 얼마나 벌 수 있을까?', temperature: 73, participation: 2540, updatedAt: '4시간 전', participants: [{ id: 'producer', name: '프로듀서', icon: '🎬' }, { id: 'marketing', name: '마케팅 전문가', icon: '📣' }, { id: 'stocktrader', name: '펀드매니저', icon: '📈' }] },
+    { id: 'rt-b6', title: '내일부터 플라스틱 없이 살 수 있을까?', temperature: 74, participation: 2580, updatedAt: '2시간 전', participants: [{ id: 'envscience', name: '환경과학자', icon: '🌿' }, { id: 'chef', name: '셰프', icon: '👨‍🍳' }, { id: 'designer', name: '디자이너', icon: '🎨' }] },
+    { id: 'rt-b7', title: '인스타각 없으면 안 가는 여행, 답은?', temperature: 75, participation: 2810, updatedAt: '5시간 전', participants: [{ id: 'producer', name: '프로듀서', icon: '🎬' }, { id: 'psychology', name: '심리학자', icon: '🎭' }, { id: 'writer', name: '작가', icon: '✍️' }] },
+    { id: 'rt-b8', title: '초등학생도 ChatGPT 써야 하는가?', temperature: 82, participation: 3820, updatedAt: '1시간 전', participants: [{ id: 'education', name: '교육학자', icon: '📖' }, { id: 'claude', name: 'Claude Opus 4.6', icon: '🧡' }, { id: 'psychology', name: '심리학자', icon: '🎭' }] },
+    { id: 'rt-b9', title: '강아지 언어 번역기, 현실이 될까?', temperature: 72, participation: 2280, updatedAt: '6시간 전', participants: [{ id: 'vet', name: '수의사', icon: '🐾' }, { id: 'biology', name: '생물학자', icon: '🧬' }, { id: 'engineer', name: '엔지니어', icon: '⚙️' }] },
+    { id: 'rt-b10', title: '혼자여도 외롭지 않은 공간, 어떻게 만들까?', temperature: 77, participation: 3060, updatedAt: '3시간 전', participants: [{ id: 'architect', name: '건축가', icon: '📐' }, { id: 'philosophy', name: '철학자', icon: '🏛️' }, { id: 'psychology', name: '심리학자', icon: '🎭' }] },
   ],
 };
 

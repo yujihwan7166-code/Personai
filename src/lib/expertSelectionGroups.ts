@@ -71,6 +71,7 @@ const AI_MODEL_ORDER = [
 
 /** 빠른 응답 모델 (브랜드별 가장 빠른 1개) */
 export const FAST_MODEL_IDS = [
+  'auto-gpt',
   'gpt-nano',
   'gemini-flash-lite',
   'claude-haiku',
@@ -80,9 +81,8 @@ export const FAST_MODEL_IDS = [
   'qwen',
 ] as const;
 
-/** 심층 리서치 에이전트 (ancano-pro 제외) */
+/** 숨김 처리할 리서치 에이전트 (auto-gpt = 심층 리서치는 예외, AI 모델로 노출) */
 export const RESEARCH_AGENT_IDS = [
-  'auto-gpt',
   'auto-claude',
   'auto-gemini',
   'auto-grok',

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Nightgown collar (dark green/grey) -->
+  <path d="M28 118 Q28 96 46 90 L82 90 Q100 96 100 118 Z" fill="#5a6e60"/>
+  <path d="M46 90 L64 104 L82 90 L74 90 L64 96 L54 90 Z" fill="#3f4f44"/>
+  <!-- Neck -->
+  <rect x="58" y="82" width="12" height="10" rx="3" fill="#ecd0b0"/>
+  <!-- Face -->
+  <ellipse cx="64" cy="64" rx="24" ry="27" fill="#f0d4b3"/>
+  <!-- Hollow cheek shading -->
+  <ellipse cx="48" cy="74" rx="4" ry="6" fill="#d8b48c" opacity="0.35"/>
+  <ellipse cx="80" cy="74" rx="4" ry="6" fill="#d8b48c" opacity="0.35"/>
+  <!-- White messy hair sides -->
+  <path d="M40 60 Q34 70 38 84 Q42 78 44 70 Z" fill="#eef0f2"/>
+  <path d="M88 60 Q94 70 90 84 Q86 78 84 70 Z" fill="#eef0f2"/>
+  <!-- Bushy sideburns/whiskers -->
+  <path d="M40 70 Q36 84 44 90 Q48 84 48 76 Z" fill="#e2e5e9"/>
+  <path d="M88 70 Q92 84 84 90 Q80 84 80 76 Z" fill="#e2e5e9"/>
+  <!-- Nightcap base (folded onto head) -->
+  <path d="M38 50 Q38 36 64 36 Q90 36 90 50 Q80 46 64 46 Q48 46 38 50 Z" fill="#f5f1ea"/>
+  <!-- Nightcap pointy tip flopped -->
+  <path d="M64 36 Q72 16 96 18 Q90 30 80 38 Q72 38 64 36 Z" fill="#f5f1ea"/>
+  <!-- Red stripes on cap -->
+  <path d="M44 44 Q64 40 84 44" stroke="#d97a82" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.7"/>
+  <path d="M70 26 Q82 22 92 22" stroke="#d97a82" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.7"/>
+  <!-- Pom on tip -->
+  <circle cx="96" cy="18" r="4" fill="#ffffff"/>
+  <!-- Brows (furrowed) -->
+  <path d="M48 58 L60 62 M68 62 L80 58" stroke="#cfd2d6" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+  <!-- Sunken eyes -->
+  <ellipse cx="54" cy="68" rx="2.4" ry="2.4" fill="#2a1d12"/>
+  <ellipse cx="74" cy="68" rx="2.4" ry="2.4" fill="#2a1d12"/>
+  <path d="M50 66 Q54 64 58 66 M70 66 Q74 64 78 66" stroke="#a08868" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <!-- Grumpy downturned mouth -->
+  <path d="M56 82 Q64 76 72 82" stroke="#7a4a35" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Candle glow lower right -->
+  <circle cx="102" cy="100" r="8" fill="#ffd66a" opacity="0.45"/>
+  <circle cx="102" cy="100" r="4" fill="#ffe89a" opacity="0.8"/>
+  <path d="M102 95 Q103 92 102 88 Q101 92 102 95 Z" fill="#ff9a3a"/>
+</svg>

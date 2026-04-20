@@ -24,19 +24,19 @@ interface Props {
 }
 
 const proseClasses = `prose prose-sm max-w-none
-  prose-p:my-1.5 prose-p:leading-relaxed prose-p:text-[12.5px]
-  prose-headings:text-slate-800 prose-headings:font-semibold prose-headings:tracking-tight
-  prose-headings:mt-3 prose-headings:mb-1.5
-  prose-h2:text-[14px] prose-h3:text-[13px] prose-h4:text-[12.5px]
-  prose-strong:text-slate-700 prose-strong:font-semibold
-  prose-ul:my-1.5 prose-li:my-0.5 prose-li:text-[12.5px]
-  prose-ol:my-1.5
-  prose-blockquote:border-l-2 prose-blockquote:border-primary/20 prose-blockquote:text-slate-500 prose-blockquote:text-[12px] prose-blockquote:py-0.5 prose-blockquote:my-2
-  prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-code:text-slate-600 prose-code:before:content-none prose-code:after:content-none
-  prose-pre:bg-slate-900 prose-pre:rounded-lg prose-pre:text-[11px] prose-pre:my-2
-  prose-table:text-[11px] prose-table:my-2 prose-th:bg-slate-50 prose-th:px-2.5 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold prose-th:text-slate-600 prose-td:px-2.5 prose-td:py-1.5 prose-td:border-t prose-td:border-slate-100
+  prose-p:my-3 prose-p:leading-[1.75] prose-p:text-[13px]
+  prose-headings:text-slate-900 prose-headings:font-semibold prose-headings:tracking-tight
+  prose-headings:mt-5 prose-headings:mb-2
+  prose-h2:text-[15px] prose-h3:text-[14px] prose-h4:text-[13px]
+  prose-strong:text-slate-800 prose-strong:font-semibold
+  prose-ul:my-3 prose-ul:space-y-1 prose-li:my-0.5 prose-li:text-[13px] prose-li:leading-[1.7] prose-li:pl-1
+  prose-ol:my-3 prose-ol:space-y-1
+  prose-blockquote:border-l-2 prose-blockquote:border-primary/20 prose-blockquote:text-slate-500 prose-blockquote:text-[12.5px] prose-blockquote:py-1 prose-blockquote:my-3
+  prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11.5px] prose-code:text-slate-600 prose-code:before:content-none prose-code:after:content-none
+  prose-pre:bg-slate-900 prose-pre:rounded-lg prose-pre:text-[11.5px] prose-pre:my-3
+  prose-table:text-[12px] prose-table:my-3 prose-th:bg-slate-50 prose-th:px-2.5 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold prose-th:text-slate-600 prose-td:px-2.5 prose-td:py-1.5 prose-td:border-t prose-td:border-slate-100
   prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-  prose-img:rounded-lg prose-img:my-2`;
+  prose-img:rounded-lg prose-img:my-3`;
 
 function StreamingIndicator() {
   return (

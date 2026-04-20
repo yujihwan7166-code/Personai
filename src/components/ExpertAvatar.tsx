@@ -224,6 +224,41 @@ const religionColorClasses: Record<ExpertColor, string> = {
   pink: 'text-pink-500',
 };
 
+// Iconify (Noto Emoji) names for fictional characters, keyed by expert.id.
+// Fetched via https://api.iconify.design/{prefix}/{name}.svg — no local assets.
+// All names verified against Noto Emoji via Iconify API.
+const FICTIONAL_ICONIFY_NAMES: Record<string, string> = {
+  // Person/character types
+  sherlock: 'noto:detective',
+  dracula: 'noto:vampire',
+  frankenstein: 'noto:zombie',
+  alice: 'noto:rabbit',
+  donquixote: 'noto:person-fencing',
+  tarzan: 'noto:gorilla',
+  scrooge: 'noto:money-bag',
+  'robinson-crusoe': 'noto:person-beard',
+  'tom-sawyer': 'noto:boy',
+  'jekyll-hyde': 'noto:disguised-face',
+  gatsby: 'noto:clinking-glasses',
+  faust: 'noto:alembic',
+  lupin: 'noto:supervillain',
+  wonka: 'noto:chocolate-bar',
+  aladdin: 'noto:genie',
+  wukong: 'noto:monkey',
+  pinocchio: 'noto:lying-face',
+  'peter-pan': 'noto:fairy',
+  // Object-symbol (iconic for the character)
+  valjean: 'noto:chains',
+  'little-prince': 'noto:rose',
+  hamlet: 'noto:skull',
+  gulliver: 'noto:telescope',
+  'big-brother': 'noto:eye',
+  'robin-hood': 'noto:bow-and-arrow',
+  'king-arthur': 'noto:crossed-swords',
+  sinbad: 'noto:sailboat',
+  'red-riding-hood': 'noto:scarf',
+};
+
 const ideologySymbolMap: Record<string, { text: string; className?: string; sizeClasses?: Partial<typeof religionSymbolSizeClasses> }> = {
   socialist: { text: '✊' },
   communist: { text: '\u262D\uFE0E' },
@@ -274,10 +309,93 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
   const isCompact = size === 'xxs' || size === 'xs' || size === 'sm';
   const roundedClass = isCompact ? 'rounded-lg' : 'rounded-xl';
   const frameClass = getCategoryFrame(expert.category);
+
+  // auto-gpt (심층 리서치): 4개 AI 로고 2×2 그리드 아바타
+  if (expert.id === 'auto-gpt') {
+    const logoCellSize = {
+      xxs: 'w-[5px] h-[5px]',
+      xs: 'w-2 h-2',
+      sm: 'w-2.5 h-2.5',
+      md: 'w-3.5 h-3.5',
+      lg: 'w-5 h-5',
+      xl: 'w-6 h-6',
+    }[size];
+    return (
+      <div
+        className={cn(
+          'grid grid-cols-2 grid-rows-2 gap-[1.5px] p-[3px] shrink-0 transition-all duration-200',
+          roundedClass,
+          containerClasses[size],
+          active ? 'bg-white shadow-md scale-105' : frameClass,
+        )}
+      >
+        {['gpt.svg', 'claude.png', 'gemini.svg', 'perplexity.svg'].map((file) => (
+          <div key={file} className="flex items-center justify-center">
+            <img src={`/logos/${file}`} alt="" className={cn('object-contain', logoCellSize)} draggable={false} />
+          </div>
+        ))}
+      </div>
+    );
+  }
   const specialistIcon = specialistIconMap[expert.id];
   const useNeutralFrame = expert.category !== 'ai';
   const inactiveFrameClass = useNeutralFrame ? frameClass : 'bg-transparent';
   const activeFrameClass = useNeutralFrame ? 'bg-white shadow-md scale-105' : 'shadow-md scale-105';
+
+  // Fictional characters:
+  //   1. Custom SVG sticker (/logos/character/{id}.svg) wins — character-specific
+  //   2. Fall back to Fluent Emoji 3D for characters without a custom sticker yet
+  if (expert.category === 'fictional') {
+    if (expert.avatarUrl?.endsWith('.svg') && expert.avatarUrl.includes('/logos/character/')) {
+      return (
+        <div
+          className={cn(
+            'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+            roundedClass,
+            containerClasses[size],
+            active ? 'bg-white shadow-md scale-105' : frameClass
+          )}
+        >
+          <img
+            src={expert.avatarUrl}
+            alt={expert.nameKo}
+            className={cn('object-contain', logoSizeClasses[size])}
+            draggable={false}
+            onError={(event) => {
+              (event.target as HTMLImageElement).style.display = 'none';
+              (event.target as HTMLImageElement).parentElement!.textContent = expert.icon ?? '';
+            }}
+          />
+        </div>
+      );
+    }
+
+    const iconName = FICTIONAL_ICONIFY_NAMES[expert.id];
+    if (iconName) {
+      const iconifyUrl = `https://api.iconify.design/${iconName.replace(':', '/')}.svg`;
+      return (
+        <div
+          className={cn(
+            'flex items-center justify-center shrink-0 transition-all duration-200 select-none',
+            roundedClass,
+            containerClasses[size],
+            active ? 'bg-white shadow-md scale-105' : frameClass
+          )}
+        >
+          <img
+            src={iconifyUrl}
+            alt={expert.nameKo}
+            className={cn('object-contain', logoSizeClasses[size])}
+            draggable={false}
+            onError={(event) => {
+              (event.target as HTMLImageElement).style.display = 'none';
+              (event.target as HTMLImageElement).parentElement!.textContent = expert.icon ?? '';
+            }}
+          />
+        </div>
+      );
+    }
+  }
 
   if (expert.category === 'religion') {
     if (philosophyIds.has(expert.id) && expert.icon) {
@@ -387,8 +505,33 @@ export function ExpertAvatar({ expert, size = 'md', active }: ExpertAvatarProps)
   const isAncano = expert.id.startsWith('ancano') || expert.id === 'auto-ai';
   const isGemini = expert.avatarUrl?.includes('gemini');
   const isDeepseek = expert.avatarUrl?.includes('deepseek');
+  const isCelebrity = expert.category === 'celebrity' && expert.avatarUrl?.includes('/logos/celebrity/');
+  const isFictional = expert.category === 'fictional' && expert.avatarUrl?.includes('/logos/character/');
 
   if (expert.avatarUrl) {
+    if (isCelebrity || isFictional) {
+      return (
+        <div
+          className={cn(
+            'shrink-0 overflow-hidden transition-all duration-200',
+            roundedClass,
+            containerClasses[size],
+            active ? 'shadow-md scale-105 ring-2 ring-white' : ''
+          )}
+        >
+          <img
+            src={expert.avatarUrl}
+            alt={expert.nameKo}
+            className="w-full h-full object-cover object-top"
+            draggable={false}
+            onError={(event) => {
+              (event.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div
         className={cn(

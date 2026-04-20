@@ -200,6 +200,21 @@ export async function processFile(file: File): Promise<AttachedFile> {
     result.preview = `data:${mimeType};base64,${result.base64}`;
   }
 
+  if (mimeType === 'application/pdf') {
+    try {
+      const { extractPdfText } = await import('@/lib/fileConvert/converters/pdf');
+      const text = await extractPdfText(file, MAX_EXTRACTED_TEXT_LENGTH);
+      if (text.trim().length < 20) {
+        result.extractedText = '[이 PDF는 텍스트가 없는 이미지 기반일 수 있어요. 스캔본은 지원하지 않습니다.]';
+      } else {
+        result.extractedText = text;
+        result.base64 = '';
+      }
+    } catch {
+      result.extractedText = '[PDF 텍스트 추출 실패]';
+    }
+  }
+
   if (mimeType.includes('wordprocessingml')) {
     try {
       const arrayBuffer = await file.arrayBuffer();

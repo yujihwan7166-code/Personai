@@ -15,6 +15,8 @@ import {
   AIVS_USER_TOPIC_PRESETS,
   BATTLE_AI_CHARACTERS,
   DEBATE_RECOMMENDED_TOPICS,
+  type RecommendedTopic,
+  type RecommendedParticipant,
 } from '@/types/expert';
 import { AivsBattleConfigModal } from './AivsBattleConfigModal';
 import { ExpertHoverTip } from './ExpertHoverTip';
@@ -29,7 +31,8 @@ import { useHoverExpertTip } from '@/hooks/useHoverExpertTip';
 import { useMainModeTransition } from '@/hooks/useMainModeTransition';
 import { buildExpertSelectionGroups, FAST_MODEL_IDS, RESEARCH_AGENT_IDS } from '@/lib/expertSelectionGroups';
 import { cn } from '@/lib/utils';
-import type { AttachedFile } from '@/lib/fileProcessor';
+import { processFile, validateFile, MAX_FILES, type AttachedFile } from '@/lib/fileProcessor';
+import { Paperclip } from 'lucide-react';
 import {
   Target, Scale, Lightbulb,
   Plus, X, Check, ChevronLeft, ChevronRight, ChevronDown, ArrowRight, ArrowLeft, Zap,
@@ -86,7 +89,7 @@ interface Props {
   onAssistantSubmit?: (cardId: string, question: string) => void;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant', 'player'];
+const mainModes: MainMode[] = ['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant'];
 const AI_AGENT_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
 
 function isInstantChatLayoutSwitch(from: MainMode, to: MainMode) {
@@ -106,6 +109,10 @@ const mainModeLabels: Record<MainMode, string> = {
   premium_main: '프리미엄 AI 자문',
   assistant: '어시스턴트',
   player: '플레이어',
+  research_main: '심층 리서치',
+  study_main: '공부',
+  translate_main: '다국어 번역',
+  convert_main: '파일 변환',
 };
 
 const debateSubIcons: Record<string, React.ReactNode> = {
@@ -117,6 +124,33 @@ const debateSubIcons: Record<string, React.ReactNode> = {
   stakeholder: <Drama className="w-3 h-3" />,
 };
 
+// ── 찬반 토론 진영 칩 (1v1/2v2 공용) ──
+function SideChip({
+  tone,
+  parts,
+  AvatarOrIcon,
+}: {
+  tone: 'pro' | 'con';
+  parts: RecommendedParticipant[];
+  AvatarOrIcon: (props: { id?: string; icon?: string; size?: number }) => JSX.Element;
+}) {
+  const palette = tone === 'pro'
+    ? 'bg-blue-50 text-blue-600'
+    : 'bg-red-50 text-red-500';
+  return (
+    <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-semibold leading-none', palette)}>
+      <span className="inline-flex items-center -space-x-1">
+        {parts.map((p, i) => (
+          <span key={i} className="inline-flex rounded-full ring-[1.5px] ring-white/90">
+            <AvatarOrIcon id={p.id} icon={p.icon} size={12} />
+          </span>
+        ))}
+      </span>
+      <span>{parts.map(p => p.label).join(' · ')}</span>
+    </span>
+  );
+}
+
 // ── 인기주제 캐러셀 (화살표 + 자동롤링) ──
 function TopicCarousel({ mode, onSelect, experts }: { mode: string; onSelect: (title: string) => void; experts?: Expert[] }) {
   const findAvatar = (id?: string) => {
@@ -124,10 +158,19 @@ function TopicCarousel({ mode, onSelect, experts }: { mode: string; onSelect: (t
     const e = experts.find(x => x.id === id);
     return e?.avatarUrl || null;
   };
-  const AvatarOrIcon = ({ id, icon, size = 12 }: { id?: string; icon: string; size?: number }) => {
+  const AvatarOrIcon = ({ id, icon, size = 12 }: { id?: string; icon?: string; size?: number }) => {
     const url = findAvatar(id);
-    if (url) return <img src={url} alt="" className="rounded-full object-cover inline-block align-middle" style={{ width: size, height: size }} />;
-    return <span style={{ fontSize: size - 2 }}>{icon}</span>;
+    if (url) return <img src={url} alt="" className="rounded-full object-cover object-top shrink-0" style={{ width: size, height: size }} />;
+    return <span className="shrink-0 leading-none inline-flex items-center justify-center" style={{ fontSize: size, width: size, height: size }}>{icon || '💬'}</span>;
+  };
+  const resolveSide = (topic: RecommendedTopic, side: 'pro' | 'con'): RecommendedParticipant[] | null => {
+    const arr = side === 'pro' ? topic.proParticipants : topic.conParticipants;
+    if (arr && arr.length > 0) return arr;
+    const label = side === 'pro' ? topic.proLabel : topic.conLabel;
+    const icon = side === 'pro' ? topic.proIcon : topic.conIcon;
+    const id = side === 'pro' ? topic.proId : topic.conId;
+    if (label) return [{ id, icon, label }];
+    return null;
   };
   const topics = DEBATE_RECOMMENDED_TOPICS[mode];
   const [index, setIndex] = useState(0);
@@ -174,32 +217,45 @@ function TopicCarousel({ mode, onSelect, experts }: { mode: string; onSelect: (t
         type="button"
         onClick={() => onSelect(topic.title)}
         className={cn(
-          'flex-1 min-w-0 px-2.5 py-1 rounded-full bg-white/70 text-[11px] font-medium text-slate-600 hover:bg-white hover:text-violet-600 transition-all whitespace-nowrap overflow-hidden text-ellipsis',
+          'flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 text-[11px] font-medium text-slate-600 hover:bg-white hover:text-violet-600 transition-all overflow-hidden',
           fading ? 'opacity-0' : 'opacity-100'
         )}
         style={{ transition: 'opacity 150ms' }}
       >
-        <span className="text-[10px] font-bold text-violet-500 mr-1.5">인기주제</span>
-        {topic.title}
-        {topic.proLabel && topic.conLabel ? (
-          <span className="ml-2 text-[10px]">
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-semibold text-[9px]"><AvatarOrIcon id={topic.proId} icon={topic.proIcon || '👍'} /> {topic.proLabel}</span>
-            <span className="mx-1 text-slate-300">vs</span>
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 text-red-500 font-semibold text-[9px]"><AvatarOrIcon id={topic.conId} icon={topic.conIcon || '👎'} /> {topic.conLabel}</span>
-          </span>
-        ) : topic.participants && topic.participants.length > 0 ? (
-          <span className="ml-2 inline-flex items-center gap-1">
-            {topic.participants.map((p, i) => (
-              <span key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold text-[9px]">
-                <AvatarOrIcon id={p.id} icon={p.icon} /> {p.name}
+        <span className="shrink-0 font-bold text-violet-500 leading-none">인기주제</span>
+        <span className="truncate leading-none">{topic.title}</span>
+        {(() => {
+          const proParts = resolveSide(topic, 'pro');
+          const conParts = resolveSide(topic, 'con');
+          if (proParts && conParts) {
+            return (
+              <span className="shrink-0 inline-flex items-center gap-1">
+                <SideChip tone="pro" parts={proParts} AvatarOrIcon={AvatarOrIcon} />
+                <span className="text-slate-300 text-[10px] leading-none">vs</span>
+                <SideChip tone="con" parts={conParts} AvatarOrIcon={AvatarOrIcon} />
               </span>
-            ))}
-          </span>
-        ) : topic.proLabel ? (
-          <span className="ml-2 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold text-[9px]">
-            {topic.proIcon || '💬'} {topic.proLabel}
-          </span>
-        ) : null}
+            );
+          }
+          if (topic.participants && topic.participants.length > 0) {
+            return (
+              <span className="shrink-0 inline-flex items-center gap-1">
+                {topic.participants.map((p, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold leading-none">
+                    <AvatarOrIcon id={p.id} icon={p.icon} size={12} /> {p.name}
+                  </span>
+                ))}
+              </span>
+            );
+          }
+          if (proParts) {
+            return (
+              <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold leading-none">
+                <AvatarOrIcon id={proParts[0].id} icon={proParts[0].icon || '💬'} size={12} /> {proParts[0].label}
+              </span>
+            );
+          }
+          return null;
+        })()}
       </button>
       <button
         type="button"
@@ -1134,6 +1190,33 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
   const [step2Context, setStep2Context] = useState('');
   const [step2Answers, setStep2Answers] = useState<Record<string, string>>({});
   const [step2CustomMode, setStep2CustomMode] = useState<Record<string, boolean>>({});
+  const [step2Files, setStep2Files] = useState<AttachedFile[]>([]);
+  const [step2FileError, setStep2FileError] = useState<string | null>(null);
+  const [step2FileProcessing, setStep2FileProcessing] = useState(false);
+  const step2FileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleStep2FilesSelected = useCallback(async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    setStep2FileError(null);
+    setStep2FileProcessing(true);
+    try {
+      const newFiles: AttachedFile[] = [];
+      for (const raw of Array.from(fileList)) {
+        const err = validateFile(raw, [...step2Files, ...newFiles]);
+        if (err) { setStep2FileError(err); continue; }
+        try {
+          const processed = await processFile(raw);
+          newFiles.push(processed);
+        } catch (e) {
+          setStep2FileError(e instanceof Error ? e.message : '파일 처리 실패');
+        }
+      }
+      if (newFiles.length > 0) setStep2Files(prev => [...prev, ...newFiles]);
+    } finally {
+      setStep2FileProcessing(false);
+      if (step2FileInputRef.current) step2FileInputRef.current.value = '';
+    }
+  }, [step2Files]);
   const [dropdownRole, setDropdownRole] = useState<string | null>(null);
   const [botPickerCat, setBotPickerCat] = useState('전체');
   const [botPickerSearch, setBotPickerSearch] = useState('');
@@ -1513,6 +1596,59 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                 />
               </div>
 
+              {/* 참고 자료 파일 업로드 */}
+              <div>
+                <p className="text-[12px] font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                  참고 자료 첨부
+                  <span className="text-[10px] font-normal text-slate-400">(선택 · 최대 {MAX_FILES}개)</span>
+                </p>
+                <p className="text-[10px] text-slate-400 mb-2 leading-relaxed">
+                  자소서·계약서·기획서 등을 올리면 AI가 해당 내용 기반으로 더 구체적으로 질문합니다 · PDF/DOCX/XLSX/이미지
+                </p>
+                <input
+                  ref={step2FileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.gif,.webp"
+                  onChange={e => handleStep2FilesSelected(e.target.files)}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => step2FileInputRef.current?.click()}
+                  disabled={step2FileProcessing || step2Files.length >= MAX_FILES}
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-slate-300 text-[11px] font-medium text-slate-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Paperclip className="w-3.5 h-3.5" />
+                  {step2FileProcessing ? '처리 중...' : step2Files.length === 0 ? '파일 선택' : `파일 추가 (${step2Files.length}/${MAX_FILES})`}
+                </button>
+                {step2Files.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {step2Files.map(f => (
+                      <div key={f.id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="text-[10.5px] text-slate-600 truncate">{f.name}</span>
+                          {f.extractedText && (
+                            <span className="text-[9px] text-emerald-600 font-semibold shrink-0">· 텍스트 추출됨</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setStep2Files(prev => prev.filter(x => x.id !== f.id))}
+                          className="text-slate-400 hover:text-red-500 shrink-0 ml-1.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {step2FileError && (
+                  <p className="mt-1.5 text-[10px] text-red-500 font-medium">{step2FileError}</p>
+                )}
+              </div>
+
               {/* 반응 강도 슬라이더 */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -1544,11 +1680,23 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                   const scenarioId = step2Scenario.id;
                   const contextAnswers: Record<string, string> = { ...step2Answers };
                   if (step2Context.trim()) contextAnswers.__context__ = step2Context.trim();
+                  if (step2Files.length > 0) {
+                    const fileBlocks = step2Files.map(f => {
+                      const text = (f.extractedText || '').trim();
+                      const snippet = text.length > 3000 ? `${text.slice(0, 3000)}\n...(이하 생략)` : text;
+                      return snippet
+                        ? `[파일: ${f.name}]\n${snippet}`
+                        : `[파일: ${f.name}] (텍스트 추출 불가, 파일명만 참고)`;
+                    });
+                    contextAnswers.__files__ = fileBlocks.join('\n\n---\n\n');
+                  }
                   update({ prepAnswers: contextAnswers });
                   setStep2Scenario(null);
+                  setStep2Files([]);
+                  setStep2FileError(null);
                   onSubmit(`__SIM_START__:${scenarioId}`, undefined, 'stakeholder');
                 }}
-                disabled={step2Scenario.prepQuestions.length > 0 && step2Scenario.prepQuestions.some(q => !step2Answers[q.id]?.trim())}
+                disabled={step2FileProcessing || (step2Scenario.prepQuestions.length > 0 && step2Scenario.prepQuestions.some(q => !step2Answers[q.id]?.trim()))}
                 className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 시뮬레이션 시작 <ArrowRight className="w-4 h-4" />
@@ -1881,6 +2029,8 @@ export function ExpertSelectionPanel({
     else if (m === 'premium_main') onModeChange('expert');
     else if (m === 'assistant') onModeChange('assistant');
     else if (m === 'player') onModeChange('player');
+    else if (m === 'research_main') onModeChange('research');
+    else if (m === 'study_main') onModeChange('study');
     else onModeChange('procon');
   }, [onModeChange]);
 
@@ -1932,6 +2082,7 @@ export function ExpertSelectionPanel({
       {/* Hero — 모드 전환 시 부드럽게 페이드 */}
       <div className={cn(
         "text-center relative z-0 transition-all ease-out overflow-hidden",
+        mainMode === 'study_main' && 'hidden',
         (isGoingToPlayer && transitionPhase >= 1) || (isPlayerActive && !isLeavingPlayer)
           ? 'opacity-0 max-h-0 py-0 space-y-0 duration-500'
           : !contentVisible ? 'opacity-0 scale-[0.98] duration-200'
@@ -1977,11 +2128,12 @@ export function ExpertSelectionPanel({
         </p>
       </div>
 
-      {/* Main Mode Tabs — 플레이어 모드에서는 숨김 (GAME ARENA 자체 헤더 사용) */}
+      {/* Main Mode Tabs — 플레이어/공부 모드에서는 숨김 */}
       <div className={cn(
         "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden",
         isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mb-0' : 'max-h-32 opacity-100',
         isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
+        mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
           'flex items-center shadow-[0_2px_12px_rgba(0,0,0,0.08)] rounded-full p-[3px] overflow-hidden',
@@ -2067,6 +2219,7 @@ export function ExpertSelectionPanel({
       {/* Content transition wrapper — fades content when switching modes */}
       <div className={cn(
         "space-y-2 transition-all ease-out relative z-20",
+        mainMode === 'study_main' && 'hidden',
         !contentVisible ? 'opacity-0 scale-[0.97] translate-y-2 duration-200' : 'opacity-100 scale-100 translate-y-0 duration-400'
       )}>
 
@@ -2257,30 +2410,11 @@ export function ExpertSelectionPanel({
 
             return (
               <div key={cat} className="relative bg-white">
-                {/* AI 통합 탭: 심층 리서치 + 빠른 모델 + 모든 모델 보기 */}
+                {/* AI 통합 탭: 빠른 모델 + 모든 모델 보기 */}
                 {isAiCategory && !searchMode && (
                   <div className="px-3 pt-1.5 pb-1.5">
-                    {/* 메인 한 줄: 심층 리서치 + 빠른 모델 7개 */}
+                    {/* 메인 한 줄: 빠른 모델 */}
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
-                      {/* 심층 리서치 특수 셀 — 멀티 AI 조합 */}
-                      <div className="group relative flex flex-col items-center gap-0.5 p-1.5 rounded-xl transition-all duration-200 hover:bg-indigo-50/50 hover:scale-[1.02]">
-                        <button type="button"
-                          onClick={() => {
-                            const autoGpt = experts.find(e => e.id === 'auto-gpt');
-                            if (autoGpt) handleExpertSelection(autoGpt.id, selectedIds.includes(autoGpt.id), proconStances[autoGpt.id]);
-                          }}
-                          className="flex flex-col items-center gap-1 w-full">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 via-purple-50 to-blue-100 p-1 grid grid-cols-2 gap-0.5">
-                            <img src="/logos/gpt.svg" alt="" className="w-full h-full rounded-full bg-white p-0.5 object-contain" />
-                            <img src="/logos/claude.png" alt="" className="w-full h-full rounded-full bg-white p-0.5 object-contain" />
-                            <img src="/logos/gemini.svg" alt="" className="w-full h-full rounded-full bg-white p-0.5 object-contain" />
-                            <img src="/logos/perplexity.svg" alt="" className="w-full h-full rounded-full bg-white p-0.5 object-contain" />
-                          </div>
-                          <span className="text-[8.5px] font-semibold whitespace-nowrap text-indigo-500 group-hover:text-indigo-700 transition-colors">
-                            심층 리서치
-                          </span>
-                        </button>
-                      </div>
                       {FAST_MODEL_IDS.map(id => {
                         const expert = visibleItems.find(e => e.id === id);
                         return expert ? renderExpertCell(expert) : null;

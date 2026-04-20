@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { applyExpertOverrides } from '@/data/expertOverrides';
 import { DEFAULT_EXPERTS, type Expert } from '@/types/expert';
 
-const EXPERTS_STORAGE_KEY = 'ai-debate-experts-v67';
+const EXPERTS_STORAGE_KEY = 'ai-debate-experts-v68';
 const SELECTED_EXPERTS_STORAGE_KEY = 'ai-debate-selected-v6';
 const REMOVED_EXPERT_IDS = new Set(['auto-ai', 'ancano', 'explorer', 'president', 'lawmaker', 'assemblyman', 'politician']);
 

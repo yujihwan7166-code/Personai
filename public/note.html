@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Project Notes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 16px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 15px;
+    color: #a0a0c0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #2a2a4a;
+    padding-bottom: 8px;
+  }
+  .section {
+    background: #22223a;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-left: 3px solid #6c63ff;
+  }
+  .section.done { border-left-color: #4caf50; opacity: 0.7; }
+  .section.warn { border-left-color: #ff9800; }
+  .section h2 {
+    font-size: 13px;
+    color: #8b85ff;
+    margin-bottom: 6px;
+  }
+  .section.done h2 { color: #4caf50; }
+  .section.warn h2 { color: #ff9800; }
+  ul { list-style: none; padding-left: 4px; }
+  li {
+    font-size: 12px;
+    padding: 2px 0;
+    line-height: 1.5;
+  }
+  li::before { content: ''; margin-right: 6px; }
+  li.check::before { content: '\2705'; }
+  li.pending::before { content: '\23F3'; }
+  li.bug::before { content: '\1F41B'; }
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+  }
+  .tag-done { background: #1b3d1b; color: #4caf50; }
+  .tag-wip { background: #3d3d1b; color: #ff9800; }
+  .tag-todo { background: #1b1b3d; color: #6c63ff; }
+  .memo {
+    background: #2a2a4a;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    margin-top: 10px;
+    color: #b0b0d0;
+    line-height: 1.6;
+  }
+  .timestamp {
+    font-size: 10px;
+    color: #555;
+    text-align: right;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Expert Chat Forum - Project Notes</h1>
+
+<div class="section done">
+  <h2>Web Search (Serper) Integration</h2>
+  <ul>
+    <li class="check">3-stage filter: Pattern -> LLM Classifier -> Serper</li>
+    <li class="check">In-memory cache (5min/1hr/6hr TTL)</li>
+    <li class="check">Single chat mode search <span class="tag tag-done">DONE</span></li>
+    <li class="check">Debate mode: search once, share across all experts <span class="tag tag-done">DONE</span></li>
+    <li class="check">SSE search event + UI source links <span class="tag tag-done">DONE</span></li>
+  </ul>
+</div>
+
+<div class="section done">
+  <h2>New AI Models</h2>
+  <ul>
+    <li class="check">Gemini 2.5 Flash Lite <span class="tag tag-done">DONE</span></li>
+    <li class="check">Qwen 3.5 9B (thinking: effort none) <span class="tag tag-done">DONE</span></li>
+    <li class="check">Date injection (Korean timezone) <span class="tag tag-done">DONE</span></li>
+  </ul>
+</div>
+
+<div class="section warn">
+  <h2>Known Issues</h2>
+  <ul>
+    <li class="bug">Duplicate 'hermes' ID (AI vs Mythology) <span class="tag tag-todo">TODO</span></li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2>Pending / Ideas</h2>
+  <ul>
+    <li class="pending">API usage monitoring (provider/model/tokens) <span class="tag tag-todo">TODO</span></li>
+    <li class="pending">Codex refactor: gemini helper, discussionHistoryStore <span class="tag tag-todo">TODO</span></li>
+  </ul>
+</div>
+
+<div class="memo">
+  <strong>Cost Notes:</strong> Serper $1/1000 queries, 2500 free/month.
+  Debate mode search x1 per topic (not per expert).
+  LLM classifier uses Gemini Flash Lite (cheapest).
+</div>
+
+<div class="timestamp">Updated: 2026-04-11 07:48</div>
+
+</body>
+</html>

@@ -7,8 +7,8 @@ interface Props {
   disabled?: boolean;
 }
 
-const mainModes: MainMode[] = ['general', 'multi', 'debate'];
-const debateSubModes: DebateSubMode[] = ['procon', 'freetalk', 'standard', 'aivsuser', 'brainstorm', 'hearing'];
+const mainModes: MainMode[] = ['general', 'research_main', 'multi', 'debate'];
+const debateSubModes: DebateSubMode[] = ['procon', 'freetalk', 'standard', 'aivsuser', 'brainstorm'];
 
 export function DiscussionModeSelector({ mode, onChange, disabled }: Props) {
   const mainMode = getMainMode(mode);
@@ -16,6 +16,7 @@ export function DiscussionModeSelector({ mode, onChange, disabled }: Props) {
   const handleMainChange = (m: MainMode) => {
     if (m === 'general') onChange('general');
     else if (m === 'multi') onChange('multi');
+    else if (m === 'research_main') onChange('research');
     else onChange('standard');
   };
 

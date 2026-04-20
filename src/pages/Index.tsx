@@ -50,6 +50,10 @@ const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelection
 const LazyGamePlayer = lazy(() => import('@/components/GamePlayer').then((module) => ({ default: module.GamePlayer })));
 const LazyQuestionInput = lazy(() => import('@/components/QuestionInput').then((module) => ({ default: module.QuestionInput })));
 const LazyPremiumConsultChat = lazy(() => import('@/components/PremiumConsultChat').then((module) => ({ default: module.PremiumConsultChat })));
+const LazyDeepResearchChat = lazy(() => import('@/components/DeepResearchChat').then((module) => ({ default: module.DeepResearchChat })));
+const LazyTranslateChat = lazy(() => import('@/components/TranslateChat').then((module) => ({ default: module.TranslateChat })));
+const LazyFileConvertChat = lazy(() => import('@/components/FileConvertChat').then((module) => ({ default: module.FileConvertChat })));
+const LazyStudyWorkspace = lazy(() => import('@/components/study/StudyWorkspace').then((module) => ({ default: module.StudyWorkspace })));
 let pptGeneratorPromise: Promise<typeof import('@/lib/pptGenerator')> | null = null;
 let questionClassifierPromise: Promise<typeof import('@/utils/agent/questionClassifier')> | null = null;
 let agentPipelinePromise: Promise<typeof import('@/utils/agent/agentPipeline')> | null = null;
@@ -122,6 +126,7 @@ const Index = () => {
   const [currentQuestionDisplay, setCurrentQuestionDisplay] = useState('');
   const [copiedAll, setCopiedAll] = useState(false);
   const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('general');
+  const [researchInitialQuestion, setResearchInitialQuestion] = useState<string | null>(null);
   const [proconStances, setProconStances] = useState<Record<string, 'pro' | 'con'>>({});
   const [proconDebateTopic, setProconDebateTopic] = useState('');
   const [debateSettings, setDebateSettings] = useState<DebateSettings>(DEFAULT_DEBATE_SETTINGS);
@@ -1453,9 +1458,9 @@ ${difficultyDesc}
         })),
       ]);
 
-      for (const expert of shuffled) {
-        if (shouldStop()) break;
-        setActiveExpertId(expert.id);
+      // 멀티 채팅: 모든 AI 병렬 실행 — 각자 자기 msgId로 UI 업데이트하므로 충돌 없음
+      await Promise.allSettled(shuffled.map(async (expert) => {
+        if (shouldStop()) return;
         const msgId = multiMessageIds.get(expert.id) ?? `${expert.id}-conclusion-${Date.now()}`;
         let fullContent = '';
         try {
@@ -1473,13 +1478,12 @@ ${difficultyDesc}
             onSearchSources: (data) => {setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, searchSources: data } : m));},
           });
         } catch (err) {
-          if ((err as Error).name === 'AbortError') break;
+          if ((err as Error).name === 'AbortError') return;
           fullContent = `⚠️ ${err instanceof Error ? err.message : '응답을 받아오지 못했어요.'}`;
           setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content: fullContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
         }
         allResponses.push({ name: expert.nameKo, content: fullContent });
-        await new Promise((r) => setTimeout(r, DELAY_BETWEEN_EXPERTS));
-      }
+      }));
 
       setActiveExpertId(undefined);
       setIsDiscussing(false);
@@ -2203,21 +2207,25 @@ Rules:
 
       // prepAnswers → 사람이 읽을 수 있는 컨텍스트 문자열
       const prep = shSettings.prepAnswers || {};
-      const prepEntries = Object.entries(prep).filter(([k, v]) => v && k !== '__context__');
+      const prepEntries = Object.entries(prep).filter(([k, v]) => v && k !== '__context__' && k !== '__files__');
       const contextText = prep.__context__ || '';
+      const filesContext = prep.__files__ || '';
       const simContextLines: string[] = [];
       for (const [key, val] of prepEntries) {
         const qDef = scenario.prepQuestions.find(q => q.id === key);
         simContextLines.push(`- ${qDef ? qDef.question : key}: ${val}`);
       }
       if (contextText) simContextLines.push(`- 추가 설명: ${contextText}`);
-      const simContext = simContextLines.length > 0
+      let simContext = simContextLines.length > 0
         ? `\n[유저가 사전에 제공한 정보]\n${simContextLines.join('\n')}`
         : '';
+      if (filesContext) {
+        simContext += `\n\n[유저가 첨부한 참고 자료]\n${filesContext}\n\n(위 자료의 구체적 내용을 근거로 질문·반박하세요. "자소서 3문단의 X 부분은..." 처럼 인용하면 더 좋습니다.)`;
+      }
       const answeredCount = prepEntries.length;
       const totalQuestions = scenario.prepQuestions.length;
       const infoLevel: 'full' | 'partial' | 'none' =
-        (answeredCount >= Math.ceil(totalQuestions * 0.5) || contextText.length > 20) ? 'full'
+        (answeredCount >= Math.ceil(totalQuestions * 0.5) || contextText.length > 20 || filesContext.length > 100) ? 'full'
         : answeredCount > 0 ? 'partial'
         : 'none';
 
@@ -2539,6 +2547,15 @@ Rules:
   const startDiscussion = useCallback(async (question: string, overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
     if (clarifyState.show) return;
     const useMode = overrideMode || discussionMode;
+
+    // "심층 리서치"(auto-gpt) 전문가 선택 시 → research 모드 전환 + Clarifier로 질문 전달
+    const effectiveExpertIds = overrideExpertIds ?? selectedExpertIds;
+    if (useMode === 'general' && effectiveExpertIds.includes('auto-gpt')) {
+      setResearchInitialQuestion(question);
+      setDiscussionMode('research');
+      return;
+    }
+
     if (useMode === 'aivsuser' && !activeAivsBattleConfig) {
       setMessages([{
         id: `avsu-start-required-${Date.now()}`,
@@ -2553,7 +2570,7 @@ Rules:
       return;
     }
     runDiscussionWithUsage(question, overrideExpertIds, overrideMode);
-  }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussionWithUsage, activeAivsBattleConfig]);
+  }, [discussionMode, clarifyState.show, clarifyTopic, runDiscussionWithUsage, activeAivsBattleConfig, selectedExpertIds]);
 
   const startDiscussionWithFiles = useCallback((question: string, files: AttachedFile[], overrideExpertIds?: string[], overrideMode?: DiscussionMode) => {
     pendingFilesRef.current = files;
@@ -4275,49 +4292,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         await new Promise(r => setTimeout(r, DELAY_BETWEEN_EXPERTS));
       }
 
-      if (!controller.signal.aborted && followUpResponses.length >= 2) {
-        const summaryId = `multi-followup-summary-${Date.now()}`;
-        setMessages((prev) => [...prev, createStreamingMessage({
-          id: summaryId,
-          expertId: SUMMARIZER_EXPERT.id,
-          isSummary: true,
-          progress: getDefaultProgress('finalizing', {
-            label: '후속 질문에 대한 다중 AI 의견을 재종합하고 있습니다.',
-            detail: '추가 질문 기준으로 공통 판단과 차이점을 다시 구조화하고 있습니다.',
-          }),
-        })]);
-
-        let summaryContent = '';
-        try {
-          await streamExpert({
-            question: `후속 질문: ${question}
-
-각 AI 답변:
-${followUpResponses.map((response) => `- ${response.name}: ${response.content}`).join('\n')}`,
-            expert: {
-              ...SUMMARIZER_EXPERT,
-              systemPrompt: '당신은 여러 AI의 후속 답변을 비교 정리하는 큐레이터입니다. 짧지 않게, 공통점과 차이, 추천 결론을 구조화해 한국어로 정리하세요.',
-            },
-            previousResponses: [],
-            round: 'summary',
-            maxTokens: 1600,
-            onProgress: (progress) => updateMessageProgress(summaryId, progress),
-            onDelta: (chunk) => {
-              summaryContent += chunk;
-              setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent } : m));
-            },
-            onDone: () => {
-              setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, isStreaming: false, responseState: 'complete' } : m));
-            },
-            signal: controller.signal,
-          });
-        } catch (err) {
-          if ((err as Error).name !== 'AbortError') {
-            summaryContent = `⚠️ ${err instanceof Error ? err.message : '후속 요약을 받아오지 못했어요.'}`;
-            setMessages((prev) => prev.map((m) => m.id === summaryId ? { ...m, content: summaryContent, isStreaming: false, ...progressFields(getDefaultProgress('error')) } : m));
-          }
-        }
-      }
+      // 멀티 채팅: 후속 "토론 정리" 제거 — AI 답변만 독립적으로 보여주고 종합/큐레이션은 생략
 
       setActiveExpertId(undefined);
       setIsDiscussing(false);
@@ -4414,10 +4389,12 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
   // Active expert info
   const activeExpert = activeExpertId ? allExperts.find(e => e.id === activeExpertId) : null;
 
+  const hideAppSidebar = getMainMode(discussionMode) === 'study_main';
+
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]">
-        <Suspense fallback={null}>
+        {!hideAppSidebar && <Suspense fallback={null}>
           <LazyAppSidebar
             experts={experts}
             onLoadHistory={loadHistory}
@@ -4450,23 +4427,33 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
               }
             }}
           />
-        </Suspense>
+        </Suspense>}
 
 
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
-          {/* 피드백 버튼 — 오른쪽 상단 고정 */}
-          <a
-            href="https://docs.google.com/forms/d/e/1FAIpQLSc9uc6YNv72sPP2twLvNqzxaZM82YoaQgD6T_ZupmU2Ejh9Pg/viewform"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            피드백
-          </a>
-
-          {/* Premium full-screen takeover */}
-          {selectedPremiumDomain && getMainMode(discussionMode) === 'premium_main' ? (
+          {/* Deep Research full-screen takeover */}
+          {getMainMode(discussionMode) === 'research_main' ? (
+            <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+              <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
+                <LazyDeepResearchChat
+                  initialQuestion={researchInitialQuestion ?? undefined}
+                  onInitialQuestionConsumed={() => setResearchInitialQuestion(null)}
+                />
+              </Suspense>
+            </div>
+          ) : getMainMode(discussionMode) === 'translate_main' ? (
+            <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+              <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
+                <LazyTranslateChat onBack={() => setDiscussionMode('assistant')} />
+              </Suspense>
+            </div>
+          ) : getMainMode(discussionMode) === 'convert_main' ? (
+            <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+              <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
+                <LazyFileConvertChat onBack={() => setDiscussionMode('assistant')} />
+              </Suspense>
+            </div>
+          ) : selectedPremiumDomain && getMainMode(discussionMode) === 'premium_main' ? (
             <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
             <Suspense fallback={null}>
               <LazyPremiumConsultChat
@@ -4513,41 +4500,79 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[calc(100vh-200px)] flex flex-col">
                     {/* 헤더 */}
-                    <div className="shrink-0 bg-slate-50 border-b border-slate-200 px-5 py-3 rounded-t-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[16px]">{scenario.icon}</span>
-                        <span className="text-[14px] font-extrabold text-slate-800">{scenario.name}</span>
-                        <span className="text-[11px] text-slate-400 font-medium">· AI 시뮬레이션</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {scenario.roles.map((r, ri) => {
-                          const isConsult = scenario.simType === 'consultation';
-                          const isCurrent = isConsult && ri === simPhaseIndex;
-                          const isDone = isConsult && ri < simPhaseIndex;
-                          return (
-                            <span key={r.name} className={cn('text-[10px] font-medium flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all',
-                              isCurrent ? 'bg-indigo-100 text-indigo-700 font-bold' :
-                              isDone ? 'text-slate-400' :
-                              'text-slate-500'
-                            )}>
-                              <span>{r.icon}</span> {r.name}
-                              {isDone && <span className="text-[8px]">✓</span>}
-                            </span>
-                          );
-                        })}
-                        {messages.filter(m => m.expertId === '__user__').length >= 2 && !isDiscussing && (
-                          <button
-                            onClick={() => {
-                              // 직접 final 처리 트리거
-                              handleFollowUp('__SIM_END__');
-                            }}
-                            className="text-[10px] text-slate-400 hover:text-red-500 font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors ml-2"
-                          >
-                            종료
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    {(() => {
+                      const isConsult = scenario.simType === 'consultation';
+                      const userTurnCount = messages.filter(m => m.expertId === '__user__').length;
+                      // 대략적 진행률: 12턴 기준 (orchestrator final 기준값)
+                      const totalTurnsEstimate = 12;
+                      const turnPct = Math.min(100, Math.round((userTurnCount / totalTurnsEstimate) * 100));
+                      // 가장 마지막 발화 역할 찾기 (최신 simRoleName)
+                      const lastRoleName = [...messages].reverse().find(m => m.simRoleName)?.simRoleName;
+                      const activeRoleIdx = scenario.roles.findIndex(r => r.name === lastRoleName);
+                      // 진행 단계 텍스트
+                      const phaseLabel = isConsult
+                        ? (scenario.phases[simPhaseIndex] || '진행 중')
+                        : (userTurnCount >= 10 ? '최종 판정 임박' : userTurnCount >= 6 ? '마무리 단계' : '대화 진행 중');
+                      const phaseColor = isConsult
+                        ? 'text-indigo-600'
+                        : (userTurnCount >= 10 ? 'text-red-600' : userTurnCount >= 6 ? 'text-amber-600' : 'text-slate-500');
+                      return (
+                        <div className="shrink-0 bg-slate-50 border-b border-slate-200 rounded-t-2xl">
+                          <div className="px-5 py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="text-[16px]">{scenario.icon}</span>
+                              <span className="text-[14px] font-extrabold text-slate-800 truncate">{scenario.name}</span>
+                              <span className={cn('text-[10px] font-bold whitespace-nowrap', phaseColor)}>· {phaseLabel}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {scenario.roles.map((r, ri) => {
+                                const isCurrent = isConsult ? ri === simPhaseIndex : ri === activeRoleIdx;
+                                const isDone = isConsult && ri < simPhaseIndex;
+                                return (
+                                  <span key={r.name} className={cn('text-[10px] font-medium flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all',
+                                    isCurrent ? 'bg-indigo-100 text-indigo-700 font-bold ring-1 ring-indigo-300' :
+                                    isDone ? 'text-slate-400' :
+                                    'text-slate-500'
+                                  )}>
+                                    <span>{r.icon}</span> {r.name}
+                                    {isCurrent && isDiscussing && <span className="text-[8px] animate-pulse">💬</span>}
+                                    {isDone && <span className="text-[8px]">✓</span>}
+                                  </span>
+                                );
+                              })}
+                              {userTurnCount >= 1 && !isDiscussing && (
+                                <button
+                                  onClick={() => {
+                                    const confirmEnd = window.confirm('지금까지의 대화로 각 역할의 최종 판정을 받으시겠어요?\n\n진행 중인 단계를 건너뛰고 바로 결과 화면으로 이동합니다.');
+                                    if (confirmEnd) handleFollowUp('__SIM_END__');
+                                  }}
+                                  title="지금까지의 대화로 최종 판정 받기"
+                                  className="text-[10px] text-slate-500 hover:text-white font-semibold px-2.5 py-1 rounded-md border border-slate-200 hover:border-red-500 hover:bg-red-500 transition-all ml-2 inline-flex items-center gap-1"
+                                >
+                                  <span>🏁</span>
+                                  <span>여기서 마무리</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {/* 진행률 바 */}
+                          <div className="px-5 pb-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] text-slate-400 font-medium shrink-0 tabular-nums">{userTurnCount}턴</span>
+                              <div className="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                                <div
+                                  className={cn('h-full transition-all duration-500',
+                                    userTurnCount >= 10 ? 'bg-red-400' : userTurnCount >= 6 ? 'bg-amber-400' : 'bg-indigo-400'
+                                  )}
+                                  style={{ width: `${turnPct}%` }}
+                                />
+                              </div>
+                              <span className="text-[9px] text-slate-400 font-medium shrink-0 tabular-nums">~{totalTurnsEstimate}턴</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {/* 대화 영역 */}
                     <div className="flex-1 p-5 space-y-2.5">
                       {messages.map((msg, idx) => {
@@ -4722,9 +4747,12 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
             })()}
 
               <div className={cn(
-                'mx-auto px-4 sm:px-6 pb-16',
-                !selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-16',
-                !selectable && discussionMode === 'stakeholder' ? 'hidden'
+                getMainMode(discussionMode) === 'study_main'
+                  ? 'h-full w-full p-0'
+                  : 'mx-auto px-4 sm:px-6 pb-16',
+                getMainMode(discussionMode) !== 'study_main' && (!selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-16'),
+                getMainMode(discussionMode) === 'study_main' ? ''
+                : !selectable && discussionMode === 'stakeholder' ? 'hidden'
                 : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-5' : 'max-w-3xl space-y-2.5')
                   : (discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'stakeholder') ? 'max-w-4xl space-y-3'
                   : (discussionMode === 'multi' && messages.length > 0) ? 'max-w-[960px] space-y-3'
@@ -4732,7 +4760,7 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
                   : 'max-w-2xl space-y-1'
               )}>
 
-              {selectable && (
+              {selectable && getMainMode(discussionMode) !== 'study_main' && (
                 <Suspense fallback={null}>
                   <LazyExpertSelectionPanel
                     experts={experts}
@@ -4763,9 +4791,30 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
                     onSelectPremiumDomain={handleSelectPremiumDomain}
                     selectedPremiumDomain={selectedPremiumDomain}
                     selectedAssistantCardId={selectedAssistantCardId}
-                    onAssistantCardChange={setSelectedAssistantCard}
+                    onAssistantCardChange={(cardId) => {
+                      if (cardId === 'translate') {
+                        setDiscussionMode('translate');
+                        return;
+                      }
+                      if (cardId === 'file-convert') {
+                        setDiscussionMode('convert');
+                        return;
+                      }
+                      if (cardId === 'study') {
+                        setDiscussionMode('study');
+                        return;
+                      }
+                      setSelectedAssistantCard(cardId);
+                    }}
                     onAssistantSubmit={handleAssistantSubmit}
                   />
+                </Suspense>
+              )}
+
+              {/* Study Workspace — main tab */}
+              {getMainMode(discussionMode) === 'study_main' && (
+                <Suspense fallback={null}>
+                  <LazyStudyWorkspace onClose={() => setDiscussionMode('assistant')} />
                 </Suspense>
               )}
 
@@ -5481,7 +5530,13 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
                                         <span className="text-[12px] font-semibold text-slate-800">{activeExp.nameKo}</span>
                                       </div>
                                     )}
-                                    <div className="pl-0 text-[13.75px] leading-[1.68] text-slate-700 [&_p]:my-1.25 [&_p]:text-[13.75px] [&_li]:text-[13.75px] [&_h1]:text-[15px] [&_h2]:text-[14px] [&_h3]:text-[13px] [&_strong]:text-slate-800">
+                                    <div className="prose prose-sm max-w-none text-slate-700
+                                      prose-p:my-3 prose-p:leading-[1.75] prose-p:text-[13px]
+                                      prose-headings:text-slate-900 prose-headings:font-semibold prose-headings:tracking-tight prose-headings:mt-5 prose-headings:mb-2
+                                      prose-h2:text-[15px] prose-h3:text-[14px] prose-h4:text-[13px]
+                                      prose-strong:text-slate-800 prose-strong:font-semibold
+                                      prose-ul:my-3 prose-ul:space-y-1 prose-li:my-0.5 prose-li:text-[13px] prose-li:leading-[1.7] prose-li:pl-1
+                                      prose-ol:my-3 prose-ol:space-y-1">
                                       {cleanedContent ? (
                                         <LazyMarkdown content={cleanedContent} fallback={<span>{cleanedContent}</span>} />
                                       ) : msg.isStreaming ? (
@@ -7245,6 +7300,7 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
                         isStreaming={isDiscussing}
                         onStop={stopDiscussion}
                         discussionMode={discussionMode}
+                        selectedExperts={activeExperts}
                         onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                         showSettings={showDebateSettings}
                         isFollowUp={isDone}
@@ -7311,6 +7367,7 @@ ${followUpResponses.map((response) => `- ${response.name}: ${response.content}`)
                       isStreaming={isDiscussing}
                       onStop={stopDiscussion}
                       discussionMode={discussionMode}
+                      selectedExperts={activeExperts}
                       onToggleSettings={() => setShowDebateSettings((prev) => !prev)}
                       showSettings={showDebateSettings}
                       isFollowUp={isDone}

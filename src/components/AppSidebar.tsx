@@ -1963,7 +1963,9 @@ export function AppSidebar({
                 {experts
                   .filter(e => {
                     const hiddenBaseModels = ['gpt', 'claude', 'gemini', 'grok', 'perplexity', 'qwen'];
+                    const hiddenSpecial = ['ancano-pro', 'auto-gpt'];
                     if (hiddenBaseModels.includes(e.id)) return false;
+                    if (hiddenSpecial.includes(e.id)) return false;
                     if (botBrowserCat === '전체') return true;
                     const catMap: Record<string, string> = { 'AI 모델': 'ai', '전문가': 'specialist', '직업': 'occupation', '라이프스타일': 'lifestyle', '페르소나': 'perspective', '인물': 'celebrity', '캐릭터': 'fictional', '신화': 'mythology', '이념': 'ideology', '철학/종교': 'religion' };
                     return e.category === catMap[botBrowserCat];

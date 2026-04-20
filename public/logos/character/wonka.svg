@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Plum tailcoat -->
+  <path d="M28 118 Q28 94 46 88 L82 88 Q100 94 100 118 Z" fill="#7a4aa0"/>
+  <path d="M46 88 L64 110 L82 88 L72 88 L64 96 L56 88 Z" fill="#ffffff"/>
+  <!-- Yellow bow tie -->
+  <path d="M52 88 L60 84 L60 94 Z" fill="#f3c734"/>
+  <path d="M76 88 L68 84 L68 94 Z" fill="#f3c734"/>
+  <rect x="60" y="84" width="8" height="10" rx="1.5" fill="#d8a824"/>
+  <!-- Neck -->
+  <rect x="58" y="78" width="12" height="10" rx="3" fill="#f3d4b0"/>
+  <!-- Face -->
+  <ellipse cx="64" cy="62" rx="24" ry="26" fill="#f7dab6"/>
+  <!-- Curly hair sides -->
+  <circle cx="42" cy="54" r="6" fill="#a35a2c"/>
+  <circle cx="46" cy="48" r="5" fill="#a35a2c"/>
+  <circle cx="86" cy="54" r="6" fill="#a35a2c"/>
+  <circle cx="82" cy="48" r="5" fill="#a35a2c"/>
+  <!-- Front curls peeking from hat -->
+  <circle cx="50" cy="42" r="4" fill="#a35a2c"/>
+  <circle cx="78" cy="42" r="4" fill="#a35a2c"/>
+  <circle cx="58" cy="40" r="3.5" fill="#a35a2c"/>
+  <circle cx="70" cy="40" r="3.5" fill="#a35a2c"/>
+  <!-- Top hat brim -->
+  <ellipse cx="64" cy="38" rx="34" ry="4.5" fill="#5a2f80"/>
+  <!-- Top hat crown -->
+  <rect x="40" y="10" width="48" height="28" rx="2" fill="#7a4aa0"/>
+  <!-- Hat band -->
+  <rect x="40" y="30" width="48" height="6" fill="#3f1f5a"/>
+  <!-- Hat highlight -->
+  <rect x="44" y="14" width="3" height="20" rx="1" fill="#9c6cc2" opacity="0.7"/>
+  <!-- Eyes (mischievous, half-closed) -->
+  <path d="M50 64 Q54 61 58 64" stroke="#2a1d12" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M70 64 Q74 61 78 64" stroke="#2a1d12" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <circle cx="54" cy="63" r="1" fill="#2a1d12"/>
+  <circle cx="74" cy="63" r="1" fill="#2a1d12"/>
+  <!-- Brows -->
+  <path d="M48 58 Q54 56 58 58 M70 58 Q74 56 80 58" stroke="#7a4421" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+  <!-- Grin -->
+  <path d="M54 76 Q64 84 74 76" stroke="#7a3a3a" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M56 76 Q64 81 72 76 L72 76 Q64 78 56 76 Z" fill="#ffffff"/>
+  <!-- Cheek blush -->
+  <circle cx="48" cy="72" r="3" fill="#f1a896" opacity="0.5"/>
+  <circle cx="80" cy="72" r="3" fill="#f1a896" opacity="0.5"/>
+  <!-- Cane tip (gold) at side -->
+  <rect x="98" y="86" width="3" height="30" rx="1.5" fill="#3a261a"/>
+  <circle cx="99.5" cy="86" r="3" fill="#e8c34a"/>
+</svg>

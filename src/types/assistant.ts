@@ -114,7 +114,6 @@ export const ASSISTANT_CARDS: AssistantCard[] = [
   { id: 'file-convert', name: '파일 변환', icon: '📁', description: '문서 포맷 변환 및 텍스트 추출', color: 'text-purple-600', gradient: 'from-purple-50 to-violet-50', category: 'productivity', features: ['포맷 변환', '텍스트 추출'], placeholder: '변환할 파일을 업로드하세요', sampleQuestions: ['엑셀을 CSV로 변환해줘', 'Word 파일에서 텍스트 추출해줘'], runtime: 'chat', supportsFiles: true },
 
   // ── 학습 ──
-  { id: 'study', name: '공부 도우미', icon: '📚', description: '개념 설명, 퀴즈, 학습 계획 수립', color: 'text-blue-600', gradient: 'from-blue-50 to-indigo-50', category: 'study', features: ['개념 설명', '퀴즈 출제', '학습 로드맵'], placeholder: '무엇을 공부하고 싶으세요?', sampleQuestions: ['광합성 쉽게 설명해줘', '경제학 퀴즈 5문제 내줘'], runtime: 'chat' },
   { id: 'math', name: '수학 튜터', icon: '📐', description: '수학 문제 단계별 풀이 및 개념 설명', color: 'text-blue-600', gradient: 'from-blue-50 to-indigo-50', category: 'study', features: ['단계별 풀이', '공식 설명', '개념 정리'], placeholder: '수학 문제를 입력하세요', sampleQuestions: ['이 미적분 문제 풀어줘', '확률 공식 정리해줘'], runtime: 'chat' },
 
   // ── 업무 ──
