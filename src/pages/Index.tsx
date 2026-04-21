@@ -4464,6 +4464,17 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
             onSelectHistory={(rec) => loadHistory(rec)}
             onNewChat={handleNewDiscussion}
+            onCopyChat={messages.length > 0 ? copyAllResults : undefined}
+            onDownloadChat={messages.length > 0 ? downloadAllResults : undefined}
+            hasActiveChat={messages.length > 0}
+            currentTheme={typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
+            onToggleTheme={() => {
+              const root = document.documentElement;
+              const isDark = root.classList.contains('dark');
+              if (isDark) root.classList.remove('dark');
+              else root.classList.add('dark');
+              try { localStorage.setItem('theme', isDark ? 'light' : 'dark'); } catch { /* noop */ }
+            }}
           />
         </Suspense>
         {!hideAppSidebar && <Suspense fallback={null}>
