@@ -1849,6 +1849,52 @@ export function AppSidebar({
                         </button>
                       </div>
 
+                      {/* #19 전체 데이터 백업/복원 */}
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">전체 백업 · 복원</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">설정 · 대화 기록 · Study 자료(PDF/PPTX 원본 포함)를 단일 JSON 파일로 내보내고 다른 기기에서 불러옵니다.</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { downloadBackup } = await import('@/lib/dataBackup');
+                                const res = await downloadBackup();
+                                const mb = (res.size / 1024 / 1024).toFixed(1);
+                                alert(`백업 완료 · 약 ${mb}MB · 첨부 자료 ${res.blobs}개`);
+                              } catch (e) {
+                                alert(`백업 실패: ${e instanceof Error ? e.message : String(e)}`);
+                              }
+                            }}
+                            className="rounded-full px-4 py-2 text-[12px] font-medium border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            전체 백업 내보내기
+                          </button>
+                          <label className="rounded-full px-4 py-2 text-[12px] font-medium border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer">
+                            백업 파일로 복원
+                            <input
+                              type="file"
+                              accept="application/json,.json"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                e.target.value = '';
+                                if (!file) return;
+                                if (!window.confirm('현재 설정·대화·Study 자료에 백업 파일의 내용이 병합됩니다. 계속할까요?')) return;
+                                try {
+                                  const { readBackupFile, applyBackup } = await import('@/lib/dataBackup');
+                                  const payload = await readBackupFile(file);
+                                  const res = await applyBackup(payload);
+                                  alert(`복원 완료 · 키 ${res.keys}개 · 자료 ${res.blobs}개. 페이지를 새로고침합니다.`);
+                                  window.location.reload();
+                                } catch (err) {
+                                  alert(`복원 실패: ${err instanceof Error ? err.message : String(err)}`);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
                       <div className="rounded-2xl border border-red-200 p-3.5 dark:border-red-900/50">
                         <p className="text-[14px] font-semibold text-red-600 dark:text-red-400">캐시 초기화</p>
                         <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">로컬 캐시와 임시 데이터를 삭제합니다. 대화 기록은 유지됩니다.</p>
