@@ -912,6 +912,18 @@ export function AppSidebar({
 
   return (
     <>
+      {/* #6 모바일 햄버거 트리거 — 사이드바 닫힘 + 모바일일 때만 노출. */}
+      {isMobile && !isOpen && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-label="사이드바 열기"
+          className="fixed top-3 left-3 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/90 text-slate-600 shadow-md backdrop-blur-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white md:hidden"
+        >
+          <PanelLeft className="h-5 w-5" />
+        </button>
+      )}
+
       {/* Mobile overlay backdrop */}
       {isMobile && isOpen && (
         <div
