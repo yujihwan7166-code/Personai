@@ -2160,16 +2160,21 @@ export function ExpertSelectionPanel({
         />
       </div>
 
-      {/* Main Mode Tabs — 플레이어/공부 모드에서는 숨김 */}
+      {/* Main Mode Tabs — 플레이어/공부 모드에서는 숨김.
+          Phase G 마지막: 히어로와 탭 사이 mt-5, 탭과 아래 블록 사이 mb-3.
+          탭 그룹을 주변보다 살짝 다른 톤(surface-2)으로 감싸서 '여기가 탭 그룹' 인지 명확. */}
       <div className={cn(
-        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden",
-        isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mb-0' : 'max-h-32 opacity-100',
+        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden mt-5 mb-3",
+        isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mt-0 mb-0' : 'max-h-32 opacity-100',
         isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // Phase G 최종(정교화): 탭 그룹 트랙 — 컴팩트한 공간, 아래 hairline.
-          'flex items-center relative gap-0.5 px-1 pt-0.5 pb-2',
+          // 탭 스트립 컨테이너 — 옅은 배경 + rounded 로 그룹 경계 암시.
+          'flex items-center relative gap-1 rounded-xl p-1',
+          showPlayerBg
+            ? 'bg-slate-900/50 border border-slate-700/40'
+            : 'bg-[hsl(var(--surface-2))]/60 border border-[hsl(var(--hairline))]/50',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
@@ -2317,22 +2322,15 @@ export function ExpertSelectionPanel({
                           disabled={isAiDisabled || autoAssign}
                           onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
                           className={cn(
-                            // Phase G 최종: 밑줄 + hover 배경. 메인 탭과 동일 리듬.
-                            'relative flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap',
+                            // Phase G 마지막: 밑줄 제거, 배경 틴트 + 컬러 텍스트만. 메인 탭과 동일 패턴.
+                            'flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap',
                             isAiDisabled
                               ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                               : isActive
-                                ? 'text-[hsl(var(--mode,var(--primary)))] font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/50 dark:hover:bg-slate-800/50',
+                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-[hsl(var(--surface-2))]',
                           )}>
                           {label}
-                          {isActive && !isAiDisabled && (
-                            <span
-                              aria-hidden
-                              className="absolute left-2 right-2 -bottom-[5px] h-[2.5px] rounded-full"
-                              style={{ background: 'hsl(var(--mode, var(--primary)))' }}
-                            />
-                          )}
                         </button>
                       );
                     })}
@@ -2345,16 +2343,12 @@ export function ExpertSelectionPanel({
                         <div className="relative group/more">
                           <button type="button"
                             className={cn(
-                              'relative flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md transition-colors whitespace-nowrap font-medium',
+                              'flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md transition-colors whitespace-nowrap font-medium',
                               isMoreActive
-                                ? 'text-[hsl(var(--mode,var(--primary)))] font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/50 dark:hover:bg-slate-800/50',
+                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-[hsl(var(--surface-2))]',
                             )}>
                             {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
-                            {isMoreActive && (
-                              <span aria-hidden className="absolute left-2 right-2 -bottom-[5px] h-[2.5px] rounded-full"
-                                style={{ background: 'hsl(var(--mode, var(--primary)))' }} />
-                            )}
                           </button>
                           <div className="absolute left-0 top-full mt-1 bg-[hsl(var(--card))] border border-[hsl(var(--hairline))] rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
                             {moreCats.map(({ cat, label }) => (
