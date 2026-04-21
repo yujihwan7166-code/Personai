@@ -948,41 +948,58 @@ export function AppSidebar({
           )}
         </div>
 
-        {/* ── 2. Navigation Menu ── */}
-        <nav className={cn("shrink-0 space-y-0.5", isOpen ? 'px-2' : 'px-1')}>
-          {[
-            { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
-            { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
-            // Phase D-3 보정: '모드 · 최근 대화 ⌘K' 항목도 제거 — 대화 기록 영역을 크게.
-            // Cmd+K 단축키 자체는 여전히 글로벌로 작동.
-            // '전문가 · 봇 검색' 도 제거됨. 필요 시 Ctrl+Shift+K 로 열림.
-          ].map(item => (
-            <button
-              key={item.label}
-              onClick={item.onClick}
-              title={!isOpen ? `${item.label}${item.shortcut ? ` (${item.shortcut})` : ''}` : undefined}
-              className={cn(
-                "font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center transition-colors w-full",
-                // Phase D-3 보정: 상단 nav 컴팩트화 (py-2→1, text→11.5, 아이콘 16)
-                isOpen ? 'px-2.5 py-1.5 gap-2 text-[11.5px]' : 'p-1.5 justify-center',
-                item.highlight && 'bg-slate-50 dark:bg-slate-800/50',
-              )}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {isOpen && (
-                <>
-                  <span className="flex-1 text-left">{item.label}</span>
-                  {item.shortcut && (
-                    <kbd className="ml-auto rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-1 py-0.5 text-[9.5px] font-mono text-slate-500 dark:text-slate-400">
-                      {item.shortcut}
-                    </kbd>
+        {/* ── 2. Navigation Menu (Phase D-3 보정: 2×2 그리드) ── */}
+        <nav className={cn("shrink-0", isOpen ? 'px-2' : 'px-1')}>
+          {isOpen ? (
+            <div className="grid grid-cols-2 gap-1">
+              {[
+                { icon: House, label: '메인', onClick: handleGoHome, highlight: true },
+                { icon: Plus, label: '새 대화', onClick: () => { onNewDiscussion?.(); } },
+                { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
+                { icon: Search, label: '검색', onClick: () => {
+                    const ev = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true, bubbles: true });
+                    window.dispatchEvent(ev);
+                  }
+                },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.onClick}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1 rounded-lg py-2.5 text-[11px] font-medium transition-colors",
+                    "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
+                    item.highlight && 'bg-slate-50 dark:bg-slate-800/50',
                   )}
-                </>
-              )}
-            </button>
-          ))}
-
-          {/* Search input removed from here — moved to conversation list header */}
+                >
+                  <item.icon className="w-[18px] h-[18px] shrink-0" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            // 접힘 상태: 아이콘만 세로 나열
+            <div className="space-y-0.5">
+              {[
+                { icon: House, label: '메인 화면', onClick: handleGoHome },
+                { icon: Plus, label: '새 대화', onClick: () => { onNewDiscussion?.(); } },
+                { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
+                { icon: Search, label: '검색 (⌘K)', onClick: () => {
+                    const ev = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true, bubbles: true });
+                    window.dispatchEvent(ev);
+                  }
+                },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.onClick}
+                  title={item.label}
+                  className="font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center transition-colors w-full p-1.5 justify-center"
+                >
+                  <item.icon className="w-4 h-4 shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
         </nav>
 
         {/* Phase D-3 보정: 모드 섹션 — 컴팩트 가로형 (한 줄 4×2 미니 pill).
