@@ -23,21 +23,7 @@ export function PremiumDomainLanding({ onSelectDomain }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* 에디토리얼 헤더 — 프로페셔널 톤 */}
-      <div className="text-center pt-2 pb-1">
-        <div className="flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(var(--mode-premium))] opacity-80 mb-2">
-          <span className="inline-block h-px w-6 bg-[hsl(var(--mode-premium))]/60" />
-          Professional Consult
-          <span className="inline-block h-px w-6 bg-[hsl(var(--mode-premium))]/60" />
-        </div>
-        <h2 className="font-display font-semibold text-[22px] md:text-[26px] tracking-[-0.02em] leading-tight text-slate-900 dark:text-slate-100">
-          전문 분야, <span className="text-[hsl(var(--mode-premium))]">검증된 근거</span>로 자문합니다
-        </h2>
-        <p className="mt-1.5 text-[12.5px] text-slate-500 dark:text-slate-400 max-w-[520px] mx-auto leading-snug">
-          공공 데이터 · 판례 · 통계를 근거로 단계별 추론. 전문가 상담을 대체하지 않는 참고 자문입니다.
-        </p>
-      </div>
-
+      {/* 에디토리얼 헤더는 ExpertSelectionPanel 상단 히어로로 승격됨 (#14). */}
       {/* Tech spec bar */}
       <div className="flex items-center justify-center gap-3 text-[12px] text-slate-900 dark:text-slate-200 font-semibold py-2.5 border-y border-slate-200 dark:border-slate-800">
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />공공 API 실시간 연동</span>

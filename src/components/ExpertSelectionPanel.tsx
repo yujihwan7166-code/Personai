@@ -2138,43 +2138,60 @@ export function ExpertSelectionPanel({
         isLeavingPlayer && transitionPhase >= 2 && 'opacity-100'
       )}>
         {/* AccountStatus 제거 — 사이드바 하단으로 이동됨 */}
-        <h2 key={mainMode} className={cn(
-          "text-xl sm:text-2xl font-bold text-foreground tracking-tight",
-          !skipHeroAnimation && "animate-in fade-in duration-700"
-        )}>
-          {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
-            : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
-              : mainMode === 'debate' ? (
-                  discussionMode === 'brainstorm' ? 'AI들이 협업해 아이디어를 쏟아냅니다'
-                  : discussionMode === 'freetalk' ? 'AI들이 자유롭게 대화하며 의견을 나눕니다'
-                  : 'AI들이 다각도로 토론하고 결론을 냅니다'
-                )
-                : mainMode === 'stakeholder_main' ? '이해관계자 역할극으로 아이디어를 검증하세요'
-                  : mainMode === 'brainstorm_main' ? 'AI들이 협업해 아이디어를 정리해드립니다'
-                    : mainMode === 'premium_main' ? '공공 데이터 기반 AI 자문 시스템'
-                      : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
-                        : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
-                          : ''}
-        </h2>
-        {/* Phase G 최종화: 부제를 보조 한 줄로 유지하되 사이즈·여백 축소 (탭 스트립과의 간격 타이트) */}
-        <p key={`sub-${mainMode}`} className={cn(
-          "mt-0.5 text-[12px] text-muted-foreground/80",
-          !skipHeroAnimation && "animate-in fade-in duration-700"
-        )}>
-          {mainMode === 'general' ? 'GPT · Claude · Gemini — 원하는 AI 를 골라 자유롭게 대화'
-            : mainMode === 'multi' ? '여러 AI의 답변을 비교하고 종합 결론으로'
-              : mainMode === 'debate' ? (
-                  discussionMode === 'brainstorm' ? '자유 발산으로 새로운 관점 발견'
-                  : discussionMode === 'freetalk' ? '정해진 형식 없이 AI들의 자유 토론'
-                  : '찬성·반대, 다각도 깊이 있는 분석'
-                )
-                : mainMode === 'stakeholder_main' ? '이해관계자 시점으로 의사결정 시뮬레이션'
-                  : mainMode === 'brainstorm_main' ? 'AI들이 아이디어를 제안·구조화'
-                    : mainMode === 'premium_main' ? '법률·의료·금융 등 전문 분야 자문'
-                      : mainMode === 'assistant' ? '문서 작성·번역·요약 실무 도우미'
-                        : mainMode === 'player' ? '퀴즈·스토리·미니게임으로 놀기'
-                          : ''}
-        </p>
+        {mainMode === 'premium_main' ? (
+          /* #14 Premium 에디토리얼 헤더 — 기존 h2/p 를 대체. "공공 데이터 · 판례 · 통계" 카피도 이 헤더로 승격. */
+          <div key={`premium-hero-${mainMode}`} className={cn(!skipHeroAnimation && "animate-in fade-in duration-700")}>
+            <div className="flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(var(--mode-premium))] opacity-80 mb-2">
+              <span className="inline-block h-px w-6 bg-[hsl(var(--mode-premium))]/60" />
+              Professional Consult
+              <span className="inline-block h-px w-6 bg-[hsl(var(--mode-premium))]/60" />
+            </div>
+            <h2 className="font-display font-semibold text-[22px] md:text-[26px] tracking-[-0.02em] leading-tight text-foreground">
+              전문 분야, <span className="text-[hsl(var(--mode-premium))]">검증된 근거</span>로 자문합니다
+            </h2>
+            <p className="mt-1.5 text-[12.5px] text-muted-foreground/90 max-w-[560px] mx-auto leading-snug">
+              공공 데이터 · 판례 · 통계를 근거로 단계별 추론. 전문가 상담을 대체하지 않는 참고 자문입니다.
+            </p>
+          </div>
+        ) : (
+          <>
+            <h2 key={mainMode} className={cn(
+              "text-xl sm:text-2xl font-bold text-foreground tracking-tight",
+              !skipHeroAnimation && "animate-in fade-in duration-700"
+            )}>
+              {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
+                : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
+                  : mainMode === 'debate' ? (
+                      discussionMode === 'brainstorm' ? 'AI들이 협업해 아이디어를 쏟아냅니다'
+                      : discussionMode === 'freetalk' ? 'AI들이 자유롭게 대화하며 의견을 나눕니다'
+                      : 'AI들이 다각도로 토론하고 결론을 냅니다'
+                    )
+                    : mainMode === 'stakeholder_main' ? '이해관계자 역할극으로 아이디어를 검증하세요'
+                      : mainMode === 'brainstorm_main' ? 'AI들이 협업해 아이디어를 정리해드립니다'
+                          : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
+                            : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
+                              : ''}
+            </h2>
+            {/* Phase G 최종화: 부제를 보조 한 줄로 유지하되 사이즈·여백 축소 (탭 스트립과의 간격 타이트) */}
+            <p key={`sub-${mainMode}`} className={cn(
+              "mt-0.5 text-[12px] text-muted-foreground/80",
+              !skipHeroAnimation && "animate-in fade-in duration-700"
+            )}>
+              {mainMode === 'general' ? 'GPT · Claude · Gemini — 원하는 AI 를 골라 자유롭게 대화'
+                : mainMode === 'multi' ? '여러 AI의 답변을 비교하고 종합 결론으로'
+                  : mainMode === 'debate' ? (
+                      discussionMode === 'brainstorm' ? '자유 발산으로 새로운 관점 발견'
+                      : discussionMode === 'freetalk' ? '정해진 형식 없이 AI들의 자유 토론'
+                      : '찬성·반대, 다각도 깊이 있는 분석'
+                    )
+                    : mainMode === 'stakeholder_main' ? '이해관계자 시점으로 의사결정 시뮬레이션'
+                      : mainMode === 'brainstorm_main' ? 'AI들이 아이디어를 제안·구조화'
+                          : mainMode === 'assistant' ? '문서 작성·번역·요약 실무 도우미'
+                            : mainMode === 'player' ? '퀴즈·스토리·미니게임으로 놀기'
+                              : ''}
+            </p>
+          </>
+        )}
 
         {/* 모드 진입 때 한 번 쓸고 가는 서브틀한 mode-color sweep.
             `key={mainMode}` 로 모드 바뀔 때마다 재마운트되어 애니메이션 다시 재생됨. */}
