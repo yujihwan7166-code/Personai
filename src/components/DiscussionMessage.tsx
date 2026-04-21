@@ -21,6 +21,8 @@ interface Props {
   onLike?: (messageId: string) => void;
   onDislike?: (messageId: string) => void;
   onDevelop?: (ideaContent: string) => void;
+  /** #3 실패·중단된 메시지 재시도. 전달되면 오류 메시지 또는 빈 스트리밍에 "다시 시도" 버튼 노출. */
+  onRetry?: (messageId: string, expertId: string) => void;
 }
 
 const proseClasses = `prose prose-sm max-w-none
@@ -186,12 +188,14 @@ function DeprecatedSearchSourcesCollapsible({ sources }: { sources: { title: str
   );
 }
 
-export function DiscussionMessageCard({ message, expert, variant = 'default', onRebuttal, onLike, onDislike, onDevelop }: Props) {
+export function DiscussionMessageCard({ message, expert, variant = 'default', onRebuttal, onLike, onDislike, onDevelop, onRetry }: Props) {
   const [copied, setCopied] = useState(false);
   const [showRebuttal, setShowRebuttal] = useState(false);
   const [rebuttalText, setRebuttalText] = useState('');
   const isSummary = message.isSummary;
   const displayContent = stripSpeakerPrefix(message.content, expert.nameKo);
+  // #3 각 variant 의 MessageContent 호출에서 공유할 retry 핸들러.
+  const handleRetry = onRetry ? () => onRetry(message.id, expert.id) : undefined;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(displayContent);
@@ -255,7 +259,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
                   : cn(proseClasses, 'text-slate-600 prose-p:text-[13px] prose-li:text-[13px] prose-headings:text-[15px] prose-headings:font-bold prose-strong:text-slate-800')
               )}>
                 <GeneratedImageGallery message={message} />
-                <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse renderer={isAgentCard ? 'agent-rich' : 'default'} />
+                <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse renderer={isAgentCard ? 'agent-rich' : 'default'} onRetry={handleRetry} />
               </div>
             )}
             {shouldRevealAgentAnswer && message.searchSources && message.searchSources.sources.length > 0 && !message.isStreaming && (
@@ -277,7 +281,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
             <ResponseProgressBanner message={message} />
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
               <GeneratedImageGallery message={message} />
-              <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse />
+              <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse onRetry={handleRetry} />
             </div>
             {!message.isStreaming && message.content && (
               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-2 pt-2 border-t border-slate-100">
@@ -308,7 +312,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
         </div>
         <ResponseProgressBanner message={message} />
         <div className={cn('text-[12px] leading-relaxed text-slate-600 max-h-[140px] overflow-hidden', proseClasses)}>
-          <MessageContent content={displayContent} isStreaming={message.isStreaming} />
+          <MessageContent content={displayContent} isStreaming={message.isStreaming} onRetry={handleRetry} />
         </div>
         {!message.isStreaming && message.content && (
           <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-200/50 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -352,7 +356,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <ResponseProgressBanner message={message} />
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
             <GeneratedImageGallery message={message} />
-            <MessageContent content={displayContent} isStreaming={message.isStreaming} />
+            <MessageContent content={displayContent} isStreaming={message.isStreaming} onRetry={handleRetry} />
           </div>
         </div>
       </div>
@@ -378,7 +382,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
               <ResponseProgressBanner message={message} />
               <div className={cn('text-[12px] leading-relaxed text-slate-600', proseClasses)}>
                 <GeneratedImageGallery message={message} />
-                <MessageContent content={displayContent} isStreaming={message.isStreaming} />
+                <MessageContent content={displayContent} isStreaming={message.isStreaming} onRetry={handleRetry} />
               </div>
             </div>
           </div>
@@ -402,7 +406,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
             <ResponseProgressBanner message={message} />
             <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
               <GeneratedImageGallery message={message} />
-              <MessageContent content={displayContent} isStreaming={message.isStreaming} />
+              <MessageContent content={displayContent} isStreaming={message.isStreaming} onRetry={handleRetry} />
             </div>
           </div>
         </div>
@@ -442,7 +446,7 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
           <ResponseProgressBanner message={message} />
           <div className={cn('text-[12.5px] leading-relaxed text-slate-600', proseClasses)}>
             <GeneratedImageGallery message={message} />
-            <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse={isSummary} />
+            <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse={isSummary} onRetry={handleRetry} />
           </div>
         </div>
 

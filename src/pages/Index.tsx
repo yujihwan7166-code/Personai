@@ -327,6 +327,19 @@ const Index = () => {
     setIsDiscussing(false);
   }, [experts, messages, currentQuestion, isDiscussing]);
 
+  /** #3 실패한 메시지 재시도 — 해당 메시지를 제거하고 같은 전문가로 질문 다시 실행. */
+  const handleMessageRetry = useCallback((messageId: string, expertId: string) => {
+    if (isDiscussing) return;
+    const lastQuestion = currentQuestion || currentQuestionDisplay;
+    if (!lastQuestion) return;
+    // 실패 메시지 + 같은 expert 로 쌓인 에러 메시지 정리
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    // 같은 expert 로 재실행 (일반 모드 플로우 재활용)
+    setTimeout(() => {
+      void runDiscussionWithUsage(lastQuestion, [expertId], 'general');
+    }, 40);
+  }, [isDiscussing, currentQuestion, currentQuestionDisplay]);
+
   const activeExperts = experts.filter((e) => selectedExpertIds.includes(e.id));
 
   const runGeneralImageTurn = useCallback(async ({
@@ -4690,7 +4703,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         if (msg.isSummary) {
                           const expert = allExperts.find(e => e.id === msg.expertId);
                           if (!expert) return null;
-                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onRetry={handleMessageRetry} />;
                         }
                         const expert = allExperts.find(e => e.id === msg.expertId);
                         if (!expert) return null;
@@ -4775,7 +4788,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         if (msg.isSummary) {
                           const expert = allExperts.find(e => e.id === msg.expertId);
                           if (!expert) return null;
-                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                          return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onRetry={handleMessageRetry} />;
                         }
                         const expert = allExperts.find(e => e.id === msg.expertId);
                         if (!expert) return null;
@@ -5651,7 +5664,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       {conclusionMsgs.map(msg => {
                         const expert = allExperts.find(e => e.id === msg.expertId);
                         if (!expert) return null;
-                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onRetry={handleMessageRetry} />;
                       })}
 
                     </div>
@@ -5750,7 +5763,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             {currentRound.proMsgs.map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
-                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-pro" onLike={handleLike} onDislike={handleDislike} />;
+                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-pro" onLike={handleLike} onDislike={handleDislike} onRetry={handleMessageRetry} />;
                             })}
                             {currentRound.proMsgs.length === 0 && isDiscussing && (
                               <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/30 px-4 py-8 text-center text-[11px] text-blue-300">
@@ -5777,7 +5790,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             {currentRound.conMsgs.map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
-                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-con" onLike={handleLike} onDislike={handleDislike} />;
+                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="procon-con" onLike={handleLike} onDislike={handleDislike} onRetry={handleMessageRetry} />;
                             })}
                             {currentRound.conMsgs.length === 0 && isDiscussing && (
                               <div className="rounded-xl border border-dashed border-red-200 bg-red-50/30 px-4 py-8 text-center text-[11px] text-red-300">
@@ -5797,14 +5810,14 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       {currentRound?.otherMsgs.map(msg => {
                         const expert = allExperts.find(e => e.id === msg.expertId);
                         if (!expert) return null;
-                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onLike={handleLike} onDislike={handleDislike} />;
+                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onLike={handleLike} onDislike={handleDislike} onRetry={handleMessageRetry} />;
                       })}
 
                       {/* 토론 정리 */}
                       {summaryMsgs.map(msg => {
                         const expert = allExperts.find(e => e.id === msg.expertId);
                         if (!expert) return null;
-                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onRetry={handleMessageRetry} />;
                       })}
 
                       {/* 후속 1:1 대화 — 메신저 스타일 */}
@@ -5830,7 +5843,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isManagedAutoAgent(expert.id) ? 'agent-card' : 'general-card'} />
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isManagedAutoAgent(expert.id) ? 'agent-card' : 'general-card'} onRetry={handleMessageRetry} />
                               );
                             })}
                           </div>
@@ -6003,7 +6016,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     if (!data) {
                       const expert = allExperts.find(e => e.id === msg.expertId);
                       if (!expert) return null;
-                      return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                      return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onRetry={handleMessageRetry} />;
                     }
 
                     // ── 자유 발산 렌더링 ──
@@ -6428,7 +6441,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     // fallback — 알 수 없는 프레임워크
                     const expert = allExperts.find(e => e.id === msg.expertId);
                     if (!expert) return null;
-                    return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                    return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onRetry={handleMessageRetry} />;
                   }
 
                   // 기존 포스트잇 그리드 (비큐레이션 프레임워크)
@@ -6491,7 +6504,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             {g.msgs.filter(m => m.expertId !== '__user__').map(msg => {
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
-                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="postit" onLike={handleLike} onDislike={handleDislike} onDevelop={isDone ? handleDevelopIdea : undefined} />;
+                              return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="postit" onLike={handleLike} onDislike={handleDislike} onDevelop={isDone ? handleDevelopIdea : undefined} onRetry={handleMessageRetry} />;
                             })}
                           </div>
                         );
@@ -6563,7 +6576,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                 const expert = allExperts.find(e => e.id === msg.expertId);
                                 if (!expert) return null;
                                 return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default"
-                                  onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} />;
+                                  onLike={handleLike} onDislike={handleDislike} onRebuttal={isDone ? handleRebuttal : undefined} onRetry={handleMessageRetry} />;
                               })}
                             </div>
                           ) : isDiscussing ? (
@@ -6576,7 +6589,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       {summaryMsgs.map(msg => {
                         const expert = allExperts.find(e => e.id === msg.expertId);
                         if (!expert) return null;
-                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" />;
+                        return <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant="default" onRetry={handleMessageRetry} />;
                       })}
 
                       {/* 후속 1:1 대화 — 토론 아래 메신저 스타일 */}
@@ -6601,7 +6614,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
                               return (
-                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isManagedAutoAgent(expert.id) ? 'agent-card' : 'general-card'} />
+                                <DiscussionMessageCard key={msg.id} message={msg} expert={expert} variant={isManagedAutoAgent(expert.id) ? 'agent-card' : 'general-card'} onRetry={handleMessageRetry} />
                               );
                             })}
                           </div>
@@ -6802,7 +6815,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             if (msg.isSummary) {
                               const expert = allExperts.find(e => e.id === msg.expertId);
                               if (!expert) return null;
-                              return <div key={msg.id} className="px-5 py-3"><DiscussionMessageCard message={msg} expert={expert} variant="default" /></div>;
+                              return <div key={msg.id} className="px-5 py-3"><DiscussionMessageCard message={msg} expert={expert} variant="default" onRetry={handleMessageRetry} /></div>;
                             }
                             // User message — 오른쪽, 파란색
                             if (msg.expertId === '__user__') {
@@ -7195,7 +7208,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       key={msg.id} message={msg} expert={expert}
                       variant={getChatVariant(msg)}
                       onLike={handleLike} onDislike={handleDislike}
-                      onRebuttal={isDone ? handleRebuttal : undefined}
+                      onRebuttal={isDone ? handleRebuttal : undefined} onRetry={handleMessageRetry}
                     />
                   );
                 })
