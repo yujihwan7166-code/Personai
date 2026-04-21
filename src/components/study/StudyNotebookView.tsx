@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useRef } from 'react';
 import { Download, Trash2, MoreHorizontal, PanelLeft, Home } from 'lucide-react';
 import type { StudyNotebook, Flashcard, StudyPaneKind } from '@/types/study';
-import { newId, countDueCards } from '@/types/study';
+import { newId } from '@/types/study';
 import { usePersistedStudyLayout } from '@/hooks/usePersistedStudyLayout';
 import { SourceViewer } from './SourceViewer';
 import { StudyChat } from './StudyChat';
@@ -36,8 +36,7 @@ export function StudyNotebookView({
   const [showRecorder, setShowRecorder] = useState(false);
   const [showSession, setShowSession] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>('chat');
-  const [renaming, setRenaming] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(notebook.title);
+  const [activeSourcePage, setActiveSourcePage] = useState<number | undefined>(undefined);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
   const { prefs, setMode, setSlot, toggleLockSource, setWeights } = usePersistedStudyLayout();
@@ -79,20 +78,14 @@ export function StudyNotebookView({
     onChange({ ...notebook, flashcards: [card, ...notebook.flashcards] });
   };
 
-  const due = countDueCards(notebook);
-  const activeSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready').length;
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayQuestions = notebook.chat.filter((t) => t.role === 'user' && t.createdAt >= todayStart.getTime()).length;
-  const wrongCount = notebook.wrongAnswers.length;
-
   return (
     <div className="study-root flex flex-col h-full bg-[#FAFBFC] dark:bg-[#0B1220]">
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5">
+      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-0.5">
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
             className={cn(
-              'hidden sm:flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+              'hidden sm:flex h-7 w-7 items-center justify-center rounded-md transition-colors',
               sidebarOpen
                 ? 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                 : 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100',
@@ -100,33 +93,18 @@ export function StudyNotebookView({
             title={sidebarOpen ? '사이드바 접기 (Ctrl+B)' : '사이드바 열기 (Ctrl+B)'}
             aria-label="사이드바 토글"
           >
-            <PanelLeft className="h-4 w-4" />
+            <PanelLeft className="h-3.5 w-3.5" />
           </button>
         )}
         <button
           onClick={onBack}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
           title="홈으로"
           aria-label="홈으로"
         >
-          <Home className="h-4 w-4" />
+          <Home className="h-3.5 w-3.5" />
         </button>
-        <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="text-lg select-none">{notebook.icon}</span>
-          {renaming ? (
-            <input autoFocus value={titleDraft} onChange={(e) => setTitleDraft(e.target.value)}
-              onBlur={() => { onChange({ ...notebook, title: titleDraft.trim() || notebook.title }); setRenaming(false); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setTitleDraft(notebook.title); setRenaming(false); } }}
-              className="rounded-md border border-indigo-300 px-2 py-0.5 text-[15px] font-bold outline-none min-w-0 flex-1" />
-          ) : (
-            <h2 onClick={() => setRenaming(true)}
-              className="text-[15px] font-bold text-slate-900 dark:text-slate-100 truncate cursor-text hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-1 py-0.5"
-              title="클릭해 이름 변경">
-              {notebook.title}
-            </h2>
-          )}
-        </div>
+        <div className="flex-1 min-w-0" />
 
         <div className="relative">
           <LayoutSwitcher
@@ -141,10 +119,10 @@ export function StudyNotebookView({
         <div className="relative" ref={overflowRef}>
           <button
             onClick={() => setOverflowOpen(!overflowOpen)}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
             aria-label="더보기"
           >
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreHorizontal className="h-3.5 w-3.5" />
           </button>
           {overflowOpen && (
             <div className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 z-30" role="menu">
@@ -175,13 +153,13 @@ export function StudyNotebookView({
       <div className="flex-1 flex overflow-hidden">
         {/* Mobile: fixed tab-driven 3-pane (layout prefs ignored) */}
         <aside className={cn('sm:hidden', mobileTab === 'viewer' ? 'flex w-full' : 'hidden', 'bg-white dark:bg-slate-900')}>
-          <SourceViewer notebook={notebook} onChange={onChange} onStartRecording={() => setShowRecorder(true)} />
+          <SourceViewer notebook={notebook} onChange={onChange} onStartRecording={() => setShowRecorder(true)} activePage={activeSourcePage} onActivePageChange={setActiveSourcePage} />
         </aside>
         <main className={cn('sm:hidden', mobileTab === 'chat' ? 'flex w-full' : 'hidden')}>
           <StudyChat notebook={notebook} onChange={onChange} onPromoteToFlashcard={promoteToFlashcard} onStartRecording={() => setShowRecorder(true)} />
         </main>
         <aside className={cn('sm:hidden', mobileTab === 'studio' ? 'flex w-full' : 'hidden')}>
-          <StudioDeck notebook={notebook} onChange={onChange} onStartSession={() => setShowSession(true)} />
+          <StudioDeck notebook={notebook} onChange={onChange} onStartSession={() => setShowSession(true)} onJumpToPage={(p) => { setActiveSourcePage(p); setMobileTab('viewer'); }} />
         </aside>
 
         {/* Desktop: dynamic slots with resizable grid */}
@@ -202,6 +180,8 @@ export function StudyNotebookView({
                   notebook, onChange, promoteToFlashcard,
                   onStartRecording: () => setShowRecorder(true),
                   onStartSession: () => setShowSession(true),
+                  activeSourcePage,
+                  onActiveSourcePageChange: setActiveSourcePage,
                 })}
               </div>
             );
@@ -212,19 +192,27 @@ export function StudyNotebookView({
                 onDrag={(dx) => {
                   const container = desktopGridRef.current;
                   if (!container) return;
-                  const totalPx = container.clientWidth;
-                  if (totalPx <= 0) return;
+                  // 실제 pane px 를 기준으로 계산 → minmax(220px, ...) 와 충돌 없음.
+                  const paneEls = Array.from(container.children).filter(
+                    (c) => (c as HTMLElement).getAttribute('role') !== 'separator',
+                  ) as HTMLElement[];
+                  const leftEl = paneEls[i];
+                  const rightEl = paneEls[i + 1];
+                  if (!leftEl || !rightEl) return;
+                  const leftPx = leftEl.getBoundingClientRect().width;
+                  const rightPx = rightEl.getBoundingClientRect().width;
+                  const pairPx = leftPx + rightPx;
+                  if (pairPx <= 0) return;
+                  const MIN_PX = 220;
+                  const newLeftPx = Math.max(MIN_PX, Math.min(pairPx - MIN_PX, leftPx + dx));
+                  const newRightPx = pairPx - newLeftPx;
+                  // 변화가 거의 없으면 업데이트 스킵 (진동 방지)
+                  if (Math.abs(newLeftPx - leftPx) < 0.5) return;
+
                   const weights = (prefs.weights ?? defaultWeightsFor(prefs.slots.length)).slice();
-                  const total = weights.reduce((a, b) => a + b, 0);
-                  const deltaPercent = (dx / totalPx) * total;
-                  const minW = 12;
-                  const left = Math.max(minW, weights[i] + deltaPercent);
-                  const right = Math.max(minW, weights[i + 1] - deltaPercent);
-                  const sumBefore = weights[i] + weights[i + 1];
-                  const sumAfter = left + right;
-                  const scale = sumBefore / sumAfter;
-                  weights[i] = left * scale;
-                  weights[i + 1] = right * scale;
+                  const pairWeight = weights[i] + weights[i + 1];
+                  weights[i] = (newLeftPx / pairPx) * pairWeight;
+                  weights[i + 1] = (newRightPx / pairPx) * pairWeight;
                   setWeights(weights);
                 }}
               />
@@ -232,24 +220,6 @@ export function StudyNotebookView({
             return [paneEl, handleEl];
           })}
         </div>
-      </div>
-
-      <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-1.5 flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
-        <span className="inline-flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          활성 소스 <b className="text-slate-800 dark:text-slate-200">{activeSources}</b>
-        </span>
-        <span>·</span>
-        <span>오늘 질문 <b className="text-slate-800 dark:text-slate-200">{todayQuestions}</b></span>
-        <span>·</span>
-        <span>복습 대기 <b className={cn(due > 0 ? 'text-indigo-600 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-200')}>{due}</b></span>
-        {wrongCount > 0 && (
-          <>
-            <span>·</span>
-            <span>오답 <b className="text-rose-600 dark:text-rose-300">{wrongCount}</b></span>
-          </>
-        )}
-        <span className="ml-auto text-[10.5px] text-slate-400">AI가 생성한 내용은 검증이 필요할 수 있습니다</span>
       </div>
 
       {showQuickStart && (
@@ -343,6 +313,8 @@ function renderPane(
     promoteToFlashcard: (f: string, b: string) => void;
     onStartRecording: () => void;
     onStartSession: () => void;
+    activeSourcePage?: number;
+    onActiveSourcePageChange?: (p: number) => void;
   },
 ): React.ReactElement {
   if (kind === 'sources') {
@@ -351,13 +323,15 @@ function renderPane(
         notebook={ctx.notebook}
         onChange={ctx.onChange}
         onStartRecording={ctx.onStartRecording}
+        activePage={ctx.activeSourcePage}
+        onActivePageChange={ctx.onActiveSourcePageChange}
       />
     );
   }
   if (kind === 'chat') {
     return <StudyChat notebook={ctx.notebook} onChange={ctx.onChange} onPromoteToFlashcard={ctx.promoteToFlashcard} onStartRecording={ctx.onStartRecording} />;
   }
-  return <StudioDeck notebook={ctx.notebook} onChange={ctx.onChange} onStartSession={ctx.onStartSession} />;
+  return <StudioDeck notebook={ctx.notebook} onChange={ctx.onChange} onStartSession={ctx.onStartSession} onJumpToPage={ctx.onActiveSourcePageChange} />;
 }
 
 function OverflowItem({

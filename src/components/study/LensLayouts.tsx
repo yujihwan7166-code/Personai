@@ -1,7 +1,75 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { cn } from '@/lib/utils';
+
+/* ── 심층 요약 레이아웃 (페이지 뱃지 파싱) ── */
+export function SummaryLayout({
+  content,
+  onPageClick,
+}: {
+  content: string;
+  onPageClick?: (page: number) => void;
+}) {
+  // [p.N] 토큰을 HTML span으로 치환 → 마크다운 파서가 HTML을 허용하면 그대로, 아니면 custom split 방식
+  // 가장 안전하게: 마크다운을 블록별로 쪼개지 않고, 전체 텍스트에서 [p.N]을 특수 마커 ⟦PAGE:N⟧로 치환 후
+  // 파서가 끝나면 DOM 후처리로 <span>으로 변환 — 하지만 그건 복잡.
+  // 대신: [p.N]을 `<sup data-page="N">p.N</sup>` 유사 커스텀 span으로 인라인 치환하고,
+  // 단순 렌더는 텍스트 토큰 형태 유지. 여기서는 "직접 파서" 방식으로 처리한다.
+  const segments = useMemo(() => splitByPageToken(content), [content]);
+
+  return (
+    <div className="prose prose-slate dark:prose-invert max-w-none text-[13px] leading-relaxed [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2 [&_h3]:text-[13.5px] [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-2">
+      {segments.map((seg, i) => {
+        if (seg.type === 'md') {
+          return <LazyMarkdown key={i} content={seg.value} />;
+        }
+        return (
+          <PageBadge key={i} page={seg.page} onClick={onPageClick} />
+        );
+      })}
+    </div>
+  );
+}
+
+type SummarySegment = { type: 'md'; value: string } | { type: 'page'; page: number };
+
+function splitByPageToken(content: string): SummarySegment[] {
+  const re = /\[p\.(\d+)\]/g;
+  const out: SummarySegment[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(content)) !== null) {
+    if (m.index > last) {
+      out.push({ type: 'md', value: content.slice(last, m.index) });
+    }
+    out.push({ type: 'page', page: parseInt(m[1], 10) });
+    last = m.index + m[0].length;
+  }
+  if (last < content.length) out.push({ type: 'md', value: content.slice(last) });
+  return out;
+}
+
+function PageBadge({ page, onClick }: { page: number; onClick?: (p: number) => void }) {
+  const disabled = !onClick;
+  return (
+    <button
+      type="button"
+      onClick={() => onClick?.(page)}
+      disabled={disabled}
+      className={cn(
+        'inline-flex items-center align-middle rounded-md bg-slate-100 dark:bg-slate-800 px-1.5 text-[10px] font-semibold tabular-nums text-slate-600 dark:text-slate-300 transition-colors -mx-0.5',
+        disabled
+          ? 'cursor-help opacity-70'
+          : 'hover:bg-indigo-100 hover:text-indigo-700 dark:hover:bg-indigo-900 cursor-pointer',
+      )}
+      title={disabled ? `원본 p.${page}` : `원본 p.${page}로 이동`}
+      aria-label={`원본 페이지 ${page}`}
+    >
+      p.{page}
+    </button>
+  );
+}
 
 export function KeypointsLayout({ content }: { content: string }) {
   const items = parseKeypoints(content);

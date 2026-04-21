@@ -1,16 +1,25 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, lazy, Suspense } from 'react';
 import { Upload, Link2, Youtube, Mic, X } from 'lucide-react';
 import type { StudyNotebook, StudySource } from '@/types/study';
 import { newId } from '@/types/study';
-import { processFile, validateFile, resolveMimeType } from '@/lib/fileProcessor';
+import { processFile, validateFile, resolveMimeType, PPTX_MIME } from '@/lib/fileProcessor';
+import { putBlob, STUDY_BLOB_LIMITS } from '@/lib/studyBlobStore';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { StudyBtn } from './ui/primitives';
 import { cn } from '@/lib/utils';
+
+const PdfViewer = lazy(() => import('./viewers/PdfViewer').then((m) => ({ default: m.PdfViewer })));
+const PptxViewer = lazy(() => import('./viewers/PptxViewer').then((m) => ({ default: m.PptxViewer })));
+const DocxViewer = lazy(() => import('./viewers/DocxViewer').then((m) => ({ default: m.DocxViewer })));
 
 interface Props {
   notebook: StudyNotebook;
   onChange: (nb: StudyNotebook) => void;
   onStartRecording: () => void;
+  /** 요약/퀴즈에서 [p.N] 클릭 시 전달되는 페이지 번호. 뷰어 스크롤 동기화용. */
+  activePage?: number;
+  /** 뷰어 내부 페이지 변경을 상위로 알릴 때. */
+  onActivePageChange?: (page: number) => void;
 }
 
 /**
@@ -20,21 +29,31 @@ interface Props {
  * - PDF: 추출된 텍스트 (향후 pdfjs 렌더로 교체)
  * - URL/YouTube: 추출 텍스트 + 원본 링크
  */
-export function SourceViewer({ notebook, onChange, onStartRecording }: Props) {
+export function SourceViewer({ notebook, onChange, onStartRecording, activePage, onActivePageChange }: Props) {
   const source = notebook.sources[0];
 
   if (!source) {
     return <SourceUploader notebook={notebook} onChange={onChange} onStartRecording={onStartRecording} />;
   }
 
+  const native = source.renderMode === 'native' && source.blobRef;
+  const isPdf = native && (source.mimeType === 'application/pdf' || source.kind === 'pdf');
+  const isPptx = native && (source.mimeType === PPTX_MIME || source.kind === 'pptx');
+  const isDocx = native && (source.mimeType?.includes('wordprocessingml') || source.kind === 'docx');
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900">
-      <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-2.5 flex items-center gap-2.5">
-        <span className="text-[20px] leading-none select-none shrink-0">{notebook.icon || '📘'}</span>
+      <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-1 flex items-center gap-2">
+        <span className="text-[16px] leading-none select-none shrink-0">{notebook.icon || '📘'}</span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate">{notebook.title}</h3>
-          <p className="text-[10.5px] text-slate-500 dark:text-slate-400 truncate">
-            {source.kind.toUpperCase()} · {Math.round(source.content.length / 100) / 10}K자 · {source.title}
+          <EditableTitle
+            title={notebook.title}
+            onChange={(newTitle) => onChange({ ...notebook, title: newTitle })}
+          />
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">
+            {source.kind.toUpperCase()}
+            {source.pageCount ? ` · ${source.pageCount}p` : ''}
+            {' · '}{Math.round(source.content.length / 100) / 10}K자 · {source.title}
             {source.url && (
               <>
                 {' · '}
@@ -45,12 +64,76 @@ export function SourceViewer({ notebook, onChange, onStartRecording }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-5">
-        <div className="prose prose-sm max-w-[70ch] mx-auto dark:prose-invert prose-slate">
-          <LazyMarkdown content={source.content} fallback={<pre className="whitespace-pre-wrap text-[13px] leading-relaxed">{source.content}</pre>} />
-        </div>
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {isPdf && (
+          <Suspense fallback={<ViewerFallback label="PDF 로딩 중…" />}>
+            <PdfViewer blobRef={source.blobRef!} activePage={activePage} onActivePageChange={onActivePageChange} />
+          </Suspense>
+        )}
+        {!isPdf && isPptx && (
+          <Suspense fallback={<ViewerFallback label="PPT 로딩 중…" />}>
+            <PptxViewer blobRef={source.blobRef!} activeSlide={activePage} onActiveSlideChange={onActivePageChange} />
+          </Suspense>
+        )}
+        {!isPdf && !isPptx && isDocx && (
+          <Suspense fallback={<ViewerFallback label="Word 로딩 중…" />}>
+            <DocxViewer blobRef={source.blobRef!} />
+          </Suspense>
+        )}
+        {!isPdf && !isPptx && !isDocx && (
+          <div className="h-full overflow-y-auto px-6 py-5">
+            <div className="prose prose-sm max-w-[70ch] mx-auto dark:prose-invert prose-slate">
+              <LazyMarkdown content={source.content} fallback={<pre className="whitespace-pre-wrap text-[13px] leading-relaxed">{source.content}</pre>} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function ViewerFallback({ label }: { label: string }) {
+  return (
+    <div className="h-full flex items-center justify-center">
+      <div className="flex items-center gap-2 text-[12px] text-slate-500 dark:text-slate-400">
+        <span className="inline-block h-3 w-3 rounded-full border-2 border-slate-300 border-t-indigo-500 animate-spin" />
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function EditableTitle({ title, onChange }: { title: string; onChange: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          const v = draft.trim();
+          if (v && v !== title) onChange(v);
+          else setDraft(title);
+          setEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') { setDraft(title); setEditing(false); }
+        }}
+        className="w-full rounded-md border border-indigo-300 px-1.5 py-0.5 text-[13px] font-bold outline-none"
+      />
+    );
+  }
+  return (
+    <h3
+      onClick={() => { setDraft(title); setEditing(true); }}
+      className="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate cursor-text hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded px-1 -mx-1 py-0.5"
+      title="클릭해 이름 변경"
+    >
+      {title}
+    </h3>
   );
 }
 
@@ -89,27 +172,62 @@ function SourceUploader({ notebook, onChange, onStartRecording }: Props) {
         }] });
         return;
       }
-      const err = validateFile(f, []);
+      const err = validateFile(f, [], {
+        maxFileSize: STUDY_BLOB_LIMITS.PER_FILE,
+        maxTotalSize: STUDY_BLOB_LIMITS.TOTAL,
+      });
       if (err) { setFileError(err); return; }
-      const processed = await processFile(f);
-      const extracted = processed.extractedText || '';
-      if (extracted.startsWith('[')) {
-        setFileError(`"${f.name}": ${extracted.replace(/^\[|\]$/g, '')}`);
-        return;
+
+      const kind: StudySource['kind'] =
+        mime === 'application/pdf' ? 'pdf'
+        : mime === PPTX_MIME ? 'pptx'
+        : mime.includes('wordprocessingml') ? 'docx'
+        : 'paste';
+
+      // 1) 네이티브 뷰어용 원본 blob을 먼저 저장해둔다. 텍스트 추출 실패와 무관하게 뷰어는 뜬다.
+      let blobRef: string | undefined;
+      let renderMode: 'native' | 'text' = 'text';
+      if (kind === 'pdf' || kind === 'pptx' || kind === 'docx') {
+        try {
+          blobRef = await putBlob(f, mime);
+          renderMode = 'native';
+        } catch (e) {
+          console.warn('[Study] blob 저장 실패, 텍스트 폴백', e);
+        }
       }
-      if (extracted.length < 50) {
+
+      // 2) 텍스트 추출은 best-effort. 실패해도 viewer 는 계속 연다.
+      let processed: Awaited<ReturnType<typeof processFile>> | null = null;
+      try {
+        processed = await processFile(f);
+      } catch (e) {
+        console.warn('[Study] 텍스트 추출 실패', e);
+      }
+      let extracted = processed?.extractedText || '';
+      if (extracted.startsWith('[')) {
+        // 추출기가 내보낸 안내 문구 — 뷰어가 있을 때는 그대로 content로 유지하되,
+        // 뷰어도 없을 땐 에러로 처리.
+        if (!blobRef) {
+          setFileError(`"${f.name}": ${extracted.replace(/^\[|\]$/g, '')}`);
+          return;
+        }
+        extracted = '(텍스트 추출이 제한적입니다. 원본 뷰어에서 확인해주세요.)';
+      }
+      if (!blobRef && extracted.length < 50) {
         setFileError(`"${f.name}": 텍스트를 추출하지 못했어요.`);
         return;
       }
-      const kind: 'pdf' | 'paste' = mime === 'application/pdf' ? 'pdf' : 'paste';
+
       const src: StudySource = {
-        id: newId('src'), kind, title: processed.name, content: extracted,
+        id: newId('src'), kind, title: processed?.name || f.name, content: extracted,
+        thumbnail: processed?.thumbnail,
         addedAt: Date.now(), enabled: true, status: 'ready',
+        blobRef, mimeType: mime, pageCount: processed?.pageCount, renderMode,
       };
       // 파일 제목으로 노트북 이름 자동 변경
       onChange({
         ...notebook,
-        title: notebook.title === '새 파일' ? processed.name : notebook.title,
+        title: notebook.title === '새 파일' ? src.title : notebook.title,
         sources: [src],
       });
     } catch {
@@ -183,13 +301,16 @@ function SourceUploader({ notebook, onChange, onStartRecording }: Props) {
           </div>
         </div>
       )}
-      <input ref={fileInputRef} type="file" accept=".txt,.md,.docx,.xlsx,.csv,.pdf" onChange={(e) => addFile(e.target.files)} className="hidden" />
+      <input ref={fileInputRef} type="file" accept=".txt,.md,.docx,.xlsx,.csv,.pdf,.pptx" onChange={(e) => addFile(e.target.files)} className="hidden" />
 
-      <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-2.5 flex items-center gap-2.5">
-        <span className="text-[20px] leading-none select-none shrink-0">{notebook.icon || '📘'}</span>
+      <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-1 flex items-center gap-2">
+        <span className="text-[16px] leading-none select-none shrink-0">{notebook.icon || '📘'}</span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate">{notebook.title}</h3>
-          <p className="text-[10.5px] text-slate-500 dark:text-slate-400 truncate">이 파일에 사용할 원본을 추가하세요</p>
+          <EditableTitle
+            title={notebook.title}
+            onChange={(newTitle) => onChange({ ...notebook, title: newTitle })}
+          />
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">이 파일에 사용할 원본을 추가하세요</p>
         </div>
       </div>
 

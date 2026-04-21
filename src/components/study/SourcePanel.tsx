@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { FileText, Link2, Youtube, Clipboard, Trash2, Mic, Upload, Plus, X } from 'lucide-react';
 import type { StudySource } from '@/types/study';
 import { newId } from '@/types/study';
-import { processFile, validateFile, resolveMimeType } from '@/lib/fileProcessor';
+import { processFile, validateFile, resolveMimeType, PPTX_MIME } from '@/lib/fileProcessor';
+import { putBlob, STUDY_BLOB_LIMITS } from '@/lib/studyBlobStore';
 import { StudyBtn, StatusDot } from './ui/primitives';
 import { cn } from '@/lib/utils';
 
@@ -69,21 +70,41 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
         } catch { setFileError(`"${f.name}" 읽기 실패`); }
         continue;
       }
-      const err = validateFile(f, []);
+      const err = validateFile(f, [], {
+        maxFileSize: STUDY_BLOB_LIMITS.PER_FILE,
+        maxTotalSize: STUDY_BLOB_LIMITS.TOTAL,
+      });
       if (err) { setFileError(err); continue; }
       try {
-        const processed = await processFile(f);
-        const extracted = processed.extractedText || '';
-        if (extracted.startsWith('[')) {
-          setFileError(`"${f.name}": ${extracted.replace(/^\[|\]$/g, '')}`);
-          continue;
+        const fileMime = resolveMimeType(f.type, f.name);
+        const kind: StudySource['kind'] =
+          fileMime === 'application/pdf' ? 'pdf'
+          : fileMime === PPTX_MIME ? 'pptx'
+          : fileMime.includes('wordprocessingml') ? 'docx'
+          : 'paste';
+        // 1) 원본 blob 먼저 저장
+        let blobRef: string | undefined;
+        let renderMode: 'native' | 'text' = 'text';
+        if (kind === 'pdf' || kind === 'pptx' || kind === 'docx') {
+          try { blobRef = await putBlob(f, fileMime); renderMode = 'native'; } catch { /* fallback */ }
         }
-        if (extracted.length < 50) {
+        // 2) 텍스트 추출 best-effort
+        let processed: Awaited<ReturnType<typeof processFile>> | null = null;
+        try { processed = await processFile(f); } catch { /* ignore */ }
+        let extracted = processed?.extractedText || '';
+        if (extracted.startsWith('[')) {
+          if (!blobRef) { setFileError(`"${f.name}": ${extracted.replace(/^\[|\]$/g, '')}`); continue; }
+          extracted = '(텍스트 추출이 제한적입니다. 원본 뷰어에서 확인해주세요.)';
+        }
+        if (!blobRef && extracted.length < 50) {
           setFileError(`"${f.name}": 텍스트를 추출하지 못했어요.`);
           continue;
         }
-        const kind: 'pdf' | 'paste' = resolveMimeType(f.type, f.name) === 'application/pdf' ? 'pdf' : 'paste';
-        added.push({ id: newId('src'), kind, title: processed.name, content: extracted, addedAt: Date.now(), enabled: true, status: 'ready' });
+        added.push({
+          id: newId('src'), kind, title: processed?.name || f.name, content: extracted,
+          addedAt: Date.now(), enabled: true, status: 'ready',
+          blobRef, mimeType: fileMime, pageCount: processed?.pageCount, renderMode,
+        });
       } catch { setFileError(`"${f.name}" 처리 실패`); }
     }
     if (added.length > 0) onChange([...added, ...sources]);
@@ -95,7 +116,7 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
   const remove = (id: string) => onChange(sources.filter((s) => s.id !== id));
 
   const hiddenFileInput = (
-    <input ref={fileInputRef} type="file" multiple accept=".txt,.md,.docx,.xlsx,.csv,.pdf"
+    <input ref={fileInputRef} type="file" multiple accept=".txt,.md,.docx,.xlsx,.csv,.pdf,.pptx"
       onChange={(e) => addFiles(e.target.files)} className="hidden" />
   );
 

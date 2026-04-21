@@ -29,7 +29,7 @@ const PRESETS: Preset[] = [
   { id: 'create', label: '창작', hint: '원본 + 스튜디오', mode: 2, slots: ['sources', 'studio'] },
   { id: 'review', label: '복습', hint: '대화 + 스튜디오', mode: 2, slots: ['chat', 'studio'] },
   { id: 'all', label: '전체', hint: '세 패널 모두', mode: 3, slots: ['sources', 'chat', 'studio'] },
-  { id: 'compare', label: '비교', hint: '원본 둘 + 대화', mode: 3, slots: ['sources', 'sources', 'chat'] },
+  { id: 'compare', label: '비교', hint: '원본 + 스튜디오 둘', mode: 3, slots: ['sources', 'studio', 'studio'] },
 ];
 
 const PANE_FILL: Record<StudyPaneKind, string> = {

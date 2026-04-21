@@ -4389,7 +4389,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
   // Active expert info
   const activeExpert = activeExpertId ? allExperts.find(e => e.id === activeExpertId) : null;
 
-  const hideAppSidebar = getMainMode(discussionMode) === 'study_main';
+  const [studyInNotebook, setStudyInNotebook] = useState(false);
+  // 공부 홈에선 앱 사이드바 유지, 노트북 진입 시에만 숨김
+  const hideAppSidebar = getMainMode(discussionMode) === 'study_main' && studyInNotebook;
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -4814,7 +4816,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               {/* Study Workspace — main tab */}
               {getMainMode(discussionMode) === 'study_main' && (
                 <Suspense fallback={null}>
-                  <LazyStudyWorkspace onClose={() => setDiscussionMode('assistant')} />
+                  <LazyStudyWorkspace onClose={() => setDiscussionMode('assistant')} onActiveChange={setStudyInNotebook} />
                 </Suspense>
               )}
 

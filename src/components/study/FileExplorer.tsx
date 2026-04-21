@@ -30,7 +30,7 @@ export function FileExplorer({
   onRenameFolder, onDeleteFolder,
   onCollapseSidebar, onBackToHome,
 }: Props) {
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(folders.map((f) => f.id)));
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'file' | 'folder'; id: string } | null>(null);
   const [renaming, setRenaming] = useState<{ type: 'file' | 'folder'; id: string } | null>(null);
@@ -38,14 +38,19 @@ export function FileExplorer({
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [dragOverRoot, setDragOverRoot] = useState(false);
 
+  // 현재 활성 파일이 있는 폴더는 자동으로 펼침
   useEffect(() => {
-    // 새 폴더 생기면 자동 펼침
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      folders.forEach((f) => next.add(f.id));
-      return next;
-    });
-  }, [folders.length]);
+    if (!activeId) return;
+    const nb = notebooks.find((n) => n.id === activeId);
+    if (nb?.folderId) {
+      setExpanded((prev) => {
+        if (prev.has(nb.folderId!)) return prev;
+        const next = new Set(prev);
+        next.add(nb.folderId!);
+        return next;
+      });
+    }
+  }, [activeId, notebooks]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -212,7 +217,6 @@ export function FileExplorer({
                     ) : (
                       <span className="flex-1 truncate text-[12px] font-medium text-slate-700 dark:text-slate-200">{folder.name}</span>
                     )}
-                    <span className="text-[10px] text-slate-400">{files.length}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, type: 'folder', id: folder.id }); }}
                       className="opacity-0 group-hover:opacity-100 h-4 w-4 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -327,8 +331,6 @@ function FileRow({
   onContextMenu: (e: React.MouseEvent) => void;
   onDragStart: (e: React.DragEvent) => void;
 }) {
-  const src = nb.sources[0];
-  const kindLabel = src?.kind?.toUpperCase() || 'EMPTY';
   return (
     <div
       className={cn(
@@ -364,7 +366,6 @@ function FileRow({
         </span>
       )}
       {nb.pinned && <Pin className="h-3 w-3 text-indigo-500 fill-current" />}
-      <span className="text-[9.5px] text-slate-400 tabular-nums">{kindLabel}</span>
     </div>
   );
 }

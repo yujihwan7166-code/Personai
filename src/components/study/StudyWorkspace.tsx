@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import '@/styles/study-tokens.css';
 import { usePersistedStudyNotebooks } from '@/hooks/usePersistedStudyNotebooks';
 import { createEmptyNotebook, type StudyNotebook } from '@/types/study';
@@ -10,11 +11,12 @@ import { StudyCommandPalette } from './StudyCommandPalette';
 
 interface Props {
   onClose?: () => void;
+  onActiveChange?: (active: boolean) => void;
 }
 
 const SIDEBAR_OPEN_KEY = 'study_sidebar_open';
 
-export function StudyWorkspace({ onClose }: Props) {
+export function StudyWorkspace({ onClose, onActiveChange }: Props) {
   const {
     notebooks,
     upsertNotebook,
@@ -41,6 +43,10 @@ export function StudyWorkspace({ onClose }: Props) {
   }>({ action: null, tick: 0 });
 
   const activeNotebook = activeId ? notebooks.find((n) => n.id === activeId) ?? null : null;
+
+  useEffect(() => {
+    onActiveChange?.(!!activeNotebook);
+  }, [activeNotebook, onActiveChange]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -92,10 +98,11 @@ export function StudyWorkspace({ onClose }: Props) {
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-4 left-4 z-30 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900"
+            className="absolute top-4 left-4 z-30 h-8 w-8 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900"
             title="앱으로 돌아가기"
+            aria-label="앱으로 돌아가기"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> 앱
+            <ArrowLeft className="h-4 w-4" />
           </button>
         )}
         <div className="flex-1 overflow-y-auto">
@@ -140,8 +147,16 @@ export function StudyWorkspace({ onClose }: Props) {
   // 노트북 화면: activeId 있을 때 → 사이드바 + 노트북 뷰
   return (
     <div className="study-root flex h-full w-full bg-[#FAFBFC] dark:bg-[#0B1220] overflow-hidden">
-      {sidebarOpen && (
-        <aside className="w-[260px] shrink-0 border-r border-slate-200 dark:border-slate-800 h-full">
+      <aside
+        className={cn(
+          'shrink-0 h-full overflow-hidden transition-[width,border-right-width] duration-200 ease-out motion-reduce:transition-none',
+          sidebarOpen
+            ? 'w-[220px] border-r border-slate-200 dark:border-slate-800'
+            : 'w-0 border-r-0',
+        )}
+        aria-hidden={!sidebarOpen}
+      >
+        <div className="w-[220px] h-full">
           <FileExplorer
             notebooks={notebooks}
             folders={folders}
@@ -161,8 +176,8 @@ export function StudyWorkspace({ onClose }: Props) {
             onCollapseSidebar={() => setSidebarOpen(false)}
             onBackToHome={() => setActiveId(null)}
           />
-        </aside>
-      )}
+        </div>
+      </aside>
 
       <div className="flex-1 min-w-0 flex flex-col relative">
         <StudyNotebookView

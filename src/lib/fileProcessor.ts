@@ -6,6 +6,10 @@ export interface AttachedFile {
   base64: string;
   preview?: string;
   extractedText?: string;
+  /** PDF 첫 페이지 등 추출된 썸네일 (data URL). */
+  thumbnail?: string;
+  /** PDF 페이지 수 / PPTX 슬라이드 수. */
+  pageCount?: number;
 }
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -16,6 +20,8 @@ export const MAX_EXTRACTED_TEXT_LENGTH = 15000;
 let xlsxModulePromise: Promise<typeof import('xlsx')> | null = null;
 let jsZipModulePromise: Promise<typeof import('jszip')> | null = null;
 
+export const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
 export const SUPPORTED_TYPES = [
   'image/png',
   'image/jpeg',
@@ -24,6 +30,7 @@ export const SUPPORTED_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  PPTX_MIME,
 ] as const;
 
 const EXTENSION_TO_MIME_TYPE: Record<string, string> = {
@@ -35,6 +42,7 @@ const EXTENSION_TO_MIME_TYPE: Record<string, string> = {
   pdf: 'application/pdf',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pptx: PPTX_MIME,
 };
 
 type AttachmentLike = Pick<AttachedFile, 'name' | 'mimeType'>;
@@ -121,6 +129,49 @@ async function extractDocxTextFromArrayBuffer(arrayBuffer: ArrayBuffer): Promise
   return extractDocxTextFromXml(xml);
 }
 
+/**
+ * PPTX 에서 슬라이드별 텍스트 + 총 슬라이드 수를 뽑아낸다.
+ * 슬라이드 구분자 "[slide N]" 삽입.
+ */
+export async function extractPptxTextFromArrayBuffer(
+  arrayBuffer: ArrayBuffer,
+  maxLength = MAX_EXTRACTED_TEXT_LENGTH,
+): Promise<{ text: string; slideCount: number }> {
+  const JSZip = await loadJsZip();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  // ppt/slides/slide1.xml, slide2.xml ... (숫자 순)
+  const slideEntries = Object.keys(zip.files)
+    .filter((p) => /^ppt\/slides\/slide(\d+)\.xml$/.test(p))
+    .sort((a, b) => {
+      const na = Number(a.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
+      const nb = Number(b.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
+      return na - nb;
+    });
+
+  const parser = new DOMParser();
+  const pieces: string[] = [];
+  let used = 0;
+  for (let i = 0; i < slideEntries.length; i++) {
+    const file = zip.file(slideEntries[i]);
+    if (!file) continue;
+    const xml = await file.async('string');
+    const doc = parser.parseFromString(xml, 'application/xml');
+    const runs = Array.from(doc.getElementsByTagNameNS('*', 't'))
+      .map((n) => n.textContent ?? '')
+      .filter(Boolean);
+    const header = `[slide ${i + 1}]`;
+    const body = runs.join(' ').replace(/\s+/g, ' ').trim();
+    const chunk = `${header}\n${body}`;
+    if (used + chunk.length > maxLength) {
+      pieces.push(chunk.slice(0, Math.max(0, maxLength - used)));
+      break;
+    }
+    pieces.push(chunk);
+    used += chunk.length + 1;
+  }
+  return { text: pieces.join('\n\n'), slideCount: slideEntries.length };
+}
+
 function getAttachmentCategory(mimeType: string) {
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType === 'application/pdf') return 'pdf';
@@ -160,21 +211,37 @@ export function buildAttachmentPrompt(files: AttachmentLike[]): string {
   return '첨부한 파일들을 함께 분석해줘.';
 }
 
-export function validateFile(file: File, existingFiles: AttachedFile[]): string | null {
+export interface ValidateFileOptions {
+  /** 파일당 최대 크기(바이트). 기본: MAX_FILE_SIZE(10MB). */
+  maxFileSize?: number;
+  /** 전체 누적 최대 크기(바이트). 기본: MAX_TOTAL_SIZE(20MB). */
+  maxTotalSize?: number;
+  /** 최대 파일 수. 기본: MAX_FILES(5). */
+  maxFiles?: number;
+}
+
+export function validateFile(
+  file: File,
+  existingFiles: AttachedFile[],
+  options: ValidateFileOptions = {},
+): string | null {
+  const maxFileSize = options.maxFileSize ?? MAX_FILE_SIZE;
+  const maxTotalSize = options.maxTotalSize ?? MAX_TOTAL_SIZE;
+  const maxFiles = options.maxFiles ?? MAX_FILES;
   const normalizedMimeType = resolveMimeType(file.type, file.name);
 
-  if (existingFiles.length >= MAX_FILES) return `파일은 최대 ${MAX_FILES}개까지 첨부할 수 있어요.`;
-  if (file.size > MAX_FILE_SIZE) return '파일 하나당 최대 10MB까지 첨부할 수 있어요.';
+  if (existingFiles.length >= maxFiles) return `파일은 최대 ${maxFiles}개까지 첨부할 수 있어요.`;
+  if (file.size > maxFileSize) return `파일 하나당 최대 ${Math.round(maxFileSize / 1024 / 1024)}MB까지 첨부할 수 있어요.`;
 
   const totalSize = existingFiles.reduce((sum, existingFile) => sum + existingFile.size, 0) + file.size;
-  if (totalSize > MAX_TOTAL_SIZE) return '첨부파일 전체 용량은 최대 20MB까지 가능해요.';
+  if (totalSize > maxTotalSize) return `첨부파일 전체 용량은 최대 ${Math.round(maxTotalSize / 1024 / 1024)}MB까지 가능해요.`;
 
   if (existingFiles.some((existingFile) => existingFile.name === file.name && existingFile.size === file.size)) {
     return '같은 파일이 이미 첨부되어 있어요.';
   }
 
   if (!SUPPORTED_TYPES.includes(normalizedMimeType as (typeof SUPPORTED_TYPES)[number])) {
-    return '지원하는 형식만 첨부할 수 있어요. (PNG, JPG, GIF, WEBP, PDF, DOCX, XLSX)';
+    return '지원하는 형식만 첨부할 수 있어요. (PNG, JPG, GIF, WEBP, PDF, DOCX, PPTX, XLSX)';
   }
 
   return null;
@@ -202,14 +269,19 @@ export async function processFile(file: File): Promise<AttachedFile> {
 
   if (mimeType === 'application/pdf') {
     try {
-      const { extractPdfText } = await import('@/lib/fileConvert/converters/pdf');
-      const text = await extractPdfText(file, MAX_EXTRACTED_TEXT_LENGTH);
+      const { extractPdfMeta, renderPdfThumbnail } = await import('@/lib/fileConvert/converters/pdf');
+      const { text, pageCount } = await extractPdfMeta(file, MAX_EXTRACTED_TEXT_LENGTH);
+      result.pageCount = pageCount;
       if (text.trim().length < 20) {
         result.extractedText = '[이 PDF는 텍스트가 없는 이미지 기반일 수 있어요. 스캔본은 지원하지 않습니다.]';
       } else {
         result.extractedText = text;
         result.base64 = '';
       }
+      // 첫 페이지 썸네일 — 실패해도 치명적이지 않음
+      try {
+        result.thumbnail = await renderPdfThumbnail(file, { maxWidth: 480, quality: 0.7 });
+      } catch { /* noop */ }
     } catch {
       result.extractedText = '[PDF 텍스트 추출 실패]';
     }
@@ -223,6 +295,22 @@ export async function processFile(file: File): Promise<AttachedFile> {
       result.base64 = '';
     } catch {
       result.extractedText = '[Word 파일 텍스트 추출 실패]';
+    }
+  }
+
+  if (mimeType === PPTX_MIME) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const { text, slideCount } = await extractPptxTextFromArrayBuffer(arrayBuffer);
+      if (text.trim().length < 20) {
+        result.extractedText = '[이 PPT는 텍스트를 거의 포함하지 않습니다 (이미지 위주일 수 있어요).]';
+      } else {
+        result.extractedText = text;
+        result.base64 = '';
+      }
+      result.pageCount = slideCount;
+    } catch {
+      result.extractedText = '[PPT 파일 텍스트 추출 실패]';
     }
   }
 

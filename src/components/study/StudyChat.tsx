@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Send, Settings2, MoreHorizontal } from 'lucide-react';
 import type { StudyNotebook, StudyChatTurn, StudySource, HighlightColor, Highlight } from '@/types/study';
 import { newId, HIGHLIGHT_META } from '@/types/study';
-import { StudyBtn } from './ui/primitives';
 import { CitedMarkdown } from './CitationPopover';
 import { cn } from '@/lib/utils';
 
@@ -102,17 +101,17 @@ ${sourceBlock}
 
   return (
     <div className="flex h-full flex-col bg-white dark:bg-slate-900 relative">
-      <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3 flex items-center justify-between">
-        <div>
-          <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100">대화</h3>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            {enabledSources.length === 0 ? '소스 없음' : `소스 ${enabledSources.length}개 사용`}
-            {notebook.chatMode === 'socratic' && ' · 같이 생각하기 모드'}
+      <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-1.5 flex items-center justify-between gap-2">
+        <div className="flex items-baseline gap-2 min-w-0">
+          <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 shrink-0">대화</h3>
+          <p className="text-[10.5px] text-slate-400 dark:text-slate-500 truncate">
+            {enabledSources.length === 0 ? '소스 없음' : `소스 ${enabledSources.length}개`}
+            {notebook.chatMode === 'socratic' && ' · 소크라틱'}
           </p>
         </div>
         <button
           onClick={() => setShowModePopover(!showModePopover)}
-          className="relative text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+          className="relative text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"
           aria-label="모드 설정"
           title="모드 설정"
         >
@@ -157,20 +156,36 @@ ${sourceBlock}
         )}
       </div>
 
-      <div className="border-t border-slate-200 dark:border-slate-800 p-4">
-        <div className="flex items-end gap-2">
+      <div className="px-4 py-3">
+        <div className={cn(
+          'flex items-end gap-2 rounded-2xl border bg-white dark:bg-slate-900 px-3 py-2 transition-colors',
+          enabledSources.length === 0
+            ? 'border-slate-200 dark:border-slate-800 opacity-70'
+            : 'border-slate-200 dark:border-slate-700 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/40',
+        )}>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && input.trim()) { e.preventDefault(); send(); } }}
             rows={1}
-            placeholder={enabledSources.length === 0 ? '먼저 소스를 추가해주세요' : notebook.chatMode === 'socratic' ? '모르는 걸 물어보면 같이 생각해볼게요' : '자유롭게 질문하세요'}
+            placeholder={enabledSources.length === 0 ? '먼저 소스를 추가해주세요' : notebook.chatMode === 'socratic' ? '모르는 걸 물어보면 같이 생각해볼게요' : '입력을 시작하세요...'}
             disabled={streaming || enabledSources.length === 0}
-            className="flex-1 resize-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-[13px] outline-none focus:border-indigo-400 disabled:opacity-60 max-h-32"
+            className="flex-1 resize-none bg-transparent py-1 text-[13px] leading-relaxed outline-none placeholder:text-slate-400 disabled:cursor-not-allowed max-h-40 min-h-[20px]"
           />
-          <StudyBtn variant="primary" onClick={() => send()} disabled={!input.trim() || streaming || enabledSources.length === 0}>
+          {enabledSources.length > 0 && (
+            <span className="shrink-0 inline-flex items-center text-[11px] text-slate-500 dark:text-slate-400 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 self-center">
+              소스 {enabledSources.length}개
+            </span>
+          )}
+          <button
+            onClick={() => send()}
+            disabled={!input.trim() || streaming || enabledSources.length === 0}
+            className="shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 disabled:cursor-not-allowed"
+            aria-label="전송"
+            title="전송 (Enter)"
+          >
             <Send className="h-3.5 w-3.5" />
-          </StudyBtn>
+          </button>
         </div>
       </div>
     </div>

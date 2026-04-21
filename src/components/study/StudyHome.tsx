@@ -3,6 +3,7 @@ import {
   Plus, MoreHorizontal, Folder as FolderIcon, ArrowLeft,
   Search, SlidersHorizontal, Star, X, Zap,
   FileText, Target, GitBranch, MessagesSquare,
+  Link2, Youtube, Mic, ClipboardList,
 } from 'lucide-react';
 import type { StudyNotebook, StudyFolder, NotebookTemplate } from '@/types/study';
 import { createEmptyNotebook, newId, countDueCards, NOTEBOOK_TEMPLATES, FOLDER_COLORS } from '@/types/study';
@@ -30,6 +31,14 @@ const SORT_LABELS: Record<SortMode, string> = {
   name: '이름 순',
   sources: '소스 많은 순',
 };
+
+const SOURCE_KIND_META = {
+  pdf: { label: 'PDF', icon: FileText },
+  paste: { label: '텍스트', icon: ClipboardList },
+  url: { label: '웹', icon: Link2 },
+  youtube: { label: '영상', icon: Youtube },
+  recording: { label: '녹음', icon: Mic },
+} as const;
 
 const INTRO_FEATURES = [
   { icon: FileText, title: '요약', desc: 'PDF·영상을 한 눈에 훑기 좋은 문장으로' },
@@ -100,10 +109,6 @@ export function StudyHome({
     return folders.map((f) => ({
       folder: f,
       count: notebooks.filter((n) => n.folderId === f.id).length,
-      recentNotebooks: notebooks
-        .filter((n) => n.folderId === f.id)
-        .sort((a, b) => b.updatedAt - a.updatedAt)
-        .slice(0, 3),
     }));
   }, [folders, notebooks]);
 
@@ -167,17 +172,15 @@ export function StudyHome({
             inputRef={searchInputRef}
           />
           {notebooks.length >= 2 && <SortControl sort={sort} setSort={setSort} />}
+          <ToolbarAddButton
+            canAddFolder={!activeFolder}
+            onNewNotebook={() => setShowTemplateModal(true)}
+            onNewFolder={handleCreateFolder}
+          />
         </div>
       </div>
 
       {isFirstTime && <IntroCards onStart={() => setShowTemplateModal(true)} />}
-
-      {!isFirstTime && !activeFolder && (
-        <ProgressStrip
-          notebooks={notebooks}
-          onJumpTo={(nbId) => onSelect(nbId)}
-        />
-      )}
 
       {!isFirstTime && (
         <div
@@ -201,21 +204,13 @@ export function StudyHome({
           {activeFolder && dragOverRoot && (
             <p className="mb-2 text-[11.5px] text-indigo-600 font-semibold text-center">이 폴더에서 빼내기</p>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {/* 추가 진입점 (노트북 / 폴더 통합) */}
-            <AddTile
-              canAddFolder={!activeFolder}
-              onNewNotebook={() => setShowTemplateModal(true)}
-              onNewFolder={handleCreateFolder}
-            />
-
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 gap-2 items-start">
             {/* 폴더 카드들 — 루트(전체) 뷰에서만 */}
-            {!activeFolder && foldersWithCounts.map(({ folder, count, recentNotebooks }) => (
+            {!activeFolder && foldersWithCounts.map(({ folder, count }) => (
               <FolderTile
                 key={folder.id}
                 folder={folder}
                 count={count}
-                recentNotebooks={recentNotebooks}
                 active={false}
                 dragOver={dragOverFolderId === folder.id}
                 onOpen={() => setActiveFolderId(folder.id)}
@@ -387,7 +382,85 @@ function SortControl({ sort, setSort }: { sort: SortMode; setSort: (v: SortMode)
   );
 }
 
-/* ── 통합 추가 타일 ── */
+/* ── 툴바 추가 버튼 (팝오버) ── */
+function ToolbarAddButton({
+  canAddFolder, onNewNotebook, onNewFolder,
+}: {
+  canAddFolder: boolean;
+  onNewNotebook: () => void;
+  onNewFolder: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false); };
+    setTimeout(() => window.addEventListener('click', h), 0);
+    return () => window.removeEventListener('click', h);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => {
+          if (!canAddFolder) { onNewNotebook(); return; }
+          setMenuOpen(!menuOpen);
+        }}
+        className={cn(
+          'h-7 inline-flex items-center gap-1 rounded-md pl-2 pr-2.5 text-[11.5px] font-semibold transition-colors',
+          menuOpen
+            ? 'bg-indigo-600 text-white'
+            : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white',
+        )}
+        aria-haspopup={canAddFolder ? 'menu' : undefined}
+        aria-expanded={menuOpen}
+        title="추가 (N: 파일 · F: 폴더)"
+      >
+        <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
+        추가
+      </button>
+      {canAddFolder && menuOpen && (
+        <div
+          className="absolute right-0 top-full mt-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 z-40 grid grid-cols-2 gap-1 w-[220px]"
+          role="menu"
+        >
+          <button
+            onClick={() => { setMenuOpen(false); onNewNotebook(); }}
+            className="flex flex-col items-center justify-center gap-1 rounded-lg px-3 py-3 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+            role="menuitem"
+          >
+            <span className="text-2xl">📘</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[12px] font-semibold">파일</span>
+              <kbd className="text-[9px] text-slate-400 font-mono">N</kbd>
+            </div>
+          </button>
+          <button
+            onClick={() => { setMenuOpen(false); onNewFolder(); }}
+            className="flex flex-col items-center justify-center gap-1 rounded-lg px-3 py-3 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+            role="menuitem"
+          >
+            <FolderIcon className="h-6 w-6 text-slate-600 dark:text-slate-300" strokeWidth={1.5} />
+            <div className="flex items-center gap-1">
+              <span className="text-[12px] font-semibold">폴더</span>
+              <kbd className="text-[9px] text-slate-400 font-mono">F</kbd>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── (Deprecated) 통합 추가 타일 — 더 이상 그리드에서 사용 안 함, 호환 유지 ── */
 function AddTile({
   canAddFolder, onNewNotebook, onNewFolder,
 }: {
@@ -406,28 +479,34 @@ function AddTile({
   }, [menuOpen]);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative flex items-center justify-center" ref={ref}>
       <button
         onClick={() => {
           if (!canAddFolder) { onNewNotebook(); return; }
           setMenuOpen(!menuOpen);
         }}
-        className="w-full aspect-video rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-transparent flex items-center justify-center gap-1.5 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors"
+        className={cn(
+          'h-14 w-14 rounded-full border-2 border-dashed flex items-center justify-center transition-all',
+          menuOpen
+            ? 'border-indigo-400 text-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 scale-105'
+            : 'border-slate-300 dark:border-slate-700 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:scale-105',
+        )}
+        aria-label="추가"
         aria-haspopup={canAddFolder ? 'menu' : undefined}
         aria-expanded={menuOpen}
+        title="추가"
       >
-        <Plus className="h-4 w-4" />
-        <span className="text-[12px] font-semibold">추가</span>
+        <Plus className="h-6 w-6" strokeWidth={2} />
       </button>
       {canAddFolder && menuOpen && (
-        <div className="absolute left-0 top-full mt-1 w-44 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 z-40" role="menu">
+        <div className="absolute top-full mt-2 w-40 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 z-40" role="menu">
           <button
             onClick={() => { setMenuOpen(false); onNewNotebook(); }}
             className="w-full flex items-center gap-2 rounded-lg px-2 py-2 text-[12px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
             role="menuitem"
           >
             <span className="text-base">📘</span>
-            <span className="flex-1 text-left">새 노트북</span>
+            <span className="flex-1 text-left">파일 추가</span>
             <kbd className="text-[9.5px] text-slate-400">N</kbd>
           </button>
           <button
@@ -436,7 +515,7 @@ function AddTile({
             role="menuitem"
           >
             <FolderIcon className="h-4 w-4 text-slate-500" strokeWidth={1.75} />
-            <span className="flex-1 text-left">새 폴더</span>
+            <span className="flex-1 text-left">폴더 추가</span>
             <kbd className="text-[9.5px] text-slate-400">F</kbd>
           </button>
         </div>
@@ -447,12 +526,11 @@ function AddTile({
 
 /* ── 폴더 타일 ── */
 function FolderTile({
-  folder, count, recentNotebooks, dragOver,
+  folder, count, dragOver,
   onOpen, onRename, onDelete, onColorChange, onDragEnter, onDragLeave, onDropNotebook,
 }: {
   folder: StudyFolder;
   count: number;
-  recentNotebooks: StudyNotebook[];
   active: boolean;
   dragOver: boolean;
   onOpen: () => void;
@@ -474,7 +552,7 @@ function FolderTile({
 
   return (
     <div
-      className={cn('group rounded-xl border bg-white dark:bg-slate-900 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-sm',
+      className={cn('group relative rounded-xl border bg-white dark:bg-slate-900 transition-all hover:-translate-y-0.5 hover:shadow-sm',
         dragOver
           ? 'border-indigo-400 ring-2 ring-indigo-300 scale-[1.03] shadow-lg'
           : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700',
@@ -499,7 +577,7 @@ function FolderTile({
     >
       <button
         onClick={onOpen}
-        className="relative w-full aspect-video flex items-center justify-center overflow-hidden"
+        className="relative w-full aspect-[1.618/1] flex items-center justify-center overflow-hidden rounded-t-xl"
         style={{ backgroundColor: folder.color ?? '#0F172A' }}
       >
         {/* 은은한 대각선 장식 */}
@@ -510,62 +588,50 @@ function FolderTile({
           }}
           aria-hidden
         />
-        <FolderIcon className="h-9 w-9 text-white fill-white relative z-[1]" strokeWidth={1.2} />
-        {recentNotebooks.length > 0 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center z-[1]">
-            {recentNotebooks.slice(0, 3).map((n, i) => (
-              <span
-                key={n.id}
-                className="flex items-center justify-center h-4 w-4 rounded-full bg-white/95 text-[9px] shadow-sm"
-                style={{ marginLeft: i === 0 ? 0 : -4 }}
-              >
-                {n.icon}
-              </span>
-            ))}
-          </div>
-        )}
+        <FolderIcon className="h-7 w-7 text-white fill-white relative z-[1]" strokeWidth={1.2} />
         {dragOver && (
           <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
             <span className="text-[10px] font-bold text-white bg-indigo-600/80 rounded-full px-2 py-0.5">여기에 넣기</span>
           </div>
         )}
-        <div ref={menuRef} className="absolute top-1.5 right-1.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
-            className="h-5 w-5 flex items-center justify-center rounded text-white/70 hover:text-white bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity"
-            aria-label="폴더 메뉴"
-          >
-            <MoreHorizontal className="h-3 w-3" />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 z-30" role="menu">
-              <button onClick={(e) => { e.stopPropagation(); onRename(); setMenuOpen(false); }} className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">이름 바꾸기</button>
-              <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-              <p className="px-2 pt-0.5 pb-1 text-[9.5px] uppercase tracking-wide text-slate-400">색상</p>
-              <div className="grid grid-cols-5 gap-1 px-1.5 pb-1">
-                {FOLDER_COLORS.map((c) => {
-                  const active = (folder.color ?? FOLDER_COLORS[0]) === c;
-                  return (
-                    <button
-                      key={c}
-                      onClick={(e) => { e.stopPropagation(); onColorChange(c); }}
-                      className={cn('h-5 w-5 rounded transition-all', active ? 'ring-2 ring-offset-1 ring-indigo-400' : 'hover:scale-110')}
-                      style={{ backgroundColor: c }}
-                      aria-label={`색상 ${c}`}
-                      aria-pressed={active}
-                    />
-                  );
-                })}
-              </div>
-              <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-              <button onClick={(e) => { e.stopPropagation(); onDelete(); setMenuOpen(false); }} className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">삭제</button>
-            </div>
-          )}
-        </div>
       </button>
-      <button onClick={onOpen} className="w-full px-3 py-2 text-left border-t border-slate-100 dark:border-slate-800">
-        <p className="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">{folder.name}</p>
-        <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">{count}개 항목</p>
+
+      {/* 메뉴 — 이미지 버튼 밖에 두어 overflow-hidden 에 가려지지 않음 */}
+      <div ref={menuRef} className="absolute top-1.5 right-1.5 z-30">
+        <button
+          onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+          className="h-5 w-5 flex items-center justify-center rounded text-white/70 hover:text-white bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="폴더 메뉴"
+        >
+          <MoreHorizontal className="h-3 w-3" />
+        </button>
+        {menuOpen && (
+          <div className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 z-40" role="menu">
+            <button onClick={(e) => { e.stopPropagation(); onRename(); setMenuOpen(false); }} className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">이름 바꾸기</button>
+            <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+            <p className="px-2 pt-0.5 pb-1 text-[9.5px] uppercase tracking-wide text-slate-400">색상</p>
+            <div className="grid grid-cols-5 gap-1 px-1.5 pb-1">
+              {FOLDER_COLORS.map((c) => {
+                const active = (folder.color ?? FOLDER_COLORS[0]) === c;
+                return (
+                  <button
+                    key={c}
+                    onClick={(e) => { e.stopPropagation(); onColorChange(c); }}
+                    className={cn('h-5 w-5 rounded transition-all', active ? 'ring-2 ring-offset-1 ring-indigo-400' : 'hover:scale-110')}
+                    style={{ backgroundColor: c }}
+                    aria-label={`색상 ${c}`}
+                    aria-pressed={active}
+                  />
+                );
+              })}
+            </div>
+            <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); setMenuOpen(false); }} className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">삭제</button>
+          </div>
+        )}
+      </div>
+      <button onClick={onOpen} className="w-full px-3 py-1.5 text-left border-t border-slate-100 dark:border-slate-800">
+        <p className="text-[12.5px] font-semibold text-slate-900 dark:text-slate-100 truncate leading-tight">{folder.name}</p>
       </button>
     </div>
   );
@@ -584,6 +650,7 @@ function NotebookTile({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -594,17 +661,16 @@ function NotebookTile({
     return () => window.removeEventListener('click', h);
   }, [menuOpen]);
 
-  const preview = nb.sources[0]?.content.slice(0, 60).trim();
+  const firstSource = nb.sources[0];
   const folder = nb.folderId ? folders.find((f) => f.id === nb.folderId) : undefined;
   const colorBar = nb.color ?? folder?.color;
   const lensCount = Object.keys(nb.lensOutputs).length;
   const lensTotal = 6;
-  const isHot = Date.now() - nb.updatedAt < 86400000;
   const hasContent = nb.sources.length > 0;
 
   return (
     <div
-      className={cn('group relative rounded-xl border bg-white dark:bg-slate-900 overflow-hidden transition-all',
+      className={cn('group relative rounded-xl border bg-white dark:bg-slate-900 transition-all',
         'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 hover:shadow-sm',
         dragging && 'opacity-40 scale-95 shadow-lg',
       )}
@@ -616,31 +682,31 @@ function NotebookTile({
       }}
       onDragEnd={() => setDragging(false)}
     >
-      {colorBar && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 z-10" style={{ backgroundColor: colorBar }} aria-hidden />
-      )}
-
       <button
         onClick={onSelect}
-        className={cn('relative w-full aspect-video flex items-center justify-center border-b border-slate-100 dark:border-slate-800',
+        className={cn(
+          'relative w-full aspect-[1.618/1] overflow-hidden rounded-t-xl',
           hasContent ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/40',
         )}
       >
-        <div className="flex flex-col items-center justify-center text-center px-2">
-          <span className="text-[26px] select-none leading-none">{nb.icon}</span>
-          {preview && (
-            <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-snug line-clamp-1 mt-1 max-w-[90%]">
-              {preview}
-            </p>
-          )}
-        </div>
-
-        {isHot && (
-          <span
-            className="absolute top-1.5 left-2 h-1.5 w-1.5 rounded-full bg-indigo-500"
-            aria-label="최근 수정"
-            title="24시간 내 수정됨"
+        {/* 컬러 틴트 배경 (폴더 색 또는 노트북 개별 색) */}
+        {colorBar && (
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: colorBar, opacity: 0.09 }}
+            aria-hidden
           />
+        )}
+
+        {hasContent ? (
+          <div className="relative z-[1] w-full h-full">
+            <NotebookThumbnail source={firstSource!} fallbackEmoji={nb.icon} />
+          </div>
+        ) : (
+          <div className="relative z-[1] w-full h-full flex flex-col items-center justify-center text-center px-2">
+            <span className="text-[32px] select-none leading-none opacity-40">{nb.icon}</span>
+            <p className="mt-1 text-[10px] text-slate-400 italic">빈 파일</p>
+          </div>
         )}
 
         {hasContent && (
@@ -656,22 +722,9 @@ function NotebookTile({
 
       <button
         onClick={onSelect}
-        className="w-full text-left px-3 py-2"
-        style={colorBar ? { paddingLeft: 14 } : undefined}
+        className="w-full text-left px-3 py-1.5 border-t border-slate-100 dark:border-slate-800"
       >
-        <p className="text-[12.5px] font-semibold text-slate-900 dark:text-slate-100 truncate">{nb.title}</p>
-        <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 tabular-nums">
-          {hasContent ? (
-            <>
-              <span>소스 {nb.sources.length}</span>
-              <span className="text-slate-300">·</span>
-              <span>렌즈 {lensCount}</span>
-            </>
-          ) : (
-            <span className="italic text-slate-400">빈 노트</span>
-          )}
-          <span className="ml-auto text-slate-400">{new Date(nb.updatedAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>
-        </p>
+        <p className="text-[12.5px] font-semibold text-slate-900 dark:text-slate-100 truncate leading-tight">{nb.title}</p>
       </button>
 
       <button
@@ -680,8 +733,6 @@ function NotebookTile({
           nb.pinned
             ? 'text-amber-500 bg-white/80 dark:bg-slate-900/80 opacity-100'
             : 'text-slate-400 bg-white/70 dark:bg-slate-900/70 hover:text-amber-500 opacity-0 group-hover:opacity-100',
-          colorBar && 'left-3',
-          isHot && !nb.pinned && 'opacity-0',
         )}
         aria-label={nb.pinned ? `${nb.title} 고정 해제` : `${nb.title} 고정`}
       >
@@ -699,16 +750,27 @@ function NotebookTile({
         {menuOpen && (
           <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 z-30" role="menu">
             <button
+              onClick={(e) => { e.stopPropagation(); onTogglePin(); setMenuOpen(false); }}
+              className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <Star className={cn('h-3.5 w-3.5', nb.pinned ? 'text-amber-500 fill-amber-500' : 'text-slate-400')} strokeWidth={1.75} />
+              <span className="flex-1 text-left">{nb.pinned ? '고정 해제' : '상단에 고정'}</span>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setDetailOpen(true); setMenuOpen(false); }}
+              className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <FileText className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+              <span className="flex-1 text-left">상세정보</span>
+            </button>
+
+            <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
+            <button
               onClick={(e) => { e.stopPropagation(); setIconPickerOpen(true); setMenuOpen(false); }}
               className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               아이콘 바꾸기
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onTogglePin(); setMenuOpen(false); }}
-              className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-              {nb.pinned ? '고정 해제' : '상단에 고정'}
             </button>
 
             <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
@@ -765,11 +827,196 @@ function NotebookTile({
           <IconPicker value={nb.icon} onChange={(icon) => onUpdate({ ...nb, icon })} onClose={() => setIconPickerOpen(false)} anchor="right" />
         </div>
       )}
+
+      {detailOpen && (
+        <NotebookDetailModal nb={nb} folders={folders} onClose={() => setDetailOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+function NotebookDetailModal({ nb, folders, onClose }: { nb: StudyNotebook; folders: StudyFolder[]; onClose: () => void }) {
+  const folder = nb.folderId ? folders.find((f) => f.id === nb.folderId) : undefined;
+  const source = nb.sources[0];
+  const lensCount = Object.keys(nb.lensOutputs).length;
+  const lensTotal = 6;
+  const fmt = (ts: number) => new Date(ts).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
+  const sizeK = source ? Math.round(source.content.length / 100) / 10 : 0;
+  const kindLabel = source ? (SOURCE_KIND_META[source.kind]?.label ?? source.kind) : null;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+          <span className="text-[28px] leading-none select-none shrink-0">{nb.icon}</span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[15px] font-bold text-slate-900 dark:text-slate-100 truncate">{nb.title}</h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">{folder ? folder.name : '미분류'}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900"
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-3 text-[12.5px]">
+          <DetailRow label="원본">
+            {source ? (
+              <span className="text-slate-800 dark:text-slate-200">
+                {kindLabel} · {sizeK}K자
+                {source.title && source.title !== nb.title && (
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{source.title}</span>
+                )}
+              </span>
+            ) : (
+              <span className="italic text-slate-400">비어 있음</span>
+            )}
+          </DetailRow>
+          <DetailRow label="만든 날짜">
+            <span className="text-slate-700 dark:text-slate-300 tabular-nums">{fmt(nb.createdAt)}</span>
+          </DetailRow>
+          <DetailRow label="마지막 수정">
+            <span className="text-slate-700 dark:text-slate-300 tabular-nums">{fmt(nb.updatedAt)}</span>
+          </DetailRow>
+          <DetailRow label="렌즈 생성">
+            <span className="text-slate-700 dark:text-slate-300 tabular-nums">{lensCount} / {lensTotal}</span>
+          </DetailRow>
+          <DetailRow label="플래시카드">
+            <span className="text-slate-700 dark:text-slate-300 tabular-nums">{nb.flashcards.length}장</span>
+          </DetailRow>
+          <DetailRow label="퀴즈">
+            <span className="text-slate-700 dark:text-slate-300 tabular-nums">{nb.quizItems.length}문제</span>
+          </DetailRow>
+          {nb.wrongAnswers.length > 0 && (
+            <DetailRow label="오답">
+              <span className="text-rose-600 dark:text-rose-300 tabular-nums">{nb.wrongAnswers.length}개</span>
+            </DetailRow>
+          )}
+          <DetailRow label="대화">
+            <span className="text-slate-700 dark:text-slate-300 tabular-nums">{nb.chat.length}개 메시지</span>
+          </DetailRow>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="shrink-0 w-20 text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">{label}</span>
+      <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
 }
 
 /* ── 렌즈 진행 도넛 ── */
+function NotebookThumbnail({ source, fallbackEmoji }: { source: { kind: string; url?: string; content: string; thumbnail?: string; title: string }; fallbackEmoji: string }) {
+  const kindMeta = SOURCE_KIND_META[source.kind as keyof typeof SOURCE_KIND_META];
+
+  // 1) 저장된 썸네일(data URL) 우선 — PDF 첫 페이지 등
+  if (source.thumbnail) {
+    return (
+      <div className="relative w-full h-full">
+        <img src={source.thumbnail} alt="" className="w-full h-full object-cover object-top" draggable={false} />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/40 dark:to-slate-900/40" aria-hidden />
+        <KindBadge meta={kindMeta} />
+      </div>
+    );
+  }
+
+  // 2) YouTube — URL에서 video id 추출해 공식 썸네일 사용
+  if (source.kind === 'youtube' && source.url) {
+    const vid = extractYouTubeId(source.url);
+    if (vid) {
+      const thumb = `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+      return (
+        <div className="relative w-full h-full bg-black">
+          <img src={thumb} alt="" className="w-full h-full object-cover" draggable={false} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="rounded-full bg-red-600/90 h-9 w-9 flex items-center justify-center shadow-lg">
+              <Youtube className="h-4 w-4 text-white fill-white" />
+            </span>
+          </div>
+          <KindBadge meta={kindMeta} dark />
+        </div>
+      );
+    }
+  }
+
+  // 3) 텍스트 기반(paste, url) — 본문 발췌를 종이/문서처럼
+  if ((source.kind === 'paste' || source.kind === 'url') && source.content) {
+    const preview = source.content.slice(0, 220).trim();
+    return (
+      <div className="relative w-full h-full bg-white dark:bg-slate-900 overflow-hidden">
+        <div className="px-3 pt-5 pb-2 h-full">
+          <p className="text-[10.5px] leading-snug text-slate-700 dark:text-slate-300 line-clamp-5 break-all">
+            {preview}
+          </p>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-slate-900 dark:via-slate-900/80" aria-hidden />
+        <KindBadge meta={kindMeta} />
+      </div>
+    );
+  }
+
+  // 4) 기본 — 이모지 fallback (recording 등)
+  return (
+    <div className="relative w-full h-full flex flex-col items-center justify-center text-center px-2">
+      <span className="text-[32px] select-none leading-none opacity-60">{fallbackEmoji}</span>
+      <KindBadge meta={kindMeta} />
+    </div>
+  );
+}
+
+function KindBadge({ meta, dark }: { meta: { label: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }> } | null; dark?: boolean }) {
+  if (!meta) return null;
+  return (
+    <div
+      className={cn(
+        'absolute top-1.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold backdrop-blur-sm z-[2]',
+        dark
+          ? 'bg-black/50 text-white/90'
+          : 'bg-white/85 dark:bg-slate-900/85 text-slate-600 dark:text-slate-300',
+      )}
+    >
+      <meta.icon className="h-2.5 w-2.5" strokeWidth={2} />
+      <span>{meta.label}</span>
+    </div>
+  );
+}
+
+function extractYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1) || null;
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return v;
+      const m = u.pathname.match(/\/(embed|shorts)\/([\w-]+)/);
+      if (m) return m[2];
+    }
+  } catch { /* noop */ }
+  return null;
+}
+
 function LensProgress({ current, total }: { current: number; total: number }) {
   const pct = Math.min(1, current / total);
   const size = 20;
@@ -800,77 +1047,6 @@ function LensProgress({ current, total }: { current: number; total: number }) {
         {current}
       </span>
     </div>
-  );
-}
-
-/* ── 진행 스냅샷 스트립 ── */
-function ProgressStrip({
-  notebooks, onJumpTo,
-}: {
-  notebooks: StudyNotebook[];
-  onJumpTo: (nbId: string) => void;
-}) {
-  const dueTotal = notebooks.reduce((s, n) => s + countDueCards(n), 0);
-  const wrongTotal = notebooks.reduce((s, n) => s + n.wrongAnswers.length, 0);
-  const unstartedList = notebooks.filter((n) => n.sources.length > 0 && Object.keys(n.lensOutputs).length === 0);
-  const unstarted = unstartedList.length;
-
-  if (dueTotal === 0 && wrongTotal === 0 && unstarted === 0) return null;
-
-  const dueFirst = notebooks.find((n) => countDueCards(n) > 0);
-  const wrongFirst = notebooks.find((n) => n.wrongAnswers.length > 0);
-  const unstartedFirst = unstartedList[0];
-
-  return (
-    <div className="mb-5 flex flex-wrap items-center gap-1.5">
-      {dueTotal > 0 && (
-        <SnapshotChip
-          label="복습"
-          value={dueTotal}
-          onClick={() => dueFirst && onJumpTo(dueFirst.id)}
-        />
-      )}
-      {wrongTotal > 0 && (
-        <SnapshotChip
-          label="오답"
-          value={wrongTotal}
-          tone="rose"
-          onClick={() => wrongFirst && onJumpTo(wrongFirst.id)}
-        />
-      )}
-      {unstarted > 0 && (
-        <SnapshotChip
-          label="시작 전"
-          value={unstarted}
-          tone="indigo"
-          onClick={() => unstartedFirst && onJumpTo(unstartedFirst.id)}
-        />
-      )}
-    </div>
-  );
-}
-
-function SnapshotChip({
-  label, value, tone, onClick,
-}: {
-  label: string;
-  value: number;
-  tone?: 'rose' | 'indigo';
-  onClick: () => void;
-}) {
-  const toneClasses = tone === 'rose'
-    ? 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 hover:border-rose-300'
-    : tone === 'indigo'
-    ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900/50 hover:border-indigo-300'
-    : 'text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-slate-300';
-  return (
-    <button
-      onClick={onClick}
-      className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px] font-semibold transition-colors', toneClasses)}
-    >
-      <span>{label}</span>
-      <span className="tabular-nums">{value}</span>
-    </button>
   );
 }
 

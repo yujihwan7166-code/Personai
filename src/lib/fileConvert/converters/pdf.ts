@@ -88,6 +88,28 @@ export async function splitPdf(file: File, rangesStr: string): Promise<{ blob: B
   return { blob, suggestedName: `${baseName(file.name)}-split.pdf` };
 }
 
+// ───── 내부 재사용용: 첫 페이지 썸네일 (data URL) ─────
+export async function renderPdfThumbnail(
+  file: File,
+  opts: { maxWidth?: number; quality?: number } = {},
+): Promise<string> {
+  const pdfjs = await loadPdfJs();
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  const page = await doc.getPage(1);
+  const baseViewport = page.getViewport({ scale: 1 });
+  const maxW = opts.maxWidth ?? 480;
+  const scale = Math.min(2, maxW / baseViewport.width);
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas context unavailable');
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  return canvas.toDataURL('image/jpeg', opts.quality ?? 0.7);
+}
+
 // ───── 내부 재사용용: PDF → 일반 문자열 ─────
 export async function extractPdfText(file: File, maxLen = 15000): Promise<string> {
   const pdfjs = await loadPdfJs();
@@ -102,6 +124,26 @@ export async function extractPdfText(file: File, maxLen = 15000): Promise<string
     if (parts.join('\n\n').length >= maxLen) break;
   }
   return parts.join('\n\n').slice(0, maxLen);
+}
+
+/** PDF 텍스트 + 총 페이지 수 메타를 한 번에 반환. Study 용. */
+export async function extractPdfMeta(
+  file: File,
+  maxLen = 15000,
+): Promise<{ text: string; pageCount: number }> {
+  const pdfjs = await loadPdfJs();
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  const parts: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    const text = content.items.map((it) => ('str' in it ? it.str : '')).join(' ');
+    // 페이지 경계 표시 — 요약에서 [p.N] 뱃지 생성의 힌트로 사용.
+    parts.push(`[p.${i}] ${text}`);
+    if (parts.join('\n\n').length >= maxLen) break;
+  }
+  return { text: parts.join('\n\n').slice(0, maxLen), pageCount: doc.numPages };
 }
 
 // ───── PDF → 텍스트 (pdfjs-dist) ─────

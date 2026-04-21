@@ -1,4 +1,4 @@
-export type StudySourceKind = 'paste' | 'url' | 'youtube' | 'recording' | 'pdf';
+export type StudySourceKind = 'paste' | 'url' | 'youtube' | 'recording' | 'pdf' | 'pptx' | 'docx';
 
 export interface StudySource {
   id: string;
@@ -6,10 +6,20 @@ export interface StudySource {
   title: string;
   content: string;
   url?: string;
+  /** 썸네일 이미지 (data URL 또는 외부 URL). 카드 미리보기용. */
+  thumbnail?: string;
   addedAt: number;
   enabled: boolean;
   status: 'ready' | 'processing' | 'error';
   errorMessage?: string;
+  /** IndexedDB 블롭 저장소 키. 원본 파일을 다시 렌더하기 위해 사용. */
+  blobRef?: string;
+  /** 원본 MIME 타입 (뷰어 분기용). */
+  mimeType?: string;
+  /** PDF 페이지 수 / PPTX 슬라이드 수. */
+  pageCount?: number;
+  /** 'native' = 원본 렌더, 'text' = 텍스트 폴백. blobRef 없거나 파싱 실패 시 'text'. */
+  renderMode?: 'native' | 'text';
 }
 
 export type StudyLens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate';
