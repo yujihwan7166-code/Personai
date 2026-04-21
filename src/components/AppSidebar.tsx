@@ -962,6 +962,7 @@ export function AppSidebar({
               },
             ];
             return isOpen ? (
+              // Phase D-3 보정: 아래 모드 섹션과 일관된 밀도·톤. 메인 칸의 이질 하이라이트 제거.
               <div className="flex items-center justify-between gap-1">
                 {items.map((item) => (
                   <button
@@ -969,12 +970,11 @@ export function AppSidebar({
                     onClick={item.onClick}
                     title={item.label}
                     className={cn(
-                      "flex items-center justify-center h-9 flex-1 rounded-lg transition-colors",
-                      "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
-                      item.highlight && 'bg-slate-50 dark:bg-slate-800/50',
+                      "flex items-center justify-center h-8 flex-1 rounded-md transition-colors",
+                      "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800",
                     )}
                   >
-                    <item.icon className="w-[18px] h-[18px] shrink-0" />
+                    <item.icon className="w-[15px] h-[15px] shrink-0" />
                   </button>
                 ))}
               </div>
@@ -996,14 +996,14 @@ export function AppSidebar({
           })()}
         </nav>
 
-        {/* Phase D-3 보정: 모드 섹션 — 컴팩트 가로형 (한 줄 4×2 미니 pill).
-            아래 대화 기록이 더 많은 높이를 차지하도록 상단 영역을 최대한 압축. */}
+        {/* Phase D-3 보정: 모드 섹션 — 상단 아이콘 행과 동일한 리듬(h-8, rounded-md, 슬레이트 톤).
+            label 과 pill 사이즈를 맞춰 위-아래 밀도 균일화. */}
         {isOpen && (
-          <div className="shrink-0 px-2 mt-1">
-            <div className="px-1.5 flex items-center">
-              <span className="text-[9.5px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">모드</span>
+          <div className="shrink-0 px-2 mt-1.5">
+            <div className="px-1 flex items-center">
+              <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">모드</span>
             </div>
-            <div className="grid grid-cols-4 gap-0.5 mt-0.5">
+            <div className="grid grid-cols-4 gap-1 mt-1">
               {([
                 { id: 'general',          label: '일반',   tint: '221 83% 50%' },
                 { id: 'multi',            label: '멀티',   tint: '262 83% 58%' },
@@ -1021,17 +1021,17 @@ export function AppSidebar({
                     onClick={() => onModeChange(m.id as DiscussionMode)}
                     title={`${m.label} 모드로 전환`}
                     className={cn(
-                      'group flex items-center gap-1 rounded-md py-1 px-1 text-[10px] font-medium transition-colors',
+                      'group flex items-center gap-1 h-8 rounded-md px-1.5 text-[10.5px] font-medium transition-colors',
                       activeMain
                         ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'
-                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-200',
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-100',
                     )}
                   >
                     <span
-                      className="h-1.5 w-1.5 rounded-full shrink-0"
+                      className="h-[5px] w-[5px] rounded-full shrink-0"
                       style={{
                         background: `hsl(${m.tint})`,
-                        boxShadow: activeMain ? `0 0 0 1.5px hsl(${m.tint}/0.25)` : undefined,
+                        boxShadow: activeMain ? `0 0 0 2px hsl(${m.tint}/0.22)` : undefined,
                       }}
                     />
                     <span className="truncate max-w-full">{m.label}</span>
