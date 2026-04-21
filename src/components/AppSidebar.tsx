@@ -926,7 +926,7 @@ export function AppSidebar({
           'bg-white dark:bg-[#0f0f0f]',
           'border-r border-slate-200 dark:border-slate-800',
           'md:relative',
-          isOpen ? 'w-[220px]' : 'w-[48px]',
+          isOpen ? 'w-[204px]' : 'w-[48px]',
           // 모바일: 닫힘=완전 숨김
           !isOpen && 'max-md:-translate-x-full',
         )}
