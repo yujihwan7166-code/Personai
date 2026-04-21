@@ -23,16 +23,31 @@ export function PremiumDomainLanding({ onSelectDomain }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* 에디토리얼 헤더 — 프로페셔널 톤 */}
+      <div className="text-center pt-2 pb-1">
+        <div className="flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-[hsl(var(--mode-premium))] opacity-80 mb-2">
+          <span className="inline-block h-px w-6 bg-[hsl(var(--mode-premium))]/60" />
+          Professional Consult
+          <span className="inline-block h-px w-6 bg-[hsl(var(--mode-premium))]/60" />
+        </div>
+        <h2 className="font-display font-semibold text-[22px] md:text-[26px] tracking-[-0.02em] leading-tight text-slate-900 dark:text-slate-100">
+          전문 분야, <span className="text-[hsl(var(--mode-premium))]">검증된 근거</span>로 자문합니다
+        </h2>
+        <p className="mt-1.5 text-[12.5px] text-slate-500 dark:text-slate-400 max-w-[520px] mx-auto leading-snug">
+          공공 데이터 · 판례 · 통계를 근거로 단계별 추론. 전문가 상담을 대체하지 않는 참고 자문입니다.
+        </p>
+      </div>
+
       {/* Tech spec bar */}
-      <div className="flex items-center justify-center gap-3 text-[12px] text-slate-900 font-semibold py-2.5 border-y border-slate-200">
+      <div className="flex items-center justify-center gap-3 text-[12px] text-slate-900 dark:text-slate-200 font-semibold py-2.5 border-y border-slate-200 dark:border-slate-800">
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />공공 API 실시간 연동</span>
-        <span className="text-slate-300">|</span>
+        <span className="text-slate-300 dark:text-slate-700">|</span>
         <span>분석 데이터 48만건+</span>
-        <span className="text-slate-300">|</span>
+        <span className="text-slate-300 dark:text-slate-700">|</span>
         <span>RAG 기반 근거 추론</span>
-        <span className="text-slate-300">|</span>
+        <span className="text-slate-300 dark:text-slate-700">|</span>
         <span>표준 스키마 통합</span>
-        <span className="text-slate-300">|</span>
+        <span className="text-slate-300 dark:text-slate-700">|</span>
         <span>멀티스텝 오케스트레이션</span>
       </div>
 
@@ -72,10 +87,10 @@ function DomainCard({ domain, index, isHovered, onHover, onLeave, onSelect }: {
       onMouseLeave={onLeave}
       onClick={onSelect}
       className={cn(
-        'group relative cursor-pointer rounded-xl border bg-white transition-all duration-200',
+        'group relative cursor-pointer rounded-xl border bg-white dark:bg-slate-900/60 transition-all duration-200',
         isHovered
-          ? 'shadow-lg border-slate-300 -translate-y-0.5'
-          : 'shadow-sm border-slate-200/80',
+          ? 'shadow-lg border-slate-300 dark:border-slate-700 -translate-y-0.5'
+          : 'shadow-sm border-slate-200/80 dark:border-slate-800',
       )}
       style={{ animationDelay: `${index * 40}ms` }}
     >
@@ -84,7 +99,7 @@ function DomainCard({ domain, index, isHovered, onHover, onLeave, onSelect }: {
       <div className="px-4 pt-4 pb-3.5">
         {/* Header */}
         <div className="text-center mb-3">
-          <h3 className="text-[15px] font-bold text-slate-900 tracking-tight">{domain.name}</h3>
+          <h3 className="text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight">{domain.name}</h3>
           <p className={cn('text-[10px] mt-1', t.accentMuted)}>{domain.tagline}</p>
         </div>
 
@@ -94,7 +109,7 @@ function DomainCard({ domain, index, isHovered, onHover, onLeave, onSelect }: {
             {domain.features.slice(0, 2).map((f, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <span className="text-[11px] shrink-0 mt-0.5">{f.icon}</span>
-                <span className="text-[10px] text-slate-600 leading-snug">{f.title}</span>
+                <span className="text-[10px] text-slate-600 dark:text-slate-300 leading-snug">{f.title}</span>
               </div>
             ))}
           </div>
