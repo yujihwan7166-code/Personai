@@ -11,7 +11,7 @@ import {
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
   Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
   FolderOpen, ChevronRight, Plus, X,
-  LogOut, Shield, User, ExternalLink,
+  LogOut, Shield, User, ExternalLink, Command as CommandIcon,
 } from 'lucide-react';
 
 interface Props {
@@ -35,7 +35,7 @@ interface Project {
   createdAt: number;
 }
 
-type SettingsSection = 'general' | 'notifications' | 'models' | 'personal' | 'data';
+type SettingsSection = 'general' | 'notifications' | 'models' | 'personal' | 'data' | 'shortcuts';
 
 type SidebarSettings = {
   theme: 'light' | 'dark' | 'system';
@@ -688,6 +688,7 @@ export function AppSidebar({
     { id: 'models' as const, label: 'AI 모델', icon: Bot },
     { id: 'personal' as const, label: '개인 맞춤', icon: SlidersHorizontal },
     { id: 'data' as const, label: '데이터 제어', icon: FolderOpen },
+    { id: 'shortcuts' as const, label: '단축키', icon: CommandIcon },
   ];
 
   const themeOptions: Array<{ value: SidebarSettings['theme']; label: string }> = [
@@ -1539,6 +1540,7 @@ export function AppSidebar({
                     {settingsSection === 'models' && 'GPT, Gemini, Claude, Manus, Genspark 기본 우선순위를 정합니다.'}
                     {settingsSection === 'personal' && '답변 스타일과 인터페이스 밀도를 조정합니다.'}
                     {settingsSection === 'data' && '대화 기록 저장과 데이터 보관 방식을 관리합니다.'}
+                    {settingsSection === 'shortcuts' && '⌘K 팔레트와 전역 키보드 단축키 안내.'}
                   </p>
                 </div>
 
@@ -1910,6 +1912,43 @@ export function AppSidebar({
                         >
                           캐시 초기화
                         </button>
+                      </div>
+                    </div>
+                  )}
+                  {settingsSection === 'shortcuts' && (
+                    <div className="space-y-3">
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">⌘K · 커맨드 팔레트</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">어디서든 눌러 모드 전환 · 최근 대화 · 빠른 액션.</p>
+                        <ul className="mt-3 space-y-1.5 text-[12px] text-slate-600 dark:text-slate-300">
+                          {[
+                            { k: ['⌘', 'K'], d: '팔레트 열기 · 닫기' },
+                            { k: ['Ctrl', 'K'], d: '팔레트 열기 (Windows)' },
+                            { k: ['↑', '↓'], d: '항목 이동' },
+                            { k: ['↵'], d: '선택' },
+                            { k: ['Esc'], d: '닫기' },
+                          ].map((row, i) => (
+                            <li key={i} className="flex items-center justify-between gap-3 py-1">
+                              <span>{row.d}</span>
+                              <span className="flex items-center gap-1">
+                                {row.k.map((key, j) => (
+                                  <kbd key={j} className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10.5px] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{key}</kbd>
+                                ))}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 p-3.5 dark:border-slate-800">
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white">팔레트 내 빠른 액션</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">입력창에 키워드를 치면 모드 · 대화 · 액션을 한 곳에서.</p>
+                        <ul className="mt-3 space-y-1 text-[11.5px] text-slate-500 dark:text-slate-400 list-disc list-inside">
+                          <li>새 대화 시작</li>
+                          <li>현재 대화 Markdown 복사 · 다운로드</li>
+                          <li>다크 · 라이트 테마 토글</li>
+                          <li>모드(일반/멀티/토론/Study …) 즉시 전환</li>
+                          <li>최근 대화 재개</li>
+                        </ul>
                       </div>
                     </div>
                   )}
