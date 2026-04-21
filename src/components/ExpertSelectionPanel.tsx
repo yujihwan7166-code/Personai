@@ -2129,7 +2129,24 @@ export function ExpertSelectionPanel({
                         : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
                           : ''}
         </h2>
-        {/* Phase G 업그레이드: 부제 제거 — 메인 헤드라인만으로 충분, 상단 여백 정돈 */}
+        <p key={`sub-${mainMode}`} className={cn(
+          "mt-1 text-[13px] text-muted-foreground",
+          !skipHeroAnimation && "animate-in fade-in duration-700"
+        )}>
+          {mainMode === 'general' ? 'GPT, Claude, Gemini 등 원하는 AI를 골라 자유롭게 대화하세요'
+            : mainMode === 'multi' ? '여러 AI의 답변을 비교하고 종합 결론을 받아보세요'
+              : mainMode === 'debate' ? (
+                  discussionMode === 'brainstorm' ? '자유로운 발산으로 새로운 관점을 발견합니다'
+                  : discussionMode === 'freetalk' ? '정해진 형식 없이 AI끼리 토론합니다'
+                  : '찬성과 반대, 다양한 시각으로 깊이 있는 분석을 제공합니다'
+                )
+                : mainMode === 'stakeholder_main' ? '다양한 이해관계자 시점에서 의사결정을 시뮬레이션합니다'
+                  : mainMode === 'brainstorm_main' ? '여러 AI가 아이디어를 제안하고 구조화합니다'
+                    : mainMode === 'premium_main' ? '법률·의료·금융 등 전문 분야 AI 상담'
+                      : mainMode === 'assistant' ? '문서 작성, 번역, 요약 등 실무를 도와줍니다'
+                        : mainMode === 'player' ? '퀴즈, 스토리, 미니게임으로 AI와 놀아보세요'
+                          : ''}
+        </p>
 
         {/* 모드 진입 때 한 번 쓸고 가는 서브틀한 mode-color sweep.
             `key={mainMode}` 로 모드 바뀔 때마다 재마운트되어 애니메이션 다시 재생됨. */}
@@ -2151,12 +2168,8 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // Phase G 최종: 밑줄 탭 — 투명 bar + 하단 hairline. 가볍게.
-          'flex items-center relative px-1 pb-1.5',
-          'border-b',
-          showPlayerBg
-            ? 'border-white/10'
-            : 'border-[hsl(var(--hairline))]',
+          // Phase G 최종(정교화): 탭 그룹 트랙 — 컴팩트한 공간, 아래 hairline.
+          'flex items-center relative gap-0.5 px-1 pt-0.5 pb-2',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
