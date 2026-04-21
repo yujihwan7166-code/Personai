@@ -2085,8 +2085,8 @@ export function ExpertSelectionPanel({
         "fixed inset-0 bg-slate-950 pointer-events-none transition-opacity duration-700 ease-out z-10",
         showPlayerBg ? 'opacity-100' : 'opacity-0'
       )} />
-      {/* Phase C (대수술): 히어로 제거. 모드별 서브 아이덴티티는 컨테이너에 여전히 부여해서
-          자손이 --mode 변수를 상속받을 수 있도록 유지. 히어로 안 내용은 모두 hidden. */}
+      {/* Phase C 보정: 배경 그라디언트는 유지하고 헤더 텍스트만 복원.
+          모드 컨테이너 클래스로 자손에게 --mode 변수 상속. */}
       <div className={cn(
         `mode-${({
           general: 'general',
@@ -2102,7 +2102,13 @@ export function ExpertSelectionPanel({
           convert_main: 'general',
           study_main: 'study',
         } as const)[mainMode] ?? 'general'}`,
-        "hidden relative z-0"    // 히어로 콘텐츠 전체 숨김, 모드 var 전달만 수행
+        "text-center relative z-0 transition-all ease-out overflow-hidden",
+        mainMode === 'study_main' && 'hidden',
+        (isGoingToPlayer && transitionPhase >= 1) || (isPlayerActive && !isLeavingPlayer)
+          ? 'opacity-0 max-h-0 py-0 space-y-0 duration-500'
+          : !contentVisible ? 'opacity-0 scale-[0.98] duration-200'
+          : 'opacity-100 scale-100 duration-300',
+        isLeavingPlayer && transitionPhase >= 2 && 'opacity-100'
       )}>
         {(() => {
           const rawName = profile?.email || user?.email || '';
