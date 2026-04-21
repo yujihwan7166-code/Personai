@@ -388,29 +388,56 @@ export function QuestionInput({
           )}
 
           {attachedFiles.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 px-4 pb-1 pt-3">
-              {attachedFiles.map((file) => (
-                <div
-                  key={file.id}
-                  className="inline-flex max-w-[220px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 py-1 pl-2 pr-1 text-[11px] text-slate-600"
-                >
-                  {file.preview ? (
-                    <img src={file.preview} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
-                  ) : (
-                    <span className="shrink-0 text-[14px]">{getInlineFileIcon(file.mimeType)}</span>
-                  )}
-                  <span className="truncate">{file.name}</span>
-                  <span className="shrink-0 text-[9px] text-slate-400">{formatInlineFileSize(file.size)}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(file.id)}
-                    className="ml-0.5 shrink-0 rounded p-0.5 transition-colors hover:bg-red-50 hover:text-red-400"
-                    aria-label={`${file.name} 제거`}
+            <div className="flex flex-wrap items-center gap-2 px-4 pb-1 pt-3">
+              {attachedFiles.map((file) => {
+                const isImage = file.mimeType?.startsWith('image/') && !!file.preview;
+                if (isImage) {
+                  // #10 이미지 첨부 — 56x56 썸네일 카드 + 호버 시 원본 미리보기 + X 버튼.
+                  return (
+                    <div
+                      key={file.id}
+                      className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+                    >
+                      <img
+                        src={file.preview}
+                        alt={file.name}
+                        className="block h-full w-full object-cover"
+                      />
+                      {/* 호버 시 파일 정보 오버레이 */}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="truncate text-[9px] font-medium text-white">{file.name}</div>
+                        <div className="text-[8px] text-white/70">{formatInlineFileSize(file.size)}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(file.id)}
+                        className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100 focus-visible:opacity-100"
+                        aria-label={`${file.name} 제거`}
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  );
+                }
+                return (
+                  <div
+                    key={file.id}
+                    className="inline-flex max-w-[220px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 py-1 pl-2 pr-1 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+                    <span className="shrink-0 text-[14px]">{getInlineFileIcon(file.mimeType)}</span>
+                    <span className="truncate">{file.name}</span>
+                    <span className="shrink-0 text-[9px] text-slate-400">{formatInlineFileSize(file.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(file.id)}
+                      className="ml-0.5 shrink-0 rounded p-0.5 transition-colors hover:bg-red-50 hover:text-red-400"
+                      aria-label={`${file.name} 제거`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
