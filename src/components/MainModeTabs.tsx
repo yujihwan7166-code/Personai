@@ -54,25 +54,21 @@ export function MainModeTabs({
             onClick={() => onChange(mode)}
             disabled={isDiscussing || transitionPhase !== 0}
             className={cn(
-              // 깔끔한 접근: 테두리 없음. 비활성도 아주 연한 bg 로 '클릭 영역' 만 명시.
-              'relative flex items-center justify-center gap-1 min-w-0 px-3.5 py-1.5 rounded-lg text-[12px] tracking-tight transition-colors duration-150',
+              // iOS segmented control 스타일: 트랙 안의 탭은 flat, 활성만 '떠오름'(raised).
+              // 비활성 = 투명 + 흐린 텍스트 / 활성 = card 배경 + shadow + 모드 컬러.
+              'relative flex items-center justify-center gap-1 min-w-0 px-3.5 py-1.5 rounded-md text-[12px] tracking-tight transition-all duration-150',
               'disabled:opacity-60 disabled:cursor-not-allowed',
               isActive
                 ? showPlayerBg
-                  ? 'text-white font-semibold'
-                  : 'font-semibold'
+                  ? 'text-white font-semibold bg-slate-800 shadow-sm'
+                  : 'font-semibold bg-white dark:bg-slate-900 shadow-sm'
                 : showPlayerBg
                   ? 'text-slate-400 font-medium hover:text-slate-200 hover:bg-white/5'
-                  : 'text-slate-500 dark:text-slate-400 font-medium bg-slate-100/40 dark:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-700/50',
+                  : 'text-slate-500 dark:text-slate-400 font-medium hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-900/40',
             )}
             style={
               isActive && !showPlayerBg
-                ? {
-                    color: tint,
-                    background: isPlayer
-                      ? 'linear-gradient(90deg, hsl(var(--mode-multi)/0.14), hsl(var(--mode-debate-b)/0.14), hsl(var(--mode-premium)/0.14))'
-                      : `color-mix(in oklab, ${tint} 14%, transparent)`,
-                  }
+                ? { color: tint }
                 : undefined
             }
           >

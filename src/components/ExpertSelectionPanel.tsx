@@ -2173,8 +2173,12 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          'flex items-center relative gap-0.5 max-w-[640px] px-1',
-          showPlayerBg && 'rounded-xl p-1 bg-slate-900/50 border border-slate-700/40',
+          // iOS segmented control 패턴: 트랙에는 옅은 bg, 활성 탭만 raised.
+          // 그룹 경계는 명확, 비활성 탭은 트랙 안에 flat text, 활성은 확실히 도드라짐.
+          'flex items-center relative gap-0.5 max-w-[640px] p-1 rounded-xl',
+          showPlayerBg
+            ? 'bg-slate-900/50 border border-slate-700/40'
+            : 'bg-slate-100/70 dark:bg-slate-800/50',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
@@ -2322,13 +2326,12 @@ export function ExpertSelectionPanel({
                           disabled={isAiDisabled || autoAssign}
                           onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
                           className={cn(
-                            // 메인 탭과 동일한 깔끔한 어포던스: 연한 bg 만, 테두리 없음.
                             'flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap',
                             isAiDisabled
                               ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                               : isActive
                                 ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 bg-slate-100/40 dark:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-700/50',
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800',
                           )}>
                           {label}
                         </button>
@@ -2346,7 +2349,7 @@ export function ExpertSelectionPanel({
                               'flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md transition-colors whitespace-nowrap font-medium',
                               isMoreActive
                                 ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 bg-slate-100/40 dark:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-700/50',
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800',
                             )}>
                             {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
                           </button>
