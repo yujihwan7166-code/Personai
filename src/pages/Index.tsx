@@ -1,5 +1,6 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { cn } from '@/lib/utils';
+import { notifyDone } from '@/lib/notifications';
 import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
@@ -123,6 +124,14 @@ const Index = () => {
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
+  // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
+  const wasDiscussingRef = useRef(false);
+  useEffect(() => {
+    if (wasDiscussingRef.current && !isDiscussing) {
+      notifyDone({ label: '답변 완료 ✓ Personai' });
+    }
+    wasDiscussingRef.current = isDiscussing;
+  }, [isDiscussing]);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [currentQuestionDisplay, setCurrentQuestionDisplay] = useState('');
   const [copiedAll, setCopiedAll] = useState(false);
