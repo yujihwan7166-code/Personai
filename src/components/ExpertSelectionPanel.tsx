@@ -2322,13 +2322,13 @@ export function ExpertSelectionPanel({
                           disabled={isAiDisabled || autoAssign}
                           onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
                           className={cn(
-                            // 영구 배경 + 테두리로 '개별 탭' 인지 강화 (메인 탭과 동일 패턴)
-                            'flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap border',
+                            // 메인 탭과 동일한 깔끔한 어포던스: 연한 bg 만, 테두리 없음.
+                            'flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap',
                             isAiDisabled
-                              ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed border-transparent'
+                              ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                               : isActive
-                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold border-[hsl(var(--primary)/0.3)]'
-                                : 'text-slate-600 dark:text-slate-300 bg-[hsl(var(--card))] border-[hsl(var(--hairline))] hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-300 dark:hover:border-slate-600',
+                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 bg-slate-100/40 dark:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-700/50',
                           )}>
                           {label}
                         </button>
@@ -2343,10 +2343,10 @@ export function ExpertSelectionPanel({
                         <div className="relative group/more">
                           <button type="button"
                             className={cn(
-                              'flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md transition-colors whitespace-nowrap font-medium border',
+                              'flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md transition-colors whitespace-nowrap font-medium',
                               isMoreActive
-                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold border-[hsl(var(--primary)/0.3)]'
-                                : 'text-slate-600 dark:text-slate-300 bg-[hsl(var(--card))] border-[hsl(var(--hairline))] hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-300 dark:hover:border-slate-600',
+                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 bg-slate-100/40 dark:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-700/50',
                             )}>
                             {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
                           </button>
