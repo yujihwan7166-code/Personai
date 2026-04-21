@@ -48,6 +48,7 @@ const GENERAL_IMAGE_URL = '/api/general-image';
 const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
 const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
+const LazyOnboardingTour = lazy(() => import('@/components/OnboardingTour').then((module) => ({ default: module.OnboardingTour })));
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
 const LazyGamePlayer = lazy(() => import('@/components/GamePlayer').then((module) => ({ default: module.GamePlayer })));
 const LazyQuestionInput = lazy(() => import('@/components/QuestionInput').then((module) => ({ default: module.QuestionInput })));
@@ -4549,6 +4550,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               try { localStorage.setItem('theme', isDark ? 'light' : 'dark'); } catch { /* noop */ }
             }}
           />
+        </Suspense>
+        {/* #7 첫 방문 온보딩 — localStorage 로 1회성. */}
+        <Suspense fallback={null}>
+          <LazyOnboardingTour />
         </Suspense>
         {!hideAppSidebar && <Suspense fallback={null}>
           <LazyAppSidebar
