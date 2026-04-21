@@ -52,38 +52,42 @@ export function MainModeTabs({
             onClick={() => onChange(mode)}
             disabled={isDiscussing || transitionPhase !== 0}
             className={cn(
-              // Phase G: 알약 → 밑줄 스타일. 탭 사이 간격은 유지, 높이 살짝 축소.
-              'relative flex items-center justify-center gap-1 min-w-0 px-2.5 py-1.5 text-[11.5px] tracking-tight transition-colors duration-150',
+              // Phase G 업그레이드: "부드러운 알약" — 어포던스 살리고 모드 정체성 유지.
+              'relative flex items-center justify-center gap-1 min-w-0 px-3 py-1.5 rounded-full text-[11.5px] tracking-tight transition-colors duration-150',
               'disabled:opacity-60 disabled:cursor-not-allowed',
               isActive
                 ? showPlayerBg
                   ? 'text-white font-semibold'
-                  : 'text-slate-900 dark:text-slate-100 font-semibold'
+                  : 'font-semibold'
                 : showPlayerBg
                   ? 'text-slate-400 font-medium hover:text-slate-200'
-                  : 'text-slate-500 dark:text-slate-400 font-medium hover:text-slate-900 dark:hover:text-slate-100',
+                  : 'text-slate-500 dark:text-slate-400 font-medium hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/60',
             )}
+            style={
+              isActive && !showPlayerBg
+                ? {
+                    color: MODE_TINT[mode],
+                    background: mode === 'player'
+                      ? 'linear-gradient(90deg, hsl(var(--mode-multi)/0.12), hsl(var(--mode-debate-b)/0.12), hsl(var(--mode-premium)/0.12))'
+                      : `color-mix(in oklab, ${MODE_TINT[mode]} 12%, transparent)`,
+                  }
+                : undefined
+            }
           >
-            <span className="relative z-10">{labels[mode]}</span>
-            {/* Phase G: 활성 탭 하단 2px 밑줄 — 모드 시그니처 컬러 */}
             <AnimatePresence>
-              {isActive && (
-                <motion.span
-                  key={`main-underline-${mode}`}
-                  layoutId="main-mode-underline"
+              {isActive && showPlayerBg && (
+                <motion.div
+                  key={`main-pill-${mode}`}
+                  layoutId="main-mode-pill-player"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                  className="absolute left-2.5 right-2.5 bottom-[-1px] h-[2px] rounded-full"
-                  style={{
-                    background: mode === 'player'
-                      ? 'linear-gradient(90deg, hsl(var(--mode-multi)), hsl(var(--mode-debate-b)), hsl(var(--mode-premium)))'
-                      : MODE_TINT[mode],
-                  }}
+                  className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/25"
                 />
               )}
             </AnimatePresence>
+            <span className="relative z-10">{labels[mode]}</span>
           </button>
         );
       })}

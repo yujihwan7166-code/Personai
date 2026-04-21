@@ -2129,24 +2129,7 @@ export function ExpertSelectionPanel({
                         : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
                           : ''}
         </h2>
-        <p key={`sub-${mainMode}`} className={cn(
-          "mt-1 text-[13px] text-muted-foreground",
-          !skipHeroAnimation && "animate-in fade-in duration-700"
-        )}>
-          {mainMode === 'general' ? 'GPT, Claude, Gemini 등 원하는 AI를 골라 자유롭게 대화하세요'
-            : mainMode === 'multi' ? '여러 AI의 답변을 비교하고 종합 결론을 받아보세요'
-              : mainMode === 'debate' ? (
-                  discussionMode === 'brainstorm' ? '자유로운 발산으로 새로운 관점을 발견합니다'
-                  : discussionMode === 'freetalk' ? '정해진 형식 없이 AI끼리 토론합니다'
-                  : '찬성과 반대, 다양한 시각으로 깊이 있는 분석을 제공합니다'
-                )
-                : mainMode === 'stakeholder_main' ? '다양한 이해관계자 시점에서 의사결정을 시뮬레이션합니다'
-                  : mainMode === 'brainstorm_main' ? '여러 AI가 아이디어를 제안하고 구조화합니다'
-                    : mainMode === 'premium_main' ? '법률·의료·금융 등 전문 분야 AI 상담'
-                      : mainMode === 'assistant' ? '문서 작성, 번역, 요약 등 실무를 도와줍니다'
-                        : mainMode === 'player' ? '퀴즈, 스토리, 미니게임으로 AI와 놀아보세요'
-                          : ''}
-        </p>
+        {/* Phase G 업그레이드: 부제 제거 — 메인 헤드라인만으로 충분, 상단 여백 정돈 */}
 
         {/* 모드 진입 때 한 번 쓸고 가는 서브틀한 mode-color sweep.
             `key={mainMode}` 로 모드 바뀔 때마다 재마운트되어 애니메이션 다시 재생됨. */}
@@ -2168,12 +2151,11 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // Phase G: 알약 wrapper → 밑줄 스타일에 맞춰 투명 bar + hairline bottom.
-          'flex items-center relative px-1 py-0.5 rounded-none',
-          'border-b',
+          // Phase G 업그레이드: 부드러운 알약 탭을 담는 가벼운 트랙. 테두리 없이 은은한 배경.
+          'flex items-center relative p-1 rounded-full',
           showPlayerBg
-            ? 'border-white/10'
-            : 'border-[hsl(var(--hairline))]',
+            ? 'bg-slate-900/70 backdrop-blur-sm border border-slate-700/50'
+            : 'bg-[hsl(var(--surface-2))]/70 backdrop-blur-sm',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
@@ -2321,22 +2303,15 @@ export function ExpertSelectionPanel({
                           disabled={isAiDisabled || autoAssign}
                           onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
                           className={cn(
-                            // Phase G: 보라 alg pill → segment + underline.
-                            'relative flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition-colors whitespace-nowrap',
+                            // Phase G 업그레이드: 부드러운 알약 — 메인 탭과 동일 패턴
+                            'flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors whitespace-nowrap',
                             isAiDisabled
                               ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                               : isActive
-                                ? 'text-[hsl(var(--mode,var(--primary)))] font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100',
+                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/60',
                           )}>
                           {label}
-                          {isActive && !isAiDisabled && (
-                            <span
-                              aria-hidden
-                              className="absolute left-2 right-2 -bottom-[5px] h-[2px] rounded-full"
-                              style={{ background: 'hsl(var(--mode, var(--primary)))' }}
-                            />
-                          )}
                         </button>
                       );
                     })}
@@ -2349,16 +2324,12 @@ export function ExpertSelectionPanel({
                         <div className="relative group/more">
                           <button type="button"
                             className={cn(
-                              'relative flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-colors whitespace-nowrap font-medium',
+                              'flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-full transition-colors whitespace-nowrap font-medium',
                               isMoreActive
-                                ? 'text-[hsl(var(--mode,var(--primary)))] font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100',
+                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/60',
                             )}>
                             {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
-                            {isMoreActive && (
-                              <span aria-hidden className="absolute left-2 right-2 -bottom-[5px] h-[2px] rounded-full"
-                                style={{ background: 'hsl(var(--mode, var(--primary)))' }} />
-                            )}
                           </button>
                           <div className="absolute left-0 top-full mt-1 bg-[hsl(var(--card))] border border-[hsl(var(--hairline))] rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
                             {moreCats.map(({ cat, label }) => (
