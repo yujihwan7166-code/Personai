@@ -4412,9 +4412,32 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
     }
   };
 
+  // Phase C 대수술: 루트에 모드별 클래스 주입 → --mode 변수 상속 + 배경 gradient 연결
+  const rootModeClass = (() => {
+    const m = getMainMode(discussionMode);
+    const map: Record<string, string> = {
+      general: 'mode-general', multi: 'mode-multi', debate: 'mode-debate',
+      stakeholder_main: 'mode-simulation', brainstorm_main: 'mode-multi',
+      premium_main: 'mode-premium', assistant: 'mode-assistant', player: 'mode-multi',
+      research_main: 'mode-research', translate_main: 'mode-assistant',
+      convert_main: 'mode-general', study_main: 'mode-study',
+    };
+    return map[m] ?? 'mode-general';
+  })();
+
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]">
+      <div
+        className={cn(
+          rootModeClass,
+          "relative h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]",
+          // 모드 시그니처 컬러 radial mesh — 아주 은은하게 (opacity 6~10%)
+          "before:content-[''] before:pointer-events-none before:fixed before:inset-0 before:z-0",
+          "before:bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,hsl(var(--mode,var(--primary))/0.09),transparent_60%)]",
+          "dark:before:bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,hsl(var(--mode,var(--primary))/0.14),transparent_60%)]",
+          "before:transition-[background] before:duration-700",
+        )}
+      >
         {/* 전역 커맨드 팔레트 (Cmd+K / Ctrl+K) — 어디서든 호출 가능 */}
         <Suspense fallback={null}>
           <LazyCommandPalette

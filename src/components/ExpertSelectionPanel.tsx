@@ -2075,14 +2075,18 @@ export function ExpertSelectionPanel({
   };
 
   return (
-    <div className={cn("space-y-1.5 relative transition-all duration-500", isPlayerActive ? 'py-1' : 'py-4')}>
+    <div className={cn(
+      // Phase C-B: 중앙 컬럼 폭 통일(920px) — 히어로/탭/봇그리드/입력창 모두 같은 축으로 정렬.
+      "relative mx-auto w-full max-w-[920px] space-y-3 transition-all duration-500",
+      isPlayerActive ? 'py-1' : 'py-4',
+    )}>
       {/* 플레이어 모드 전체화면 다크 오버레이 */}
       <div className={cn(
         "fixed inset-0 bg-slate-950 pointer-events-none transition-opacity duration-700 ease-out z-10",
         showPlayerBg ? 'opacity-100' : 'opacity-0'
       )} />
-      {/* Hero — 리모델링 Phase C: 개인화 인사 + 컨텍스트 서브 카피.
-          모드별 서브 아이덴티티(mode-*) 를 컨테이너에 부여해서 후속 요소가 --mode 변수를 상속받도록 함. */}
+      {/* Phase C (대수술): 히어로 제거. 모드별 서브 아이덴티티는 컨테이너에 여전히 부여해서
+          자손이 --mode 변수를 상속받을 수 있도록 유지. 히어로 안 내용은 모두 hidden. */}
       <div className={cn(
         `mode-${({
           general: 'general',
@@ -2098,13 +2102,7 @@ export function ExpertSelectionPanel({
           convert_main: 'general',
           study_main: 'study',
         } as const)[mainMode] ?? 'general'}`,
-        "text-center relative z-0 transition-all ease-out overflow-hidden",
-        mainMode === 'study_main' && 'hidden',
-        (isGoingToPlayer && transitionPhase >= 1) || (isPlayerActive && !isLeavingPlayer)
-          ? 'opacity-0 max-h-0 py-0 space-y-0 duration-500'
-          : !contentVisible ? 'opacity-0 scale-[0.98] duration-200'
-          : 'opacity-100 scale-100 duration-300',
-        isLeavingPlayer && transitionPhase >= 2 && 'opacity-100'
+        "hidden relative z-0"    // 히어로 콘텐츠 전체 숨김, 모드 var 전달만 수행
       )}>
         {(() => {
           const rawName = profile?.email || user?.email || '';
@@ -2135,21 +2133,19 @@ export function ExpertSelectionPanel({
           return (
             <>
               <h2 key={mainMode} className={cn(
-                "font-display text-2xl sm:text-[28px] font-semibold text-foreground tracking-[-0.02em]",
-                !skipHeroAnimation && "animate-in fade-in duration-700"
+                // Phase C-B: 히어로 컴팩트화 — 28px → 18px 로 한 단계 내림. 본문 위계와의 격차 축소.
+                "font-display text-[17px] sm:text-[19px] font-semibold text-foreground tracking-[-0.015em] leading-tight",
+                !skipHeroAnimation && "animate-in fade-in duration-500"
               )}>
                 {greetName
                   ? <>{timeGreet}, <span className="text-[hsl(var(--mode,var(--primary)))]">{greetName}</span>님</>
                   : <>{timeGreet}</>}
+                {modeContext && (
+                  <span className="ml-2 text-[12px] font-normal text-muted-foreground tracking-normal">
+                    · {modeContext}
+                  </span>
+                )}
               </h2>
-              {modeContext && (
-                <p key={`sub-${mainMode}`} className={cn(
-                  "mt-1.5 text-[12.5px] text-muted-foreground font-medium tracking-tight",
-                  !skipHeroAnimation && "animate-in fade-in duration-700"
-                )}>
-                  {modeContext}
-                </p>
-              )}
               {/* "이어서 하기" — 전역 CommandPalette 로 연결 */}
               <div className={cn(
                 "mt-3 flex items-center justify-center",
