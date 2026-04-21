@@ -4,6 +4,7 @@ import type { StudyNotebook, StudyChatTurn, StudySource, HighlightColor, Highlig
 import { newId, HIGHLIGHT_META } from '@/types/study';
 import { CitedMarkdown } from './CitationPopover';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface Props {
   notebook: StudyNotebook;
@@ -52,7 +53,10 @@ export function StudyChat({ notebook, onChange, onPromoteToFlashcard, onStartRec
   const send = async (text?: string) => {
     const q = (text ?? input).trim();
     if (!q || streaming) return;
-    if (enabledSources.length === 0) { alert('소스를 먼저 하나 이상 활성화해주세요.'); return; }
+    if (enabledSources.length === 0) {
+      toast({ title: '소스가 필요해요', description: '자료를 하나 이상 활성화해주세요.' });
+      return;
+    }
 
     const userTurn: StudyChatTurn = { id: newId('t'), role: 'user', content: q, createdAt: Date.now() };
     const placeholderId = newId('t');

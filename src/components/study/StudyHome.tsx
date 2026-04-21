@@ -9,6 +9,7 @@ import type { StudyNotebook, StudyFolder, NotebookTemplate } from '@/types/study
 import { createEmptyNotebook, newId, countDueCards, NOTEBOOK_TEMPLATES, FOLDER_COLORS } from '@/types/study';
 import { IconPicker } from './IconPicker';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface Props {
   notebooks: StudyNotebook[];
@@ -119,7 +120,10 @@ export function StudyHome({
     if (!name) return;
     const trimmed = name.trim();
     if (!trimmed) return;
-    if (folders.some((f) => f.name === trimmed)) { alert('이미 있는 폴더 이름이에요'); return; }
+    if (folders.some((f) => f.name === trimmed)) {
+      toast({ title: '중복된 이름', description: '이미 있는 폴더 이름이에요.' });
+      return;
+    }
     onCreateFolder(trimmed);
   };
 

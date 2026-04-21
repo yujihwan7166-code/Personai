@@ -14,6 +14,7 @@ import { KeypointsLayout, MindmapLayout, GuideLayout, SummaryLayout } from './Le
 import { MindmapCanvas } from './MindmapCanvas';
 import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface Props {
   notebook: StudyNotebook;
@@ -62,7 +63,7 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
     },
   ) => {
     if (enabledSources.length === 0) {
-      alert('먼저 소스를 하나 이상 추가하고 활성화해주세요.');
+      toast({ title: '소스가 필요해요', description: '먼저 자료를 하나 이상 추가하고 활성화해주세요.' });
       return;
     }
     if (lens === 'debate' && (!expertA || !expertB)) {
@@ -100,7 +101,10 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
         }),
       });
       const data = await r.json();
-      if (!r.ok) { alert(data?.error || '생성 실패'); return; }
+      if (!r.ok) {
+        toast({ title: '생성 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
+        return;
+      }
       const newOutput: LensOutput = {
         lens, content: data.content || '', tone, level,
         generatedAt: Date.now(),
@@ -170,7 +174,9 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
         flashcardDecks: newDecks,
       });
       setActiveLens(lens);
-    } catch { alert('네트워크 오류'); }
+    } catch {
+      toast({ title: '네트워크 오류', description: '연결을 확인하고 다시 시도해주세요.', variant: 'destructive' });
+    }
     finally { setLoadingLens(null); }
   };
 

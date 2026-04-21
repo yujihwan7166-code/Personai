@@ -3,6 +3,7 @@ import { X, Check } from 'lucide-react';
 import type { StudyNotebook, StudyLens, LensOutput, StudyQuizItem } from '@/types/study';
 import { LENS_META, newId } from '@/types/study';
 import { StudyBtn } from './ui/primitives';
+import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -29,7 +30,7 @@ export function QuickStartModal({ notebook, onApply, onClose }: Props) {
 
   const run = async () => {
     if (enabledSources.length === 0) {
-      alert('활성화된 소스가 없어요.');
+      toast({ title: '소스가 없어요', description: '먼저 자료를 추가하고 활성화해주세요.' });
       return;
     }
     setRunning(true);
