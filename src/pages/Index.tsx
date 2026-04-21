@@ -1,6 +1,7 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { cn } from '@/lib/utils';
 import { notifyDone } from '@/lib/notifications';
+import { useAivsBattleState } from '@/hooks/useAivsBattleState';
 import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
@@ -168,14 +169,16 @@ const Index = () => {
   const [stakeholderSettings, setStakeholderSettings] = useState<StakeholderSettings>(DEFAULT_STAKEHOLDER_SETTINGS);
   const [simChoices, setSimChoices] = useState<{label: string; description: string}[]>([]);
   const [simPhaseIndex, setSimPhaseIndex] = useState(0);
-  // AI vs User debate state
-  const [aivsRound, setAivsRound] = useState(0); // current round (1-based when active)
-  const [aivsJudgments, setAivsJudgments] = useState<any[]>([]); // judgment history
-  const [aivsUserStance, setAivsUserStance] = useState<'pro' | 'con'>('pro');
-  const [aivsTopic, setAivsTopic] = useState('');
-  const [activeAivsBattleConfig, setActiveAivsBattleConfig] = useState<ActiveAivsBattleConfig | null>(null);
-  const [hasAivsBattleStarted, setHasAivsBattleStarted] = useState(false);
-  const [aivsBattleAutoStart, setAivsBattleAutoStart] = useState(0);
+  // AI vs User debate state — #19 useAivsBattleState 훅으로 분리 (동작 동일).
+  const {
+    aivsRound, setAivsRound,
+    aivsJudgments, setAivsJudgments,
+    aivsUserStance, setAivsUserStance,
+    aivsTopic, setAivsTopic,
+    activeAivsBattleConfig, setActiveAivsBattleConfig,
+    hasAivsBattleStarted, setHasAivsBattleStarted,
+    aivsBattleAutoStart, setAivsBattleAutoStart,
+  } = useAivsBattleState();
   const [, setStopRequested] = useState(false);
   const [collapsedRounds, setCollapsedRounds] = useState<Set<string>>(new Set());
 
