@@ -2151,11 +2151,12 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // Phase G 업그레이드: 부드러운 알약 탭을 담는 가벼운 트랙. 테두리 없이 은은한 배경.
-          'flex items-center relative p-1 rounded-full',
+          // Phase G 최종: 밑줄 탭 — 투명 bar + 하단 hairline. 가볍게.
+          'flex items-center relative px-1 pb-1.5',
+          'border-b',
           showPlayerBg
-            ? 'bg-slate-900/70 backdrop-blur-sm border border-slate-700/50'
-            : 'bg-[hsl(var(--surface-2))]/70 backdrop-blur-sm',
+            ? 'border-white/10'
+            : 'border-[hsl(var(--hairline))]',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
@@ -2303,15 +2304,22 @@ export function ExpertSelectionPanel({
                           disabled={isAiDisabled || autoAssign}
                           onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
                           className={cn(
-                            // Phase G 업그레이드: 부드러운 알약 — 메인 탭과 동일 패턴
-                            'flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors whitespace-nowrap',
+                            // Phase G 최종: 밑줄 + hover 배경. 메인 탭과 동일 리듬.
+                            'relative flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap',
                             isAiDisabled
                               ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                               : isActive
-                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/60',
+                                ? 'text-[hsl(var(--mode,var(--primary)))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/50 dark:hover:bg-slate-800/50',
                           )}>
                           {label}
+                          {isActive && !isAiDisabled && (
+                            <span
+                              aria-hidden
+                              className="absolute left-2 right-2 -bottom-[5px] h-[2.5px] rounded-full"
+                              style={{ background: 'hsl(var(--mode, var(--primary)))' }}
+                            />
+                          )}
                         </button>
                       );
                     })}
@@ -2324,12 +2332,16 @@ export function ExpertSelectionPanel({
                         <div className="relative group/more">
                           <button type="button"
                             className={cn(
-                              'flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-full transition-colors whitespace-nowrap font-medium',
+                              'relative flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md transition-colors whitespace-nowrap font-medium',
                               isMoreActive
-                                ? 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/60',
+                                ? 'text-[hsl(var(--mode,var(--primary)))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100/50 dark:hover:bg-slate-800/50',
                             )}>
                             {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
+                            {isMoreActive && (
+                              <span aria-hidden className="absolute left-2 right-2 -bottom-[5px] h-[2.5px] rounded-full"
+                                style={{ background: 'hsl(var(--mode, var(--primary)))' }} />
+                            )}
                           </button>
                           <div className="absolute left-0 top-full mt-1 bg-[hsl(var(--card))] border border-[hsl(var(--hairline))] rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
                             {moreCats.map(({ cat, label }) => (
