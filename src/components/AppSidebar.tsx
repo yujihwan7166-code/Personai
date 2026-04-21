@@ -967,12 +967,13 @@ export function AppSidebar({
               title={!isOpen ? `${item.label}${item.shortcut ? ` (${item.shortcut})` : ''}` : undefined}
               className={cn(
                 "font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center transition-colors w-full",
-                isOpen ? 'px-3 py-2 gap-2.5 text-[12px]' : 'p-2 justify-center',
+                // Phase D-3 보정: 상단 nav 컴팩트화 (py-2→1, text→11.5, 아이콘 16)
+                isOpen ? 'px-2.5 py-1.5 gap-2 text-[11.5px]' : 'p-1.5 justify-center',
                 item.highlight && 'bg-slate-50 dark:bg-slate-800/50',
                 item.active && 'bg-slate-100 dark:bg-slate-800',
               )}
             >
-              <item.icon className="w-[18px] h-[18px] shrink-0" />
+              <item.icon className="w-4 h-4 shrink-0" />
               {isOpen && (
                 <>
                   <span className="flex-1 text-left">{item.label}</span>
@@ -989,13 +990,14 @@ export function AppSidebar({
           {/* Search input removed from here — moved to conversation list header */}
         </nav>
 
-        {/* Phase D-3: 모드 섹션 — 시그니처 점 컬러 + Cmd+K 로 이동. 사이드바 펼친 상태에서만. */}
+        {/* Phase D-3 보정: 모드 섹션 — 컴팩트 가로형 (한 줄 4×2 미니 pill).
+            아래 대화 기록이 더 많은 높이를 차지하도록 상단 영역을 최대한 압축. */}
         {isOpen && (
-          <div className="shrink-0 px-2 mt-1.5">
-            <div className="px-2 pb-1 flex items-center justify-between">
-              <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">모드</span>
+          <div className="shrink-0 px-2 mt-1">
+            <div className="px-1.5 flex items-center">
+              <span className="text-[9.5px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">모드</span>
             </div>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-4 gap-0.5 mt-0.5">
               {([
                 { id: 'general',          label: '일반',   tint: '221 83% 50%' },
                 { id: 'multi',            label: '멀티',   tint: '262 83% 58%' },
@@ -1013,17 +1015,17 @@ export function AppSidebar({
                     onClick={() => onModeChange(m.id as DiscussionMode)}
                     title={`${m.label} 모드로 전환`}
                     className={cn(
-                      'group flex flex-col items-center gap-1 rounded-lg py-1.5 px-0.5 text-[10px] font-medium transition-colors',
+                      'group flex items-center gap-1 rounded-md py-1 px-1 text-[10px] font-medium transition-colors',
                       activeMain
                         ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'
                         : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-200',
                     )}
                   >
                     <span
-                      className="h-2 w-2 rounded-full shrink-0 transition-all"
+                      className="h-1.5 w-1.5 rounded-full shrink-0"
                       style={{
                         background: `hsl(${m.tint})`,
-                        boxShadow: activeMain ? `0 0 0 2px hsl(${m.tint}/0.25)` : undefined,
+                        boxShadow: activeMain ? `0 0 0 1.5px hsl(${m.tint}/0.25)` : undefined,
                       }}
                     />
                     <span className="truncate max-w-full">{m.label}</span>
@@ -1034,15 +1036,15 @@ export function AppSidebar({
           </div>
         )}
 
-        {/* ── 3. Section Divider ── */}
-        {isOpen && <div className="border-t border-slate-200 dark:border-slate-800 my-2" />}
+        {/* ── 3. Section Divider ── (Phase D-3 보정: my-2 → my-1 로 축소) */}
+        {isOpen && <div className="border-t border-slate-200 dark:border-slate-800 my-1" />}
 
         {/* ── Projects Section ── */}
         {isOpen && (
           <div className="shrink-0 px-1.5">
-            {/* Header */}
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">프로젝트</span>
+            {/* Header (Phase D-3 보정: py-1.5 → py-1) */}
+            <div className="flex items-center justify-between px-2 py-1">
+              <span className="text-[9.5px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">프로젝트</span>
               <button
                 onClick={() => { setCreatingProject(true); setNewProjectName(''); }}
                 className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
