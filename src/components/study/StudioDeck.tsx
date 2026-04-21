@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
   RefreshCw, Copy, Play, Users, FileText, Sparkles, GitBranch, Target, Map, MessagesSquare,
-  ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star,
+  ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star, Mic,
 } from 'lucide-react';
-import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType } from '@/types/study';
-import { TONE_META, LEVEL_META, newId, FLASHCARD_CARD_TYPE_META } from '@/types/study';
+import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType, QuizDeck, PodcastEpisode, PodcastLine, PodcastLength, PodcastTone, PodcastPurpose } from '@/types/study';
+import { TONE_META, LEVEL_META, newId, FLASHCARD_CARD_TYPE_META, migrateQuizDecks, PODCAST_LENGTH_META } from '@/types/study';
+import { PodcastConfigModal, type PodcastConfig } from './PodcastConfigModal';
+import { PodcastDeckView } from './PodcastDeckView';
 import { StudyBtn } from './ui/primitives';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { DEFAULT_EXPERTS } from '@/types/expert';
@@ -19,7 +21,7 @@ import { toast } from '@/hooks/use-toast';
 interface Props {
   notebook: StudyNotebook;
   onChange: (nb: StudyNotebook) => void;
-  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck' | 'quizDeck'; deckId?: string }) => void;
   /** [p.N] 뱃지 클릭 시 원본 뷰어의 해당 페이지로 스크롤. */
   onJumpToPage?: (page: number) => void;
 }
@@ -30,9 +32,18 @@ const LENSES: { id: StudyLens; label: string; icon: React.ComponentType<{ classN
   { id: 'mindmap',     label: '마인드맵',    icon: GitBranch,  hint: '개념 구조 트리' },
   { id: 'quiz',        label: '퀴즈',        icon: Target,     hint: '객관식으로 점검' },
   { id: 'flashcards',  label: '플래시카드',  icon: Layers,     hint: '앞뒷면 카드로 암기' },
+  { id: 'podcast',     label: '팟캐스트',    icon: Mic,        hint: '두 사람 대화로 듣기' },
 ];
 
 export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }: Props) {
+  // 레거시 quizItems → quizDecks 마이그레이션 (1회)
+  useEffect(() => {
+    if (notebook.quizDecks === undefined) {
+      onChange(migrateQuizDecks(notebook));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notebook.id]);
+
   const [loadingLens, setLoadingLens] = useState<StudyLens | null>(null);
   const [activeLens, setActiveLens] = useState<StudyLens | null>(null);
   const [quizSubView, setQuizSubView] = useState<'quiz' | 'wrong'>('quiz');
@@ -60,6 +71,18 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
       flashCardTypes?: FlashcardCardType[];
       /** 기존 덱을 교체할 때 그 deckId. 없으면 새 덱 생성. */
       flashReplaceDeckId?: string;
+      // 퀴즈 덱 설정
+      quizDeckName?: string;
+      quizFocus?: string;
+      /** 기존 퀴즈 덱을 교체할 때 그 deckId. 없으면 새 덱 생성. */
+      quizReplaceDeckId?: string;
+      // 팟캐스트 에피소드 설정
+      podcastLength?: PodcastLength;
+      podcastTone?: PodcastTone;
+      podcastPurpose?: PodcastPurpose | 'auto';
+      podcastFocus?: string;
+      podcastName?: string;
+      podcastReplaceId?: string;
     },
   ) => {
     if (enabledSources.length === 0) {
@@ -92,6 +115,16 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
           options.cardTypes = extraOptions.flashCardTypes;
         }
       }
+      if (lens === 'quiz' && extraOptions?.quizFocus) {
+        options.focus = extraOptions.quizFocus;
+      }
+      if (lens === 'podcast') {
+        const len = extraOptions?.podcastLength ?? 'standard';
+        options.lengthMin = PODCAST_LENGTH_META[len].minutes;
+        if (extraOptions?.podcastTone) options.podcastTone = extraOptions.podcastTone;
+        if (extraOptions?.podcastPurpose) options.purpose = extraOptions.podcastPurpose;
+        if (extraOptions?.podcastFocus) options.focus = extraOptions.podcastFocus;
+      }
       const r = await fetch('/api/study-generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,8 +144,37 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
         meta: data.structured ? { structured: data.structured } : undefined,
       };
       let newQuiz = notebook.quizItems;
+      let newQuizDecks = notebook.quizDecks ?? [];
       if (lens === 'quiz' && Array.isArray(data.structured)) {
-        newQuiz = (data.structured as Array<Omit<StudyQuizItem, 'id'>>).map((q) => ({ ...q, id: newId('q') }));
+        const items = (data.structured as Array<Omit<StudyQuizItem, 'id'>>).map((q) => ({ ...q, id: newId('q') }));
+        const replaceId = extraOptions?.quizReplaceDeckId;
+        const replacing = replaceId ? newQuizDecks.find((d) => d.id === replaceId) : undefined;
+        const deckName = (extraOptions?.quizDeckName?.trim())
+          || replacing?.name
+          || (extraOptions?.quizFocus?.trim().slice(0, 30))
+          || autoQuizName(items);
+        const deck: QuizDeck = {
+          id: replaceId ?? newId('qd'),
+          name: deckName,
+          focus: extraOptions?.quizFocus || replacing?.focus,
+          count: items.length,
+          level, tone,
+          useWeakConcepts: extraOptions?.useWeakConcepts ?? false,
+          createdAt: replacing?.createdAt ?? Date.now(),
+          updatedAt: Date.now(),
+          items,
+          // 점수/플레이 기록은 재생성 시 리셋 (내용이 달라짐)
+          playCount: undefined,
+          lastPlayedAt: undefined,
+          lastScore: undefined,
+        };
+        if (replacing) {
+          newQuizDecks = newQuizDecks.map((d) => d.id === replaceId ? deck : d);
+        } else {
+          // 최신 상단
+          newQuizDecks = [deck, ...newQuizDecks];
+        }
+        newQuiz = []; // 레거시 필드 비움
       }
       let newFlashcards = notebook.flashcards;
       let newDecks = notebook.flashcardDecks ?? [];
@@ -166,12 +228,60 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
           newDecks = [...newDecks, deck];
         }
       }
+      let newPodcasts = notebook.podcastEpisodes ?? [];
+      if (lens === 'podcast' && data.structured && typeof data.structured === 'object') {
+        const s = data.structured as {
+          purpose?: string;
+          purposeLabel?: string;
+          title?: string;
+          script?: Array<{ speaker?: string; text?: string }>;
+        };
+        const script: PodcastLine[] = Array.isArray(s.script)
+          ? s.script
+            .filter((l) => l && typeof l.text === 'string' && l.text.trim())
+            .map((l) => ({
+              speaker: (l.speaker === 'B' ? 'B' : 'A') as 'A' | 'B',
+              text: l.text!.trim(),
+            }))
+          : [];
+        if (script.length > 0) {
+          const replaceId = extraOptions?.podcastReplaceId;
+          const existing = replaceId ? newPodcasts.find((e) => e.id === replaceId) : undefined;
+          const purposeList: PodcastPurpose[] = ['exam', 'overview', 'review', 'briefing', 'deep-dive'];
+          const purpose = (purposeList as string[]).includes(s.purpose ?? '')
+            ? (s.purpose as PodcastPurpose)
+            : (extraOptions?.podcastPurpose && extraOptions.podcastPurpose !== 'auto'
+                ? extraOptions.podcastPurpose
+                : 'overview');
+          const episode: PodcastEpisode = {
+            id: replaceId ?? newId('pc'),
+            title: (extraOptions?.podcastName?.trim() || s.title?.trim() || autoPodcastTitle(script)),
+            purpose,
+            purposeLabel: s.purposeLabel?.trim() || undefined,
+            length: extraOptions?.podcastLength ?? existing?.length ?? 'standard',
+            tone: extraOptions?.podcastTone ?? existing?.tone ?? 'friendly',
+            focus: extraOptions?.podcastFocus || existing?.focus,
+            script,
+            createdAt: existing?.createdAt ?? Date.now(),
+            updatedAt: Date.now(),
+            playCount: undefined,
+            lastPlayedAt: undefined,
+          };
+          if (existing) {
+            newPodcasts = newPodcasts.map((e) => e.id === replaceId ? episode : e);
+          } else {
+            newPodcasts = [episode, ...newPodcasts];
+          }
+        }
+      }
       onChange({
         ...notebook,
         lensOutputs: { ...notebook.lensOutputs, [lens]: newOutput },
         quizItems: newQuiz,
+        quizDecks: newQuizDecks,
         flashcards: newFlashcards,
         flashcardDecks: newDecks,
+        podcastEpisodes: newPodcasts,
       });
       setActiveLens(lens);
     } catch {
@@ -190,8 +300,8 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
     const existing = notebook.lensOutputs[lens];
     // 단일 뷰: 클릭한 렌즈로 전환. 캐시 있으면 즉시 전환.
     setActiveLens(lens);
-    // 퀴즈·플래시카드는 설정 단계가 필요하므로 자동 생성하지 않음 — LensSoloView 의 "만들기" 버튼으로 진입.
-    if (!existing && lens !== 'quiz' && lens !== 'flashcards') generate(lens);
+    // 퀴즈·플래시카드·팟캐스트는 설정 단계가 필요하므로 자동 생성하지 않음.
+    if (!existing && lens !== 'quiz' && lens !== 'flashcards' && lens !== 'podcast') generate(lens);
   };
 
   const activeOutput = activeLens ? notebook.lensOutputs[activeLens] : undefined;
@@ -351,7 +461,7 @@ function LensSoloView({
   notebook: StudyNotebook;
   onChange: (nb: StudyNotebook) => void;
   onJumpToPage?: (page: number) => void;
-  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck' | 'quizDeck'; deckId?: string }) => void;
   expertA?: import('@/types/expert').Expert;
   expertB?: import('@/types/expert').Expert;
   onGenerate: (lens: StudyLens, tone?: StudyTone, level?: StudyLevel, extra?: {
@@ -361,11 +471,23 @@ function LensSoloView({
     flashFocus?: string;
     flashCardTypes?: FlashcardCardType[];
     flashReplaceDeckId?: string;
+    quizDeckName?: string;
+    quizFocus?: string;
+    quizReplaceDeckId?: string;
+    podcastLength?: PodcastLength;
+    podcastTone?: PodcastTone;
+    podcastPurpose?: PodcastPurpose | 'auto';
+    podcastFocus?: string;
+    podcastName?: string;
+    podcastReplaceId?: string;
   }) => void;
 }) {
   const [showQuizConfig, setShowQuizConfig] = useState(false);
   const [showFlashConfig, setShowFlashConfig] = useState(false);
+  const [showPodcastConfig, setShowPodcastConfig] = useState(false);
   const [flashDeckEditing, setFlashDeckEditing] = useState<FlashcardDeck | null>(null);
+  const [quizDeckEditing, setQuizDeckEditing] = useState<QuizDeck | null>(null);
+  const [podcastEditing, setPodcastEditing] = useState<PodcastEpisode | null>(null);
 
   if (loading && !output) {
     return (
@@ -380,8 +502,8 @@ function LensSoloView({
     );
   }
 
-  // 퀴즈 미생성 상태: "퀴즈 생성하기" CTA
-  if (lens === 'quiz' && !output) {
+  // 퀴즈: 덱이 하나도 없을 때 CTA
+  if (lens === 'quiz' && (notebook.quizDecks ?? []).length === 0) {
     return (
       <>
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
@@ -390,14 +512,14 @@ function LensSoloView({
           </div>
           <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 mb-1">퀴즈 만들기</p>
           <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
-            자료를 바탕으로 객관식 문제를 자동 출제합니다.<br />
-            문항 수와 난이도를 먼저 설정하세요.
+            자료에서 객관식 문제를 자동 출제합니다.<br />
+            범위·문항 수를 먼저 설정하세요.
           </p>
           <button
-            onClick={() => setShowQuizConfig(true)}
+            onClick={() => { setQuizDeckEditing(null); setShowQuizConfig(true); }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12.5px] font-semibold hover:bg-slate-800 dark:hover:bg-white transition-colors"
           >
-            <Target className="h-3.5 w-3.5" /> 퀴즈 생성하기
+            <Target className="h-3.5 w-3.5" /> 첫 퀴즈 만들기
           </button>
         </div>
         {showQuizConfig && (
@@ -405,7 +527,12 @@ function LensSoloView({
             hasWrongAnswers={notebook.wrongAnswers.length > 0}
             onSubmit={(cfg) => {
               setShowQuizConfig(false);
-              onGenerate('quiz', cfg.tone, cfg.level, { count: cfg.count, useWeakConcepts: cfg.useWeakConcepts });
+              onGenerate('quiz', cfg.tone, cfg.level, {
+                count: cfg.count,
+                useWeakConcepts: cfg.useWeakConcepts,
+                quizDeckName: cfg.name,
+                quizFocus: cfg.focus,
+              });
             }}
             onClose={() => setShowQuizConfig(false)}
           />
@@ -452,15 +579,96 @@ function LensSoloView({
     );
   }
 
+  // 팟캐스트: 에피소드가 하나도 없을 때 CTA
+  if (lens === 'podcast' && (notebook.podcastEpisodes ?? []).length === 0) {
+    return (
+      <>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-50 dark:bg-violet-950/40 mb-3">
+            <Mic className="h-5 w-5 text-violet-600" strokeWidth={1.8} />
+          </div>
+          <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 mb-1">팟캐스트 만들기</p>
+          <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
+            두 사람이 대화하며 자료를 설명해줘요.<br />
+            한 번에 시작하거나, 세부 설정을 고를 수 있어요.
+          </p>
+          <button
+            onClick={() => { setPodcastEditing(null); setShowPodcastConfig(true); }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12.5px] font-semibold hover:bg-slate-800 dark:hover:bg-white transition-colors"
+          >
+            <Mic className="h-3.5 w-3.5" /> 첫 에피소드 만들기
+          </button>
+        </div>
+        {showPodcastConfig && (
+          <PodcastConfigModal
+            onSubmit={(cfg) => {
+              setShowPodcastConfig(false);
+              onGenerate('podcast', undefined, undefined, {
+                podcastName: cfg.name,
+                podcastLength: cfg.length,
+                podcastTone: cfg.tone,
+                podcastPurpose: cfg.purpose,
+                podcastFocus: cfg.focus,
+              });
+            }}
+            onClose={() => setShowPodcastConfig(false)}
+          />
+        )}
+      </>
+    );
+  }
+
+  // 팟캐스트 덱 뷰 (output 여부 무관, 에피소드만으로 렌더)
+  if (lens === 'podcast') {
+    return (
+      <div className="px-5 py-4">
+        <PodcastDeckView
+          notebook={notebook}
+          onChange={onChange}
+          onCreateNew={() => { setPodcastEditing(null); setShowPodcastConfig(true); }}
+          onRegenerate={(ep) => { setPodcastEditing(ep); setShowPodcastConfig(true); }}
+          onJumpToPage={onJumpToPage}
+        />
+        {showPodcastConfig && (
+          <PodcastConfigModal
+            initial={podcastEditing ? {
+              name: podcastEditing.title,
+              length: podcastEditing.length,
+              tone: podcastEditing.tone,
+              purpose: podcastEditing.purpose,
+              focus: podcastEditing.focus ?? '',
+            } : undefined}
+            onSubmit={(cfg: PodcastConfig) => {
+              const editingId = podcastEditing?.id;
+              setShowPodcastConfig(false);
+              setPodcastEditing(null);
+              onGenerate('podcast', undefined, undefined, {
+                podcastName: cfg.name,
+                podcastLength: cfg.length,
+                podcastTone: cfg.tone,
+                podcastPurpose: cfg.purpose,
+                podcastFocus: cfg.focus,
+                podcastReplaceId: editingId,
+              });
+            }}
+            onClose={() => { setShowPodcastConfig(false); setPodcastEditing(null); }}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (!output) return null;
 
   return (
     <div className="px-5 py-4">
-      {lens === 'quiz' && output.meta?.structured ? (
-        <QuizPreview
-          items={notebook.quizItems}
-          onStartSession={onStartSession}
-          onRegenerate={() => setShowQuizConfig(true)}
+      {lens === 'quiz' ? (
+        <QuizDeckView
+          notebook={notebook}
+          onChange={onChange}
+          onStartSession={(deckId) => onStartSession({ filter: 'quizDeck', deckId })}
+          onCreateNew={() => { setQuizDeckEditing(null); setShowQuizConfig(true); }}
+          onRegenerate={(deck) => { setQuizDeckEditing(deck); setShowQuizConfig(true); }}
         />
       ) : lens === 'flashcards' ? (
         <FlashcardDeckView
@@ -482,13 +690,22 @@ function LensSoloView({
             onChange={onChange}
             onJumpToPage={onJumpToPage}
             onGenerateFromNode={(kind, node) => {
+              const focusLine = node.summary
+                ? `${node.label} — ${node.summary}`
+                : node.label;
               if (kind === 'quiz') {
-                onGenerate('quiz', undefined, undefined, { count: 3 });
-                // note: 현재 quiz 생성은 전체 소스 기반. "노드 범위" 는 후속 업그레이드에서 api 옵션으로 확장 예정.
+                onGenerate('quiz', undefined, undefined, {
+                  count: 3,
+                  quizDeckName: `${node.label} 퀴즈`,
+                  quizFocus: `${focusLine} 개념 중심으로`,
+                });
               } else if (kind === 'flashcard') {
-                onGenerate('flashcards', undefined, undefined, { count: 1 });
+                onGenerate('flashcards', undefined, undefined, {
+                  count: 1,
+                  flashDeckName: `${node.label}`,
+                  flashFocus: focusLine,
+                });
               }
-              void node; // 추후: scope: { nodeId, label, summary } 를 API 로 전달
             }}
           />
         </div>
@@ -504,13 +721,27 @@ function LensSoloView({
       {showQuizConfig && lens === 'quiz' && (
         <QuizConfigModal
           hasWrongAnswers={notebook.wrongAnswers.length > 0}
-          initialTone={output.tone}
-          initialLevel={output.level}
+          initialTone={quizDeckEditing?.tone ?? output.tone}
+          initialLevel={quizDeckEditing?.level ?? output.level}
+          initial={quizDeckEditing ? {
+            name: quizDeckEditing.name,
+            focus: quizDeckEditing.focus ?? '',
+            count: quizDeckEditing.count,
+            useWeakConcepts: quizDeckEditing.useWeakConcepts,
+          } : undefined}
           onSubmit={(cfg) => {
+            const editingId = quizDeckEditing?.id;
             setShowQuizConfig(false);
-            onGenerate('quiz', cfg.tone, cfg.level, { count: cfg.count, useWeakConcepts: cfg.useWeakConcepts });
+            setQuizDeckEditing(null);
+            onGenerate('quiz', cfg.tone, cfg.level, {
+              count: cfg.count,
+              useWeakConcepts: cfg.useWeakConcepts,
+              quizDeckName: cfg.name,
+              quizFocus: cfg.focus,
+              quizReplaceDeckId: editingId,
+            });
           }}
-          onClose={() => setShowQuizConfig(false)}
+          onClose={() => { setShowQuizConfig(false); setQuizDeckEditing(null); }}
         />
       )}
       {showFlashConfig && lens === 'flashcards' && (
@@ -542,18 +773,27 @@ function LensSoloView({
 
 /* ── 퀴즈 설정 모달 ── */
 function QuizConfigModal({
-  hasWrongAnswers, initialTone, initialLevel, onSubmit, onClose,
+  hasWrongAnswers, initialTone, initialLevel, initial, onSubmit, onClose,
 }: {
   hasWrongAnswers: boolean;
   initialTone?: StudyTone;
   initialLevel?: StudyLevel;
-  onSubmit: (cfg: { count: number; tone: StudyTone; level: StudyLevel; useWeakConcepts: boolean }) => void;
+  initial?: { name?: string; focus?: string; count?: number; useWeakConcepts?: boolean };
+  onSubmit: (cfg: { count: number; tone: StudyTone; level: StudyLevel; useWeakConcepts: boolean; name: string; focus: string }) => void;
   onClose: () => void;
 }) {
-  const [count, setCount] = useState<number>(5);
+  const [count, setCount] = useState<number>(initial?.count ?? 5);
   const [tone, setTone] = useState<StudyTone>(initialTone ?? 'student');
   const [level, setLevel] = useState<StudyLevel>(initialLevel ?? 'standard');
-  const [useWeak, setUseWeak] = useState<boolean>(hasWrongAnswers);
+  const [useWeak, setUseWeak] = useState<boolean>(initial?.useWeakConcepts ?? hasWrongAnswers);
+  const [name, setName] = useState<string>(initial?.name ?? '');
+  const [focus, setFocus] = useState<string>(initial?.focus ?? '');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
@@ -570,11 +810,35 @@ function QuizConfigModal({
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* 덱 이름 */}
+          <div>
+            <label className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">덱 이름 <span className="normal-case font-normal text-slate-400">(선택)</span></label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="비워두면 자동으로 이름을 지어요"
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-[12.5px] outline-none focus:border-indigo-400"
+            />
+          </div>
+
+          {/* 범위·주제 */}
+          <div>
+            <label className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">범위·주제 <span className="normal-case font-normal text-slate-400">(선택)</span></label>
+            <textarea
+              value={focus}
+              onChange={(e) => setFocus(e.target.value)}
+              placeholder='예: "2단원 소화계만" / "pp.12-20" / "비교우위 개념 중심으로"'
+              rows={2}
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-[12.5px] outline-none focus:border-indigo-400 resize-none"
+            />
+            <p className="mt-1 text-[10.5px] text-slate-400">비워두면 전체 자료에서 골고루 출제해요</p>
+          </div>
+
           <div>
             <p className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold mb-2">문항 수</p>
             <div className="flex gap-1.5">
-              {[3, 5, 10, 15].map((n) => (
+              {[3, 5, 10, 15, 20].map((n) => (
                 <button
                   key={n}
                   onClick={() => setCount(n)}
@@ -585,7 +849,7 @@ function QuizConfigModal({
                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-indigo-400',
                   )}
                 >
-                  {n}문항
+                  {n}
                 </button>
               ))}
             </div>
@@ -655,7 +919,7 @@ function QuizConfigModal({
             취소
           </button>
           <button
-            onClick={() => onSubmit({ count, tone, level, useWeakConcepts: useWeak })}
+            onClick={() => onSubmit({ count, tone, level, useWeakConcepts: useWeak, name: name.trim(), focus: focus.trim() })}
             className="flex-1 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12.5px] font-semibold hover:bg-slate-800 dark:hover:bg-white"
           >
             생성하기
@@ -716,7 +980,7 @@ function ResultItem({
   expanded: boolean;
   onToggle: () => void;
   onRegenerate: (tone?: StudyTone, level?: StudyLevel) => void;
-  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck' | 'quizDeck'; deckId?: string }) => void;
   loading: boolean;
   expertA?: import('@/types/expert').Expert;
   expertB?: import('@/types/expert').Expert;
@@ -798,7 +1062,9 @@ function ResultItem({
           )}
 
           {lens === 'quiz' && output.meta?.structured ? (
-            <QuizPreview items={notebook.quizItems} onStartSession={onStartSession} />
+            <p className="text-[12px] text-slate-500">
+              퀴즈는 상단 "퀴즈" 탭에서 덱 단위로 관리합니다.
+            </p>
           ) : lens === 'keypoints' ? (
             <KeypointsLayout content={output.content} />
           ) : lens === 'mindmap' ? (
@@ -1288,32 +1554,138 @@ function SavedCardsSection({
   );
 }
 
-function QuizPreview({
-  items, onStartSession, onRegenerate,
+/* ── 퀴즈 덱 뷰 ── */
+function QuizDeckView({
+  notebook, onChange, onStartSession, onCreateNew, onRegenerate,
 }: {
-  items: StudyQuizItem[];
-  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
-  onRegenerate?: () => void;
+  notebook: StudyNotebook;
+  onChange: (nb: StudyNotebook) => void;
+  onStartSession: (deckId: string) => void;
+  onCreateNew: () => void;
+  onRegenerate: (deck: QuizDeck) => void;
 }) {
-  if (items.length === 0) return <p className="text-[12px] text-slate-500">퀴즈가 없어요.</p>;
+  const decks = (notebook.quizDecks ?? []).slice().sort((a, b) => b.createdAt - a.createdAt);
+  const [menuOpenKey, setMenuOpenKey] = useState<string | null>(null);
+
+  const deleteDeck = (deck: QuizDeck) => {
+    if (!confirm(`"${deck.name}" 퀴즈 덱을 삭제할까요?`)) return;
+    const next = decks.filter((d) => d.id !== deck.id);
+    onChange({ ...notebook, quizDecks: next });
+  };
+
   return (
-    <div className="space-y-2">
-      <p className="text-[12px] text-slate-600 dark:text-slate-400">
-        <b className="text-slate-900 dark:text-slate-100">{items.length}문제</b>가 준비됐어요.
-      </p>
-      <StudyBtn variant="primary" size="md" onClick={onStartSession} className="w-full">
-        <Play className="h-3.5 w-3.5" /> 15분 세션 시작
-      </StudyBtn>
-      {onRegenerate && (
-        <button
-          onClick={onRegenerate}
-          className="w-full inline-flex items-center justify-center gap-1.5 text-[11.5px] text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 py-1.5"
-        >
-          <RefreshCw className="h-3 w-3" /> 다른 설정으로 새로 만들기
-        </button>
-      )}
+    <div className="space-y-3">
+      {/* 새 덱 버튼 */}
+      <button
+        onClick={onCreateNew}
+        className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 px-3 py-2 text-[12px] font-semibold text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-colors"
+      >
+        <Target className="h-3.5 w-3.5" /> 새 퀴즈 덱 만들기
+      </button>
+
+      {/* 덱 리스트 */}
+      {decks.map((deck) => {
+        const key = deck.id;
+        const score = deck.lastScore;
+        const accuracy = score && score.total > 0 ? Math.round((score.correct / score.total) * 100) : null;
+        return (
+          <div
+            key={key}
+            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5 flex items-center gap-2"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950/60 shrink-0">
+              <Target className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 truncate">
+                {deck.name}
+                {accuracy !== null && (
+                  <span
+                    className={cn(
+                      'ml-1.5 text-[10.5px] font-semibold tabular-nums',
+                      accuracy >= 80 ? 'text-emerald-600 dark:text-emerald-300'
+                        : accuracy >= 50 ? 'text-amber-600 dark:text-amber-300'
+                          : 'text-rose-600 dark:text-rose-300',
+                    )}
+                  >
+                    · {score!.correct}/{score!.total} ({accuracy}%)
+                  </span>
+                )}
+              </p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate tabular-nums">
+                {deck.count}문항
+                {deck.playCount ? ` · ${deck.playCount}회 플레이` : ''}
+                {deck.lastPlayedAt ? ` · ${timeAgo(deck.lastPlayedAt)}` : ` · ${timeAgo(deck.createdAt)}`}
+                {deck.focus && ` · ${truncate(deck.focus, 24)}`}
+              </p>
+            </div>
+
+            <button
+              onClick={() => onStartSession(deck.id)}
+              className="shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+              title={deck.playCount ? '다시 플레이' : '플레이'}
+            >
+              <Play className="h-3 w-3" /> {deck.playCount ? '다시' : '시작'}
+            </button>
+
+            <div className="relative shrink-0">
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpenKey(menuOpenKey === key ? null : key); }}
+                className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900"
+                aria-label="덱 메뉴"
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </button>
+              {menuOpenKey === key && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setMenuOpenKey(null)} />
+                  <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1 z-30">
+                    <button
+                      onClick={() => { setMenuOpenKey(null); onRegenerate(deck); }}
+                      className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[11.5px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      <RefreshCw className="h-3 w-3" /> 다시 만들기
+                    </button>
+                    <button
+                      onClick={() => { setMenuOpenKey(null); deleteDeck(deck); }}
+                      className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[11.5px] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                    >
+                      <X className="h-3 w-3" /> 덱 삭제
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+/** 자동 팟캐스트 제목: 대본 첫 줄 앞 20자 or "팟캐스트 · HH:MM". */
+function autoPodcastTitle(script: PodcastLine[]): string {
+  const first = script[0]?.text?.trim() ?? '';
+  if (first.length >= 4 && first.length <= 20) return first;
+  if (first.length > 20) return first.slice(0, 18) + '…';
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `팟캐스트 · ${hh}:${mm}`;
+}
+
+/** 자동 퀴즈 덱 이름: 첫 문항 개념 또는 "퀴즈 N문항 · HH:MM". */
+function autoQuizName(items: StudyQuizItem[]): string {
+  const concept = items[0]?.concept?.trim();
+  if (concept && concept.length <= 20) return `${concept} 퀴즈`;
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `퀴즈 ${items.length}문항 · ${hh}:${mm}`;
 }
 
 function timeAgo(ts: number): string {

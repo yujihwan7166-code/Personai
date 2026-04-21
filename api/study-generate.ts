@@ -6,7 +6,7 @@ import {
   getOpenRouterHeaders,
 } from './_lib/openrouter.js';
 
-type Lens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards';
+type Lens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast';
 type Tone = 'plain' | 'student' | 'exam' | 'interview' | 'kid';
 type Level = 'basic' | 'standard' | 'advanced';
 
@@ -158,9 +158,12 @@ ${sourceBlock}
       const weak = req.options?.weakConcepts?.length
         ? `특히 다음 취약 개념 중심으로 출제: ${req.options.weakConcepts.join(', ')}`
         : '';
+      const focus = (req.options as unknown as { focus?: string })?.focus?.trim();
+      const focusLine = focus ? `출제 범위·주제 한정: ${focus}\n위 범위를 벗어나지 마세요.` : '';
       return {
         system: '당신은 공부 도우미입니다. 객관식 퀴즈를 JSON으로 생성합니다.',
         user: `${common}
+${focusLine}
 ${weak}
 위 소스로 객관식 문제 ${count}개를 생성해 주세요.
 반드시 아래 JSON 배열 형식만 출력(코드블록·주석·부가 텍스트 금지):
@@ -237,6 +240,54 @@ ${typeGuide}
 ]`,
       };
     }
+    case 'podcast': {
+      const opts = (req.options as unknown as {
+        lengthMin?: number; purpose?: string; podcastTone?: string; focus?: string;
+      }) ?? {};
+      const minutes = opts.lengthMin ?? 5;
+      const targetWords = Math.round(minutes * 150);
+      const purpose = opts.purpose && opts.purpose !== 'auto' ? opts.purpose : 'auto';
+      const pTone = opts.podcastTone ?? 'friendly';
+      const focusLine = opts.focus?.trim() ? `집중 범위: ${opts.focus.trim()}` : '';
+      return {
+        system: '당신은 두 호스트의 팟캐스트 대본을 작성합니다. 반드시 JSON 만 출력합니다.',
+        user: `${common}
+${focusLine}
+
+자료 성격을 먼저 살펴보고, purpose 필드에 다음 중 하나를 고르세요:
+- exam (시험 자료 · 출제 포인트 위주)
+- overview (균형 잡힌 입문 설명)
+- review (강의 필기 복습)
+- briefing (짧은 기사·뉴스 요점)
+- deep-dive (배경·응용까지 심화)
+${purpose !== 'auto' ? `단, 사용자가 "${purpose}"를 지정했으니 이를 우선 사용하세요.` : ''}
+
+두 호스트의 대화 대본을 작성:
+- 호스트 A: 호기심 많은 청취자 — 짧게 질문·요약·되짚기
+- 호스트 B: 분야 전문가 — 깊게 설명·비유·예시
+
+목표 길이: 약 ${minutes}분 (${targetWords}단어 내외)
+톤: ${pTone} (friendly=친근, serious=진지, lecture=강의형)
+
+규칙:
+- 인사/자기소개는 1턴 이내로 짧게, 바로 본론.
+- 자료에 없는 사실은 절대 넣지 말 것.
+- 중요 개념 언급 시 원본 페이지가 있으면 [p.N] 표기.
+- 마지막에 30초 요점 정리 1-2턴.
+- 자료가 빈약하면 억지로 늘리지 말고 짧게 마무리.
+
+다음 JSON 스키마만 출력 (코드블록 금지, 부가 텍스트 금지):
+{
+  "purpose": "exam|overview|review|briefing|deep-dive",
+  "purposeLabel": "시험 대비",
+  "title": "에피소드 제목 (20자 이내)",
+  "script": [
+    {"speaker":"A","text":"..."},
+    {"speaker":"B","text":"..."}
+  ]
+}`,
+      };
+    }
     case 'debate': {
       const a = req.options?.expertA ?? { name: '전문가 A' };
       const b = req.options?.expertB ?? { name: '전문가 B' };
@@ -288,7 +339,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ],
         stream: false,
         temperature: body.lens === 'debate' ? 0.85 : 0.4,
-        max_tokens: body.lens === 'quiz' ? 2500 : 3500,
+        max_tokens: body.lens === 'quiz' ? 2500 : body.lens === 'podcast' ? 5000 : 3500,
       }),
     });
     if (!response.ok) {
@@ -311,6 +362,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           } catch {
             /* noop */
           }
+        }
+      }
+      return res.status(200).json({ content, structured: parsed });
+    }
+
+    if (body.lens === 'podcast') {
+      let parsed: unknown = null;
+      try {
+        const trimmed = content.replace(/^```json\s*|\s*```$/g, '').trim();
+        parsed = JSON.parse(trimmed);
+      } catch {
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { parsed = JSON.parse(match[0]); } catch { /* noop */ }
         }
       }
       return res.status(200).json({ content, structured: parsed });

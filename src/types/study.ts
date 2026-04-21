@@ -26,7 +26,7 @@ export interface StudySource {
   ocrEnabled?: boolean;
 }
 
-export type StudyLens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards';
+export type StudyLens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast';
 export type StudyTone = 'plain' | 'student' | 'exam' | 'interview' | 'kid';
 export type StudyLevel = 'basic' | 'standard' | 'advanced';
 
@@ -46,6 +46,74 @@ export interface StudyQuizItem {
   answerIndex: number;
   explanation: string;
   concept?: string;
+}
+
+/* ── 팟캐스트 ── */
+export type PodcastPurpose = 'exam' | 'overview' | 'review' | 'briefing' | 'deep-dive';
+export type PodcastLength = 'short' | 'standard' | 'long'; // 3 / 5 / 10 분
+export type PodcastTone = 'friendly' | 'serious' | 'lecture';
+
+export interface PodcastLine {
+  speaker: 'A' | 'B';
+  text: string;
+  /** TTS 합성 뒤의 누적 시작 오프셋(초). 자막 싱크용. */
+  startAt?: number;
+}
+
+export interface PodcastEpisode {
+  id: string;
+  title: string;
+  purpose: PodcastPurpose;
+  purposeLabel?: string;
+  length: PodcastLength;
+  tone: PodcastTone;
+  focus?: string;
+  script: PodcastLine[];
+  /** 서버 TTS 로 생성된 통합 mp3 블롭 키 (IndexedDB). Phase B 전용, 없으면 브라우저 TTS 로 재생. */
+  audioBlobRef?: string;
+  durationSec?: number;
+  createdAt: number;
+  updatedAt: number;
+  lastPlayedAt?: number;
+  playCount?: number;
+}
+
+export const PODCAST_PURPOSE_META: Record<PodcastPurpose | 'auto', { label: string; hint: string }> = {
+  exam:       { label: '시험 대비', hint: '출제 포인트·틀리기 쉬운 지점' },
+  overview:   { label: '개요',       hint: '균형 잡힌 입문 설명' },
+  review:     { label: '복습',       hint: '강의 구조 재강조' },
+  briefing:   { label: '브리핑',     hint: '짧은 요점 전달' },
+  'deep-dive':{ label: '심화',       hint: '배경·응용까지 깊이' },
+  auto:       { label: '자동',       hint: '자료에 맞춰 선택' },
+};
+
+export const PODCAST_LENGTH_META: Record<PodcastLength, { label: string; minutes: number }> = {
+  short:    { label: '짧게 · 3분',  minutes: 3 },
+  standard: { label: '표준 · 5분',  minutes: 5 },
+  long:     { label: '깊게 · 10분', minutes: 10 },
+};
+
+export const PODCAST_TONE_META: Record<PodcastTone, string> = {
+  friendly: '친근한',
+  serious:  '진지한',
+  lecture:  '강의형',
+};
+
+export interface QuizDeck {
+  id: string;
+  name: string;
+  /** 사용자가 입력한 자유 범위/주제. */
+  focus?: string;
+  count: number;
+  level: StudyLevel;
+  tone: StudyTone;
+  useWeakConcepts: boolean;
+  createdAt: number;
+  updatedAt: number;
+  items: StudyQuizItem[];
+  lastPlayedAt?: number;
+  lastScore?: { correct: number; total: number };
+  playCount?: number;
 }
 
 export type FlashcardCardType = 'definition' | 'example' | 'comparison' | 'mechanism';
@@ -157,7 +225,12 @@ export interface StudyNotebook {
   icon: string;
   sources: StudySource[];
   lensOutputs: Partial<Record<StudyLens, LensOutput>>;
+  /** 레거시 단일 퀴즈 배열. 마이그레이션 이후 빈 배열. 신규는 quizDecks 사용. */
   quizItems: StudyQuizItem[];
+  /** 퀴즈 덱 리스트. 각 덱이 items 를 가진다. */
+  quizDecks?: QuizDeck[];
+  /** 팟캐스트 에피소드 리스트. */
+  podcastEpisodes?: PodcastEpisode[];
   flashcards: Flashcard[];
   /** 플래시카드 덱 메타. 없으면 덱 없는(= 기본) 카드들만 있는 상태. */
   flashcardDecks?: FlashcardDeck[];
@@ -393,6 +466,7 @@ export const LENS_META: Record<StudyLens, { label: string; icon: string; tintCla
   guide: { label: '학습 가이드', icon: '🗺️', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Map' },
   debate: { label: '2인 토론', icon: '💬', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'MessagesSquare' },
   flashcards: { label: '플래시카드', icon: '🃏', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Layers' },
+  podcast: { label: '팟캐스트', icon: '🎙️', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Mic' },
 };
 
 export const TONE_META: Record<StudyTone, string> = {
@@ -408,6 +482,27 @@ export const LEVEL_META: Record<StudyLevel, string> = {
   standard: '표준',
   advanced: '심화',
 };
+
+/** 레거시 quizItems → quizDecks 1회성 마이그레이션. 변경 시 새 객체 반환, 변경 없으면 동일 참조. */
+export function migrateQuizDecks(nb: StudyNotebook): StudyNotebook {
+  if (nb.quizDecks !== undefined) return nb;
+  if (!nb.quizItems || nb.quizItems.length === 0) {
+    return { ...nb, quizDecks: [] };
+  }
+  const now = Date.now();
+  const deck: QuizDeck = {
+    id: newId('qd'),
+    name: '퀴즈 (이전)',
+    count: nb.quizItems.length,
+    level: 'standard',
+    tone: 'student',
+    useWeakConcepts: false,
+    createdAt: now,
+    updatedAt: now,
+    items: nb.quizItems,
+  };
+  return { ...nb, quizDecks: [deck], quizItems: [] };
+}
 
 export function countDueCards(nb: StudyNotebook, now = Date.now()): number {
   return nb.flashcards.filter((c) => c.dueAt <= now).length;

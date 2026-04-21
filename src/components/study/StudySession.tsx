@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { X, Check, Star } from 'lucide-react';
 import type { StudyNotebook, Flashcard, StudyQuizItem, WrongAnswer } from '@/types/study';
 import { newId } from '@/types/study';
@@ -10,9 +10,9 @@ interface Props {
   onChange: (nb: StudyNotebook) => void;
   onClose: () => void;
   onSessionComplete: () => void;
-  /** 'saved' = 저장한 카드만, 'deck' = 특정 덱 카드만, 없으면 전체. */
-  filter?: 'saved' | 'deck';
-  /** filter='deck' 일 때 사용할 덱 id. */
+  /** 'saved' = 저장한 카드만, 'deck' = 특정 플래시 덱, 'quizDeck' = 특정 퀴즈 덱, 없으면 전체. */
+  filter?: 'saved' | 'deck' | 'quizDeck';
+  /** filter='deck'/'quizDeck' 일 때의 덱 id. */
   deckId?: string;
 }
 
@@ -22,6 +22,7 @@ export function StudySession({ notebook, onChange, onClose, onSessionComplete, f
   const now = Date.now();
   const dueCards = useMemo(
     () => {
+      if (filter === 'quizDeck') return [];
       const scoped = notebook.flashcards.filter((c) => {
         if (filter === 'saved') return c.saved === true;
         if (filter === 'deck') return c.deckId === deckId;
@@ -38,8 +39,16 @@ export function StudySession({ notebook, onChange, onClose, onSessionComplete, f
     [notebook.wrongAnswers, filter],
   );
   const quizItems = useMemo(
-    () => (filter ? [] : notebook.quizItems.slice(0, 5)),
-    [notebook.quizItems, filter],
+    () => {
+      if (filter === 'quizDeck') {
+        const deck = (notebook.quizDecks ?? []).find((d) => d.id === deckId);
+        return deck ? deck.items : [];
+      }
+      if (filter) return [];
+      // 레거시: 덱 미채택 시 quizItems 사용. 마이그레이션 후엔 빈 배열.
+      return notebook.quizItems.slice(0, 5);
+    },
+    [notebook.quizItems, notebook.quizDecks, filter, deckId],
   );
 
   const [phase, setPhase] = useState<Phase>(() => {
@@ -189,6 +198,25 @@ export function StudySession({ notebook, onChange, onClose, onSessionComplete, f
       else setPhase('done');
     }
   };
+
+  // 퀴즈 덱 세션 완료 시 덱 통계 업데이트 (1회)
+  const statsSavedRef = useRef(false);
+  useEffect(() => {
+    if (phase !== 'done') return;
+    if (filter !== 'quizDeck' || !deckId) return;
+    if (statsSavedRef.current) return;
+    if (totalAnswered === 0) return;
+    statsSavedRef.current = true;
+    const decks = notebook.quizDecks ?? [];
+    const nextDecks = decks.map((d) => d.id === deckId ? {
+      ...d,
+      lastPlayedAt: Date.now(),
+      playCount: (d.playCount ?? 0) + 1,
+      lastScore: { correct: correctCount, total: totalAnswered },
+      updatedAt: Date.now(),
+    } : d);
+    onChange({ ...notebook, quizDecks: nextDecks });
+  }, [phase, filter, deckId, totalAnswered, correctCount, notebook, onChange]);
 
   const bg = 'bg-slate-900';
 
