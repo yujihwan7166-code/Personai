@@ -315,7 +315,21 @@ export function AppSidebar({
   discussionMode, onModeChange, isDiscussing, onNewDiscussion,
   favoriteIds = [], onSelectExpert, onSidebarToggle, onStartChat,
 }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
+  // Phase B 리모델링: 넓은 화면(lg+)에서 기본 열림, 모바일/좁은 화면은 접힘.
+  // 기존 사용자 설정이 있으면 그대로 존중.
+  const [isOpen, setIsOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const saved = localStorage.getItem('ancano-sidebar-open');
+      if (saved === 'true') return true;
+      if (saved === 'false') return false;
+    } catch { /* noop */ }
+    return window.matchMedia('(min-width: 1280px)').matches;
+  });
+  // 사용자 토글을 persist (리모델링 이후 경험 일관성)
+  useEffect(() => {
+    try { localStorage.setItem('ancano-sidebar-open', isOpen ? 'true' : 'false'); } catch { /* noop */ }
+  }, [isOpen]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchVisible, setSearchVisible] = useState(false);
   const [historyRecords, setHistoryRecords] = useState<DiscussionRecord[]>(() => getDiscussionHistory());

@@ -46,6 +46,7 @@ const CHAT_URL = '/api/chat';
 const GENERAL_IMAGE_URL = '/api/general-image';
 const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
+const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
 const LazyGamePlayer = lazy(() => import('@/components/GamePlayer').then((module) => ({ default: module.GamePlayer })));
 const LazyQuestionInput = lazy(() => import('@/components/QuestionInput').then((module) => ({ default: module.QuestionInput })));
@@ -4393,9 +4394,36 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
   // 공부 홈에선 앱 사이드바 유지, 노트북 진입 시에만 숨김
   const hideAppSidebar = getMainMode(discussionMode) === 'study_main' && studyInNotebook;
 
+  // MainMode → 기본 DiscussionMode 매핑 (Cmd+K 에서 모드 이동 시 사용)
+  const mainToDiscussion = (m: import('@/types/expert').MainMode): DiscussionMode => {
+    switch (m) {
+      case 'general':          return 'general';
+      case 'multi':            return 'multi';
+      case 'debate':           return 'standard';
+      case 'premium_main':     return 'expert';
+      case 'assistant':        return 'assistant';
+      case 'player':           return 'player';
+      case 'brainstorm_main':  return 'brainstorm';
+      case 'stakeholder_main': return 'stakeholder';
+      case 'research_main':    return 'research';
+      case 'translate_main':   return 'translate';
+      case 'convert_main':     return 'convert';
+      case 'study_main':       return 'study';
+    }
+  };
+
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]">
+        {/* 전역 커맨드 팔레트 (Cmd+K / Ctrl+K) — 어디서든 호출 가능 */}
+        <Suspense fallback={null}>
+          <LazyCommandPalette
+            currentMode={getMainMode(discussionMode)}
+            onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
+            onSelectHistory={(rec) => loadHistory(rec)}
+            onNewChat={handleNewDiscussion}
+          />
+        </Suspense>
         {!hideAppSidebar && <Suspense fallback={null}>
           <LazyAppSidebar
             experts={experts}
