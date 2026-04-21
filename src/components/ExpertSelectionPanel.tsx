@@ -2129,22 +2129,23 @@ export function ExpertSelectionPanel({
                         : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
                           : ''}
         </h2>
+        {/* Phase G 최종화: 부제를 보조 한 줄로 유지하되 사이즈·여백 축소 (탭 스트립과의 간격 타이트) */}
         <p key={`sub-${mainMode}`} className={cn(
-          "mt-1 text-[13px] text-muted-foreground",
+          "mt-0.5 text-[12px] text-muted-foreground/80",
           !skipHeroAnimation && "animate-in fade-in duration-700"
         )}>
-          {mainMode === 'general' ? 'GPT, Claude, Gemini 등 원하는 AI를 골라 자유롭게 대화하세요'
-            : mainMode === 'multi' ? '여러 AI의 답변을 비교하고 종합 결론을 받아보세요'
+          {mainMode === 'general' ? 'GPT · Claude · Gemini — 원하는 AI 를 골라 자유롭게 대화'
+            : mainMode === 'multi' ? '여러 AI의 답변을 비교하고 종합 결론으로'
               : mainMode === 'debate' ? (
-                  discussionMode === 'brainstorm' ? '자유로운 발산으로 새로운 관점을 발견합니다'
-                  : discussionMode === 'freetalk' ? '정해진 형식 없이 AI끼리 토론합니다'
-                  : '찬성과 반대, 다양한 시각으로 깊이 있는 분석을 제공합니다'
+                  discussionMode === 'brainstorm' ? '자유 발산으로 새로운 관점 발견'
+                  : discussionMode === 'freetalk' ? '정해진 형식 없이 AI들의 자유 토론'
+                  : '찬성·반대, 다각도 깊이 있는 분석'
                 )
-                : mainMode === 'stakeholder_main' ? '다양한 이해관계자 시점에서 의사결정을 시뮬레이션합니다'
-                  : mainMode === 'brainstorm_main' ? '여러 AI가 아이디어를 제안하고 구조화합니다'
-                    : mainMode === 'premium_main' ? '법률·의료·금융 등 전문 분야 AI 상담'
-                      : mainMode === 'assistant' ? '문서 작성, 번역, 요약 등 실무를 도와줍니다'
-                        : mainMode === 'player' ? '퀴즈, 스토리, 미니게임으로 AI와 놀아보세요'
+                : mainMode === 'stakeholder_main' ? '이해관계자 시점으로 의사결정 시뮬레이션'
+                  : mainMode === 'brainstorm_main' ? 'AI들이 아이디어를 제안·구조화'
+                    : mainMode === 'premium_main' ? '법률·의료·금융 등 전문 분야 자문'
+                      : mainMode === 'assistant' ? '문서 작성·번역·요약 실무 도우미'
+                        : mainMode === 'player' ? '퀴즈·스토리·미니게임으로 놀기'
                           : ''}
         </p>
 
@@ -2161,20 +2162,19 @@ export function ExpertSelectionPanel({
       </div>
 
       {/* Main Mode Tabs — 플레이어/공부 모드에서는 숨김.
-          Phase G 마지막: 히어로와 탭 사이 mt-5, 탭과 아래 블록 사이 mb-3.
-          탭 그룹을 주변보다 살짝 다른 톤(surface-2)으로 감싸서 '여기가 탭 그룹' 인지 명확. */}
+          Phase G 최종화: 탭 스트립과 아래 봇 카드가 하나의 흐름처럼 보이도록 통합.
+            · 탭 스트립 배경 제거 → 투명, 하단 여백도 축소 (mb-2)
+            · 탭 그룹 max-w-[640px] 로 중심감 유지
+            · 히어로와의 mt-6 여유 */}
       <div className={cn(
-        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden mt-5 mb-3",
+        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden mt-6 mb-2",
         isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mt-0 mb-0' : 'max-h-32 opacity-100',
         isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // 탭 스트립 컨테이너 — 옅은 배경 + rounded 로 그룹 경계 암시.
-          'flex items-center relative gap-1 rounded-xl p-1',
-          showPlayerBg
-            ? 'bg-slate-900/50 border border-slate-700/40'
-            : 'bg-[hsl(var(--surface-2))]/60 border border-[hsl(var(--hairline))]/50',
+          'flex items-center relative gap-0.5 max-w-[640px] px-1',
+          showPlayerBg && 'rounded-xl p-1 bg-slate-900/50 border border-slate-700/40',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (

@@ -4431,10 +4431,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         className={cn(
           rootModeClass,
           "relative h-screen flex w-full bg-[#f7f7f8] dark:bg-[#0f1117]",
-          // 모드 시그니처 컬러 radial mesh — 아주 은은하게 (opacity 6~10%)
+          // 모드 시그니처 컬러 radial mesh — 인지 가능 수준으로 상향 (16% 라이트 / 22% 다크).
+          // 메인 radial 과 양쪽 side accent 2단으로 겹쳐 더 풍부한 분위기.
           "before:content-[''] before:pointer-events-none before:fixed before:inset-0 before:z-0",
-          "before:bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,hsl(var(--mode,var(--primary))/0.09),transparent_60%)]",
-          "dark:before:bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,hsl(var(--mode,var(--primary))/0.14),transparent_60%)]",
+          "before:bg-[radial-gradient(ellipse_90%_55%_at_50%_-8%,hsl(var(--mode,var(--primary))/0.16),transparent_65%),radial-gradient(ellipse_40%_60%_at_95%_40%,hsl(var(--mode,var(--primary))/0.07),transparent_70%)]",
+          "dark:before:bg-[radial-gradient(ellipse_90%_55%_at_50%_-8%,hsl(var(--mode,var(--primary))/0.22),transparent_65%),radial-gradient(ellipse_40%_60%_at_95%_40%,hsl(var(--mode,var(--primary))/0.10),transparent_70%)]",
           "before:transition-[background] before:duration-700",
         )}
       >
