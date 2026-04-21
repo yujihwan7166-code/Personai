@@ -125,33 +125,6 @@ const debateSubIcons: Record<string, React.ReactNode> = {
 };
 
 // ── 찬반 토론 진영 칩 (1v1/2v2 공용) ──
-/** Phase H-9: 봇 카드 우상단에 붙는 미니 인디케이터.
- *  빠른 모델이면 ⚡ 아이콘, 추론 강하면 🧠 아이콘 등. 카드가 워낙 작아 1개만. */
-function BotSpeedBadge({ abilities, isFast }: {
-  abilities: { coding: number; creativity: number; reasoning: number; math: number; speed: number };
-  isFast: boolean;
-}) {
-  // 우선순위: 빠른 모델(FAST_MODEL_IDS) > 추론 90+ > 수학 90+ > 창의 90+ > 코딩 90+
-  // 하나만 노출 (정보 과부하 방지).
-  let icon: string | null = null;
-  let title = '';
-  if (isFast || abilities.speed >= 90) { icon = '⚡'; title = '빠른 응답'; }
-  else if (abilities.reasoning >= 92) { icon = '🧠'; title = '추론 강함'; }
-  else if (abilities.math >= 92) { icon = '🧮'; title = '수학 강함'; }
-  else if (abilities.creativity >= 92) { icon = '✨'; title = '창의적'; }
-  else if (abilities.coding >= 92) { icon = '💻'; title = '코딩 강함'; }
-  if (!icon) return null;
-  return (
-    <span
-      className="absolute top-1 right-1 text-[9px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none select-none"
-      aria-label={title}
-      title={title}
-    >
-      {icon}
-    </span>
-  );
-}
-
 function SideChip({
   tone,
   parts,
@@ -2484,10 +2457,6 @@ export function ExpertSelectionPanel({
                       {favoriteSet.has(expert.id) ? '★' : '☆'}
                     </span>
                     <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
-                    {/* Phase H-9: 속도·특기 인디케이터 — AI 모델이면서 abilities 있는 경우에만 */}
-                    {!isDisabled && !isProcon && !isSelected && expert.abilities && expert.category === 'ai' && (
-                      <BotSpeedBadge abilities={expert.abilities} isFast={FAST_MODEL_IDS.includes(expert.id as typeof FAST_MODEL_IDS[number])} />
-                    )}
                     <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
                       isDisabled ? 'text-slate-300 dark:text-slate-600'
                         : isProcon && isPro ? 'text-blue-600 font-semibold'
