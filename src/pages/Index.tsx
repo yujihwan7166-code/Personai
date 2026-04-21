@@ -132,6 +132,27 @@ const Index = () => {
     }
     wasDiscussingRef.current = isDiscussing;
   }, [isDiscussing]);
+
+  // #14 공유 링크 로드 — URL 에 #s= 가 있으면 읽기 전용 스냅샷 표시.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { readShareFromUrl } = await import('@/lib/shareLink');
+        const snap = await readShareFromUrl();
+        if (!snap || cancelled) return;
+        setCurrentQuestion(snap.q);
+        setCurrentQuestionDisplay(snap.q);
+        setMessages(snap.msgs.map((m, i) => ({
+          id: `share-${i}`,
+          expertId: m.r === 'user' ? '__user__' : `shared-${m.n}`,
+          content: m.c,
+          isStreaming: false,
+        })));
+      } catch { /* noop */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [currentQuestionDisplay, setCurrentQuestionDisplay] = useState('');
   const [copiedAll, setCopiedAll] = useState(false);
@@ -271,6 +292,53 @@ const Index = () => {
     navigator.clipboard.writeText(`질문: ${currentQuestionDisplay || currentQuestion}\n\n${text}`);
     setCopiedAll(true);
     setTimeout(() => setCopiedAll(false), 2000);
+  };
+
+  /** 현재 대화를 txt 파일로 다운로드. */
+  const downloadAllResults = () => {
+    const text = messages.filter((m) => m.expertId !== '__round__').map((msg) => {
+      const expert = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT].find((e) => e.id === msg.expertId);
+      return `[${expert?.nameKo || ''}]\n${msg.content}`;
+    }).join('\n\n---\n\n');
+    const full = `질문: ${currentQuestionDisplay || currentQuestion}\n\n${text}`;
+    const blob = new Blob([full], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const d = new Date();
+    const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+    const base = (currentQuestionDisplay || currentQuestion || 'chat').slice(0, 40).replace(/[\\/:*?"<>|]/g, '-').trim();
+    a.download = `${base}-${stamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  /** #14 대화 공유 링크 생성 → 클립보드 복사. */
+  const handleShareChat = async () => {
+    try {
+      const { buildSnapshot, buildShareUrl, approxUrlSize } = await import('@/lib/shareLink');
+      const snap = buildSnapshot({
+        question: currentQuestionDisplay || currentQuestion || '대화',
+        messages,
+        nameOf: (id) => {
+          const e = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT].find((ex) => ex.id === id);
+          return e?.nameKo || e?.name || id;
+        },
+        mode: discussionMode,
+      });
+      const url = await buildShareUrl(snap);
+      const kb = approxUrlSize(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        alert(`공유 링크 복사됨 (${kb}KB)\n\nURL fragment 에 대화 내용이 압축되어 담겨 있어요. 누구나 링크만으로 읽기 전용으로 볼 수 있어요.`);
+      } catch {
+        window.prompt('아래 링크를 복사해 공유하세요:', url);
+      }
+    } catch (e) {
+      alert(`공유 링크 생성 실패: ${e instanceof Error ? e.message : String(e)}`);
+    }
   };
 
   const handleLike = (messageId: string) => {
@@ -4470,6 +4538,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onNewChat={handleNewDiscussion}
             onCopyChat={messages.length > 0 ? copyAllResults : undefined}
             onDownloadChat={messages.length > 0 ? downloadAllResults : undefined}
+            onShareChat={messages.length > 0 ? handleShareChat : undefined}
             hasActiveChat={messages.length > 0}
             currentTheme={typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
             onToggleTheme={() => {
