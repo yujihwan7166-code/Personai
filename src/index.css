@@ -665,3 +665,22 @@
     100% { box-shadow: 0 0 16px rgba(244,63,94,0.6), 0 0 32px rgba(244,63,94,0.2); }
   }
 }
+
+/* #13 접근성 — 모션 축소 환경 존중. framer-motion/애니메이션 전반 숨통 조이기. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* #13 접근성 — 전역 포커스 링 일관화. 토큰 기반 ring. */
+*:focus-visible {
+  outline: 2px solid hsl(var(--focus-ring, 217 91% 60%));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
