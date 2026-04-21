@@ -13,6 +13,7 @@ import {
   MessageCircle, GitMerge, Users, Shield, Sparkles, Swords, Wrench, Gamepad2,
   FlaskConical, Globe, FileBox, BookOpen,
   History, ArrowRight, Search,
+  Download, Copy, Share2, Settings, Moon, Sun, Trash2,
 } from 'lucide-react';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import { getDiscussionHistory, type DiscussionRecord } from '@/lib/discussionHistoryStore';
@@ -58,6 +59,20 @@ export interface CommandPaletteProps {
   onSelectHistory?: (record: DiscussionRecord) => void;
   /** 새 대화 시작 콜백. */
   onNewChat?: () => void;
+  /** 대화를 마크다운으로 클립보드 복사 (현재 대화 있어야 활성). */
+  onCopyChat?: () => void;
+  /** 대화를 마크다운 파일로 다운로드. */
+  onDownloadChat?: () => void;
+  /** 대화 공유 URL 생성(or 복사) — 아직 구현 전이면 미제공. */
+  onShareChat?: () => void;
+  /** 테마 토글 (light/dark). */
+  onToggleTheme?: () => void;
+  /** 설정 열기. */
+  onOpenSettings?: () => void;
+  /** 현재 대화 내용 있음 여부 — export/share 활성 여부 계산용. */
+  hasActiveChat?: boolean;
+  /** 현재 테마 ('light' | 'dark' | 'system'). */
+  currentTheme?: 'light' | 'dark' | 'system';
 }
 
 export function CommandPalette({
@@ -65,6 +80,13 @@ export function CommandPalette({
   onSelectMode,
   onSelectHistory,
   onNewChat,
+  onCopyChat,
+  onDownloadChat,
+  onShareChat,
+  onToggleTheme,
+  onOpenSettings,
+  hasActiveChat,
+  currentTheme,
 }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const [history, setHistory] = useState<DiscussionRecord[]>([]);
@@ -147,6 +169,76 @@ export function CommandPalette({
               <span className="flex-1">새 대화 시작</span>
               <ArrowRight className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))] opacity-0 group-aria-selected:opacity-100" />
             </Command.Item>
+
+            {hasActiveChat && onCopyChat && (
+              <Command.Item
+                value="대화 복사 clipboard copy markdown"
+                onSelect={() => run(onCopyChat)}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer aria-selected:bg-[hsl(var(--accent))] text-[13px]"
+              >
+                <div className="h-7 w-7 rounded-md bg-[hsl(var(--surface-2))] text-[hsl(var(--muted-foreground))] flex items-center justify-center">
+                  <Copy className="h-3.5 w-3.5" />
+                </div>
+                <span className="flex-1">현재 대화 복사 (Markdown)</span>
+                <ArrowRight className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))] opacity-0 group-aria-selected:opacity-100" />
+              </Command.Item>
+            )}
+
+            {hasActiveChat && onDownloadChat && (
+              <Command.Item
+                value="대화 내보내기 다운로드 download markdown export"
+                onSelect={() => run(onDownloadChat)}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer aria-selected:bg-[hsl(var(--accent))] text-[13px]"
+              >
+                <div className="h-7 w-7 rounded-md bg-[hsl(var(--surface-2))] text-[hsl(var(--muted-foreground))] flex items-center justify-center">
+                  <Download className="h-3.5 w-3.5" />
+                </div>
+                <span className="flex-1">대화 Markdown 으로 내보내기</span>
+                <ArrowRight className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))] opacity-0 group-aria-selected:opacity-100" />
+              </Command.Item>
+            )}
+
+            {hasActiveChat && onShareChat && (
+              <Command.Item
+                value="대화 공유 share link url"
+                onSelect={() => run(onShareChat)}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer aria-selected:bg-[hsl(var(--accent))] text-[13px]"
+              >
+                <div className="h-7 w-7 rounded-md bg-[hsl(var(--surface-2))] text-[hsl(var(--muted-foreground))] flex items-center justify-center">
+                  <Share2 className="h-3.5 w-3.5" />
+                </div>
+                <span className="flex-1">대화 링크 공유</span>
+                <ArrowRight className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))] opacity-0 group-aria-selected:opacity-100" />
+              </Command.Item>
+            )}
+
+            {onToggleTheme && (
+              <Command.Item
+                value="테마 전환 다크 라이트 theme toggle dark light"
+                onSelect={() => run(onToggleTheme)}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer aria-selected:bg-[hsl(var(--accent))] text-[13px]"
+              >
+                <div className="h-7 w-7 rounded-md bg-[hsl(var(--surface-2))] text-[hsl(var(--muted-foreground))] flex items-center justify-center">
+                  {currentTheme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                </div>
+                <span className="flex-1">테마 {currentTheme === 'dark' ? '라이트' : '다크'} 모드로</span>
+                <ArrowRight className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))] opacity-0 group-aria-selected:opacity-100" />
+              </Command.Item>
+            )}
+
+            {onOpenSettings && (
+              <Command.Item
+                value="설정 preferences config"
+                onSelect={() => run(onOpenSettings)}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer aria-selected:bg-[hsl(var(--accent))] text-[13px]"
+              >
+                <div className="h-7 w-7 rounded-md bg-[hsl(var(--surface-2))] text-[hsl(var(--muted-foreground))] flex items-center justify-center">
+                  <Settings className="h-3.5 w-3.5" />
+                </div>
+                <span className="flex-1">설정 열기</span>
+                <ArrowRight className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))] opacity-0 group-aria-selected:opacity-100" />
+              </Command.Item>
+            )}
           </Command.Group>
 
           {/* ── 모드 ── */}
