@@ -2079,8 +2079,23 @@ export function ExpertSelectionPanel({
         "fixed inset-0 bg-slate-950 pointer-events-none transition-opacity duration-700 ease-out z-10",
         showPlayerBg ? 'opacity-100' : 'opacity-0'
       )} />
-      {/* Hero — 모드 전환 시 부드럽게 페이드 */}
+      {/* Hero — 리모델링 Phase C: 개인화 인사 + 컨텍스트 서브 카피.
+          모드별 서브 아이덴티티(mode-*) 를 컨테이너에 부여해서 후속 요소가 --mode 변수를 상속받도록 함. */}
       <div className={cn(
+        `mode-${({
+          general: 'general',
+          multi: 'multi',
+          debate: 'debate',
+          stakeholder_main: 'simulation',
+          brainstorm_main: 'multi',
+          premium_main: 'premium',
+          assistant: 'assistant',
+          player: 'multi',
+          research_main: 'research',
+          translate_main: 'assistant',
+          convert_main: 'general',
+          study_main: 'study',
+        } as const)[mainMode] ?? 'general'}`,
         "text-center relative z-0 transition-all ease-out overflow-hidden",
         mainMode === 'study_main' && 'hidden',
         (isGoingToPlayer && transitionPhase >= 1) || (isPlayerActive && !isLeavingPlayer)
@@ -2089,43 +2104,92 @@ export function ExpertSelectionPanel({
           : 'opacity-100 scale-100 duration-300',
         isLeavingPlayer && transitionPhase >= 2 && 'opacity-100'
       )}>
-        {/* AccountStatus 제거 — 사이드바 하단으로 이동됨 */}
-        <h2 key={mainMode} className={cn(
-          "text-xl sm:text-2xl font-bold text-foreground tracking-tight",
-          !skipHeroAnimation && "animate-in fade-in duration-700"
-        )}>
-          {mainMode === 'general' ? '모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요'
-            : mainMode === 'multi' ? '하나의 질문을 여러 AI에게 동시에 물어보세요'
-              : mainMode === 'debate' ? (
-                  discussionMode === 'brainstorm' ? 'AI들이 협업해 아이디어를 쏟아냅니다'
-                  : discussionMode === 'freetalk' ? 'AI들이 자유롭게 대화하며 의견을 나눕니다'
-                  : 'AI들이 다각도로 토론하고 결론을 냅니다'
-                )
-                : mainMode === 'stakeholder_main' ? '이해관계자 역할극으로 아이디어를 검증하세요'
-                  : mainMode === 'brainstorm_main' ? 'AI들이 협업해 아이디어를 정리해드립니다'
-                    : mainMode === 'premium_main' ? '공공 데이터 기반 AI 자문 시스템'
-                      : mainMode === 'assistant' ? '작업을 도와주는 AI 어시스턴트'
-                        : mainMode === 'player' ? 'AI와 함께 즐기는 게임·퀴즈·놀이'
-                          : ''}
-        </h2>
-        <p key={`sub-${mainMode}`} className={cn(
-          "mt-1 text-[13px] text-muted-foreground",
-          !skipHeroAnimation && "animate-in fade-in duration-700"
-        )}>
-          {mainMode === 'general' ? 'GPT, Claude, Gemini 등 원하는 AI를 골라 자유롭게 대화하세요'
-            : mainMode === 'multi' ? '여러 AI의 답변을 비교하고 종합 결론을 받아보세요'
-              : mainMode === 'debate' ? (
-                  discussionMode === 'brainstorm' ? '자유로운 발산으로 새로운 관점을 발견합니다'
-                  : discussionMode === 'freetalk' ? '정해진 형식 없이 AI끼리 토론합니다'
-                  : '찬성과 반대, 다양한 시각으로 깊이 있는 분석을 제공합니다'
-                )
-                : mainMode === 'stakeholder_main' ? '다양한 이해관계자 시점에서 의사결정을 시뮬레이션합니다'
-                  : mainMode === 'brainstorm_main' ? '여러 AI가 아이디어를 제안하고 구조화합니다'
-                    : mainMode === 'premium_main' ? '법률·의료·금융 등 전문 분야 AI 상담'
-                      : mainMode === 'assistant' ? '문서 작성, 번역, 요약 등 실무를 도와줍니다'
-                        : mainMode === 'player' ? '퀴즈, 스토리, 미니게임으로 AI와 놀아보세요'
-                          : ''}
-        </p>
+        {(() => {
+          const rawName = profile?.email || user?.email || '';
+          const greetName = rawName.includes('@')
+            ? rawName.split('@')[0].replace(/[._-]/g, ' ').trim()
+            : (rawName || '');
+          const hour = new Date().getHours();
+          const timeGreet = hour < 5 ? '늦은 밤이네요'
+            : hour < 12 ? '좋은 아침이에요'
+            : hour < 18 ? '좋은 오후예요'
+            : '편안한 저녁입니다';
+          // mainMode 별 한 줄 컨텍스트 (작게)
+          const modeContext: string = (
+            mainMode === 'general' ? 'GPT · Claude · Gemini — 원하는 AI 를 골라 시작하세요'
+            : mainMode === 'multi' ? '여러 AI 에게 같은 질문을 동시에'
+            : mainMode === 'debate' ? (
+                discussionMode === 'brainstorm' ? '자유 발산으로 새 관점을 발견'
+                : discussionMode === 'freetalk' ? 'AI 들의 자유 토론'
+                : '다각도 토론과 결론'
+              )
+            : mainMode === 'stakeholder_main' ? '이해관계자 역할극으로 아이디어 검증'
+            : mainMode === 'brainstorm_main' ? 'AI 협업으로 아이디어 정리'
+            : mainMode === 'premium_main' ? '법률·의료·금융 등 전문 분야 자문'
+            : mainMode === 'assistant' ? '문서·번역·요약 실무 도우미'
+            : mainMode === 'player' ? '퀴즈 · 스토리 · 미니게임'
+            : ''
+          );
+          return (
+            <>
+              <h2 key={mainMode} className={cn(
+                "font-display text-2xl sm:text-[28px] font-semibold text-foreground tracking-[-0.02em]",
+                !skipHeroAnimation && "animate-in fade-in duration-700"
+              )}>
+                {greetName
+                  ? <>{timeGreet}, <span className="text-[hsl(var(--mode,var(--primary)))]">{greetName}</span>님</>
+                  : <>{timeGreet}</>}
+              </h2>
+              {modeContext && (
+                <p key={`sub-${mainMode}`} className={cn(
+                  "mt-1.5 text-[12.5px] text-muted-foreground font-medium tracking-tight",
+                  !skipHeroAnimation && "animate-in fade-in duration-700"
+                )}>
+                  {modeContext}
+                </p>
+              )}
+              {/* "이어서 하기" — 전역 CommandPalette 로 연결 */}
+              <div className={cn(
+                "mt-3 flex items-center justify-center",
+                !skipHeroAnimation && "animate-in fade-in duration-700",
+              )}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Ctrl+K 디스패치 — 글로벌 CommandPalette 토글
+                    const ev = new KeyboardEvent('keydown', {
+                      key: 'k', ctrlKey: true, metaKey: true, bubbles: true,
+                    });
+                    window.dispatchEvent(ev);
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--hairline))]",
+                    "bg-[hsl(var(--card))] hover:bg-[hsl(var(--accent))]",
+                    "px-2.5 py-1 text-[11px] font-medium text-[hsl(var(--muted-foreground))]",
+                    "transition-colors",
+                  )}
+                  title="명령 팔레트 열기"
+                >
+                  <span className="opacity-80">이어서 하기 · 최근 대화 · 모드 이동</span>
+                  <kbd className="ml-1 rounded border border-[hsl(var(--hairline))] bg-[hsl(var(--background))] px-1.5 py-0.5 font-mono text-[10px] text-[hsl(var(--foreground))]">
+                    ⌘ K
+                  </kbd>
+                </button>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* 모드 진입 때 한 번 쓸고 가는 서브틀한 mode-color sweep.
+            `key={mainMode}` 로 모드 바뀔 때마다 재마운트되어 애니메이션 다시 재생됨. */}
+        <div
+          key={`sweep-${mainMode}`}
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 -top-6 h-24 opacity-0 animate-[mode-sweep_420ms_ease-out_forwards] mix-blend-plus-lighter"
+          style={{
+            background: 'radial-gradient(ellipse 60% 80% at 50% 0%, hsl(var(--mode,var(--primary))/0.28) 0%, transparent 70%)',
+          }}
+        />
       </div>
 
       {/* Main Mode Tabs — 플레이어/공부 모드에서는 숨김 */}

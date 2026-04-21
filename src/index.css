@@ -240,6 +240,14 @@
     border-radius: 999px;
   }
 
+  /* 모드 진입 시 서브틀한 컬러 sweep (180~420ms).
+     사용: key={mainMode} 로 마운트 리셋되는 absolute 요소에 animate-[mode-sweep_420ms_ease-out_forwards]. */
+  @keyframes mode-sweep {
+    0%   { opacity: 0; transform: translateY(-4px); }
+    40%  { opacity: 0.85; }
+    100% { opacity: 0; transform: translateY(0); }
+  }
+
   /* ── Button tokens — 통일 ──
      Phase A 에서는 새 스타일을 opt-in (.btn-*) 으로 도입.
      기존 버튼 깨지 않고 점진 교체. */
