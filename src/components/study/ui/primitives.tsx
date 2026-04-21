@@ -149,19 +149,37 @@ export function StudyBtn({
   type?: 'button' | 'submit';
   title?: string;
 }) {
+  /**
+   * Phase A (리모델링) — 토큰 기반으로 정리.
+   * 라이트 모드 외형은 거의 동일하게 유지하되
+   * 다크 모드에서 자연스럽도록 CSS 변수(hairline / accent / primary) 사용.
+   */
   const base =
-    'inline-flex items-center justify-center gap-1.5 font-semibold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center gap-1.5 font-semibold rounded-xl ' +
+    'transition-[background-color,color,border-color,transform] duration-150 ' +
+    'disabled:opacity-40 disabled:cursor-not-allowed select-none';
   const sizes = {
     sm: 'px-3 py-1.5 text-[11.5px]',
     md: 'px-4 py-2 text-[12.5px]',
     lg: 'px-5 py-2.5 text-[13px]',
   };
   const variants = {
-    primary: 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm',
-    ghost: 'text-slate-600 hover:bg-slate-100',
-    outline: 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300',
-    danger: 'bg-red-600 text-white hover:bg-red-500 shadow-sm',
-    'accent-soft': 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100',
+    // 라이트: 현재와 동일한 느낌(중성 다크 CTA). 다크: 반대로 밝게.
+    primary:
+      'bg-slate-900 text-white hover:bg-slate-800 active:translate-y-[0.5px] shadow-sm ' +
+      'dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white',
+    ghost:
+      'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+    outline:
+      'border bg-[hsl(var(--card))] text-[hsl(var(--foreground))] ' +
+      'border-[hsl(var(--hairline))] hover:border-[hsl(var(--primary)_/_0.5)] ' +
+      'hover:text-[hsl(var(--primary))]',
+    danger:
+      'bg-red-600 text-white hover:bg-red-500 shadow-sm ' +
+      'dark:bg-red-500 dark:hover:bg-red-400',
+    'accent-soft':
+      'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 ' +
+      'dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/60',
   };
   return (
     <button

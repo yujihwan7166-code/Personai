@@ -1,5 +1,7 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -55,45 +57,79 @@
     --expert-orange: 25 85% 52%;
     --expert-teal: 185 60% 40%;
     --expert-pink: 330 65% 52%;
+
+    /* ── Mode signature colors (모드별 서브 아이덴티티) ── */
+    --mode-general:     221 83% 50%;   /* indigo     — 일반 채팅 */
+    --mode-research:    203 82% 24%;   /* deep navy  — 심층 리서치 */
+    --mode-study:       32 95% 44%;    /* amber      — 공부 */
+    --mode-multi:       262 83% 58%;   /* violet     — 멀티 채팅 */
+    --mode-debate-a:    221 83% 53%;   /* blue       — 토론 A */
+    --mode-debate-b:    0 74% 50%;     /* red        — 토론 B */
+    --mode-simulation:  160 65% 36%;   /* emerald    — 시뮬레이션 */
+    --mode-premium:     38 58% 32%;    /* dark gold  — 프리미엄 */
+    --mode-assistant:   188 85% 35%;   /* cyan       — 어시스턴트 */
+
+    /* ── Elevation / surface tokens (리모델링 v1) ── */
+    --surface-1: 0 0% 100%;                   /* base */
+    --surface-2: 220 20% 98%;                 /* raised */
+    --surface-3: 220 22% 96%;                 /* overlay / nav */
+    --hairline:  220 14% 91%;                 /* 1px lines */
+
+    /* ── Focus ring (통일) ── */
+    --focus-ring: 221 83% 56%;
+    --focus-offset: 0 0% 100%;
   }
 
   .dark {
-    --background: 222 20% 7%;
-    --foreground: 210 20% 90%;
+    /* Background: 한 톤 더 깊게, 파란끼 살짝 — 순검정 피함 (피로 ↓) */
+    --background: 222 26% 6%;
+    --foreground: 210 22% 92%;
 
-    --card: 222 18% 10%;
-    --card-foreground: 210 20% 90%;
+    /* Card: 배경보다 2% 밝게 (계층감) */
+    --card: 222 22% 9%;
+    --card-foreground: 210 22% 92%;
 
-    --popover: 222 18% 10%;
-    --popover-foreground: 210 20% 90%;
+    --popover: 222 22% 10%;
+    --popover-foreground: 210 22% 92%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary: 라이트보다 약간 밝게 — 다크에서 대비 유지 */
+    --primary: 221 94% 67%;
+    --primary-foreground: 220 30% 10%;
 
-    --secondary: 220 14% 14%;
-    --secondary-foreground: 210 15% 70%;
+    --secondary: 220 16% 13%;
+    --secondary-foreground: 210 18% 75%;
 
-    --muted: 220 14% 14%;
-    --muted-foreground: 215 12% 55%;
+    --muted: 220 16% 13%;
+    --muted-foreground: 215 14% 60%;
 
-    --accent: 220 14% 14%;
-    --accent-foreground: 210 20% 90%;
+    --accent: 220 16% 13%;
+    --accent-foreground: 210 22% 92%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 18%;
-    --input: 220 14% 18%;
-    --ring: 217 91% 60%;
+    --border: 220 14% 20%;
+    --input: 220 14% 20%;
+    --ring: 221 94% 67%;
 
-    --sidebar-background: 222 18% 9%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 14%;
-    --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 220 14% 18%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-background: 222 24% 7%;
+    --sidebar-foreground: 210 22% 92%;
+    --sidebar-primary: 221 94% 67%;
+    --sidebar-primary-foreground: 220 30% 10%;
+    --sidebar-accent: 220 16% 13%;
+    --sidebar-accent-foreground: 210 22% 92%;
+    --sidebar-border: 220 14% 20%;
+    --sidebar-ring: 221 94% 67%;
+
+    /* Surface / hairline (다크 버전) */
+    --surface-1: 222 22% 9%;
+    --surface-2: 222 22% 11%;
+    --surface-3: 222 22% 13%;
+    --hairline:  220 14% 20%;
+
+    /* Focus ring (다크에서 더 밝게) */
+    --focus-ring: 221 94% 70%;
+    --focus-offset: 222 26% 6%;
   }
 }
 
@@ -120,14 +156,188 @@
   .dark .text-slate-300 { color: hsl(215 12% 40%) !important; }
   .dark .bg-gradient-to-br.from-slate-800 { background: hsl(220 14% 14%) !important; }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Display 계열 (세리프) — 큰 헤드라인, 히어로, 모드 타이틀.
+     기본 h1-h3 는 세리프로. h4-h6 은 sans 유지 (UI 라벨 역할). */
+  h1, h2, h3 {
+    font-family: 'Newsreader', 'Pretendard Variable', serif;
     font-weight: 600;
     letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+  h4, h5, h6 {
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Global focus ring — 모든 포커스 가능 요소에 일관된 링 */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--focus-ring));
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+
+  /* 스크롤바 — 좀 더 얇게 + 색 토큰 기반 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--hairline));
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+    background-clip: padding-box;
+    border: 2px solid transparent;
   }
 }
 
 @layer utilities {
+  /* ── Typography helpers (Phase A 토대) ── */
+  .font-display { font-family: 'Newsreader', 'Pretendard Variable', serif; letter-spacing: -0.02em; }
+  .font-mono    { font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  /* Readable measure (본문 최대폭 — 약 68-72자) */
+  .measure-prose { max-width: 68ch; }
+  .measure-narrow { max-width: 54ch; }
+
+  /* ── Surfaces (계층감) ── */
+  .surface-1 { background-color: hsl(var(--surface-1)); }
+  .surface-2 { background-color: hsl(var(--surface-2)); }
+  .surface-3 { background-color: hsl(var(--surface-3)); }
+  .hairline { border-color: hsl(var(--hairline)); }
+  .hairline-b { border-bottom: 1px solid hsl(var(--hairline)); }
+  .hairline-t { border-top: 1px solid hsl(var(--hairline)); }
+
+  /* ── Mode tint (아주 옅은 배경 액센트) ──
+     .mode-study 같은 클래스를 컨테이너에 붙이면 자손에 시그니처 컬러 변수 상속.
+     페이지가 모드로 진입할 때 느껴지는 "서브 아이덴티티" 위한 토대. */
+  .mode-general     { --mode: var(--mode-general); }
+  .mode-research    { --mode: var(--mode-research); }
+  .mode-study       { --mode: var(--mode-study); }
+  .mode-multi       { --mode: var(--mode-multi); }
+  .mode-debate      { --mode: var(--mode-debate-a); }
+  .mode-simulation  { --mode: var(--mode-simulation); }
+  .mode-premium     { --mode: var(--mode-premium); }
+  .mode-assistant   { --mode: var(--mode-assistant); }
+
+  .mode-accent-bar {
+    position: relative;
+  }
+  .mode-accent-bar::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 3px;
+    background: hsl(var(--mode, var(--primary)));
+    border-radius: 999px;
+  }
+
+  /* ── Button tokens — 통일 ──
+     Phase A 에서는 새 스타일을 opt-in (.btn-*) 으로 도입.
+     기존 버튼 깨지 않고 점진 교체. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    font-weight: 600;
+    font-family: inherit;
+    letter-spacing: -0.005em;
+    border-radius: 0.625rem;              /* 10px */
+    transition: background-color 120ms, color 120ms, border-color 120ms, box-shadow 120ms, transform 120ms;
+    line-height: 1;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .btn:disabled, .btn[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-sm { padding: 0.375rem 0.75rem; font-size: 11.5px; }
+  .btn-md { padding: 0.5rem 1rem;     font-size: 12.5px; }
+  .btn-lg { padding: 0.625rem 1.125rem; font-size: 13.5px; }
+
+  .btn-primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+  .btn-primary:not(:disabled):hover { background: hsl(var(--primary) / 0.9); }
+  .btn-primary:not(:disabled):active { transform: translateY(0.5px); }
+
+  .btn-secondary {
+    background: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+  }
+  .btn-secondary:not(:disabled):hover { background: hsl(var(--secondary) / 0.8); }
+
+  .btn-ghost {
+    background: transparent;
+    color: hsl(var(--foreground));
+  }
+  .btn-ghost:not(:disabled):hover { background: hsl(var(--accent)); }
+
+  .btn-outline {
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--hairline));
+  }
+  .btn-outline:not(:disabled):hover { border-color: hsl(var(--primary) / 0.4); color: hsl(var(--primary)); }
+
+  .btn-danger {
+    background: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+  .btn-danger:not(:disabled):hover { background: hsl(var(--destructive) / 0.9); }
+
+  /* ── Card token ── */
+  .card-flat {
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--hairline));
+    border-radius: 12px;
+  }
+  .card-raised {
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--hairline));
+    border-radius: 16px;
+    box-shadow:
+      0 1px 2px hsl(220 15% 8% / 0.04),
+      0 2px 8px hsl(220 15% 8% / 0.05);
+  }
+
+  /* ── Chip token ── */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 999px;
+    border: 1px solid hsl(var(--hairline));
+    background: hsl(var(--background));
+    color: hsl(var(--muted-foreground));
+    transition: border-color 120ms, color 120ms, background-color 120ms;
+  }
+  .chip:hover {
+    border-color: hsl(var(--primary) / 0.4);
+    color: hsl(var(--primary));
+  }
+  .chip-active {
+    border-color: hsl(var(--primary));
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
   /* Expert glow states */
   .expert-glow-blue { box-shadow: none; }
   .expert-glow-emerald { box-shadow: none; }

@@ -15,7 +15,11 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Pretendard Variable', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Newsreader', 'Pretendard Variable', 'Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
+      /* 기존 text-xs/sm/base 는 Tailwind 기본값 유지.
+         필요시 bespoke pixel 사이즈(text-[13px] 등) 로 스펙 지정 중. */
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
