@@ -2395,11 +2395,13 @@ export function ExpertSelectionPanel({
                   onMouseEnter={(e) => { if (!isDisabled) showTip(expert, e.currentTarget); }}
                   onMouseLeave={hideTip}
                   className={cn(
-                    'group relative flex flex-col items-center gap-0.5 p-1.5 rounded-xl transition-all duration-200',
+                    // Phase D-1: 선택/hover 상태 강화 — 토큰 기반, 다크 모드 OK.
+                    'group relative flex flex-col items-center gap-0.5 p-1.5 rounded-xl transition-all duration-150',
                     isDisabled ? 'opacity-25 cursor-not-allowed' : '',
                     isProcon && !isDisabled ? 'cursor-grab active:cursor-grabbing' : '',
                     hintId === expert.id ? 'animate-drag-hint' : '',
-                    !isDisabled && !isProcon ? 'hover:bg-slate-50' : ''
+                    !isDisabled && !isProcon && !isSelected && 'hover:bg-[hsl(var(--accent))] hover:-translate-y-[1px]',
+                    !isProcon && isSelected && !isDisabled && 'bg-[hsl(var(--primary)/0.08)] ring-1 ring-inset ring-[hsl(var(--primary)/0.4)] dark:bg-[hsl(var(--primary)/0.15)]',
                   )}>
                   <button type="button"
                     disabled={isDisabled}
@@ -2419,11 +2421,11 @@ export function ExpertSelectionPanel({
                     </span>
                     <ExpertAvatar expert={expert} size="md" active={isSelected && !isDisabled} />
                     <span className={cn('text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
-                      isDisabled ? 'text-slate-300'
+                      isDisabled ? 'text-slate-300 dark:text-slate-600'
                         : isProcon && isPro ? 'text-blue-600 font-semibold'
                           : isProcon && isCon ? 'text-red-500 font-semibold'
-                            : !isProcon && isSelected ? 'text-indigo-600 font-semibold'
-                              : 'text-slate-400 group-hover:text-slate-700')}>
+                            : !isProcon && isSelected ? 'text-[hsl(var(--primary))] font-semibold'
+                              : 'text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))]')}>
                       {expert.nameKo}
                     </span>
                   </button>

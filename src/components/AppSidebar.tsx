@@ -953,12 +953,18 @@ export function AppSidebar({
           {[
             { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
             { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
-            { icon: Search, label: '검색', onClick: () => { setSearchModalOpen(true); setModalSearchQuery(''); }, active: searchModalOpen },
+            // Phase D-3: 모드 이동 — Cmd+K 글로벌 팔레트 트리거 (마우스 유저 접근성).
+            { icon: Search, label: '모드 · 최근 대화', shortcut: '⌘K', onClick: () => {
+                const ev = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true, bubbles: true });
+                window.dispatchEvent(ev);
+              }
+            },
+            { icon: Search, label: '전문가 · 봇 검색', shortcut: '⌘⇧K', onClick: () => { setSearchModalOpen(true); setModalSearchQuery(''); }, active: searchModalOpen },
           ].map(item => (
             <button
               key={item.label}
               onClick={item.onClick}
-              title={!isOpen ? item.label : undefined}
+              title={!isOpen ? `${item.label}${item.shortcut ? ` (${item.shortcut})` : ''}` : undefined}
               className={cn(
                 "font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center transition-colors w-full",
                 isOpen ? 'px-3 py-2 gap-2.5 text-[12px]' : 'p-2 justify-center',
@@ -967,12 +973,66 @@ export function AppSidebar({
               )}
             >
               <item.icon className="w-[18px] h-[18px] shrink-0" />
-              {isOpen && <span>{item.label}</span>}
+              {isOpen && (
+                <>
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.shortcut && (
+                    <kbd className="ml-auto rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-1 py-0.5 text-[9.5px] font-mono text-slate-500 dark:text-slate-400">
+                      {item.shortcut}
+                    </kbd>
+                  )}
+                </>
+              )}
             </button>
           ))}
 
           {/* Search input removed from here — moved to conversation list header */}
         </nav>
+
+        {/* Phase D-3: 모드 섹션 — 시그니처 점 컬러 + Cmd+K 로 이동. 사이드바 펼친 상태에서만. */}
+        {isOpen && (
+          <div className="shrink-0 px-2 mt-1.5">
+            <div className="px-2 pb-1 flex items-center justify-between">
+              <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">모드</span>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {([
+                { id: 'general',          label: '일반',   tint: '221 83% 50%' },
+                { id: 'multi',            label: '멀티',   tint: '262 83% 58%' },
+                { id: 'study',            label: '공부',   tint: '32 95% 44%' },
+                { id: 'research',         label: '리서치', tint: '203 82% 24%' },
+                { id: 'standard',         label: '토론',   tint: '221 83% 53%' },
+                { id: 'stakeholder',      label: '시뮬',   tint: '160 65% 36%' },
+                { id: 'expert',           label: '프리미엄', tint: '38 58% 32%' },
+                { id: 'assistant',        label: '도구',   tint: '188 85% 35%' },
+              ] as const).map((m) => {
+                const activeMain = discussionMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => onModeChange(m.id as DiscussionMode)}
+                    title={`${m.label} 모드로 전환`}
+                    className={cn(
+                      'group flex flex-col items-center gap-1 rounded-lg py-1.5 px-0.5 text-[10px] font-medium transition-colors',
+                      activeMain
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-200',
+                    )}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0 transition-all"
+                      style={{
+                        background: `hsl(${m.tint})`,
+                        boxShadow: activeMain ? `0 0 0 2px hsl(${m.tint}/0.25)` : undefined,
+                      }}
+                    />
+                    <span className="truncate max-w-full">{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── 3. Section Divider ── */}
         {isOpen && <div className="border-t border-slate-200 dark:border-slate-800 my-2" />}
