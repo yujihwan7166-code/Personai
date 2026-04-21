@@ -2168,10 +2168,12 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          'flex items-center shadow-[0_2px_12px_rgba(0,0,0,0.08)] rounded-full p-[3px] overflow-hidden',
+          // Phase G: 알약 wrapper → 밑줄 스타일에 맞춰 투명 bar + hairline bottom.
+          'flex items-center relative px-1 py-0.5 rounded-none',
+          'border-b',
           showPlayerBg
-            ? 'bg-slate-900 border border-slate-700'
-            : 'bg-white border border-slate-200',
+            ? 'border-white/10'
+            : 'border-[hsl(var(--hairline))]',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
@@ -2282,11 +2284,15 @@ export function ExpertSelectionPanel({
 
       {/* ── Expert Selection Grid (general / multi / debate) ── */}
       {showExpertGrid && (
-        <div className={cn('border border-slate-200 rounded-2xl bg-white overflow-visible shadow-[0_2px_12px_rgba(0,0,0,0.07)] transition-all duration-200 relative',
-          autoAssign && 'opacity-50'
+        <div className={cn(
+          // Phase G: 카드 래퍼 — 토큰 기반 hairline + 부드러운 쉐도우
+          'relative overflow-visible rounded-2xl border transition-all duration-200',
+          'border-[hsl(var(--hairline))] bg-[hsl(var(--card))]',
+          'shadow-[0_1px_2px_hsl(220_15%_8%_/0.04),0_2px_12px_hsl(220_15%_8%_/0.05)]',
+          autoAssign && 'opacity-50',
         )} onClick={() => { if (autoAssign) setAutoAssign(false); }}>
           {/* Category tabs / Search */}
-          <div className="flex flex-col bg-slate-50 border-b-2 border-slate-200 overflow-visible relative z-20 rounded-t-2xl">
+          <div className="flex flex-col overflow-visible relative z-20 rounded-t-2xl bg-transparent border-b border-[hsl(var(--hairline))]">
             <div className="flex items-center px-2 pt-1 pb-1 overflow-visible">
               {searchMode ? (
                 <div className="flex items-center gap-1.5 flex-1 px-1">
@@ -2314,10 +2320,23 @@ export function ExpertSelectionPanel({
                         <button key={cat} type="button"
                           disabled={isAiDisabled || autoAssign}
                           onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
-                          className={cn('flex items-center gap-1 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md',
-                            isAiDisabled ? 'text-slate-300 cursor-not-allowed' :
-                              isActive ? 'bg-indigo-500 text-white font-semibold shadow-sm' : 'text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-200/70')}>
+                          className={cn(
+                            // Phase G: 보라 alg pill → segment + underline.
+                            'relative flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition-colors whitespace-nowrap',
+                            isAiDisabled
+                              ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                              : isActive
+                                ? 'text-[hsl(var(--mode,var(--primary)))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100',
+                          )}>
                           {label}
+                          {isActive && !isAiDisabled && (
+                            <span
+                              aria-hidden
+                              className="absolute left-2 right-2 -bottom-[5px] h-[2px] rounded-full"
+                              style={{ background: 'hsl(var(--mode, var(--primary)))' }}
+                            />
+                          )}
                         </button>
                       );
                     })}
@@ -2329,17 +2348,25 @@ export function ExpertSelectionPanel({
                       return (
                         <div className="relative group/more">
                           <button type="button"
-                            className={cn('flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-all whitespace-nowrap rounded-md font-medium',
-                              isMoreActive ? 'text-indigo-600 font-semibold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/70')}>
+                            className={cn(
+                              'relative flex items-center gap-0.5 px-2.5 py-1 text-[11px] transition-colors whitespace-nowrap font-medium',
+                              isMoreActive
+                                ? 'text-[hsl(var(--mode,var(--primary)))] font-semibold'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100',
+                            )}>
                             {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
+                            {isMoreActive && (
+                              <span aria-hidden className="absolute left-2 right-2 -bottom-[5px] h-[2px] rounded-full"
+                                style={{ background: 'hsl(var(--mode, var(--primary)))' }} />
+                            )}
                           </button>
-                          <div className="absolute left-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
+                          <div className="absolute left-0 top-full mt-1 bg-[hsl(var(--card))] border border-[hsl(var(--hairline))] rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
                             {moreCats.map(({ cat, label }) => (
                               <button key={cat} type="button"
                                 onClick={() => { setActiveCategory(cat); setActiveSubCategory('전체'); }}
                                 className={cn('w-full text-left px-4 py-2 text-[11px] font-medium transition-colors flex items-center gap-2',
-                                  effectiveCategory === cat ? 'text-indigo-600' : 'text-slate-600 hover:bg-slate-50')}>
-                                {effectiveCategory === cat && <Check className="w-3 h-3 text-indigo-500" />}
+                                  effectiveCategory === cat ? 'text-[hsl(var(--primary))]' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800')}>
+                                {effectiveCategory === cat && <Check className="w-3 h-3 text-[hsl(var(--primary))]" />}
                                 {label}
                               </button>
                             ))}
