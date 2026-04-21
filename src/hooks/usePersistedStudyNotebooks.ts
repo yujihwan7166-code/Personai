@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { StudyNotebook, StudyStreak, StudyFolder } from '@/types/study';
 import { newId, todayKey } from '@/types/study';
+import { deleteBlob, pruneOrphans } from '@/lib/studyBlobStore';
+import { deleteOcrForBlob } from '@/lib/studyOcrStore';
 
 const KEY_NOTEBOOKS = 'study_notebooks_v1';
 const KEY_STREAK = 'study_streak_v1';
@@ -137,6 +139,19 @@ export function usePersistedStudyNotebooks() {
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
+      // 최초 마운트 시 — 현재 사용 중인 blobRef 외 IDB 에 남은 고아 blob 제거.
+      const active: string[] = [];
+      for (const nb of notebooks) {
+        for (const s of nb.sources) {
+          if (s.blobRef) active.push(s.blobRef);
+        }
+      }
+      // idle 시점에 비동기 실행 (블로킹 없음).
+      const idle = (cb: () => void) =>
+        (typeof window !== 'undefined' && 'requestIdleCallback' in window)
+          ? (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(cb)
+          : setTimeout(cb, 2000);
+      idle(() => { void pruneOrphans(active); });
       return;
     }
     saveNotebooks(notebooks);
@@ -170,7 +185,19 @@ export function usePersistedStudyNotebooks() {
   }, []);
 
   const deleteNotebook = useCallback((id: string) => {
-    setNotebooks((prev) => prev.filter((n) => n.id !== id));
+    setNotebooks((prev) => {
+      // 이 노트북이 소유한 blobRef 들을 IDB 에서 제거 (누수 방지).
+      const target = prev.find((n) => n.id === id);
+      if (target) {
+        for (const s of target.sources) {
+          if (s.blobRef) {
+            void deleteBlob(s.blobRef);
+            void deleteOcrForBlob(s.blobRef);
+          }
+        }
+      }
+      return prev.filter((n) => n.id !== id);
+    });
   }, []);
 
   const moveNotebook = useCallback((id: string, folderId?: string) => {

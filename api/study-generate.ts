@@ -6,7 +6,7 @@ import {
   getOpenRouterHeaders,
 } from './_lib/openrouter.js';
 
-type Lens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate';
+type Lens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards';
 type Tone = 'plain' | 'student' | 'exam' | 'interview' | 'kid';
 type Level = 'basic' | 'standard' | 'advanced';
 
@@ -108,20 +108,50 @@ ${sourceBlock}
       };
     case 'mindmap':
       return {
-        system: '당신은 공부 도우미입니다. 개념 구조를 트리로 표현합니다.',
+        system: '당신은 공부 도우미입니다. 개념 구조를 JSON 마인드맵으로 표현합니다.',
         user: `${common}
-위 소스의 지식 구조를 마크다운 트리(불릿 들여쓰기)로 표현해 주세요.
-- 루트 1개(전체 주제)
-- 2-3레벨 하위 노드
-- 각 노드는 한 구(句)로 짧게
-- 소스의 핵심 가지를 모두 포함
+위 소스의 지식 구조를 **JSON 마인드맵** 으로 만들어 주세요.
 
-예시 형식:
-- **주제**
-  - 가지 1
-    - 하위 1-1
-    - 하위 1-2
-  - 가지 2`,
+반드시 아래 스키마만 출력 (코드블록·주석·부가 텍스트 금지):
+{
+  "root": {
+    "id": "n",
+    "label": "자료의 주제(짧게)",
+    "summary": "한 줄 정의 (≤30자, 선택)",
+    "pages": [1],
+    "emoji": "📘",
+    "children": [
+      {
+        "id": "n_1",
+        "label": "주요 개념 A",
+        "summary": "짧은 설명",
+        "pages": [2,3],
+        "branchColor": "#6366F1",
+        "children": [
+          { "id": "n_1_1", "label": "세부 개념", "summary": "...", "pages": [4], "children": [] }
+        ]
+      }
+    ]
+  },
+  "crossLinks": [
+    { "from": "n_1_1", "to": "n_2_1", "label": "상호 관련" }
+  ]
+}
+
+엄격 규칙:
+- **루트 1개** — 자료 전체 주제를 짧게 (≤15자)
+- **depth 1 가지 3~7개** — 가지가 너무 많으면 가독성 저하
+- **depth 2 자식 2~5개** — 각 주요 개념의 세부
+- **depth 3 은 꼭 필요할 때만** (구체 예시·사실)
+- 각 노드의 'label' 은 짧은 구(句), **≤ 20자**
+- 'summary' 는 해당 개념의 한 줄 정의 (≤30자)
+- 'pages' 는 원문 [p.N] 마커 기반 배열. 없으면 생략
+- 'branchColor' 는 depth 1 노드에만 지정, 다음 팔레트에서 순서대로 다양하게:
+  #6366F1 #10B981 #F59E0B #0EA5E9 #EF4444 #8B5CF6 #14B8A6
+- 'emoji' 는 의미 있는 노드에만 (과용 금지, 생략 OK)
+- 'id' 는 경로 기반(n, n_1, n_1_2 ...) 으로 일관성 유지
+- 'crossLinks' 는 진짜 핵심 상호관계 **최대 3개** (생략 가능)
+- 전체 노드 수 **20~60개** 범위 권장`,
       };
     case 'quiz': {
       const count = req.options?.count ?? 5;
@@ -163,6 +193,50 @@ ${weak}
 ## ❓ 점검 질문
 (스스로 답해볼 질문 5개)`,
       };
+    case 'flashcards': {
+      const count = req.options?.count ?? 12;
+      const focus = (req.options as unknown as { focus?: string })?.focus?.trim();
+      const cardTypes = (req.options as unknown as { cardTypes?: string[] })?.cardTypes;
+      const level = req.level;
+      const typeMap: Record<string, string> = {
+        definition: '용어 정의 (개념·용어의 뜻)',
+        example: '예시·사례 (구체 사례·적용)',
+        comparison: '개념 비교 (A vs B 대조)',
+        mechanism: '메커니즘 (원리·작동 과정)',
+      };
+      const typeGuide = cardTypes && cardTypes.length > 0
+        ? `# 카드 유형 가이드\n다음 유형들을 균형있게 섞어 출제: ${cardTypes.map((t) => typeMap[t] ?? t).join(', ')}`
+        : '# 카드 유형 가이드\n정의 · 예시 · 비교 · 메커니즘 을 골고루 섞어 출제';
+      const focusBlock = focus
+        ? `# 집중 범위·주제 (사용자 지정)\n"${focus}"\n이 범위·주제에 맞는 내용 위주로 카드를 구성. 범위 밖 내용은 제외.`
+        : '';
+      const levelLabel = level === 'basic' ? '기초' : level === 'advanced' ? '심화' : '표준';
+      return {
+        system: '당신은 공부 도우미입니다. 암기용 플래시카드를 JSON 배열로 생성합니다.',
+        user: `${common}
+${focusBlock}
+
+위 소스의 핵심 내용을 암기하기 좋게 앞/뒷면 카드 ${count}장으로 뽑아주세요. 난이도: ${levelLabel}.
+
+${typeGuide}
+
+# 카드 원칙
+- 앞면(front): 질문형 또는 용어/개념 한두 단어. 뒷면 보기 전에 떠올릴 수 있는 트리거.
+- 뒷면(back): 1~2문장의 정의·설명·보충. 지나치게 길지 않게.
+- 카드 간 독립: 다른 카드를 참조하지 말 것(A는 B에서 설명함 같은 연결 금지).
+- 소스 밖 사실 추가 금지.
+- 앞면과 뒷면 길이 균형: 앞면은 짧게, 뒷면은 자족적 설명.
+
+# 출력 형식 (JSON 배열만, 코드블록·주석·부가 텍스트 금지)
+[
+  {
+    "front": "앞면 (질문 또는 용어)",
+    "back": "뒷면 (정의/설명 1-2문장)",
+    "concept": "관련 개념 키워드"
+  }
+]`,
+      };
+    }
     case 'debate': {
       const a = req.options?.expertA ?? { name: '전문가 A' };
       const b = req.options?.expertB ?? { name: '전문가 B' };
@@ -224,7 +298,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await response.json();
     const content: string = data?.choices?.[0]?.message?.content ?? '';
 
-    if (body.lens === 'quiz') {
+    if (body.lens === 'quiz' || body.lens === 'flashcards') {
       let parsed: unknown = null;
       try {
         const trimmed = content.replace(/^```json\s*|\s*```$/g, '').trim();
@@ -237,6 +311,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           } catch {
             /* noop */
           }
+        }
+      }
+      return res.status(200).json({ content, structured: parsed });
+    }
+
+    if (body.lens === 'mindmap') {
+      let parsed: unknown = null;
+      try {
+        const trimmed = content.replace(/^```json\s*|\s*```$/g, '').trim();
+        parsed = JSON.parse(trimmed);
+      } catch {
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { parsed = JSON.parse(match[0]); } catch { /* noop */ }
         }
       }
       return res.status(200).json({ content, structured: parsed });

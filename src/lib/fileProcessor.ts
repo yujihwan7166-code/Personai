@@ -10,6 +10,8 @@ export interface AttachedFile {
   thumbnail?: string;
   /** PDF 페이지 수 / PPTX 슬라이드 수. */
   pageCount?: number;
+  /** PDF 스캔본 페이지 (텍스트가 거의 없는 페이지). */
+  scanPages?: number[];
 }
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -270,8 +272,9 @@ export async function processFile(file: File): Promise<AttachedFile> {
   if (mimeType === 'application/pdf') {
     try {
       const { extractPdfMeta, renderPdfThumbnail } = await import('@/lib/fileConvert/converters/pdf');
-      const { text, pageCount } = await extractPdfMeta(file, MAX_EXTRACTED_TEXT_LENGTH);
+      const { text, pageCount, scanPages } = await extractPdfMeta(file, MAX_EXTRACTED_TEXT_LENGTH);
       result.pageCount = pageCount;
+      result.scanPages = scanPages;
       if (text.trim().length < 20) {
         result.extractedText = '[이 PDF는 텍스트가 없는 이미지 기반일 수 있어요. 스캔본은 지원하지 않습니다.]';
       } else {

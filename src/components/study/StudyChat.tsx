@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Send, Settings2, MoreHorizontal } from 'lucide-react';
+import { Send, Settings2, MoreHorizontal, X, Check } from 'lucide-react';
 import type { StudyNotebook, StudyChatTurn, StudySource, HighlightColor, Highlight } from '@/types/study';
 import { newId, HIGHLIGHT_META } from '@/types/study';
 import { CitedMarkdown } from './CitationPopover';
@@ -23,6 +23,27 @@ export function StudyChat({ notebook, onChange, onPromoteToFlashcard, onStartRec
   const [streaming, setStreaming] = useState(false);
   const [showModePopover, setShowModePopover] = useState(false);
 
+  // 원본 뷰어에서 "이 부분 질문" 으로 전달된 텍스트를 입력창에 삽입
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ev = e as CustomEvent<{ text?: string }>;
+      const t = ev.detail?.text?.trim();
+      if (!t) return;
+      setInput((prev) => {
+        const quote = `> ${t}\n\n`;
+        return prev ? `${prev}\n${quote}` : quote;
+      });
+      // 입력창 포커스
+      requestAnimationFrame(() => {
+        const ta = document.querySelector<HTMLTextAreaElement>('textarea[data-study-chat-input]');
+        ta?.focus();
+        ta?.setSelectionRange(ta.value.length, ta.value.length);
+      });
+    };
+    window.addEventListener('study:askSelection', handler);
+    return () => window.removeEventListener('study:askSelection', handler);
+  }, []);
+
   const enabledSources = useMemo(
     () => notebook.sources.filter((s) => s.enabled && s.status === 'ready'),
     [notebook.sources],
@@ -42,21 +63,23 @@ export function StudyChat({ notebook, onChange, onPromoteToFlashcard, onStartRec
 
     try {
       const sourceBlock = enabledSources.map((s, i) => `[S${i + 1}] ${s.title}\n${s.content.slice(0, 10000)}`).join('\n\n---\n\n');
-      const systemPrompt = notebook.chatMode === 'socratic'
-        ? `당신은 공부 도우미 튜터입니다. 아래 소스를 근거로 학생을 가르칩니다.
-중요: 답을 바로 주지 마세요. 1) 학생이 이미 아는 것을 묻기 → 2) 힌트 한 개 → 3) "어떻게 생각해?" → 4) 막히면 간결히 해설.
-한국어로, 부드럽게.
-
-=== 소스 ===
-${sourceBlock}
-=== /소스 ===`
-        : `당신은 공부 도우미 튜터입니다. 아래 소스만 근거로 정확히 답합니다.
+      const modeInstr =
+        notebook.chatMode === 'socratic'
+          ? `중요: 답을 바로 주지 마세요. 1) 학생이 이미 아는 것을 묻기 → 2) 힌트 한 개 → 3) "어떻게 생각해?" → 4) 막히면 간결히 해설.
+한국어로, 부드럽게.`
+          : notebook.chatMode === 'custom' && notebook.chatCustomInstruction?.trim()
+          ? `사용자 지시문: ${notebook.chatCustomInstruction.trim()}\n한국어로, 소스 근거로.`
+          : `당신은 공부 도우미 튜터입니다. 아래 소스만 근거로 정확히 답합니다.
 - 소스 밖 사실 추측 금지. 인용은 [S1], [S2] 형태.
-- 간결하고 구조화된 한국어.
-
-=== 소스 ===
-${sourceBlock}
-=== /소스 ===`;
+- 간결하고 구조화된 한국어.`;
+      const lenInstr =
+        notebook.chatResponseLength === 'long' ? '\n답은 충분히 풀어서 길게 작성.'
+        : notebook.chatResponseLength === 'short' ? '\n답은 3~4문장 이내로 짧게.'
+        : '';
+      const systemPrompt = `${modeInstr}${lenInstr}\n\n=== 소스 ===\n${sourceBlock}\n=== /소스 ===`;
+      const maxTokens = notebook.chatResponseLength === 'short' ? 600
+        : notebook.chatResponseLength === 'long' ? 3000
+        : 1800;
       const history = notebook.chat.slice(-6).filter((t) => t.role === 'user' || t.role === 'assistant').map((t) => ({
         name: t.role === 'user' ? '학생' : '튜터',
         content: t.content,
@@ -64,7 +87,7 @@ ${sourceBlock}
 
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt, question: q, previousResponses: history, searchPolicy: 'never', preSearchContext: null, maxTokens: 1800, temperature: 0.55 }),
+        body: JSON.stringify({ systemPrompt, question: q, previousResponses: history, searchPolicy: 'never', preSearchContext: null, maxTokens, temperature: 0.55 }),
       });
       if (!res.ok || !res.body) {
         const txt = await res.text().catch(() => '');
@@ -104,10 +127,12 @@ ${sourceBlock}
       <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-1.5 flex items-center justify-between gap-2">
         <div className="flex items-baseline gap-2 min-w-0">
           <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 shrink-0">대화</h3>
-          <p className="text-[10.5px] text-slate-400 dark:text-slate-500 truncate">
-            {enabledSources.length === 0 ? '소스 없음' : `소스 ${enabledSources.length}개`}
-            {notebook.chatMode === 'socratic' && ' · 소크라틱'}
-          </p>
+          {enabledSources.length === 0 && (
+            <p className="text-[10.5px] text-slate-400 dark:text-slate-500 truncate">소스 없음</p>
+          )}
+          {notebook.chatMode === 'socratic' && enabledSources.length > 0 && (
+            <p className="text-[10.5px] text-slate-400 dark:text-slate-500 truncate">소크라틱</p>
+          )}
         </div>
         <button
           onClick={() => setShowModePopover(!showModePopover)}
@@ -116,15 +141,16 @@ ${sourceBlock}
           title="모드 설정"
         >
           <Settings2 className="h-4 w-4" />
-          {showModePopover && (
-            <ModePopover
-              mode={notebook.chatMode}
-              onChange={(v) => { onChange({ ...notebook, chatMode: v }); setShowModePopover(false); }}
-              onClose={() => setShowModePopover(false)}
-            />
-          )}
         </button>
       </div>
+
+      {showModePopover && (
+        <ChatSettingsModal
+          notebook={notebook}
+          onSave={(patch) => { onChange({ ...notebook, ...patch }); setShowModePopover(false); }}
+          onClose={() => setShowModePopover(false)}
+        />
+      )}
 
       <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5">
         {notebook.chat.length === 0 ? (
@@ -164,6 +190,7 @@ ${sourceBlock}
             : 'border-slate-200 dark:border-slate-700 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/40',
         )}>
           <textarea
+            data-study-chat-input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && input.trim()) { e.preventDefault(); send(); } }}
@@ -172,11 +199,6 @@ ${sourceBlock}
             disabled={streaming || enabledSources.length === 0}
             className="flex-1 resize-none bg-transparent py-1 text-[13px] leading-relaxed outline-none placeholder:text-slate-400 disabled:cursor-not-allowed max-h-40 min-h-[20px]"
           />
-          {enabledSources.length > 0 && (
-            <span className="shrink-0 inline-flex items-center text-[11px] text-slate-500 dark:text-slate-400 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 self-center">
-              소스 {enabledSources.length}개
-            </span>
-          )}
           <button
             onClick={() => send()}
             disabled={!input.trim() || streaming || enabledSources.length === 0}
@@ -192,28 +214,143 @@ ${sourceBlock}
   );
 }
 
-function ModePopover({
-  mode, onChange, onClose,
-}: { mode: 'explain' | 'socratic'; onChange: (v: 'explain' | 'socratic') => void; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
+type ChatMode = 'explain' | 'socratic' | 'custom';
+type ChatLen = 'default' | 'long' | 'short';
+
+const MODE_DESC: Record<ChatMode, { title: string; desc: string }> = {
+  explain: { title: '기본', desc: '일반적인 학습 질문과 설명에 적합합니다.' },
+  socratic: { title: '학습 가이드', desc: '정답을 바로 주지 않고 힌트와 질문으로 스스로 찾게 도와줍니다.' },
+  custom: { title: '맞춤', desc: '원하는 튜터 스타일이나 목표를 직접 지시할 수 있어요.' },
+};
+
+function ChatSettingsModal({
+  notebook, onSave, onClose,
+}: {
+  notebook: StudyNotebook;
+  onSave: (patch: Partial<StudyNotebook>) => void;
+  onClose: () => void;
+}) {
+  const [mode, setMode] = useState<ChatMode>(notebook.chatMode);
+  const [custom, setCustom] = useState<string>(notebook.chatCustomInstruction ?? '');
+  const [len, setLen] = useState<ChatLen>(notebook.chatResponseLength ?? 'default');
+
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    setTimeout(() => window.addEventListener('click', h), 0);
-    return () => window.removeEventListener('click', h);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  const Opt = ({ value, title, desc }: { value: 'explain' | 'socratic'; title: string; desc: string }) => (
-    <button
-      onClick={() => onChange(value)}
-      className={cn('w-full text-left rounded-lg px-3 py-2.5 transition-colors', mode === value ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-slate-50 dark:hover:bg-slate-800')}
-    >
-      <p className={cn('text-[12.5px] font-semibold', mode === value ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-200')}>{title}</p>
-      <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">{desc}</p>
-    </button>
-  );
+
+  const save = () => {
+    onSave({
+      chatMode: mode,
+      chatCustomInstruction: mode === 'custom' ? custom.trim() || undefined : notebook.chatCustomInstruction,
+      chatResponseLength: len,
+    });
+  };
+
   return (
-    <div ref={ref} className="absolute right-0 top-full mt-1.5 w-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 z-50" role="menu">
-      <Opt value="explain" title="바로 설명" desc="튜터가 답을 곧바로 알려줘요" />
-      <Opt value="socratic" title="같이 생각하기" desc="힌트와 질문으로 스스로 찾게 도와요" />
+    <div
+      className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chat-settings-title"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+          <h3 id="chat-settings-title" className="text-[15px] font-bold text-slate-900 dark:text-slate-100">채팅 설정</h3>
+          <button
+            onClick={onClose}
+            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900"
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-5">
+          <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            학습 목표·스타일·응답 길이를 노트북별로 맞춤 설정해 대화 흐름을 조정할 수 있어요.
+          </p>
+
+          <section>
+            <p className="text-[12px] font-semibold text-slate-900 dark:text-slate-100 mb-2">대화 목표, 스타일 또는 역할 정의</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(['explain', 'socratic', 'custom'] as const).map((m) => {
+                const active = mode === m;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => setMode(m)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
+                      active
+                        ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-500'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-400',
+                    )}
+                  >
+                    {active && <Check className="h-3 w-3" />}
+                    {MODE_DESC[m].title}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{MODE_DESC[mode].desc}</p>
+            {mode === 'custom' && (
+              <textarea
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                rows={3}
+                placeholder="예: 고등학생 수준으로, 핵심 개념부터 차근차근 설명해주고 마지막에 연습 문제 1개를 내줘."
+                className="mt-3 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-[12.5px] outline-none focus:border-indigo-400 resize-none"
+              />
+            )}
+          </section>
+
+          <section>
+            <p className="text-[12px] font-semibold text-slate-900 dark:text-slate-100 mb-2">대답 길이 선택</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(['default', 'long', 'short'] as const).map((v) => {
+                const label = v === 'default' ? '기본' : v === 'long' ? '길게' : '짧게';
+                const active = len === v;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => setLen(v)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
+                      active
+                        ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-500'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-400',
+                    )}
+                  >
+                    {active && <Check className="h-3 w-3" />}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
+          <button
+            onClick={onClose}
+            className="rounded-md px-3 py-1.5 text-[12px] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            취소
+          </button>
+          <button
+            onClick={save}
+            className="rounded-md bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 text-[12px] font-semibold"
+          >
+            저장
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -252,7 +389,7 @@ function ChatBubble({
 }: {
   turn: StudyChatTurn;
   sources: StudySource[];
-  mode: 'explain' | 'socratic';
+  mode: 'explain' | 'socratic' | 'custom';
   onPromote: (f: string, b: string) => void;
   onHighlight: (color: HighlightColor) => void;
 }) {

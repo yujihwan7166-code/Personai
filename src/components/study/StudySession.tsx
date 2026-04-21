@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, Star } from 'lucide-react';
 import type { StudyNotebook, Flashcard, StudyQuizItem, WrongAnswer } from '@/types/study';
 import { newId } from '@/types/study';
 import { StudyBtn } from './ui/primitives';
@@ -10,21 +10,37 @@ interface Props {
   onChange: (nb: StudyNotebook) => void;
   onClose: () => void;
   onSessionComplete: () => void;
+  /** 'saved' = 저장한 카드만, 'deck' = 특정 덱 카드만, 없으면 전체. */
+  filter?: 'saved' | 'deck';
+  /** filter='deck' 일 때 사용할 덱 id. */
+  deckId?: string;
 }
 
 type Phase = 'flashcard' | 'wrong' | 'quiz' | 'done';
 
-export function StudySession({ notebook, onChange, onClose, onSessionComplete }: Props) {
+export function StudySession({ notebook, onChange, onClose, onSessionComplete, filter, deckId }: Props) {
   const now = Date.now();
   const dueCards = useMemo(
-    () => notebook.flashcards.filter((c) => c.dueAt <= now).slice(0, 10),
-    [notebook.flashcards, now],
+    () => {
+      const scoped = notebook.flashcards.filter((c) => {
+        if (filter === 'saved') return c.saved === true;
+        if (filter === 'deck') return c.deckId === deckId;
+        return true;
+      });
+      // 저장함 세션은 due 조건 무시(사용자가 골라둔 북마크라 언제든 복습 가능)
+      const byDue = filter === 'saved' ? scoped : scoped.filter((c) => c.dueAt <= now);
+      return byDue.slice(0, 20);
+    },
+    [notebook.flashcards, now, filter, deckId],
   );
   const wrongToReview = useMemo(
-    () => notebook.wrongAnswers.slice(0, 5),
-    [notebook.wrongAnswers],
+    () => (filter ? [] : notebook.wrongAnswers.slice(0, 5)),
+    [notebook.wrongAnswers, filter],
   );
-  const quizItems = useMemo(() => notebook.quizItems.slice(0, 5), [notebook.quizItems]);
+  const quizItems = useMemo(
+    () => (filter ? [] : notebook.quizItems.slice(0, 5)),
+    [notebook.quizItems, filter],
+  );
 
   const [phase, setPhase] = useState<Phase>(() => {
     if (dueCards.length > 0) return 'flashcard';
@@ -37,6 +53,7 @@ export function StudySession({ notebook, onChange, onClose, onSessionComplete }:
   const [selected, setSelected] = useState<number | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [totalAnswered, setTotalAnswered] = useState(0);
+  const [savedInSession, setSavedInSession] = useState(0);
 
   const total = dueCards.length + wrongToReview.length + quizItems.length;
   const done =
@@ -55,8 +72,17 @@ export function StudySession({ notebook, onChange, onClose, onSessionComplete }:
           e.preventDefault();
           setFlipped((f) => !f);
         }
-        if (flipped && ['1', '2', '3', '4'].includes(e.key)) {
-          handleFlashcardRating(parseInt(e.key, 10) as 1 | 2 | 3 | 4);
+        if (flipped) {
+          if (['1', '2', '3'].includes(e.key)) {
+            handleFlashcardRating(parseInt(e.key, 10) as 1 | 2 | 3, false);
+          } else if (e.key === '4' || e.key === 's' || e.key === 'S') {
+            handleFlashcardRating(3, true);
+          }
+        }
+        if (e.key === 'b' || e.key === 'B') {
+          // 판정 전/후 언제든 저장 토글
+          e.preventDefault();
+          toggleSaveCurrent();
         }
       }
     };
@@ -64,32 +90,58 @@ export function StudySession({ notebook, onChange, onClose, onSessionComplete }:
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const handleFlashcardRating = (rating: 1 | 2 | 3 | 4) => {
+  /** 현재 카드의 saved 플래그 토글 (판정 없음). */
+  const toggleSaveCurrent = () => {
+    const card = dueCards[index];
+    if (!card) return;
+    const next: Flashcard = {
+      ...card,
+      saved: !card.saved,
+      savedAt: card.saved ? card.savedAt : Date.now(),
+    };
+    if (!card.saved) setSavedInSession((n) => n + 1);
+    onChange({
+      ...notebook,
+      flashcards: notebook.flashcards.map((c) => (c.id === card.id ? next : c)),
+    });
+  };
+
+  /** 판정 1=몰라요, 2=애매해요, 3=알아요. alsoSave=true 면 saved 플래그 함께 켬. */
+  const handleFlashcardRating = (rating: 1 | 2 | 3, alsoSave: boolean) => {
     const card = dueCards[index];
     if (!card) return;
     const dayMs = 86400000;
     let nextInterval = card.intervalDays;
     let nextEase = card.ease;
     if (rating === 1) {
-      nextInterval = 1;
+      // 몰라요 → 10분 뒤 다시 (due 세션에선 거의 즉시 재등장, 저장함 세션에선 그냥 기록)
+      nextInterval = 0; // dueAt 을 짧게
       nextEase = Math.max(1.3, card.ease - 0.2);
     } else if (rating === 2) {
+      // 애매해요 → 1일 뒤
       nextInterval = Math.max(1, Math.ceil(card.intervalDays * 1.2));
       nextEase = Math.max(1.3, card.ease - 0.05);
-    } else if (rating === 3) {
-      nextInterval = Math.max(1, Math.ceil(card.intervalDays * card.ease));
     } else {
-      nextInterval = Math.max(1, Math.ceil(card.intervalDays * card.ease * 1.3));
-      nextEase = card.ease + 0.1;
+      // 알아요 → 정상 간격
+      nextInterval = Math.max(1, Math.ceil(card.intervalDays * card.ease));
     }
+    const shortReviewMs = 10 * 60 * 1000; // 10분
+    const dueAt = rating === 1
+      ? Date.now() + shortReviewMs
+      : Date.now() + nextInterval * dayMs;
+    const wasSaved = card.saved === true;
+    const nowSaved = alsoSave ? true : wasSaved;
     const updatedCard: Flashcard = {
       ...card,
       ease: nextEase,
       intervalDays: nextInterval,
-      dueAt: Date.now() + nextInterval * dayMs,
+      dueAt,
       reviewsCount: card.reviewsCount + 1,
       lastReviewedAt: Date.now(),
+      saved: nowSaved,
+      savedAt: (alsoSave && !wasSaved) ? Date.now() : card.savedAt,
     };
+    if (alsoSave && !wasSaved) setSavedInSession((n) => n + 1);
     onChange({
       ...notebook,
       flashcards: notebook.flashcards.map((c) => (c.id === card.id ? updatedCard : c)),
@@ -146,9 +198,14 @@ export function StudySession({ notebook, onChange, onClose, onSessionComplete }:
       <div className={`fixed inset-0 z-[100] ${bg} flex flex-col items-center justify-center text-white p-6`}>
         <div className="text-6xl mb-4">🎉</div>
         <h2 className="text-2xl font-bold mb-2">오늘 세션 완료</h2>
-        <p className="text-slate-300 text-sm mb-6">
+        <p className="text-slate-300 text-sm mb-2">
           {dueCards.length}장 복습 · {wrongToReview.length}오답 재도전 · {totalAnswered}문제 풀이
         </p>
+        {savedInSession > 0 && (
+          <p className="inline-flex items-center gap-1.5 mb-6 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 px-3 py-1 text-[12px] font-semibold">
+            <Star className="h-3 w-3 fill-current" /> 이번 세션에서 {savedInSession}장 저장함
+          </p>
+        )}
         {accuracy != null && (
           <div className="mb-8 text-center">
             <p className="text-5xl font-bold text-emerald-400 tabular-nums">
@@ -201,6 +258,7 @@ export function StudySession({ notebook, onChange, onClose, onSessionComplete }:
             flipped={flipped}
             onFlip={() => setFlipped(!flipped)}
             onRate={handleFlashcardRating}
+            onToggleSave={toggleSaveCurrent}
           />
         )}
         {(phase === 'wrong' || phase === 'quiz') && (
@@ -240,48 +298,84 @@ function FlashcardView({
   flipped,
   onFlip,
   onRate,
+  onToggleSave,
 }: {
   card: Flashcard;
   flipped: boolean;
   onFlip: () => void;
-  onRate: (r: 1 | 2 | 3 | 4) => void;
+  onRate: (r: 1 | 2 | 3, alsoSave: boolean) => void;
+  onToggleSave: () => void;
 }) {
+  const isSaved = card.saved === true;
   return (
     <div className="w-full max-w-lg flex flex-col items-center">
-      <button
-        onClick={onFlip}
-        className="study-card-flip w-full aspect-[4/3] mb-6"
-        aria-pressed={flipped}
-      >
-        <div className={cn('study-card-flip-inner', flipped && 'flipped')}>
-          <div className="study-card-flip-face rounded-2xl bg-white text-slate-900 flex flex-col items-center justify-center p-8 text-center">
-            <span className="text-[10px] uppercase tracking-wide text-slate-400 mb-3">앞면 · 질문</span>
-            <p className="text-xl font-semibold">{card.front}</p>
-            <span className="mt-6 text-[11px] text-slate-400">Space로 뒤집기</span>
+      <div className="relative w-full aspect-[4/3] mb-6">
+        {/* 우상단 저장 토글 (판정과 독립) */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+          className={cn(
+            'absolute top-3 right-3 z-10 h-9 w-9 flex items-center justify-center rounded-full transition-all',
+            isSaved
+              ? 'bg-amber-400 text-white shadow-lg'
+              : 'bg-white/80 text-slate-400 hover:bg-white hover:text-amber-500',
+          )}
+          aria-label={isSaved ? '저장 해제' : '저장'}
+          title={isSaved ? '저장됨 (B로 해제)' : '저장 (B)'}
+        >
+          <Star className={cn('h-4 w-4', isSaved && 'fill-current')} />
+        </button>
+
+        <button
+          onClick={onFlip}
+          className="study-card-flip w-full h-full"
+          aria-pressed={flipped}
+        >
+          <div className={cn('study-card-flip-inner', flipped && 'flipped')}>
+            <div className="study-card-flip-face rounded-2xl bg-white text-slate-900 flex flex-col items-center justify-center p-8 text-center">
+              <span className="text-[10px] uppercase tracking-wide text-slate-400 mb-3">앞면 · 질문</span>
+              <p className="text-xl font-semibold">{card.front}</p>
+              <span className="mt-6 text-[11px] text-slate-400">Space로 뒤집기</span>
+            </div>
+            <div className="study-card-flip-face back rounded-2xl bg-indigo-50 text-slate-900 flex flex-col items-center justify-center p-8 text-center">
+              <span className="text-[10px] uppercase tracking-wide text-indigo-500 mb-3">뒷면 · 답</span>
+              <p className="text-lg leading-relaxed">{card.back}</p>
+            </div>
           </div>
-          <div className="study-card-flip-face back rounded-2xl bg-indigo-50 text-slate-900 flex flex-col items-center justify-center p-8 text-center">
-            <span className="text-[10px] uppercase tracking-wide text-indigo-500 mb-3">뒷면 · 답</span>
-            <p className="text-lg leading-relaxed">{card.back}</p>
-          </div>
-        </div>
-      </button>
+        </button>
+      </div>
+
       {flipped ? (
         <div className="grid grid-cols-4 gap-2 w-full">
           {[
-            { r: 1 as const, label: 'Again', key: '1', color: 'bg-red-500 hover:bg-red-400' },
-            { r: 2 as const, label: 'Hard', key: '2', color: 'bg-orange-500 hover:bg-orange-400' },
-            { r: 3 as const, label: 'Good', key: '3', color: 'bg-emerald-500 hover:bg-emerald-400' },
-            { r: 4 as const, label: 'Easy', key: '4', color: 'bg-indigo-500 hover:bg-indigo-400' },
+            { r: 1 as const, label: '몰라요',   key: '1', color: 'bg-rose-500 hover:bg-rose-400',       hint: '10분 뒤 다시' },
+            { r: 2 as const, label: '애매해요', key: '2', color: 'bg-amber-500 hover:bg-amber-400',     hint: '내일 다시' },
+            { r: 3 as const, label: '알아요',   key: '3', color: 'bg-emerald-500 hover:bg-emerald-400', hint: '정상 간격' },
           ].map((b) => (
             <button
               key={b.r}
-              onClick={() => onRate(b.r)}
-              className={cn('rounded-xl py-3 font-semibold transition-colors', b.color)}
+              onClick={() => onRate(b.r, false)}
+              className={cn('rounded-xl py-3 font-semibold transition-colors flex flex-col items-center justify-center', b.color)}
+              title={b.hint}
             >
-              <div className="text-xs opacity-80">[{b.key}]</div>
-              {b.label}
+              <div className="text-[10px] opacity-80 tabular-nums">[{b.key}]</div>
+              <div className="text-[14px]">{b.label}</div>
+              <div className="text-[9.5px] opacity-75 mt-0.5">{b.hint}</div>
             </button>
           ))}
+          <button
+            onClick={() => onRate(3, true)}
+            className={cn(
+              'rounded-xl py-3 font-semibold transition-colors flex flex-col items-center justify-center',
+              'bg-indigo-500 hover:bg-indigo-400',
+            )}
+            title="알아요 + 나중에 다시 볼 수 있도록 저장"
+          >
+            <div className="text-[10px] opacity-80 tabular-nums">[S]</div>
+            <div className="text-[14px] flex items-center gap-1">
+              <Star className="h-3.5 w-3.5 fill-current" /> 저장
+            </div>
+            <div className="text-[9.5px] opacity-75 mt-0.5">알아요 + 북마크</div>
+          </button>
         </div>
       ) : (
         <p className="text-sm text-white/60">답을 생각해보고 카드를 눌러 뒤집어보세요</p>

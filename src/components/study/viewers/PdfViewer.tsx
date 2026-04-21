@@ -6,14 +6,26 @@
  *  - activePage prop 변경 시 해당 페이지로 스크롤 + 1초 강조
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Minus, Plus, Maximize2, Search, Download, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, Maximize2, Search, Download, X, LayoutGrid, MessageSquarePlus, ScanLine, Pause, Play } from 'lucide-react';
 import { getBlob } from '@/lib/studyBlobStore';
+import { OcrQueue } from '@/lib/studyOcrQueue';
+import { getCompletedPages, getAllForBlob, type OcrRecord } from '@/lib/studyOcrStore';
 import { cn } from '@/lib/utils';
 
 interface Props {
   blobRef: string;
   activePage?: number;
   onActivePageChange?: (page: number) => void;
+  /** 선택 텍스트에 대한 "질문하기" 등 액션 콜백. 없으면 선택 액션 UI 숨김. */
+  onAskAboutSelection?: (text: string) => void;
+  /** 스캔본 페이지 번호들. 있으면 OCR 배너 노출. */
+  scanPages?: number[];
+  /** 사용자가 이전에 OCR 자동 시작에 동의했는지. */
+  ocrEnabled?: boolean;
+  /** OCR 시작 동의 시 상위에 저장 요청. */
+  onOcrEnable?: (enabled: boolean) => void;
+  /** OCR 결과가 추가될 때마다 source.content 갱신용 — 전체 OCR 텍스트 모아서 호출. */
+  onOcrContentUpdate?: (ocrText: string) => void;
 }
 
 type PdfDoc = {
@@ -39,7 +51,20 @@ async function loadPdfJs() {
   return pdfjsPromise;
 }
 
-export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
+/** idle 시점 워커/모듈 prewarm. 앱 진입 시 호출해두면 첫 PDF 오픈 지연 감소. */
+export function warmupPdfJs() {
+  if (pdfjsPromise) return;
+  const idle = (cb: () => void) =>
+    (typeof window !== 'undefined' && 'requestIdleCallback' in window)
+      ? (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(cb)
+      : setTimeout(cb, 1500);
+  idle(() => { void loadPdfJs(); });
+}
+
+export function PdfViewer({
+  blobRef, activePage, onActivePageChange, onAskAboutSelection,
+  scanPages, ocrEnabled, onOcrEnable, onOcrContentUpdate,
+}: Props) {
   const [doc, setDoc] = useState<PdfDoc | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [scale, setScale] = useState(1.2);
@@ -50,6 +75,15 @@ export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
   const [hitCount, setHitCount] = useState(0);
   const [err, setErr] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [showThumbs, setShowThumbs] = useState(false);
+  const [selAction, setSelAction] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [ocrDone, setOcrDone] = useState(0);
+  const [ocrTotal, setOcrTotal] = useState(0);
+  const [ocrPaused, setOcrPaused] = useState(false);
+  const [ocrDismissed, setOcrDismissed] = useState(false);
+  const [ocrRunning, setOcrRunning] = useState(false);
+  const [ocrPagesReady, setOcrPagesReady] = useState<Set<number>>(new Set());
+  const ocrQueueRef = useRef<OcrQueue | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -182,21 +216,33 @@ export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
           textLayerDiv.style.width = `${Math.floor(cssViewport.width)}px`;
           textLayerDiv.style.height = `${Math.floor(cssViewport.height)}px`;
           textLayerDiv.innerHTML = '';
-          try {
-            const textContent = await page.getTextContent();
-            const pdfjs = pdfjsRef.current as unknown as {
-              renderTextLayer?: (opts: Record<string, unknown>) => { promise: Promise<void> };
-            };
-            if (pdfjs.renderTextLayer) {
-              await pdfjs.renderTextLayer({
-                textContentSource: textContent,
-                container: textLayerDiv,
-                viewport: cssViewport,
-                textDivs: [],
-              }).promise;
+          // 스캔본 페이지이면서 OCR 완료된 경우 → OCR 결과로 textLayer 구성
+          const isScan = (scanPages ?? []).includes(pageNum);
+          if (isScan && ocrPagesReady.has(pageNum)) {
+            try {
+              const { getOcr } = await import('@/lib/studyOcrStore');
+              const rec = await getOcr(blobRef, pageNum);
+              if (rec?.words && rec.words.length > 0) {
+                buildOcrTextLayer(textLayerDiv, rec.words, cssViewport.width, cssViewport.height);
+              }
+            } catch { /* noop */ }
+          } else {
+            try {
+              const textContent = await page.getTextContent();
+              const pdfjs = pdfjsRef.current as unknown as {
+                renderTextLayer?: (opts: Record<string, unknown>) => { promise: Promise<void> };
+              };
+              if (pdfjs.renderTextLayer) {
+                await pdfjs.renderTextLayer({
+                  textContentSource: textContent,
+                  container: textLayerDiv,
+                  viewport: cssViewport,
+                  textDivs: [],
+                }).promise;
+              }
+            } catch {
+              // textLayer 실패는 치명적이지 않음
             }
-          } catch {
-            // textLayer 실패는 치명적이지 않음
           }
           // 검색 하이라이트 재적용
           applyHighlight(textLayerDiv, query);
@@ -208,33 +254,43 @@ export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
 
     const io = new IntersectionObserver(
       (entries) => {
+        // 1) 보이는 페이지는 렌더 큐에 추가 (앞뒤 1페이지 선제 렌더 포함)
         for (const e of entries) {
           const n = Number((e.target as HTMLElement).dataset.page);
-          if (!n) continue;
-          if (e.isIntersecting) {
-            renderPage(n);
-            // 앞뒤 1페이지 선제 렌더
-            if (n > 1) renderPage(n - 1);
-            if (n < numPages) renderPage(n + 1);
-            // 현재 페이지 추적 (가장 상단에 가까운 페이지)
-            if (e.intersectionRatio > 0.4) {
-              setCurrentPage((prev) => {
-                if (prev !== n) onActivePageChange?.(n);
-                return n;
-              });
-            }
+          if (!n || !e.isIntersecting) continue;
+          renderPage(n);
+          if (n > 1) renderPage(n - 1);
+          if (n < numPages) renderPage(n + 1);
+        }
+        // 2) "현재 페이지" 는 이번 배치에서 가시 비율이 가장 큰 1개만 선택.
+        //    여러 페이지가 동시에 교차 영역에 진입해도 winner 는 유일.
+        let best: { n: number; ratio: number } | null = null;
+        for (const e of entries) {
+          const n = Number((e.target as HTMLElement).dataset.page);
+          if (!n || !e.isIntersecting) continue;
+          if (!best || e.intersectionRatio > best.ratio) {
+            best = { n, ratio: e.intersectionRatio };
           }
         }
+        if (best && best.ratio >= 0.4) {
+          setCurrentPage((prev) => {
+            if (prev !== best!.n) onActivePageChange?.(best!.n);
+            return best!.n;
+          });
+        }
       },
-      { root, threshold: [0, 0.4, 0.8] },
+      { root, threshold: [0, 0.25, 0.5, 0.75, 1] },
     );
     for (const [, el] of pageRefs.current) io.observe(el);
     return () => io.disconnect();
   }, [doc, scale, numPages, query, onActivePageChange]);
 
   // activePage prop 변경 시 해당 페이지로 스크롤 + 하이라이트
+  // 단, 내부 IO 콜백으로 activePage 가 자기 자신(currentPage)으로 되돌아오는 경우는 스킵
+  // (그러지 않으면 스크롤 중에 "절반 넘으면 자동 점프" 처럼 보임)
   useEffect(() => {
     if (!activePage || !numPages) return;
+    if (activePage === currentPage) return;
     const el = pageRefs.current.get(activePage);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -243,6 +299,8 @@ export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
       el.classList.remove('ring-2', 'ring-indigo-400', 'ring-offset-2', 'ring-offset-slate-100');
     }, 1500);
     return () => clearTimeout(t);
+    // currentPage 는 의도적으로 deps 에서 제외 — 내부 스크롤이 끝난 뒤 재진입 방지.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePage, numPages]);
 
   // 검색 쿼리 변경 시 모든 렌더된 textLayer에 하이라이트 재적용
@@ -255,13 +313,157 @@ export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
     setHitCount(hits);
   }, [query, numPages, scale]);
 
+  // 선택 해제 시 플로팅 액션 숨김
+  useEffect(() => {
+    const onSelChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.toString().trim().length < 2) setSelAction(null);
+    };
+    document.addEventListener('selectionchange', onSelChange);
+    return () => document.removeEventListener('selectionchange', onSelChange);
+  }, []);
+
+  // OCR 큐 생명주기 — doc 준비 + scanPages 존재 + 사용자 동의(ocrEnabled) 시 자동 시작
+  useEffect(() => {
+    if (!doc || !blobRef) return;
+    const pages = scanPages ?? [];
+    if (pages.length === 0) return;
+
+    // 이미 캐시된 페이지 집합 불러옴
+    (async () => {
+      const completed = await getCompletedPages(blobRef);
+      setOcrPagesReady(completed);
+      // 완료된 OCR 있으면 content 먼저 업데이트
+      if (completed.size > 0 && onOcrContentUpdate) {
+        const recs = await getAllForBlob(blobRef);
+        const combined = recs.map((r) => `[p.${r.page}] ${r.text}`).join('\n\n');
+        onOcrContentUpdate(combined);
+      }
+    })();
+
+    if (!ocrEnabled) return;   // 사용자 동의 전이면 큐 시작하지 않음
+    if (ocrQueueRef.current) return;
+
+    setOcrRunning(true);
+    setOcrTotal(pages.length);
+
+    const q = new OcrQueue(
+      { blobRef, doc, pages, renderScale: 1.8, concurrency: 2 },
+      {
+        onProgress: (done) => setOcrDone(done),
+        onPageDone: (page) => {
+          setOcrPagesReady((prev) => {
+            if (prev.has(page)) return prev;
+            const next = new Set(prev);
+            next.add(page);
+            return next;
+          });
+          // 해당 페이지가 현재 렌더돼 있다면 textLayer 다시 그리게 renderedRef 에서 제거
+          const wrapper = pageRefs.current.get(page);
+          if (wrapper) {
+            renderedRef.current.delete(page);
+            // 가시 영역이면 다음 scroll/observer tick 에 자연 재렌더
+            setTimeout(() => scrollRef.current?.dispatchEvent(new Event('scroll')), 0);
+          }
+          // content 갱신 (전체 결과 재집계)
+          if (onOcrContentUpdate) {
+            void getAllForBlob(blobRef).then((recs) => {
+              const combined = recs.map((r) => `[p.${r.page}] ${r.text}`).join('\n\n');
+              onOcrContentUpdate(combined);
+            });
+          }
+        },
+        onFinish: () => setOcrRunning(false),
+        onError: (e) => console.warn('[ocr]', e),
+      },
+    );
+    ocrQueueRef.current = q;
+    void q.start();
+
+    return () => {
+      q.cancel();
+      ocrQueueRef.current = null;
+    };
+    // onOcrContentUpdate 는 일부러 deps 제외 — 매 렌더마다 재시작 방지
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, blobRef, ocrEnabled, scanPages]);
+
+  const toggleOcrPause = () => {
+    const q = ocrQueueRef.current;
+    if (!q) return;
+    if (q.status === 'paused') { q.resume(); setOcrPaused(false); }
+    else { q.pause(); setOcrPaused(true); }
+  };
+
+  // currentPage 기준 ±2 외 페이지 canvas 메모리 해제 — 대용량 PDF 에서 RAM 폭증 방지
+  useEffect(() => {
+    if (!numPages) return;
+    const KEEP = 2;
+    for (const [n, el] of pageRefs.current) {
+      if (Math.abs(n - currentPage) <= KEEP) continue;
+      if (!renderedRef.current.has(n)) continue;
+      const canvas = el.querySelector('canvas') as HTMLCanvasElement | null;
+      if (canvas && canvas.width > 0) {
+        // width=0 으로 내리면 백킹 버퍼가 해제됨.
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+      // text layer 는 용량이 작아 유지 — 검색 하이라이트 유지 목적
+      renderedRef.current.delete(n);
+    }
+  }, [currentPage, numPages]);
+
   const zoomOut = () => { setFitMode('custom'); setScale((s) => Math.max(0.4, s - 0.15)); };
   const zoomIn = () => { setFitMode('custom'); setScale((s) => Math.min(3, s + 0.15)); };
+  const resetZoom = () => { setFitMode('width'); };
 
   const jumpTo = useCallback((n: number) => {
     const el = pageRefs.current.get(Math.max(1, Math.min(numPages, n)));
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [numPages]);
+
+  // 키보드 네비게이션 + Ctrl+F — 뷰어(scrollRef)에 포커스가 있거나 내부 요소에서 이벤트 발생 시
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !numPages) return;
+    const onKey = (e: KeyboardEvent) => {
+      // 검색 입력 / number input 안에서는 가로채지 않음
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') {
+        // Ctrl+F 는 input 안에서도 뷰어 검색으로 통일
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+          e.preventDefault();
+          setSearchOpen(true);
+        }
+        return;
+      }
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
+      if (mod && (e.key === '=' || e.key === '+')) {
+        e.preventDefault(); zoomIn(); return;
+      }
+      if (mod && e.key === '-') {
+        e.preventDefault(); zoomOut(); return;
+      }
+      if (mod && e.key === '0') {
+        e.preventDefault(); resetZoom(); return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault(); jumpTo(currentPage - 1); return;
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); jumpTo(currentPage + 1); return;
+      }
+      if (e.key === 'Home') { e.preventDefault(); jumpTo(1); return; }
+      if (e.key === 'End') { e.preventDefault(); jumpTo(numPages); return; }
+    };
+    root.addEventListener('keydown', onKey);
+    return () => root.removeEventListener('keydown', onKey);
+  }, [currentPage, numPages, jumpTo]);
 
   const pageList = useMemo(() => Array.from({ length: numPages }, (_, i) => i + 1), [numPages]);
 
@@ -290,6 +492,18 @@ export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
     <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-950">
       {/* 툴바 */}
       <div className="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 flex items-center gap-1.5">
+        <button
+          onClick={() => setShowThumbs((v) => !v)}
+          className={cn(
+            'h-7 w-7 flex items-center justify-center rounded-md',
+            showThumbs ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800',
+          )}
+          aria-label="썸네일 보기"
+          title="페이지 썸네일"
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+        </button>
+        <div className="mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700" />
         <button
           onClick={() => jumpTo(currentPage - 1)}
           disabled={currentPage <= 1}
@@ -371,6 +585,24 @@ export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
         )}
 
         <div className="ml-auto flex items-center gap-1">
+          {/* OCR 진행률 배지 */}
+          {ocrEnabled && ocrTotal > 0 && (
+            <div className="flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10.5px]">
+              <ScanLine className={cn('h-3 w-3', ocrRunning ? 'text-indigo-500 animate-pulse' : 'text-emerald-500')} />
+              <span className="tabular-nums font-semibold text-slate-700 dark:text-slate-200">
+                OCR {ocrDone}/{ocrTotal}
+              </span>
+              {ocrRunning && (
+                <button
+                  onClick={toggleOcrPause}
+                  className="h-4 w-4 flex items-center justify-center rounded-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                  title={ocrPaused ? '재개' : '일시정지'}
+                >
+                  {ocrPaused ? <Play className="h-2.5 w-2.5" /> : <Pause className="h-2.5 w-2.5" />}
+                </button>
+              )}
+            </div>
+          )}
           {downloadUrl && (
             <a
               href={downloadUrl}
@@ -384,39 +616,110 @@ export function PdfViewer({ blobRef, activePage, onActivePageChange }: Props) {
         </div>
       </div>
 
-      {/* 페이지 스트림 */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-auto px-4 py-4"
-        style={{ scrollBehavior: 'smooth' }}
-      >
-        <div className="flex flex-col items-center gap-4">
-          {pageList.map((n) => {
-            const size = pageSizesRef.current.get(n);
-            const w = (size?.width ?? 612) * scale;
-            const h = (size?.height ?? 792) * scale;
-            return (
-              <div
-                key={n}
-                data-page={n}
-                ref={(el) => {
-                  if (el) pageRefs.current.set(n, el);
-                  else pageRefs.current.delete(n);
-                }}
-                className="relative bg-white shadow-md rounded-sm transition-shadow"
-                style={{ width: w, height: h }}
-              >
-                <div className="absolute top-1 right-2 text-[10px] tabular-nums text-slate-400 bg-white/70 px-1.5 rounded pointer-events-none select-none">
-                  p.{n}
-                </div>
-                <canvas className="block" />
+      {/* 스캔본 OCR 제안 배너 */}
+      {(scanPages?.length ?? 0) > 0 && !ocrEnabled && !ocrDismissed && (
+        <div className="shrink-0 border-b border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/30 px-4 py-2 flex items-center gap-3">
+          <ScanLine className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-semibold text-amber-900 dark:text-amber-200 leading-tight">
+              스캔본 {scanPages!.length}페이지 감지 — 글자 인식(OCR)을 돌릴까요?
+            </p>
+            <p className="text-[10.5px] text-amber-700 dark:text-amber-300/80 leading-tight mt-0.5">
+              백그라운드에서 진행되며, 완료된 페이지부터 선택·검색이 가능해집니다. 결과는 자동으로 저장돼요.
+            </p>
+          </div>
+          <button
+            onClick={() => { onOcrEnable?.(true); }}
+            className="shrink-0 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-[11.5px] font-semibold px-3 py-1"
+          >
+            시작
+          </button>
+          <button
+            onClick={() => setOcrDismissed(true)}
+            className="shrink-0 text-[11px] text-amber-700 dark:text-amber-300 hover:underline"
+          >
+            나중에
+          </button>
+        </div>
+      )}
+
+      {/* 본문: (썸네일) + 페이지 스트림 */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        {showThumbs && doc && (
+          <ThumbnailSidebar
+            doc={doc}
+            numPages={numPages}
+            currentPage={currentPage}
+            onJump={(n) => jumpTo(n)}
+          />
+        )}
+        <div
+          ref={scrollRef}
+          tabIndex={0}
+          className="relative flex-1 min-w-0 overflow-auto px-4 py-4 outline-none focus-visible:ring-1 focus-visible:ring-indigo-300"
+          style={{ scrollBehavior: 'smooth' }}
+          onMouseUp={() => handleTextSelection(scrollRef.current, setSelAction, onAskAboutSelection)}
+        >
+          <div className="flex flex-col items-center gap-4">
+            {pageList.map((n) => {
+              const size = pageSizesRef.current.get(n);
+              const w = (size?.width ?? 612) * scale;
+              const h = (size?.height ?? 792) * scale;
+              return (
                 <div
-                  className="textLayer absolute inset-0 overflow-hidden opacity-100 leading-none"
-                  style={{ lineHeight: 1 }}
-                />
-              </div>
-            );
-          })}
+                  key={n}
+                  data-page={n}
+                  ref={(el) => {
+                    if (el) pageRefs.current.set(n, el);
+                    else pageRefs.current.delete(n);
+                  }}
+                  className="relative bg-white shadow-md rounded-sm transition-shadow"
+                  style={{ width: w, height: h }}
+                >
+                  <div className="absolute top-1 right-2 text-[10px] tabular-nums text-slate-400 bg-white/70 px-1.5 rounded pointer-events-none select-none">
+                    p.{n}
+                  </div>
+                  <canvas className="block" />
+                  <div
+                    className="textLayer absolute inset-0 overflow-hidden opacity-100 leading-none"
+                    style={{ lineHeight: 1 }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 선택 텍스트 플로팅 액션 */}
+          {selAction && onAskAboutSelection && (
+            <div
+              className="absolute z-20 flex items-center gap-1 rounded-full bg-slate-900 text-white shadow-xl px-1 py-1"
+              style={{ left: selAction.x, top: selAction.y }}
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              <button
+                onClick={() => {
+                  onAskAboutSelection(selAction.text);
+                  setSelAction(null);
+                  window.getSelection()?.removeAllRanges();
+                }}
+                className="flex items-center gap-1 rounded-full px-3 py-1 text-[11.5px] font-medium hover:bg-white/10"
+              >
+                <MessageSquarePlus className="h-3 w-3" />
+                이 부분 질문
+              </button>
+              <button
+                onClick={() => {
+                  void navigator.clipboard?.writeText(selAction.text);
+                  setSelAction(null);
+                  window.getSelection()?.removeAllRanges();
+                }}
+                className="rounded-full px-3 py-1 text-[11.5px] font-medium hover:bg-white/10"
+                title="클립보드로 복사"
+              >
+                복사
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -487,4 +790,168 @@ function escapeRegExp(s: string) {
 }
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
+
+/**
+ * OCR 결과(words + 정규화 bbox)를 textLayer 용 absolute-span 들로 구성.
+ * pdf.js 네이티브 textLayer 와 동일한 스타일로 렌더 (`.textLayer > span`).
+ */
+function buildOcrTextLayer(
+  container: HTMLElement,
+  words: { text: string; x0: number; y0: number; x1: number; y1: number }[],
+  cssWidth: number,
+  cssHeight: number,
+) {
+  container.innerHTML = '';
+  for (const w of words) {
+    if (!w.text || w.x1 <= w.x0 || w.y1 <= w.y0) continue;
+    const span = document.createElement('span');
+    span.textContent = w.text;
+    const left = w.x0 * cssWidth;
+    const top = w.y0 * cssHeight;
+    const width = (w.x1 - w.x0) * cssWidth;
+    const height = (w.y1 - w.y0) * cssHeight;
+    span.style.position = 'absolute';
+    span.style.left = `${left}px`;
+    span.style.top = `${top}px`;
+    span.style.width = `${width}px`;
+    span.style.height = `${height}px`;
+    span.style.fontSize = `${height * 0.95}px`;
+    span.style.whiteSpace = 'pre';
+    span.style.color = 'transparent';
+    span.style.lineHeight = '1';
+    container.appendChild(span);
+  }
+}
+
+/**
+ * 텍스트 선택 이벤트 → 플로팅 액션 툴팁 위치 계산.
+ * scrollRoot 내부의 선택 영역만 대상으로 한다.
+ */
+function handleTextSelection(
+  scrollRoot: HTMLDivElement | null,
+  setSelAction: (v: { x: number; y: number; text: string } | null) => void,
+  onAsk?: (t: string) => void,
+) {
+  if (!scrollRoot || !onAsk) return;
+  // 브라우저가 선택을 세팅할 시간을 주기 위해 rAF 뒤에
+  requestAnimationFrame(() => {
+    const sel = window.getSelection();
+    const text = sel?.toString().trim() ?? '';
+    if (!sel || text.length < 2 || sel.rangeCount === 0) {
+      setSelAction(null);
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    const rootRect = scrollRoot.getBoundingClientRect();
+    // 선택 영역이 scrollRoot 내부인지 확인
+    const node = range.startContainer instanceof Element
+      ? range.startContainer
+      : range.startContainer.parentElement;
+    if (!node || !scrollRoot.contains(node)) { setSelAction(null); return; }
+
+    const r = range.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) { setSelAction(null); return; }
+    const x = Math.max(8, r.left - rootRect.left + scrollRoot.scrollLeft + r.width / 2 - 80);
+    const y = Math.max(8, r.top - rootRect.top + scrollRoot.scrollTop - 36);
+    setSelAction({ x, y, text });
+  });
+}
+
+/* ─── 썸네일 사이드바 ─── */
+
+interface ThumbProps {
+  doc: PdfDoc;
+  numPages: number;
+  currentPage: number;
+  onJump: (n: number) => void;
+}
+
+function ThumbnailSidebar({ doc, numPages, currentPage, onJump }: ThumbProps) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const thumbRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
+  const activeRef = useRef<HTMLDivElement | null>(null);
+  const renderedRef = useRef<Set<number>>(new Set());
+
+  // 활성 페이지가 바뀌면 썸네일 영역에서도 해당 위치로 스크롤
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [currentPage]);
+
+  const renderThumb = useCallback(async (n: number) => {
+    if (renderedRef.current.has(n)) return;
+    renderedRef.current.add(n);
+    const canvas = thumbRefs.current.get(n);
+    if (!canvas) { renderedRef.current.delete(n); return; }
+    try {
+      const page = await doc.getPage(n);
+      const viewport = page.getViewport({ scale: 0.2 });
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const renderVp = page.getViewport({ scale: 0.2 * dpr });
+      canvas.width = Math.floor(renderVp.width);
+      canvas.height = Math.floor(renderVp.height);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { renderedRef.current.delete(n); return; }
+      await page.render({ canvasContext: ctx, viewport: renderVp }).promise;
+    } catch {
+      renderedRef.current.delete(n);
+    }
+  }, [doc]);
+
+  // IO 기반 lazy 썸네일 렌더
+  useEffect(() => {
+    const root = listRef.current;
+    if (!root) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const n = Number((e.target as HTMLElement).dataset.thumb);
+          if (!n) continue;
+          void renderThumb(n);
+        }
+      },
+      { root, threshold: 0, rootMargin: '200px' },
+    );
+    root.querySelectorAll<HTMLElement>('[data-thumb]').forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [numPages, renderThumb]);
+
+  return (
+    <div
+      ref={listRef}
+      className="w-[140px] shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto py-2 px-2 space-y-2"
+    >
+      {Array.from({ length: numPages }, (_, i) => i + 1).map((n) => {
+        const active = n === currentPage;
+        return (
+          <div
+            key={n}
+            ref={active ? activeRef : undefined}
+            data-thumb={n}
+            onClick={() => onJump(n)}
+            className={cn(
+              'group cursor-pointer',
+              active ? 'ring-2 ring-indigo-500 rounded' : '',
+            )}
+          >
+            <div className="relative bg-slate-100 dark:bg-slate-800 rounded overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center" style={{ aspectRatio: '0.77' }}>
+              <canvas
+                ref={(el) => {
+                  if (el) thumbRefs.current.set(n, el);
+                  else thumbRefs.current.delete(n);
+                }}
+                className="block max-w-full"
+              />
+            </div>
+            <div className={cn('mt-1 text-[10px] tabular-nums text-center', active ? 'text-indigo-600 font-bold' : 'text-slate-500')}>
+              {n}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }

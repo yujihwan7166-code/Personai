@@ -1,33 +1,34 @@
-import { Fragment, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   RefreshCw, Copy, Play, Users, FileText, Sparkles, GitBranch, Target, Map, MessagesSquare,
-  ChevronDown, X,
+  ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star,
 } from 'lucide-react';
-import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem } from '@/types/study';
-import { TONE_META, LEVEL_META, newId } from '@/types/study';
+import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType } from '@/types/study';
+import { TONE_META, LEVEL_META, newId, FLASHCARD_CARD_TYPE_META } from '@/types/study';
 import { StudyBtn } from './ui/primitives';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { DEFAULT_EXPERTS } from '@/types/expert';
 import { ExpertPickerModal } from './ExpertPickerModal';
 import { DebateLayout } from './DebateLayout';
 import { KeypointsLayout, MindmapLayout, GuideLayout, SummaryLayout } from './LensLayouts';
+import { MindmapCanvas } from './MindmapCanvas';
+import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
 
 interface Props {
   notebook: StudyNotebook;
   onChange: (nb: StudyNotebook) => void;
-  onStartSession: () => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
   /** [p.N] 뱃지 클릭 시 원본 뷰어의 해당 페이지로 스크롤. */
   onJumpToPage?: (page: number) => void;
 }
 
+/** 사이드바 칩 목록. 'keypoints' 는 폐기(데이터 호환을 위해 타입은 유지). 'quiz' 는 세그먼트 칩으로 특수 처리. */
 const LENSES: { id: StudyLens; label: string; icon: React.ComponentType<{ className?: string }>; hint: string }[] = [
-  { id: 'summary',   label: '요약',         icon: FileText,       hint: '한 눈에 훑기' },
-  { id: 'keypoints', label: '핵심 포인트', icon: Sparkles,       hint: '용어·정의 카드' },
-  { id: 'mindmap',   label: '마인드맵',     icon: GitBranch,      hint: '개념 구조 트리' },
-  { id: 'quiz',      label: '퀴즈',         icon: Target,         hint: '객관식으로 점검' },
-  { id: 'guide',     label: '학습 가이드', icon: Map,            hint: '순서·점검 질문' },
-  { id: 'debate',    label: '2인 토론',     icon: MessagesSquare, hint: '두 관점으로 듣기' },
+  { id: 'summary',     label: '노트정리',    icon: FileText,   hint: '구조화된 학습 노트' },
+  { id: 'mindmap',     label: '마인드맵',    icon: GitBranch,  hint: '개념 구조 트리' },
+  { id: 'quiz',        label: '퀴즈',        icon: Target,     hint: '객관식으로 점검' },
+  { id: 'flashcards',  label: '플래시카드',  icon: Layers,     hint: '앞뒷면 카드로 암기' },
 ];
 
 export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }: Props) {
@@ -49,7 +50,16 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
     lens: StudyLens,
     toneOverride?: StudyTone,
     levelOverride?: StudyLevel,
-    extraOptions?: { count?: number; useWeakConcepts?: boolean },
+    extraOptions?: {
+      count?: number;
+      useWeakConcepts?: boolean;
+      // 플래시카드 덱 설정
+      flashDeckName?: string;
+      flashFocus?: string;
+      flashCardTypes?: FlashcardCardType[];
+      /** 기존 덱을 교체할 때 그 deckId. 없으면 새 덱 생성. */
+      flashReplaceDeckId?: string;
+    },
   ) => {
     if (enabledSources.length === 0) {
       alert('먼저 소스를 하나 이상 추가하고 활성화해주세요.');
@@ -75,6 +85,12 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
         const concepts = Array.from(new Set(notebook.wrongAnswers.map((w) => w.concept).filter((c): c is string => Boolean(c?.trim())))).slice(0, 5);
         if (concepts.length > 0) options.weakConcepts = concepts;
       }
+      if (lens === 'flashcards') {
+        if (extraOptions?.flashFocus) options.focus = extraOptions.flashFocus;
+        if (extraOptions?.flashCardTypes && extraOptions.flashCardTypes.length > 0) {
+          options.cardTypes = extraOptions.flashCardTypes;
+        }
+      }
       const r = await fetch('/api/study-generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,10 +110,64 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
       if (lens === 'quiz' && Array.isArray(data.structured)) {
         newQuiz = (data.structured as Array<Omit<StudyQuizItem, 'id'>>).map((q) => ({ ...q, id: newId('q') }));
       }
+      let newFlashcards = notebook.flashcards;
+      let newDecks = notebook.flashcardDecks ?? [];
+      if (lens === 'flashcards' && Array.isArray(data.structured)) {
+        // 덱 결정: 기존 덱 교체 or 새 덱
+        const replacingDeckId = extraOptions?.flashReplaceDeckId;
+        const replacingDeck = replacingDeckId ? newDecks.find((d) => d.id === replacingDeckId) : undefined;
+
+        const deckId = replacingDeckId ?? newId('deck');
+        const deckName = (extraOptions?.flashDeckName?.trim())
+          || replacingDeck?.name
+          || (extraOptions?.flashFocus?.trim().slice(0, 30))
+          || `덱 ${newDecks.length + 1}`;
+        const deck: FlashcardDeck = {
+          id: deckId,
+          name: deckName,
+          focus: extraOptions?.flashFocus || replacingDeck?.focus,
+          cardTypes: extraOptions?.flashCardTypes && extraOptions.flashCardTypes.length > 0
+            ? extraOptions.flashCardTypes
+            : replacingDeck?.cardTypes,
+          level: levelOverride ?? replacingDeck?.level ?? 'standard',
+          createdAt: replacingDeck?.createdAt ?? Date.now(),
+        };
+
+        const aiCards: Flashcard[] = (data.structured as Array<{ front: string; back: string; concept?: string }>)
+          .filter((c) => c && typeof c.front === 'string' && typeof c.back === 'string' && c.front.trim() && c.back.trim())
+          .map((c) => ({
+            id: newId('fc'),
+            front: c.front.trim(),
+            back: c.back.trim(),
+            concept: c.concept?.trim() || undefined,
+            ease: 2.3,
+            intervalDays: 1,
+            dueAt: Date.now(),
+            reviewsCount: 0,
+            source: 'ai',
+            deckId,
+          }));
+
+        // 해당 덱의 AI 카드만 교체, 해당 덱 내 사용자 카드는 보존. 다른 덱 카드는 그대로.
+        const keptCards = notebook.flashcards.filter((c) =>
+          c.deckId !== deckId || c.source === 'user'
+        );
+        newFlashcards = [...aiCards, ...keptCards];
+
+        // 덱 메타 업데이트(덮어쓰기 or 추가)
+        const idx = newDecks.findIndex((d) => d.id === deckId);
+        if (idx >= 0) {
+          newDecks = newDecks.map((d) => d.id === deckId ? deck : d);
+        } else {
+          newDecks = [...newDecks, deck];
+        }
+      }
       onChange({
         ...notebook,
         lensOutputs: { ...notebook.lensOutputs, [lens]: newOutput },
         quizItems: newQuiz,
+        flashcards: newFlashcards,
+        flashcardDecks: newDecks,
       });
       setActiveLens(lens);
     } catch { alert('네트워크 오류'); }
@@ -114,8 +184,8 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
     const existing = notebook.lensOutputs[lens];
     // 단일 뷰: 클릭한 렌즈로 전환. 캐시 있으면 즉시 전환.
     setActiveLens(lens);
-    // 퀴즈는 설정 단계가 필요하므로 자동 생성하지 않음 — LensSoloView의 "퀴즈 생성하기" 버튼으로 진입.
-    if (!existing && lens !== 'quiz') generate(lens);
+    // 퀴즈·플래시카드는 설정 단계가 필요하므로 자동 생성하지 않음 — LensSoloView 의 "만들기" 버튼으로 진입.
+    if (!existing && lens !== 'quiz' && lens !== 'flashcards') generate(lens);
   };
 
   const activeOutput = activeLens ? notebook.lensOutputs[activeLens] : undefined;
@@ -127,21 +197,70 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
       <div className="border-b border-slate-200 dark:border-slate-800 px-3 py-1.5 flex items-center flex-wrap gap-1.5">
         <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 shrink-0 pl-2 pr-1">스튜디오</h3>
         {LENSES.map((l) => {
+          // 퀴즈 위치에서는 [퀴즈 | 오답노트] 세그먼트 칩 하나로 출력
+          if (l.id === 'quiz') {
+            const quizActive = activeLens === 'quiz' && quizSubView === 'quiz';
+            const wrongActive = activeLens === 'quiz' && quizSubView === 'wrong';
+            const loading = loadingLens === 'quiz';
+            const wrongCount = notebook.wrongAnswers.length;
+            return (
+              <div
+                key="quiz-wrong"
+                className={cn(
+                  'inline-flex items-stretch rounded-full border text-[11px] font-semibold overflow-hidden transition-colors',
+                  (quizActive || wrongActive)
+                    ? 'border-indigo-600'
+                    : 'border-slate-200 dark:border-slate-700',
+                )}
+              >
+                <button
+                  onClick={() => { setQuizSubView('quiz'); handleLensClick('quiz'); }}
+                  disabled={loading}
+                  title={l.hint}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 transition-colors',
+                    quizActive
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-indigo-700',
+                    loading && 'cursor-wait opacity-70',
+                  )}
+                >
+                  {loading ? <span className="study-shimmer h-3 w-3 rounded-full" /> : <Target className="h-3 w-3" />}
+                  <span>퀴즈</span>
+                </button>
+                <div className={cn('w-px', (quizActive || wrongActive) ? 'bg-indigo-400/50' : 'bg-slate-200 dark:bg-slate-700')} />
+                <button
+                  onClick={() => { setActiveLens('quiz'); setQuizSubView('wrong'); }}
+                  title={`오답 ${wrongCount}개`}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 transition-colors',
+                    wrongActive
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-indigo-700',
+                  )}
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  <span>오답노트</span>
+                  {wrongCount > 0 && (
+                    <span className={cn('rounded-full px-1 text-[9.5px] tabular-nums',
+                      wrongActive ? 'bg-white/20' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300')}>
+                      {wrongCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            );
+          }
+
           const Icon = l.icon;
           const existing = notebook.lensOutputs[l.id];
           const done = !!existing;
           const loading = loadingLens === l.id;
-          // 퀴즈 칩은 activeLens='quiz' && subView='quiz'일 때만 활성. 오답노트일 땐 비활성.
-          const active = l.id === 'quiz'
-            ? activeLens === 'quiz' && quizSubView === 'quiz'
-            : activeLens === l.id;
-          const chipBtn = (
+          const active = activeLens === l.id;
+          return (
             <button
               key={l.id}
-              onClick={() => {
-                if (l.id === 'quiz') setQuizSubView('quiz');
-                handleLensClick(l.id);
-              }}
+              onClick={() => handleLensClick(l.id)}
               disabled={loading}
               title={done ? `${l.hint} · ${formatRelative(existing!.generatedAt)}` : l.hint}
               className={cn(
@@ -152,44 +271,10 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
                 loading && 'cursor-wait opacity-70',
               )}
             >
-              {loading ? (
-                <span className="study-shimmer h-3 w-3 rounded-full" />
-              ) : (
-                <Icon className="h-3 w-3" />
-              )}
+              {loading ? <span className="study-shimmer h-3 w-3 rounded-full" /> : <Icon className="h-3 w-3" />}
               <span>{l.label}</span>
             </button>
           );
-          // 퀴즈 칩 뒤에 바로 오답노트 칩 추가
-          if (l.id === 'quiz') {
-            const wrongActive = activeLens === 'quiz' && quizSubView === 'wrong';
-            return (
-              <Fragment key="quiz-group">
-                {chipBtn}
-                <button
-                  key="wrong"
-                  onClick={() => { setActiveLens('quiz'); setQuizSubView('wrong'); }}
-                  title={`오답 ${notebook.wrongAnswers.length}개`}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors',
-                    wrongActive
-                      ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-500'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-700',
-                  )}
-                >
-                  <X className="h-3 w-3" />
-                  <span>오답노트</span>
-                  {notebook.wrongAnswers.length > 0 && (
-                    <span className={cn('rounded-full px-1 text-[9.5px] tabular-nums',
-                      wrongActive ? 'bg-white/20' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300')}>
-                      {notebook.wrongAnswers.length}
-                    </span>
-                  )}
-                </button>
-              </Fragment>
-            );
-          }
-          return chipBtn;
         })}
       </div>
 
@@ -213,12 +298,16 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
             onRegenerate={(tone, level) => generate('summary', tone, level)}
             onJumpToPage={onJumpToPage}
           />
+        ) : activeLens === 'quiz' && quizSubView === 'wrong' ? (
+          <WrongNoteView notebook={notebook} onChange={onChange} />
         ) : (
           <LensSoloView
             lens={activeLens}
             output={activeOutput}
             loading={activeLoading}
             notebook={notebook}
+            onChange={onChange}
+            onJumpToPage={onJumpToPage}
             onStartSession={onStartSession}
             expertA={expertA}
             expertB={expertB}
@@ -248,18 +337,29 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
 
 /* ── 단일 렌즈 뷰 (요약 외) ── */
 function LensSoloView({
-  lens, output, loading, notebook, onStartSession, expertA, expertB, onGenerate,
+  lens, output, loading, notebook, onChange, onJumpToPage, onStartSession, expertA, expertB, onGenerate,
 }: {
   lens: StudyLens;
   output: LensOutput | undefined;
   loading: boolean;
   notebook: StudyNotebook;
-  onStartSession: () => void;
+  onChange: (nb: StudyNotebook) => void;
+  onJumpToPage?: (page: number) => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
   expertA?: import('@/types/expert').Expert;
   expertB?: import('@/types/expert').Expert;
-  onGenerate: (lens: StudyLens, tone?: StudyTone, level?: StudyLevel, extra?: { count?: number; useWeakConcepts?: boolean }) => void;
+  onGenerate: (lens: StudyLens, tone?: StudyTone, level?: StudyLevel, extra?: {
+    count?: number;
+    useWeakConcepts?: boolean;
+    flashDeckName?: string;
+    flashFocus?: string;
+    flashCardTypes?: FlashcardCardType[];
+    flashReplaceDeckId?: string;
+  }) => void;
 }) {
   const [showQuizConfig, setShowQuizConfig] = useState(false);
+  const [showFlashConfig, setShowFlashConfig] = useState(false);
+  const [flashDeckEditing, setFlashDeckEditing] = useState<FlashcardDeck | null>(null);
 
   if (loading && !output) {
     return (
@@ -308,6 +408,44 @@ function LensSoloView({
     );
   }
 
+  // 플래시카드 미생성 상태: "플래시카드 만들기" CTA
+  if (lens === 'flashcards' && !output) {
+    return (
+      <>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
+            <Layers className="h-5 w-5 text-indigo-600" strokeWidth={1.8} />
+          </div>
+          <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 mb-1">플래시카드 만들기</p>
+          <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
+            자료에서 앞뒷면 암기 카드를 자동 추출합니다.<br />
+            카드 수를 먼저 선택하세요.
+          </p>
+          <button
+            onClick={() => setShowFlashConfig(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12.5px] font-semibold hover:bg-slate-800 dark:hover:bg-white transition-colors"
+          >
+            <Layers className="h-3.5 w-3.5" /> 플래시카드 생성하기
+          </button>
+        </div>
+        {showFlashConfig && (
+          <FlashcardConfigModal
+            onSubmit={(cfg) => {
+              setShowFlashConfig(false);
+              onGenerate('flashcards', undefined, cfg.level, {
+                count: cfg.count,
+                flashDeckName: cfg.name,
+                flashFocus: cfg.focus,
+                flashCardTypes: cfg.cardTypes,
+              });
+            }}
+            onClose={() => setShowFlashConfig(false)}
+          />
+        )}
+      </>
+    );
+  }
+
   if (!output) return null;
 
   return (
@@ -318,10 +456,36 @@ function LensSoloView({
           onStartSession={onStartSession}
           onRegenerate={() => setShowQuizConfig(true)}
         />
+      ) : lens === 'flashcards' ? (
+        <FlashcardDeckView
+          notebook={notebook}
+          onChange={onChange}
+          onStartSession={(deckId) => onStartSession(deckId ? { filter: 'deck', deckId } : undefined)}
+          onStartSaved={() => onStartSession({ filter: 'saved' })}
+          onCreateNew={() => { setFlashDeckEditing(null); setShowFlashConfig(true); }}
+          onRegenerate={(deck) => { setFlashDeckEditing(deck); setShowFlashConfig(true); }}
+        />
       ) : lens === 'keypoints' ? (
         <KeypointsLayout content={output.content} />
       ) : lens === 'mindmap' ? (
-        <MindmapLayout content={output.content} />
+        <div className="h-[min(70vh,720px)]">
+          <MindmapCanvas
+            content={output.content}
+            meta={(output.meta?.structured ?? undefined) as MindmapMeta | undefined}
+            notebook={notebook}
+            onChange={onChange}
+            onJumpToPage={onJumpToPage}
+            onGenerateFromNode={(kind, node) => {
+              if (kind === 'quiz') {
+                onGenerate('quiz', undefined, undefined, { count: 3 });
+                // note: 현재 quiz 생성은 전체 소스 기반. "노드 범위" 는 후속 업그레이드에서 api 옵션으로 확장 예정.
+              } else if (kind === 'flashcard') {
+                onGenerate('flashcards', undefined, undefined, { count: 1 });
+              }
+              void node; // 추후: scope: { nodeId, label, summary } 를 API 로 전달
+            }}
+          />
+        </div>
       ) : lens === 'guide' ? (
         <GuideLayout content={output.content} />
       ) : lens === 'debate' ? (
@@ -341,6 +505,29 @@ function LensSoloView({
             onGenerate('quiz', cfg.tone, cfg.level, { count: cfg.count, useWeakConcepts: cfg.useWeakConcepts });
           }}
           onClose={() => setShowQuizConfig(false)}
+        />
+      )}
+      {showFlashConfig && lens === 'flashcards' && (
+        <FlashcardConfigModal
+          initial={flashDeckEditing ? {
+            name: flashDeckEditing.name,
+            focus: flashDeckEditing.focus,
+            cardTypes: flashDeckEditing.cardTypes,
+            level: flashDeckEditing.level,
+          } : undefined}
+          onSubmit={(cfg) => {
+            const editingId = flashDeckEditing?.id;
+            setShowFlashConfig(false);
+            setFlashDeckEditing(null);
+            onGenerate('flashcards', undefined, cfg.level, {
+              count: cfg.count,
+              flashDeckName: cfg.name,
+              flashFocus: cfg.focus,
+              flashCardTypes: cfg.cardTypes,
+              flashReplaceDeckId: editingId,
+            });
+          }}
+          onClose={() => { setShowFlashConfig(false); setFlashDeckEditing(null); }}
         />
       )}
     </div>
@@ -523,7 +710,7 @@ function ResultItem({
   expanded: boolean;
   onToggle: () => void;
   onRegenerate: (tone?: StudyTone, level?: StudyLevel) => void;
-  onStartSession: () => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
   loading: boolean;
   expertA?: import('@/types/expert').Expert;
   expertB?: import('@/types/expert').Expert;
@@ -609,7 +796,14 @@ function ResultItem({
           ) : lens === 'keypoints' ? (
             <KeypointsLayout content={output.content} />
           ) : lens === 'mindmap' ? (
-            <MindmapLayout content={output.content} />
+            <div className="h-[420px]">
+              <MindmapCanvas
+                content={output.content}
+                meta={(output.meta?.structured ?? undefined) as MindmapMeta | undefined}
+                notebook={notebook}
+                onChange={onChange}
+              />
+            </div>
           ) : lens === 'guide' ? (
             <GuideLayout content={output.content} />
           ) : lens === 'debate' ? (
@@ -648,11 +842,451 @@ function formatRelative(ts: number): string {
   return new Date(ts).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
 
+/* ── 플래시카드 설정 모달 ── */
+export interface FlashcardConfig {
+  count: number;
+  name: string;
+  focus: string;
+  cardTypes: FlashcardCardType[];
+  level: StudyLevel;
+}
+
+function FlashcardConfigModal({
+  onSubmit, onClose, initial,
+}: {
+  onSubmit: (cfg: FlashcardConfig) => void;
+  onClose: () => void;
+  initial?: Partial<FlashcardConfig>;
+}) {
+  const [count, setCount] = useState<number>(initial?.count ?? 10);
+  const [name, setName] = useState<string>(initial?.name ?? '');
+  const [focus, setFocus] = useState<string>(initial?.focus ?? '');
+  const [cardTypes, setCardTypes] = useState<FlashcardCardType[]>(initial?.cardTypes ?? []);
+  const [level, setLevel] = useState<StudyLevel>(initial?.level ?? 'standard');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const counts: number[] = [5, 10, 15, 20, 30];
+  const allTypes: FlashcardCardType[] = ['definition', 'example', 'comparison', 'mechanism'];
+
+  const toggleType = (t: FlashcardCardType) => {
+    setCardTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-indigo-600" />
+            <h3 className="text-[14px] font-bold text-slate-900 dark:text-slate-100">새 플래시카드 덱</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900"
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* 덱 이름 */}
+          <div>
+            <label className="text-[11.5px] font-semibold text-slate-600 dark:text-slate-300">덱 이름 <span className="text-slate-400 font-normal">(선택)</span></label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="비워두면 AI 가 자동으로 이름 지어요"
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-[12.5px] outline-none focus:border-indigo-400"
+            />
+          </div>
+
+          {/* 범위/주제 */}
+          <div>
+            <label className="text-[11.5px] font-semibold text-slate-600 dark:text-slate-300">범위·주제 <span className="text-slate-400 font-normal">(선택)</span></label>
+            <textarea
+              value={focus}
+              onChange={(e) => setFocus(e.target.value)}
+              placeholder='예: "간의 해독 작용과 단백질 합성 위주" / "pp.12-20만"'
+              rows={2}
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-[12.5px] outline-none focus:border-indigo-400 resize-none"
+            />
+            <p className="mt-1 text-[10.5px] text-slate-400">비워두면 전체 자료에서 골고루 뽑아요</p>
+          </div>
+
+          {/* 카드 유형 */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-[11.5px] font-semibold text-slate-600 dark:text-slate-300">카드 유형 <span className="text-slate-400 font-normal">(선택 · 다중)</span></label>
+              {cardTypes.length === 0 && (
+                <span className="text-[10px] text-slate-400">전체 골고루</span>
+              )}
+            </div>
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+              {allTypes.map((t) => {
+                const meta = FLASHCARD_CARD_TYPE_META[t];
+                const active = cardTypes.includes(t);
+                return (
+                  <button
+                    key={t}
+                    onClick={() => toggleType(t)}
+                    className={cn(
+                      'rounded-lg border px-2.5 py-1.5 text-left transition-colors',
+                      active
+                        ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-400',
+                    )}
+                  >
+                    <div className={cn('text-[11.5px] font-semibold', active ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200')}>
+                      {meta.label}
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{meta.hint}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 카드 수 */}
+          <div>
+            <label className="text-[11.5px] font-semibold text-slate-600 dark:text-slate-300">카드 수</label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {counts.map((n) => {
+                const active = count === n;
+                return (
+                  <button
+                    key={n}
+                    onClick={() => setCount(n)}
+                    className={cn(
+                      'inline-flex items-center rounded-full border px-3.5 py-1 text-[11.5px] font-semibold transition-colors',
+                      active
+                        ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-500'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-400',
+                    )}
+                  >
+                    {n}장
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 난이도 */}
+          <div>
+            <label className="text-[11.5px] font-semibold text-slate-600 dark:text-slate-300">난이도</label>
+            <div className="mt-1.5 flex gap-1.5">
+              {(['basic', 'standard', 'advanced'] as StudyLevel[]).map((lv) => {
+                const active = level === lv;
+                const label = lv === 'basic' ? '기초' : lv === 'advanced' ? '심화' : '표준';
+                return (
+                  <button
+                    key={lv}
+                    onClick={() => setLevel(lv)}
+                    className={cn(
+                      'flex-1 rounded-full border px-3 py-1 text-[11.5px] font-semibold transition-colors',
+                      active
+                        ? 'border-indigo-600 bg-indigo-600 text-white'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400',
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
+          <button
+            onClick={onClose}
+            className="rounded-md px-3 py-1.5 text-[12px] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => onSubmit({ count, name: name.trim(), focus: focus.trim(), cardTypes, level })}
+            className="rounded-md bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 text-[12px] font-semibold"
+          >
+            생성하기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 플래시카드 덱 뷰 ── */
+/**
+ * 덱 리스트 뷰.
+ * - notebook.flashcardDecks + cards 에서 덱별로 그룹핑
+ * - 덱 없는 카드는 "기본" 덱(id: 'default')으로 묶음
+ * - 덱마다 확장/접힘, 공부 시작, 다시 만들기, 삭제
+ */
+function FlashcardDeckView({
+  notebook, onChange, onStartSession, onStartSaved, onCreateNew, onRegenerate,
+}: {
+  notebook: StudyNotebook;
+  onChange: (nb: StudyNotebook) => void;
+  onStartSession: (deckId?: string) => void;
+  onStartSaved: () => void;
+  onCreateNew: () => void;
+  onRegenerate: (deck: FlashcardDeck) => void;
+}) {
+  const cards = notebook.flashcards;
+  const decks = notebook.flashcardDecks ?? [];
+  const now = Date.now();
+
+  // 덱별로 카드 그룹핑
+  const grouped: Array<{ deck: FlashcardDeck | null; cards: Flashcard[] }> = [];
+  const defaultCards = cards.filter((c) => !c.deckId);
+  if (defaultCards.length > 0) grouped.push({ deck: null, cards: defaultCards });
+  for (const d of decks) {
+    const dCards = cards.filter((c) => c.deckId === d.id);
+    grouped.push({ deck: d, cards: dCards });
+  }
+  grouped.sort((a, b) => {
+    const aT = a.deck?.createdAt ?? 0;
+    const bT = b.deck?.createdAt ?? 0;
+    return bT - aT;
+  });
+
+  const [menuOpenKey, setMenuOpenKey] = useState<string | null>(null);
+
+  if (cards.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
+          <Layers className="h-5 w-5 text-indigo-500" strokeWidth={1.8} />
+        </div>
+        <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 mb-1">플래시카드가 없어요</p>
+        <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mb-4">
+          자료에서 암기 카드를 자동으로 추출합니다.
+        </p>
+        <button
+          onClick={onCreateNew}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12.5px] font-semibold hover:bg-slate-800 dark:hover:bg-white"
+        >
+          <Layers className="h-3.5 w-3.5" /> 첫 덱 만들기
+        </button>
+      </div>
+    );
+  }
+
+  const deleteDeck = (deck: FlashcardDeck) => {
+    if (!confirm(`"${deck.name}" 덱을 삭제할까요? 덱 안의 AI 카드도 함께 삭제됩니다.`)) return;
+    const keptCards = cards.filter((c) => c.deckId !== deck.id || c.source === 'user');
+    const nextDecks = decks.filter((d) => d.id !== deck.id);
+    onChange({ ...notebook, flashcards: keptCards, flashcardDecks: nextDecks });
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* 새 덱 버튼 */}
+      <button
+        onClick={onCreateNew}
+        className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 px-3 py-2 text-[12px] font-semibold text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-colors"
+      >
+        <Layers className="h-3.5 w-3.5" /> 새 플래시카드 덱 만들기
+      </button>
+
+      {/* 덱 리스트 — 한 줄 카드 + 공부 시작 버튼 */}
+      {grouped.map(({ deck, cards: dCards }) => {
+        const key = deck?.id ?? 'default';
+        const name = deck?.name ?? '기본';
+        const dueCount = dCards.filter((c) => c.dueAt <= now).length;
+        const aiCount = dCards.filter((c) => c.source === 'ai').length;
+        const userCount = dCards.filter((c) => c.source === 'user').length;
+
+        return (
+          <div
+            key={key}
+            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2.5 flex items-center gap-2"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-950/60 shrink-0">
+              <Layers className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 truncate">
+                {name}
+                {dueCount > 0 && (
+                  <span className="ml-1.5 text-[10.5px] font-semibold text-indigo-600 dark:text-indigo-300">· 복습 {dueCount}장</span>
+                )}
+              </p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate tabular-nums">
+                {dCards.length}장
+                {aiCount > 0 && ` · AI ${aiCount}`}
+                {userCount > 0 && ` · 하이라이트 ${userCount}`}
+                {deck?.createdAt && ` · ${timeAgo(deck.createdAt)}`}
+              </p>
+            </div>
+
+            <button
+              onClick={() => onStartSession(deck?.id)}
+              disabled={dueCount === 0}
+              className={cn(
+                'shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-semibold transition-colors',
+                dueCount === 0
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white',
+              )}
+              title={dueCount === 0 ? '모든 카드가 복습 예약 상태' : '공부 시작'}
+            >
+              <Play className="h-3 w-3" /> 시작
+            </button>
+
+            {deck && (
+              <div className="relative shrink-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuOpenKey(menuOpenKey === key ? null : key); }}
+                  className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900"
+                  aria-label="덱 메뉴"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </button>
+                {menuOpenKey === key && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setMenuOpenKey(null)} />
+                    <div className="absolute right-0 top-full mt-1 w-36 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1 z-30">
+                      <button
+                        onClick={() => { setMenuOpenKey(null); onRegenerate(deck); }}
+                        className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[11.5px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <RefreshCw className="h-3 w-3" /> 다시 만들기
+                      </button>
+                      <button
+                        onClick={() => { setMenuOpenKey(null); deleteDeck(deck); }}
+                        className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[11.5px] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                      >
+                        <X className="h-3 w-3" /> 덱 삭제
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 저장한 카드 섹션 */}
+      <SavedCardsSection
+        notebook={notebook}
+        onChange={onChange}
+        onStartSaved={onStartSaved}
+      />
+    </div>
+  );
+}
+
+/* ── 저장한 카드 섹션 ── */
+function SavedCardsSection({
+  notebook, onChange, onStartSaved,
+}: {
+  notebook: StudyNotebook;
+  onChange: (nb: StudyNotebook) => void;
+  onStartSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const saved = notebook.flashcards.filter((c) => c.saved === true)
+    .sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0));
+
+  if (saved.length === 0) return null;
+
+  const previewLimit = 8;
+  const preview = saved.slice(0, previewLimit);
+  const rest = Math.max(0, saved.length - previewLimit);
+
+  const unsave = (id: string) => {
+    onChange({
+      ...notebook,
+      flashcards: notebook.flashcards.map((c) => c.id === id ? { ...c, saved: false, savedAt: undefined } : c),
+    });
+  };
+
+  return (
+    <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-amber-100/40 dark:hover:bg-amber-950/30"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950/60 shrink-0">
+          <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12.5px] font-bold text-amber-900 dark:text-amber-200 truncate">
+            저장한 카드 <span className="tabular-nums">{saved.length}장</span>
+          </p>
+          <p className="text-[10px] text-amber-700/80 dark:text-amber-300/70 truncate">
+            나중에 다시 보려고 북마크한 카드들
+          </p>
+        </div>
+        <ChevronDown className={cn('h-3.5 w-3.5 text-amber-600 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 border-t border-amber-200/70 dark:border-amber-900/40">
+          <div className="mt-2.5 flex gap-2">
+            <button
+              onClick={onStartSaved}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-white px-3 py-1.5 text-[11.5px] font-semibold"
+            >
+              <Play className="h-3 w-3" /> 저장한 카드로 세션 시작
+            </button>
+          </div>
+
+          <div className="mt-3">
+            <p className="text-[10px] uppercase tracking-wide text-amber-700/70 dark:text-amber-300/70 mb-1 px-0.5">미리보기</p>
+            <ul className="space-y-1">
+              {preview.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex items-center gap-2 rounded-md bg-white dark:bg-slate-900 border border-amber-200/60 dark:border-amber-900/30 px-2.5 py-1.5"
+                  title={`${c.front}\n→ ${c.back}`}
+                >
+                  <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />
+                  <span className="flex-1 truncate text-[11.5px] text-slate-700 dark:text-slate-200">{c.front}</span>
+                  {c.concept && (
+                    <span className="shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[9.5px] text-slate-500">{c.concept}</span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); unsave(c.id); }}
+                    className="shrink-0 h-5 w-5 flex items-center justify-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                    title="저장 해제"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {rest > 0 && (
+              <p className="mt-1.5 text-[10.5px] text-amber-700/70 dark:text-amber-300/70 text-center">…외 {rest}장</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function QuizPreview({
   items, onStartSession, onRegenerate,
 }: {
   items: StudyQuizItem[];
-  onStartSession: () => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
   onRegenerate?: () => void;
 }) {
   if (items.length === 0) return <p className="text-[12px] text-slate-500">퀴즈가 없어요.</p>;
@@ -682,4 +1316,95 @@ function timeAgo(ts: number): string {
   if (s < 3600) return `${Math.floor(s / 60)}분 전`;
   if (s < 86400) return `${Math.floor(s / 3600)}시간 전`;
   return `${Math.floor(s / 86400)}일 전`;
+}
+
+/* ── 오답노트 뷰 ── */
+function WrongNoteView({
+  notebook, onChange,
+}: {
+  notebook: StudyNotebook;
+  onChange: (nb: StudyNotebook) => void;
+}) {
+  const items = notebook.wrongAnswers;
+  const removeOne = (id: string) => {
+    onChange({ ...notebook, wrongAnswers: notebook.wrongAnswers.filter((w) => w.id !== id) });
+  };
+  const clearAll = () => {
+    if (!confirm('오답노트를 모두 비울까요?')) return;
+    onChange({ ...notebook, wrongAnswers: [] });
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-950/40 mb-3">
+          <RotateCcw className="h-5 w-5 text-rose-500" strokeWidth={1.8} />
+        </div>
+        <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 mb-1">오답노트가 비어있어요</p>
+        <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed">
+          퀴즈에서 틀린 문제는 자동으로 여기에 모여요.<br />
+          시간이 지난 뒤 다시 풀어보면 오래 기억에 남아요.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 py-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h4 className="text-[13px] font-bold text-slate-900 dark:text-slate-100">오답노트</h4>
+          <p className="text-[10.5px] text-slate-500 dark:text-slate-400">총 {items.length}문항 · 개념을 다시 정리해보세요</p>
+        </div>
+        <button
+          onClick={clearAll}
+          className="text-[11px] text-slate-500 hover:text-rose-600 dark:hover:text-rose-400"
+        >
+          전체 비우기
+        </button>
+      </div>
+      <ul className="space-y-2">
+        {items.map((w) => (
+          <li
+            key={w.id}
+            className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-[12.5px] font-semibold text-slate-900 dark:text-slate-100 leading-snug">
+                {w.question}
+              </p>
+              <button
+                onClick={() => removeOne(w.id)}
+                className="shrink-0 text-slate-400 hover:text-rose-500"
+                aria-label="이 항목 제거"
+                title="이 항목 제거"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="mt-2 grid grid-cols-1 gap-1 text-[11.5px]">
+              <div className="flex items-start gap-1.5">
+                <span className="shrink-0 rounded bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300 px-1.5 py-0.5 text-[10px] font-semibold">내 답</span>
+                <span className="text-slate-600 dark:text-slate-300">{w.chosen}</span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="shrink-0 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-1.5 py-0.5 text-[10px] font-semibold">정답</span>
+                <span className="text-slate-700 dark:text-slate-200 font-medium">{w.correct}</span>
+              </div>
+            </div>
+            {w.explanation && (
+              <p className="mt-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 px-2.5 py-2 text-[11.5px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                {w.explanation}
+              </p>
+            )}
+            {w.concept && (
+              <div className="mt-2 text-[10.5px] text-slate-500 dark:text-slate-400">
+                관련 개념: <span className="font-medium text-slate-700 dark:text-slate-300">{w.concept}</span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }

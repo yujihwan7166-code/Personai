@@ -104,6 +104,7 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
           id: newId('src'), kind, title: processed?.name || f.name, content: extracted,
           addedAt: Date.now(), enabled: true, status: 'ready',
           blobRef, mimeType: fileMime, pageCount: processed?.pageCount, renderMode,
+          scanPages: processed?.scanPages,
         });
       } catch { setFileError(`"${f.name}" 처리 실패`); }
     }

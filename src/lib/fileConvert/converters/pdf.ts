@@ -126,24 +126,30 @@ export async function extractPdfText(file: File, maxLen = 15000): Promise<string
   return parts.join('\n\n').slice(0, maxLen);
 }
 
-/** PDF 텍스트 + 총 페이지 수 메타를 한 번에 반환. Study 용. */
+/** PDF 텍스트 + 총 페이지 수 + 스캔(텍스트 없음) 페이지 목록 메타. Study 용. */
 export async function extractPdfMeta(
   file: File,
   maxLen = 15000,
-): Promise<{ text: string; pageCount: number }> {
+): Promise<{ text: string; pageCount: number; scanPages: number[] }> {
   const pdfjs = await loadPdfJs();
   const buf = await file.arrayBuffer();
   const doc = await pdfjs.getDocument({ data: buf }).promise;
   const parts: string[] = [];
+  const scanPages: number[] = [];
+  // 전체 페이지는 순회해야 scanPages 집계 정확. 다만 parts 는 maxLen 도달 시 중단.
+  let capped = false;
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    const text = content.items.map((it) => ('str' in it ? it.str : '')).join(' ');
-    // 페이지 경계 표시 — 요약에서 [p.N] 뱃지 생성의 힌트로 사용.
-    parts.push(`[p.${i}] ${text}`);
-    if (parts.join('\n\n').length >= maxLen) break;
+    const text = content.items.map((it) => ('str' in it ? it.str : '')).join(' ').trim();
+    // 페이지당 텍스트가 거의 없으면 스캔본 후보
+    if (text.length < 20) scanPages.push(i);
+    if (!capped) {
+      parts.push(`[p.${i}] ${text}`);
+      if (parts.join('\n\n').length >= maxLen) capped = true;
+    }
   }
-  return { text: parts.join('\n\n').slice(0, maxLen), pageCount: doc.numPages };
+  return { text: parts.join('\n\n').slice(0, maxLen), pageCount: doc.numPages, scanPages };
 }
 
 // ───── PDF → 텍스트 (pdfjs-dist) ─────

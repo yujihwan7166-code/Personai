@@ -34,7 +34,9 @@ export function StudyNotebookView({
   const [showQuickStart, setShowQuickStart] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
-  const [showSession, setShowSession] = useState(false);
+  const [sessionOpts, setSessionOpts] = useState<{ filter?: 'saved' | 'deck'; deckId?: string } | null>(null);
+  const showSession = sessionOpts !== null;
+  const setShowSession = (v: boolean) => setSessionOpts(v ? (sessionOpts ?? {}) : null);
   const [mobileTab, setMobileTab] = useState<MobileTab>('chat');
   const [activeSourcePage, setActiveSourcePage] = useState<number | undefined>(undefined);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -74,6 +76,7 @@ export function StudyNotebookView({
     const card: Flashcard = {
       id: newId('fc'), front, back,
       ease: 2.3, intervalDays: 1, dueAt: Date.now(), reviewsCount: 0,
+      source: 'user',
     };
     onChange({ ...notebook, flashcards: [card, ...notebook.flashcards] });
   };
@@ -159,7 +162,7 @@ export function StudyNotebookView({
           <StudyChat notebook={notebook} onChange={onChange} onPromoteToFlashcard={promoteToFlashcard} onStartRecording={() => setShowRecorder(true)} />
         </main>
         <aside className={cn('sm:hidden', mobileTab === 'studio' ? 'flex w-full' : 'hidden')}>
-          <StudioDeck notebook={notebook} onChange={onChange} onStartSession={() => setShowSession(true)} onJumpToPage={(p) => { setActiveSourcePage(p); setMobileTab('viewer'); }} />
+          <StudioDeck notebook={notebook} onChange={onChange} onStartSession={(opts) => setSessionOpts(opts ?? {})} onJumpToPage={(p) => { setActiveSourcePage(p); setMobileTab('viewer'); }} />
         </aside>
 
         {/* Desktop: dynamic slots with resizable grid */}
@@ -179,7 +182,7 @@ export function StudyNotebookView({
                 {renderPane(kind, {
                   notebook, onChange, promoteToFlashcard,
                   onStartRecording: () => setShowRecorder(true),
-                  onStartSession: () => setShowSession(true),
+                  onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => setSessionOpts(opts ?? {}),
                   activeSourcePage,
                   onActiveSourcePageChange: setActiveSourcePage,
                 })}
@@ -232,8 +235,15 @@ export function StudyNotebookView({
           setShowRecorder(false);
         }} />
       )}
-      {showSession && (
-        <StudySession notebook={notebook} onChange={onChange} onClose={() => setShowSession(false)} onSessionComplete={onSessionComplete} />
+      {showSession && sessionOpts && (
+        <StudySession
+          notebook={notebook}
+          onChange={onChange}
+          onClose={() => setSessionOpts(null)}
+          onSessionComplete={onSessionComplete}
+          filter={sessionOpts.filter}
+          deckId={sessionOpts.deckId}
+        />
       )}
     </div>
   );
@@ -312,7 +322,7 @@ function renderPane(
     onChange: (nb: StudyNotebook) => void;
     promoteToFlashcard: (f: string, b: string) => void;
     onStartRecording: () => void;
-    onStartSession: () => void;
+    onStartSession: (opts?: { filter?: 'saved' | 'deck'; deckId?: string }) => void;
     activeSourcePage?: number;
     onActiveSourcePageChange?: (p: number) => void;
   },

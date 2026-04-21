@@ -20,9 +20,13 @@ export interface StudySource {
   pageCount?: number;
   /** 'native' = 원본 렌더, 'text' = 텍스트 폴백. blobRef 없거나 파싱 실패 시 'text'. */
   renderMode?: 'native' | 'text';
+  /** 업로드 시 감지된, 텍스트가 거의 없는 스캔본 페이지 번호들. OCR 대상. */
+  scanPages?: number[];
+  /** 스캔본 OCR 을 자동으로 시작할지 여부. 사용자가 배너에서 [시작] 누르면 true. */
+  ocrEnabled?: boolean;
 }
 
-export type StudyLens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate';
+export type StudyLens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards';
 export type StudyTone = 'plain' | 'student' | 'exam' | 'interview' | 'kid';
 export type StudyLevel = 'basic' | 'standard' | 'advanced';
 
@@ -44,6 +48,26 @@ export interface StudyQuizItem {
   concept?: string;
 }
 
+export type FlashcardCardType = 'definition' | 'example' | 'comparison' | 'mechanism';
+
+export interface FlashcardDeck {
+  id: string;
+  name: string;
+  /** 사용자가 입력한 자유 범위/주제. */
+  focus?: string;
+  /** 카드 유형 다중 선택. 비어있으면 "골고루". */
+  cardTypes?: FlashcardCardType[];
+  level?: StudyLevel;
+  createdAt: number;
+}
+
+export const FLASHCARD_CARD_TYPE_META: Record<FlashcardCardType, { label: string; hint: string }> = {
+  definition: { label: '용어 정의', hint: '개념·용어의 뜻' },
+  example:    { label: '예시·사례', hint: '구체 사례·적용' },
+  comparison: { label: '개념 비교', hint: 'A vs B 대조' },
+  mechanism:  { label: '메커니즘', hint: '원리·작동 과정' },
+};
+
 export interface Flashcard {
   id: string;
   front: string;
@@ -54,6 +78,14 @@ export interface Flashcard {
   dueAt: number;
   reviewsCount: number;
   lastReviewedAt?: number;
+  /** 'ai' = AI가 생성한 카드(덱 재생성 시 교체됨), 'user' = 사용자가 수동 추가(하이라이트 등, 보존). undefined=기존 카드. */
+  source?: 'ai' | 'user';
+  /** 속한 덱. 없으면 '기본' 덱으로 간주. */
+  deckId?: string;
+  /** 사용자가 따로 저장(북마크)한 카드. 플래시카드 메인의 "저장함" 섹션으로 통합 조회. */
+  saved?: boolean;
+  /** 저장 시각. 없으면 저장된 적 없음. */
+  savedAt?: number;
 }
 
 export interface WrongAnswer {
@@ -77,6 +109,38 @@ export interface StudyChatTurn {
   citations?: number[];
 }
 
+/* ── 마인드맵 ── */
+export type MindmapNodeStatus = 'unknown' | 'shaky' | 'got-it';
+
+export interface MindmapNode {
+  id: string;
+  label: string;
+  /** 한 줄 설명 (노드 호버 툴팁·컨텍스트용). */
+  summary?: string;
+  /** 원본 페이지 뱃지. */
+  pages?: number[];
+  emoji?: string;
+  /** 루트 직속 자식에만 지정, 자손은 상속. `#RRGGBB`. */
+  branchColor?: string;
+  children: MindmapNode[];
+  /** 사용자가 추가/수정한 노드 여부. 재생성 시 보존용. */
+  source?: 'ai' | 'user';
+}
+
+export interface MindmapCrossLink {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+export interface MindmapMeta {
+  root: MindmapNode;
+  crossLinks?: MindmapCrossLink[];
+  /** 사용자별 노드 학습 상태. */
+  userNodeStates?: Record<string, MindmapNodeStatus>;
+  version: 1;
+}
+
 export type HighlightColor = 'yellow' | 'pink' | 'blue' | 'green';
 
 export interface Highlight {
@@ -95,12 +159,18 @@ export interface StudyNotebook {
   lensOutputs: Partial<Record<StudyLens, LensOutput>>;
   quizItems: StudyQuizItem[];
   flashcards: Flashcard[];
+  /** 플래시카드 덱 메타. 없으면 덱 없는(= 기본) 카드들만 있는 상태. */
+  flashcardDecks?: FlashcardDeck[];
   wrongAnswers: WrongAnswer[];
   chat: StudyChatTurn[];
   highlights?: Highlight[];
   createdAt: number;
   updatedAt: number;
-  chatMode: 'explain' | 'socratic';
+  chatMode: 'explain' | 'socratic' | 'custom';
+  /** 'custom' 모드일 때의 사용자 지정 지시문. */
+  chatCustomInstruction?: string;
+  /** AI 답변 길이 선호. 기본은 모델 판단. */
+  chatResponseLength?: 'default' | 'long' | 'short';
   debatePartners?: { expertAId?: string; expertBId?: string };
   folderId?: string;
   description?: string;
@@ -316,12 +386,13 @@ export function createEmptyNotebook(title = '새 노트북', icon = '📘'): Stu
 }
 
 export const LENS_META: Record<StudyLens, { label: string; icon: string; tintClass: string; ringClass: string; accentText: string; lucide: string }> = {
-  summary: { label: '요약', icon: '📝', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'FileText' },
+  summary: { label: '노트정리', icon: '📝', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'FileText' },
   keypoints: { label: '핵심 포인트', icon: '⭐', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Sparkles' },
   mindmap: { label: '마인드맵', icon: '🧠', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'GitBranch' },
   quiz: { label: '퀴즈', icon: '🎯', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Target' },
   guide: { label: '학습 가이드', icon: '🗺️', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Map' },
   debate: { label: '2인 토론', icon: '💬', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'MessagesSquare' },
+  flashcards: { label: '플래시카드', icon: '🃏', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Layers' },
 };
 
 export const TONE_META: Record<StudyTone, string> = {

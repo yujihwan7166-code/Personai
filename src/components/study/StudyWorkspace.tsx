@@ -9,6 +9,9 @@ import { FileExplorer } from './FileExplorer';
 import { StudyNotebookView } from './StudyNotebookView';
 import { StudyCommandPalette } from './StudyCommandPalette';
 
+// Study 모드 진입 시 pdf.js 워커를 idle 시점에 prewarm — 첫 PDF 오픈 지연 감소
+void import('./viewers/PdfViewer').then((m) => m.warmupPdfJs?.()).catch(() => { /* noop */ });
+
 interface Props {
   onClose?: () => void;
   onActiveChange?: (active: boolean) => void;
@@ -174,7 +177,6 @@ export function StudyWorkspace({ onClose, onActiveChange }: Props) {
             onRenameFolder={renameFolder}
             onDeleteFolder={deleteFolder}
             onCollapseSidebar={() => setSidebarOpen(false)}
-            onBackToHome={() => setActiveId(null)}
           />
         </div>
       </aside>

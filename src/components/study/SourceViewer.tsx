@@ -29,6 +29,10 @@ interface Props {
  * - PDF: 추출된 텍스트 (향후 pdfjs 렌더로 교체)
  * - URL/YouTube: 추출 텍스트 + 원본 링크
  */
+const askSelection = (text: string) => {
+  window.dispatchEvent(new CustomEvent('study:askSelection', { detail: { text } }));
+};
+
 export function SourceViewer({ notebook, onChange, onStartRecording, activePage, onActivePageChange }: Props) {
   const source = notebook.sources[0];
 
@@ -67,7 +71,28 @@ export function SourceViewer({ notebook, onChange, onStartRecording, activePage,
       <div className="flex-1 min-h-0 overflow-hidden">
         {isPdf && (
           <Suspense fallback={<ViewerFallback label="PDF 로딩 중…" />}>
-            <PdfViewer blobRef={source.blobRef!} activePage={activePage} onActivePageChange={onActivePageChange} />
+            <PdfViewer
+              blobRef={source.blobRef!}
+              activePage={activePage}
+              onActivePageChange={onActivePageChange}
+              onAskAboutSelection={askSelection}
+              scanPages={source.scanPages}
+              ocrEnabled={source.ocrEnabled}
+              onOcrEnable={(v) => {
+                const updated = notebook.sources.map((s) => s.id === source.id ? { ...s, ocrEnabled: v } : s);
+                onChange({ ...notebook, sources: updated });
+              }}
+              onOcrContentUpdate={(ocrText) => {
+                // 기존 content(pdf.js 추출 텍스트) 뒤에 OCR 섹션을 append.
+                // 중복 방지를 위해 '--- OCR ---' 마커 기준으로 교체.
+                const marker = '\n\n--- OCR ---\n';
+                const base = source.content.split(marker)[0];
+                const merged = ocrText ? `${base}${marker}${ocrText}` : base;
+                if (merged === source.content) return;
+                const updated = notebook.sources.map((s) => s.id === source.id ? { ...s, content: merged } : s);
+                onChange({ ...notebook, sources: updated });
+              }}
+            />
           </Suspense>
         )}
         {!isPdf && isPptx && (
@@ -223,6 +248,7 @@ function SourceUploader({ notebook, onChange, onStartRecording }: Props) {
         thumbnail: processed?.thumbnail,
         addedAt: Date.now(), enabled: true, status: 'ready',
         blobRef, mimeType: mime, pageCount: processed?.pageCount, renderMode,
+        scanPages: processed?.scanPages,
       };
       // 파일 제목으로 노트북 이름 자동 변경
       onChange({
