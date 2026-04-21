@@ -1746,6 +1746,8 @@ export function ExpertSelectionPanel({
   onAssistantCardChange,
   onAssistantSubmit,
 }: Props) {
+  // Phase C: 히어로 개인화 인사에 사용. AccountStatus 서브컴포넌트가 쓰던 것과 별개로 여기서도 호출.
+  const { user, profile } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
   const [aiModelExpanded, setAiModelExpanded] = useState(false);
