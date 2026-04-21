@@ -474,7 +474,9 @@ export function AppSidebar({
   // Ctrl+K / Cmd+K to open search modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // Ctrl+K 는 리모델링 이후 글로벌 CommandPalette(모드/최근 이동)가 담당.
+      // 사이드바의 "검색" 모달(전문가·봇)은 여전히 사이드바 아이콘 클릭 또는 Ctrl+Shift+K 로 열 수 있음.
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
         setSearchModalOpen(true);
         setModalSearchQuery('');

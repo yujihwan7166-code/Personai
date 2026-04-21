@@ -47,7 +47,9 @@ export function StudyCommandPalette({
 }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // Ctrl+K 는 글로벌 CommandPalette 전용.
+      // 공부 전용 팔레트는 Ctrl+J 로 분리 — 공부 모드 안에 있을 때만 사용.
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'j' || e.key === 'J')) {
         e.preventDefault();
         onOpenChange(!open);
       }
