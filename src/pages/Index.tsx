@@ -1,5 +1,6 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { cn } from '@/lib/utils';
+import { chatToMarkdown, downloadMarkdown, copyToClipboard, safeFilename } from '@/lib/chatExport';
 import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
@@ -255,13 +256,30 @@ const Index = () => {
   };
 
   const copyAllResults = () => {
-    const text = messages.filter((m) => m.expertId !== '__round__').map((msg) => {
-      const expert = [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT].find((e) => e.id === msg.expertId);
-      return `[${expert?.nameKo || ''}]\n${msg.content}`;
-    }).join('\n\n---\n\n');
-    navigator.clipboard.writeText(`질문: ${currentQuestionDisplay || currentQuestion}\n\n${text}`);
-    setCopiedAll(true);
-    setTimeout(() => setCopiedAll(false), 2000);
+    // #3 대화 내보내기: 마크다운 포맷으로 클립보드 복사 (헤더+모드+날짜 포함)
+    const md = chatToMarkdown({
+      question: currentQuestionDisplay || currentQuestion || '대화',
+      messages,
+      experts: [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT],
+      modeLabel: getMainMode(discussionMode),
+    });
+    void copyToClipboard(md).then((ok) => {
+      if (ok) {
+        setCopiedAll(true);
+        setTimeout(() => setCopiedAll(false), 2000);
+      }
+    });
+  };
+
+  /** #3 대화 내보내기: Markdown 파일로 다운로드 */
+  const downloadAllResults = () => {
+    const md = chatToMarkdown({
+      question: currentQuestionDisplay || currentQuestion || '대화',
+      messages,
+      experts: [...experts, SUMMARIZER_EXPERT, CONCLUSION_EXPERT],
+      modeLabel: getMainMode(discussionMode),
+    });
+    downloadMarkdown(safeFilename(currentQuestionDisplay || currentQuestion || 'chat', 'md'), md);
   };
 
   const handleLike = (messageId: string) => {
