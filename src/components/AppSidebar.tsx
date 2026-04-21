@@ -659,11 +659,32 @@ export function AppSidebar({
     });
   };
 
-  // Filter by search and project
+  // #5 크로스 세션 전문 검색 — 질문 + 모든 메시지 content 를 대상으로.
+  // 공백으로 구분된 토큰 AND 매칭. 매칭된 첫 메시지 스니펫을 기록에 첨부.
   const filteredHistory = (() => {
     let records = historyRecords;
-    if (searchQuery) {
-      records = records.filter(r => r.question.toLowerCase().includes(searchQuery.toLowerCase()));
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      const tokens = q.split(/\s+/).filter(Boolean);
+      records = records
+        .map((r) => {
+          const haystackQ = (r.question || '').toLowerCase();
+          // 메시지 배열을 한 번에 펼쳐 매칭 여부 + 스니펫 추출
+          let matchedSnippet: string | undefined;
+          const allMatched = tokens.every((t) => {
+            if (haystackQ.includes(t)) return true;
+            const msgMatch = r.messages?.find((m) => typeof m.content === 'string' && m.content.toLowerCase().includes(t));
+            if (msgMatch && typeof msgMatch.content === 'string' && !matchedSnippet) {
+              const idx = msgMatch.content.toLowerCase().indexOf(t);
+              const start = Math.max(0, idx - 30);
+              const end = Math.min(msgMatch.content.length, idx + 60);
+              matchedSnippet = (start > 0 ? '…' : '') + msgMatch.content.slice(start, end) + (end < msgMatch.content.length ? '…' : '');
+            }
+            return !!msgMatch;
+          });
+          return allMatched ? { ...r, __matchedSnippet: matchedSnippet } as DiscussionRecord & { __matchedSnippet?: string } : null;
+        })
+        .filter((r): r is DiscussionRecord & { __matchedSnippet?: string } => !!r);
     }
     // 프로젝트에 속한 대화는 "모든 대화"에서 숨김 (프로젝트 폴더 안에서만 표시)
     return records.filter(r => !projectMap[r.id]);
@@ -768,7 +789,8 @@ export function AppSidebar({
             className="flex-1 min-w-0 text-[12px] text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 outline-none focus:border-blue-400 dark:focus:border-blue-500"
           />
         ) : (
-          <div className="flex-1 min-w-0 flex items-center gap-1.5">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
               {record.question}
             </span>
@@ -787,6 +809,13 @@ export function AppSidebar({
                   ? { law: '⚖️법률', drug: '💊의약', finance: '💰금융', realestate: '🏠부동산', tax: '🧾세무', labor: '👷노무' }[record.premiumDomain] || '상담'
                   : { multi: '멀티', brainstorm: '브레인', standard: '토론', procon: '찬반', hearing: '검증', freetalk: '자유', stakeholder: 'AI시뮬', expert: '상담', assistant: '어시' }[record.mode] || record.mode}
               </span>
+            )}
+            </div>
+            {/* #5 크로스 세션 검색 — 매칭 스니펫 표시 */}
+            {(record as DiscussionRecord & { __matchedSnippet?: string }).__matchedSnippet && (
+              <div className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500 truncate leading-tight">
+                ↳ {(record as DiscussionRecord & { __matchedSnippet?: string }).__matchedSnippet}
+              </div>
             )}
           </div>
         )}
