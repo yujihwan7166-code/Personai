@@ -1003,16 +1003,16 @@ export function AppSidebar({
             <div className="px-1 flex items-center">
               <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">모드</span>
             </div>
-            <div className="grid grid-cols-4 gap-1 mt-1">
+            <div className="grid grid-cols-2 gap-0.5 mt-1">
               {([
-                { id: 'general',          label: '일반',   tint: '221 83% 50%' },
-                { id: 'multi',            label: '멀티',   tint: '262 83% 58%' },
-                { id: 'study',            label: '공부',   tint: '32 95% 44%' },
-                { id: 'research',         label: '리서치', tint: '203 82% 24%' },
-                { id: 'standard',         label: '토론',   tint: '221 83% 53%' },
-                { id: 'stakeholder',      label: '시뮬',   tint: '160 65% 36%' },
+                { id: 'general',          label: '일반',     tint: '221 83% 50%' },
+                { id: 'multi',            label: '멀티',     tint: '262 83% 58%' },
+                { id: 'study',            label: '공부',     tint: '32 95% 44%' },
+                { id: 'research',         label: '리서치',   tint: '203 82% 24%' },
+                { id: 'standard',         label: '토론',     tint: '221 83% 53%' },
+                { id: 'stakeholder',      label: '시뮬',     tint: '160 65% 36%' },
                 { id: 'expert',           label: '프리미엄', tint: '38 58% 32%' },
-                { id: 'assistant',        label: '도구',   tint: '188 85% 35%' },
+                { id: 'assistant',        label: '도구',     tint: '188 85% 35%' },
               ] as const).map((m) => {
                 const activeMain = discussionMode === m.id;
                 return (
@@ -1021,20 +1021,21 @@ export function AppSidebar({
                     onClick={() => onModeChange(m.id as DiscussionMode)}
                     title={`${m.label} 모드로 전환`}
                     className={cn(
-                      'group flex items-center gap-1 h-8 rounded-md px-1.5 text-[10.5px] font-medium transition-colors',
+                      // 2×4 리스트: dot 시작점 정렬 + 충분한 라벨 폭. 활성은 미묘한 배경 + 컬러드 도트 glow 로만.
+                      'group flex items-center gap-2 h-7 rounded-md px-2 text-[11px] font-medium transition-colors',
                       activeMain
-                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'
+                        ? 'bg-slate-100/70 dark:bg-slate-800/70 text-slate-800 dark:text-slate-100'
                         : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-100',
                     )}
                   >
                     <span
-                      className="h-[5px] w-[5px] rounded-full shrink-0"
+                      className="h-[6px] w-[6px] rounded-full shrink-0 transition-shadow"
                       style={{
                         background: `hsl(${m.tint})`,
-                        boxShadow: activeMain ? `0 0 0 2px hsl(${m.tint}/0.22)` : undefined,
+                        boxShadow: activeMain ? `0 0 0 2.5px hsl(${m.tint}/0.25)` : undefined,
                       }}
                     />
-                    <span className="truncate max-w-full">{m.label}</span>
+                    <span className="truncate">{m.label}</span>
                   </button>
                 );
               })}
