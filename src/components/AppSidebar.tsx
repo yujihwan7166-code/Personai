@@ -954,12 +954,13 @@ export function AppSidebar({
             { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
             { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
             // Phase D-3: 모드 이동 — Cmd+K 글로벌 팔레트 트리거 (마우스 유저 접근성).
+            // '전문가 · 봇 검색' 항목은 제거 — Cmd+K 가 포괄함. 필요 시 기존 사이드바 '검색' 모달은
+            // Ctrl+Shift+K 단축키로 여전히 접근 가능 (코드 상 존재).
             { icon: Search, label: '모드 · 최근 대화', shortcut: '⌘K', onClick: () => {
                 const ev = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true, bubbles: true });
                 window.dispatchEvent(ev);
               }
             },
-            { icon: Search, label: '전문가 · 봇 검색', shortcut: '⌘⇧K', onClick: () => { setSearchModalOpen(true); setModalSearchQuery(''); }, active: searchModalOpen },
           ].map(item => (
             <button
               key={item.label}
@@ -970,7 +971,6 @@ export function AppSidebar({
                 // Phase D-3 보정: 상단 nav 컴팩트화 (py-2→1, text→11.5, 아이콘 16)
                 isOpen ? 'px-2.5 py-1.5 gap-2 text-[11.5px]' : 'p-1.5 justify-center',
                 item.highlight && 'bg-slate-50 dark:bg-slate-800/50',
-                item.active && 'bg-slate-100 dark:bg-slate-800',
               )}
             >
               <item.icon className="w-4 h-4 shrink-0" />
