@@ -808,6 +808,11 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
       {/* ───────── 헤더 ───────── */}
       {phase === 'idle' ? (
         <div className="flex flex-col gap-7 pt-3">
+          {/* 에디토리얼 톤 라벨 — 리포트 문서 상단 캡션처럼 */}
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[hsl(var(--mode-research))] opacity-80">
+            <span className="inline-block h-px w-6 bg-[hsl(var(--mode-research))]/60" />
+            AI Research Lab
+          </div>
           {/* Hero 좌측 정렬: [아이콘+타이틀] [설명+AI 로고] 붙여서 */}
           <div className="flex items-center gap-4 md:gap-5 flex-wrap">
             {/* Left: 아이콘 + 제목 */}
@@ -852,6 +857,23 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
 
           </div>
 
+          {/* 3단계 워크플로 안내 — 수집 → 검증 → 리포트 */}
+          <div className="flex items-center gap-2 text-[11px] text-foreground/65">
+            {[
+              { n: '01', label: '분담 수집', desc: '모델별 역할 배분' },
+              { n: '02', label: '교차 검증', desc: '중복·충돌 해소' },
+              { n: '03', label: '인용 리포트', desc: 'Citations 포함' },
+            ].map((s, i) => (
+              <div key={s.n} className="flex items-center gap-2">
+                {i > 0 && <span className="text-foreground/25">→</span>}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[hsl(var(--surface-2))]/60 border border-[hsl(var(--hairline))]">
+                  <span className="font-mono text-[9.5px] text-[hsl(var(--mode-research))] opacity-80">{s.n}</span>
+                  <span className="font-medium">{s.label}</span>
+                  <span className="text-foreground/50 hidden md:inline">· {s.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="flex items-center gap-4 md:gap-5 flex-wrap">
