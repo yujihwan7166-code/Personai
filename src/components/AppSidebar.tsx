@@ -953,14 +953,9 @@ export function AppSidebar({
           {[
             { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
             { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
-            // Phase D-3: 모드 이동 — Cmd+K 글로벌 팔레트 트리거 (마우스 유저 접근성).
-            // '전문가 · 봇 검색' 항목은 제거 — Cmd+K 가 포괄함. 필요 시 기존 사이드바 '검색' 모달은
-            // Ctrl+Shift+K 단축키로 여전히 접근 가능 (코드 상 존재).
-            { icon: Search, label: '모드 · 최근 대화', shortcut: '⌘K', onClick: () => {
-                const ev = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true, bubbles: true });
-                window.dispatchEvent(ev);
-              }
-            },
+            // Phase D-3 보정: '모드 · 최근 대화 ⌘K' 항목도 제거 — 대화 기록 영역을 크게.
+            // Cmd+K 단축키 자체는 여전히 글로벌로 작동.
+            // '전문가 · 봇 검색' 도 제거됨. 필요 시 Ctrl+Shift+K 로 열림.
           ].map(item => (
             <button
               key={item.label}
