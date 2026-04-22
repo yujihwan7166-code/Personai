@@ -97,17 +97,18 @@ const ASSISTANT_FEATURED_TOOLS: Array<{
   { cardId: 'voice-analysis', label: '음성 분석',   desc: '음성→텍스트·요약',       icon: Mic,          tint: 'hsl(330 65% 52%)' },
 ];
 
-/** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. */
+/** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
 const DEBATE_SUBS: Array<{
   key: DebateSubMode;
   label: string;
   desc: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  tint: string;
 }> = [
-  { key: 'procon',     label: '찬반토론',     desc: '찬성 · 반대 구조',    icon: Swords },
-  { key: 'freetalk',   label: '자유토론',     desc: '정해진 형식 없이',    icon: MessagesSquare },
-  { key: 'standard',   label: '심층토론',     desc: '다각도 분석',         icon: Telescope },
-  { key: 'brainstorm', label: '브레인스토밍', desc: '아이디어 발산',       icon: Sparkles },
+  { key: 'procon',     label: '찬반토론',     desc: '찬성 · 반대 구조',    icon: Swords,         tint: 'hsl(var(--mode-debate-b))' },     // red — 대립
+  { key: 'freetalk',   label: '자유토론',     desc: '정해진 형식 없이',    icon: MessagesSquare, tint: 'hsl(188 85% 40%)' },               // cyan — 자유로움
+  { key: 'standard',   label: '심층토론',     desc: '다각도 분석',         icon: Telescope,      tint: 'hsl(var(--mode-research))' },      // navy — 깊이
+  { key: 'brainstorm', label: '브레인스토밍', desc: '아이디어 발산',       icon: Sparkles,       tint: 'hsl(var(--mode-study))' },         // amber — 번뜩임
 ];
 
 export function MainModeTabs({
@@ -262,7 +263,7 @@ export function MainModeTabs({
 
   /** 토론 서브 항목을 일반 모드 아이템과 동일한 형태로 렌더 — parent 'AI 토론' 없이 평면 구조. */
   const renderDebateSubItem = (sub: typeof DEBATE_SUBS[number]) => {
-    const tint = MODE_TINT.debate;
+    const tint = sub.tint;
     const Icon = sub.icon;
     const isActive = currentMode === 'debate' && currentDebateSub === sub.key;
     return (
