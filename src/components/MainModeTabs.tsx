@@ -60,11 +60,12 @@ export function MainModeTabs({
               'disabled:opacity-60 disabled:cursor-not-allowed',
               isActive
                 ? showPlayerBg
-                  ? 'text-white font-semibold bg-slate-800 shadow-sm'
-                  : 'font-semibold bg-white dark:bg-slate-900 shadow-sm'
+                  ? 'text-white font-semibold bg-slate-800 shadow-sm ring-1 ring-slate-700'
+                  : 'font-semibold bg-white dark:bg-slate-900 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
                 : showPlayerBg
-                  ? 'text-slate-400 font-medium hover:text-slate-200 hover:bg-white/5'
-                  : 'text-slate-500 dark:text-slate-400 font-medium hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-900/40',
+                  ? 'text-slate-400 font-medium bg-white/5 hover:text-slate-200 hover:bg-white/10'
+                  // 비활성 탭도 자기 배경 + 옅은 테두리로 각 셀 경계 확보 (트랙과 구분)
+                  : 'text-slate-600 dark:text-slate-300 font-medium bg-white/60 dark:bg-slate-900/40 ring-1 ring-slate-200/70 dark:ring-slate-700/50 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-900/70',
             )}
             style={
               isActive && !showPlayerBg
