@@ -2190,10 +2190,10 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // "챕터 메뉴" 타이포그래피 패턴: 트랙·pill·ring·fill 전부 제거.
-          // 탭은 단순 텍스트, 활성만 모드 컬러 underline. 11개 반복돼도 시각 노이즈 없음.
-          'flex items-center relative gap-4 md:gap-5 border-b border-[hsl(var(--hairline))]',
-          showPlayerBg && 'bg-slate-900/50 border-slate-700/40 px-2',
+          // 아이콘 탭 + 활성 라벨 확장 패턴: 트랙·테두리·배경 없음.
+          // 각 탭이 아이콘으로 시각적으로 구분됨 (12개의 서로 다른 도형), 활성 탭만 라벨+컬러 채움.
+          'flex items-center relative gap-1',
+          showPlayerBg && 'bg-slate-900/50 border border-slate-700/40 p-1 rounded-2xl',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
