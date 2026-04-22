@@ -309,20 +309,26 @@ export function MainModeTabs({
               'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
             )}
           >
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 p-4">
-              {MODE_GROUPS.map((group) => (
-                <div key={group.label} className="min-w-0">
-                  <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      {group.label}
-                    </span>
-                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                      {group.description}
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {group.modes.map((m) => (m === 'debate' ? renderDebateItem() : renderModeItem(m)))}
-                  </div>
+            {/* 2 컬럼 독립 흐름 — grid 2x2 로 높이 맞추지 않고 각 컬럼이 자기 높이만큼.
+                왼쪽: 대화 + 전문, 오른쪽: 논의 + 도구. 빈 공간 제거. */}
+            <div className="grid grid-cols-2 gap-x-4 p-4">
+              {[[0, 2], [1, 3]].map(([i1, i2], colIdx) => (
+                <div key={colIdx} className="min-w-0 space-y-3">
+                  {[MODE_GROUPS[i1], MODE_GROUPS[i2]].map((group) => (
+                    <div key={group.label}>
+                      <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                        <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                          {group.label}
+                        </span>
+                        <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                          {group.description}
+                        </span>
+                      </div>
+                      <div className="space-y-0.5">
+                        {group.modes.map((m) => (m === 'debate' ? renderDebateItem() : renderModeItem(m)))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
