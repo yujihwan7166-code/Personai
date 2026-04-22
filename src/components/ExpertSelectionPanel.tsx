@@ -2190,9 +2190,8 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // "Primary 4 + 더 보기" 패턴: 자주 쓰는 4 탭만 노출, 나머지는 드롭다운.
-          // iOS 세그먼트 컨트롤이 자연스럽게 작동하는 4-5 탭 범위로 축소.
-          'flex items-center justify-center relative',
+          // "2-Row" 패턴: 6+6 두 줄 배치. iOS 세그먼트가 sweet spot (4-6 탭) 에서 작동.
+          'flex items-center justify-center relative w-full',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (

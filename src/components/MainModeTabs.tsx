@@ -1,18 +1,17 @@
 /**
- * 메인 모드 탭 — "Primary 4 + 더 보기" 패턴.
+ * 메인 모드 탭 — "2-Row" 패턴.
  *
- * 업계 표준 (LinkedIn / Twitter / YouTube) 패턴: 자주 쓰는 4-5 탭만 노출,
- * 나머지는 "더 ▾" 드롭다운. iOS 세그먼트 컨트롤은 4-5 탭 범위에서 자연스럽게 작동.
+ * 12 모드를 6+6 두 줄로 배치. iOS 세그먼트 컨트롤이 sweet spot (4-6 탭) 에서 작동하도록 레이아웃 변경.
  *
- * - Primary: general, multi, research_main, study_main (4개)
- * - 현재 모드가 Primary 에 없으면 5번째 슬롯에 동적 삽입
- * - 더 ▾: 나머지 모드를 그룹핑된 드롭다운 패널로
+ * - 윗줄 (대화·논의): general, multi, translate, debate, brainstorm, stakeholder
+ * - 아랫줄 (전문·도구): research, premium, study, assistant, convert, player
+ * - 각 탭은 iOS 세그먼트 스타일: 비활성 flat, 활성 raised white card + mode color 텍스트
+ * - 두 줄은 같은 track 배경 안에 들어가 하나의 컨트롤로 인지
  */
-import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   MessageCircle, GitMerge, Users, Shield, Sparkles, Swords, Wrench, Gamepad2,
-  FlaskConical, Globe, FileBox, BookOpen, ChevronDown,
+  FlaskConical, Globe, FileBox, BookOpen,
 } from 'lucide-react';
 
 import type { MainMode } from '@/types/expert';
@@ -59,30 +58,25 @@ const MODE_TINT: Record<MainMode, string> = {
   study_main:       'hsl(var(--mode-study))',
 };
 
-/** 4 기본 노출 모드 — 가장 자주 쓰는 primary. */
-const PRIMARY_MODES: MainMode[] = ['general', 'multi', 'research_main', 'study_main'];
-
-/** 오버플로 드롭다운 그룹핑 — Primary 제외한 나머지 8 모드. */
-const OVERFLOW_GROUPS: Array<{ label: string; modes: MainMode[] }> = [
-  { label: '논의',  modes: ['debate', 'brainstorm_main', 'stakeholder_main'] },
-  { label: '전문',  modes: ['premium_main'] },
-  { label: '도구',  modes: ['assistant', 'translate_main', 'convert_main', 'player'] },
-];
-
-const MODE_DESCRIPTION: Record<MainMode, string> = {
-  general:          'AI 를 골라 1:1 대화',
-  multi:            '여러 AI 답변 비교',
-  translate_main:   '언어 간 번역·교정',
-  debate:           '찬반·자유·심층 토론',
-  brainstorm_main:  '아이디어 발산·정리',
-  stakeholder_main: '이해관계자 역할극',
-  research_main:    '멀티 AI 교차 검증 리포트',
-  premium_main:     '법률·의료·금융 자문',
-  study_main:       '공부 노트북·퀴즈·팟캐스트',
-  assistant:        '문서·번역·요약 실무',
-  convert_main:     '파일 형식 변환',
-  player:           '게임·퀴즈·스토리',
+/** 짧은 라벨 — 6 탭 × 2 줄 균형 유지. */
+const SHORT_LABEL: Partial<Record<MainMode, string>> = {
+  stakeholder_main: '시뮬',
+  brainstorm_main:  '브레인',
+  premium_main:     '자문',
+  research_main:    '리서치',
+  study_main:       '공부',
+  translate_main:   '번역',
+  convert_main:     '변환',
+  assistant:        '어시',
+  player:           '게임',
+  general:          '일반',
+  multi:            '멀티',
+  debate:           '토론',
 };
+
+/** 2 줄 배치 — 의미상 그룹핑. */
+const ROW_1: MainMode[] = ['general', 'multi', 'translate_main', 'debate', 'brainstorm_main', 'stakeholder_main'];
+const ROW_2: MainMode[] = ['research_main', 'premium_main', 'study_main', 'assistant', 'convert_main', 'player'];
 
 export function MainModeTabs({
   labels,
@@ -93,50 +87,23 @@ export function MainModeTabs({
   showPlayerBg,
   onChange,
 }: MainModeTabsProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const disabled = isDiscussing || transitionPhase !== 0;
-  const effective = pendingMode ?? currentMode;
-
-  // 외부 클릭/Esc 닫기
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('mousedown', onClick);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('mousedown', onClick);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  const handleSelect = (m: MainMode) => {
-    setOpen(false);
-    if (m !== currentMode) setTimeout(() => onChange(m), 40);
-  };
-
-  // 현재 모드가 Primary 에 없으면 5번째 슬롯에 동적 삽입
-  const isCurrentInPrimary = PRIMARY_MODES.includes(effective);
-  const displayedModes: MainMode[] = isCurrentInPrimary
-    ? PRIMARY_MODES
-    : [...PRIMARY_MODES.slice(0, 3), effective]; // 3 pinned + 현재
 
   const renderTab = (mode: MainMode) => {
-    const isActive = effective === mode;
+    const isActive = currentMode === mode || pendingMode === mode;
     const tint = MODE_TINT[mode];
     const Icon = MODE_ICON[mode];
+    const short = SHORT_LABEL[mode] ?? labels[mode];
+
     return (
       <button
         key={mode}
-        onClick={() => !disabled && onChange(mode)}
+        onClick={() => onChange(mode)}
         disabled={disabled}
         title={labels[mode]}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
-          'relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12.5px] tracking-tight transition-all duration-150',
+          'relative flex flex-1 items-center justify-center gap-1.5 min-w-0 px-2 py-1.5 rounded-md text-[12.5px] tracking-tight transition-all duration-150',
           'disabled:opacity-60 disabled:cursor-not-allowed',
           isActive
             ? showPlayerBg
@@ -148,110 +115,38 @@ export function MainModeTabs({
         )}
         style={isActive && !showPlayerBg ? { color: tint } : undefined}
       >
-        <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
-        <span>{labels[mode]}</span>
+        {isActive && (
+          <motion.span
+            layoutId={showPlayerBg ? 'main-mode-raised-player' : 'main-mode-raised'}
+            aria-hidden
+            className="absolute inset-0 rounded-md"
+            style={{
+              backgroundColor: showPlayerBg ? 'rgb(30 41 59)' : undefined,
+            }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          />
+        )}
+        <Icon className="relative z-10 h-3.5 w-3.5 shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
+        <span className="relative z-10 whitespace-nowrap">{short}</span>
       </button>
     );
   };
 
   return (
-    <div ref={rootRef} className="relative">
-      <div
-        className={cn(
-          'flex items-center gap-0.5 p-0.5 rounded-xl border',
-          showPlayerBg
-            ? 'bg-slate-900/50 border-slate-700/40'
-            : 'bg-slate-100/70 dark:bg-slate-800/60 border-[hsl(var(--hairline))]',
-        )}
-      >
-        {displayedModes.map(renderTab)}
-
-        {/* 더 ▾ 버튼 — 오버플로우 드롭다운 트리거 */}
-        <button
-          type="button"
-          onClick={() => !disabled && setOpen((v) => !v)}
-          disabled={disabled}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          className={cn(
-            'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium tracking-tight transition-colors duration-150',
-            'disabled:opacity-60 disabled:cursor-not-allowed',
-            showPlayerBg
-              ? 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-              : 'text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-slate-900/40',
-          )}
-        >
-          <span>더</span>
-          <ChevronDown className={cn('h-3 w-3 transition-transform duration-200', open && 'rotate-180')} />
-        </button>
+    <div
+      className={cn(
+        'flex flex-col gap-0.5 p-0.5 rounded-xl border w-full max-w-[720px]',
+        showPlayerBg
+          ? 'bg-slate-900/50 border-slate-700/40'
+          : 'bg-slate-100/70 dark:bg-slate-800/60 border-[hsl(var(--hairline))]',
+      )}
+    >
+      <div className="flex items-center gap-0.5">
+        {ROW_1.map(renderTab)}
       </div>
-
-      {/* 오버플로우 드롭다운 — 그룹핑된 패널 */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
-            role="menu"
-            className={cn(
-              'absolute right-0 top-[calc(100%+6px)] z-50',
-              'w-[440px] max-w-[92vw] rounded-xl overflow-hidden',
-              'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
-              'shadow-[0_14px_44px_hsl(220_20%_5%_/_0.2)]',
-            )}
-          >
-            <div className="p-2">
-              {OVERFLOW_GROUPS.map((group) => (
-                <div key={group.label} className="mb-2 last:mb-0">
-                  <div className="px-2 pt-1 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
-                    {group.label}
-                  </div>
-                  <div className="space-y-0.5">
-                    {group.modes.map((m) => {
-                      const Icon = MODE_ICON[m];
-                      const tint = MODE_TINT[m];
-                      const isActive = m === currentMode;
-                      return (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => handleSelect(m)}
-                          role="menuitem"
-                          className={cn(
-                            'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
-                            'hover:bg-[hsl(var(--accent))]',
-                            isActive && 'bg-[hsl(var(--accent))]',
-                          )}
-                        >
-                          <span
-                            className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
-                            style={{
-                              backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
-                              color: tint,
-                            }}
-                          >
-                            <Icon className="h-3 w-3" strokeWidth={isActive ? 2.2 : 1.8} />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
-                              {labels[m]}
-                            </span>
-                            <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                              {MODE_DESCRIPTION[m]}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="flex items-center gap-0.5">
+        {ROW_2.map(renderTab)}
+      </div>
     </div>
   );
 }
