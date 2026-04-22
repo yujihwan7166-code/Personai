@@ -8,7 +8,8 @@
  * - 클릭 → 드롭다운 패널 (4 그룹 × 3 모드, 각 모드에 한 줄 설명)
  * - 히어로 영역과 분리된 계층 — 컨텐츠 오염 없음
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   MessageCircle, GitMerge, Users, Shield, Sparkles, Swords, Wrench, Gamepad2,
@@ -92,15 +93,42 @@ export function MainModeTabs({
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const disabled = isDiscussing || transitionPhase !== 0;
   const effective = pendingMode ?? currentMode;
   const CurrentIcon = MODE_ICON[effective];
   const currentTint = MODE_TINT[effective];
 
+  // 드롭다운 위치 계산 — portal 로 body 에 렌더하므로 viewport 좌표 필요.
+  useLayoutEffect(() => {
+    if (!open || !rootRef.current) return;
+    const update = () => {
+      if (!rootRef.current) return;
+      const r = rootRef.current.getBoundingClientRect();
+      const PANEL_W = 620;
+      const vw = window.innerWidth;
+      // 중앙 정렬, 좌우 viewport 보호 (최소 16px 마진)
+      let left = r.left + r.width / 2 - PANEL_W / 2;
+      left = Math.max(16, Math.min(left, vw - PANEL_W - 16));
+      setPanelPos({ top: r.bottom + 8, left });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     window.addEventListener('mousedown', onClick);
@@ -141,18 +169,21 @@ export function MainModeTabs({
         <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
       </button>
 
-      {/* 드롭다운 패널 — 4 그룹 × 3 */}
-      <AnimatePresence>
-        {open && (
+      {/* 드롭다운 패널 — Portal 로 body 에 렌더해 부모 overflow-hidden 탈출 */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+        {open && panelPos && (
           <motion.div
+            ref={panelRef}
             initial={{ opacity: 0, y: -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
             role="menu"
+            style={{ position: 'fixed', top: panelPos.top, left: panelPos.left }}
             className={cn(
-              'absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] z-50',
-              'w-[620px] max-w-[92vw] rounded-2xl overflow-hidden',
+              'z-[120]',
+              'w-[620px] max-w-[calc(100vw-32px)] rounded-2xl overflow-hidden',
               'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
               'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
             )}
@@ -225,7 +256,9 @@ export function MainModeTabs({
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }
