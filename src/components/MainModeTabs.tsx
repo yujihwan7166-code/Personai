@@ -188,13 +188,6 @@ export function MainModeTabs({
             </span>
           )}
         </span>
-        {isActive && (
-          <span
-            className="h-1.5 w-1.5 rounded-full shrink-0"
-            style={{ backgroundColor: tint }}
-            aria-label="현재 모드"
-          />
-        )}
       </button>
     );
   };
@@ -217,12 +210,6 @@ export function MainModeTabs({
           <span className={cn('min-w-0 flex-1 text-[12.5px] leading-tight', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
             AI 토론
           </span>
-          {isActive && (
-            <span
-              className="h-1.5 w-1.5 rounded-full shrink-0"
-              style={{ backgroundColor: tint }}
-            />
-          )}
         </div>
         {/* 서브 모드 4개를 인라인으로 — 들여쓰기로 계층 표시 */}
         <div className="ml-9 pl-2 border-l border-[hsl(var(--hairline))] space-y-0.5">
@@ -248,12 +235,6 @@ export function MainModeTabs({
                     {sub.desc}
                   </span>
                 </span>
-                {subActive && (
-                  <span
-                    className="h-1 w-1 rounded-full shrink-0"
-                    style={{ backgroundColor: tint }}
-                  />
-                )}
               </button>
             );
           })}
