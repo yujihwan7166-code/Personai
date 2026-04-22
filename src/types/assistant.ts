@@ -113,11 +113,7 @@ export const ASSISTANT_CARDS: AssistantCard[] = [
   { id: 'translate', name: '다국어 번역', icon: '🌐', description: '자연스러운 다국어 번역 및 로컬라이제이션', color: 'text-purple-600', gradient: 'from-purple-50 to-violet-50', category: 'productivity', features: ['자연스러운 번역', '전문 용어', '뉘앙스 비교'], placeholder: '번역할 텍스트를 입력하세요', sampleQuestions: ['이 문장을 영어로 번역해줘', '비즈니스 이메일을 일본어로 바꿔줘'], runtime: 'chat' },
   { id: 'file-convert', name: '파일 변환', icon: '📁', description: '문서 포맷 변환 및 텍스트 추출', color: 'text-purple-600', gradient: 'from-purple-50 to-violet-50', category: 'productivity', features: ['포맷 변환', '텍스트 추출'], placeholder: '변환할 파일을 업로드하세요', sampleQuestions: ['엑셀을 CSV로 변환해줘', 'Word 파일에서 텍스트 추출해줘'], runtime: 'chat', supportsFiles: true },
 
-  // ── 학습 ──
-  { id: 'math', name: '수학 튜터', icon: '📐', description: '수학 문제 단계별 풀이 및 개념 설명', color: 'text-blue-600', gradient: 'from-blue-50 to-indigo-50', category: 'study', features: ['단계별 풀이', '공식 설명', '개념 정리'], placeholder: '수학 문제를 입력하세요', sampleQuestions: ['이 미적분 문제 풀어줘', '확률 공식 정리해줘'], runtime: 'chat' },
-
   // ── 업무 ──
-  { id: 'document', name: '문서 작성', icon: '📝', description: '보고서, 이메일, 제안서 등 문서 작성', color: 'text-emerald-600', gradient: 'from-emerald-50 to-green-50', category: 'work', features: ['보고서', '이메일', '제안서'], placeholder: '어떤 문서를 작성할까요?', sampleQuestions: ['월간 보고서 초안 작성해줘', '거래처 이메일 초안 써줘'], runtime: 'chat', supportsFiles: true },
   { id: 'ppt', name: 'PPT 생성', icon: '📊', description: '프레젠테이션 슬라이드 구조 설계 및 내용 생성', color: 'text-emerald-600', gradient: 'from-emerald-50 to-green-50', category: 'work', features: ['슬라이드 구조', '핵심 메시지', '스크립트'], placeholder: '발표 주제가 무엇인가요?', sampleQuestions: ['AI 트렌드 발표자료 만들어줘', '10장짜리 사업 제안 PPT 구성해줘'], runtime: 'chat', supportsFiles: true },
 
   // ── 분석 ──
@@ -125,7 +121,6 @@ export const ASSISTANT_CARDS: AssistantCard[] = [
 
   // ── 콘텐츠 ──
   { id: 'image-gen', name: '이미지·동영상 생성', icon: '🎨', description: '프롬프트만 입력하면 이미지와 5초 동영상을 만들어드려요', color: 'text-amber-600', gradient: 'from-amber-50 to-yellow-50', category: 'content', features: ['이미지 생성', '동영상 생성', '스타일 프리셋'], placeholder: '어떤 걸 만들까요?', sampleQuestions: ['미니멀한 로고 만들어줘', '고양이가 달을 바라보는 5초 영상 만들어줘'], runtime: 'media-gen' },
-  { id: 'logo', name: '로고 아이디어', icon: '✏️', description: '브랜드 로고 컨셉 및 디자인 가이드', color: 'text-amber-600', gradient: 'from-amber-50 to-yellow-50', category: 'content', features: ['로고 컨셉', '브랜딩', '디자인 가이드'], placeholder: '어떤 브랜드인가요?', sampleQuestions: ['카페 로고 아이디어 3개 제안해줘', '테크 스타트업 로고 컨셉 잡아줘'], runtime: 'chat' },
 ];
 
 export function findAssistantCardById(cardId?: string | null): AssistantCard | null {
