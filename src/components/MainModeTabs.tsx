@@ -33,7 +33,37 @@ interface MainModeTabsProps {
   currentAssistantCard?: string | null;
   /** 어시스턴트 도구 (번역/문서/PPT/음성) 빠른 선택 콜백. */
   onSelectAssistantCard?: (cardId: string) => void;
+  /** 라이프·재미 도구 (사주/타로/연애/운동 등) 선택 콜백. 없으면 일반 채팅으로 폴백. */
+  onSelectLifeTool?: (toolId: string) => void;
 }
+
+/** 라이프·재미 그룹 도구 정의 — 엔터테인먼트 & 생활 도구들. */
+type LifeToolGroup = '운세·감정·취미' | '운동·식단·여행';
+const LIFE_TOOLS: Array<{
+  id: string;
+  label: string;
+  desc?: string;
+  emoji: string;
+  tint: string;
+  group: LifeToolGroup;
+}> = [
+  // 운세·감정·취미
+  { id: 'saju',       label: 'AI 사주',       desc: '생년월일 + MBTI 풀이',  emoji: '🔮', tint: 'hsl(262 83% 58%)', group: '운세·감정·취미' },
+  { id: 'tarot',      label: '타로 · MBTI',   desc: '카드 뽑기 · 성격 분석', emoji: '🎴', tint: 'hsl(320 70% 55%)', group: '운세·감정·취미' },
+  { id: 'dream',      label: '꿈 해몽',       desc: '꿈 내용 → 상징 해석',   emoji: '🌙', tint: 'hsl(240 60% 58%)', group: '운세·감정·취미' },
+  { id: 'dating',     label: '연애 코치',     desc: '썸·데이트·이별 조언',   emoji: '💌', tint: 'hsl(350 80% 62%)', group: '운세·감정·취미' },
+  { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',    emoji: '📔', tint: 'hsl(32 80% 55%)',  group: '운세·감정·취미' },
+  // 운동·식단·여행
+  { id: 'workout',    label: '운동 코치',     desc: '홈트·헬스·요가 루틴',   emoji: '💪', tint: 'hsl(155 65% 45%)', group: '운동·식단·여행' },
+  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',    emoji: '🍳', tint: 'hsl(18 80% 55%)',  group: '운동·식단·여행' },
+  { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',      emoji: '✈️', tint: 'hsl(195 80% 50%)', group: '운동·식단·여행' },
+  { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',      emoji: '🧘', tint: 'hsl(175 55% 45%)', group: '운동·식단·여행' },
+];
+
+const LIFE_GROUPS: Array<{ label: string; description: string; items: typeof LIFE_TOOLS }> = [
+  { label: '라이프·재미', description: '운세·감정·취미', items: LIFE_TOOLS.filter((t) => t.group === '운세·감정·취미') },
+  { label: '건강·실용',   description: '운동·식단·여행', items: LIFE_TOOLS.filter((t) => t.group === '운동·식단·여행') },
+];
 
 const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   general:          MessageCircle,
@@ -128,6 +158,7 @@ export function MainModeTabs({
   onSelectDebateSub,
   currentAssistantCard,
   onSelectAssistantCard,
+  onSelectLifeTool,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -143,7 +174,7 @@ export function MainModeTabs({
     const update = () => {
       if (!rootRef.current) return;
       const r = rootRef.current.getBoundingClientRect();
-      const PANEL_W = 620;
+      const PANEL_W = 880;
       const vw = window.innerWidth;
       let left = r.left + r.width / 2 - PANEL_W / 2;
       left = Math.max(16, Math.min(left, vw - PANEL_W - 16));
@@ -190,6 +221,16 @@ export function MainModeTabs({
     setTimeout(() => onSelectAssistantCard?.(cardId), 40);
   };
 
+  const handleSelectLifeTool = (toolId: string) => {
+    setOpen(false);
+    if (onSelectLifeTool) {
+      setTimeout(() => onSelectLifeTool(toolId), 40);
+    } else {
+      // 폴백: 일반 채팅으로 이동 (핸들러 미연결 시)
+      if (currentMode !== 'general') setTimeout(() => onChange('general'), 40);
+    }
+  };
+
   const renderModeItem = (m: MainMode) => {
     const Icon = MODE_ICON[m];
     const tint = MODE_TINT[m];
@@ -230,6 +271,37 @@ export function MainModeTabs({
   };
 
   /** 어시스턴트 개별 도구를 mode 아이템과 동일한 형태로 렌더. */
+  /** 라이프·재미 도구 아이템 — 이모지 기반 아이콘 + 각자 고유 tint. */
+  const renderLifeToolItem = (tool: typeof LIFE_TOOLS[number]) => (
+    <button
+      key={`life-${tool.id}`}
+      type="button"
+      onClick={() => handleSelectLifeTool(tool.id)}
+      role="menuitem"
+      className={cn(
+        'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+        'hover:bg-[hsl(var(--accent))]',
+      )}
+    >
+      <span
+        className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
+      >
+        <span className="text-[15px] leading-none select-none">{tool.emoji}</span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+          {tool.label}
+        </span>
+        {tool.desc && (
+          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+            {tool.desc}
+          </span>
+        )}
+      </span>
+    </button>
+  );
+
   const renderAssistantToolItem = (tool: typeof ASSISTANT_FEATURED_TOOLS[number]) => {
     const Icon = tool.icon;
     const isActive = currentMode === 'assistant' && currentAssistantCard === tool.cardId;
@@ -341,16 +413,34 @@ export function MainModeTabs({
             style={{ position: 'fixed', top: panelPos.top, left: panelPos.left }}
             className={cn(
               'z-[120]',
-              'w-[620px] max-w-[calc(100vw-32px)] rounded-2xl overflow-hidden',
+              'w-[880px] max-w-[calc(100vw-32px)] rounded-2xl overflow-hidden',
               'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
               'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
             )}
           >
-            {/* 2 컬럼 독립 흐름 — grid 2x2 로 높이 맞추지 않고 각 컬럼이 자기 높이만큼.
-                왼쪽: 대화 + 전문, 오른쪽: 논의 + 도구. 빈 공간 제거. */}
-            <div className="grid grid-cols-2 gap-x-4 p-4">
+            {/* 3 컬럼 독립 흐름 — 왼쪽: 라이프·재미 + 건강·실용 / 가운데: 대화 + 논의 / 오른쪽: 전문 + AI 어시스턴트 */}
+            <div className="grid grid-cols-3 gap-x-4 p-4">
+              {/* 왼쪽 컬럼: 라이프·재미 + 건강·실용 (엔터테인먼트) */}
+              <div className="min-w-0 space-y-3">
+                {LIFE_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                      <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                        {group.label}
+                      </span>
+                      <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                        {group.description}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {group.items.map(renderLifeToolItem)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* 가운데·오른쪽 컬럼: 기존 MODE_GROUPS */}
               {[[0, 2], [1, 3]].map(([i1, i2], colIdx) => (
-                /* LEFT: 대화(0) + 논의(2) 7행 · RIGHT: 전문(1) + 도구(3) 7행 — 균형 */
+                /* 가운데: 대화(0) + 논의(2) · 오른쪽: 전문(1) + 어시스턴트(3) */
                 <div key={colIdx} className="min-w-0 space-y-3">
                   {[MODE_GROUPS[i1], MODE_GROUPS[i2]].map((group) => (
                     <div key={group.label}>
