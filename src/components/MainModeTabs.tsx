@@ -10,7 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
   FlaskConical, BookOpen, ChevronDown, MessagesSquare, Telescope,
-  Globe, Presentation, Mic, ArrowRight, Users, Wand2,
+  Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
 } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
@@ -49,15 +49,23 @@ export const LIFE_TOOLS: Array<{
   /** 드롭다운 노출 여부. false 면 "라이프 더 보기" 모달에서만 노출. */
   featured: boolean;
 }> = [
-  { id: 'saju',       label: 'AI 사주',       desc: '생년월일 + MBTI 풀이',  emoji: '🔮', tint: 'hsl(262 83% 58%)', featured: true  },
-  { id: 'tarot',      label: '타로 · MBTI',   desc: '카드 뽑기 · 성격 분석', emoji: '🎴', tint: 'hsl(320 70% 55%)', featured: true  },
-  { id: 'dream',      label: '꿈 해몽',       desc: '꿈 내용 → 상징 해석',   emoji: '🌙', tint: 'hsl(240 60% 58%)', featured: true  },
-  { id: 'dating',     label: '연애 코치',     desc: '썸·데이트·이별 조언',   emoji: '💌', tint: 'hsl(350 80% 62%)', featured: true  },
-  { id: 'workout',    label: '운동 코치',     desc: '홈트·헬스·요가 루틴',   emoji: '💪', tint: 'hsl(155 65% 45%)', featured: true  },
-  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',    emoji: '🍳', tint: 'hsl(18 80% 55%)',  featured: true  },
-  { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',      emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: true  },
-  { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',    emoji: '📔', tint: 'hsl(32 80% 55%)',  featured: false },
-  { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',      emoji: '🧘', tint: 'hsl(175 55% 45%)', featured: false },
+  { id: 'saju',       label: 'AI 사주',       desc: '생년월일 + MBTI 풀이',      emoji: '🔮', tint: 'hsl(262 83% 58%)', featured: true  },
+  { id: 'tarot',      label: '타로 · MBTI',   desc: '카드 뽑기 · 성격 분석',     emoji: '🎴', tint: 'hsl(320 70% 55%)', featured: true  },
+  { id: 'dream',      label: '꿈 해몽',       desc: '꿈 내용 → 상징 해석',       emoji: '🌙', tint: 'hsl(240 60% 58%)', featured: true  },
+  { id: 'dating',     label: '연애 코치',     desc: '썸·데이트·이별 조언',       emoji: '💌', tint: 'hsl(350 80% 62%)', featured: true  },
+  { id: 'workout',    label: '운동 코치',     desc: '홈트·헬스·요가 루틴',       emoji: '💪', tint: 'hsl(155 65% 45%)', featured: true  },
+  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',        emoji: '🍳', tint: 'hsl(18 80% 55%)',  featured: true  },
+  { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',          emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: true  },
+  // ── 2026-04 추가: 국내 수요 + 해외 벤치마크 기반 6개 ──
+  { id: 'color',      label: '퍼스널 컬러',   desc: '웜톤·쿨톤 진단 + 팔레트',   emoji: '🎨', tint: 'hsl(295 70% 58%)', featured: true  },
+  { id: 'style',      label: '스타일 코디',   desc: '체형·상황·계절별 코디',     emoji: '👗', tint: 'hsl(335 75% 60%)', featured: true  },
+  { id: 'date-course',label: '데이트 코스',   desc: '지역·예산·테마로 코스',     emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: true  },
+  { id: 'gift',       label: '선물 추천',     desc: '관계·기념일·예산별 제안',   emoji: '🎁', tint: 'hsl(145 60% 45%)', featured: true  },
+  { id: 'content',    label: '콘텐츠 추천',   desc: '책·영화·드라마 취향 맞춤',  emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: true  },
+  { id: 'interior',   label: '인테리어',      desc: '방 배치·컬러·가구 제안',    emoji: '🛋️', tint: 'hsl(40 55% 50%)',  featured: false },
+  // ── 기존 비공개 ──
+  { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',       emoji: '📔', tint: 'hsl(32 80% 55%)',  featured: false },
+  { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',          emoji: '🧘', tint: 'hsl(175 55% 45%)', featured: false },
 ];
 
 /** 드롭다운 노출용 featured 서브셋. */
@@ -133,7 +141,7 @@ export const ASSISTANT_FEATURED_TOOLS: Array<{
   { cardId: 'image-gen',      label: '이미지·동영상', desc: '프롬프트로 생성',      icon: Wand2,        tint: 'hsl(32 95% 50%)' },
   { cardId: 'voice-analysis', label: '음성 분석',     desc: '음성→텍스트·요약',     icon: Mic,          tint: 'hsl(330 65% 52%)' },
   { cardId: 'ppt',            label: 'PPT 생성',      desc: '프레젠테이션 자동',     icon: Presentation, tint: 'hsl(160 60% 40%)' },
-  { cardId: 'translate',      label: '다국어 번역',   desc: '언어 간 번역·교정',    icon: Globe,        tint: 'hsl(262 70% 55%)' },
+  { cardId: 'file-convert',   label: '파일 변환',     desc: '포맷 변환 · 텍스트 추출', icon: Files,      tint: 'hsl(220 15% 45%)' },
 ];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
