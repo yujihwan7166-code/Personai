@@ -10,7 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
   FlaskConical, BookOpen, ChevronDown, MessagesSquare, Telescope,
-  Globe, FileText, Presentation, Mic, ArrowRight,
+  Globe, Presentation, Mic, ArrowRight, Users, Wand2,
 } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
@@ -39,15 +39,17 @@ const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; stro
   general:          MessageCircle,
   multi:            GitMerge,
   brainstorm_main:  Sparkles,
-  stakeholder_main: Sparkles,
+  stakeholder_main: Users,
   premium_main:     Shield,
   debate:           Swords,
   assistant:        Wrench,
   player:           Sparkles,
   research_main:    FlaskConical,
-  translate_main:   Sparkles,
+  translate_main:   Globe,
   convert_main:     Sparkles,
   study_main:       BookOpen,
+  voice_main:       Mic,
+  media_main:       Wand2,
 };
 
 const MODE_TINT: Record<MainMode, string> = {
@@ -63,27 +65,30 @@ const MODE_TINT: Record<MainMode, string> = {
   translate_main:   'hsl(var(--mode-assistant))',
   convert_main:     'hsl(var(--mode-general))',
   study_main:       'hsl(var(--mode-study))',
+  voice_main:       'hsl(var(--mode-assistant))',
+  media_main:       'hsl(var(--mode-assistant))',
 };
 
 /** 사용자 요청 목록에 맞춘 4 그룹 그룹핑. */
 const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
-  { label: '대화',  description: '질문하고 답받기',     modes: ['general', 'multi', 'research_main'] },
-  { label: '전문',  description: '자문 · 학습',         modes: ['study_main', 'premium_main'] },
-  { label: '논의',  description: '토론 · 브레인스토밍', modes: ['debate'] },
+  { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'research_main'] },
+  { label: '전문',  description: '자문 · 학습',           modes: ['study_main', 'premium_main'] },
+  { label: '논의',  description: '토론 · 역할극 시뮬',     modes: ['debate', 'stakeholder_main'] },
   { label: 'AI 어시스턴트',  description: '실무 도구',      modes: ['assistant'] },
 ];
 
 const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
-  general:       'AI 를 골라 1:1 대화',
-  multi:         '여러 AI 답변 비교',
-  debate:        '찬반·자유·심층·브레인스토밍',
-  research_main: '멀티 AI 교차 검증 리포트',
-  premium_main:  '법률·의료·금융 자문',
-  study_main:    '공부 노트북·퀴즈·팟캐스트',
-  assistant:     '전체 도구 14+ 브라우즈',
+  general:          'AI 를 골라 1:1 대화',
+  multi:            '여러 AI 답변 비교',
+  debate:           '찬반·자유·심층·브레인스토밍',
+  stakeholder_main: '이해관계자 역할극 시뮬레이션',
+  research_main:    '멀티 AI 교차 검증 리포트',
+  premium_main:     '법률·의료·금융 자문',
+  study_main:       '공부 노트북·퀴즈·팟캐스트',
+  assistant:        '전체 도구 브라우즈',
 };
 
-/** 어시스턴트에서 노출할 핵심 도구 4개. 나머지 10+ 도구는 "어시스턴트 전체" 로 접근. */
+/** 어시스턴트에서 노출할 핵심 도구 4개. 순서: 이미지 → 음성 → PPT → 번역. */
 const ASSISTANT_FEATURED_TOOLS: Array<{
   cardId: string;
   label: string;
@@ -91,10 +96,10 @@ const ASSISTANT_FEATURED_TOOLS: Array<{
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   tint: string;
 }> = [
-  { cardId: 'translate',      label: '다국어 번역', desc: '언어 간 번역·교정',      icon: Globe,        tint: 'hsl(262 70% 55%)' },
-  { cardId: 'document',       label: '문서 작성',   desc: '보고서·이메일·제안서',   icon: FileText,     tint: 'hsl(160 60% 40%)' },
-  { cardId: 'ppt',            label: 'PPT 생성',    desc: '프레젠테이션 자동',      icon: Presentation, tint: 'hsl(160 60% 40%)' },
-  { cardId: 'voice-analysis', label: '음성 분석',   desc: '음성→텍스트·요약',       icon: Mic,          tint: 'hsl(330 65% 52%)' },
+  { cardId: 'image-gen',      label: '이미지·동영상', desc: '프롬프트로 생성',      icon: Wand2,        tint: 'hsl(32 95% 50%)' },
+  { cardId: 'voice-analysis', label: '음성 분석',     desc: '음성→텍스트·요약',     icon: Mic,          tint: 'hsl(330 65% 52%)' },
+  { cardId: 'ppt',            label: 'PPT 생성',      desc: '프레젠테이션 자동',     icon: Presentation, tint: 'hsl(160 60% 40%)' },
+  { cardId: 'translate',      label: '다국어 번역',   desc: '언어 간 번역·교정',    icon: Globe,        tint: 'hsl(262 70% 55%)' },
 ];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
@@ -392,13 +397,6 @@ export function MainModeTabs({
                   ))}
                 </div>
               ))}
-            </div>
-            <div className="border-t border-[hsl(var(--hairline))] px-4 py-2 text-[10.5px] text-muted-foreground flex items-center gap-3">
-              <span className="inline-flex items-center gap-1">
-                <kbd className="rounded border border-[hsl(var(--hairline))] px-1 py-0.5 font-mono text-[9.5px]">⌘</kbd>
-                <kbd className="rounded border border-[hsl(var(--hairline))] px-1 py-0.5 font-mono text-[9.5px]">K</kbd>
-                <span className="ml-1">팔레트로도 열림</span>
-              </span>
             </div>
           </motion.div>
         )}
