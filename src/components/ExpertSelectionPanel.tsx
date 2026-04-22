@@ -2190,11 +2190,10 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // 근본 재설계: 트랙 세그먼트 → Chip/Pill 플로팅 패턴.
-          // 트랙 배경·테두리 모두 제거. 각 탭이 독립된 캡슐이고 활성 탭은 모드 컬러로 채워짐.
-          // 12 모드가 있는 상황에서 iOS 세그먼트는 구조적으로 맞지 않으며, Phase A 컬러 토큰을 더 잘 활용.
-          'flex items-center relative gap-1 max-w-[720px]',
-          showPlayerBg && 'bg-slate-900/50 border border-slate-700/40 p-0.5 rounded-xl',
+          // "챕터 메뉴" 타이포그래피 패턴: 트랙·pill·ring·fill 전부 제거.
+          // 탭은 단순 텍스트, 활성만 모드 컬러 underline. 11개 반복돼도 시각 노이즈 없음.
+          'flex items-center relative gap-4 md:gap-5 border-b border-[hsl(var(--hairline))]',
+          showPlayerBg && 'bg-slate-900/50 border-slate-700/40 px-2',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
