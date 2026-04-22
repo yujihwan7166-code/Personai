@@ -2110,6 +2110,21 @@ export function ExpertSelectionPanel({
           : 'opacity-100 scale-100 duration-300',
         isLeavingPlayer && transitionPhase >= 2 && 'opacity-100'
       )}>
+        {/* Eyebrow 모드 스위처 — 히어로 컨텐츠 위에 "페이지 메타" 로 배치. */}
+        {mainMode !== 'study_main' && mainMode !== 'player' && !isPlayerActive && (
+          <div className="mb-3 flex justify-center">
+            <MainModeTabs
+              modes={mainModes}
+              labels={mainModeLabels}
+              currentMode={mainMode}
+              pendingMode={pendingMode}
+              isDiscussing={isDiscussing}
+              transitionPhase={transitionPhase}
+              showPlayerBg={false}
+              onChange={handleMainModeChange}
+            />
+          </div>
+        )}
         {/* AccountStatus 제거 — 사이드바 하단으로 이동됨 */}
         {mainMode === 'premium_main' ? (
           /* #14 Premium 에디토리얼 헤더 — 기존 h2/p 를 대체. "공공 데이터 · 판례 · 통계" 카피도 이 헤더로 승격. */
@@ -2188,6 +2203,8 @@ export function ExpertSelectionPanel({
         isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mt-0 mb-0' : 'max-h-32 opacity-100',
         isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
         mainMode === 'study_main' && 'hidden',
+        // Eyebrow pill 패턴: 메인 탭은 상단으로 승격. 여기선 debate 서브탭만 남김.
+        mainMode !== 'debate' && 'hidden',
       )}>
         <div className={cn(
           // "2-Row" 패턴: 6+6 두 줄 배치. iOS 세그먼트가 sweet spot (4-6 탭) 에서 작동.
