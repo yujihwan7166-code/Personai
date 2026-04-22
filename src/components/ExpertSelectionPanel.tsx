@@ -2184,7 +2184,7 @@ export function ExpertSelectionPanel({
             · 탭 그룹 max-w-[640px] 로 중심감 유지
             · 히어로와의 mt-6 여유 */}
       <div className={cn(
-        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden mt-1 mb-0",
+        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden mt-0 mb-0",
         isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mt-0 mb-0' : 'max-h-32 opacity-100',
         isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
         mainMode === 'study_main' && 'hidden',
@@ -2192,7 +2192,7 @@ export function ExpertSelectionPanel({
         <div className={cn(
           // iOS segmented control 패턴: 트랙에는 옅은 bg, 활성 탭만 raised.
           // 그룹 경계는 명확, 비활성 탭은 트랙 안에 flat text, 활성은 확실히 도드라짐.
-          'flex items-center relative gap-0.5 max-w-[640px] p-1 rounded-xl',
+          'flex items-center relative gap-0.5 max-w-[640px] p-0.5 rounded-xl',
           showPlayerBg
             ? 'bg-slate-900/50 border border-slate-700/40'
             : 'bg-slate-100/70 dark:bg-slate-800/50',
