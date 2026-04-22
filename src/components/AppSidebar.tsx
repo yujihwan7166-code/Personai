@@ -4,6 +4,8 @@ import { Expert, DiscussionMode, AIAbilityStats } from '@/types/expert';
 import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
+import { confirmDialog } from '@/lib/confirmDialog';
 import { ExpertAvatar } from './ExpertAvatar';
 import { AIAbilityRadar } from './AIAbilityRadar';
 import {
@@ -11,7 +13,7 @@ import {
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
   Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
   FolderOpen, ChevronRight, Plus, X,
-  LogOut, Shield, User, ExternalLink, Command as CommandIcon,
+  LogOut, Shield, User, ExternalLink, Command as CommandIcon, LayoutGrid,
 } from 'lucide-react';
 
 interface Props {
@@ -26,6 +28,8 @@ interface Props {
   onSelectExpert?: (id: string) => void;
   onSidebarToggle?: (isOpen: boolean) => void;
   onStartChat?: (expertId: string, mode: 'question' | 'greeting', content: string) => void;
+  /** 사이드바 "모드" 버튼 클릭 시 모드 팔레트 열기. */
+  onOpenModePalette?: () => void;
 }
 
 interface Project {
@@ -313,7 +317,7 @@ function updateDiscussionTitle(id: string, newTitle: string) {
 export function AppSidebar({
   experts, onLoadHistory, onUpdateExperts,
   discussionMode, onModeChange, isDiscussing, onNewDiscussion,
-  favoriteIds = [], onSelectExpert, onSidebarToggle, onStartChat,
+  favoriteIds = [], onSelectExpert, onSidebarToggle, onStartChat, onOpenModePalette,
 }: Props) {
   // Phase B 리모델링: 넓은 화면(lg+)에서 기본 열림, 모바일/좁은 화면은 접힘.
   // 기존 사용자 설정이 있으면 그대로 존중.
@@ -996,11 +1000,7 @@ export function AppSidebar({
             const items = [
               { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
               { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
-              { icon: Search, label: '검색 (⌘K)', onClick: () => {
-                  const ev = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true, bubbles: true });
-                  window.dispatchEvent(ev);
-                }
-              },
+              { icon: LayoutGrid, label: '모드 · 도구', onClick: () => onOpenModePalette?.() },
               { icon: Settings, label: '설정', onClick: () => { setSettingsSection('general'); setSettingsOpen(true); } },
             ];
             return isOpen ? (
@@ -1903,9 +1903,9 @@ export function AppSidebar({
                                 const { downloadBackup } = await import('@/lib/dataBackup');
                                 const res = await downloadBackup();
                                 const mb = (res.size / 1024 / 1024).toFixed(1);
-                                alert(`백업 완료 · 약 ${mb}MB · 첨부 자료 ${res.blobs}개`);
+                                notify.success('백업 완료', { description: `약 ${mb}MB · 첨부 자료 ${res.blobs}개` });
                               } catch (e) {
-                                alert(`백업 실패: ${e instanceof Error ? e.message : String(e)}`);
+                                notify.error('백업 실패', { description: e instanceof Error ? e.message : String(e) });
                               }
                             }}
                             className="rounded-full px-4 py-2 text-[12px] font-medium border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -1922,15 +1922,20 @@ export function AppSidebar({
                                 const file = e.target.files?.[0];
                                 e.target.value = '';
                                 if (!file) return;
-                                if (!window.confirm('현재 설정·대화·Study 자료에 백업 파일의 내용이 병합됩니다. 계속할까요?')) return;
+                                const ok = await confirmDialog({
+                                  title: '백업 파일을 복원할까요?',
+                                  description: '현재 설정·대화·Study 자료에 백업 내용이 병합됩니다.',
+                                  confirmLabel: '복원',
+                                });
+                                if (!ok) return;
                                 try {
                                   const { readBackupFile, applyBackup } = await import('@/lib/dataBackup');
                                   const payload = await readBackupFile(file);
                                   const res = await applyBackup(payload);
-                                  alert(`복원 완료 · 키 ${res.keys}개 · 자료 ${res.blobs}개. 페이지를 새로고침합니다.`);
-                                  window.location.reload();
+                                  notify.success('복원 완료', { description: `키 ${res.keys}개 · 자료 ${res.blobs}개 · 새로고침합니다` });
+                                  setTimeout(() => window.location.reload(), 1200);
                                 } catch (err) {
-                                  alert(`복원 실패: ${err instanceof Error ? err.message : String(err)}`);
+                                  notify.error('복원 실패', { description: err instanceof Error ? err.message : String(err) });
                                 }
                               }}
                             />

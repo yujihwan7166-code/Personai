@@ -1,8 +1,10 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { cn } from '@/lib/utils';
 import { notifyDone } from '@/lib/notifications';
+import { notify } from '@/lib/notify';
+import { confirmDialog } from '@/lib/confirmDialog';
 import { useAivsBattleState } from '@/hooks/useAivsBattleState';
-import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
+import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, MAIN_MODE_LABELS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
@@ -48,6 +50,7 @@ const CHAT_URL = '/api/chat';
 const GENERAL_IMAGE_URL = '/api/general-image';
 const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
+const LazyModePaletteModal = lazy(() => import('@/components/ModePaletteModal').then((module) => ({ default: module.ModePaletteModal })));
 const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
 const LazyOnboardingTour = lazy(() => import('@/components/OnboardingTour').then((module) => ({ default: module.OnboardingTour })));
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
@@ -57,7 +60,10 @@ const LazyPremiumConsultChat = lazy(() => import('@/components/PremiumConsultCha
 const LazyDeepResearchChat = lazy(() => import('@/components/DeepResearchChat').then((module) => ({ default: module.DeepResearchChat })));
 const LazyTranslateChat = lazy(() => import('@/components/TranslateChat').then((module) => ({ default: module.TranslateChat })));
 const LazyFileConvertChat = lazy(() => import('@/components/FileConvertChat').then((module) => ({ default: module.FileConvertChat })));
+import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
 const LazyStudyWorkspace = lazy(() => import('@/components/study/StudyWorkspace').then((module) => ({ default: module.StudyWorkspace })));
+const LazyVoiceAnalysisPanel = lazy(() => import('@/components/voice-analysis/VoiceAnalysisPanel').then((module) => ({ default: module.VoiceAnalysisPanel })));
+const LazyMediaGenPanel = lazy(() => import('@/components/media-gen/MediaGenPanel').then((module) => ({ default: module.MediaGenPanel })));
 let pptGeneratorPromise: Promise<typeof import('@/lib/pptGenerator')> | null = null;
 let questionClassifierPromise: Promise<typeof import('@/utils/agent/questionClassifier')> | null = null;
 let agentPipelinePromise: Promise<typeof import('@/utils/agent/agentPipeline')> | null = null;
@@ -126,6 +132,7 @@ const Index = () => {
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
+  const [modePaletteOpen, setModePaletteOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
   useEffect(() => {
@@ -194,6 +201,35 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingFilesRef = useRef<AttachedFile[]>([]);
+
+  // ── 스크롤 위치 기억 (모드 전환 시 현재 위치 저장, 돌아올 때 복원) ──
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const KEY = `scrollmem:mode:${discussionMode}`;
+    try {
+      const raw = sessionStorage.getItem(KEY);
+      if (raw) {
+        const top = Number(raw);
+        if (Number.isFinite(top) && top > 0) {
+          el.scrollTop = top;
+          requestAnimationFrame(() => { el.scrollTop = top; });
+        }
+      }
+    } catch { /* noop */ }
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const onScroll = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        try { sessionStorage.setItem(KEY, String(el.scrollTop)); } catch { /* noop */ }
+      }, 200);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      if (t) clearTimeout(t);
+    };
+  }, [discussionMode]);
 
   const updateMessageProgress = useCallback((messageId: string, progress: ResponseProgress) => {
     setMessages((prev) => prev.map((message) => (
@@ -336,12 +372,17 @@ const Index = () => {
       const kb = approxUrlSize(url);
       try {
         await navigator.clipboard.writeText(url);
-        alert(`공유 링크 복사됨 (${kb}KB)\n\nURL fragment 에 대화 내용이 압축되어 담겨 있어요. 누구나 링크만으로 읽기 전용으로 볼 수 있어요.`);
+        notify.success('공유 링크 복사됨', {
+          description: `URL에 대화가 압축되어 있어요 · 읽기 전용 · ${kb}KB`,
+          duration: 4000,
+        });
       } catch {
         window.prompt('아래 링크를 복사해 공유하세요:', url);
       }
     } catch (e) {
-      alert(`공유 링크 생성 실패: ${e instanceof Error ? e.message : String(e)}`);
+      notify.error('공유 링크 생성 실패', {
+        description: e instanceof Error ? e.message : String(e),
+      });
     }
   };
 
@@ -4558,6 +4599,25 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         <Suspense fallback={null}>
           <LazyOnboardingTour />
         </Suspense>
+        {/* 모드 팔레트 모달 — 사이드바 "모드" 버튼으로 트리거 */}
+        <Suspense fallback={null}>
+          <LazyModePaletteModal
+            open={modePaletteOpen}
+            onClose={() => setModePaletteOpen(false)}
+            labels={Object.fromEntries(
+              Object.entries(MAIN_MODE_LABELS).map(([k, v]) => [k, v.label])
+            ) as Record<import('@/types/expert').MainMode, string>}
+            currentMode={getMainMode(discussionMode)}
+            onChange={(m) => handleModeChange(mainToDiscussion(m))}
+            currentDebateSub={getMainMode(discussionMode) === 'debate' ? (discussionMode as import('@/types/expert').DebateSubMode) : undefined}
+            onSelectDebateSub={(sub) => handleModeChange(sub)}
+            currentAssistantCard={getMainMode(discussionMode) === 'assistant' ? selectedAssistantCardId ?? null : null}
+            onSelectAssistantCard={(cardId) => {
+              if (getMainMode(discussionMode) !== 'assistant') handleModeChange(mainToDiscussion('assistant'));
+              setSelectedAssistantCard(cardId);
+            }}
+          />
+        </Suspense>
         {!hideAppSidebar && <Suspense fallback={null}>
           <LazyAppSidebar
             experts={experts}
@@ -4567,6 +4627,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onModeChange={handleModeChange}
             isDiscussing={isDiscussing}
             onNewDiscussion={handleNewDiscussion}
+            onOpenModePalette={() => setModePaletteOpen(true)}
             onStartChat={(expertId, mode, content) => {
               handleNewDiscussion();
               setSelectedExpertIds([expertId]);
@@ -4598,27 +4659,56 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           {/* Deep Research full-screen takeover */}
           {getMainMode(discussionMode) === 'research_main' ? (
             <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
-              <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
-                <LazyDeepResearchChat
-                  initialQuestion={researchInitialQuestion ?? undefined}
-                  onInitialQuestionConsumed={() => setResearchInitialQuestion(null)}
-                />
-              </Suspense>
+              <ModeErrorBoundary modeLabel="심층 리서치" resetKey={discussionMode} onReset={() => setDiscussionMode('assistant')}>
+                <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
+                  <LazyDeepResearchChat
+                    initialQuestion={researchInitialQuestion ?? undefined}
+                    onInitialQuestionConsumed={() => setResearchInitialQuestion(null)}
+                  />
+                </Suspense>
+              </ModeErrorBoundary>
             </div>
           ) : getMainMode(discussionMode) === 'translate_main' ? (
             <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
-              <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
-                <LazyTranslateChat onBack={() => setDiscussionMode('assistant')} />
-              </Suspense>
+              <ModeErrorBoundary modeLabel="다국어 번역" resetKey={discussionMode} onReset={() => setDiscussionMode('assistant')}>
+                <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
+                  <LazyTranslateChat onBack={() => setDiscussionMode('assistant')} />
+                </Suspense>
+              </ModeErrorBoundary>
             </div>
           ) : getMainMode(discussionMode) === 'convert_main' ? (
             <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
-              <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
-                <LazyFileConvertChat onBack={() => setDiscussionMode('assistant')} />
-              </Suspense>
+              <ModeErrorBoundary modeLabel="파일 변환" resetKey={discussionMode} onReset={() => setDiscussionMode('assistant')}>
+                <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
+                  <LazyFileConvertChat onBack={() => setDiscussionMode('assistant')} />
+                </Suspense>
+              </ModeErrorBoundary>
+            </div>
+          ) : getMainMode(discussionMode) === 'voice_main' ? (
+            <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+              <ModeErrorBoundary modeLabel="음성 분석" resetKey={discussionMode} onReset={() => setDiscussionMode('assistant')}>
+                <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
+                  <LazyVoiceAnalysisPanel
+                    onClose={() => setDiscussionMode('assistant')}
+                    onContinueChat={(title, content) => {
+                      // 녹음에서 만든 아티팩트를 어시스턴트 대화의 첫 입력으로 프리셋
+                      setDiscussionMode('assistant');
+                      setSampleQuestionValue(`다음 내용을 바탕으로 이어서 대화해 주세요:\n\n제목: ${title}\n\n${content}`);
+                    }}
+                    onSaveAsStudyNote={(title, content) => {
+                      // Study 모듈 연결은 다음 스프린트 스코프 — 일단 session/notify로 안내
+                      try {
+                        const key = 'voice_artifact_pending';
+                        sessionStorage.setItem(key, JSON.stringify({ title, content, savedAt: Date.now() }));
+                      } catch { /* noop */ }
+                    }}
+                  />
+                </Suspense>
+              </ModeErrorBoundary>
             </div>
           ) : selectedPremiumDomain && getMainMode(discussionMode) === 'premium_main' ? (
             <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+            <ModeErrorBoundary modeLabel="전문 상담" resetKey={`${discussionMode}:${selectedPremiumDomain}`} onReset={handlePremiumBack}>
             <Suspense fallback={null}>
               <LazyPremiumConsultChat
                 domainId={selectedPremiumDomain}
@@ -4632,6 +4722,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 steps={premiumSteps}
               />
             </Suspense>
+            </ModeErrorBoundary>
             </div>
           ) : <>
           {/* Scroll to bottom FAB */}
@@ -4706,9 +4797,13 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               })}
                               {userTurnCount >= 1 && !isDiscussing && (
                                 <button
-                                  onClick={() => {
-                                    const confirmEnd = window.confirm('지금까지의 대화로 각 역할의 최종 판정을 받으시겠어요?\n\n진행 중인 단계를 건너뛰고 바로 결과 화면으로 이동합니다.');
-                                    if (confirmEnd) handleFollowUp('__SIM_END__');
+                                  onClick={async () => {
+                                    const ok = await confirmDialog({
+                                      title: '지금까지의 대화로 최종 판정을 받을까요?',
+                                      description: '진행 중인 단계를 건너뛰고 바로 결과 화면으로 이동합니다.',
+                                      confirmLabel: '마무리',
+                                    });
+                                    if (ok) handleFollowUp('__SIM_END__');
                                   }}
                                   title="지금까지의 대화로 최종 판정 받기"
                                   className="text-[10px] text-slate-500 hover:text-white font-semibold px-2.5 py-1 rounded-md border border-slate-200 hover:border-red-500 hover:bg-red-500 transition-all ml-2 inline-flex items-center gap-1"
@@ -4910,12 +5005,13 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               );
             })()}
 
+              {(() => null)() /* isFullscreenMode: study_main/voice_main/media_main은 풀스크린 전용 */}
               <div className={cn(
-                getMainMode(discussionMode) === 'study_main'
+                (getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main')
                   ? 'h-full w-full p-0'
                   : 'mx-auto px-4 sm:px-6 pb-16',
-                getMainMode(discussionMode) !== 'study_main' && (!selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-16'),
-                getMainMode(discussionMode) === 'study_main' ? ''
+                !(getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main') && (!selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-16'),
+                (getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main') ? ''
                 : !selectable && discussionMode === 'stakeholder' ? 'hidden'
                 : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-5' : 'max-w-3xl space-y-2.5')
                   : (discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'stakeholder') ? 'max-w-4xl space-y-3'
@@ -4924,7 +5020,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   : 'max-w-2xl space-y-1'
               )}>
 
-              {selectable && getMainMode(discussionMode) !== 'study_main' && (
+              {selectable && !(getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main') && (
                 <Suspense fallback={null}>
                   <LazyExpertSelectionPanel
                     experts={experts}
@@ -4968,6 +5064,14 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         setDiscussionMode('study');
                         return;
                       }
+                      if (cardId === 'voice-analysis') {
+                        setDiscussionMode('voice');
+                        return;
+                      }
+                      if (cardId === 'image-gen') {
+                        setDiscussionMode('media');
+                        return;
+                      }
                       setSelectedAssistantCard(cardId);
                     }}
                     onAssistantSubmit={handleAssistantSubmit}
@@ -4979,6 +5083,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               {getMainMode(discussionMode) === 'study_main' && (
                 <Suspense fallback={null}>
                   <LazyStudyWorkspace onClose={() => setDiscussionMode('assistant')} onActiveChange={setStudyInNotebook} />
+                </Suspense>
+              )}
+
+              {/* Voice Analysis — 외부 ternary에서 full-screen takeover로 처리됨 */}
+
+              {/* Media Generation — AI 어시스턴트 / 이미지·동영상 생성 */}
+              {getMainMode(discussionMode) === 'media_main' && (
+                <Suspense fallback={null}>
+                  <LazyMediaGenPanel onClose={() => setDiscussionMode('assistant')} />
                 </Suspense>
               )}
 
@@ -7637,7 +7750,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               <div>
                 <h3 className="text-[13px] font-semibold text-slate-700 mb-3">데이터 관리</h3>
                 <div className="space-y-2">
-                  <button onClick={() => { if (confirm('모든 대화 기록을 삭제하시겠습니까?')) { localStorage.removeItem('ai-debate-history-v1'); window.location.reload(); } }}
+                  <button onClick={async () => {
+                    const ok = await confirmDialog({
+                      title: '모든 대화 기록을 삭제할까요?',
+                      description: '복구할 수 없어요. 지금까지의 모든 대화가 영구 삭제됩니다.',
+                      confirmLabel: '삭제',
+                      tone: 'danger',
+                    });
+                    if (ok) { localStorage.removeItem('ai-debate-history-v1'); window.location.reload(); }
+                  }}
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-slate-200 text-[12px] text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors">
                     <span>대화 기록 전체 삭제</span>
                     <span className="text-[10px] text-slate-400">복구 불가</span>

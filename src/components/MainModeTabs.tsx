@@ -39,7 +39,7 @@ interface MainModeTabsProps {
 
 /** 라이프·재미 그룹 도구 정의 — 엔터테인먼트 & 생활 도구들. */
 type LifeToolGroup = '운세·감정·취미' | '운동·식단·여행';
-const LIFE_TOOLS: Array<{
+export const LIFE_TOOLS: Array<{
   id: string;
   label: string;
   desc?: string;
@@ -60,12 +60,12 @@ const LIFE_TOOLS: Array<{
   { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',      emoji: '🧘', tint: 'hsl(175 55% 45%)', group: '운동·식단·여행' },
 ];
 
-const LIFE_GROUPS: Array<{ label: string; description: string; items: typeof LIFE_TOOLS }> = [
+export const LIFE_GROUPS: Array<{ label: string; description: string; items: typeof LIFE_TOOLS }> = [
   { label: '라이프·재미', description: '운세·감정·취미', items: LIFE_TOOLS.filter((t) => t.group === '운세·감정·취미') },
   { label: '건강·실용',   description: '운동·식단·여행', items: LIFE_TOOLS.filter((t) => t.group === '운동·식단·여행') },
 ];
 
-const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+export const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   general:          MessageCircle,
   multi:            GitMerge,
   brainstorm_main:  Sparkles,
@@ -82,7 +82,7 @@ const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; stro
   media_main:       Wand2,
 };
 
-const MODE_TINT: Record<MainMode, string> = {
+export const MODE_TINT: Record<MainMode, string> = {
   general:          'hsl(var(--mode-general))',
   multi:            'hsl(var(--mode-multi))',
   brainstorm_main:  'hsl(var(--mode-debate-a))',
@@ -100,14 +100,14 @@ const MODE_TINT: Record<MainMode, string> = {
 };
 
 /** 사용자 요청 목록에 맞춘 4 그룹 그룹핑. */
-const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
+export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
   { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'research_main'] },
   { label: '전문',  description: '자문 · 학습',           modes: ['study_main', 'premium_main'] },
   { label: '논의',  description: '토론 · 역할극 시뮬',     modes: ['debate', 'stakeholder_main'] },
   { label: 'AI 어시스턴트',  description: '실무 도구',      modes: ['assistant'] },
 ];
 
-const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
+export const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
   general:          'AI 를 골라 1:1 대화',
   multi:            '여러 AI 답변 비교',
   debate:           '찬반·자유·심층·브레인스토밍',
@@ -119,7 +119,7 @@ const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
 };
 
 /** 어시스턴트에서 노출할 핵심 도구 4개. 순서: 이미지 → 음성 → PPT → 번역. */
-const ASSISTANT_FEATURED_TOOLS: Array<{
+export const ASSISTANT_FEATURED_TOOLS: Array<{
   cardId: string;
   label: string;
   desc: string;
@@ -133,7 +133,7 @@ const ASSISTANT_FEATURED_TOOLS: Array<{
 ];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
-const DEBATE_SUBS: Array<{
+export const DEBATE_SUBS: Array<{
   key: DebateSubMode;
   label: string;
   desc: string;
