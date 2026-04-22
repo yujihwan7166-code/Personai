@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, MoreHorizontal, Folder as FolderIcon, ArrowLeft,
-  Search, SlidersHorizontal, Star, X, Zap,
-  FileText, Target, GitBranch, MessagesSquare,
+  Search, SlidersHorizontal, Star, X, Upload,
+  FileText,
   Link2, Youtube, Mic, ClipboardList,
 } from 'lucide-react';
-import type { StudyNotebook, StudyFolder, NotebookTemplate } from '@/types/study';
-import { createEmptyNotebook, newId, countDueCards, NOTEBOOK_TEMPLATES, FOLDER_COLORS } from '@/types/study';
+import type { StudyNotebook, StudyFolder, StudySource } from '@/types/study';
+import { createEmptyNotebook, countDueCards, FOLDER_COLORS } from '@/types/study';
+import { filesToStudySources } from '@/lib/studySourceFromFile';
 import { IconPicker } from './IconPicker';
 import { cn } from '@/lib/utils';
+import { confirmDialog } from '@/lib/confirmDialog';
 import { toast } from '@/hooks/use-toast';
+import { isSampleNotebook } from '@/lib/studySamples';
 
 interface Props {
   notebooks: StudyNotebook[];
@@ -41,13 +44,6 @@ const SOURCE_KIND_META = {
   recording: { label: '녹음', icon: Mic },
 } as const;
 
-const INTRO_FEATURES = [
-  { icon: FileText, title: '요약', desc: 'PDF·영상을 한 눈에 훑기 좋은 문장으로' },
-  { icon: Target, title: '퀴즈', desc: '객관식 문제를 자동 출제하고 점수까지' },
-  { icon: GitBranch, title: '마인드맵', desc: '개념 사이 관계를 트리로 한눈에' },
-  { icon: MessagesSquare, title: '2인 토론', desc: '두 전문가의 관점으로 입체 학습' },
-];
-
 export function StudyHome({
   notebooks, folders, onSelect, onCreate, onUpdate,
   onCreateFolder, onRenameFolder, onDeleteFolder, onSetFolderColor, onMoveNotebook, onTogglePin,
@@ -60,7 +56,7 @@ export function StudyHome({
     const saved = localStorage.getItem('study_home_sort');
     return saved === 'recent' || saved === 'name' || saved === 'sources' ? saved : 'recent';
   });
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [dragOverRoot, setDragOverRoot] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -113,8 +109,6 @@ export function StudyHome({
     }));
   }, [folders, notebooks]);
 
-  const isFirstTime = notebooks.length === 0 && folders.length === 0;
-
   const handleCreateFolder = () => {
     const name = prompt('새 폴더 이름');
     if (!name) return;
@@ -127,18 +121,14 @@ export function StudyHome({
     onCreateFolder(trimmed);
   };
 
-  const handleTemplateSelect = (tpl: NotebookTemplate) => {
-    const nb = createEmptyNotebook(tpl.title, tpl.icon);
-    if (tpl.sampleSource) {
-      nb.sources = [{
-        id: newId('src'), kind: 'paste',
-        title: tpl.sampleSource.title, content: tpl.sampleSource.content,
-        addedAt: Date.now(), enabled: true, status: 'ready',
-      }];
+  const handleCreateNotebook = (title: string, initialSources: StudySource[]) => {
+    const nb = createEmptyNotebook(title || '새 노트북', '📘');
+    if (initialSources.length > 0) {
+      nb.sources = [...initialSources, ...nb.sources];
     }
     const folderId = activeFolderId ?? undefined;
     onCreate(nb, folderId);
-    setShowTemplateModal(false);
+    setShowCreateModal(false);
   };
 
   return (
@@ -178,16 +168,13 @@ export function StudyHome({
           {notebooks.length >= 2 && <SortControl sort={sort} setSort={setSort} />}
           <ToolbarAddButton
             canAddFolder={!activeFolder}
-            onNewNotebook={() => setShowTemplateModal(true)}
+            onNewNotebook={() => setShowCreateModal(true)}
             onNewFolder={handleCreateFolder}
           />
         </div>
       </div>
 
-      {isFirstTime && <IntroCards onStart={() => setShowTemplateModal(true)} />}
-
-      {!isFirstTime && (
-        <div
+      <div
           onDragOver={(e) => {
             if (!activeFolder) return;
             e.preventDefault();
@@ -222,10 +209,14 @@ export function StudyHome({
                   const name = prompt('폴더 이름 바꾸기', folder.name);
                   if (name) onRenameFolder(folder.id, name);
                 }}
-                onDelete={() => {
-                  if (confirm(`폴더 "${folder.name}"를 삭제하면 안의 노트북은 미분류로 이동합니다. 계속할까요?`)) {
-                    onDeleteFolder(folder.id);
-                  }
+                onDelete={async () => {
+                  const ok = await confirmDialog({
+                    title: `폴더 "${folder.name}"를 삭제할까요?`,
+                    description: '안의 노트북은 미분류로 이동합니다.',
+                    confirmLabel: '삭제',
+                    tone: 'danger',
+                  });
+                  if (ok) onDeleteFolder(folder.id);
                 }}
                 onColorChange={(color) => onSetFolderColor(folder.id, color)}
                 onDragEnter={() => setDragOverFolderId(folder.id)}
@@ -266,42 +257,10 @@ export function StudyHome({
             </div>
           )}
         </div>
-      )}
 
-      {showTemplateModal && (
-        <TemplatePickerModal onPick={handleTemplateSelect} onClose={() => setShowTemplateModal(false)} />
+      {showCreateModal && (
+        <NotebookCreateModal onSubmit={handleCreateNotebook} onClose={() => setShowCreateModal(false)} />
       )}
-    </div>
-  );
-}
-
-/* ── IntroCards (첫 방문) ── */
-function IntroCards({ onStart }: { onStart: () => void }) {
-  return (
-    <div className="mb-12">
-      <p className="text-[12.5px] text-slate-600 dark:text-slate-400 mb-5">
-        이 앱으로 뭘 할 수 있는지 30초 안에 보여드릴게요.
-      </p>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-        {INTRO_FEATURES.map((f) => {
-          const Icon = f.icon;
-          return (
-            <div key={f.title} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800 mb-2">
-                <Icon className="h-4 w-4 text-slate-700 dark:text-slate-300" strokeWidth={1.75} />
-              </div>
-              <p className="text-[12.5px] font-semibold text-slate-900 dark:text-slate-100">{f.title}</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{f.desc}</p>
-            </div>
-          );
-        })}
-      </div>
-      <button
-        onClick={onStart}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12.5px] font-semibold hover:bg-slate-800 dark:hover:bg-white transition-colors"
-      >
-        <Zap className="h-3.5 w-3.5" /> 체험 시작
-      </button>
     </div>
   );
 }
@@ -717,9 +676,15 @@ function NotebookTile({
           <LensProgress current={lensCount} total={lensTotal} />
         )}
 
-        {hasContent && lensCount === 0 && (
+        {hasContent && lensCount === 0 && !isSampleNotebook(nb) && (
           <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-[9px] font-semibold text-indigo-600 dark:text-indigo-300">
             시작 전
+          </span>
+        )}
+        {/* 체험 노트북 뱃지 — 샘플 구분용 */}
+        {isSampleNotebook(nb) && (
+          <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-indigo-500/90 px-2 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+            ✨ 체험
           </span>
         )}
       </button>
@@ -1054,14 +1019,19 @@ function LensProgress({ current, total }: { current: number; total: number }) {
   );
 }
 
-/* ── 템플릿 선택 모달 ── */
-function TemplatePickerModal({
-  onPick, onClose,
+/* ── 노트북 생성 모달: 제목 + 첨부파일(선택) ── */
+function NotebookCreateModal({
+  onSubmit, onClose,
 }: {
-  onPick: (tpl: NotebookTemplate) => void;
+  onSubmit: (title: string, initialSources: StudySource[]) => void;
   onClose: () => void;
 }) {
-  const [customTitle, setCustomTitle] = useState('');
+  const [title, setTitle] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -1069,68 +1039,179 @@ function TemplatePickerModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const createBlank = () => {
-    const title = customTitle.trim() || '새 노트북';
-    onPick({ id: 'blank', title, icon: '📘', description: '' });
+  const pickFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setErrors([]);
+    // 노트북 생성 시 첨부는 1개만 허용(여러 개 선택하면 첫 번째만 사용).
+    // 노트북 진입 후 소스 패널에서는 추가로 붙일 수 있음.
+    setPendingFiles([files[0]]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (idx: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const submit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setErrors([]);
+    try {
+      let sources: StudySource[] = [];
+      if (pendingFiles.length > 0) {
+        const result = await filesToStudySources(pendingFiles);
+        sources = result.sources;
+        if (result.errors.length > 0) {
+          setErrors(result.errors);
+          // 일부 실패 + 성공분도 없음 → 사용자가 확인하도록 여기서 멈춤
+          if (sources.length === 0) {
+            setIsSubmitting(false);
+            return;
+          }
+          // 일부만 실패 → 토스트로 고지 후 성공분은 등록
+          toast({
+            title: `${result.errors.length}개 파일 등록 실패`,
+            description: '나머지 파일만 노트북에 추가됐어요.',
+          });
+        }
+      }
+      onSubmit(title.trim(), sources);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const fmtSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) pickFiles(e.dataTransfer.files);
   };
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
-          <div>
-            <h3 className="text-[15px] font-bold text-slate-900 dark:text-slate-100">새 노트북</h3>
-            <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-0.5">빈 노트북으로 시작하거나 템플릿을 고르세요</p>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5" aria-label="닫기">
+          <h3 className="text-[15px] font-bold text-slate-900 dark:text-slate-100">새 노트북</h3>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5"
+            aria-label="닫기"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-5">
+          {/* 제목 */}
           <div>
-            <p className="text-[10.5px] uppercase tracking-wide text-slate-400 mb-2 font-semibold">빈 노트북으로 시작</p>
-            <div className="flex gap-2">
-              <input
-                autoFocus
-                value={customTitle}
-                onChange={(e) => setCustomTitle(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') createBlank(); }}
-                placeholder="노트북 이름 (비워도 OK)"
-                className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-[12.5px] outline-none focus:border-indigo-400"
-              />
-              <button
-                onClick={createBlank}
-                className="rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12px] font-semibold hover:bg-slate-800 dark:hover:bg-white"
-              >
-                만들기
-              </button>
-            </div>
+            <label className="block text-[10.5px] uppercase tracking-wide text-slate-400 mb-2 font-semibold">
+              제목
+            </label>
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                // 드롭존 내부 요소에 포커스가 있을 때는 영향 없음(이 input만 Enter 제출)
+                if (e.key === 'Enter') { e.preventDefault(); submit(); }
+              }}
+              placeholder="노트북 이름 (비워도 OK)"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-[12.5px] outline-none focus:border-indigo-400"
+            />
           </div>
 
+          {/* 첨부파일 */}
           <div>
-            <p className="text-[10.5px] uppercase tracking-wide text-slate-400 mb-2 font-semibold">템플릿 — 샘플 소스 포함</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {NOTEBOOK_TEMPLATES.filter((t) => t.id !== 'blank').map((tpl) => (
-                <button
-                  key={tpl.id}
-                  onClick={() => onPick(tpl)}
-                  className="text-left rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-xl">{tpl.icon}</span>
-                    <p className="text-[12.5px] font-semibold text-slate-900 dark:text-slate-100">{tpl.title}</p>
-                  </div>
-                  <p className="text-[10.5px] text-slate-500 dark:text-slate-400 leading-relaxed">{tpl.description}</p>
-                  {tpl.sampleSource && (
-                    <p className="mt-1.5 text-[9.5px] text-indigo-600 dark:text-indigo-300 font-semibold">
-                      샘플 {Math.round(tpl.sampleSource.content.length / 100) / 10}K자 포함
-                    </p>
-                  )}
-                </button>
-              ))}
-            </div>
+            <label className="block text-[10.5px] uppercase tracking-wide text-slate-400 mb-2 font-semibold">
+              첨부파일 (선택)
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.md,.docx,.xlsx,.csv,.pdf,.pptx"
+              onChange={(e) => pickFiles(e.target.files)}
+              className="hidden"
+            />
+            {pendingFiles.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={onDrop}
+                className={cn(
+                  'w-full rounded-xl border border-dashed px-4 py-5 flex flex-col items-center justify-center gap-1 transition-colors',
+                  isDragging
+                    ? 'border-indigo-400 bg-indigo-50/60 dark:bg-indigo-500/10'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600',
+                )}
+              >
+                <Upload className="h-4 w-4 text-slate-400" strokeWidth={1.75} />
+                <p className="text-[12px] text-slate-700 dark:text-slate-200 font-medium">
+                  파일을 드래그하거나 <span className="text-indigo-600 dark:text-indigo-300">클릭해서 선택</span>
+                </p>
+                <p className="text-[10.5px] text-slate-400">PDF · PPTX · DOCX · TXT · MD · XLSX · CSV · 1개</p>
+              </button>
+            ) : (
+              <ul className="space-y-1">
+                {pendingFiles.map((f, idx) => (
+                  <li
+                    key={`${f.name}-${f.size}-${idx}`}
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" strokeWidth={1.75} />
+                    <span className="text-[11.5px] text-slate-800 dark:text-slate-200 truncate flex-1" title={f.name}>{f.name}</span>
+                    <span className="text-[10px] text-slate-400 tabular-nums shrink-0">{fmtSize(f.size)}</span>
+                    <button
+                      onClick={() => removeFile(idx)}
+                      className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0"
+                      aria-label={`${f.name} 제거`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {errors.length > 0 && (
+              <div className="mt-2 space-y-0.5" aria-live="polite">
+                {errors.map((err, i) => (
+                  <p key={i} className="text-[11px] text-red-600 dark:text-red-400">{err}</p>
+                ))}
+              </div>
+            )}
+
+            <p className="mt-2 text-[10.5px] text-slate-400">
+              첨부는 선택 사항이에요. 나중에 소스 패널에서도 추가할 수 있어요.
+            </p>
           </div>
+        </div>
+
+        {/* 액션 바 */}
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-800">
+          <button
+            onClick={onClose}
+            className="rounded-lg px-3 py-2 text-[12px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            취소
+          </button>
+          <button
+            onClick={submit}
+            disabled={isSubmitting}
+            className="rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12px] font-semibold hover:bg-slate-800 dark:hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? '불러오는 중…' : '만들기'}
+          </button>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import type { StudyNotebook, StudyStreak, StudyFolder } from '@/types/study';
 import { newId, todayKey } from '@/types/study';
 import { deleteBlob, pruneOrphans } from '@/lib/studyBlobStore';
 import { deleteOcrForBlob } from '@/lib/studyOcrStore';
+import { SAMPLE_NOTEBOOKS, SAMPLE_FOLDER, isSeeded, markSeeded } from '@/lib/studySamples';
 
 const KEY_NOTEBOOKS = 'study_notebooks_v1';
 const KEY_STREAK = 'study_streak_v1';
@@ -118,6 +119,15 @@ function loadStreak(): StudyStreak {
   }
 }
 
+// 첫 방문 시 샘플 시드: 노트북이 비어있고 시드 플래그도 없으면 체험용 4 노트북 + 1 폴더 주입.
+function seedIfFirstVisit(notebooks: StudyNotebook[], folders: StudyFolder[]): { notebooks: StudyNotebook[]; folders: StudyFolder[]; seeded: boolean } {
+  if (notebooks.length > 0) return { notebooks, folders, seeded: false };
+  if (isSeeded()) return { notebooks, folders, seeded: false };
+  const seededNotebooks = [...SAMPLE_NOTEBOOKS];
+  const seededFolders = folders.some((f) => f.id === SAMPLE_FOLDER.id) ? folders : [...folders, SAMPLE_FOLDER];
+  return { notebooks: seededNotebooks, folders: seededFolders, seeded: true };
+}
+
 export function usePersistedStudyNotebooks() {
   const [notebooks, setNotebooks] = useState<StudyNotebook[]>(() => {
     const nbs = loadNotebooks();
@@ -129,9 +139,22 @@ export function usePersistedStudyNotebooks() {
     if (migrated.folders !== fds) {
       try { localStorage.setItem(KEY_FOLDERS, JSON.stringify(migrated.folders)); } catch { /* noop */ }
     }
-    return migrated.notebooks;
+    const seeded = seedIfFirstVisit(migrated.notebooks, migrated.folders);
+    if (seeded.seeded) {
+      try {
+        localStorage.setItem(KEY_NOTEBOOKS, JSON.stringify(seeded.notebooks));
+        localStorage.setItem(KEY_FOLDERS, JSON.stringify(seeded.folders));
+      } catch { /* noop */ }
+      markSeeded();
+    }
+    return seeded.notebooks;
   });
-  const [folders, setFolders] = useState<StudyFolder[]>(() => loadFolders());
+  const [folders, setFolders] = useState<StudyFolder[]>(() => {
+    const fds = loadFolders();
+    const nbs = loadNotebooks();
+    const seeded = seedIfFirstVisit(nbs, fds);
+    return seeded.folders;
+  });
   const [streak, setStreak] = useState<StudyStreak>(() => loadStreak());
   const firstRender = useRef(true);
   const firstFolderRender = useRef(true);
