@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
-  FlaskConical, BookOpen, ChevronDown,
+  FlaskConical, BookOpen, ChevronDown, MessagesSquare, Telescope,
 } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
@@ -78,12 +78,17 @@ const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
   assistant:     '문서·번역·요약 실무',
 };
 
-/** 토론 서브모드 정의. */
-const DEBATE_SUBS: Array<{ key: DebateSubMode; label: string; desc: string }> = [
-  { key: 'procon',     label: '찬반토론',       desc: '찬성 · 반대 구조' },
-  { key: 'freetalk',   label: '자유토론',       desc: '정해진 형식 없이' },
-  { key: 'standard',   label: '심층토론',       desc: '다각도 분석' },
-  { key: 'brainstorm', label: '브레인스토밍',   desc: '아이디어 발산' },
+/** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. */
+const DEBATE_SUBS: Array<{
+  key: DebateSubMode;
+  label: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+}> = [
+  { key: 'procon',     label: '찬반토론',     desc: '찬성 · 반대 구조',    icon: Swords },
+  { key: 'freetalk',   label: '자유토론',     desc: '정해진 형식 없이',    icon: MessagesSquare },
+  { key: 'standard',   label: '심층토론',     desc: '다각도 분석',         icon: Telescope },
+  { key: 'brainstorm', label: '브레인스토밍', desc: '아이디어 발산',       icon: Sparkles },
 ];
 
 export function MainModeTabs({
@@ -192,54 +197,41 @@ export function MainModeTabs({
     );
   };
 
-  const renderDebateItem = () => {
+  /** 토론 서브 항목을 일반 모드 아이템과 동일한 형태로 렌더 — parent 'AI 토론' 없이 평면 구조. */
+  const renderDebateSubItem = (sub: typeof DEBATE_SUBS[number]) => {
     const tint = MODE_TINT.debate;
-    const isActive = currentMode === 'debate';
+    const Icon = sub.icon;
+    const isActive = currentMode === 'debate' && currentDebateSub === sub.key;
     return (
-      <div key="debate" className="space-y-0.5">
-        <div className="flex items-center gap-2.5 px-2 py-1.5">
-          <span
-            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-            style={{
-              backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
-              color: tint,
-            }}
-          >
-            <Swords className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+      <button
+        key={sub.key}
+        type="button"
+        onClick={() => handleSelectSub(sub.key)}
+        role="menuitem"
+        className={cn(
+          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+          'hover:bg-[hsl(var(--accent))]',
+          isActive && 'bg-[hsl(var(--accent))]',
+        )}
+      >
+        <span
+          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          style={{
+            backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
+            color: tint,
+          }}
+        >
+          <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+            {sub.label}
           </span>
-          <span className={cn('min-w-0 flex-1 text-[12.5px] leading-tight', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
-            AI 토론
+          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+            {sub.desc}
           </span>
-        </div>
-        {/* 서브 모드 4개를 인라인으로 — 들여쓰기로 계층 표시 */}
-        <div className="ml-9 pl-2 border-l border-[hsl(var(--hairline))] space-y-0.5">
-          {DEBATE_SUBS.map((sub) => {
-            const subActive = isActive && currentDebateSub === sub.key;
-            return (
-              <button
-                key={sub.key}
-                type="button"
-                onClick={() => handleSelectSub(sub.key)}
-                role="menuitem"
-                className={cn(
-                  'flex w-full items-center gap-2 px-2 py-1 rounded-md text-left transition-colors',
-                  'hover:bg-[hsl(var(--accent))]',
-                  subActive && 'bg-[hsl(var(--accent))]',
-                )}
-              >
-                <span className="min-w-0 flex-1">
-                  <span className={cn('block text-[11.5px] leading-tight truncate', subActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/85')}>
-                    {sub.label}
-                  </span>
-                  <span className="block text-[10px] text-muted-foreground truncate">
-                    {sub.desc}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        </span>
+      </button>
     );
   };
 
@@ -301,7 +293,11 @@ export function MainModeTabs({
                         </span>
                       </div>
                       <div className="space-y-0.5">
-                        {group.modes.map((m) => (m === 'debate' ? renderDebateItem() : renderModeItem(m)))}
+                        {group.modes.flatMap((m) =>
+                          m === 'debate'
+                            ? DEBATE_SUBS.map(renderDebateSubItem)
+                            : [renderModeItem(m)]
+                        )}
                       </div>
                     </div>
                   ))}
