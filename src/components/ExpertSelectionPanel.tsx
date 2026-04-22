@@ -2195,7 +2195,7 @@ export function ExpertSelectionPanel({
           'flex items-center relative gap-0.5 max-w-[640px] p-0.5 rounded-xl border',
           showPlayerBg
             ? 'bg-slate-900/50 border-slate-700/40'
-            : 'bg-slate-100/80 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700',
+            : 'bg-slate-200/70 dark:bg-slate-800/80 border-slate-300/70 dark:border-slate-700',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
