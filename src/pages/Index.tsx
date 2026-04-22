@@ -51,6 +51,7 @@ const GENERAL_IMAGE_URL = '/api/general-image';
 const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
 const LazyModePaletteModal = lazy(() => import('@/components/ModePaletteModal').then((module) => ({ default: module.ModePaletteModal })));
+const LazyLifeToolBrowserModal = lazy(() => import('@/components/LifeToolBrowserModal').then((module) => ({ default: module.LifeToolBrowserModal })));
 const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
 const LazyOnboardingTour = lazy(() => import('@/components/OnboardingTour').then((module) => ({ default: module.OnboardingTour })));
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
@@ -133,6 +134,7 @@ const Index = () => {
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [modePaletteOpen, setModePaletteOpen] = useState(false);
+  const [lifeBrowserOpen, setLifeBrowserOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
   useEffect(() => {
@@ -4616,6 +4618,20 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               if (getMainMode(discussionMode) !== 'assistant') handleModeChange(mainToDiscussion('assistant'));
               setSelectedAssistantCard(cardId);
             }}
+            onOpenLifeBrowser={() => setLifeBrowserOpen(true)}
+          />
+        </Suspense>
+        {/* 라이프 도구 전체 보기 모달 — 드롭다운/사이드바의 "라이프 더 보기" 로 트리거 */}
+        <Suspense fallback={null}>
+          <LazyLifeToolBrowserModal
+            open={lifeBrowserOpen}
+            onClose={() => setLifeBrowserOpen(false)}
+            onSelectTool={(toolId) => {
+              // 추후: 각 라이프 도구별 시스템 프롬프트 매핑.
+              // 현재는 일반 채팅으로 폴백.
+              void toolId;
+              if (getMainMode(discussionMode) !== 'general') handleModeChange(mainToDiscussion('general'));
+            }}
           />
         </Suspense>
         {!hideAppSidebar && <Suspense fallback={null}>
@@ -5075,6 +5091,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       setSelectedAssistantCard(cardId);
                     }}
                     onAssistantSubmit={handleAssistantSubmit}
+                    onOpenLifeBrowser={() => setLifeBrowserOpen(true)}
                   />
                 </Suspense>
               )}

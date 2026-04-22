@@ -35,6 +35,8 @@ interface MainModeTabsProps {
   onSelectAssistantCard?: (cardId: string) => void;
   /** 라이프·재미 도구 (사주/타로/연애/운동 등) 선택 콜백. 없으면 일반 채팅으로 폴백. */
   onSelectLifeTool?: (toolId: string) => void;
+  /** 라이프 도구 "더 보기" 클릭 — LifeToolBrowserModal 트리거. */
+  onOpenLifeBrowser?: () => void;
 }
 
 /** 라이프·재미 그룹 도구 정의 — 엔터테인먼트 & 생활 도구들. */
@@ -102,8 +104,8 @@ export const MODE_TINT: Record<MainMode, string> = {
 /** 사용자 요청 목록에 맞춘 4 그룹 그룹핑. */
 export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
   { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'research_main'] },
-  { label: '전문',  description: '자문 · 학습',           modes: ['study_main', 'premium_main'] },
-  { label: '논의',  description: '토론 · 역할극 시뮬',     modes: ['debate', 'stakeholder_main'] },
+  { label: '전문',  description: '자문 · 학습',           modes: ['study_main', 'premium_main', 'stakeholder_main'] },
+  { label: '논의',  description: '토론 · 브레인스토밍',   modes: ['debate'] },
   { label: 'AI 어시스턴트',  description: '실무 도구',      modes: ['assistant'] },
 ];
 
@@ -159,6 +161,7 @@ export function MainModeTabs({
   currentAssistantCard,
   onSelectAssistantCard,
   onSelectLifeTool,
+  onOpenLifeBrowser,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -469,7 +472,7 @@ export function MainModeTabs({
                   ))}
                 </div>
               ))}
-              {/* 오른쪽 컬럼: 라이프·재미 + 건강·실용 (엔터테인먼트) */}
+              {/* 오른쪽 컬럼: 라이프·재미 + 건강·실용 + 더보기 */}
               <div className="min-w-0 space-y-3">
                 {LIFE_GROUPS.map((group) => (
                   <div key={group.label}>
@@ -486,6 +489,25 @@ export function MainModeTabs({
                     </div>
                   </div>
                 ))}
+                {/* 라이프 "더 보기" — 전체 라이프 도구 모달 트리거 */}
+                {onOpenLifeBrowser && (
+                  <div>
+                    <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => { setOpen(false); setTimeout(() => onOpenLifeBrowser(), 40); }}
+                      role="menuitem"
+                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      </span>
+                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                        <span className="text-[12px] font-medium">라이프 더 보기</span>
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

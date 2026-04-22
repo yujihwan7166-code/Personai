@@ -33,6 +33,7 @@ interface ModePaletteModalProps {
   currentAssistantCard?: string | null;
   onSelectAssistantCard?: (cardId: string) => void;
   onSelectLifeTool?: (toolId: string) => void;
+  onOpenLifeBrowser?: () => void;
 }
 
 export function ModePaletteModal({
@@ -46,6 +47,7 @@ export function ModePaletteModal({
   currentAssistantCard,
   onSelectAssistantCard,
   onSelectLifeTool,
+  onOpenLifeBrowser,
 }: ModePaletteModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -291,7 +293,7 @@ export function ModePaletteModal({
                   ))}
                 </div>
               ))}
-              {/* 오른쪽 컬럼: 라이프·재미 */}
+              {/* 오른쪽 컬럼: 라이프·재미 + 더보기 */}
               <div className="min-w-0 space-y-3">
                 {LIFE_GROUPS.map((group) => (
                   <div key={group.label}>
@@ -308,6 +310,24 @@ export function ModePaletteModal({
                     </div>
                   </div>
                 ))}
+                {onOpenLifeBrowser && (
+                  <div>
+                    <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => { onClose(); setTimeout(() => onOpenLifeBrowser(), 40); }}
+                      role="menuitem"
+                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      </span>
+                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                        <span className="text-[12px] font-medium">라이프 더 보기</span>
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
