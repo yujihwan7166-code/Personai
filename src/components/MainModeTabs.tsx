@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
   FlaskConical, BookOpen, ChevronDown, MessagesSquare, Telescope,
+  Globe, FileText, Presentation, Mic,
 } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
@@ -28,6 +29,10 @@ interface MainModeTabsProps {
   currentDebateSub?: DebateSubMode;
   /** AI 토론 하위 (찬반/자유/심층/브레인) 선택 콜백. */
   onSelectDebateSub?: (sub: DebateSubMode) => void;
+  /** 현재 어시스턴트 카드 id (toggle 표시용). */
+  currentAssistantCard?: string | null;
+  /** 어시스턴트 도구 (번역/문서/PPT/음성) 빠른 선택 콜백. */
+  onSelectAssistantCard?: (cardId: string) => void;
 }
 
 const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
@@ -63,8 +68,8 @@ const MODE_TINT: Record<MainMode, string> = {
 /** 사용자 요청 목록에 맞춘 4 그룹 그룹핑. */
 const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
   { label: '대화',  description: '질문하고 답받기',     modes: ['general', 'multi', 'research_main'] },
-  { label: '논의',  description: '토론 · 브레인스토밍', modes: ['debate'] },
   { label: '전문',  description: '자문 · 학습',         modes: ['premium_main', 'study_main'] },
+  { label: '논의',  description: '토론 · 브레인스토밍', modes: ['debate'] },
   { label: '도구',  description: '실무 작업',           modes: ['assistant'] },
 ];
 
@@ -75,8 +80,22 @@ const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
   research_main: '멀티 AI 교차 검증 리포트',
   premium_main:  '법률·의료·금융 자문',
   study_main:    '공부 노트북·퀴즈·팟캐스트',
-  assistant:     '문서·번역·요약 실무',
+  assistant:     '전체 도구 14+ 브라우즈',
 };
+
+/** 어시스턴트에서 노출할 핵심 도구 4개. 나머지 10+ 도구는 "어시스턴트 전체" 로 접근. */
+const ASSISTANT_FEATURED_TOOLS: Array<{
+  cardId: string;
+  label: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  tint: string;
+}> = [
+  { cardId: 'translate',      label: '다국어 번역', desc: '언어 간 번역·교정',      icon: Globe,        tint: 'hsl(262 70% 55%)' },
+  { cardId: 'document',       label: '문서 작성',   desc: '보고서·이메일·제안서',   icon: FileText,     tint: 'hsl(160 60% 40%)' },
+  { cardId: 'ppt',            label: 'PPT 생성',    desc: '프레젠테이션 자동',      icon: Presentation, tint: 'hsl(160 60% 40%)' },
+  { cardId: 'voice-analysis', label: '음성 분석',   desc: '음성→텍스트·요약',       icon: Mic,          tint: 'hsl(330 65% 52%)' },
+];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. */
 const DEBATE_SUBS: Array<{
@@ -101,6 +120,8 @@ export function MainModeTabs({
   onChange,
   currentDebateSub,
   onSelectDebateSub,
+  currentAssistantCard,
+  onSelectAssistantCard,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -158,6 +179,11 @@ export function MainModeTabs({
     setTimeout(() => onSelectDebateSub?.(sub), 40);
   };
 
+  const handleSelectAssistantTool = (cardId: string) => {
+    setOpen(false);
+    setTimeout(() => onSelectAssistantCard?.(cardId), 40);
+  };
+
   const renderModeItem = (m: MainMode) => {
     const Icon = MODE_ICON[m];
     const tint = MODE_TINT[m];
@@ -192,6 +218,43 @@ export function MainModeTabs({
               {MODE_DESCRIPTION[m]}
             </span>
           )}
+        </span>
+      </button>
+    );
+  };
+
+  /** 어시스턴트 개별 도구를 mode 아이템과 동일한 형태로 렌더. */
+  const renderAssistantToolItem = (tool: typeof ASSISTANT_FEATURED_TOOLS[number]) => {
+    const Icon = tool.icon;
+    const isActive = currentMode === 'assistant' && currentAssistantCard === tool.cardId;
+    return (
+      <button
+        key={`tool-${tool.cardId}`}
+        type="button"
+        onClick={() => handleSelectAssistantTool(tool.cardId)}
+        role="menuitem"
+        className={cn(
+          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+          'hover:bg-[hsl(var(--accent))]',
+          isActive && 'bg-[hsl(var(--accent))]',
+        )}
+      >
+        <span
+          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          style={{
+            backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`,
+            color: tool.tint,
+          }}
+        >
+          <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+            {tool.label}
+          </span>
+          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+            {tool.desc}
+          </span>
         </span>
       </button>
     );
@@ -281,6 +344,7 @@ export function MainModeTabs({
                 왼쪽: 대화 + 전문, 오른쪽: 논의 + 도구. 빈 공간 제거. */}
             <div className="grid grid-cols-2 gap-x-4 p-4">
               {[[0, 2], [1, 3]].map(([i1, i2], colIdx) => (
+                /* LEFT: 대화(0) + 논의(2) 7행 · RIGHT: 전문(1) + 도구(3) 7행 — 균형 */
                 <div key={colIdx} className="min-w-0 space-y-3">
                   {[MODE_GROUPS[i1], MODE_GROUPS[i2]].map((group) => (
                     <div key={group.label}>
@@ -293,6 +357,8 @@ export function MainModeTabs({
                         </span>
                       </div>
                       <div className="space-y-0.5">
+                        {/* 도구 그룹: 4 도구 먼저, 어시스턴트 전체 링크 마지막 */}
+                        {group.label === '도구' && ASSISTANT_FEATURED_TOOLS.map(renderAssistantToolItem)}
                         {group.modes.flatMap((m) =>
                           m === 'debate'
                             ? DEBATE_SUBS.map(renderDebateSubItem)

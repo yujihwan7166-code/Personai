@@ -2124,6 +2124,12 @@ export function ExpertSelectionPanel({
               onChange={handleMainModeChange}
               currentDebateSub={mainMode === 'debate' ? (discussionMode as DebateSubMode) : undefined}
               onSelectDebateSub={(sub) => onModeChange(sub)}
+              currentAssistantCard={mainMode === 'assistant' ? selectedAssistantCardId ?? null : null}
+              onSelectAssistantCard={(cardId) => {
+                // 어시스턴트 모드 진입 + 해당 카드 선택
+                if (mainMode !== 'assistant') handleMainModeChange('assistant');
+                onAssistantCardChange?.(cardId);
+              }}
             />
           </div>
         )}
