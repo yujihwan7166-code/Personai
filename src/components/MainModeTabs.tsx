@@ -37,6 +37,10 @@ interface MainModeTabsProps {
   onSelectLifeTool?: (toolId: string) => void;
   /** 라이프 도구 "더 보기" 클릭 — LifeToolBrowserModal 트리거. */
   onOpenLifeBrowser?: () => void;
+  /** 플레이어 도구 (캐릭터챗/게임/롤플레이 등) 선택 콜백. */
+  onSelectPlayerTool?: (toolId: string) => void;
+  /** 플레이어 "더 보기" 클릭 — PlayerToolBrowserModal 트리거. */
+  onOpenPlayerBrowser?: () => void;
 }
 
 /** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
@@ -58,10 +62,11 @@ export const LIFE_TOOLS: Array<{
   { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',          emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: true  },
   // ── 2026-04 추가: 국내 수요 + 해외 벤치마크 기반 6개 ──
   { id: 'color',      label: '퍼스널 컬러',   desc: '웜톤·쿨톤 진단 + 팔레트',   emoji: '🎨', tint: 'hsl(295 70% 58%)', featured: true  },
-  { id: 'style',      label: '스타일 코디',   desc: '체형·상황·계절별 코디',     emoji: '👗', tint: 'hsl(335 75% 60%)', featured: true  },
-  { id: 'date-course',label: '데이트 코스',   desc: '지역·예산·테마로 코스',     emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: true  },
-  { id: 'gift',       label: '선물 추천',     desc: '관계·기념일·예산별 제안',   emoji: '🎁', tint: 'hsl(145 60% 45%)', featured: true  },
-  { id: 'content',    label: '콘텐츠 추천',   desc: '책·영화·드라마 취향 맞춤',  emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: true  },
+  // 드롭다운은 퍼스널 컬러까지만 노출 — 아래 항목들은 "라이프 더 보기" 모달에서만 등장
+  { id: 'style',      label: '스타일 코디',   desc: '체형·상황·계절별 코디',     emoji: '👗', tint: 'hsl(335 75% 60%)', featured: false },
+  { id: 'date-course',label: '데이트 코스',   desc: '지역·예산·테마로 코스',     emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: false },
+  { id: 'gift',       label: '선물 추천',     desc: '관계·기념일·예산별 제안',   emoji: '🎁', tint: 'hsl(145 60% 45%)', featured: false },
+  { id: 'content',    label: '콘텐츠 추천',   desc: '책·영화·드라마 취향 맞춤',  emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: false },
   { id: 'interior',   label: '인테리어',      desc: '방 배치·컬러·가구 제안',    emoji: '🛋️', tint: 'hsl(40 55% 50%)',  featured: false },
   // ── 기존 비공개 ──
   { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',       emoji: '📔', tint: 'hsl(32 80% 55%)',  featured: false },
@@ -75,6 +80,32 @@ export const LIFE_TOOLS_FEATURED = LIFE_TOOLS.filter((t) => t.featured);
 export const LIFE_GROUP = {
   label: '라이프',
   description: '운세·감정·건강·생활',
+};
+
+/** 플레이어 그룹 도구 — 놀이·가상·게임·캐릭터. */
+export const PLAYER_TOOLS: Array<{
+  id: string;
+  label: string;
+  desc?: string;
+  emoji: string;
+  tint: string;
+  featured: boolean;
+}> = [
+  { id: 'character-chat', label: '캐릭터 챗',    desc: '가상 캐릭터와 몰입 대화',    emoji: '🎭', tint: 'hsl(280 70% 55%)', featured: true  },
+  { id: 'ai-game',        label: 'AI 게임',      desc: '끝말잇기·스무고개·진실',      emoji: '🎮', tint: 'hsl(142 70% 42%)', featured: true  },
+  { id: 'story-rpg',      label: '스토리 RPG',   desc: 'AI 가 DM, 선택형 모험',       emoji: '📖', tint: 'hsl(25 80% 50%)',  featured: true  },
+  { id: 'detective',      label: '추리 게임',    desc: '용의자 심문 · 범인 찾기',     emoji: '🕵️', tint: 'hsl(215 60% 40%)', featured: true  },
+  // 더 보기 전용
+  { id: 'roleplay',       label: '롤플레이',     desc: '면접·카페·데이트 상황극',     emoji: '🎪', tint: 'hsl(340 65% 55%)', featured: false },
+  { id: 'ai-friend',      label: 'AI 친구',      desc: '일상 컴패니언 · 반말 대화',   emoji: '🌐', tint: 'hsl(190 60% 48%)', featured: false },
+  { id: 'board-game',     label: 'AI 보드게임',  desc: '체스·바둑·보드 상대',         emoji: '🃏', tint: 'hsl(260 55% 50%)', featured: false },
+];
+
+export const PLAYER_TOOLS_FEATURED = PLAYER_TOOLS.filter((t) => t.featured);
+
+export const PLAYER_GROUP = {
+  label: '플레이어',
+  description: '캐릭터·게임·롤플레이',
 };
 
 export const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
@@ -172,6 +203,8 @@ export function MainModeTabs({
   onSelectAssistantCard,
   onSelectLifeTool,
   onOpenLifeBrowser,
+  onSelectPlayerTool,
+  onOpenPlayerBrowser,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -187,7 +220,7 @@ export function MainModeTabs({
     const update = () => {
       if (!rootRef.current) return;
       const r = rootRef.current.getBoundingClientRect();
-      const PANEL_W = 760;
+      const PANEL_W = 960;
       const vw = window.innerWidth;
       let left = r.left + r.width / 2 - PANEL_W / 2;
       left = Math.max(16, Math.min(left, vw - PANEL_W - 16));
@@ -244,6 +277,15 @@ export function MainModeTabs({
     }
   };
 
+  const handleSelectPlayerTool = (toolId: string) => {
+    setOpen(false);
+    if (onSelectPlayerTool) {
+      setTimeout(() => onSelectPlayerTool(toolId), 40);
+    } else {
+      if (currentMode !== 'general') setTimeout(() => onChange('general'), 40);
+    }
+  };
+
   const renderModeItem = (m: MainMode) => {
     const Icon = MODE_ICON[m];
     const tint = MODE_TINT[m];
@@ -282,6 +324,28 @@ export function MainModeTabs({
       </button>
     );
   };
+
+  /** 플레이어 도구 아이템 — 라이프와 동일한 이모지 기반 포맷. */
+  const renderPlayerToolItem = (tool: typeof PLAYER_TOOLS[number]) => (
+    <button
+      key={`player-${tool.id}`}
+      type="button"
+      onClick={() => handleSelectPlayerTool(tool.id)}
+      role="menuitem"
+      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+    >
+      <span
+        className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
+      >
+        <span className="text-[15px] leading-none select-none">{tool.emoji}</span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">{tool.label}</span>
+        {tool.desc && <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">{tool.desc}</span>}
+      </span>
+    </button>
+  );
 
   /** 어시스턴트 개별 도구를 mode 아이템과 동일한 형태로 렌더. */
   /** 라이프·재미 도구 아이템 — 이모지 기반 아이콘 + 각자 고유 tint. */
@@ -426,13 +490,13 @@ export function MainModeTabs({
             style={{ position: 'fixed', top: panelPos.top, left: panelPos.left }}
             className={cn(
               'z-[120]',
-              'w-[760px] max-w-[calc(100vw-32px)] rounded-2xl overflow-hidden',
+              'w-[960px] max-w-[calc(100vw-32px)] rounded-2xl overflow-hidden',
               'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
               'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
             )}
           >
             {/* 3 컬럼 독립 흐름 — 왼쪽: 대화+논의 / 가운데: 전문+AI 어시스턴트 / 오른쪽: 라이프·재미+건강·실용 */}
-            <div className="grid grid-cols-3 gap-x-3 p-4">
+            <div className="grid grid-cols-4 gap-x-3 p-4">
               {/* 왼쪽·가운데 컬럼: 기존 MODE_GROUPS (주 작업) */}
               {[[0, 2], [1, 3]].map(([i1, i2], colIdx) => (
                 /* 왼쪽: 대화(0) + 논의(2) · 가운데: 전문(1) + 어시스턴트(3) */
@@ -512,6 +576,40 @@ export function MainModeTabs({
                       </span>
                       <span className="min-w-0 flex-1 flex items-center gap-1.5">
                         <span className="text-[12px] font-medium">라이프 더 보기</span>
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              {/* 맨 오른쪽 컬럼: 플레이어 — 캐릭터·게임·롤플레이 */}
+              <div className="min-w-0 space-y-3">
+                <div>
+                  <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      {PLAYER_GROUP.label}
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                      {PLAYER_GROUP.description}
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {PLAYER_TOOLS_FEATURED.map(renderPlayerToolItem)}
+                  </div>
+                </div>
+                {onOpenPlayerBrowser && (
+                  <div>
+                    <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => { setOpen(false); setTimeout(() => onOpenPlayerBrowser(), 40); }}
+                      role="menuitem"
+                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      </span>
+                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                        <span className="text-[12px] font-medium">플레이어 더 보기</span>
                       </span>
                     </button>
                   </div>

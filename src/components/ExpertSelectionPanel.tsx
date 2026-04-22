@@ -89,6 +89,8 @@ interface Props {
   onAssistantSubmit?: (cardId: string, question: string) => void;
   /** 라이프 도구 전체 보기 모달 열기. */
   onOpenLifeBrowser?: () => void;
+  /** 플레이어 도구 전체 보기 모달 열기. */
+  onOpenPlayerBrowser?: () => void;
 }
 
 const mainModes: MainMode[] = ['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant'];
@@ -1749,6 +1751,7 @@ export function ExpertSelectionPanel({
   selectedAssistantCardId,
   onAssistantCardChange,
   onOpenLifeBrowser,
+  onOpenPlayerBrowser,
   onAssistantSubmit,
 }: Props) {
   // Phase C: 히어로 개인화 인사에 사용. AccountStatus 서브컴포넌트가 쓰던 것과 별개로 여기서도 호출.
@@ -2136,6 +2139,7 @@ export function ExpertSelectionPanel({
                 onAssistantCardChange?.(cardId);
               }}
               onOpenLifeBrowser={onOpenLifeBrowser}
+              onOpenPlayerBrowser={onOpenPlayerBrowser}
             />
           </div>
         )}

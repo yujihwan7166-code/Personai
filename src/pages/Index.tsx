@@ -52,6 +52,7 @@ const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
 const LazyModePaletteModal = lazy(() => import('@/components/ModePaletteModal').then((module) => ({ default: module.ModePaletteModal })));
 const LazyLifeToolBrowserModal = lazy(() => import('@/components/LifeToolBrowserModal').then((module) => ({ default: module.LifeToolBrowserModal })));
+const LazyPlayerToolBrowserModal = lazy(() => import('@/components/PlayerToolBrowserModal').then((module) => ({ default: module.PlayerToolBrowserModal })));
 const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
 const LazyOnboardingTour = lazy(() => import('@/components/OnboardingTour').then((module) => ({ default: module.OnboardingTour })));
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
@@ -135,6 +136,7 @@ const Index = () => {
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [modePaletteOpen, setModePaletteOpen] = useState(false);
   const [lifeBrowserOpen, setLifeBrowserOpen] = useState(false);
+  const [playerBrowserOpen, setPlayerBrowserOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
   useEffect(() => {
@@ -4619,6 +4621,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               setSelectedAssistantCard(cardId);
             }}
             onOpenLifeBrowser={() => setLifeBrowserOpen(true)}
+            onOpenPlayerBrowser={() => setPlayerBrowserOpen(true)}
           />
         </Suspense>
         {/* 라이프 도구 전체 보기 모달 — 드롭다운/사이드바의 "라이프 더 보기" 로 트리거 */}
@@ -4629,6 +4632,18 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onSelectTool={(toolId) => {
               // 추후: 각 라이프 도구별 시스템 프롬프트 매핑.
               // 현재는 일반 채팅으로 폴백.
+              void toolId;
+              if (getMainMode(discussionMode) !== 'general') handleModeChange(mainToDiscussion('general'));
+            }}
+          />
+        </Suspense>
+        {/* 플레이어 도구 전체 보기 모달 — "플레이어 더 보기" 로 트리거 */}
+        <Suspense fallback={null}>
+          <LazyPlayerToolBrowserModal
+            open={playerBrowserOpen}
+            onClose={() => setPlayerBrowserOpen(false)}
+            onSelectTool={(toolId) => {
+              // 추후: 각 플레이어 도구별 시스템 프롬프트 매핑.
               void toolId;
               if (getMainMode(discussionMode) !== 'general') handleModeChange(mainToDiscussion('general'));
             }}
@@ -5092,6 +5107,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     }}
                     onAssistantSubmit={handleAssistantSubmit}
                     onOpenLifeBrowser={() => setLifeBrowserOpen(true)}
+                    onOpenPlayerBrowser={() => setPlayerBrowserOpen(true)}
                   />
                 </Suspense>
               )}

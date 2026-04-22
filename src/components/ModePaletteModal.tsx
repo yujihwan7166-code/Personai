@@ -21,6 +21,9 @@ import {
   LIFE_TOOLS,
   LIFE_TOOLS_FEATURED,
   LIFE_GROUP,
+  PLAYER_TOOLS,
+  PLAYER_TOOLS_FEATURED,
+  PLAYER_GROUP,
 } from './MainModeTabs';
 
 interface ModePaletteModalProps {
@@ -35,6 +38,8 @@ interface ModePaletteModalProps {
   onSelectAssistantCard?: (cardId: string) => void;
   onSelectLifeTool?: (toolId: string) => void;
   onOpenLifeBrowser?: () => void;
+  onSelectPlayerTool?: (toolId: string) => void;
+  onOpenPlayerBrowser?: () => void;
 }
 
 export function ModePaletteModal({
@@ -49,6 +54,8 @@ export function ModePaletteModal({
   onSelectAssistantCard,
   onSelectLifeTool,
   onOpenLifeBrowser,
+  onSelectPlayerTool,
+  onOpenPlayerBrowser,
 }: ModePaletteModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -73,6 +80,14 @@ export function ModePaletteModal({
     onClose();
     if (onSelectLifeTool) {
       setTimeout(() => onSelectLifeTool(toolId), 40);
+    } else {
+      if (currentMode !== 'general') setTimeout(() => onChange('general'), 40);
+    }
+  };
+  const handleSelectPlayerTool = (toolId: string) => {
+    onClose();
+    if (onSelectPlayerTool) {
+      setTimeout(() => onSelectPlayerTool(toolId), 40);
     } else {
       if (currentMode !== 'general') setTimeout(() => onChange('general'), 40);
     }
@@ -178,6 +193,27 @@ export function ModePaletteModal({
     );
   };
 
+  const renderPlayerToolItem = (tool: typeof PLAYER_TOOLS[number]) => (
+    <button
+      key={`player-${tool.id}`}
+      type="button"
+      onClick={() => handleSelectPlayerTool(tool.id)}
+      role="menuitem"
+      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+    >
+      <span
+        className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
+      >
+        <span className="text-[15px] leading-none select-none">{tool.emoji}</span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">{tool.label}</span>
+        {tool.desc && <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">{tool.desc}</span>}
+      </span>
+    </button>
+  );
+
   const renderLifeToolItem = (tool: typeof LIFE_TOOLS[number]) => (
     <button
       key={`life-${tool.id}`}
@@ -224,7 +260,7 @@ export function ModePaletteModal({
             transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'w-[760px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-64px)] overflow-y-auto rounded-2xl',
+              'w-[960px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-64px)] overflow-y-auto rounded-2xl',
               'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
               'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.35)]',
             )}
@@ -246,7 +282,7 @@ export function ModePaletteModal({
             </div>
 
             {/* 3 컬럼 그리드 — MainModeTabs 드롭다운과 동일 구조 */}
-            <div className="grid grid-cols-3 gap-x-3 p-4">
+            <div className="grid grid-cols-4 gap-x-3 p-4">
               {/* 왼쪽·가운데 컬럼 */}
               {[[0, 2], [1, 3]].map(([i1, i2], colIdx) => (
                 <div key={colIdx} className="min-w-0 space-y-3">
@@ -323,6 +359,40 @@ export function ModePaletteModal({
                       </span>
                       <span className="min-w-0 flex-1 flex items-center gap-1.5">
                         <span className="text-[12px] font-medium">라이프 더 보기</span>
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              {/* 맨 오른쪽 컬럼: 플레이어 */}
+              <div className="min-w-0 space-y-3">
+                <div>
+                  <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      {PLAYER_GROUP.label}
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                      {PLAYER_GROUP.description}
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {PLAYER_TOOLS_FEATURED.map(renderPlayerToolItem)}
+                  </div>
+                </div>
+                {onOpenPlayerBrowser && (
+                  <div>
+                    <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => { onClose(); setTimeout(() => onOpenPlayerBrowser(), 40); }}
+                      role="menuitem"
+                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      </span>
+                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                        <span className="text-[12px] font-medium">플레이어 더 보기</span>
                       </span>
                     </button>
                   </div>
