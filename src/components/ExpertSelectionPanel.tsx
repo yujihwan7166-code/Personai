@@ -110,7 +110,7 @@ const mainModeLabels: Record<MainMode, string> = {
   assistant: '어시스턴트',
   player: '플레이어',
   research_main: '심층 리서치',
-  study_main: '공부',
+  study_main: 'AI 스터디룸',
   translate_main: '다국어 번역',
   convert_main: '파일 변환',
 };
