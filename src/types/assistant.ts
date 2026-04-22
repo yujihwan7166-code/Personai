@@ -3,7 +3,7 @@ import type { Expert } from '@/types/expert';
 export type AssistantCardCategory = 'productivity' | 'study' | 'work' | 'life' | 'analysis' | 'content';
 
 
-export type AssistantRuntime = 'chat' | 'agent';
+export type AssistantRuntime = 'chat' | 'agent' | 'recording' | 'media-gen';
 export type AssistantOutputStyle = 'chat' | 'report';
 export type AssistantAgentKind = 'research' | 'finance-review' | 'drug-safety' | 'contract-risk';
 
@@ -119,20 +119,12 @@ export const ASSISTANT_CARDS: AssistantCard[] = [
   // ── 업무 ──
   { id: 'document', name: '문서 작성', icon: '📝', description: '보고서, 이메일, 제안서 등 문서 작성', color: 'text-emerald-600', gradient: 'from-emerald-50 to-green-50', category: 'work', features: ['보고서', '이메일', '제안서'], placeholder: '어떤 문서를 작성할까요?', sampleQuestions: ['월간 보고서 초안 작성해줘', '거래처 이메일 초안 써줘'], runtime: 'chat', supportsFiles: true },
   { id: 'ppt', name: 'PPT 생성', icon: '📊', description: '프레젠테이션 슬라이드 구조 설계 및 내용 생성', color: 'text-emerald-600', gradient: 'from-emerald-50 to-green-50', category: 'work', features: ['슬라이드 구조', '핵심 메시지', '스크립트'], placeholder: '발표 주제가 무엇인가요?', sampleQuestions: ['AI 트렌드 발표자료 만들어줘', '10장짜리 사업 제안 PPT 구성해줘'], runtime: 'chat', supportsFiles: true },
-  { id: 'resume', name: '자소서 첨삭', icon: '📄', description: '이력서 및 자기소개서 작성·첨삭', color: 'text-emerald-600', gradient: 'from-emerald-50 to-green-50', category: 'work', features: ['이력서', '자소서', '첨삭'], placeholder: '자소서를 붙여넣으세요', sampleQuestions: ['이 자소서 첨삭해줘', 'IT 직무 이력서 작성해줘'], runtime: 'chat', supportsFiles: true },
-  { id: 'legal', name: '법률 검토', icon: '⚖️', description: '법률 조항 해석 및 계약서 리스크 분석', color: 'text-emerald-600', gradient: 'from-emerald-50 to-green-50', category: 'work', features: ['조항 해석', '리스크 분석', '계약 검토'], placeholder: '검토할 내용을 입력하세요', sampleQuestions: ['이 계약 조항 해석해줘', '근로계약서 리스크 체크해줘'], runtime: 'chat', supportsFiles: true },
-
-  // ── 생활 ──
-  { id: 'saving', name: '절약 도우미', icon: '💰', description: '가계부 분석, 절약 팁, 지출 최적화', color: 'text-orange-600', gradient: 'from-orange-50 to-amber-50', category: 'life', features: ['가계부 분석', '절약 팁', '지출 최적화'], placeholder: '지출 내역을 알려주세요', sampleQuestions: ['월 200만원으로 절약 계획 세워줘', '불필요한 구독 찾아줘'], runtime: 'chat' },
 
   // ── 분석 ──
-  { id: 'voice-analysis', name: '음성 분석', icon: '🎙️', description: '음성 데이터 분석 및 텍스트 변환', color: 'text-pink-600', gradient: 'from-pink-50 to-rose-50', category: 'analysis', features: ['음성→텍스트', '회의 요약', '발화 분석'], placeholder: '음성 파일을 업로드하세요', sampleQuestions: ['이 회의 녹음 요약해줘', '음성 파일을 텍스트로 변환해줘'], runtime: 'chat', supportsFiles: true },
-  { id: 'chart', name: '차트 제작', icon: '📈', description: '데이터 기반 차트 및 그래프 생성', color: 'text-pink-600', gradient: 'from-pink-50 to-rose-50', category: 'analysis', features: ['차트 생성', '데이터 시각화', '그래프 추천'], placeholder: '시각화할 데이터를 입력하세요', sampleQuestions: ['매출 데이터로 막대 차트 만들어줘', '이 데이터에 맞는 차트 추천해줘'], runtime: 'chat', supportsFiles: true },
-  { id: 'trend', name: '트렌드 분석', icon: '🔥', description: '시장 트렌드 분석 및 미래 예측', color: 'text-pink-600', gradient: 'from-pink-50 to-rose-50', category: 'analysis', features: ['트렌드 분석', '시장 예측', '키워드 분석'], placeholder: '어떤 분야의 트렌드인가요?', sampleQuestions: ['2025 AI 시장 트렌드 분석해줘', 'MZ세대 소비 트렌드 알려줘'], runtime: 'chat' },
-  { id: 'youtube-analysis', name: '유튜브 영상 분석', icon: '▶️', description: '유튜브 영상 구조, 썸네일, SEO 분석', color: 'text-pink-600', gradient: 'from-pink-50 to-rose-50', category: 'analysis', features: ['영상 구조 분석', '썸네일 평가', 'SEO 분석'], placeholder: '유튜브 영상 URL을 입력하세요', sampleQuestions: ['이 영상 구조 분석해줘', '조회수 높이는 전략 알려줘'], runtime: 'chat' },
+  { id: 'voice-analysis', name: '음성 분석', icon: '🎙️', description: '녹음을 전사하고 요약·챕터·액션아이템까지 자동 정리', color: 'text-pink-600', gradient: 'from-pink-50 to-rose-50', category: 'analysis', features: ['전사', '요약·챕터', '액션아이템'], placeholder: '녹음을 시작하거나 오디오 파일을 올려주세요', sampleQuestions: ['회의 녹음 정리해줘', '강의 녹음에서 핵심만 뽑아줘'], runtime: 'recording', supportsFiles: true },
 
   // ── 콘텐츠 ──
-  { id: 'image-gen', name: '이미지 만들기', icon: '🎨', description: 'AI 이미지 생성 프롬프트 작성 도우미', color: 'text-amber-600', gradient: 'from-amber-50 to-yellow-50', category: 'content', features: ['프롬프트 작성', '스타일 추천', '이미지 기획'], placeholder: '어떤 이미지를 만들까요?', sampleQuestions: ['미니멀한 로고 프롬프트 작성해줘', '블로그 썸네일 이미지 기획해줘'], runtime: 'chat' },
+  { id: 'image-gen', name: '이미지·동영상 생성', icon: '🎨', description: '프롬프트만 입력하면 이미지와 5초 동영상을 만들어드려요', color: 'text-amber-600', gradient: 'from-amber-50 to-yellow-50', category: 'content', features: ['이미지 생성', '동영상 생성', '스타일 프리셋'], placeholder: '어떤 걸 만들까요?', sampleQuestions: ['미니멀한 로고 만들어줘', '고양이가 달을 바라보는 5초 영상 만들어줘'], runtime: 'media-gen' },
   { id: 'logo', name: '로고 아이디어', icon: '✏️', description: '브랜드 로고 컨셉 및 디자인 가이드', color: 'text-amber-600', gradient: 'from-amber-50 to-yellow-50', category: 'content', features: ['로고 컨셉', '브랜딩', '디자인 가이드'], placeholder: '어떤 브랜드인가요?', sampleQuestions: ['카페 로고 아이디어 3개 제안해줘', '테크 스타트업 로고 컨셉 잡아줘'], runtime: 'chat' },
 ];
 

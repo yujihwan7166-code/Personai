@@ -15,9 +15,8 @@ interface AssistantCardsPanelProps {
 const ICON_BG: Record<string, string> = {
   translate: 'bg-blue-100', 'file-convert': 'bg-slate-200',
   study: 'bg-blue-100', math: 'bg-teal-100',
-  document: 'bg-emerald-100', ppt: 'bg-indigo-100', resume: 'bg-teal-100', legal: 'bg-amber-100',
-  saving: 'bg-yellow-100',
-  'voice-analysis': 'bg-violet-100', chart: 'bg-blue-100', trend: 'bg-orange-100', 'youtube-analysis': 'bg-red-100',
+  document: 'bg-emerald-100', ppt: 'bg-indigo-100',
+  'voice-analysis': 'bg-violet-100',
   'image-gen': 'bg-pink-100', logo: 'bg-lime-100',
 };
 
