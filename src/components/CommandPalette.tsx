@@ -32,6 +32,8 @@ const MODE_ICONS: Record<MainMode, React.ComponentType<{ className?: string }>> 
   translate_main:  Globe,
   convert_main:    FileBox,
   study_main:      BookOpen,
+  voice_main:      Wrench,
+  media_main:      Sparkles,
 };
 
 /** 모드별 시그니처 컬러 (Phase A 에서 정의된 CSS var 이름 매핑). */
@@ -48,6 +50,8 @@ const MODE_TINT: Record<MainMode, string> = {
   translate_main:  'text-[hsl(var(--mode-assistant))]',
   convert_main:    'text-[hsl(var(--mode-general))]',
   study_main:      'text-[hsl(var(--mode-study))]',
+  voice_main:      'text-[hsl(var(--mode-assistant))]',
+  media_main:      'text-[hsl(var(--mode-assistant))]',
 };
 
 export interface CommandPaletteProps {

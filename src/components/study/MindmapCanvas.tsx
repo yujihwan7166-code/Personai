@@ -102,7 +102,7 @@ interface Props {
   notebook: StudyNotebook;
   onChange: (nb: StudyNotebook) => void;
   onJumpToPage?: (page: number) => void;
-  onGenerateFromNode?: (kind: 'quiz' | 'flashcard', node: MindmapNode) => void;
+  onGenerateFromNode?: (kind: 'quiz' | 'flashcard' | 'diagram', node: MindmapNode) => void;
 }
 
 type HistoryEntry = { nodeId: string; prev: MindmapNodeStatus; next: MindmapNodeStatus };
@@ -821,6 +821,11 @@ export function MindmapCanvas({ content, meta, notebook, onChange, onJumpToPage,
               icon={<Layers className="h-3.5 w-3.5" />}
               label="플래시카드 1장"
               onClick={() => { onGenerateFromNode?.('flashcard', ctxMenu.node); setCtxMenu(null); }}
+            />
+            <CtxItem
+              icon={<span className="text-[12px]">📊</span>}
+              label="도식으로 보기"
+              onClick={() => { onGenerateFromNode?.('diagram', ctxMenu.node); setCtxMenu(null); }}
             />
             <CtxItem
               icon={<MessageSquarePlus className="h-3.5 w-3.5" />}

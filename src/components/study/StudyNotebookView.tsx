@@ -12,6 +12,7 @@ import { LiveRecorder } from './LiveRecorder';
 import { StudySession } from './StudySession';
 import { LayoutSwitcher } from './LayoutSwitcher';
 import { cn } from '@/lib/utils';
+import { confirmDialog } from '@/lib/confirmDialog';
 
 interface Props {
   notebook: StudyNotebook;
@@ -133,9 +134,15 @@ export function StudyNotebookView({
                 onClick={() => { setOverflowOpen(false); setShowExport(true); }} />
               <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
               <OverflowItem icon={<Trash2 className="h-3.5 w-3.5 text-red-500" />} label="노트북 삭제" destructive
-                onClick={() => {
+                onClick={async () => {
                   setOverflowOpen(false);
-                  if (confirm(`"${notebook.title}" 노트북을 삭제할까요?`)) { onDelete(notebook.id); onBack(); }
+                  const ok = await confirmDialog({
+                    title: '노트북을 삭제할까요?',
+                    description: `"${notebook.title}" 노트북이 영구 삭제됩니다.`,
+                    confirmLabel: '삭제',
+                    tone: 'danger',
+                  });
+                  if (ok) { onDelete(notebook.id); onBack(); }
                 }} />
             </div>
           )}

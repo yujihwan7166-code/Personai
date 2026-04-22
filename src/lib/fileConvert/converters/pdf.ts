@@ -28,6 +28,15 @@ function loadJsPdf() {
   return jspdfPromise;
 }
 
+// 메인 스레드에 한 틱 양보 — 긴 루프 중 UI 스크롤·버튼 클릭 응답성 확보
+// (pdfjs 자체는 이미 워커에서 동작하지만, canvas 렌더/zip 압축은 메인 스레드)
+function yieldToMain(): Promise<void> {
+  type SchedulerLike = { yield?: () => Promise<void> };
+  const sch = (globalThis as unknown as { scheduler?: SchedulerLike }).scheduler;
+  if (sch?.yield) return sch.yield();
+  return new Promise((r) => setTimeout(r, 0));
+}
+
 function baseName(name: string): string {
   return name.replace(/\.[^.]+$/, '');
 }
@@ -167,6 +176,7 @@ export async function pdfToText(
     const content = await page.getTextContent();
     const text = content.items.map((it) => ('str' in it ? it.str : '')).join(' ');
     parts.push(text);
+    if (i % 4 === 0) await yieldToMain();
   }
   const full = parts.join('\n\n');
   const blob = new Blob([full], { type: 'text/plain;charset=utf-8' });
@@ -205,6 +215,10 @@ export async function pdfToImages(
     });
     const arr = new Uint8Array(await blob.arrayBuffer());
     zip.file(`${baseName(file.name)}-page-${String(i).padStart(3, '0')}.${ext}`, arr);
+    // canvas 해제 + 메인 스레드 양보 (렌더링이 무거워 UI가 얼어붙는 걸 방지)
+    canvas.width = 0;
+    canvas.height = 0;
+    await yieldToMain();
   }
 
   const zipBlob = await zip.generateAsync({ type: 'blob' });

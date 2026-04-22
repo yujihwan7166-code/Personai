@@ -113,6 +113,8 @@ const mainModeLabels: Record<MainMode, string> = {
   study_main: 'AI 스터디룸',
   translate_main: '다국어 번역',
   convert_main: '파일 변환',
+  voice_main: '음성 분석',
+  media_main: '이미지·동영상 생성',
 };
 
 const debateSubIcons: Record<string, React.ReactNode> = {

@@ -100,7 +100,7 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 };
 
 // Main mode: 5 categories
-export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_main' | 'premium_main' | 'debate' | 'assistant' | 'player' | 'research_main' | 'translate_main' | 'convert_main' | 'study_main';
+export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_main' | 'premium_main' | 'debate' | 'assistant' | 'player' | 'research_main' | 'translate_main' | 'convert_main' | 'study_main' | 'voice_main' | 'media_main';
 
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
     general: { label: '단일 AI', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
@@ -115,6 +115,8 @@ export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; d
     translate_main: { label: '다국어 번역', icon: '🌐', description: '맥락과 뉘앙스를 읽는 AI 번역' },
     convert_main: { label: '파일 변환', icon: '📁', description: '다양한 포맷의 파일을 자유롭게 변환' },
     study_main: { label: 'AI 스터디룸', icon: '📚', description: '소스를 올리면 요약·핵심·퀴즈를 만들어드려요' },
+    voice_main: { label: '음성 분석', icon: '🎙️', description: '녹음을 올리면 전사·요약·챕터·액션아이템까지' },
+    media_main: { label: '이미지·동영상 생성', icon: '🎨', description: '프롬프트만 입력하면 이미지와 동영상을 만들어드려요' },
 };
 
 // Sub-modes for debate
@@ -130,7 +132,7 @@ export const DEBATE_SUB_MODE_LABELS: Record<DebateSubMode, { label: string; icon
 };
 
 // Flat DiscussionMode for backward compat in logic
-export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk' | 'aivsuser' | 'stakeholder' | 'assistant' | 'player' | 'research' | 'translate' | 'convert' | 'study';
+export type DiscussionMode = 'general' | 'multi' | 'expert' | 'standard' | 'procon' | 'brainstorm' | 'hearing' | 'freetalk' | 'aivsuser' | 'stakeholder' | 'assistant' | 'player' | 'research' | 'translate' | 'convert' | 'study' | 'voice' | 'media';
 
 export function getMainMode(mode: DiscussionMode): MainMode {
     if (mode === 'general') return 'general';
@@ -145,6 +147,8 @@ export function getMainMode(mode: DiscussionMode): MainMode {
     if (mode === 'translate') return 'translate_main';
     if (mode === 'convert') return 'convert_main';
     if (mode === 'study') return 'study_main';
+    if (mode === 'voice') return 'voice_main';
+    if (mode === 'media') return 'media_main';
     return 'debate'; // standard | procon | hearing
 }
 

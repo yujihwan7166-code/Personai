@@ -26,7 +26,7 @@ export interface StudySource {
   ocrEnabled?: boolean;
 }
 
-export type StudyLens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast';
+export type StudyLens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast' | 'diagram';
 export type StudyTone = 'plain' | 'student' | 'exam' | 'interview' | 'kid';
 export type StudyLevel = 'basic' | 'standard' | 'advanced';
 
@@ -47,6 +47,59 @@ export interface StudyQuizItem {
   explanation: string;
   concept?: string;
 }
+
+/* ── 도식 (비주얼 설명) ── */
+export type DiagramKind = 'flowchart' | 'timeline' | 'comparison' | 'cause' | 'tree' | 'sequence';
+
+export interface ComparisonTable {
+  columns: string[];
+  rows: Array<{ label: string; cells: string[] }>;
+}
+
+export interface DiagramVariant {
+  mermaid?: string;
+  table?: ComparisonTable;
+  caption?: string;
+  generatedAt: number;
+}
+
+export interface DiagramItem {
+  id: string;
+  title: string;
+  kind: DiagramKind;
+  kindLabel?: string;
+  concept: string;
+  focus?: string;
+  mermaid?: string;
+  table?: ComparisonTable;
+  caption?: string;
+  /** 사용자가 직접 수정한 Mermaid 코드. 있으면 mermaid 보다 우선 렌더. */
+  userEditedMermaid?: string;
+  /** 다른 유형 캐시: flowchart 로 만든 걸 사용자가 timeline 으로 전환하면 여기에 저장. */
+  variants?: Partial<Record<DiagramKind, DiagramVariant>>;
+  /** 노드별 이해도. Mermaid 노드 id 기준. */
+  nodeStates?: Record<string, MindmapNodeStatus>;
+  /** 마인드맵 노드에서 파생된 경우 원 노드 id. */
+  originNodeId?: string;
+  pageRefs?: number[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface DiagramConceptSuggestion {
+  concept: string;
+  kind: DiagramKind;
+  reason?: string;
+}
+
+export const DIAGRAM_KIND_META: Record<DiagramKind, { label: string; hint: string; emoji: string; example: string }> = {
+  flowchart:  { label: '플로우',   hint: '프로세스·절차·의사결정 흐름', emoji: '🔄', example: '혈액 순환' },
+  timeline:   { label: '타임라인', hint: '시간 순서·연대기',            emoji: '📅', example: '프랑스 혁명' },
+  comparison: { label: '비교표',   hint: 'A vs B 대조',                 emoji: '⚖️', example: '자본주의 vs 공산주의' },
+  cause:      { label: '인과',     hint: '원인 → 결과 체인',            emoji: '🔗', example: '인플레이션 원인' },
+  tree:       { label: '트리',     hint: '계층·분류 구조',              emoji: '🌳', example: '조직 구조' },
+  sequence:   { label: '시퀀스',   hint: '상호작용·주고받음 순서',      emoji: '↔️', example: '요청·응답' },
+};
 
 /* ── 팟캐스트 ── */
 export type PodcastPurpose = 'exam' | 'overview' | 'review' | 'briefing' | 'deep-dive';
@@ -231,6 +284,8 @@ export interface StudyNotebook {
   quizDecks?: QuizDeck[];
   /** 팟캐스트 에피소드 리스트. */
   podcastEpisodes?: PodcastEpisode[];
+  /** 도식 아이템 리스트. */
+  diagrams?: DiagramItem[];
   flashcards: Flashcard[];
   /** 플래시카드 덱 메타. 없으면 덱 없는(= 기본) 카드들만 있는 상태. */
   flashcardDecks?: FlashcardDeck[];
@@ -250,152 +305,6 @@ export interface StudyNotebook {
   pinned?: number;
   color?: string;
 }
-
-export interface NotebookTemplate {
-  id: string;
-  title: string;
-  icon: string;
-  description: string;
-  sampleSource?: { title: string; content: string };
-}
-
-export const NOTEBOOK_TEMPLATES: NotebookTemplate[] = [
-  {
-    id: 'blank',
-    title: '빈 노트북',
-    icon: '📘',
-    description: '자유롭게 시작하기',
-  },
-  {
-    id: 'english',
-    title: '영어 단어장',
-    icon: '🔤',
-    description: '단어·예문 중심 학습',
-    sampleSource: {
-      title: '기초 영단어 샘플',
-      content: `기초 영단어 20선 — 뜻·예문·사용 맥락
-
-1. **achieve** (성취하다): He worked hard to achieve his goals. 동사적 맥락에서 "목표·결과를 얻다".
-2. **brilliant** (뛰어난): The solution was brilliant. 지적 우수성 + 밝게 빛나는 이중 의미.
-3. **crucial** (결정적): Timing is crucial in sports. "중요한"보다 더 강한 "핵심 분수령".
-4. **determine** (결정·결심하다): The committee will determine the outcome. 공식적 판단 맥락.
-5. **efficient** (효율적): The engine is highly efficient. 투입 대비 산출이 큼.
-6. **fundamental** (기본적·근본적): Trust is fundamental to friendship. 빼면 성립 안 하는 요소.
-7. **genuine** (진짜의·진심 어린): a genuine smile. "가짜가 아닌" 뉘앙스.
-8. **hesitate** (망설이다): Don't hesitate to ask. 부정형으로 권유할 때 자주 쓰임.
-9. **initial** (처음의): My initial reaction was surprise. 이후 변할 수 있음을 암시.
-10. **justify** (정당화하다): Can you justify this expense? 이유·근거를 요구함.
-11. **maintain** (유지하다): The car needs regular maintenance. 상태를 유지하는 행위.
-12. **obvious** (분명한): It's obvious he's tired. 누구나 알아볼 수 있음.
-13. **persuade** (설득하다): She persuaded me to join. 상대 의사를 변화시킴.
-14. **reluctant** (꺼리는): I'm reluctant to agree. 내키지 않지만 거부까진 아님.
-15. **significant** (상당한·의미있는): a significant difference. 규모 또는 의미.
-16. **tend to** (~하는 경향): People tend to exaggerate online. 습관적 경향.
-17. **variety** (다양성): a variety of options. 종류의 다름.
-18. **witness** (목격하다): He witnessed the accident. 법적·공식 맥락에서도 자주 쓰임.
-19. **yield** (산출하다·양보하다): The investment yielded 10%. / Yield to oncoming traffic.
-20. **zeal** (열정): her zeal for justice. 행동을 강하게 밀어붙이는 감정.`,
-    },
-  },
-  {
-    id: 'exam',
-    title: '시험 대비',
-    icon: '📝',
-    description: '개념 정리 + 기출 유형',
-    sampleSource: {
-      title: '경제학 원론 샘플',
-      content: `경제학 원론 — 핵심 개념 요약
-
-**1. 기회비용(Opportunity Cost)**
-어떤 선택을 할 때 포기한 대안 중 가장 가치 있는 것. 예: 대학 진학의 기회비용은 그 시간에 일했다면 벌 수 있었던 소득과 누릴 수 있었던 경험.
-
-**2. 한계효용 체감의 법칙(Law of Diminishing Marginal Utility)**
-재화 소비량이 늘어날수록 추가 단위에서 얻는 효용은 점점 작아진다. 첫 번째 피자 조각이 세 번째보다 훨씬 만족스럽다.
-
-**3. 수요·공급 법칙**
-가격이 오르면 수요량 감소·공급량 증가, 가격이 내리면 반대. 균형점에서 거래가 성립.
-
-**4. 탄력성(Elasticity)**
-가격 변화에 수요량이 얼마나 반응하는가. 필수품(쌀, 약)은 비탄력적, 사치품은 탄력적.
-
-**5. 시장 실패(Market Failure)**
-외부효과, 공공재, 정보 비대칭, 독점 등으로 자원 배분이 최적이 안 되는 경우. 정부 개입의 이론적 근거.
-
-**6. GDP와 GNI의 차이**
-GDP는 영토 기준, GNI는 국민 기준. 해외 근로 소득은 GNI에만 포함.
-
-**7. 인플레이션의 원인**
-수요 견인(수요 > 공급), 비용 인상(원자재·임금 상승), 통화량 증가.
-
-**8. 비교우위(Comparative Advantage)**
-절대적으로 뒤처져도 상대적으로 덜 뒤처지는 분야가 있다면 그 분야에 특화해 교역하면 둘 다 이득. 국제무역의 논리적 기초.`,
-    },
-  },
-  {
-    id: 'book',
-    title: '책 한 권',
-    icon: '📖',
-    description: '독서 노트·핵심 정리',
-    sampleSource: {
-      title: '《생각에 관한 생각》 1부 샘플',
-      content: `『생각에 관한 생각』 (대니얼 카너먼) — 1부 요약
-
-카너먼은 인간 사고를 두 시스템으로 나눈다.
-
-**시스템 1**: 빠르고 자동적이며 직관적. 감정적 반응, 익숙한 패턴 인식, 즉각적 판단을 담당. 노력 없이 작동하지만 편향에 취약하다.
-
-**시스템 2**: 느리고 의식적이며 논리적. 복잡한 계산, 신중한 추론, 자제력을 담당. 에너지가 많이 들어서 게으르게 작동한다.
-
-**핵심 주장**: 우리는 대부분의 시간을 시스템 1에 의존하며, 시스템 2는 시스템 1의 결론을 검증하기보다 사후 합리화한다. 이 때문에 체계적인 인지 편향이 발생한다.
-
-**주요 편향 예시**
-- **가용성 휴리스틱**: 쉽게 떠오르는 사례로 빈도를 판단 (비행기 사고 뉴스 → 비행기 위험하다 과대평가).
-- **대표성 휴리스틱**: 전형적 이미지와 일치하면 확률이 높다고 판단 (도서관 사서 vs 농부 사례).
-- **닻 내리기(앵커링)**: 처음 제시된 숫자가 이후 판단을 왜곡.
-- **손실 회피**: 같은 크기의 이득보다 손실을 약 2배로 크게 느낌.
-
-**실용적 시사점**: 중요한 결정일수록 시스템 2를 의식적으로 작동시켜야 한다. 직관이 강하게 작동할수록 점검이 필요하다.`,
-    },
-  },
-  {
-    id: 'lecture',
-    title: '강의 필기',
-    icon: '🎓',
-    description: '수업·강연 내용 정리',
-    sampleSource: {
-      title: '컴퓨터과학 개론 샘플',
-      content: `[강의 발췌] 컴퓨터과학 개론 — 알고리즘의 복잡도
-
-오늘은 알고리즘 분석의 기초인 시간 복잡도(Time Complexity)를 다룬다.
-
-**Big-O 표기법**
-입력 크기 n이 커질 때 알고리즘이 필요로 하는 연산 횟수의 상한을 표현. 상수 계수와 저차항은 무시.
-
-예: 3n² + 5n + 2 → O(n²)
-
-**흔한 복잡도 등급 (낮음 → 높음)**
-- O(1) 상수: 배열 인덱스 접근
-- O(log n) 로그: 이진 탐색
-- O(n) 선형: 배열 전체 순회
-- O(n log n) 선형로그: 효율적 정렬(머지·퀵)
-- O(n²) 제곱: 버블 정렬, 이중 반복문
-- O(2^n) 지수: 순진한 피보나치 재귀
-
-**왜 중요한가**
-n = 1,000일 때:
-- O(n)은 1,000번
-- O(n²)은 1,000,000번
-- O(2^n)은 약 10^301번 — 우주 시간으로도 못 푼다.
-
-**실전 조언**
-1. 정렬이 필요하면 O(n log n)을 목표로.
-2. 중첩 반복문이 보이면 O(n²)를 의심하고 해시맵으로 줄일 수 있는지 확인.
-3. 재귀는 메모이제이션으로 지수를 다항으로 낮출 수 있다.
-
-다음 시간: 공간 복잡도와 메모리 트레이드오프.`,
-    },
-  },
-];
 
 export const NOTEBOOK_ICON_PRESETS = [
   '📘', '📗', '📕', '📙', '📒', '📓',
@@ -467,6 +376,7 @@ export const LENS_META: Record<StudyLens, { label: string; icon: string; tintCla
   debate: { label: '2인 토론', icon: '💬', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'MessagesSquare' },
   flashcards: { label: '플래시카드', icon: '🃏', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Layers' },
   podcast: { label: '팟캐스트', icon: '🎙️', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Mic' },
+  diagram: { label: '도식', icon: '📊', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'BarChart3' },
 };
 
 export const TONE_META: Record<StudyTone, string> = {

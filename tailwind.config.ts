@@ -18,8 +18,24 @@ export default {
         display: ['Newsreader', 'Pretendard Variable', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
-      /* 기존 text-xs/sm/base 는 Tailwind 기본값 유지.
-         필요시 bespoke pixel 사이즈(text-[13px] 등) 로 스펙 지정 중. */
+      /* ── 타이포그래피 스케일 (v2, 2026-04) ──
+         1,500+곳에 bespoke text-[Npx]가 퍼져 있어 위계가 흐려짐.
+         아래 6단계로 수렴. 새 코드는 이 토큰만 사용하고, 기존 픽셀 클래스는 점진 마이그레이션.
+           nano    10px / 14 — 스펙·타임스탬프·초소형 라벨
+           caption 11px / 15 — 보조 라벨·칩·뱃지
+           body    13px / 20 — 기본 본문·버튼
+           subhead 15px / 22 — 섹션 소제목·강조 본문
+           title   18px / 26 — 카드 타이틀·모달 헤더
+           display 24px / 32 — 페이지 히어로·큰 헤드라인
+      */
+      fontSize: {
+        nano:    ['10px', { lineHeight: '14px', letterSpacing: '0.01em' }],
+        caption: ['11px', { lineHeight: '15px' }],
+        body:    ['13px', { lineHeight: '20px' }],
+        subhead: ['15px', { lineHeight: '22px', letterSpacing: '-0.005em' }],
+        title:   ['18px', { lineHeight: '26px', letterSpacing: '-0.01em' }],
+        display: ['24px', { lineHeight: '32px', letterSpacing: '-0.015em' }],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -62,10 +78,15 @@ export default {
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
         "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
+        "shimmer": {
+          "0%":   { backgroundPosition: "200% 0" },
+          "100%": { backgroundPosition: "-200% 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "shimmer": "shimmer 1.4s ease-in-out infinite",
       },
     },
   },

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
   RefreshCw, Copy, Play, Users, FileText, Sparkles, GitBranch, Target, Map, MessagesSquare,
-  ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star, Mic,
+  ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star, Mic, BarChart3,
 } from 'lucide-react';
-import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType, QuizDeck, PodcastEpisode, PodcastLine, PodcastLength, PodcastTone, PodcastPurpose } from '@/types/study';
+import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType, QuizDeck, PodcastEpisode, PodcastLine, PodcastLength, PodcastTone, PodcastPurpose, DiagramItem, DiagramKind, DiagramVariant } from '@/types/study';
 import { TONE_META, LEVEL_META, newId, FLASHCARD_CARD_TYPE_META, migrateQuizDecks, PODCAST_LENGTH_META } from '@/types/study';
 import { PodcastConfigModal, type PodcastConfig } from './PodcastConfigModal';
 import { PodcastDeckView } from './PodcastDeckView';
+import { DiagramConfigModal, type DiagramConfig } from './DiagramConfigModal';
+import { DiagramDeckView } from './DiagramDeckView';
 import { StudyBtn } from './ui/primitives';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { DEFAULT_EXPERTS } from '@/types/expert';
@@ -33,6 +35,7 @@ const LENSES: { id: StudyLens; label: string; icon: React.ComponentType<{ classN
   { id: 'quiz',        label: '퀴즈',        icon: Target,     hint: '객관식으로 점검' },
   { id: 'flashcards',  label: '플래시카드',  icon: Layers,     hint: '앞뒷면 카드로 암기' },
   { id: 'podcast',     label: '팟캐스트',    icon: Mic,        hint: '두 사람 대화로 듣기' },
+  { id: 'diagram',     label: '도식',        icon: BarChart3,  hint: '개념을 그림으로' },
 ];
 
 export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }: Props) {
@@ -83,6 +86,16 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
       podcastFocus?: string;
       podcastName?: string;
       podcastReplaceId?: string;
+      // 도식 설정
+      diagramConcept?: string;
+      diagramKind?: DiagramKind | 'auto';
+      diagramFocus?: string;
+      /** 기존 도식의 새 유형 캐시로 저장 */
+      diagramReplaceId?: string;
+      /** true 면 replace 대상의 유형을 캐시 variants 로 저장 (교체 말고 탭 추가) */
+      diagramAsVariant?: boolean;
+      /** 마인드맵 노드에서 파생 */
+      diagramOriginNodeId?: string;
     },
   ) => {
     if (enabledSources.length === 0) {
@@ -124,6 +137,12 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
         if (extraOptions?.podcastTone) options.podcastTone = extraOptions.podcastTone;
         if (extraOptions?.podcastPurpose) options.purpose = extraOptions.podcastPurpose;
         if (extraOptions?.podcastFocus) options.focus = extraOptions.podcastFocus;
+      }
+      if (lens === 'diagram') {
+        if (extraOptions?.diagramConcept) options.concept = extraOptions.diagramConcept;
+        if (extraOptions?.diagramFocus) options.focus = extraOptions.diagramFocus;
+        if (extraOptions?.diagramKind && extraOptions.diagramKind !== 'auto') options.diagramKind = extraOptions.diagramKind;
+        if (typeof window !== 'undefined' && window.innerWidth < 640) options.isMobile = true;
       }
       const r = await fetch('/api/study-generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -274,6 +293,71 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
           }
         }
       }
+      let newDiagrams = notebook.diagrams ?? [];
+      if (lens === 'diagram' && data.structured && typeof data.structured === 'object') {
+        const s = data.structured as {
+          kind?: string;
+          kindLabel?: string;
+          title?: string;
+          mermaid?: string;
+          table?: import('@/types/study').ComparisonTable;
+          caption?: string;
+        };
+        const validKinds: DiagramKind[] = ['flowchart', 'timeline', 'comparison', 'cause', 'tree', 'sequence'];
+        const kind: DiagramKind = (validKinds as string[]).includes(s.kind ?? '')
+          ? (s.kind as DiagramKind)
+          : (extraOptions?.diagramKind && extraOptions.diagramKind !== 'auto'
+              ? extraOptions.diagramKind as DiagramKind
+              : 'flowchart');
+
+        const hasContent = (kind === 'comparison' && s.table) || (kind !== 'comparison' && s.mermaid);
+        if (hasContent) {
+          const replaceId = extraOptions?.diagramReplaceId;
+          const existing = replaceId ? newDiagrams.find((d) => d.id === replaceId) : undefined;
+          const asVariant = !!extraOptions?.diagramAsVariant && !!existing;
+
+          if (asVariant && existing) {
+            // 기존 도식에 새 유형을 variants 로 추가
+            const variants = { ...(existing.variants ?? {}) };
+            const vEntry: DiagramVariant = {
+              mermaid: kind !== 'comparison' ? s.mermaid : undefined,
+              table: kind === 'comparison' ? s.table : undefined,
+              caption: s.caption,
+              generatedAt: Date.now(),
+            };
+            variants[kind] = vEntry;
+            newDiagrams = newDiagrams.map((d) => d.id === existing.id ? {
+              ...d,
+              variants,
+              updatedAt: Date.now(),
+            } : d);
+          } else {
+            const title = (s.title?.trim() || existing?.title || extraOptions?.diagramConcept?.trim()?.slice(0, 20) || '새 도식');
+            const item: DiagramItem = {
+              id: replaceId ?? newId('dg'),
+              title,
+              kind,
+              kindLabel: s.kindLabel?.trim() || undefined,
+              concept: extraOptions?.diagramConcept?.trim() || existing?.concept || title,
+              focus: extraOptions?.diagramFocus || existing?.focus,
+              mermaid: kind !== 'comparison' ? s.mermaid : undefined,
+              table: kind === 'comparison' ? s.table : undefined,
+              caption: s.caption,
+              userEditedMermaid: undefined, // 교체 시 수동 편집 리셋
+              variants: existing?.variants,  // 변종 캐시 유지
+              nodeStates: existing?.nodeStates, // 이해도 유지 (새 유형이면 어차피 노드 id 달라 안 적용됨)
+              originNodeId: extraOptions?.diagramOriginNodeId || existing?.originNodeId,
+              createdAt: existing?.createdAt ?? Date.now(),
+              updatedAt: Date.now(),
+            };
+            if (existing) {
+              newDiagrams = newDiagrams.map((d) => d.id === replaceId ? item : d);
+            } else {
+              newDiagrams = [item, ...newDiagrams];
+            }
+          }
+        }
+      }
       onChange({
         ...notebook,
         lensOutputs: { ...notebook.lensOutputs, [lens]: newOutput },
@@ -282,6 +366,7 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
         flashcards: newFlashcards,
         flashcardDecks: newDecks,
         podcastEpisodes: newPodcasts,
+        diagrams: newDiagrams,
       });
       setActiveLens(lens);
     } catch {
@@ -300,8 +385,8 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
     const existing = notebook.lensOutputs[lens];
     // 단일 뷰: 클릭한 렌즈로 전환. 캐시 있으면 즉시 전환.
     setActiveLens(lens);
-    // 퀴즈·플래시카드·팟캐스트는 설정 단계가 필요하므로 자동 생성하지 않음.
-    if (!existing && lens !== 'quiz' && lens !== 'flashcards' && lens !== 'podcast') generate(lens);
+    // 퀴즈·플래시카드·팟캐스트·도식은 설정 단계가 필요하므로 자동 생성하지 않음.
+    if (!existing && lens !== 'quiz' && lens !== 'flashcards' && lens !== 'podcast' && lens !== 'diagram') generate(lens);
   };
 
   const activeOutput = activeLens ? notebook.lensOutputs[activeLens] : undefined;
@@ -480,14 +565,25 @@ function LensSoloView({
     podcastFocus?: string;
     podcastName?: string;
     podcastReplaceId?: string;
+    diagramConcept?: string;
+    diagramKind?: DiagramKind | 'auto';
+    diagramFocus?: string;
+    diagramReplaceId?: string;
+    diagramAsVariant?: boolean;
+    diagramOriginNodeId?: string;
   }) => void;
 }) {
   const [showQuizConfig, setShowQuizConfig] = useState(false);
   const [showFlashConfig, setShowFlashConfig] = useState(false);
   const [showPodcastConfig, setShowPodcastConfig] = useState(false);
+  const [showDiagramConfig, setShowDiagramConfig] = useState(false);
   const [flashDeckEditing, setFlashDeckEditing] = useState<FlashcardDeck | null>(null);
   const [quizDeckEditing, setQuizDeckEditing] = useState<QuizDeck | null>(null);
   const [podcastEditing, setPodcastEditing] = useState<PodcastEpisode | null>(null);
+  const [diagramEditing, setDiagramEditing] = useState<DiagramItem | null>(null);
+
+  const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready')
+    .map((s) => ({ title: s.title, content: s.content }));
 
   if (loading && !output) {
     return (
@@ -618,6 +714,112 @@ function LensSoloView({
     );
   }
 
+  // 도식: 빈 상태 CTA
+  if (lens === 'diagram' && (notebook.diagrams ?? []).length === 0) {
+    return (
+      <>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
+            <BarChart3 className="h-5 w-5 text-indigo-600" strokeWidth={1.8} />
+          </div>
+          <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 mb-1">도식 만들기</p>
+          <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
+            복잡한 개념을 그림으로 정리해 드릴게요.<br />
+            플로우차트·타임라인·비교표 등을 자동으로 골라요.
+          </p>
+          <button
+            onClick={() => { setDiagramEditing(null); setShowDiagramConfig(true); }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 text-[12.5px] font-semibold hover:bg-slate-800 dark:hover:bg-white transition-colors"
+          >
+            <BarChart3 className="h-3.5 w-3.5" /> 첫 도식 만들기
+          </button>
+        </div>
+        {showDiagramConfig && (
+          <DiagramConfigModal
+            sources={enabledSources}
+            onSubmit={(cfg) => {
+              setShowDiagramConfig(false);
+              onGenerate('diagram', undefined, undefined, {
+                diagramConcept: cfg.concept,
+                diagramKind: cfg.kind,
+                diagramFocus: cfg.focus,
+              });
+            }}
+            onClose={() => setShowDiagramConfig(false)}
+          />
+        )}
+      </>
+    );
+  }
+
+  // 도식 덱 뷰
+  if (lens === 'diagram') {
+    return (
+      <div className="px-5 py-4">
+        <DiagramDeckView
+          notebook={notebook}
+          onChange={onChange}
+          onCreateNew={() => { setDiagramEditing(null); setShowDiagramConfig(true); }}
+          onRegenerate={(d, overrideKind) => {
+            if (overrideKind && overrideKind !== d.kind) {
+              // 다른 유형으로 — 기존 variants 에 추가 (교체 아님)
+              onGenerate('diagram', undefined, undefined, {
+                diagramConcept: d.concept,
+                diagramKind: overrideKind,
+                diagramFocus: d.focus,
+                diagramReplaceId: d.id,
+                diagramAsVariant: true,
+              });
+            } else {
+              // 완전 재생성 (편집 모드)
+              setDiagramEditing(d);
+              setShowDiagramConfig(true);
+            }
+          }}
+          onGenerateFromNode={(kind, text) => {
+            if (kind === 'quiz') {
+              onGenerate('quiz', undefined, undefined, {
+                count: 3,
+                quizDeckName: `${text.slice(0, 20)} 퀴즈`,
+                quizFocus: text,
+              });
+            } else {
+              onGenerate('flashcards', undefined, undefined, {
+                count: 1,
+                flashDeckName: text.slice(0, 20),
+                flashFocus: text,
+              });
+            }
+          }}
+          onJumpToPage={onJumpToPage}
+        />
+        {showDiagramConfig && (
+          <DiagramConfigModal
+            sources={enabledSources}
+            initial={diagramEditing ? {
+              concept: diagramEditing.concept,
+              kind: diagramEditing.kind,
+              focus: diagramEditing.focus ?? '',
+            } : undefined}
+            onSubmit={(cfg) => {
+              const editingId = diagramEditing?.id;
+              setShowDiagramConfig(false);
+              setDiagramEditing(null);
+              onGenerate('diagram', undefined, undefined, {
+                diagramConcept: cfg.concept,
+                diagramKind: cfg.kind,
+                diagramFocus: cfg.focus,
+                diagramReplaceId: editingId,
+                // 편집 모드는 교체, asVariant 아님
+              });
+            }}
+            onClose={() => { setShowDiagramConfig(false); setDiagramEditing(null); }}
+          />
+        )}
+      </div>
+    );
+  }
+
   // 팟캐스트 덱 뷰 (output 여부 무관, 에피소드만으로 렌더)
   if (lens === 'podcast') {
     return (
@@ -704,6 +906,12 @@ function LensSoloView({
                   count: 1,
                   flashDeckName: `${node.label}`,
                   flashFocus: focusLine,
+                });
+              } else if (kind === 'diagram') {
+                onGenerate('diagram', undefined, undefined, {
+                  diagramConcept: node.label,
+                  diagramFocus: node.summary,
+                  diagramOriginNodeId: node.id,
                 });
               }
             }}

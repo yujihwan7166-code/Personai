@@ -1,5 +1,8 @@
-import { Component, type ErrorInfo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X } from 'lucide-react';
+import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
+import { ErrorState } from '@/components/shared/ErrorState';
+import { notify } from '@/lib/notify';
 
 import { cn } from '@/lib/utils';
 import { convertDocxToHtml, convertDocxToMarkdown, convertDocxToText } from '@/lib/fileConvert/converters/docx';
@@ -12,39 +15,6 @@ import { detectFormat, extensionOf, formatLabel, type FileFormat } from '@/lib/f
 import { downloadBlob } from '@/lib/fileConvert/download';
 import { isMobile } from '@/lib/fileConvert/features';
 import { CATEGORY_LABELS, TASKS, getQuickActions, getTaskById, getTasksByCategory, getTasksForFile, type ConvertTask, type TaskCategory } from '@/lib/fileConvert/tasks';
-
-// ───────── Error Boundary ─────────
-interface FCBState { error: Error | null }
-class FileConvertErrorBoundary extends Component<{ children: ReactNode; onReset: () => void }, FCBState> {
-  state: FCBState = { error: null };
-  static getDerivedStateFromError(error: Error): FCBState { return { error }; }
-  componentDidCatch(error: Error, info: ErrorInfo) { console.error('FileConvert crash:', error, info); }
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
-          <AlertTriangle className="w-12 h-12 text-amber-500" />
-          <div>
-            <h2 className="text-[18px] font-bold text-slate-800 mb-1">파일 변환 중 문제가 생겼어요</h2>
-            <p className="text-[13px] text-slate-600 max-w-md">이 파일을 처리하는 동안 오류가 발생했어요. 다른 파일로 시도하거나 페이지를 새로고침해 주세요.</p>
-          </div>
-          <details className="text-[11px] text-slate-400 max-w-md">
-            <summary className="cursor-pointer">오류 상세</summary>
-            <pre className="mt-2 whitespace-pre-wrap text-left bg-slate-50 p-2 rounded">{this.state.error.message}</pre>
-          </details>
-          <button
-            type="button"
-            onClick={() => { this.setState({ error: null }); this.props.onReset(); }}
-            className="h-9 px-4 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800"
-          >
-            처음으로
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 // ───────── 메인 ─────────
 interface FileConvertChatProps { onBack?: () => void }
@@ -292,13 +262,14 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const handleDownload = useCallback(() => {
     if (!result) return;
     void downloadBlob(result.blob, result.fileName);
+    notify.saved(result.fileName);
   }, [result]);
 
   const categories: TaskCategory[] = ['pdf', 'image', 'doc', 'data', 'markup'];
   const quickActions = useMemo(() => getQuickActions(), []);
 
   return (
-    <FileConvertErrorBoundary onReset={reset}>
+    <ModeErrorBoundary modeLabel="파일 변환" resetKey={selectedTask?.id ?? 'none'} onReset={reset}>
       <div className="flex flex-col h-full bg-gradient-to-b from-slate-50/50 to-white relative">
         {/* 전역 드래그 오버레이 */}
         {isDragging && (
@@ -581,23 +552,19 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
 
             {/* Stage 5: 에러 */}
             {stage === 'error' && (
-              <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-                <AlertTriangle className="w-10 h-10 text-rose-500" />
-                <div className="max-w-md">
-                  <div className="text-[15px] font-bold text-slate-800 mb-1">변환에 실패했어요</div>
-                  <div className="text-[12.5px] text-slate-600">{errorMessage}</div>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={runConversion} className="h-9 px-4 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[12.5px] font-semibold">다시 시도</button>
-                  <button type="button" onClick={reset} className="h-9 px-4 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12.5px] font-semibold">처음으로</button>
-                </div>
-              </div>
+              <ErrorState
+                error={errorMessage}
+                onPrimary={runConversion}
+                onSecondary={reset}
+                compact
+                className="py-12"
+              />
             )}
 
           </div>
         </div>
       </div>
-    </FileConvertErrorBoundary>
+    </ModeErrorBoundary>
   );
 }
 

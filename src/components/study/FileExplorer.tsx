@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import type { StudyNotebook, StudyFolder } from '@/types/study';
 import { cn } from '@/lib/utils';
+import { confirmDialog } from '@/lib/confirmDialog';
 
 interface Props {
   notebooks: StudyNotebook[];
@@ -291,9 +292,11 @@ export function FileExplorer({
               <CtxItem icon={<Pin className="h-3.5 w-3.5" />} label="고정/해제" onClick={() => { onTogglePin(contextMenu.id); setContextMenu(null); }} />
               <CtxItem icon={<FolderInput className="h-3.5 w-3.5" />} label="루트로 이동" onClick={() => { onMoveNotebook(contextMenu.id, undefined); setContextMenu(null); }} />
               <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-              <CtxItem icon={<Trash2 className="h-3.5 w-3.5 text-red-500" />} label="삭제" destructive onClick={() => {
-                if (confirm('이 파일을 삭제할까요?')) onDeleteNotebook(contextMenu.id);
+              <CtxItem icon={<Trash2 className="h-3.5 w-3.5 text-red-500" />} label="삭제" destructive onClick={async () => {
+                const id = contextMenu.id;
                 setContextMenu(null);
+                const ok = await confirmDialog({ title: '이 파일을 삭제할까요?', confirmLabel: '삭제', tone: 'danger' });
+                if (ok) onDeleteNotebook(id);
               }} />
             </>
           ) : (
@@ -304,9 +307,16 @@ export function FileExplorer({
               }} />
               <CtxItem icon={<Plus className="h-3.5 w-3.5" />} label="이 폴더에 새 파일" onClick={() => { onCreateFile(contextMenu.id); setContextMenu(null); }} />
               <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-              <CtxItem icon={<Trash2 className="h-3.5 w-3.5 text-red-500" />} label="폴더 삭제" destructive onClick={() => {
-                if (confirm('폴더를 삭제하면 안의 파일은 루트로 이동합니다. 계속할까요?')) onDeleteFolder(contextMenu.id);
+              <CtxItem icon={<Trash2 className="h-3.5 w-3.5 text-red-500" />} label="폴더 삭제" destructive onClick={async () => {
+                const id = contextMenu.id;
                 setContextMenu(null);
+                const ok = await confirmDialog({
+                  title: '폴더를 삭제할까요?',
+                  description: '안의 파일은 루트로 이동합니다.',
+                  confirmLabel: '삭제',
+                  tone: 'danger',
+                });
+                if (ok) onDeleteFolder(id);
               }} />
             </>
           )}

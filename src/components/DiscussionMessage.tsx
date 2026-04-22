@@ -416,7 +416,11 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
 
   // ── Default (다중AI, 심층토론, 어시스턴트) ──
   return (
-    <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
+    <div className={cn(
+      'group animate-in fade-in slide-in-from-bottom-2 duration-400',
+      // 스트리밍 중이거나 요약(자동 스크롤 대상)이면 cv 제외 — 나머지는 off-screen 렌더 스킵으로 FPS 확보.
+      !message.isStreaming && !isSummary && 'cv-auto',
+    )}>
       <div className={cn(
         'rounded-xl border transition-all overflow-hidden',
         isSummary ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-lg ring-1 ring-amber-200/50 border-2' : 'border-slate-300 bg-white hover:border-slate-400 hover:shadow-md'

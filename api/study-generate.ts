@@ -6,7 +6,7 @@ import {
   getOpenRouterHeaders,
 } from './_lib/openrouter.js';
 
-type Lens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast';
+type Lens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast' | 'diagram' | 'diagram-suggest';
 type Tone = 'plain' | 'student' | 'exam' | 'interview' | 'kid';
 type Level = 'basic' | 'standard' | 'advanced';
 
@@ -240,6 +240,79 @@ ${typeGuide}
 ]`,
       };
     }
+    case 'diagram-suggest': {
+      return {
+        system: '당신은 공부 도우미입니다. 자료를 도식화하기 좋은 개념을 추천합니다. JSON 만 출력합니다.',
+        user: `${common}
+위 자료를 살펴보고, 도식으로 만들면 이해가 확 쉬워질 **핵심 개념 4개**를 골라주세요.
+각 개념마다 가장 적합한 도식 유형을 함께 추천하세요.
+
+유형: flowchart(프로세스), timeline(시간순), comparison(A vs B), cause(원인→결과), tree(계층), sequence(상호작용)
+
+JSON 스키마 (코드블록 금지):
+{
+  "suggestions": [
+    {"concept": "혈액 순환", "kind": "flowchart", "reason": "순환 과정이라 흐름도로 보면 명확"},
+    ...
+  ]
+}`,
+      };
+    }
+    case 'diagram': {
+      const opts = (req.options as unknown as {
+        concept?: string;
+        focus?: string;
+        diagramKind?: string;
+        isMobile?: boolean;
+      }) ?? {};
+      const concept = opts.concept?.trim() || '자료 핵심 개념';
+      const focusLine = opts.focus?.trim() ? `집중 범위: ${opts.focus.trim()}` : '';
+      const forcedKind = opts.diagramKind && opts.diagramKind !== 'auto' ? opts.diagramKind : null;
+      const mobileHint = opts.isMobile ? '\n모바일 뷰입니다. flowchart 는 반드시 `flowchart TB` (세로) 로 작성하세요.' : '';
+      return {
+        system: '당신은 공부 도우미의 도식 생성기입니다. JSON 만 출력합니다.',
+        user: `${common}
+${focusLine}
+사용자가 "${concept}" 를 도식으로 요청했습니다.${mobileHint}
+
+${forcedKind
+  ? `유형은 "${forcedKind}" 으로 고정합니다.`
+  : `먼저 이 개념에 가장 적합한 유형을 고르세요:
+- flowchart: 프로세스·절차·의사결정
+- timeline: 시간 순서·사건
+- comparison: A vs B 대조
+- cause: 원인→결과 체인
+- tree: 계층·분류
+- sequence: 상호작용·주고받음`}
+
+규칙:
+- Mermaid 코드는 즉시 렌더 가능해야 (노드 id 중복 금지, 한국어 라벨은 대괄호 안에 "..." 꼴)
+- 노드 id 는 의미 있는 짧은 영문 (A, B, C 또는 node_heart, step_1 등)
+- 노드 라벨은 10자 이내 우선. 길면 "긴 라벨"
+- 자료에 없는 사실 금지
+- 원본 페이지 참조가 있으면 caption 에 [p.N] 형식으로 포함
+
+출력 JSON 스키마:
+{
+  "kind": "flowchart",
+  "kindLabel": "플로우차트",
+  "title": "제목 (20자 이내)",
+  "mermaid": "flowchart TD\\n  A[심장] -->|수축| B[대동맥]\\n  ...",
+  "caption": "도식만 봐서 놓치기 쉬운 핵심 맥락 2-3문장"
+}
+
+단, kind 가 "comparison" 이면 mermaid 대신 table 을 출력:
+{
+  "kind": "comparison",
+  "title": "...",
+  "table": {
+    "columns": ["A", "B"],
+    "rows": [{"label": "항목", "cells": ["A값", "B값"]}]
+  },
+  "caption": "..."
+}`,
+      };
+    }
     case 'podcast': {
       const opts = (req.options as unknown as {
         lengthMin?: number; purpose?: string; podcastTone?: string; focus?: string;
@@ -339,7 +412,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ],
         stream: false,
         temperature: body.lens === 'debate' ? 0.85 : 0.4,
-        max_tokens: body.lens === 'quiz' ? 2500 : body.lens === 'podcast' ? 5000 : 3500,
+        max_tokens: body.lens === 'quiz' ? 2500
+          : body.lens === 'podcast' ? 5000
+          : body.lens === 'diagram-suggest' ? 800
+          : body.lens === 'diagram' ? 2500
+          : 3500,
       }),
     });
     if (!response.ok) {
@@ -362,6 +439,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           } catch {
             /* noop */
           }
+        }
+      }
+      return res.status(200).json({ content, structured: parsed });
+    }
+
+    if (body.lens === 'diagram' || body.lens === 'diagram-suggest') {
+      let parsed: unknown = null;
+      try {
+        const trimmed = content.replace(/^```json\s*|\s*```$/g, '').trim();
+        parsed = JSON.parse(trimmed);
+      } catch {
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { parsed = JSON.parse(match[0]); } catch { /* noop */ }
         }
       }
       return res.status(200).json({ content, structured: parsed });

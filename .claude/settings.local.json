@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Skill(schedule)",
+      "Skill(schedule:*)",
+      "WebFetch(domain:openrouter.ai)",
+      "WebFetch(domain:fuselabcreative.com)",
+      "WebFetch(domain:seo.ai)",
+      "WebFetch(domain:www.aixploria.com)",
+      "Skill(계획)",
+      "Skill(계획:*)",
+      "Skill(업글)",
+      "Skill(업글:*)",
+      "PowerShell(Stop-Process -Id 1204 -Force)",
+      "PowerShell(netstat -ano)",
+      "Skill(목록)",
+      "Skill(목록:*)"
+    ]
+  }
+}

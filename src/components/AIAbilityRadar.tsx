@@ -1,4 +1,5 @@
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
+import { CHART_COLORS, NEUTRAL_AXIS, NEUTRAL_GRID, pickChartColor } from '@/lib/palette';
 
 export interface AIAbilityStats {
   coding: number;
@@ -22,21 +23,6 @@ const AXIS_LABELS: Record<keyof AIAbilityStats, string> = {
   contextWindow: '토큰용량',
 };
 
-const COLOR_MAP: Record<string, string> = {
-  blue: '#60a5fa',
-  emerald: '#34d399',
-  red: '#f87171',
-  amber: '#fbbf24',
-  purple: '#a78bfa',
-  orange: '#fb923c',
-  teal: '#2dd4bf',
-  pink: '#f472b6',
-  slate: '#94a3b8',
-  green: '#4ade80',
-  cyan: '#22d3ee',
-  sky: '#38bdf8',
-};
-
 interface AIAbilityRadarProps {
   abilities: AIAbilityStats;
   color: string;
@@ -45,7 +31,7 @@ interface AIAbilityRadarProps {
 }
 
 export function AIAbilityRadar({ abilities, color, name, size = 'default' }: AIAbilityRadarProps) {
-  const strokeColor = COLOR_MAP[color] || '#818cf8';
+  const strokeColor = pickChartColor(color, CHART_COLORS.indigo);
   const data = (Object.keys(AXIS_LABELS) as (keyof AIAbilityStats)[]).map(key => ({
     axis: AXIS_LABELS[key],
     value: abilities[key],
@@ -59,12 +45,12 @@ export function AIAbilityRadar({ abilities, color, name, size = 'default' }: AIA
       <ResponsiveContainer width="100%" height={sm ? 130 : 160}>
         <RadarChart cx="50%" cy="50%" outerRadius="68%" data={data}>
           <PolarGrid
-            stroke="rgba(148,163,184,0.25)"
+            stroke={NEUTRAL_GRID}
             strokeDasharray="2 3"
           />
           <PolarAngleAxis
             dataKey="axis"
-            tick={{ fill: '#94a3b8', fontSize: sm ? 7 : 9, fontWeight: 500 }}
+            tick={{ fill: NEUTRAL_AXIS, fontSize: sm ? 7 : 9, fontWeight: 500 }}
             tickLine={false}
           />
           <PolarRadiusAxis
