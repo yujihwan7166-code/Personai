@@ -70,7 +70,7 @@ const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[]
   { label: '대화',  description: '질문하고 답받기',     modes: ['general', 'multi', 'research_main'] },
   { label: '전문',  description: '자문 · 학습',         modes: ['premium_main', 'study_main'] },
   { label: '논의',  description: '토론 · 브레인스토밍', modes: ['debate'] },
-  { label: '도구',  description: '실무 작업',           modes: ['assistant'] },
+  { label: 'AI 어시스턴트',  description: '실무 도구',      modes: ['assistant'] },
 ];
 
 const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
@@ -357,8 +357,8 @@ export function MainModeTabs({
                         </span>
                       </div>
                       <div className="space-y-0.5">
-                        {/* 도구 그룹: 대표 4 도구 먼저, 구분선 + "더 보기" 링크 */}
-                        {group.label === '도구' ? (
+                        {/* AI 어시스턴트 그룹: 대표 4 도구 먼저, 구분선 + "더 보기" 링크 */}
+                        {group.label === 'AI 어시스턴트' ? (
                           <>
                             {ASSISTANT_FEATURED_TOOLS.map(renderAssistantToolItem)}
                             <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
