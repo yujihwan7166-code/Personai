@@ -2190,12 +2190,11 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // iOS segmented control 패턴: 트랙에는 옅은 bg + 얇은 hairline 테두리, 활성 탭만 raised.
-          // 그룹 경계는 명확, 비활성 탭은 트랙 안에 flat text, 활성은 확실히 도드라짐.
-          'flex items-center relative gap-0.5 max-w-[640px] p-0.5 rounded-xl border',
-          showPlayerBg
-            ? 'bg-slate-900/50 border-slate-700/40'
-            : 'bg-slate-200/70 dark:bg-slate-800/80 border-slate-300/70 dark:border-slate-700',
+          // 근본 재설계: 트랙 세그먼트 → Chip/Pill 플로팅 패턴.
+          // 트랙 배경·테두리 모두 제거. 각 탭이 독립된 캡슐이고 활성 탭은 모드 컬러로 채워짐.
+          // 12 모드가 있는 상황에서 iOS 세그먼트는 구조적으로 맞지 않으며, Phase A 컬러 토큰을 더 잘 활용.
+          'flex items-center relative gap-1 max-w-[720px]',
+          showPlayerBg && 'bg-slate-900/50 border border-slate-700/40 p-0.5 rounded-xl',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
