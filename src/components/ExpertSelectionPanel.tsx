@@ -2190,9 +2190,9 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // GitHub 스타일: 하단 hairline 이 탭바와 본문 분리. 탭은 flat, 활성만 underline.
-          'flex items-center justify-center relative gap-0.5 border-b',
-          showPlayerBg ? 'border-slate-700/40' : 'border-[hsl(var(--hairline))]',
+          // "Primary 4 + 더 보기" 패턴: 자주 쓰는 4 탭만 노출, 나머지는 드롭다운.
+          // iOS 세그먼트 컨트롤이 자연스럽게 작동하는 4-5 탭 범위로 축소.
+          'flex items-center justify-center relative',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
