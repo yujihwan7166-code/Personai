@@ -2190,9 +2190,10 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // 워크스페이스 스위처 패턴: 현재 모드 pill 하나만 보이고, 클릭 시 드롭다운 패널이 열림.
-          // 12개 동시 노출 전제 폐지. 패널 내부에서 4 카테고리 × 3 모드로 그룹핑 표시.
+          // "청크 탭" 패턴: 12 모드를 4 그룹 × 3 으로 청킹, 수직 divider 로 분리.
+          // 시각 노이즈 제로, 모든 모드 노출, 카테고리 의미 암묵 전달.
           'flex items-center justify-center relative',
+          showPlayerBg && 'bg-slate-900/50 border border-slate-700/40 px-3 py-1 rounded-full',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
