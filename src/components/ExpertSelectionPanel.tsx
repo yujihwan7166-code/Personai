@@ -2122,6 +2122,8 @@ export function ExpertSelectionPanel({
               transitionPhase={transitionPhase}
               showPlayerBg={false}
               onChange={handleMainModeChange}
+              currentDebateSub={mainMode === 'debate' ? (discussionMode as DebateSubMode) : undefined}
+              onSelectDebateSub={(sub) => onModeChange(sub)}
             />
           </div>
         )}

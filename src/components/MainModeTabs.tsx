@@ -1,22 +1,18 @@
 /**
  * 메인 모드 네비 — "Eyebrow Pill" 패턴.
  *
- * 탭 바를 히어로 컨텐츠로 취급하지 않고, 페이지 헤더 (eyebrow/breadcrumb) 로 승격.
- * GitHub / Notion / Linear 처럼 "현재 위치" 를 작은 메타 pill 로 표시.
- *
- * - 작은 rounded-full pill: 아이콘 + 현재 모드 이름 + chevron
- * - 클릭 → 드롭다운 패널 (4 그룹 × 3 모드, 각 모드에 한 줄 설명)
- * - 히어로 영역과 분리된 계층 — 컨텐츠 오염 없음
+ * 페이지 헤더 메타로서의 모드 표시. 작은 pill + 드롭다운 패널.
+ * 드롭다운은 8개 주요 모드만 노출, AI 토론은 하위(찬반/자유/심층/브레인) 인라인 표시.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  MessageCircle, GitMerge, Users, Shield, Sparkles, Swords, Wrench, Gamepad2,
-  FlaskConical, Globe, FileBox, BookOpen, ChevronDown,
+  MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
+  FlaskConical, BookOpen, ChevronDown,
 } from 'lucide-react';
 
-import type { MainMode } from '@/types/expert';
+import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
 
 interface MainModeTabsProps {
@@ -28,20 +24,24 @@ interface MainModeTabsProps {
   transitionPhase: number;
   showPlayerBg: boolean;
   onChange: (mode: MainMode) => void;
+  /** 현재 debate 서브 모드 (toggle 표시용). */
+  currentDebateSub?: DebateSubMode;
+  /** AI 토론 하위 (찬반/자유/심층/브레인) 선택 콜백. */
+  onSelectDebateSub?: (sub: DebateSubMode) => void;
 }
 
 const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   general:          MessageCircle,
   multi:            GitMerge,
   brainstorm_main:  Sparkles,
-  stakeholder_main: Users,
+  stakeholder_main: Sparkles,
   premium_main:     Shield,
   debate:           Swords,
   assistant:        Wrench,
-  player:           Gamepad2,
+  player:           Sparkles,
   research_main:    FlaskConical,
-  translate_main:   Globe,
-  convert_main:     FileBox,
+  translate_main:   Sparkles,
+  convert_main:     Sparkles,
   study_main:       BookOpen,
 };
 
@@ -60,27 +60,31 @@ const MODE_TINT: Record<MainMode, string> = {
   study_main:       'hsl(var(--mode-study))',
 };
 
+/** 사용자 요청 목록에 맞춘 4 그룹 그룹핑. */
 const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
-  { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'translate_main'] },
-  { label: '논의',  description: '여러 관점 · 역할극',     modes: ['debate', 'brainstorm_main', 'stakeholder_main'] },
-  { label: '전문',  description: '심층 · 자문 · 학습',    modes: ['research_main', 'premium_main', 'study_main'] },
-  { label: '도구',  description: '실무 작업 · 놀이',       modes: ['assistant', 'convert_main', 'player'] },
+  { label: '대화',  description: '질문하고 답받기',     modes: ['general', 'multi'] },
+  { label: '논의',  description: '토론 · 브레인스토밍', modes: ['debate'] },
+  { label: '전문',  description: '심층 · 자문 · 학습',  modes: ['research_main', 'premium_main', 'study_main'] },
+  { label: '도구',  description: '실무 작업',           modes: ['assistant'] },
 ];
 
-const MODE_DESCRIPTION: Record<MainMode, string> = {
-  general:          'AI 를 골라 1:1 대화',
-  multi:            '여러 AI 답변 비교',
-  translate_main:   '언어 간 번역·교정',
-  debate:           '찬반·자유·심층 토론',
-  brainstorm_main:  '아이디어 발산·정리',
-  stakeholder_main: '이해관계자 역할극',
-  research_main:    '멀티 AI 교차 검증 리포트',
-  premium_main:     '법률·의료·금융 자문',
-  study_main:       '공부 노트북·퀴즈·팟캐스트',
-  assistant:        '문서·번역·요약 실무',
-  convert_main:     '파일 형식 변환',
-  player:           '게임·퀴즈·스토리',
+const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
+  general:       'AI 를 골라 1:1 대화',
+  multi:         '여러 AI 답변 비교',
+  debate:        '찬반·자유·심층·브레인스토밍',
+  research_main: '멀티 AI 교차 검증 리포트',
+  premium_main:  '법률·의료·금융 자문',
+  study_main:    '공부 노트북·퀴즈·팟캐스트',
+  assistant:     '문서·번역·요약 실무',
 };
+
+/** 토론 서브모드 정의. */
+const DEBATE_SUBS: Array<{ key: DebateSubMode; label: string; desc: string }> = [
+  { key: 'procon',     label: '찬반토론',       desc: '찬성 · 반대 구조' },
+  { key: 'freetalk',   label: '자유토론',       desc: '정해진 형식 없이' },
+  { key: 'standard',   label: '심층토론',       desc: '다각도 분석' },
+  { key: 'brainstorm', label: '브레인스토밍',   desc: '아이디어 발산' },
+];
 
 export function MainModeTabs({
   labels,
@@ -90,6 +94,8 @@ export function MainModeTabs({
   transitionPhase,
   showPlayerBg,
   onChange,
+  currentDebateSub,
+  onSelectDebateSub,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -100,7 +106,6 @@ export function MainModeTabs({
   const CurrentIcon = MODE_ICON[effective];
   const currentTint = MODE_TINT[effective];
 
-  // 드롭다운 위치 계산 — portal 로 body 에 렌더하므로 viewport 좌표 필요.
   useLayoutEffect(() => {
     if (!open || !rootRef.current) return;
     const update = () => {
@@ -108,7 +113,6 @@ export function MainModeTabs({
       const r = rootRef.current.getBoundingClientRect();
       const PANEL_W = 620;
       const vw = window.innerWidth;
-      // 중앙 정렬, 좌우 viewport 보호 (최소 16px 마진)
       let left = r.left + r.width / 2 - PANEL_W / 2;
       left = Math.max(16, Math.min(left, vw - PANEL_W - 16));
       setPanelPos({ top: r.bottom + 8, left });
@@ -144,9 +148,127 @@ export function MainModeTabs({
     if (m !== currentMode) setTimeout(() => onChange(m), 40);
   };
 
+  const handleSelectSub = (sub: DebateSubMode) => {
+    setOpen(false);
+    setTimeout(() => onSelectDebateSub?.(sub), 40);
+  };
+
+  const renderModeItem = (m: MainMode) => {
+    const Icon = MODE_ICON[m];
+    const tint = MODE_TINT[m];
+    const isActive = m === currentMode;
+    return (
+      <button
+        key={m}
+        type="button"
+        onClick={() => handleSelect(m)}
+        role="menuitem"
+        className={cn(
+          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+          'hover:bg-[hsl(var(--accent))]',
+          isActive && 'bg-[hsl(var(--accent))]',
+        )}
+      >
+        <span
+          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          style={{
+            backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
+            color: tint,
+          }}
+        >
+          <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+            {labels[m]}
+          </span>
+          {MODE_DESCRIPTION[m] && (
+            <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+              {MODE_DESCRIPTION[m]}
+            </span>
+          )}
+        </span>
+        {isActive && (
+          <span
+            className="h-1.5 w-1.5 rounded-full shrink-0"
+            style={{ backgroundColor: tint }}
+            aria-label="현재 모드"
+          />
+        )}
+      </button>
+    );
+  };
+
+  const renderDebateItem = () => {
+    const tint = MODE_TINT.debate;
+    const isActive = currentMode === 'debate';
+    return (
+      <div key="debate" className="space-y-0.5">
+        <div className="flex items-center gap-2.5 px-2 py-1.5">
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+            style={{
+              backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
+              color: tint,
+            }}
+          >
+            <Swords className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className={cn('block text-[12.5px] leading-tight', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+              AI 토론
+            </span>
+            <span className="block text-[10.5px] text-muted-foreground mt-0.5">
+              찬반 · 자유 · 심층 · 브레인스토밍
+            </span>
+          </span>
+          {isActive && (
+            <span
+              className="h-1.5 w-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: tint }}
+            />
+          )}
+        </div>
+        {/* 서브 모드 4개를 인라인으로 — 들여쓰기로 계층 표시 */}
+        <div className="ml-9 pl-2 border-l border-[hsl(var(--hairline))] space-y-0.5">
+          {DEBATE_SUBS.map((sub) => {
+            const subActive = isActive && currentDebateSub === sub.key;
+            return (
+              <button
+                key={sub.key}
+                type="button"
+                onClick={() => handleSelectSub(sub.key)}
+                role="menuitem"
+                className={cn(
+                  'flex w-full items-center gap-2 px-2 py-1 rounded-md text-left transition-colors',
+                  'hover:bg-[hsl(var(--accent))]',
+                  subActive && 'bg-[hsl(var(--accent))]',
+                )}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className={cn('block text-[11.5px] leading-tight truncate', subActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/85')}>
+                    {sub.label}
+                  </span>
+                  <span className="block text-[10px] text-muted-foreground truncate">
+                    {sub.desc}
+                  </span>
+                </span>
+                {subActive && (
+                  <span
+                    className="h-1 w-1 rounded-full shrink-0"
+                    style={{ backgroundColor: tint }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div ref={rootRef} className="relative">
-      {/* Eyebrow pill — 페이지 메타로서의 모드 표시. 작고 조용함. */}
       <button
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
@@ -169,7 +291,6 @@ export function MainModeTabs({
         <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
       </button>
 
-      {/* 드롭다운 패널 — Portal 로 body 에 렌더해 부모 overflow-hidden 탈출 */}
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
         {open && panelPos && (
@@ -200,49 +321,7 @@ export function MainModeTabs({
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    {group.modes.map((m) => {
-                      const Icon = MODE_ICON[m];
-                      const tint = MODE_TINT[m];
-                      const isActive = m === currentMode;
-                      return (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => handleSelect(m)}
-                          role="menuitem"
-                          className={cn(
-                            'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
-                            'hover:bg-[hsl(var(--accent))]',
-                            isActive && 'bg-[hsl(var(--accent))]',
-                          )}
-                        >
-                          <span
-                            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                            style={{
-                              backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
-                              color: tint,
-                            }}
-                          >
-                            <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
-                              {labels[m]}
-                            </span>
-                            <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                              {MODE_DESCRIPTION[m]}
-                            </span>
-                          </span>
-                          {isActive && (
-                            <span
-                              className="h-1.5 w-1.5 rounded-full shrink-0"
-                              style={{ backgroundColor: tint }}
-                              aria-label="현재 모드"
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
+                    {group.modes.map((m) => (m === 'debate' ? renderDebateItem() : renderModeItem(m)))}
                   </div>
                 </div>
               ))}
