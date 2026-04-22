@@ -474,7 +474,7 @@ export function MainModeTabs({
                   ))}
                 </div>
               ))}
-              {/* 오른쪽 컬럼: 라이프 — 단일 항목 (클릭 시 모달에서 전체 도구 브라우즈) */}
+              {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + 더보기 */}
               <div className="min-w-0 space-y-3">
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1">
@@ -486,29 +486,28 @@ export function MainModeTabs({
                     </span>
                   </div>
                   <div className="space-y-0.5">
+                    {LIFE_TOOLS_FEATURED.map(renderLifeToolItem)}
+                  </div>
+                </div>
+                {/* 라이프 "더 보기" — 전체 라이프 도구 모달 트리거 */}
+                {onOpenLifeBrowser && (
+                  <div>
+                    <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
                     <button
                       type="button"
-                      onClick={() => { setOpen(false); setTimeout(() => onOpenLifeBrowser?.(), 40); }}
+                      onClick={() => { setOpen(false); setTimeout(() => onOpenLifeBrowser(), 40); }}
                       role="menuitem"
-                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
                     >
-                      <span
-                        className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                        style={{ backgroundColor: 'color-mix(in oklab, hsl(262 83% 58%) 12%, transparent)' }}
-                      >
-                        <span className="text-[15px] leading-none select-none">🎨</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
-                          라이프 도구
-                        </span>
-                        <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                          사주·연애·운동·여행 등 {LIFE_TOOLS.length}개
-                        </span>
+                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                        <span className="text-[12px] font-medium">라이프 더 보기</span>
                       </span>
                     </button>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </motion.div>
