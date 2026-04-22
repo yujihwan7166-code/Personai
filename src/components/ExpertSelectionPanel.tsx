@@ -2184,7 +2184,7 @@ export function ExpertSelectionPanel({
             · 탭 그룹 max-w-[640px] 로 중심감 유지
             · 히어로와의 mt-6 여유 */}
       <div className={cn(
-        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden mt-0 mb-0",
+        "flex flex-col items-center relative z-20 transition-all duration-500 overflow-hidden -mt-2 mb-0",
         isPlayerActive && !isLeavingPlayer ? 'max-h-0 opacity-0 mt-0 mb-0' : 'max-h-32 opacity-100',
         isGoingToPlayer && transitionPhase >= 1 ? 'max-h-0 opacity-0' : '',
         mainMode === 'study_main' && 'hidden',
