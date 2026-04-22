@@ -2190,10 +2190,9 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // "청크 탭" 패턴: 12 모드를 4 그룹 × 3 으로 청킹, 수직 divider 로 분리.
-          // 시각 노이즈 제로, 모든 모드 노출, 카테고리 의미 암묵 전달.
-          'flex items-center justify-center relative',
-          showPlayerBg && 'bg-slate-900/50 border border-slate-700/40 px-3 py-1 rounded-full',
+          // GitHub 스타일: 하단 hairline 이 탭바와 본문 분리. 탭은 flat, 활성만 underline.
+          'flex items-center justify-center relative gap-0.5 border-b',
+          showPlayerBg ? 'border-slate-700/40' : 'border-[hsl(var(--hairline))]',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
