@@ -39,33 +39,35 @@ interface MainModeTabsProps {
   onOpenLifeBrowser?: () => void;
 }
 
-/** 라이프·재미 그룹 도구 정의 — 엔터테인먼트 & 생활 도구들. */
-type LifeToolGroup = '운세·감정·취미' | '운동·식단·여행';
+/** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
 export const LIFE_TOOLS: Array<{
   id: string;
   label: string;
   desc?: string;
   emoji: string;
   tint: string;
-  group: LifeToolGroup;
+  /** 드롭다운 노출 여부. false 면 "라이프 더 보기" 모달에서만 노출. */
+  featured: boolean;
 }> = [
-  // 운세·감정·취미
-  { id: 'saju',       label: 'AI 사주',       desc: '생년월일 + MBTI 풀이',  emoji: '🔮', tint: 'hsl(262 83% 58%)', group: '운세·감정·취미' },
-  { id: 'tarot',      label: '타로 · MBTI',   desc: '카드 뽑기 · 성격 분석', emoji: '🎴', tint: 'hsl(320 70% 55%)', group: '운세·감정·취미' },
-  { id: 'dream',      label: '꿈 해몽',       desc: '꿈 내용 → 상징 해석',   emoji: '🌙', tint: 'hsl(240 60% 58%)', group: '운세·감정·취미' },
-  { id: 'dating',     label: '연애 코치',     desc: '썸·데이트·이별 조언',   emoji: '💌', tint: 'hsl(350 80% 62%)', group: '운세·감정·취미' },
-  { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',    emoji: '📔', tint: 'hsl(32 80% 55%)',  group: '운세·감정·취미' },
-  // 운동·식단·여행
-  { id: 'workout',    label: '운동 코치',     desc: '홈트·헬스·요가 루틴',   emoji: '💪', tint: 'hsl(155 65% 45%)', group: '운동·식단·여행' },
-  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',    emoji: '🍳', tint: 'hsl(18 80% 55%)',  group: '운동·식단·여행' },
-  { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',      emoji: '✈️', tint: 'hsl(195 80% 50%)', group: '운동·식단·여행' },
-  { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',      emoji: '🧘', tint: 'hsl(175 55% 45%)', group: '운동·식단·여행' },
+  { id: 'saju',       label: 'AI 사주',       desc: '생년월일 + MBTI 풀이',  emoji: '🔮', tint: 'hsl(262 83% 58%)', featured: true  },
+  { id: 'tarot',      label: '타로 · MBTI',   desc: '카드 뽑기 · 성격 분석', emoji: '🎴', tint: 'hsl(320 70% 55%)', featured: true  },
+  { id: 'dream',      label: '꿈 해몽',       desc: '꿈 내용 → 상징 해석',   emoji: '🌙', tint: 'hsl(240 60% 58%)', featured: true  },
+  { id: 'dating',     label: '연애 코치',     desc: '썸·데이트·이별 조언',   emoji: '💌', tint: 'hsl(350 80% 62%)', featured: true  },
+  { id: 'workout',    label: '운동 코치',     desc: '홈트·헬스·요가 루틴',   emoji: '💪', tint: 'hsl(155 65% 45%)', featured: true  },
+  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',    emoji: '🍳', tint: 'hsl(18 80% 55%)',  featured: true  },
+  { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',      emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: true  },
+  { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',    emoji: '📔', tint: 'hsl(32 80% 55%)',  featured: false },
+  { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',      emoji: '🧘', tint: 'hsl(175 55% 45%)', featured: false },
 ];
 
-export const LIFE_GROUPS: Array<{ label: string; description: string; items: typeof LIFE_TOOLS }> = [
-  { label: '라이프·재미', description: '운세·감정·취미', items: LIFE_TOOLS.filter((t) => t.group === '운세·감정·취미') },
-  { label: '건강·실용',   description: '운동·식단·여행', items: LIFE_TOOLS.filter((t) => t.group === '운동·식단·여행') },
-];
+/** 드롭다운 노출용 featured 서브셋. */
+export const LIFE_TOOLS_FEATURED = LIFE_TOOLS.filter((t) => t.featured);
+
+/** 단일 라이프 그룹 (재미·건강·생활 통합). 드롭다운과 모달에서 header 에 사용. */
+export const LIFE_GROUP = {
+  label: '라이프',
+  description: '운세·감정·건강·생활',
+};
 
 export const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   general:          MessageCircle,
@@ -472,23 +474,21 @@ export function MainModeTabs({
                   ))}
                 </div>
               ))}
-              {/* 오른쪽 컬럼: 라이프·재미 + 건강·실용 + 더보기 */}
+              {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + 더보기 */}
               <div className="min-w-0 space-y-3">
-                {LIFE_GROUPS.map((group) => (
-                  <div key={group.label}>
-                    <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                      <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                        {group.label}
-                      </span>
-                      <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                        {group.description}
-                      </span>
-                    </div>
-                    <div className="space-y-0.5">
-                      {group.items.map(renderLifeToolItem)}
-                    </div>
+                <div>
+                  <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      {LIFE_GROUP.label}
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                      {LIFE_GROUP.description}
+                    </span>
                   </div>
-                ))}
+                  <div className="space-y-0.5">
+                    {LIFE_TOOLS_FEATURED.map(renderLifeToolItem)}
+                  </div>
+                </div>
                 {/* 라이프 "더 보기" — 전체 라이프 도구 모달 트리거 */}
                 {onOpenLifeBrowser && (
                   <div>

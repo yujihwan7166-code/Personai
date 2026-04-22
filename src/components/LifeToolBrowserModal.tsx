@@ -10,7 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { LIFE_TOOLS, LIFE_GROUPS } from './MainModeTabs';
+import { LIFE_TOOLS, LIFE_GROUP } from './MainModeTabs';
 
 interface LifeToolBrowserModalProps {
   open: boolean;
@@ -79,53 +79,49 @@ export function LifeToolBrowserModal({ open, onClose, onSelectTool }: LifeToolBr
               </button>
             </div>
 
-            {/* 그룹별 카드 그리드 */}
-            <div className="p-5 space-y-6">
-              {LIFE_GROUPS.map((group) => (
-                <section key={group.label}>
-                  <div className="mb-3 flex items-baseline gap-2 px-1">
-                    <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                      {group.label}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground/70">
-                      {group.description}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                    {group.items.map((tool) => (
-                      <button
-                        key={tool.id}
-                        type="button"
-                        onClick={() => handleSelect(tool.id)}
-                        className={cn(
-                          'group relative text-left rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3',
-                          'transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md hover:-translate-y-0.5',
-                        )}
+            {/* 전체 라이프 도구 카드 그리드 — 단일 통합 섹션 */}
+            <div className="p-5">
+              <div className="mb-3 flex items-baseline gap-2 px-1">
+                <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                  {LIFE_GROUP.label}
+                </span>
+                <span className="text-[11px] text-muted-foreground/70">
+                  {LIFE_GROUP.description}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                {LIFE_TOOLS.map((tool) => (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    onClick={() => handleSelect(tool.id)}
+                    className={cn(
+                      'group relative text-left rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3',
+                      'transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md hover:-translate-y-0.5',
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-[20px] shrink-0 transition-transform duration-200 group-hover:scale-105"
+                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
                       >
-                        <div className="flex items-center gap-2.5 mb-2">
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-[20px] shrink-0 transition-transform duration-200 group-hover:scale-105"
-                            style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
-                          >
-                            <span className="select-none leading-none">{tool.emoji}</span>
-                          </div>
-                          <span className="text-[13px] font-bold leading-tight truncate text-slate-800 dark:text-slate-100">
-                            {tool.label}
-                          </span>
-                        </div>
-                        {tool.desc && (
-                          <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 line-clamp-2">
-                            {tool.desc}
-                          </p>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              ))}
+                        <span className="select-none leading-none">{tool.emoji}</span>
+                      </div>
+                      <span className="text-[13px] font-bold leading-tight truncate text-slate-800 dark:text-slate-100">
+                        {tool.label}
+                      </span>
+                    </div>
+                    {tool.desc && (
+                      <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 line-clamp-2">
+                        {tool.desc}
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
 
               {/* 향후 추가 예정 안내 */}
-              <div className="mt-2 rounded-xl border border-dashed border-[hsl(var(--hairline))] px-4 py-3 text-center">
+              <div className="mt-5 rounded-xl border border-dashed border-[hsl(var(--hairline))] px-4 py-3 text-center">
                 <p className="text-[11.5px] text-muted-foreground">
                   ✨ 커뮤니케이션 · 창작 · 학습 도구가 곧 추가됩니다
                 </p>

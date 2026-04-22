@@ -18,8 +18,9 @@ import {
   MODE_DESCRIPTION,
   ASSISTANT_FEATURED_TOOLS,
   DEBATE_SUBS,
-  LIFE_GROUPS,
   LIFE_TOOLS,
+  LIFE_TOOLS_FEATURED,
+  LIFE_GROUP,
 } from './MainModeTabs';
 
 interface ModePaletteModalProps {
@@ -293,23 +294,21 @@ export function ModePaletteModal({
                   ))}
                 </div>
               ))}
-              {/* 오른쪽 컬럼: 라이프·재미 + 더보기 */}
+              {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + 더보기 */}
               <div className="min-w-0 space-y-3">
-                {LIFE_GROUPS.map((group) => (
-                  <div key={group.label}>
-                    <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                      <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                        {group.label}
-                      </span>
-                      <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                        {group.description}
-                      </span>
-                    </div>
-                    <div className="space-y-0.5">
-                      {group.items.map(renderLifeToolItem)}
-                    </div>
+                <div>
+                  <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      {LIFE_GROUP.label}
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                      {LIFE_GROUP.description}
+                    </span>
                   </div>
-                ))}
+                  <div className="space-y-0.5">
+                    {LIFE_TOOLS_FEATURED.map(renderLifeToolItem)}
+                  </div>
+                </div>
                 {onOpenLifeBrowser && (
                   <div>
                     <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
