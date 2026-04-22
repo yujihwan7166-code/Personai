@@ -68,7 +68,7 @@ const MODE_TINT: Record<MainMode, string> = {
 /** 사용자 요청 목록에 맞춘 4 그룹 그룹핑. */
 const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
   { label: '대화',  description: '질문하고 답받기',     modes: ['general', 'multi', 'research_main'] },
-  { label: '전문',  description: '자문 · 학습',         modes: ['premium_main', 'study_main'] },
+  { label: '전문',  description: '자문 · 학습',         modes: ['study_main', 'premium_main'] },
   { label: '논의',  description: '토론 · 브레인스토밍', modes: ['debate'] },
   { label: 'AI 어시스턴트',  description: '실무 도구',      modes: ['assistant'] },
 ];
