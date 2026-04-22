@@ -2190,10 +2190,9 @@ export function ExpertSelectionPanel({
         mainMode === 'study_main' && 'hidden',
       )}>
         <div className={cn(
-          // 아이콘 탭 + 활성 라벨 확장 패턴: 트랙·테두리·배경 없음.
-          // 각 탭이 아이콘으로 시각적으로 구분됨 (12개의 서로 다른 도형), 활성 탭만 라벨+컬러 채움.
-          'flex items-center relative gap-1',
-          showPlayerBg && 'bg-slate-900/50 border border-slate-700/40 p-1 rounded-2xl',
+          // 워크스페이스 스위처 패턴: 현재 모드 pill 하나만 보이고, 클릭 시 드롭다운 패널이 열림.
+          // 12개 동시 노출 전제 폐지. 패널 내부에서 4 카테고리 × 3 모드로 그룹핑 표시.
+          'flex items-center justify-center relative',
         )}>
           <AnimatePresence mode="wait" initial={false}>
           {mainMode === 'debate' && !showPlayerBg ? (
