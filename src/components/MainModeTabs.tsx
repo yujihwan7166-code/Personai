@@ -418,29 +418,11 @@ export function MainModeTabs({
               'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
             )}
           >
-            {/* 3 컬럼 독립 흐름 — 왼쪽: 라이프·재미 + 건강·실용 / 가운데: 대화 + 논의 / 오른쪽: 전문 + AI 어시스턴트 */}
+            {/* 3 컬럼 독립 흐름 — 왼쪽: 대화+논의 / 가운데: 전문+AI 어시스턴트 / 오른쪽: 라이프·재미+건강·실용 */}
             <div className="grid grid-cols-3 gap-x-4 p-4">
-              {/* 왼쪽 컬럼: 라이프·재미 + 건강·실용 (엔터테인먼트) */}
-              <div className="min-w-0 space-y-3">
-                {LIFE_GROUPS.map((group) => (
-                  <div key={group.label}>
-                    <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                      <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                        {group.label}
-                      </span>
-                      <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                        {group.description}
-                      </span>
-                    </div>
-                    <div className="space-y-0.5">
-                      {group.items.map(renderLifeToolItem)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {/* 가운데·오른쪽 컬럼: 기존 MODE_GROUPS */}
+              {/* 왼쪽·가운데 컬럼: 기존 MODE_GROUPS (주 작업) */}
               {[[0, 2], [1, 3]].map(([i1, i2], colIdx) => (
-                /* 가운데: 대화(0) + 논의(2) · 오른쪽: 전문(1) + 어시스턴트(3) */
+                /* 왼쪽: 대화(0) + 논의(2) · 가운데: 전문(1) + 어시스턴트(3) */
                 <div key={colIdx} className="min-w-0 space-y-3">
                   {[MODE_GROUPS[i1], MODE_GROUPS[i2]].map((group) => (
                     <div key={group.label}>
@@ -487,6 +469,24 @@ export function MainModeTabs({
                   ))}
                 </div>
               ))}
+              {/* 오른쪽 컬럼: 라이프·재미 + 건강·실용 (엔터테인먼트) */}
+              <div className="min-w-0 space-y-3">
+                {LIFE_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                      <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                        {group.label}
+                      </span>
+                      <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                        {group.description}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {group.items.map(renderLifeToolItem)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
