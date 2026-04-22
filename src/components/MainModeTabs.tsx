@@ -10,7 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
   FlaskConical, BookOpen, ChevronDown, MessagesSquare, Telescope,
-  Globe, FileText, Presentation, Mic,
+  Globe, FileText, Presentation, Mic, ArrowRight,
 } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
@@ -357,12 +357,34 @@ export function MainModeTabs({
                         </span>
                       </div>
                       <div className="space-y-0.5">
-                        {/* 도구 그룹: 4 도구 먼저, 어시스턴트 전체 링크 마지막 */}
-                        {group.label === '도구' && ASSISTANT_FEATURED_TOOLS.map(renderAssistantToolItem)}
-                        {group.modes.flatMap((m) =>
-                          m === 'debate'
-                            ? DEBATE_SUBS.map(renderDebateSubItem)
-                            : [renderModeItem(m)]
+                        {/* 도구 그룹: 대표 4 도구 먼저, 구분선 + "더 보기" 링크 */}
+                        {group.label === '도구' ? (
+                          <>
+                            {ASSISTANT_FEATURED_TOOLS.map(renderAssistantToolItem)}
+                            <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                            <button
+                              type="button"
+                              onClick={() => handleSelect('assistant')}
+                              role="menuitem"
+                              className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                            >
+                              <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                                <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                              </span>
+                              <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                                <span className="text-[12px] font-medium">도구 더 보기</span>
+                                <span className="text-[10px] font-mono text-muted-foreground/80 bg-[hsl(var(--surface-2))] px-1.5 py-0.5 rounded-full">
+                                  +10
+                                </span>
+                              </span>
+                            </button>
+                          </>
+                        ) : (
+                          group.modes.flatMap((m) =>
+                            m === 'debate'
+                              ? DEBATE_SUBS.map(renderDebateSubItem)
+                              : [renderModeItem(m)]
+                          )
                         )}
                       </div>
                     </div>
