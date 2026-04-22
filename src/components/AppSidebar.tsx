@@ -995,13 +995,13 @@ export function AppSidebar({
           {(() => {
             const items = [
               { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
-              { icon: Plus, label: '새 대화', onClick: () => { onNewDiscussion?.(); } },
               { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
               { icon: Search, label: '검색 (⌘K)', onClick: () => {
                   const ev = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, metaKey: true, bubbles: true });
                   window.dispatchEvent(ev);
                 }
               },
+              { icon: Settings, label: '설정', onClick: () => { setSettingsSection('general'); setSettingsOpen(true); } },
             ];
             return isOpen ? (
               // Phase D-3 보정: 아래 모드 섹션과 일관된 밀도·톤. 메인 칸의 이질 하이라이트 제거.
