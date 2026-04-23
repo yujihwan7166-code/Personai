@@ -251,40 +251,26 @@ export const ASSISTANT_TILES: Array<{
   { cardId: 'spreadsheet',    label: '엑셀·표',     icon: FileSpreadsheet, tint: 'hsl(135 55% 42%)', placeholder: true },
 ];
 
-/** 바텀 Zone A — AI 워크플로우 예시 3종 (요약+퀴즈 · 이미지+영상 · 이메일+PPT). */
-export const ASSISTANT_WORKFLOWS: Array<{
-  id: string;
-  title: string;
-  desc: string;
-  emoji: string;
-  tint: string;
-  targetMode: MainMode;
-  targetCard?: string;
-}> = [
-  { id: 'wf-study',   title: '요약 + 퀴즈',  desc: '긴 문서를 학습 자료로',  emoji: '📄', tint: 'hsl(45 85% 55%)',  targetMode: 'study_main' },
-  { id: 'wf-visual',  title: '이미지 + 영상', desc: '한 주제로 비주얼 세트', emoji: '🎨', tint: 'hsl(340 70% 55%)', targetMode: 'assistant', targetCard: 'image-gen' },
-  { id: 'wf-work',    title: '이메일 + PPT', desc: '회의록에서 산출물로',   emoji: '📧', tint: 'hsl(210 70% 55%)', targetMode: 'assistant', targetCard: 'ppt' },
-];
-
-/** 바텀 Zone B — 오늘의 발견 (Hero 1 + Sub 2). v1 은 하드코드, v2 에서 회전/개인화. */
-export const DAILY_DISCOVER_HERO = {
-  id: 'saju',
-  title: '오늘의 AI 사주',
-  desc: '생년월일과 MBTI로 오늘의 흐름 해석',
-  emoji: '🔮',
-  tint: 'hsl(262 70% 55%)',
-  lifeToolId: 'saju',
+/** 좌측 컬럼 — 날씨 위젯 (v1 하드코드, v2 API 연동). */
+export const WEATHER_WIDGET = {
+  city: '서울',
+  temp: 13,
+  condition: '맑음',
+  emoji: '☀️',
+  tint: 'hsl(210 70% 55%)',
 };
-export const DAILY_DISCOVER_SUBS: Array<{
-  id: string;
-  title: string;
-  desc: string;
-  emoji: string;
-  tint: string;
-  lifeToolId: string;
+
+/** 좌측 컬럼 — 환율 위젯 (v1 하드코드, v2 API 연동). */
+export const EXCHANGE_RATES: Array<{
+  code: string;
+  label: string;
+  rate: string;
+  change: number; // 양수=상승, 음수=하락
+  flag: string;
 }> = [
-  { id: 'things-to-do', title: '놀거리',      desc: '지역·날씨별 추천',   emoji: '🎯', tint: 'hsl(25 85% 55%)',  lifeToolId: 'things-to-do' },
-  { id: 'mbti-match',   title: 'MBTI 궁합',   desc: '관계 강점·갈등 분석', emoji: '🧠', tint: 'hsl(210 60% 55%)', lifeToolId: 'mbti-match' },
+  { code: 'USD', label: '달러', rate: '1,342', change: 0.3,  flag: '🇺🇸' },
+  { code: 'JPY', label: '엔',   rate: '9.12',  change: -0.1, flag: '🇯🇵' },
+  { code: 'EUR', label: '유로', rate: '1,451', change: 0.5,  flag: '🇪🇺' },
 ];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
@@ -322,6 +308,14 @@ export function MainModeTabs({
   const [openLifeSubgroup, setOpenLifeSubgroup] = useState<LifeSubgroupId | null>(null);
   /** AI 토론 세부 뷰 — 전문 그룹 자체가 드릴다운 전환(라이프 서브그룹 패턴). */
   const [debateOpen, setDebateOpen] = useState(false);
+  /** 좌측 컬럼 시계 — 분 단위 업데이트. */
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    if (!open) return;
+    setNow(new Date());
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, [open]);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
@@ -392,22 +386,6 @@ export function MainModeTabs({
   const handleSelectSub = (sub: DebateSubMode) => {
     setOpen(false);
     setTimeout(() => onSelectDebateSub?.(sub), 40);
-  };
-
-  const handleWorkflow = (wf: typeof ASSISTANT_WORKFLOWS[number]) => {
-    setOpen(false);
-    setTimeout(() => {
-      if (wf.targetMode !== currentMode) onChange(wf.targetMode);
-      if (wf.targetCard) onSelectAssistantCard?.(wf.targetCard);
-    }, 40);
-  };
-
-  const handleDiscoverLife = (toolId: string) => {
-    setOpen(false);
-    setTimeout(() => {
-      if (currentMode !== 'general') onChange('general');
-      onSelectLifeTool?.(toolId);
-    }, 40);
   };
 
   const handleSelectAssistantTool = (cardId: string) => {
@@ -712,43 +690,70 @@ export function MainModeTabs({
           >
             {/* 4 컬럼 — 유틸리티(검색·날씨·타일) / 대화+전문 / 라이프 / 플레이어 */}
             <div className="grid grid-cols-4 gap-x-3 p-4">
-              {/* 좌측 컬럼: 빠른검색 + AI 실무 도구 타일 (스카이워크) */}
-              <div className="min-w-0 flex flex-col">
-                <div className="space-y-3">
-                  <div className="px-1 -mt-1">
-                    <QuickSearchBar />
+              {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·날씨·환율) */}
+              <div className="min-w-0 flex flex-col space-y-3">
+                <div className="px-1 -mt-1">
+                  <QuickSearchBar />
+                </div>
+                <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
+                {/* 시계 + 날짜 */}
+                <div className="px-1">
+                  <div className="text-[26px] font-semibold tracking-tight leading-none text-foreground tabular-nums">
+                    {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                   </div>
-                  <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-                  {/* AI 실무 도구 — 2x4 타일 그리드 */}
-                  <div>
-                    <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
-                      <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                        AI 어시스턴트
-                      </span>
-                      <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                        실무 도구
-                      </span>
+                  <div className="text-[11px] text-muted-foreground mt-1">
+                    {now.getMonth() + 1}월 {now.getDate()}일 {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
+                  </div>
+                </div>
+                {/* 날씨 카드 */}
+                <div
+                  className="flex items-center gap-2.5 p-3 rounded-xl"
+                  style={{ backgroundColor: `color-mix(in oklab, ${WEATHER_WIDGET.tint} 10%, transparent)` }}
+                >
+                  <span className="text-[24px] leading-none select-none">{WEATHER_WIDGET.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      {WEATHER_WIDGET.city}
                     </div>
-                    <div className="grid grid-cols-2 gap-1.5 px-1">
-                      {ASSISTANT_TILES.map(renderAssistantTile)}
+                    <div className="text-[14px] font-semibold text-foreground/90 leading-tight mt-0.5">
+                      {WEATHER_WIDGET.temp}° · {WEATHER_WIDGET.condition}
                     </div>
                   </div>
                 </div>
-                {/* footer — 타일 바로 아래 붙임 */}
-                <div className="mt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleSelect('assistant')}
-                    role="menuitem"
-                    className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
-                  >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
-                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                {/* 환율 */}
+                <div>
+                  <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      💱 환율
                     </span>
-                    <span className="min-w-0 flex-1 flex items-center gap-1.5">
-                      <span className="text-[12px] font-medium">도구 더 보기</span>
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                      실시간 시세
                     </span>
-                  </button>
+                  </div>
+                  <div className="space-y-1 px-1">
+                    {EXCHANGE_RATES.map((fx) => {
+                      const isUp = fx.change > 0;
+                      const isFlat = fx.change === 0;
+                      return (
+                        <div
+                          key={fx.code}
+                          className="flex items-center gap-2 py-1 text-[11.5px] tabular-nums"
+                        >
+                          <span className="text-[13px] leading-none">{fx.flag}</span>
+                          <span className="font-mono text-muted-foreground/80 w-8 shrink-0">{fx.code}</span>
+                          <span className="font-semibold text-foreground/90 flex-1">{fx.rate}</span>
+                          <span
+                            className={cn(
+                              'font-mono text-[10.5px] shrink-0',
+                              isFlat ? 'text-muted-foreground' : isUp ? 'text-rose-500' : 'text-blue-500',
+                            )}
+                          >
+                            {isUp ? '▲' : isFlat ? '—' : '▼'} {Math.abs(fx.change).toFixed(1)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
@@ -991,110 +996,54 @@ export function MainModeTabs({
               </div>
             </div>
 
-            {/* ── 바텀 피처드 밴드 — Zone A(AI 워크플로우) + Zone B(오늘의 발견) ── */}
+            {/* ── 바텀 Hero 밴드 — AI 어시스턴트 6카드 (실무 도구 일렬) ── */}
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-            <div className="grid grid-cols-4 gap-3 px-4 py-3">
-              {/* Zone A — 좌측 2컬럼: AI 워크플로우 예시 3종 */}
-              <div className="col-span-2 min-w-0">
-                <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                    AI 워크플로우
-                  </span>
-                  <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                    조합으로 쓰는 실무 예시
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {ASSISTANT_WORKFLOWS.map((wf) => (
+            <div className="px-4 py-3">
+              <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                  AI 어시스턴트
+                </span>
+                <span className="text-[10.5px] text-muted-foreground/70 truncate flex-1">
+                  실무 도구
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSelect('assistant')}
+                  className="text-[10.5px] text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
+                >
+                  도구 더 보기
+                  <ArrowRight className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="grid grid-cols-6 gap-2">
+                {ASSISTANT_TILES.slice(0, 6).map((tile) => {
+                  const Icon = tile.icon;
+                  const isActive = currentMode === 'assistant' && currentAssistantCard === tile.cardId;
+                  return (
                     <button
-                      key={wf.id}
+                      key={`hero-${tile.cardId}`}
                       type="button"
-                      onClick={() => handleWorkflow(wf)}
+                      onClick={() => handleSelectAssistantTool(tile.cardId)}
                       role="menuitem"
-                      className="group flex flex-col items-start gap-1 p-2.5 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5 min-w-0"
-                      style={{ backgroundColor: `color-mix(in oklab, ${wf.tint} 10%, transparent)` }}
+                      className={cn(
+                        'group flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5',
+                        tile.placeholder && 'opacity-85',
+                        isActive && 'ring-2 ring-offset-1 ring-[hsl(var(--ring))]',
+                      )}
+                      style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 10%, transparent)` }}
                     >
                       <span
-                        className="flex h-7 w-7 items-center justify-center rounded-lg shrink-0"
-                        style={{ backgroundColor: `color-mix(in oklab, ${wf.tint} 22%, transparent)` }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110"
+                        style={{ color: tile.tint }}
                       >
-                        <span className="text-[15px] leading-none select-none">{wf.emoji}</span>
+                        <Icon className="h-4 w-4" strokeWidth={2} />
                       </span>
-                      <span className="block text-[11.5px] font-semibold text-foreground/90 truncate max-w-full mt-0.5">
-                        {wf.title}
-                      </span>
-                      <span className="block text-[10px] text-muted-foreground leading-tight truncate max-w-full">
-                        {wf.desc}
+                      <span className="text-[11px] font-semibold leading-none truncate max-w-full text-foreground/85">
+                        {tile.label}
                       </span>
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Zone B — 우측 2컬럼: 오늘의 발견 (Hero + Sub 2) */}
-              <div className="col-span-2 min-w-0">
-                <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                    오늘의 발견
-                  </span>
-                  <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                    매일 새로운 추천
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {/* Hero */}
-                  <button
-                    type="button"
-                    onClick={() => handleDiscoverLife(DAILY_DISCOVER_HERO.lifeToolId)}
-                    role="menuitem"
-                    className="group w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5"
-                    style={{ backgroundColor: `color-mix(in oklab, ${DAILY_DISCOVER_HERO.tint} 11%, transparent)` }}
-                  >
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
-                      style={{ backgroundColor: `color-mix(in oklab, ${DAILY_DISCOVER_HERO.tint} 22%, transparent)` }}
-                    >
-                      <span className="text-[22px] leading-none select-none">{DAILY_DISCOVER_HERO.emoji}</span>
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[12.5px] font-semibold text-foreground/90 truncate">
-                        {DAILY_DISCOVER_HERO.title}
-                      </span>
-                      <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                        {DAILY_DISCOVER_HERO.desc}
-                      </span>
-                    </span>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/70 transition-transform group-hover:translate-x-0.5 shrink-0" />
-                  </button>
-                  {/* Sub 2개 */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {DAILY_DISCOVER_SUBS.map((sub) => (
-                      <button
-                        key={sub.id}
-                        type="button"
-                        onClick={() => handleDiscoverLife(sub.lifeToolId)}
-                        role="menuitem"
-                        className="group flex items-center gap-2 p-2 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5 min-w-0"
-                        style={{ backgroundColor: `color-mix(in oklab, ${sub.tint} 10%, transparent)` }}
-                      >
-                        <span
-                          className="flex h-7 w-7 items-center justify-center rounded-lg shrink-0"
-                          style={{ backgroundColor: `color-mix(in oklab, ${sub.tint} 22%, transparent)` }}
-                        >
-                          <span className="text-[14px] leading-none select-none">{sub.emoji}</span>
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[11.5px] font-semibold text-foreground/90 truncate">
-                            {sub.title}
-                          </span>
-                          <span className="block text-[9.5px] text-muted-foreground truncate mt-0.5">
-                            {sub.desc}
-                          </span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                  );
+                })}
               </div>
             </div>
           </motion.div>
