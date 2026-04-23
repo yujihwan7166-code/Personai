@@ -9,12 +9,13 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
-  FlaskConical, BookOpen, ChevronDown, MessagesSquare, Telescope,
+  FlaskConical, BookOpen, ChevronDown, ChevronRight, ChevronLeft, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
 } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
+import { QuickSearchBar } from './QuickSearchBar';
 
 interface MainModeTabsProps {
   modes: MainMode[];
@@ -37,11 +38,22 @@ interface MainModeTabsProps {
   onSelectLifeTool?: (toolId: string) => void;
   /** 라이프 도구 "더 보기" 클릭 — LifeToolBrowserModal 트리거. */
   onOpenLifeBrowser?: () => void;
+  /** 멘탈 테스트 모음 페이지 트리거 — 드롭다운 mental 그룹 서브 뷰에서 호출. */
+  onOpenMentalTests?: () => void;
   /** 플레이어 도구 (캐릭터챗/게임/롤플레이 등) 선택 콜백. */
   onSelectPlayerTool?: (toolId: string) => void;
   /** 플레이어 "더 보기" 클릭 — PlayerToolBrowserModal 트리거. */
   onOpenPlayerBrowser?: () => void;
 }
+
+/** 라이프 서브 그룹 — 드롭다운에서 여러 도구를 한 칩으로 묶는 단위. */
+export type LifeSubgroupId = 'fortune' | 'mental' | 'health';
+
+export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: string; description: string; tint: string }> = {
+  fortune: { emoji: '🔮', label: '사주·타로',   description: '사주·타로·꿈·토정 등',        tint: 'hsl(262 70% 55%)' },
+  mental:  { emoji: '🧠', label: '멘탈 테스트', description: 'MBTI·자가체크·심리 테스트',   tint: 'hsl(210 60% 55%)' },
+  health:  { emoji: '🩺', label: '건강 도우미', description: '운동·영양제·수면·식단',        tint: 'hsl(170 60% 42%)' },
+};
 
 /** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
 export const LIFE_TOOLS: Array<{
@@ -50,27 +62,63 @@ export const LIFE_TOOLS: Array<{
   desc?: string;
   emoji: string;
   tint: string;
-  /** 드롭다운 노출 여부. false 면 "라이프 더 보기" 모달에서만 노출. */
+  /** 드롭다운 직행 노출 여부. false 면 "라이프 더 보기" 또는 서브 그룹에서만 노출. */
   featured: boolean;
+  /** 소속 서브 그룹. 지정하면 드롭다운에서 해당 그룹 칩 하위로 들어감. */
+  group?: LifeSubgroupId;
 }> = [
-  { id: 'saju',       label: 'AI 사주',       desc: '생년월일 + MBTI 풀이',      emoji: '🔮', tint: 'hsl(262 83% 58%)', featured: true  },
-  { id: 'tarot',      label: '타로 · MBTI',   desc: '카드 뽑기 · 성격 분석',     emoji: '🎴', tint: 'hsl(320 70% 55%)', featured: true  },
-  { id: 'dream',      label: '꿈 해몽',       desc: '꿈 내용 → 상징 해석',       emoji: '🌙', tint: 'hsl(240 60% 58%)', featured: true  },
-  { id: 'dating',     label: '연애 코치',     desc: '썸·데이트·이별 조언',       emoji: '💌', tint: 'hsl(350 80% 62%)', featured: true  },
-  { id: 'workout',    label: '운동 코치',     desc: '홈트·헬스·요가 루틴',       emoji: '💪', tint: 'hsl(155 65% 45%)', featured: true  },
-  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',        emoji: '🍳', tint: 'hsl(18 80% 55%)',  featured: true  },
-  { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',          emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: true  },
-  // ── 2026-04 추가: 국내 수요 + 해외 벤치마크 기반 6개 ──
-  { id: 'color',      label: '퍼스널 컬러',   desc: '웜톤·쿨톤 진단 + 팔레트',   emoji: '🎨', tint: 'hsl(295 70% 58%)', featured: true  },
-  // 드롭다운은 퍼스널 컬러까지만 노출 — 아래 항목들은 "라이프 더 보기" 모달에서만 등장
-  { id: 'style',      label: '스타일 코디',   desc: '체형·상황·계절별 코디',     emoji: '👗', tint: 'hsl(335 75% 60%)', featured: false },
-  { id: 'date-course',label: '데이트 코스',   desc: '지역·예산·테마로 코스',     emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: false },
-  { id: 'gift',       label: '선물 추천',     desc: '관계·기념일·예산별 제안',   emoji: '🎁', tint: 'hsl(145 60% 45%)', featured: false },
-  { id: 'content',    label: '콘텐츠 추천',   desc: '책·영화·드라마 취향 맞춤',  emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: false },
-  { id: 'interior',   label: '인테리어',      desc: '방 배치·컬러·가구 제안',    emoji: '🛋️', tint: 'hsl(40 55% 50%)',  featured: false },
-  // ── 기존 비공개 ──
-  { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',       emoji: '📔', tint: 'hsl(32 80% 55%)',  featured: false },
-  { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',          emoji: '🧘', tint: 'hsl(175 55% 45%)', featured: false },
+  { id: 'saju',       label: 'AI 사주',       desc: '생년월일 + MBTI 풀이',      emoji: '🔮', tint: 'hsl(262 83% 58%)', featured: false, group: 'fortune'   },
+  { id: 'tarot',      label: '타로 카드',     desc: '카드 뽑기 · 메시지 해석',   emoji: '🎴', tint: 'hsl(320 70% 55%)', featured: false, group: 'fortune'   },
+  { id: 'dream',      label: '꿈 해몽',       desc: '꿈 내용 → 상징 해석',       emoji: '🌙', tint: 'hsl(240 60% 58%)', featured: false, group: 'fortune'   },
+  { id: 'tojeong',    label: '토정비결',      desc: '올해 운세 · 월별 흐름',     emoji: '📜', tint: 'hsl(35 75% 48%)',  featured: false, group: 'fortune'   },
+  // ── 2026-04 추가 (fortune 그룹 확장) ──
+  { id: 'daily',      label: '일일운세',      desc: '오늘의 종합·애정·재물',     emoji: '🌟', tint: 'hsl(50 90% 55%)',  featured: false, group: 'fortune'   },
+  { id: 'naming',     label: '이름 풀이·작명', desc: '사람·아기·반려·브랜드',     emoji: '✍️', tint: 'hsl(160 45% 45%)', featured: false, group: 'fortune'   },
+  { id: 'past-life',  label: '나의 전생',     desc: '전생 직업·시대·이야기',     emoji: '👤', tint: 'hsl(280 40% 48%)', featured: false, group: 'fortune'   },
+  { id: 'dating',     label: '연애 코치',     desc: '썸·데이트·이별 조언',       emoji: '💌', tint: 'hsl(350 80% 62%)', featured: true                       },
+  // ── 건강 도우미 그룹 ──
+  { id: 'workout',    label: '운동 코치',     desc: '홈트·헬스·요가 루틴',       emoji: '💪', tint: 'hsl(155 65% 45%)', featured: false, group: 'health'    },
+  { id: 'supplement', label: '영양제 추천',   desc: '증상·목표별 영양제 조합',   emoji: '💊', tint: 'hsl(100 55% 42%)', featured: false, group: 'health'    },
+  { id: 'sleep',      label: '수면 코치',     desc: '불면·취침 루틴·수면 일지',  emoji: '💤', tint: 'hsl(225 55% 55%)', featured: false, group: 'health'    },
+  { id: 'meal-plan',  label: '식단 관리',     desc: '목표별 식단·칼로리·알러지', emoji: '🥗', tint: 'hsl(95 60% 42%)',  featured: false, group: 'health'    },
+  { id: 'stretching', label: '자세·스트레칭', desc: '거북목·허리·하체 루틴',     emoji: '🧎', tint: 'hsl(180 55% 42%)', featured: false, group: 'health'    },
+  { id: 'checkup',    label: '건강검진 해석', desc: '수치·소견 쉬운 해설',       emoji: '🩺', tint: 'hsl(170 60% 38%)', featured: false, group: 'health'    },
+  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',        emoji: '🍳', tint: 'hsl(18 80% 55%)',  featured: true                       },
+  { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',          emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: true                       },
+  { id: 'color',      label: '퍼스널 컬러',   desc: '웜톤·쿨톤 진단 + 팔레트',   emoji: '🎨', tint: 'hsl(295 70% 58%)', featured: true                       },
+  // ── "라이프 더 보기" 모달 전용 (드롭다운 비노출) ──
+  { id: 'style',      label: '스타일 코디',   desc: '체형·상황·계절별 코디',     emoji: '👗', tint: 'hsl(335 75% 60%)', featured: false                     },
+  { id: 'date-course',label: '데이트 코스',   desc: '지역·예산·테마로 코스',     emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: false                     },
+  { id: 'gift',       label: '선물 추천',     desc: '관계·기념일·예산별 제안',   emoji: '🎁', tint: 'hsl(145 60% 45%)', featured: false                     },
+  { id: 'content',    label: '콘텐츠 추천',   desc: '책·영화·드라마 취향 맞춤',  emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: false                     },
+  { id: 'interior',   label: '인테리어',      desc: '방 배치·컬러·가구 제안',    emoji: '🛋️', tint: 'hsl(40 55% 50%)',  featured: false                     },
+  { id: 'apology',    label: '사과문 생성',   desc: '관계·사안별 사과문 3단',    emoji: '🙇', tint: 'hsl(220 40% 50%)', featured: false                     },
+  // ── 멘탈·심리 그룹 ──
+  { id: 'mbti-match', label: 'MBTI 궁합',     desc: '관계별 강점·갈등 분석',     emoji: '🤝', tint: 'hsl(205 60% 50%)', featured: false, group: 'mental'    },
+  { id: 'mood-check', label: '우울·불안 체크', desc: 'PHQ-9·GAD-7 자가 스크리닝', emoji: '🌧️', tint: 'hsl(250 55% 58%)', featured: false, group: 'mental'    },
+  { id: 'adhd-check', label: 'ADHD 자가 체크', desc: 'ASRS-v1.1 성인 ADHD 체크',  emoji: '🎯', tint: 'hsl(285 55% 55%)', featured: false, group: 'mental'    },
+  // ── 기존 비공개 (그룹 미지정) ──
+  { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',       emoji: '📔', tint: 'hsl(32 80% 55%)',  featured: false                     },
+  { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',          emoji: '🧘', tint: 'hsl(175 55% 45%)', featured: false                     },
+];
+
+/**
+ * 드롭다운 라이프 컬럼 렌더용 — 직행 도구 + 서브 그룹 칩을 한 줄씩 나열.
+ * 순서: 사주(대표) → 🔮 다른 운세(그룹) → 직행 도구들 → 🧠 멘탈·심리(그룹)
+ */
+export const LIFE_DROPDOWN_ENTRIES: Array<
+  | { kind: 'tool'; toolId: string }
+  | { kind: 'group'; groupId: LifeSubgroupId }
+  | { kind: 'mental-tests' }  // 심리 테스트 모음 페이지 바로가기
+> = [
+  { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로
+  { kind: 'group', groupId: 'mental' },    // 🧠 멘탈 테스트
+  { kind: 'mental-tests' },                // ✨ 심리 테스트 모음 — 멘탈 바로 아래
+  { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미 — 심리 바로 아래
+  { kind: 'tool',  toolId: 'dating'  },
+  { kind: 'tool',  toolId: 'recipe'  },
+  { kind: 'tool',  toolId: 'travel'  },
+  { kind: 'tool',  toolId: 'color'   },
 ];
 
 /** 드롭다운 노출용 featured 서브셋. */
@@ -95,6 +143,9 @@ export const PLAYER_TOOLS: Array<{
   { id: 'ai-game',        label: 'AI 게임',      desc: '끝말잇기·스무고개·진실',      emoji: '🎮', tint: 'hsl(142 70% 42%)', featured: true  },
   { id: 'story-rpg',      label: '스토리 RPG',   desc: 'AI 가 DM, 선택형 모험',       emoji: '📖', tint: 'hsl(25 80% 50%)',  featured: true  },
   { id: 'detective',      label: '추리 게임',    desc: '용의자 심문 · 범인 찾기',     emoji: '🕵️', tint: 'hsl(215 60% 40%)', featured: true  },
+  // ── 2026-04 추가: 국내 밈·바이럴 상위 2종 ──
+  { id: 'worldcup',       label: '이상형 월드컵', desc: '양자택일 토너먼트 · 공유',   emoji: '🏆', tint: 'hsl(45 95% 55%)',  featured: true  },
+  { id: 'balance-game',   label: '밸런스 게임',  desc: '양자택일 시리즈 · 프로파일', emoji: '⚖️', tint: 'hsl(200 75% 50%)', featured: true  },
   // 더 보기 전용
   { id: 'roleplay',       label: '롤플레이',     desc: '면접·카페·데이트 상황극',     emoji: '🎪', tint: 'hsl(340 65% 55%)', featured: false },
   { id: 'ai-friend',      label: 'AI 친구',      desc: '일상 컴패니언 · 반말 대화',   emoji: '🌐', tint: 'hsl(190 60% 48%)', featured: false },
@@ -142,11 +193,10 @@ export const MODE_TINT: Record<MainMode, string> = {
   media_main:       'hsl(var(--mode-assistant))',
 };
 
-/** 사용자 요청 목록에 맞춘 4 그룹 그룹핑. */
+/** 사용자 요청 목록에 맞춘 그룹핑. 'debate' 는 전문 그룹 내부에서 아코디언으로 노출. */
 export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
   { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'research_main'] },
-  { label: '전문',  description: '자문 · 학습',           modes: ['study_main', 'premium_main', 'stakeholder_main'] },
-  { label: '논의',  description: '토론 · 브레인스토밍',   modes: ['debate'] },
+  { label: '전문',  description: '자문 · 학습 · 토론',    modes: ['study_main', 'premium_main', 'stakeholder_main', 'debate'] },
   { label: 'AI 어시스턴트',  description: '실무 도구',      modes: ['assistant'] },
 ];
 
@@ -203,10 +253,15 @@ export function MainModeTabs({
   onSelectAssistantCard,
   onSelectLifeTool,
   onOpenLifeBrowser,
+  onOpenMentalTests,
   onSelectPlayerTool,
   onOpenPlayerBrowser,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
+  /** 라이프 컬럼에서 열려 있는 서브 그룹 (null 이면 메인 뷰). */
+  const [openLifeSubgroup, setOpenLifeSubgroup] = useState<LifeSubgroupId | null>(null);
+  /** AI 토론 아코디언 펼침 상태 — 전문 그룹 내부. */
+  const [debateOpen, setDebateOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
@@ -243,14 +298,30 @@ export function MainModeTabs({
       if (panelRef.current?.contains(target)) return;
       setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // 서브 그룹 열려 있으면 그것만 닫고, 그 외엔 드롭다운 전체 닫기
+        if (openLifeSubgroup) setOpenLifeSubgroup(null);
+        else setOpen(false);
+      }
+    };
     window.addEventListener('mousedown', onClick);
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('mousedown', onClick);
       window.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [open, openLifeSubgroup]);
+
+  // 드롭다운 닫힐 때 서브 그룹 상태도 초기화
+  useEffect(() => {
+    if (!open && openLifeSubgroup) setOpenLifeSubgroup(null);
+  }, [open, openLifeSubgroup]);
+
+  // 드롭다운 닫힐 때 AI 토론 아코디언도 접기
+  useEffect(() => {
+    if (!open && debateOpen) setDebateOpen(false);
+  }, [open, debateOpen]);
 
   const handleSelect = (m: MainMode) => {
     setOpen(false);
@@ -379,6 +450,41 @@ export function MainModeTabs({
     </button>
   );
 
+  /** 라이프 서브 그룹 칩 — 클릭 시 드롭다운 라이프 컬럼이 해당 그룹 전용 뷰로 전환. */
+  const renderLifeGroupChip = (groupId: LifeSubgroupId) => {
+    const group = LIFE_SUBGROUPS[groupId];
+    const count = LIFE_TOOLS.filter((t) => t.group === groupId).length;
+    // 그룹 소속 도구가 0개면 칩 자체를 숨김 (데이터 정합성)
+    if (count === 0) return null;
+    return (
+      <button
+        key={`life-group-${groupId}`}
+        type="button"
+        onClick={() => setOpenLifeSubgroup(groupId)}
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={openLifeSubgroup === groupId}
+        className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+      >
+        <span
+          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)` }}
+        >
+          <span className="text-[15px] leading-none select-none">{group.emoji}</span>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+            {group.label}
+          </span>
+          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+            {group.description}
+          </span>
+        </span>
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+      </button>
+    );
+  };
+
   const renderAssistantToolItem = (tool: typeof ASSISTANT_FEATURED_TOOLS[number]) => {
     const Icon = tool.icon;
     const isActive = currentMode === 'assistant' && currentAssistantCard === tool.cardId;
@@ -495,13 +601,13 @@ export function MainModeTabs({
               'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
             )}
           >
-            {/* 3 컬럼 독립 흐름 — 왼쪽: 대화+논의 / 가운데: 전문+AI 어시스턴트 / 오른쪽: 라이프·재미+건강·실용 */}
+            {/* 4 컬럼 — 왼쪽: 대화 / 가운데: 전문(토론 아코디언 포함)+AI 어시스턴트 / 오른쪽: 라이프 / 플레이어 */}
             <div className="grid grid-cols-4 gap-x-3 p-4">
-              {/* 왼쪽·가운데 컬럼: 기존 MODE_GROUPS (주 작업) */}
-              {[[0, 2], [1, 3]].map(([i1, i2], colIdx) => (
-                /* 왼쪽: 대화(0) + 논의(2) · 가운데: 전문(1) + 어시스턴트(3) */
+              {/* 왼쪽·가운데 컬럼: MODE_GROUPS (대화 · 전문+어시) */}
+              {[[0], [1, 2]].map((indices, colIdx) => (
+                /* 왼쪽: 대화(0) · 가운데: 전문(1) + 어시스턴트(2) */
                 <div key={colIdx} className="min-w-0 space-y-3">
-                  {[MODE_GROUPS[i1], MODE_GROUPS[i2]].map((group) => (
+                  {indices.map((i) => MODE_GROUPS[i]).map((group) => (
                     <div key={group.label}>
                       <div className="mb-1.5 flex items-baseline gap-2 px-1">
                         <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -535,11 +641,74 @@ export function MainModeTabs({
                             </button>
                           </>
                         ) : (
-                          group.modes.flatMap((m) =>
-                            m === 'debate'
-                              ? DEBATE_SUBS.map(renderDebateSubItem)
-                              : [renderModeItem(m)]
-                          )
+                          group.modes.flatMap((m) => {
+                            if (m === 'debate') {
+                              // AI 토론: 아코디언 헤더 + 접힘/펼침 내부에 DEBATE_SUBS
+                              const isDebateActive = currentMode === 'debate';
+                              return [
+                                <button
+                                  key="debate-accordion-head"
+                                  type="button"
+                                  onClick={() => setDebateOpen((v) => !v)}
+                                  role="menuitem"
+                                  aria-haspopup="menu"
+                                  aria-expanded={debateOpen}
+                                  className={cn(
+                                    'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+                                    'hover:bg-[hsl(var(--accent))]',
+                                    isDebateActive && 'bg-[hsl(var(--accent))]',
+                                  )}
+                                >
+                                  <span
+                                    className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                                    style={{
+                                      backgroundColor: `color-mix(in oklab, ${MODE_TINT.debate} 12%, transparent)`,
+                                      color: MODE_TINT.debate,
+                                    }}
+                                  >
+                                    <Swords className="h-3.5 w-3.5" strokeWidth={isDebateActive ? 2.2 : 1.8} />
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className={cn('block text-[12.5px] leading-tight truncate', isDebateActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+                                      AI 토론
+                                    </span>
+                                    <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                                      찬반 · 자유 · 심층 · 브레인스토밍
+                                    </span>
+                                  </span>
+                                  <ChevronDown
+                                    className={cn('h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-200', debateOpen && 'rotate-180')}
+                                    aria-hidden
+                                  />
+                                </button>,
+                                <AnimatePresence key="debate-accordion-body" initial={false}>
+                                  {debateOpen && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                                      className="overflow-hidden"
+                                    >
+                                      <div className="pl-4 pt-0.5 pb-0.5 space-y-0.5 border-l border-[hsl(var(--hairline))] ml-3">
+                                        {DEBATE_SUBS.map(renderDebateSubItem)}
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>,
+                              ];
+                            }
+                            return [renderModeItem(m)];
+                          })
+                        )}
+                        {/* 대화 그룹 하단: 빠른 웹 검색 바 (심층 리서치 바로 아래) */}
+                        {group.label === '대화' && (
+                          <>
+                            <div className="my-2 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                            <div className="px-1 pb-1">
+                              <QuickSearchBar />
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>
@@ -549,16 +718,89 @@ export function MainModeTabs({
               {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + 더보기 */}
               <div className="min-w-0 space-y-3">
                 <div>
-                  <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      {LIFE_GROUP.label}
-                    </span>
-                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                      {LIFE_GROUP.description}
-                    </span>
+                  <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                    {openLifeSubgroup ? (
+                      <button
+                        type="button"
+                        onClick={() => setOpenLifeSubgroup(null)}
+                        className="inline-flex items-center gap-1 text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="라이프 메인으로"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                        <span>{LIFE_SUBGROUPS[openLifeSubgroup].label}</span>
+                      </button>
+                    ) : (
+                      <>
+                        <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                          {LIFE_GROUP.label}
+                        </span>
+                        <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                          {LIFE_GROUP.description}
+                        </span>
+                      </>
+                    )}
                   </div>
-                  <div className="space-y-0.5">
-                    {LIFE_TOOLS_FEATURED.map(renderLifeToolItem)}
+                  <div className="relative overflow-hidden">
+                    <AnimatePresence mode="wait" initial={false}>
+                      {openLifeSubgroup ? (
+                        <motion.div
+                          key={`sub-${openLifeSubgroup}`}
+                          initial={{ opacity: 0, x: 16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 16 }}
+                          transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                          className="space-y-0.5"
+                        >
+                          {LIFE_TOOLS.filter((t) => t.group === openLifeSubgroup).map(renderLifeToolItem)}
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="main"
+                          initial={{ opacity: 0, x: -16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -16 }}
+                          transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                          className="space-y-0.5"
+                        >
+                          {LIFE_DROPDOWN_ENTRIES.map((entry, idx) => {
+                            if (entry.kind === 'tool') {
+                              const tool = LIFE_TOOLS.find((t) => t.id === entry.toolId);
+                              return tool ? renderLifeToolItem(tool) : null;
+                            }
+                            if (entry.kind === 'group') {
+                              return renderLifeGroupChip(entry.groupId);
+                            }
+                            // kind === 'mental-tests' — 심리 테스트 모음 페이지 바로가기
+                            if (!onOpenMentalTests) return null;
+                            return (
+                              <button
+                                key={`life-mental-tests-${idx}`}
+                                type="button"
+                                onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
+                                role="menuitem"
+                                className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                              >
+                                <span
+                                  className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                                  style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
+                                >
+                                  <span className="text-[15px] leading-none select-none">✨</span>
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+                                    심리 테스트 모음
+                                  </span>
+                                  <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                                    테토·에겐·에니어그램·휴먼디자인…
+                                  </span>
+                                </span>
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
                 {/* 라이프 "더 보기" — 전체 라이프 도구 모달 트리거 */}
