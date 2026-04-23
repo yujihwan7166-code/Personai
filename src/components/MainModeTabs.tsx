@@ -11,6 +11,7 @@ import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
   FlaskConical, BookOpen, ChevronDown, ChevronRight, ChevronLeft, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
+  Languages, PenLine, BookText, FileSpreadsheet,
 } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
@@ -234,17 +235,22 @@ export const ASSISTANT_FEATURED_TOOLS: Array<{
   { cardId: 'ppt',            label: 'PPT 생성',      desc: '프레젠테이션 자동',     icon: Presentation, tint: 'hsl(160 60% 40%)' },
 ];
 
-/** 스카이워크 타일 (좌측 컬럼 하단 2x2) — 실무 도구 즉석 진입. */
+/** 스카이워크 타일 (좌측 컬럼 하단 2x4 = 8개) — 실무 도구 즉석 진입.
+ *  translate 이후 4종은 임시 cardId (엑셀·글쓰기·요약·번역 확장) — 추후 ASSISTANT_CARDS 등록 시 자동 연결. */
 export const ASSISTANT_TILES: Array<{
   cardId: string;
   label: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   tint: string;
 }> = [
-  { cardId: 'image-gen',      label: '이미지·영상', icon: Wand2,        tint: 'hsl(340 70% 55%)' },
-  { cardId: 'voice-analysis', label: '음성',        icon: Mic,          tint: 'hsl(210 70% 55%)' },
-  { cardId: 'ppt',            label: 'PPT',         icon: Presentation, tint: 'hsl(28 80% 55%)' },
-  { cardId: 'file-convert',   label: '파일 변환',   icon: Files,        tint: 'hsl(280 60% 55%)' },
+  { cardId: 'image-gen',      label: '이미지·영상', icon: Wand2,           tint: 'hsl(340 70% 55%)' },
+  { cardId: 'voice-analysis', label: '음성',        icon: Mic,             tint: 'hsl(210 70% 55%)' },
+  { cardId: 'ppt',            label: 'PPT',         icon: Presentation,    tint: 'hsl(28 80% 55%)'  },
+  { cardId: 'file-convert',   label: '파일 변환',   icon: Files,           tint: 'hsl(280 60% 55%)' },
+  { cardId: 'translate',      label: '번역',        icon: Languages,       tint: 'hsl(170 65% 45%)' },
+  { cardId: 'writing',        label: '글쓰기',      icon: PenLine,         tint: 'hsl(45 80% 50%)'  },
+  { cardId: 'summarize',      label: '요약',        icon: BookText,        tint: 'hsl(200 55% 50%)' },
+  { cardId: 'spreadsheet',    label: '엑셀·표',     icon: FileSpreadsheet, tint: 'hsl(135 55% 42%)' },
 ];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
@@ -507,7 +513,7 @@ export function MainModeTabs({
     );
   };
 
-  /** 스카이워크 타일 — 2x2 그리드 아이템. 정방형, 컬러 배경, 아이콘+라벨. */
+  /** 스카이워크 타일 — 2x2 그리드, 컴팩트(세로 ~56px). 컬러 배경, 아이콘+라벨. */
   const renderAssistantTile = (tile: typeof ASSISTANT_TILES[number]) => {
     const Icon = tile.icon;
     const isActive = currentMode === 'assistant' && currentAssistantCard === tile.cardId;
@@ -518,20 +524,20 @@ export function MainModeTabs({
         onClick={() => handleSelectAssistantTool(tile.cardId)}
         role="menuitem"
         className={cn(
-          'group relative flex flex-col items-center justify-center aspect-square rounded-2xl p-2',
-          'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+          'group relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl',
+          'transition-all duration-200 hover:-translate-y-0.5',
           'border border-transparent',
           isActive && 'ring-2 ring-offset-1 ring-[hsl(var(--ring))]',
         )}
-        style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 13%, transparent)` }}
+        style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 12%, transparent)` }}
       >
         <span
-          className="flex h-9 w-9 items-center justify-center rounded-xl mb-1 transition-transform duration-200 group-hover:scale-105"
-          style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 22%, transparent)`, color: tile.tint }}
+          className="flex h-6 w-6 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-110"
+          style={{ color: tile.tint }}
         >
-          <Icon className="h-4 w-4" strokeWidth={2} />
+          <Icon className="h-3.5 w-3.5" strokeWidth={2} />
         </span>
-        <span className="text-[11px] font-semibold leading-none truncate max-w-full px-1" style={{ color: tile.tint }}>
+        <span className="text-[10.5px] font-semibold leading-none truncate max-w-full" style={{ color: tile.tint }}>
           {tile.label}
         </span>
       </button>
@@ -689,9 +695,6 @@ export function MainModeTabs({
                     </span>
                     <span className="min-w-0 flex-1 flex items-center gap-1.5">
                       <span className="text-[12px] font-medium">도구 더 보기</span>
-                      <span className="text-[10px] font-mono text-muted-foreground/80 bg-[hsl(var(--surface-2))] px-1.5 py-0.5 rounded-full">
-                        +1
-                      </span>
                     </span>
                   </button>
                 </div>
