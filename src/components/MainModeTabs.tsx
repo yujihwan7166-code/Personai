@@ -204,8 +204,8 @@ export const MODE_TINT: Record<MainMode, string> = {
 
 /** 사용자 요청 목록에 맞춘 그룹핑. 'debate' 는 전문 그룹 내부에서 드릴다운으로 노출. */
 export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
-  { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'research_main', 'premium_main'] },
-  { label: '전문',  description: '자문 · 학습 · 토론',    modes: ['study_main', 'stakeholder_main', 'debate'] },
+  { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'research_main'] },
+  { label: '전문',  description: '자문 · 학습 · 토론',    modes: ['study_main', 'premium_main', 'stakeholder_main', 'debate'] },
 ];
 
 export const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
