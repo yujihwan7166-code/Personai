@@ -708,7 +708,7 @@ export function MainModeTabs({
                     return (
                       <div key={group.label}>
                         {groupIdx > 0 && (
-                          <div className="mb-3 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                          <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
                         )}
                         {/* 헤더 — 전문 그룹은 debateOpen 시 뒤로가기 버튼으로 전환 */}
                         <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
