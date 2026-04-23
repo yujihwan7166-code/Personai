@@ -154,25 +154,7 @@ export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoF
           className,
         )}
       >
-        {/* 최좌측 돋보기 — Google·네이버 관습 (엔진 칩보다 왼쪽) */}
-        <Search className="h-3 w-3 text-muted-foreground shrink-0 ml-1" aria-hidden />
-
-        {/* 입력 */}
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="검색어 입력"
-          className="flex-1 min-w-0 bg-transparent outline-none text-[11.5px] placeholder:text-muted-foreground/55"
-          aria-label="빠른 웹 검색"
-        />
-
-        {/* 구분선 */}
-        <div className="h-3 w-px bg-[hsl(var(--hairline))] shrink-0" aria-hidden />
-
-        {/* 엔진 칩 — 닷 + 라벨 + 화살표 (네이버·Google 등 이름 표시). 오른쪽으로 이동 */}
+        {/* 좌측 엔진 칩 — 닷 + 라벨 + 화살표 (네이버·Google 등 이름 표시). */}
         <div className="relative shrink-0" ref={pickerRef}>
           <button
             type="button"
@@ -190,20 +172,39 @@ export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoF
             <span>{engine.label}</span>
             <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', pickerOpen && 'rotate-180')} />
           </button>
-          {renderPicker('w-[130px]', 'up', 'right')}
+          {renderPicker('w-[130px]', 'up', 'left')}
         </div>
 
-        {/* 최우측 ↵ — 입력 시에만 */}
-        {query && (
-          <button
-            type="button"
-            onClick={submit}
-            className="shrink-0 inline-flex items-center justify-center h-5 px-1.5 rounded-full text-[9.5px] font-mono text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--background))]/80 transition-colors"
-            aria-label="검색 실행"
-          >
-            ↵
-          </button>
-        )}
+        {/* 구분선 */}
+        <div className="h-3 w-px bg-[hsl(var(--hairline))] shrink-0" aria-hidden />
+
+        {/* 입력 */}
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="검색어 입력"
+          className="flex-1 min-w-0 bg-transparent outline-none text-[11.5px] placeholder:text-muted-foreground/55"
+          aria-label="빠른 웹 검색"
+        />
+
+        {/* 최우측 돋보기 — 검색 실행 버튼 (submit) */}
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!query.trim()}
+          className={cn(
+            'shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full',
+            'text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--background))]/80',
+            'disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-default',
+            'transition-colors',
+          )}
+          aria-label="검색 실행"
+        >
+          <Search className="h-3 w-3" />
+        </button>
       </div>
     );
   }

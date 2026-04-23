@@ -37,8 +37,6 @@ interface MainModeTabsProps {
   onSelectAssistantCard?: (cardId: string) => void;
   /** 라이프·재미 도구 (사주/타로/연애/운동 등) 선택 콜백. 없으면 일반 채팅으로 폴백. */
   onSelectLifeTool?: (toolId: string) => void;
-  /** 라이프 도구 "더 보기" 클릭 — LifeToolBrowserModal 트리거. */
-  onOpenLifeBrowser?: () => void;
   /** 멘탈 테스트 모음 페이지 트리거 — 드롭다운 mental 그룹 서브 뷰에서 호출. */
   onOpenMentalTests?: () => void;
   /** 플레이어 도구 (캐릭터챗/게임/롤플레이 등) 선택 콜백. */
@@ -264,7 +262,6 @@ export function MainModeTabs({
   currentAssistantCard,
   onSelectAssistantCard,
   onSelectLifeTool,
-  onOpenLifeBrowser,
   onOpenMentalTests,
   onSelectPlayerTool,
   onOpenPlayerBrowser,
@@ -851,25 +848,6 @@ export function MainModeTabs({
                     </AnimatePresence>
                   </div>
                 </div>
-                {/* 라이프 "더 보기" — 전체 라이프 도구 모달 트리거 */}
-                {onOpenLifeBrowser && (
-                  <div>
-                    <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                    <button
-                      type="button"
-                      onClick={() => { setOpen(false); setTimeout(() => onOpenLifeBrowser(), 40); }}
-                      role="menuitem"
-                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
-                    >
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
-                        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      </span>
-                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
-                        <span className="text-[12px] font-medium">라이프 더 보기</span>
-                      </span>
-                    </button>
-                  </div>
-                )}
               </div>
               {/* 맨 오른쪽 컬럼: 플레이어 — 캐릭터·게임·롤플레이 */}
               <div className="min-w-0 space-y-3">

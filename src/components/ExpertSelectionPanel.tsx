@@ -87,8 +87,6 @@ interface Props {
   selectedAssistantCardId?: string | null;
   onAssistantCardChange?: (cardId: string | null) => void;
   onAssistantSubmit?: (cardId: string, question: string) => void;
-  /** 라이프 도구 전체 보기 모달 열기. */
-  onOpenLifeBrowser?: () => void;
   onOpenMentalTests?: () => void;
   /** 플레이어 도구 전체 보기 모달 열기. */
   onOpenPlayerBrowser?: () => void;
@@ -1751,7 +1749,6 @@ export function ExpertSelectionPanel({
   onResetAivsBattle,
   selectedAssistantCardId,
   onAssistantCardChange,
-  onOpenLifeBrowser,
   onOpenMentalTests,
   onOpenPlayerBrowser,
   onAssistantSubmit,
@@ -2140,7 +2137,6 @@ export function ExpertSelectionPanel({
                 if (mainMode !== 'assistant') handleMainModeChange('assistant');
                 onAssistantCardChange?.(cardId);
               }}
-              onOpenLifeBrowser={onOpenLifeBrowser}
               onOpenMentalTests={onOpenMentalTests}
               onOpenPlayerBrowser={onOpenPlayerBrowser}
             />

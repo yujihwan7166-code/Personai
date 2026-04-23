@@ -51,7 +51,6 @@ const GENERAL_IMAGE_URL = '/api/general-image';
 const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
 const LazyModePaletteModal = lazy(() => import('@/components/ModePaletteModal').then((module) => ({ default: module.ModePaletteModal })));
-const LazyLifeToolBrowserModal = lazy(() => import('@/components/LifeToolBrowserModal').then((module) => ({ default: module.LifeToolBrowserModal })));
 const LazyMentalTestBrowserModal = lazy(() => import('@/components/MentalTestBrowserModal').then((module) => ({ default: module.MentalTestBrowserModal })));
 const LazyPlayerToolBrowserModal = lazy(() => import('@/components/PlayerToolBrowserModal').then((module) => ({ default: module.PlayerToolBrowserModal })));
 const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
@@ -136,7 +135,6 @@ const Index = () => {
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [modePaletteOpen, setModePaletteOpen] = useState(false);
-  const [lifeBrowserOpen, setLifeBrowserOpen] = useState(false);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
   const [playerBrowserOpen, setPlayerBrowserOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
@@ -4622,21 +4620,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               if (getMainMode(discussionMode) !== 'assistant') handleModeChange(mainToDiscussion('assistant'));
               setSelectedAssistantCard(cardId);
             }}
-            onOpenLifeBrowser={() => setLifeBrowserOpen(true)}
             onOpenPlayerBrowser={() => setPlayerBrowserOpen(true)}
-          />
-        </Suspense>
-        {/* 라이프 도구 전체 보기 모달 — 드롭다운/사이드바의 "라이프 더 보기" 로 트리거 */}
-        <Suspense fallback={null}>
-          <LazyLifeToolBrowserModal
-            open={lifeBrowserOpen}
-            onClose={() => setLifeBrowserOpen(false)}
-            onSelectTool={(toolId) => {
-              // 추후: 각 라이프 도구별 시스템 프롬프트 매핑.
-              // 현재는 일반 채팅으로 폴백.
-              void toolId;
-              if (getMainMode(discussionMode) !== 'general') handleModeChange(mainToDiscussion('general'));
-            }}
           />
         </Suspense>
         {/* 심리 테스트 모음 페이지 — "멘탈 테스트" 그룹 서브 뷰의 "심리 테스트 모음 →" 로 트리거 */}
@@ -5120,7 +5104,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       setSelectedAssistantCard(cardId);
                     }}
                     onAssistantSubmit={handleAssistantSubmit}
-                    onOpenLifeBrowser={() => setLifeBrowserOpen(true)}
                     onOpenMentalTests={() => setMentalTestsOpen(true)}
                     onOpenPlayerBrowser={() => setPlayerBrowserOpen(true)}
                   />
