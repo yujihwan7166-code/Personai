@@ -48,13 +48,14 @@ interface MainModeTabsProps {
 }
 
 /** 라이프 서브 그룹 — 드롭다운에서 여러 도구를 한 칩으로 묶는 단위. */
-export type LifeSubgroupId = 'fortune' | 'mental' | 'health' | 'money';
+export type LifeSubgroupId = 'fortune' | 'mental' | 'health' | 'money' | 'enjoy';
 
 export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: string; description: string; tint: string }> = {
   fortune: { emoji: '🔮', label: '사주·타로',         description: '사주·타로·꿈·토정 등',              tint: 'hsl(262 70% 55%)' },
   mental:  { emoji: '🧠', label: '멘탈 테스트',       description: 'MBTI·자가체크·심리 테스트',         tint: 'hsl(210 60% 55%)' },
   health:  { emoji: '🩺', label: '건강 도우미',       description: '운동·영양제·수면·식단',              tint: 'hsl(170 60% 42%)' },
   money:   { emoji: '💰', label: '머니·투자·재테크', description: '가계부·세금·투자·대출·부동산·노후', tint: 'hsl(130 55% 40%)' },
+  enjoy:   { emoji: '🎉', label: '놀고·먹고·즐기고',    description: '여행·맛집·놀거리·콘텐츠·데이트',    tint: 'hsl(25 85% 55%)' },
 };
 
 /** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
@@ -93,14 +94,18 @@ export const LIFE_TOOLS: Array<{
   { id: 'loan',       label: '대출·신용',     desc: '주담대·전세·신용점수',          emoji: '🏦', tint: 'hsl(310 55% 48%)', featured: false, group: 'money'     },
   { id: 'realestate', label: '부동산 체크',   desc: '계약 위험 조항 · 시세 분석',     emoji: '🏠', tint: 'hsl(230 45% 45%)', featured: false, group: 'money'     },
   { id: 'pension',    label: '연금·노후',     desc: '국민·IRP·은퇴 시뮬',            emoji: '🏖️', tint: 'hsl(55 65% 45%)',  featured: false, group: 'money'     },
-  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',        emoji: '🍳', tint: 'hsl(18 80% 55%)',  featured: true                       },
-  { id: 'travel',     label: '여행 계획',     desc: '목적지·일정·예산',          emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: true                       },
+  { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',        emoji: '🍳', tint: 'hsl(18 80% 55%)',  featured: true                        },
+  // ── 놀고·먹고·즐기고 그룹 ──
+  { id: 'travel',            label: '여행 계획',    desc: '목적지·일정·예산 설계',            emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: false, group: 'enjoy'    },
+  { id: 'travel-recommend',  label: '여행 추천',    desc: '취향·계절·예산별 목적지 큐레이션', emoji: '🗺️', tint: 'hsl(175 65% 45%)', featured: false, group: 'enjoy'    },
+  { id: 'restaurant',        label: '맛집 추천',    desc: '지역·분위기·가격대 맛집',          emoji: '🍜', tint: 'hsl(352 75% 55%)', featured: false, group: 'enjoy'    },
+  { id: 'things-to-do',      label: '놀거리 추천',  desc: '지역·날씨·예산별 액티비티·전시',   emoji: '🎯', tint: 'hsl(285 65% 58%)', featured: false, group: 'enjoy'    },
+  { id: 'date-course',       label: '데이트 코스 추천', desc: '지역·예산·테마로 코스',         emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: false, group: 'enjoy'    },
+  { id: 'content',           label: '콘텐츠 추천',  desc: '책·영화·드라마 취향 맞춤',         emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: false, group: 'enjoy'    },
   { id: 'color',      label: '퍼스널 컬러',   desc: '웜톤·쿨톤 진단 + 팔레트',   emoji: '🎨', tint: 'hsl(295 70% 58%)', featured: true                       },
   // ── "라이프 더 보기" 모달 전용 (드롭다운 비노출) ──
   { id: 'style',      label: '스타일 코디',   desc: '체형·상황·계절별 코디',     emoji: '👗', tint: 'hsl(335 75% 60%)', featured: false                     },
-  { id: 'date-course',label: '데이트 코스',   desc: '지역·예산·테마로 코스',     emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: false                     },
   { id: 'gift',       label: '선물 추천',     desc: '관계·기념일·예산별 제안',   emoji: '🎁', tint: 'hsl(145 60% 45%)', featured: false                     },
-  { id: 'content',    label: '콘텐츠 추천',   desc: '책·영화·드라마 취향 맞춤',  emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: false                     },
   { id: 'interior',   label: '인테리어',      desc: '방 배치·컬러·가구 제안',    emoji: '🛋️', tint: 'hsl(40 55% 50%)',  featured: false                     },
   { id: 'apology',    label: '사과문 생성',   desc: '관계·사안별 사과문 3단',    emoji: '🙇', tint: 'hsl(220 40% 50%)', featured: false                     },
   // ── 멘탈·심리 그룹 ──
@@ -125,10 +130,10 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
   { kind: 'group', groupId: 'mental' },    // 🧠 멘탈 테스트
   { kind: 'mental-tests' },                // ✨ 심리 테스트 모음
   { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미
-  { kind: 'group', groupId: 'money' },     // 💰 머니·투자·재테크 — 건강 바로 아래
+  { kind: 'group', groupId: 'money' },     // 💰 머니·투자·재테크
+  { kind: 'group', groupId: 'enjoy' },     // 🎉 놀고·먹고·즐기고
   { kind: 'tool',  toolId: 'dating'  },
   { kind: 'tool',  toolId: 'recipe'  },
-  { kind: 'tool',  toolId: 'travel'  },
   { kind: 'tool',  toolId: 'color'   },
 ];
 
