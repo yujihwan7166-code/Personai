@@ -637,23 +637,20 @@ export function MainModeTabs({
 
   return (
     <div ref={rootRef} className="relative">
-      {/* 원위치 pill — 닫혀 있을 때만 보임 (열릴 땐 portal 안의 floating pill로 layoutId 모핑) */}
-      {!open && (
-        <motion.button
-          layoutId="mode-pill"
-          type="button"
-          onClick={() => !disabled && setOpen(true)}
-          disabled={disabled}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          className={pillClass}
-          style={!showPlayerBg ? { color: currentTint } : undefined}
-        >
-          <CurrentIcon className="h-3 w-3 shrink-0" strokeWidth={2.2} />
-          <span className="whitespace-nowrap font-semibold">{labels[effective]}</span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </motion.button>
-      )}
+      {/* Pill — 제자리에 유지, 여닫기 토글만 수행 */}
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={pillClass}
+        style={!showPlayerBg ? { color: currentTint } : undefined}
+      >
+        <CurrentIcon className="h-3 w-3 shrink-0" strokeWidth={2.2} />
+        <span className="whitespace-nowrap font-semibold">{labels[effective]}</span>
+        <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
+      </button>
 
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
@@ -670,29 +667,6 @@ export function MainModeTabs({
               className="fixed inset-0 z-[115] bg-black/15 backdrop-blur-[2px]"
               aria-hidden
             />
-
-            {/* Floating pill — 뷰포트 상단 고정, layoutId 로 원위치에서 스무스 모핑 */}
-            <motion.button
-              key="pill-floating"
-              layoutId="mode-pill"
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-haspopup="menu"
-              aria-expanded
-              className={pillClass}
-              style={{
-                position: 'fixed',
-                top: 16,
-                left: '50%',
-                translateX: '-50%',
-                zIndex: 122,
-                ...(!showPlayerBg ? { color: currentTint } : {}),
-              }}
-            >
-              <CurrentIcon className="h-3 w-3 shrink-0" strokeWidth={2.2} />
-              <span className="whitespace-nowrap font-semibold">{labels[effective]}</span>
-              <ChevronDown className="h-3 w-3 text-muted-foreground rotate-180" />
-            </motion.button>
 
             {/* 드롭다운 — 뷰포트 상단 고정, max-h 로 항상 한 화면 */}
             <motion.div
