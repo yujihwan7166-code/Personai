@@ -527,10 +527,10 @@ export function MainModeTabs({
           'group relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl',
           'transition-all duration-200 hover:-translate-y-0.5',
           'border border-transparent',
-          tile.placeholder && 'opacity-70',
+          tile.placeholder && 'opacity-85',
           isActive && 'ring-2 ring-offset-1 ring-[hsl(var(--ring))]',
         )}
-        style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 9%, transparent)` }}
+        style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 10%, transparent)` }}
       >
         <span
           className="flex h-6 w-6 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-110"
@@ -538,7 +538,7 @@ export function MainModeTabs({
         >
           <Icon className="h-3.5 w-3.5" strokeWidth={2} />
         </span>
-        <span className="text-[10.5px] font-semibold leading-none truncate max-w-full" style={{ color: tile.tint }}>
+        <span className="text-[10.5px] font-semibold leading-none truncate max-w-full text-foreground/85">
           {tile.label}
         </span>
       </button>
