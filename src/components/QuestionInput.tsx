@@ -3,6 +3,8 @@ import { ArrowUp, FolderPlus, Paperclip, Plus, Share2, Square, X } from 'lucide-
 import { DebateSettings, DiscussionMode, Expert } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { ExpertAvatar } from './ExpertAvatar';
+import { InputWebSearchButton } from './InputWebSearchButton';
+import { QuickSearchBar } from './QuickSearchBar';
 import { buildAttachmentPrompt, type AttachedFile } from '@/lib/fileProcessor';
 import {
   DropdownMenu,
@@ -133,6 +135,27 @@ export function QuestionInput({
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [openChip, setOpenChip] = useState<string | null>(null);
+  // 웹 검색 인라인 확장 — 팝오버 대신 입력창 위쪽에 슬림 검색바가 등장
+  const [webSearchOpen, setWebSearchOpen] = useState(false);
+  // 최근 웹 검색어 (기존 InputWebSearchButton 팝오버에 있던 기능을 인라인으로 이전)
+  const [webSearchHistory, setWebSearchHistory] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem('personai.webSearch.recent');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string').slice(0, 3) : [];
+    } catch { return []; }
+  });
+  const addWebSearchHistory = useCallback((term: string) => {
+    const t = term.trim();
+    if (!t) return;
+    setWebSearchHistory((prev) => {
+      const next = [t, ...prev.filter((h) => h !== t)].slice(0, 3);
+      try { window.localStorage.setItem('personai.webSearch.recent', JSON.stringify(next)); } catch { /* noop */ }
+      return next;
+    });
+  }, []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chipBarRef = useRef<HTMLDivElement>(null);
@@ -338,7 +361,7 @@ export function QuestionInput({
       >
         <div
           className={cn(
-            'transition-all duration-200',
+            'relative transition-all duration-200',
             embedded ? 'rounded-none bg-transparent' : 'rounded-[calc(1rem-1px)] bg-[hsl(var(--card))]'
           )}
         >
@@ -536,7 +559,7 @@ export function QuestionInput({
             disabled={disabled}
             className={cn(
               'block w-full max-h-[140px] resize-none bg-transparent text-[14px] leading-relaxed text-foreground placeholder:text-slate-400 focus:outline-none',
-              embedded ? 'min-h-[56px] px-5 pb-2.5 pt-3' : 'min-h-[48px] px-5 pb-2 pt-3.5'
+              embedded ? 'min-h-[56px] pl-5 pr-10 pb-2.5 pt-3' : 'min-h-[48px] pl-5 pr-10 pb-2 pt-3.5'
             )}
             rows={embedded ? 2 : 1}
             onKeyDown={(e) => {
@@ -603,6 +626,22 @@ export function QuestionInput({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {/* 웹 검색 토글 — + 바로 옆. 열리면 오른쪽으로 검색바 슬라이드. */}
+              <InputWebSearchButton
+                open={webSearchOpen}
+                onToggle={() => setWebSearchOpen((v) => !v)}
+                className="h-8 w-8 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+              />
+              {webSearchOpen && (
+                <div className="min-w-0 animate-in fade-in slide-in-from-left-2 duration-150">
+                  <QuickSearchBar
+                    variant="inline"
+                    onSearch={addWebSearchHistory}
+                    autoFocus
+                    className="w-[240px] max-w-full"
+                  />
+                </div>
+              )}
               {extraButtons}
               {onSummarize && (
                 <div className="relative group/summary">

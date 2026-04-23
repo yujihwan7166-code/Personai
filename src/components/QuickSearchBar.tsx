@@ -45,7 +45,17 @@ function loadEngine(): EngineId {
   return 'google';
 }
 
-export function QuickSearchBar({ className }: { className?: string }) {
+interface QuickSearchBarProps {
+  className?: string;
+  /** 레이아웃 — 'stacked'(기본, 2행) / 'inline'(1행 pill). */
+  variant?: 'stacked' | 'inline';
+  /** 검색 실행 시 콜백 (검색어). 히스토리 저장 등에 사용. */
+  onSearch?: (query: string) => void;
+  /** 마운트 시 입력창 오토포커스. */
+  autoFocus?: boolean;
+}
+
+export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoFocus }: QuickSearchBarProps) {
   const [engineId, setEngineId] = useState<EngineId>(loadEngine);
   const [query, setQuery] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -78,12 +88,127 @@ export function QuickSearchBar({ className }: { className?: string }) {
     const q = query.trim();
     if (!q) return;
     window.open(engine.searchUrl(q), '_blank', 'noopener,noreferrer');
+    onSearch?.(q);
   };
+
+  // autoFocus 지원
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') { e.preventDefault(); submit(); }
   };
 
+  // 엔진 선택 드롭다운 패널 — 두 variant에서 공유
+  // direction: 'down'(기본, top-full) / 'up'(bottom-full). align: 'left'(기본) / 'right'.
+  const renderPicker = (widthClass: string, direction: 'up' | 'down' = 'down', align: 'left' | 'right' = 'left') => (
+    pickerOpen && (
+      <div
+        role="listbox"
+        className={cn(
+          'absolute z-40 p-1 rounded-lg',
+          direction === 'up' ? 'bottom-full mb-1' : 'top-full mt-1',
+          align === 'right' ? 'right-0' : 'left-0',
+          widthClass,
+          'bg-[hsl(var(--popover))] border border-[hsl(var(--hairline))] shadow-lg',
+        )}
+      >
+        {ENGINES.map((e) => (
+          <button
+            key={e.id}
+            type="button"
+            role="option"
+            aria-selected={e.id === engineId}
+            onClick={() => { setEngineId(e.id); setPickerOpen(false); inputRef.current?.focus(); }}
+            className={cn(
+              'flex items-center gap-2 w-full px-2 py-1 rounded-md text-[11px] text-left transition-colors',
+              'hover:bg-[hsl(var(--accent))]',
+              e.id === engineId && 'bg-[hsl(var(--accent))]',
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: e.dot }} aria-hidden />
+            <span className="font-medium">{e.label}</span>
+          </button>
+        ))}
+      </div>
+    )
+  );
+
+  // ── 인라인 1행 pill: 엔진 칩(축소) + 구분선 + 돋보기(좌측 관습) + 입력 + ↵ 힌트 ──
+  // 디자인 의도: "외부 검색 보조" 느낌으로 톤 다운.
+  //  - 엔진 칩은 닷+화살표만 (라벨은 title/툴팁)
+  //  - 검색 아이콘 왼쪽 (Google·네이버 관습)
+  //  - 배경 투명→hover/focus 시만 강조
+  //  - placeholder 중복 제거 ("네이버 검색" → "검색어 입력")
+  //  - ↵ 입력 중일 때만 우측에 표시
+  if (variant === 'inline') {
+    return (
+      <div
+        className={cn(
+          'flex items-center h-7 pl-1 pr-1.5 gap-1 rounded-full',
+          'bg-[hsl(var(--muted))]/50 border border-transparent',
+          'hover:bg-[hsl(var(--muted))] hover:border-[hsl(var(--hairline))]',
+          'focus-within:bg-[hsl(var(--background))] focus-within:border-[hsl(var(--focus-ring))] focus-within:ring-2 focus-within:ring-[hsl(var(--focus-ring))]/30',
+          'transition-all',
+          className,
+        )}
+      >
+        {/* 최좌측 돋보기 — Google·네이버 관습 (엔진 칩보다 왼쪽) */}
+        <Search className="h-3 w-3 text-muted-foreground shrink-0 ml-1" aria-hidden />
+
+        {/* 입력 */}
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="검색어 입력"
+          className="flex-1 min-w-0 bg-transparent outline-none text-[11.5px] placeholder:text-muted-foreground/55"
+          aria-label="빠른 웹 검색"
+        />
+
+        {/* 구분선 */}
+        <div className="h-3 w-px bg-[hsl(var(--hairline))] shrink-0" aria-hidden />
+
+        {/* 엔진 칩 — 닷 + 라벨 + 화살표 (네이버·Google 등 이름 표시). 오른쪽으로 이동 */}
+        <div className="relative shrink-0" ref={pickerRef}>
+          <button
+            type="button"
+            onClick={() => setPickerOpen((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={pickerOpen}
+            aria-label={`검색 엔진: ${engine.label}`}
+            className={cn(
+              'inline-flex items-center gap-1 h-6 pl-1.5 pr-1 rounded-full',
+              'text-[10.5px] font-medium text-foreground/85 hover:text-foreground',
+              'hover:bg-[hsl(var(--background))]/80 transition-colors',
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: engine.dot }} aria-hidden />
+            <span>{engine.label}</span>
+            <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', pickerOpen && 'rotate-180')} />
+          </button>
+          {renderPicker('w-[130px]', 'up', 'right')}
+        </div>
+
+        {/* 최우측 ↵ — 입력 시에만 */}
+        {query && (
+          <button
+            type="button"
+            onClick={submit}
+            className="shrink-0 inline-flex items-center justify-center h-5 px-1.5 rounded-full text-[9.5px] font-mono text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--background))]/80 transition-colors"
+            aria-label="검색 실행"
+          >
+            ↵
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ── 기본 stacked 2행 ──
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       {/* 상단: 엔진 선택 칩 */}
@@ -103,33 +228,7 @@ export function QuickSearchBar({ className }: { className?: string }) {
           <span>{engine.label}</span>
           <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', pickerOpen && 'rotate-180')} />
         </button>
-        {pickerOpen && (
-          <div
-            role="listbox"
-            className={cn(
-              'absolute z-30 top-full left-0 mt-1 w-[130px] p-1 rounded-lg',
-              'bg-[hsl(var(--popover))] border border-[hsl(var(--hairline))] shadow-lg',
-            )}
-          >
-            {ENGINES.map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                role="option"
-                aria-selected={e.id === engineId}
-                onClick={() => { setEngineId(e.id); setPickerOpen(false); inputRef.current?.focus(); }}
-                className={cn(
-                  'flex items-center gap-2 w-full px-2 py-1 rounded-md text-[11px] text-left transition-colors',
-                  'hover:bg-[hsl(var(--accent))]',
-                  e.id === engineId && 'bg-[hsl(var(--accent))]',
-                )}
-              >
-                <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: e.dot }} aria-hidden />
-                <span className="font-medium">{e.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {renderPicker('w-[130px]')}
       </div>
 
       {/* 하단: 얇은 검색창 */}
