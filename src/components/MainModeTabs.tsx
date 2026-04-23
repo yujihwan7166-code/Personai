@@ -17,7 +17,6 @@ import {
 import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
-import { ContextStrip } from './MySpace/ContextStrip';
 
 interface MainModeTabsProps {
   modes: MainMode[];
@@ -667,11 +666,8 @@ export function MainModeTabs({
                 <div className="px-1">
                   <QuickSearchBar />
                 </div>
-                <div className="px-1">
-                  <ContextStrip />
-                </div>
                 <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-                {/* AI 실무 도구 — 2x2 타일 그리드 */}
+                {/* AI 실무 도구 — 2x4 타일 그리드 */}
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
