@@ -17,7 +17,6 @@ import {
 import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
-import { getQuoteOfDay } from '@/data/dailyQuotes';
 
 interface MainModeTabsProps {
   modes: MainMode[];
@@ -790,27 +789,6 @@ export function MainModeTabs({
                     })}
                   </div>
                 </div>
-                {/* 오늘의 한 줄 — 감성 피니셔 */}
-                {(() => {
-                  const q = getQuoteOfDay(now);
-                  return (
-                    <div>
-                      <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
-                        <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                          📖 오늘의 한 줄
-                        </span>
-                      </div>
-                      <div className="px-1">
-                        <p className="font-serif italic text-[11.5px] leading-snug text-foreground/85">
-                          “{q.text}”
-                        </p>
-                        <p className="text-[10.5px] text-muted-foreground mt-1.5 text-right">
-                          — {q.author}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
               </div>
               {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
               {[[0, 1]].map((indices, colIdx) => (
