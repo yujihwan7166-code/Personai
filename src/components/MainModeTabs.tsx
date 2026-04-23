@@ -663,26 +663,31 @@ export function MainModeTabs({
           >
             {/* 4 컬럼 — 유틸리티(검색·날씨·타일) / 대화+전문 / 라이프 / 플레이어 */}
             <div className="grid grid-cols-4 gap-x-3 p-4">
-              {/* 좌측 컬럼: 빠른검색 + 컨텍스트 스트립 + AI 실무 도구 타일 (스카이워크) */}
-              <div className="min-w-0 space-y-3">
-                <div className="px-1">
-                  <QuickSearchBar />
+              {/* 좌측 컬럼: 빠른검색 + AI 실무 도구 타일 (스카이워크) */}
+              <div className="min-w-0 flex flex-col">
+                <div className="space-y-3 flex-1">
+                  <div className="px-1">
+                    <QuickSearchBar />
+                  </div>
+                  <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
+                  {/* AI 실무 도구 — 2x4 타일 그리드 */}
+                  <div>
+                    <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                      <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                        AI 어시스턴트
+                      </span>
+                      <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                        실무 도구
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 px-1">
+                      {ASSISTANT_TILES.map(renderAssistantTile)}
+                    </div>
+                  </div>
                 </div>
-                <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-                {/* AI 실무 도구 — 2x4 타일 그리드 */}
-                <div>
-                  <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      AI 어시스턴트
-                    </span>
-                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                      실무 도구
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 px-1">
-                    {ASSISTANT_TILES.map(renderAssistantTile)}
-                  </div>
-                  <div className="my-1.5 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                {/* footer — 컬럼 최하단 고정 */}
+                <div className="mt-3">
+                  <div className="mx-2 border-t border-[hsl(var(--hairline))] mb-1.5" aria-hidden />
                   <button
                     type="button"
                     onClick={() => handleSelect('assistant')}
@@ -700,7 +705,7 @@ export function MainModeTabs({
               </div>
               {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
               {[[0, 1]].map((indices, colIdx) => (
-                <div key={colIdx} className="min-w-0 space-y-3">
+                <div key={colIdx} className="min-w-0 flex flex-col space-y-3">
                   {indices.map((i) => MODE_GROUPS[i]).map((group, groupIdx) => {
                     const isExpert = group.label === '전문';
                     const isAssistant = false;
@@ -836,7 +841,7 @@ export function MainModeTabs({
                 </div>
               ))}
               {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + 더보기 */}
-              <div className="min-w-0 space-y-3">
+              <div className="min-w-0 flex flex-col space-y-3">
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     {openLifeSubgroup ? (
@@ -925,8 +930,8 @@ export function MainModeTabs({
                 </div>
               </div>
               {/* 맨 오른쪽 컬럼: 플레이어 — 캐릭터·게임·롤플레이 */}
-              <div className="min-w-0 space-y-3">
-                <div>
+              <div className="min-w-0 flex flex-col">
+                <div className="flex-1">
                   <div className="mb-1.5 flex items-baseline gap-2 px-1">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                       {PLAYER_GROUP.label}
@@ -940,8 +945,8 @@ export function MainModeTabs({
                   </div>
                 </div>
                 {onOpenPlayerBrowser && (
-                  <div>
-                    <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                  <div className="mt-3">
+                    <div className="mx-2 border-t border-[hsl(var(--hairline))] mb-1.5" aria-hidden />
                     <button
                       type="button"
                       onClick={() => { setOpen(false); setTimeout(() => onOpenPlayerBrowser(), 40); }}
