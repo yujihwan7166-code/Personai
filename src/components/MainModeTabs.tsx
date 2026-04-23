@@ -55,7 +55,7 @@ export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: stri
   mental:  { emoji: '🧠', label: '멘탈 테스트',       description: 'MBTI·자가체크·심리 테스트',         tint: 'hsl(210 60% 55%)' },
   health:  { emoji: '🩺', label: '건강 도우미',       description: '운동·영양제·수면·식단',              tint: 'hsl(170 60% 42%)' },
   money:   { emoji: '💰', label: '머니·투자·재테크', description: '가계부·세금·투자·대출·부동산·노후', tint: 'hsl(130 55% 40%)' },
-  enjoy:   { emoji: '🎉', label: '놀고·먹고·즐기고',    description: '여행·맛집·놀거리·콘텐츠·데이트',    tint: 'hsl(25 85% 55%)' },
+  enjoy:   { emoji: '🎉', label: '놀고·먹고·즐기고',    description: '여행·맛집·놀거리·볼거리·데이트',    tint: 'hsl(25 85% 55%)' },
 };
 
 /** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
@@ -96,12 +96,12 @@ export const LIFE_TOOLS: Array<{
   { id: 'pension',    label: '연금·노후',     desc: '국민·IRP·은퇴 시뮬',            emoji: '🏖️', tint: 'hsl(55 65% 45%)',  featured: false, group: 'money'     },
   { id: 'recipe',     label: '레시피',        desc: '냉장고 재료로 요리',        emoji: '🍳', tint: 'hsl(18 80% 55%)',  featured: true                        },
   // ── 놀고·먹고·즐기고 그룹 ──
-  { id: 'travel',            label: '여행 계획',    desc: '목적지·일정·예산 설계',            emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: false, group: 'enjoy'    },
-  { id: 'travel-recommend',  label: '여행 추천',    desc: '취향·계절·예산별 목적지 큐레이션', emoji: '🗺️', tint: 'hsl(175 65% 45%)', featured: false, group: 'enjoy'    },
-  { id: 'restaurant',        label: '맛집 추천',    desc: '지역·분위기·가격대 맛집',          emoji: '🍜', tint: 'hsl(352 75% 55%)', featured: false, group: 'enjoy'    },
-  { id: 'things-to-do',      label: '놀거리 추천',  desc: '지역·날씨·예산별 액티비티·전시',   emoji: '🎯', tint: 'hsl(285 65% 58%)', featured: false, group: 'enjoy'    },
-  { id: 'date-course',       label: '데이트 코스 추천', desc: '지역·예산·테마로 코스',         emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: false, group: 'enjoy'    },
-  { id: 'content',           label: '콘텐츠 추천',  desc: '책·영화·드라마 취향 맞춤',         emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: false, group: 'enjoy'    },
+  { id: 'travel',            label: '여행 플래너',  desc: '일정·예산·동선 설계',              emoji: '✈️', tint: 'hsl(195 80% 50%)', featured: false, group: 'enjoy'    },
+  { id: 'travel-recommend',  label: '여행지 찾기',  desc: '취향·계절·예산으로 목적지 추천',   emoji: '🗺️', tint: 'hsl(175 65% 45%)', featured: false, group: 'enjoy'    },
+  { id: 'restaurant',        label: '맛집 찾기',    desc: '지역·분위기·가격대로 맛집',        emoji: '🍜', tint: 'hsl(352 75% 55%)', featured: false, group: 'enjoy'    },
+  { id: 'things-to-do',      label: '놀거리',       desc: '지역·날씨·예산별 액티비티·전시',   emoji: '🎯', tint: 'hsl(285 65% 58%)', featured: false, group: 'enjoy'    },
+  { id: 'date-course',       label: '데이트 플래너', desc: '지역·예산·테마로 코스',            emoji: '🍽️', tint: 'hsl(8 80% 60%)',   featured: false, group: 'enjoy'    },
+  { id: 'content',           label: '볼거리 추천',  desc: '책·영화·드라마 취향 맞춤',         emoji: '🎬', tint: 'hsl(210 75% 55%)', featured: false, group: 'enjoy'    },
   { id: 'color',      label: '퍼스널 컬러',   desc: '웜톤·쿨톤 진단 + 팔레트',   emoji: '🎨', tint: 'hsl(295 70% 58%)', featured: true                       },
   // ── "라이프 더 보기" 모달 전용 (드롭다운 비노출) ──
   { id: 'style',      label: '스타일 코디',   desc: '체형·상황·계절별 코디',     emoji: '👗', tint: 'hsl(335 75% 60%)', featured: false                     },
@@ -132,9 +132,6 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
   { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미
   { kind: 'group', groupId: 'money' },     // 💰 머니·투자·재테크
   { kind: 'group', groupId: 'enjoy' },     // 🎉 놀고·먹고·즐기고
-  { kind: 'tool',  toolId: 'dating'  },
-  { kind: 'tool',  toolId: 'recipe'  },
-  { kind: 'tool',  toolId: 'color'   },
 ];
 
 /** 드롭다운 노출용 featured 서브셋. */
