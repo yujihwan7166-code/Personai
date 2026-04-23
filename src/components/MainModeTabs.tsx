@@ -260,18 +260,42 @@ export const WEATHER_WIDGET = {
   tint: 'hsl(210 70% 55%)',
 };
 
-/** 좌측 컬럼 — 환율 위젯 (v1 하드코드, v2 API 연동). */
-export const EXCHANGE_RATES: Array<{
+/** 좌측 컬럼 — 미세먼지 위젯 (v1 하드코드, v2 에어코리아 API). */
+type DustGrade = '좋음' | '보통' | '나쁨' | '매우나쁨';
+export const DUST_WIDGET: {
+  pm10: number;
+  pm10Grade: DustGrade;
+  pm25: number;
+  pm25Grade: DustGrade;
+} = {
+  pm10: 33,
+  pm10Grade: '좋음',
+  pm25: 18,
+  pm25Grade: '보통',
+};
+export const DUST_GRADE_COLOR: Record<DustGrade, string> = {
+  '좋음':     'text-blue-500',
+  '보통':     'text-emerald-500',
+  '나쁨':     'text-amber-500',
+  '매우나쁨': 'text-rose-500',
+};
+
+/** 좌측 컬럼 — 시세 위젯 (KOSPI + 환율, v1 하드코드, v2 API 연동). */
+export const MARKET_TICKERS: Array<{
   code: string;
   label: string;
   rate: string;
   change: number; // 양수=상승, 음수=하락
-  flag: string;
+  icon: string;   // 국기 또는 기호 이모지
+  isIndex?: boolean;
 }> = [
-  { code: 'USD', label: '달러', rate: '1,342', change: 0.3,  flag: '🇺🇸' },
-  { code: 'JPY', label: '엔',   rate: '9.12',  change: -0.1, flag: '🇯🇵' },
-  { code: 'EUR', label: '유로', rate: '1,451', change: 0.5,  flag: '🇪🇺' },
+  { code: 'KOSPI', label: 'KOSPI', rate: '2,514', change: 0.5,  icon: '📈', isIndex: true },
+  { code: 'USD',   label: '달러',  rate: '1,342', change: 0.3,  icon: '🇺🇸' },
+  { code: 'JPY',   label: '엔',    rate: '9.12',  change: -0.1, icon: '🇯🇵' },
+  { code: 'EUR',   label: '유로',  rate: '1,451', change: 0.5,  icon: '🇪🇺' },
 ];
+/** 하위 호환 alias — 환율만 필요한 다른 모듈을 위해 유지. */
+export const EXCHANGE_RATES = MARKET_TICKERS.filter((t) => !t.isIndex);
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
 export const DEBATE_SUBS: Array<{
@@ -693,8 +717,8 @@ export function MainModeTabs({
             >
             {/* 4 컬럼 — 유틸리티(검색·날씨·타일) / 대화+전문 / 라이프 / 플레이어 */}
             <div className="grid grid-cols-4 gap-x-3 p-4">
-              {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·날씨·환율) */}
-              <div className="min-w-0 flex flex-col space-y-3">
+              {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·달력·날씨+미세·시세) */}
+              <div className="min-w-0 flex flex-col space-y-2.5">
                 <div className="px-1 -mt-1">
                   <QuickSearchBar />
                 </div>
@@ -725,7 +749,7 @@ export function MainModeTabs({
                         <div
                           key={`wd-${i}`}
                           className={cn(
-                            'flex items-center justify-center h-6 text-[11px] tabular-nums rounded-full',
+                            'flex items-center justify-center h-5 text-[11px] tabular-nums rounded-full',
                             isToday && 'font-semibold text-foreground',
                             !isToday && day === 0 && 'text-rose-500/80',
                             !isToday && day === 6 && 'text-blue-500/80',
@@ -739,42 +763,65 @@ export function MainModeTabs({
                     })}
                   </div>
                 </div>
-                {/* 날씨 카드 */}
+                {/* 날씨 카드 + 미세먼지 통합 */}
                 <div
-                  className="flex items-center gap-2.5 p-3 rounded-xl"
+                  className="p-2.5 rounded-xl"
                   style={{ backgroundColor: `color-mix(in oklab, ${WEATHER_WIDGET.tint} 10%, transparent)` }}
                 >
-                  <span className="text-[24px] leading-none select-none">{WEATHER_WIDGET.emoji}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      {WEATHER_WIDGET.city}
-                    </div>
-                    <div className="text-[14px] font-semibold text-foreground/90 leading-tight mt-0.5">
-                      {WEATHER_WIDGET.temp}° · {WEATHER_WIDGET.condition}
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[24px] leading-none select-none">{WEATHER_WIDGET.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                        {WEATHER_WIDGET.city}
+                      </div>
+                      <div className="text-[14px] font-semibold text-foreground/90 leading-tight mt-0.5">
+                        {WEATHER_WIDGET.temp}° · {WEATHER_WIDGET.condition}
+                      </div>
                     </div>
                   </div>
+                  {/* 미세먼지 섹션 (카드 내부) */}
+                  <div className="mt-2 pt-2 border-t border-[hsl(var(--hairline))] flex items-center gap-2 text-[11px] tabular-nums">
+                    <span className="text-[12px] leading-none">🫧</span>
+                    <span className="flex items-center gap-1">
+                      <span className="text-muted-foreground/80">미세</span>
+                      <span className="font-semibold text-foreground/90">{DUST_WIDGET.pm10}</span>
+                      <span className={cn('font-medium', DUST_GRADE_COLOR[DUST_WIDGET.pm10Grade])}>
+                        {DUST_WIDGET.pm10Grade}
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground/40">·</span>
+                    <span className="flex items-center gap-1">
+                      <span className="text-muted-foreground/80">초미</span>
+                      <span className="font-semibold text-foreground/90">{DUST_WIDGET.pm25}</span>
+                      <span className={cn('font-medium', DUST_GRADE_COLOR[DUST_WIDGET.pm25Grade])}>
+                        {DUST_WIDGET.pm25Grade}
+                      </span>
+                    </span>
+                  </div>
                 </div>
-                {/* 환율 */}
+                {/* 시세 — KOSPI + 환율 */}
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      💱 환율
+                      📉 시세
                     </span>
                     <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                      실시간 시세
+                      실시간
                     </span>
                   </div>
-                  <div className="space-y-1 px-1">
-                    {EXCHANGE_RATES.map((fx) => {
+                  <div className="space-y-0.5 px-1">
+                    {MARKET_TICKERS.map((fx) => {
                       const isUp = fx.change > 0;
                       const isFlat = fx.change === 0;
                       return (
                         <div
                           key={fx.code}
-                          className="flex items-center gap-2 py-1 text-[11.5px] tabular-nums"
+                          className="flex items-center gap-2 py-0.5 text-[11.5px] tabular-nums"
                         >
-                          <span className="text-[13px] leading-none">{fx.flag}</span>
-                          <span className="font-mono text-muted-foreground/80 w-8 shrink-0">{fx.code}</span>
+                          <span className="text-[13px] leading-none">{fx.icon}</span>
+                          <span className={cn('font-mono w-10 shrink-0', fx.isIndex ? 'text-foreground/80 font-semibold' : 'text-muted-foreground/80')}>
+                            {fx.code}
+                          </span>
                           <span className="font-semibold text-foreground/90 flex-1">{fx.rate}</span>
                           <span
                             className={cn(
