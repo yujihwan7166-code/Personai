@@ -665,7 +665,7 @@ export function MainModeTabs({
             <div className="grid grid-cols-4 gap-x-3 p-4">
               {/* 좌측 컬럼: 빠른검색 + AI 실무 도구 타일 (스카이워크) */}
               <div className="min-w-0 flex flex-col">
-                <div className="space-y-3 flex-1">
+                <div className="space-y-3">
                   <div className="px-1 -mt-1">
                     <QuickSearchBar />
                   </div>
