@@ -17,6 +17,7 @@ import {
 import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
+import { getQuoteOfDay } from '@/data/dailyQuotes';
 
 interface MainModeTabsProps {
   modes: MainMode[];
@@ -708,6 +709,37 @@ export function MainModeTabs({
                     {now.getMonth() + 1}월 {now.getDate()}일 {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
                   </div>
                 </div>
+                {/* 주간 달력 — 이번 주 7일, 오늘 강조 */}
+                <div className="px-1">
+                  <div className="grid grid-cols-7 gap-0.5 text-center">
+                    {['일', '월', '화', '수', '목', '금', '토'].map((d) => (
+                      <div key={`wh-${d}`} className="text-[9px] font-mono uppercase tracking-[0.1em] text-muted-foreground/70">
+                        {d}
+                      </div>
+                    ))}
+                    {Array.from({ length: 7 }, (_, i) => {
+                      const ws = new Date(now);
+                      ws.setDate(now.getDate() - now.getDay() + i);
+                      const isToday = ws.toDateString() === now.toDateString();
+                      const day = ws.getDay();
+                      return (
+                        <div
+                          key={`wd-${i}`}
+                          className={cn(
+                            'flex items-center justify-center h-6 text-[11px] tabular-nums rounded-full',
+                            isToday && 'font-semibold text-foreground',
+                            !isToday && day === 0 && 'text-rose-500/80',
+                            !isToday && day === 6 && 'text-blue-500/80',
+                            !isToday && day !== 0 && day !== 6 && 'text-foreground/70',
+                          )}
+                          style={isToday ? { backgroundColor: `color-mix(in oklab, hsl(262 70% 55%) 18%, transparent)` } : undefined}
+                        >
+                          {ws.getDate()}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
                 {/* 날씨 카드 */}
                 <div
                   className="flex items-center gap-2.5 p-3 rounded-xl"
@@ -758,6 +790,27 @@ export function MainModeTabs({
                     })}
                   </div>
                 </div>
+                {/* 오늘의 한 줄 — 감성 피니셔 */}
+                {(() => {
+                  const q = getQuoteOfDay(now);
+                  return (
+                    <div>
+                      <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                        <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                          📖 오늘의 한 줄
+                        </span>
+                      </div>
+                      <div className="px-1">
+                        <p className="font-serif italic text-[11.5px] leading-snug text-foreground/85">
+                          “{q.text}”
+                        </p>
+                        <p className="text-[10.5px] text-muted-foreground mt-1.5 text-right">
+                          — {q.author}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
               {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
               {[[0, 1]].map((indices, colIdx) => (
