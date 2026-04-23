@@ -280,22 +280,26 @@ export const DUST_GRADE_COLOR: Record<DustGrade, string> = {
   '매우나쁨': 'text-rose-500',
 };
 
-/** 좌측 컬럼 — 시세 위젯 (KOSPI + 환율, v1 하드코드, v2 API 연동). */
-export const MARKET_TICKERS: Array<{
-  code: string;
-  label: string;
-  rate: string;
-  change: number; // 양수=상승, 음수=하락
-  icon: string;   // 국기 또는 기호 이모지
-  isIndex?: boolean;
+/** 좌측 컬럼 — 다가오는 공휴일/이벤트 (v1 하드코드 2026년, v2 다년도). */
+export const UPCOMING_EVENTS: Array<{
+  name: string;
+  date: string; // YYYY-MM-DD
+  emoji: string;
 }> = [
-  { code: 'KOSPI', label: 'KOSPI', rate: '2,514', change: 0.5,  icon: '📈', isIndex: true },
-  { code: 'USD',   label: '달러',  rate: '1,342', change: 0.3,  icon: '🇺🇸' },
-  { code: 'JPY',   label: '엔',    rate: '9.12',  change: -0.1, icon: '🇯🇵' },
-  { code: 'EUR',   label: '유로',  rate: '1,451', change: 0.5,  icon: '🇪🇺' },
+  { name: '어린이날',   date: '2026-05-05', emoji: '🎏' },
+  { name: '부처님오신날', date: '2026-05-24', emoji: '🪷' },
+  { name: '현충일',     date: '2026-06-06', emoji: '🇰🇷' },
+  { name: '광복절',     date: '2026-08-15', emoji: '🇰🇷' },
+  { name: '추석',       date: '2026-09-25', emoji: '🌕' },
+  { name: '개천절',     date: '2026-10-03', emoji: '🇰🇷' },
+  { name: '한글날',     date: '2026-10-09', emoji: '🇰🇷' },
+  { name: '크리스마스', date: '2026-12-25', emoji: '🎄' },
+  { name: '새해',       date: '2027-01-01', emoji: '🎊' },
 ];
-/** 하위 호환 alias — 환율만 필요한 다른 모듈을 위해 유지. */
-export const EXCHANGE_RATES = MARKET_TICKERS.filter((t) => !t.isIndex);
+
+/** 하위 호환 — 기존 import 유지 (사용 중단 예정). */
+export const MARKET_TICKERS: Array<never> = [];
+export const EXCHANGE_RATES: Array<never> = [];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
 export const DEBATE_SUBS: Array<{
@@ -799,41 +803,38 @@ export function MainModeTabs({
                     </span>
                   </div>
                 </div>
-                {/* 시세 — KOSPI + 환율 */}
+                {/* UPCOMING — 다가오는 공휴일/이벤트 3개 D-Day */}
                 <div>
-                  <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                  <div className="mb-1.5 px-1">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      📉 시세
-                    </span>
-                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                      실시간
+                      ⏳ 다가오는 날
                     </span>
                   </div>
-                  <div className="space-y-0.5 px-1">
-                    {MARKET_TICKERS.map((fx) => {
-                      const isUp = fx.change > 0;
-                      const isFlat = fx.change === 0;
-                      return (
+                  <div className="space-y-1 px-1">
+                    {(() => {
+                      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                      const upcoming = UPCOMING_EVENTS
+                        .map((e) => {
+                          const [y, m, d] = e.date.split('-').map(Number);
+                          const event = new Date(y, m - 1, d);
+                          const diff = Math.ceil((event.getTime() - today.getTime()) / 86_400_000);
+                          return { ...e, diff };
+                        })
+                        .filter((e) => e.diff >= 0)
+                        .slice(0, 3);
+                      return upcoming.map((e) => (
                         <div
-                          key={fx.code}
-                          className="flex items-center gap-2 py-0.5 text-[11.5px] tabular-nums"
+                          key={e.name}
+                          className="flex items-center gap-2.5 py-1 text-[11.5px]"
                         >
-                          <span className="text-[13px] leading-none">{fx.icon}</span>
-                          <span className={cn('font-mono w-10 shrink-0', fx.isIndex ? 'text-foreground/80 font-semibold' : 'text-muted-foreground/80')}>
-                            {fx.code}
+                          <span className="text-[14px] leading-none select-none">{e.emoji}</span>
+                          <span className="font-mono font-semibold text-foreground/90 w-10 shrink-0 tabular-nums">
+                            {e.diff === 0 ? 'D-day' : `D-${e.diff}`}
                           </span>
-                          <span className="font-semibold text-foreground/90 flex-1">{fx.rate}</span>
-                          <span
-                            className={cn(
-                              'font-mono text-[10.5px] shrink-0',
-                              isFlat ? 'text-muted-foreground' : isUp ? 'text-rose-500' : 'text-blue-500',
-                            )}
-                          >
-                            {isUp ? '▲' : isFlat ? '—' : '▼'} {Math.abs(fx.change).toFixed(1)}%
-                          </span>
+                          <span className="text-foreground/80 truncate flex-1">{e.name}</span>
                         </div>
-                      );
-                    })}
+                      ));
+                    })()}
                   </div>
                 </div>
               </div>
