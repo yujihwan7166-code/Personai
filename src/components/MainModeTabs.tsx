@@ -208,7 +208,6 @@ export const MODE_TINT: Record<MainMode, string> = {
 export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
   { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'research_main', 'premium_main'] },
   { label: '전문',  description: '자문 · 학습 · 토론',    modes: ['study_main', 'stakeholder_main', 'debate'] },
-  { label: 'AI 어시스턴트',  description: '실무 도구',      modes: ['assistant'] },
 ];
 
 export const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
@@ -233,6 +232,19 @@ export const ASSISTANT_FEATURED_TOOLS: Array<{
   { cardId: 'image-gen',      label: '이미지·동영상', desc: '프롬프트로 생성',      icon: Wand2,        tint: 'hsl(32 95% 50%)' },
   { cardId: 'voice-analysis', label: '음성 분석',     desc: '음성→텍스트·요약',     icon: Mic,          tint: 'hsl(330 65% 52%)' },
   { cardId: 'ppt',            label: 'PPT 생성',      desc: '프레젠테이션 자동',     icon: Presentation, tint: 'hsl(160 60% 40%)' },
+];
+
+/** 스카이워크 타일 (좌측 컬럼 하단 2x2) — 실무 도구 즉석 진입. */
+export const ASSISTANT_TILES: Array<{
+  cardId: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  tint: string;
+}> = [
+  { cardId: 'image-gen',      label: '이미지·영상', icon: Wand2,        tint: 'hsl(340 70% 55%)' },
+  { cardId: 'voice-analysis', label: '음성',        icon: Mic,          tint: 'hsl(210 70% 55%)' },
+  { cardId: 'ppt',            label: 'PPT',         icon: Presentation, tint: 'hsl(28 80% 55%)' },
+  { cardId: 'file-convert',   label: '파일 변환',   icon: Files,        tint: 'hsl(280 60% 55%)' },
 ];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
@@ -495,6 +507,37 @@ export function MainModeTabs({
     );
   };
 
+  /** 스카이워크 타일 — 2x2 그리드 아이템. 정방형, 컬러 배경, 아이콘+라벨. */
+  const renderAssistantTile = (tile: typeof ASSISTANT_TILES[number]) => {
+    const Icon = tile.icon;
+    const isActive = currentMode === 'assistant' && currentAssistantCard === tile.cardId;
+    return (
+      <button
+        key={`tile-${tile.cardId}`}
+        type="button"
+        onClick={() => handleSelectAssistantTool(tile.cardId)}
+        role="menuitem"
+        className={cn(
+          'group relative flex flex-col items-center justify-center aspect-square rounded-2xl p-2',
+          'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+          'border border-transparent',
+          isActive && 'ring-2 ring-offset-1 ring-[hsl(var(--ring))]',
+        )}
+        style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 13%, transparent)` }}
+      >
+        <span
+          className="flex h-9 w-9 items-center justify-center rounded-xl mb-1 transition-transform duration-200 group-hover:scale-105"
+          style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 22%, transparent)`, color: tile.tint }}
+        >
+          <Icon className="h-4 w-4" strokeWidth={2} />
+        </span>
+        <span className="text-[11px] font-semibold leading-none truncate max-w-full px-1" style={{ color: tile.tint }}>
+          {tile.label}
+        </span>
+      </button>
+    );
+  };
+
   const renderAssistantToolItem = (tool: typeof ASSISTANT_FEATURED_TOOLS[number]) => {
     const Icon = tool.icon;
     const isActive = currentMode === 'assistant' && currentAssistantCard === tool.cardId;
@@ -611,27 +654,54 @@ export function MainModeTabs({
               'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
             )}
           >
-            {/* 4 컬럼 — 왼쪽: 대화 / 가운데: 전문(토론 아코디언 포함)+AI 어시스턴트 / 오른쪽: 라이프 / 플레이어 */}
+            {/* 4 컬럼 — 유틸리티(검색·날씨·타일) / 대화+전문 / 라이프 / 플레이어 */}
             <div className="grid grid-cols-4 gap-x-3 p-4">
-              {/* 왼쪽·가운데 컬럼: MODE_GROUPS (대화 · 전문+어시) */}
-              {[[0], [1, 2]].map((indices, colIdx) => (
-                /* 왼쪽: 대화(0) + 검색+컨텍스트 · 가운데: 전문(1) + 어시스턴트(2) */
+              {/* 좌측 컬럼: 빠른검색 + 컨텍스트 스트립 + AI 실무 도구 타일 (스카이워크) */}
+              <div className="min-w-0 space-y-3">
+                <div className="px-1">
+                  <QuickSearchBar />
+                </div>
+                <div className="px-1">
+                  <ContextStrip />
+                </div>
+                <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
+                {/* AI 실무 도구 — 2x2 타일 그리드 */}
+                <div>
+                  <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      AI 어시스턴트
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                      실무 도구
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 px-1">
+                    {ASSISTANT_TILES.map(renderAssistantTile)}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSelect('assistant')}
+                    role="menuitem"
+                    className="mt-1.5 flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    </span>
+                    <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                      <span className="text-[12px] font-medium">도구 더 보기</span>
+                      <span className="text-[10px] font-mono text-muted-foreground/80 bg-[hsl(var(--surface-2))] px-1.5 py-0.5 rounded-full">
+                        +1
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+              {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
+              {[[0, 1]].map((indices, colIdx) => (
                 <div key={colIdx} className="min-w-0 space-y-3">
-                  {/* 좌측 컬럼 상단: 빠른검색 + 컨텍스트 스트립(날씨·시간·달력) */}
-                  {colIdx === 0 && (
-                    <>
-                      <div className="px-1">
-                        <QuickSearchBar />
-                      </div>
-                      <div className="px-1">
-                        <ContextStrip />
-                      </div>
-                      <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-                    </>
-                  )}
                   {indices.map((i) => MODE_GROUPS[i]).map((group) => {
                     const isExpert = group.label === '전문';
-                    const isAssistant = group.label === 'AI 어시스턴트';
+                    const isAssistant = false;
                     return (
                       <div key={group.label}>
                         {/* 헤더 — 전문 그룹은 debateOpen 시 뒤로가기 버튼으로 전환 */}
