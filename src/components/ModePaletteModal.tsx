@@ -38,7 +38,6 @@ interface ModePaletteModalProps {
   onSelectAssistantCard?: (cardId: string) => void;
   onSelectLifeTool?: (toolId: string) => void;
   onSelectPlayerTool?: (toolId: string) => void;
-  onOpenPlayerBrowser?: () => void;
 }
 
 export function ModePaletteModal({
@@ -53,7 +52,6 @@ export function ModePaletteModal({
   onSelectAssistantCard,
   onSelectLifeTool,
   onSelectPlayerTool,
-  onOpenPlayerBrowser,
 }: ModePaletteModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -359,24 +357,6 @@ export function ModePaletteModal({
                     {PLAYER_TOOLS_FEATURED.map(renderPlayerToolItem)}
                   </div>
                 </div>
-                {onOpenPlayerBrowser && (
-                  <div>
-                    <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                    <button
-                      type="button"
-                      onClick={() => { onClose(); setTimeout(() => onOpenPlayerBrowser(), 40); }}
-                      role="menuitem"
-                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
-                    >
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
-                        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      </span>
-                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
-                        <span className="text-[12px] font-medium">플레이어 더 보기</span>
-                      </span>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </motion.div>

@@ -41,8 +41,6 @@ interface MainModeTabsProps {
   onOpenMentalTests?: () => void;
   /** 플레이어 도구 (캐릭터챗/게임/롤플레이 등) 선택 콜백. */
   onSelectPlayerTool?: (toolId: string) => void;
-  /** 플레이어 "더 보기" 클릭 — PlayerToolBrowserModal 트리거. */
-  onOpenPlayerBrowser?: () => void;
 }
 
 /** 라이프 서브 그룹 — 드롭다운에서 여러 도구를 한 칩으로 묶는 단위. */
@@ -282,7 +280,6 @@ export function MainModeTabs({
   onSelectLifeTool,
   onOpenMentalTests,
   onSelectPlayerTool,
-  onOpenPlayerBrowser,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
   /** 라이프 컬럼에서 열려 있는 서브 그룹 (null 이면 메인 뷰). */
@@ -761,7 +758,7 @@ export function MainModeTabs({
                                   transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
                                   className="space-y-0.5"
                                 >
-                                  {/* 전문 그룹 메인 뷰: 프리미엄을 대화로 옮긴 만큼의 빈 슬롯 유지 → 아래 AI 어시스턴트 Y 고정 */}
+                                  {/* 전문 그룹 메인 뷰 — AI 어시스턴트 컬럼 분리 이후 스페이서 불필요 */}
                                   {group.modes.flatMap((m) => {
                                     if (m === 'debate') {
                                       const isDebateActive = currentMode === 'debate';
@@ -802,8 +799,6 @@ export function MainModeTabs({
                                     }
                                     return [renderModeItem(m)];
                                   })}
-                                  {/* 프리미엄을 대화로 옮긴 만큼의 빈 슬롯 (py-1.5 + h-7 icon 기준 높이 고정) */}
-                                  <div className="h-[40px]" aria-hidden />
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -930,37 +925,17 @@ export function MainModeTabs({
               </div>
               {/* 맨 오른쪽 컬럼: 플레이어 — 캐릭터·게임·롤플레이 */}
               <div className="min-w-0 flex flex-col">
-                <div className="flex-1">
-                  <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      {PLAYER_GROUP.label}
-                    </span>
-                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                      {PLAYER_GROUP.description}
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {PLAYER_TOOLS_FEATURED.map(renderPlayerToolItem)}
-                  </div>
+                <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                    {PLAYER_GROUP.label}
+                  </span>
+                  <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                    {PLAYER_GROUP.description}
+                  </span>
                 </div>
-                {onOpenPlayerBrowser && (
-                  <div className="mt-3">
-                    <div className="mx-2 border-t border-[hsl(var(--hairline))] mb-1.5" aria-hidden />
-                    <button
-                      type="button"
-                      onClick={() => { setOpen(false); setTimeout(() => onOpenPlayerBrowser(), 40); }}
-                      role="menuitem"
-                      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
-                    >
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
-                        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      </span>
-                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
-                        <span className="text-[12px] font-medium">플레이어 더 보기</span>
-                      </span>
-                    </button>
-                  </div>
-                )}
+                <div className="space-y-0.5">
+                  {PLAYER_TOOLS_FEATURED.map(renderPlayerToolItem)}
+                </div>
               </div>
             </div>
           </motion.div>

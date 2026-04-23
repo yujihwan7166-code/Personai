@@ -52,7 +52,6 @@ const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
 const LazyModePaletteModal = lazy(() => import('@/components/ModePaletteModal').then((module) => ({ default: module.ModePaletteModal })));
 const LazyMentalTestBrowserModal = lazy(() => import('@/components/MentalTestBrowserModal').then((module) => ({ default: module.MentalTestBrowserModal })));
-const LazyPlayerToolBrowserModal = lazy(() => import('@/components/PlayerToolBrowserModal').then((module) => ({ default: module.PlayerToolBrowserModal })));
 const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
 const LazyOnboardingTour = lazy(() => import('@/components/OnboardingTour').then((module) => ({ default: module.OnboardingTour })));
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
@@ -136,7 +135,6 @@ const Index = () => {
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [modePaletteOpen, setModePaletteOpen] = useState(false);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
-  const [playerBrowserOpen, setPlayerBrowserOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
   useEffect(() => {
@@ -4620,7 +4618,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               if (getMainMode(discussionMode) !== 'assistant') handleModeChange(mainToDiscussion('assistant'));
               setSelectedAssistantCard(cardId);
             }}
-            onOpenPlayerBrowser={() => setPlayerBrowserOpen(true)}
           />
         </Suspense>
         {/* 심리 테스트 모음 페이지 — "멘탈 테스트" 그룹 서브 뷰의 "심리 테스트 모음 →" 로 트리거 */}
@@ -4631,18 +4628,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onSelectTest={(testId) => {
               // 추후: 테스트별 퀴즈 엔진 연결. 현재는 일반 채팅으로 폴백.
               void testId;
-              if (getMainMode(discussionMode) !== 'general') handleModeChange(mainToDiscussion('general'));
-            }}
-          />
-        </Suspense>
-        {/* 플레이어 도구 전체 보기 모달 — "플레이어 더 보기" 로 트리거 */}
-        <Suspense fallback={null}>
-          <LazyPlayerToolBrowserModal
-            open={playerBrowserOpen}
-            onClose={() => setPlayerBrowserOpen(false)}
-            onSelectTool={(toolId) => {
-              // 추후: 각 플레이어 도구별 시스템 프롬프트 매핑.
-              void toolId;
               if (getMainMode(discussionMode) !== 'general') handleModeChange(mainToDiscussion('general'));
             }}
           />
@@ -5105,7 +5090,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     }}
                     onAssistantSubmit={handleAssistantSubmit}
                     onOpenMentalTests={() => setMentalTestsOpen(true)}
-                    onOpenPlayerBrowser={() => setPlayerBrowserOpen(true)}
                   />
                 </Suspense>
               )}
