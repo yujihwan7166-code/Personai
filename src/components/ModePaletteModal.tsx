@@ -1,13 +1,13 @@
 /**
- * 모드 팔레트 모달 — 사이드바에서 열리는 전체 모드 브라우저.
+ * 모드 팔레트 — 사이드바 "모드 · 도구" 버튼에서 열리는 플로팅 패널.
  *
- * MainModeTabs 의 드롭다운 패널과 같은 3컬럼 그리드를 재사용하되, eyebrow pill 없이
- * 중앙에 full-screen overlay 형태로 표시. 사이드바의 "모드" 버튼으로 트리거.
+ * 기존 중앙 모달에서 "플로팅 패널" 로 전환: 백드롭 제거, anchor(사이드바 버튼)
+ * 기준으로 위치 계산, 외부 클릭/Esc 로 닫힘. MainModeTabs 드롭다운과 동일 톤.
  */
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, X } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,13 @@ interface ModePaletteModalProps {
   onSelectAssistantCard?: (cardId: string) => void;
   onSelectLifeTool?: (toolId: string) => void;
   onSelectPlayerTool?: (toolId: string) => void;
+  /** 트리거 요소(사이드바 버튼) rect — 패널 위치 앵커링용. null 이면 중앙 폴백. */
+  anchorRect?: { top: number; left: number; right: number; bottom: number; width: number; height: number } | null;
 }
+
+const PANEL_W = 960;
+const PANEL_GAP = 8;
+const VIEWPORT_MARGIN = 16;
 
 export function ModePaletteModal({
   open,
@@ -52,13 +58,61 @@ export function ModePaletteModal({
   onSelectAssistantCard,
   onSelectLifeTool,
   onSelectPlayerTool,
+  anchorRect,
 }: ModePaletteModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Esc 로 닫기
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  // 외부 클릭 감지 — 백드롭 없이 document 레벨 mousedown 사용
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
+    };
+    // defer 1 tick — 패널을 여는 클릭과 충돌 방지
+    const t = window.setTimeout(() => window.addEventListener('mousedown', onDown), 0);
+    return () => { window.clearTimeout(t); window.removeEventListener('mousedown', onDown); };
+  }, [open, onClose]);
+
+  // anchor 기준 패널 위치 계산 — 사이드바 버튼 오른쪽, 버튼 top 과 얼라인
+  useLayoutEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (!anchorRect) {
+        // 폴백: 뷰포트 중앙 상단
+        const left = Math.max(VIEWPORT_MARGIN, Math.min((vw - PANEL_W) / 2, vw - PANEL_W - VIEWPORT_MARGIN));
+        setPanelPos({ top: 64, left });
+        return;
+      }
+      // 가로: 버튼 오른쪽 + gap, 뷰포트 안으로 clamp
+      let left = anchorRect.right + PANEL_GAP;
+      if (left + PANEL_W > vw - VIEWPORT_MARGIN) {
+        left = Math.max(VIEWPORT_MARGIN, vw - PANEL_W - VIEWPORT_MARGIN);
+      }
+      // 세로: 버튼 top 과 얼라인, 뷰포트 초과 시 위로 올림
+      let top = anchorRect.top;
+      if (top < VIEWPORT_MARGIN) top = VIEWPORT_MARGIN;
+      if (top + 560 > vh - VIEWPORT_MARGIN) top = Math.max(VIEWPORT_MARGIN, vh - 560 - VIEWPORT_MARGIN);
+      setPanelPos({ top, left });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [open, anchorRect]);
 
   const handleSelectMode = (m: MainMode) => {
     onClose();
@@ -235,50 +289,30 @@ export function ModePaletteModal({
 
   return createPortal(
     <AnimatePresence>
-      {open && (
+      {open && panelPos && (
         <motion.div
-          key="mode-palette-backdrop"
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/45 backdrop-blur-[3px]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
-          onClick={onClose}
+          ref={panelRef}
+          key="mode-palette-panel"
+          initial={{ opacity: 0, y: -6, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
           role="dialog"
-          aria-modal="true"
           aria-label="모드 팔레트"
+          style={{ position: 'fixed', top: panelPos.top, left: panelPos.left }}
+          className={cn(
+            'z-[200]',
+            'w-[960px] max-w-[calc(100vw-32px)] rounded-2xl overflow-hidden',
+            'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
+            'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
+            'relative flex flex-col',
+          )}
         >
-          <motion.div
-            key="mode-palette-panel"
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-            onClick={(e) => e.stopPropagation()}
-            className={cn(
-              'w-[960px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-64px)] overflow-y-auto rounded-2xl',
-              'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
-              'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.35)]',
-            )}
+          {/* 4 컬럼 그리드 — 내부 스크롤 (뷰포트 초과 시) */}
+          <div
+            className="grid grid-cols-4 gap-x-3 p-4 pb-6 overflow-y-auto overscroll-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            style={{ maxHeight: `calc(100vh - ${panelPos.top + 24}px)` }}
           >
-            {/* 헤더 */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[hsl(var(--hairline))]">
-              <div>
-                <h2 className="text-[14px] font-semibold tracking-tight">모드 · 도구</h2>
-                <p className="text-[11px] text-muted-foreground mt-0.5">원하는 모드나 도구를 선택하세요</p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="닫기"
-                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--accent))] flex items-center justify-center transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* 3 컬럼 그리드 — MainModeTabs 드롭다운과 동일 구조 */}
-            <div className="grid grid-cols-4 gap-x-3 p-4">
               {/* 왼쪽·가운데 컬럼 */}
               {[[0, 2], [1, 3]].map(([i1, i2], colIdx) => (
                 <div key={colIdx} className="min-w-0 space-y-3">
@@ -359,7 +393,11 @@ export function ModePaletteModal({
                 </div>
               </div>
             </div>
-          </motion.div>
+            {/* 하단 페이드 — 스크롤 가능 힌트 */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-b from-transparent to-[hsl(var(--card))]"
+            />
         </motion.div>
       )}
     </AnimatePresence>,

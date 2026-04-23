@@ -134,6 +134,7 @@ const Index = () => {
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [modePaletteOpen, setModePaletteOpen] = useState(false);
+  const [modePaletteAnchor, setModePaletteAnchor] = useState<{ top: number; left: number; right: number; bottom: number; width: number; height: number } | null>(null);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
@@ -4606,6 +4607,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           <LazyModePaletteModal
             open={modePaletteOpen}
             onClose={() => setModePaletteOpen(false)}
+            anchorRect={modePaletteAnchor}
             labels={Object.fromEntries(
               Object.entries(MAIN_MODE_LABELS).map(([k, v]) => [k, v.label])
             ) as Record<import('@/types/expert').MainMode, string>}
@@ -4641,7 +4643,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onModeChange={handleModeChange}
             isDiscussing={isDiscussing}
             onNewDiscussion={handleNewDiscussion}
-            onOpenModePalette={() => setModePaletteOpen(true)}
+            onOpenModePalette={(anchor) => { setModePaletteAnchor(anchor ?? null); setModePaletteOpen(true); }}
             onStartChat={(expertId, mode, content) => {
               handleNewDiscussion();
               setSelectedExpertIds([expertId]);

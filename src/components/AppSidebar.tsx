@@ -29,7 +29,7 @@ interface Props {
   onSidebarToggle?: (isOpen: boolean) => void;
   onStartChat?: (expertId: string, mode: 'question' | 'greeting', content: string) => void;
   /** 사이드바 "모드" 버튼 클릭 시 모드 팔레트 열기. */
-  onOpenModePalette?: () => void;
+  onOpenModePalette?: (anchor?: { top: number; left: number; right: number; bottom: number; width: number; height: number }) => void;
 }
 
 interface Project {
@@ -1000,7 +1000,7 @@ export function AppSidebar({
             const items = [
               { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
               { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
-              { icon: LayoutGrid, label: '모드 · 도구', onClick: () => onOpenModePalette?.() },
+              { icon: LayoutGrid, label: '모드 · 도구', onClick: (e) => { const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect(); onOpenModePalette?.({ top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height }); } },
               { icon: Settings, label: '설정', onClick: () => { setSettingsSection('general'); setSettingsOpen(true); } },
             ];
             return isOpen ? (
