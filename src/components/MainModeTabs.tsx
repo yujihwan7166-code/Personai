@@ -235,21 +235,22 @@ export const ASSISTANT_FEATURED_TOOLS: Array<{
 ];
 
 /** 스카이워크 타일 (좌측 컬럼 하단 2x4 = 8개) — 실무 도구 즉석 진입.
- *  translate 이후 4종은 임시 cardId (엑셀·글쓰기·요약·번역 확장) — 추후 ASSISTANT_CARDS 등록 시 자동 연결. */
+ *  placeholder:true 인 타일은 임시 cardId (아직 ASSISTANT_CARDS 미등록 상태) — dim 처리로 "준비 중" 시그널. */
 export const ASSISTANT_TILES: Array<{
   cardId: string;
   label: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   tint: string;
+  placeholder?: boolean;
 }> = [
   { cardId: 'image-gen',      label: '이미지·영상', icon: Wand2,           tint: 'hsl(340 70% 55%)' },
   { cardId: 'voice-analysis', label: '음성',        icon: Mic,             tint: 'hsl(210 70% 55%)' },
   { cardId: 'ppt',            label: 'PPT',         icon: Presentation,    tint: 'hsl(28 80% 55%)'  },
   { cardId: 'file-convert',   label: '파일 변환',   icon: Files,           tint: 'hsl(280 60% 55%)' },
   { cardId: 'translate',      label: '번역',        icon: Languages,       tint: 'hsl(170 65% 45%)' },
-  { cardId: 'writing',        label: '글쓰기',      icon: PenLine,         tint: 'hsl(45 80% 50%)'  },
-  { cardId: 'summarize',      label: '요약',        icon: BookText,        tint: 'hsl(200 55% 50%)' },
-  { cardId: 'spreadsheet',    label: '엑셀·표',     icon: FileSpreadsheet, tint: 'hsl(135 55% 42%)' },
+  { cardId: 'writing',        label: '글쓰기',      icon: PenLine,         tint: 'hsl(45 80% 50%)',  placeholder: true },
+  { cardId: 'summarize',      label: '요약',        icon: BookText,        tint: 'hsl(200 55% 50%)', placeholder: true },
+  { cardId: 'spreadsheet',    label: '엑셀·표',     icon: FileSpreadsheet, tint: 'hsl(135 55% 42%)', placeholder: true },
 ];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
@@ -526,9 +527,10 @@ export function MainModeTabs({
           'group relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl',
           'transition-all duration-200 hover:-translate-y-0.5',
           'border border-transparent',
+          tile.placeholder && 'opacity-70',
           isActive && 'ring-2 ring-offset-1 ring-[hsl(var(--ring))]',
         )}
-        style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 12%, transparent)` }}
+        style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 9%, transparent)` }}
       >
         <span
           className="flex h-6 w-6 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-110"
@@ -680,11 +682,12 @@ export function MainModeTabs({
                   <div className="grid grid-cols-2 gap-1.5 px-1">
                     {ASSISTANT_TILES.map(renderAssistantTile)}
                   </div>
+                  <div className="my-1.5 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
                   <button
                     type="button"
                     onClick={() => handleSelect('assistant')}
                     role="menuitem"
-                    className="mt-1.5 flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                    className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
                   >
                     <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
                       <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -698,11 +701,14 @@ export function MainModeTabs({
               {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
               {[[0, 1]].map((indices, colIdx) => (
                 <div key={colIdx} className="min-w-0 space-y-3">
-                  {indices.map((i) => MODE_GROUPS[i]).map((group) => {
+                  {indices.map((i) => MODE_GROUPS[i]).map((group, groupIdx) => {
                     const isExpert = group.label === '전문';
                     const isAssistant = false;
                     return (
                       <div key={group.label}>
+                        {groupIdx > 0 && (
+                          <div className="mb-3 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                        )}
                         {/* 헤더 — 전문 그룹은 debateOpen 시 뒤로가기 버튼으로 전환 */}
                         <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                           {isExpert && debateOpen ? (
