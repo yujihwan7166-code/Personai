@@ -4,7 +4,7 @@
  * 페이지 헤더 메타로서의 모드 표시. 작은 pill + 드롭다운 패널.
  * 드롭다운은 8개 주요 모드만 노출, AI 토론은 하위(찬반/자유/심층/브레인) 인라인 표시.
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -318,31 +318,10 @@ export function MainModeTabs({
   }, [open]);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const disabled = isDiscussing || transitionPhase !== 0;
   const effective = pendingMode ?? currentMode;
   const CurrentIcon = MODE_ICON[effective];
   const currentTint = MODE_TINT[effective];
-
-  useLayoutEffect(() => {
-    if (!open || !rootRef.current) return;
-    const update = () => {
-      if (!rootRef.current) return;
-      const r = rootRef.current.getBoundingClientRect();
-      const PANEL_W = 960;
-      const vw = window.innerWidth;
-      let left = r.left + r.width / 2 - PANEL_W / 2;
-      left = Math.max(16, Math.min(left, vw - PANEL_W - 16));
-      setPanelPos({ top: r.bottom + 8, left });
-    };
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -646,48 +625,98 @@ export function MainModeTabs({
     );
   };
 
+  const pillClass = cn(
+    'group flex items-center gap-1.5 h-7 pl-2 pr-2 rounded-full transition-[background-color,border-color,color] duration-200',
+    'text-[11.5px] font-medium tracking-tight',
+    'border',
+    'disabled:opacity-60 disabled:cursor-not-allowed',
+    showPlayerBg
+      ? 'bg-slate-900/70 border-slate-700 text-white hover:bg-slate-900/90'
+      : 'bg-[hsl(var(--card))] border-[hsl(var(--hairline))] hover:border-[hsl(var(--border))]',
+  );
+
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => !disabled && setOpen((v) => !v)}
-        disabled={disabled}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className={cn(
-          'group flex items-center gap-1.5 h-7 pl-2 pr-2 rounded-full transition-all duration-200',
-          'text-[11.5px] font-medium tracking-tight',
-          'border',
-          'disabled:opacity-60 disabled:cursor-not-allowed',
-          showPlayerBg
-            ? 'bg-slate-900/70 border-slate-700 text-white hover:bg-slate-900/90'
-            : 'bg-[hsl(var(--card))] border-[hsl(var(--hairline))] hover:border-[hsl(var(--border))]',
-        )}
-        style={!showPlayerBg ? { color: currentTint } : undefined}
-      >
-        <CurrentIcon className="h-3 w-3 shrink-0" strokeWidth={2.2} />
-        <span className="whitespace-nowrap font-semibold">{labels[effective]}</span>
-        <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
-      </button>
+      {/* 원위치 pill — 닫혀 있을 때만 보임 (열릴 땐 portal 안의 floating pill로 layoutId 모핑) */}
+      {!open && (
+        <motion.button
+          layoutId="mode-pill"
+          type="button"
+          onClick={() => !disabled && setOpen(true)}
+          disabled={disabled}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          className={pillClass}
+          style={!showPlayerBg ? { color: currentTint } : undefined}
+        >
+          <CurrentIcon className="h-3 w-3 shrink-0" strokeWidth={2.2} />
+          <span className="whitespace-nowrap font-semibold">{labels[effective]}</span>
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </motion.button>
+      )}
 
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
-        {open && panelPos && (
-          <motion.div
-            ref={panelRef}
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
-            role="menu"
-            style={{ position: 'fixed', top: panelPos.top, left: panelPos.left }}
-            className={cn(
-              'z-[120]',
-              'w-[960px] max-w-[calc(100vw-32px)] rounded-2xl overflow-hidden',
-              'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
-              'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
-            )}
-          >
+        {open && (
+          <>
+            {/* 배경 dim + 블러 — 클릭 시 닫힘 */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16 }}
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-[115] bg-black/15 backdrop-blur-[2px]"
+              aria-hidden
+            />
+
+            {/* Floating pill — 뷰포트 상단 고정, layoutId 로 원위치에서 스무스 모핑 */}
+            <motion.button
+              key="pill-floating"
+              layoutId="mode-pill"
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-haspopup="menu"
+              aria-expanded
+              className={pillClass}
+              style={{
+                position: 'fixed',
+                top: 16,
+                left: '50%',
+                translateX: '-50%',
+                zIndex: 122,
+                ...(!showPlayerBg ? { color: currentTint } : {}),
+              }}
+            >
+              <CurrentIcon className="h-3 w-3 shrink-0" strokeWidth={2.2} />
+              <span className="whitespace-nowrap font-semibold">{labels[effective]}</span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground rotate-180" />
+            </motion.button>
+
+            {/* 드롭다운 — 뷰포트 상단 고정, max-h 로 항상 한 화면 */}
+            <motion.div
+              key="dropdown"
+              ref={panelRef}
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
+              role="menu"
+              style={{
+                position: 'fixed',
+                top: 56,
+                left: '50%',
+                translateX: '-50%',
+                maxHeight: 'calc(100vh - 72px)',
+              }}
+              className={cn(
+                'z-[120]',
+                'w-[960px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
+                'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
+                'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
+              )}
+            >
             {/* 4 컬럼 — 유틸리티(검색·날씨·타일) / 대화+전문 / 라이프 / 플레이어 */}
             <div className="grid grid-cols-4 gap-x-3 p-4">
               {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·날씨·환율) */}
@@ -1047,6 +1076,7 @@ export function MainModeTabs({
               </div>
             </div>
           </motion.div>
+          </>
         )}
         </AnimatePresence>,
         document.body,
