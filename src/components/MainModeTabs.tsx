@@ -316,20 +316,6 @@ export function MainModeTabs({
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
   }, [open]);
-  /** 브라우저 확대/축소에 영향받지 않도록 드롭다운 역scale — 마운트 시점 DPR 기준 상대값. */
-  const baselineDprRef = useRef<number | null>(null);
-  const [zoomScale, setZoomScale] = useState(1);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (baselineDprRef.current === null) baselineDprRef.current = window.devicePixelRatio;
-    const update = () => {
-      const base = baselineDprRef.current ?? window.devicePixelRatio;
-      setZoomScale(window.devicePixelRatio / base);
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const disabled = isDiscussing || transitionPhase !== 0;
@@ -682,13 +668,13 @@ export function MainModeTabs({
               aria-hidden
             />
 
-            {/* 드롭다운 — 뷰포트 상단 고정, max-h 로 항상 한 화면, 브라우저 확대/축소 역보정 */}
+            {/* 드롭다운 — 뷰포트 상단 고정, max-h 로 항상 한 화면 */}
             <motion.div
               key="dropdown"
               ref={panelRef}
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0, scale: 1 / zoomScale }}
-              exit={{ opacity: 0, y: -6 }}
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
               role="menu"
               style={{
@@ -696,8 +682,7 @@ export function MainModeTabs({
                 top: 56,
                 left: '50%',
                 translateX: '-50%',
-                transformOrigin: 'top center',
-                maxHeight: `calc((100vh - 72px) * ${zoomScale})`,
+                maxHeight: 'calc(100vh - 72px)',
               }}
               className={cn(
                 'z-[120]',
