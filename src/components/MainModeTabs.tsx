@@ -685,9 +685,8 @@ export function MainModeTabs({
                     </div>
                   </div>
                 </div>
-                {/* footer — 컬럼 최하단 고정 */}
-                <div className="mt-3">
-                  <div className="mx-2 border-t border-[hsl(var(--hairline))] mb-1.5" aria-hidden />
+                {/* footer — 타일 바로 아래 붙임 */}
+                <div className="mt-1">
                   <button
                     type="button"
                     onClick={() => handleSelect('assistant')}
