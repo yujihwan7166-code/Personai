@@ -962,9 +962,6 @@ export function MainModeTabs({
                   </div>
                   {/* 월간 달력 */}
                   <div className="pt-2 border-t border-[hsl(var(--hairline))]">
-                    <div className="mb-1 text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/80 text-center">
-                      {now.getFullYear()} . {String(now.getMonth() + 1).padStart(2, '0')}
-                    </div>
                     <div className="grid grid-cols-7 gap-0.5 text-center">
                       {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
                         <div
