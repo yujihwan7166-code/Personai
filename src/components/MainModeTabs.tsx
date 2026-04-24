@@ -984,89 +984,86 @@ export function MainModeTabs({
                     ))}
                   </div>
                 </div>
-                {/* 로그인 줄 — 프로필 (컬럼 최하단 footer) */}
+                {/* 로그인 줄 — 프로필 (컬럼 최하단 footer).
+                    ※ Supabase 미연동 환경에서도 UI 가 보이도록 실 유저 없으면 '데모 사용자' 로 대체. */}
                 <div className="mt-auto pt-2 border-t border-[hsl(var(--hairline))]">
-                  {user ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors"
-                        >
-                          <span
-                            className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[10px] font-semibold text-white"
-                            style={{
-                              background: `linear-gradient(135deg, hsl(${(user.email?.charCodeAt(0) ?? 65) * 7 % 360} 70% 55%), hsl(${(user.email?.charCodeAt(1) ?? 66) * 11 % 360} 70% 50%))`,
-                            }}
+                  {(() => {
+                    const isReal = !!user;
+                    const displayEmail = user?.email ?? 'demo@personai.kr';
+                    const displayName = displayEmail.split('@')[0];
+                    const displayPlan = profile?.plan ?? 'free';
+                    const initialChar = displayEmail[0]?.toUpperCase() ?? 'U';
+                    const hueA = (displayEmail.charCodeAt(0) ?? 65) * 7 % 360;
+                    const hueB = (displayEmail.charCodeAt(1) ?? 66) * 11 % 360;
+                    return (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors"
                           >
-                            {(user.email?.[0] ?? 'U').toUpperCase()}
-                          </span>
-                          <span className="min-w-0 flex-1 flex items-center gap-1.5">
-                            <span className="text-[11.5px] font-medium text-foreground/90 truncate">
-                              {user.email?.split('@')[0] ?? '사용자'}
+                            <span
+                              className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[10px] font-semibold text-white"
+                              style={{
+                                background: `linear-gradient(135deg, hsl(${hueA} 70% 55%), hsl(${hueB} 70% 50%))`,
+                              }}
+                            >
+                              {initialChar}
                             </span>
-                            {profile?.plan && (
+                            <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                              <span className="text-[11.5px] font-medium text-foreground/90 truncate">
+                                {displayName}
+                              </span>
                               <span className={cn(
                                 'text-[9px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded-full leading-none shrink-0',
-                                profile.plan === 'pro'     && 'bg-gradient-to-r from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-300',
-                                profile.plan === 'premium' && 'bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-300',
-                                profile.plan === 'free'    && 'bg-muted text-muted-foreground',
+                                displayPlan === 'pro'     && 'bg-gradient-to-r from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-300',
+                                displayPlan === 'premium' && 'bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-300',
+                                displayPlan === 'free'    && 'bg-muted text-muted-foreground',
                               )}>
-                                {profile.plan}
+                                {displayPlan}
                               </span>
-                            )}
-                          </span>
-                          <Settings className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" side="top" className="w-56 z-[125]">
-                        <DropdownMenuLabel className="flex flex-col gap-0.5 pb-2">
-                          <span className="text-[12px] font-semibold truncate">{user.email}</span>
-                          {profile?.plan && (
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                              {profile.plan} 플랜
                             </span>
+                            <Settings className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" side="top" className="w-56 z-[125]">
+                          <DropdownMenuLabel className="flex flex-col gap-0.5 pb-2">
+                            <span className="text-[12px] font-semibold truncate">{displayEmail}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              {displayPlan} 플랜 {!isReal && '· 데모'}
+                            </span>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {isReal ? (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => { setOpen(false); setTimeout(() => navigate('/admin'), 40); }}
+                                className="cursor-pointer"
+                              >
+                                <UserIcon className="h-3.5 w-3.5 mr-2" />
+                                <span className="text-[12px]">계정 관리</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={async () => { setOpen(false); await signOut(); }}
+                                className="cursor-pointer text-rose-600 dark:text-rose-400 focus:text-rose-700"
+                              >
+                                <LogOut className="h-3.5 w-3.5 mr-2" />
+                                <span className="text-[12px]">로그아웃</span>
+                              </DropdownMenuItem>
+                            </>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => { setOpen(false); setTimeout(() => navigate('/auth'), 40); }}
+                              className="cursor-pointer"
+                            >
+                              <LogIn className="h-3.5 w-3.5 mr-2" />
+                              <span className="text-[12px]">실제 로그인 / 가입</span>
+                            </DropdownMenuItem>
                           )}
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setOpen(false);
-                            setTimeout(() => navigate('/admin'), 40);
-                          }}
-                          className="cursor-pointer"
-                        >
-                          <UserIcon className="h-3.5 w-3.5 mr-2" />
-                          <span className="text-[12px]">계정 관리</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={async () => {
-                            setOpen(false);
-                            await signOut();
-                          }}
-                          className="cursor-pointer text-rose-600 dark:text-rose-400 focus:text-rose-700"
-                        >
-                          <LogOut className="h-3.5 w-3.5 mr-2" />
-                          <span className="text-[12px]">로그아웃</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        setTimeout(() => navigate('/auth'), 40);
-                      }}
-                      className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg bg-muted/30 hover:bg-[hsl(var(--accent))] transition-colors"
-                    >
-                      <LogIn className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-[11.5px] font-medium text-foreground/85 flex-1 text-left">
-                        로그인 / 가입
-                      </span>
-                      <ChevronRight className="h-3 w-3 text-muted-foreground/70 shrink-0" />
-                    </button>
-                  )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    );
+                  })()}
                 </div>
               </div>
               {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
