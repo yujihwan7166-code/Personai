@@ -1643,8 +1643,8 @@ export function MainModeTabs({
                       </>
                     )}
                   </div>
-                  {/* 서브그룹이 메인 뷰보다 길어도 아래 featured 카드·hairline 이 밀리지 않도록 max-h + 내부 스크롤. */}
-                  <div className="relative max-h-[232px] overflow-y-auto">
+                  {/* 서브그룹 열렸을 때만 max-h + 내부 스크롤 적용 — 메인 뷰는 자연 높이, 스크롤 X. */}
+                  <div className={cn('relative', openLifeSubgroup && 'max-h-[232px] overflow-y-auto')}>
                     <AnimatePresence mode="wait" initial={false}>
                       {openLifeSubgroup ? (
                         <motion.div
