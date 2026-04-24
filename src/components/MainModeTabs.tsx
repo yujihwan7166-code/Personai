@@ -1643,8 +1643,9 @@ export function MainModeTabs({
                       </>
                     )}
                   </div>
-                  {/* 서브그룹 열렸을 때만 max-h + 내부 스크롤 적용 — 메인 뷰는 자연 높이, 스크롤 X. */}
-                  <div className={cn('relative', openLifeSubgroup && 'max-h-[232px] overflow-y-auto')}>
+                  {/* 메인 뷰는 자연 높이(스크롤 X). 서브그룹 motion 자체에만 max-h+overflow 적용 →
+                      뒤로가기 시 순간 확장/밀림 없음 + 메인에 불필요한 스크롤 X. */}
+                  <div className="relative">
                     <AnimatePresence mode="wait" initial={false}>
                       {openLifeSubgroup ? (
                         <motion.div
@@ -1653,7 +1654,7 @@ export function MainModeTabs({
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 16 }}
                           transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                          className="space-y-0.5"
+                          className="space-y-0.5 max-h-[232px] overflow-y-auto"
                         >
                           {LIFE_TOOLS.filter((t) => t.group === openLifeSubgroup).map(renderLifeToolItem)}
                         </motion.div>
