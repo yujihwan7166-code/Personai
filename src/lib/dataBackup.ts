@@ -101,7 +101,6 @@ async function dumpStudyBlobs(): Promise<BackupPayload['studyBlobs']> {
       r.onerror = () => reject(r.error);
     });
     for (const rec of records) {
-      // eslint-disable-next-line no-await-in-loop
       const base64 = await blobToBase64(rec.blob);
       all.push({
         id: rec.id,

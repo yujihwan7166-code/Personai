@@ -681,7 +681,7 @@ export async function runAgentPipeline(options: AgentPipelineOptions): Promise<v
         : state.patternStageIndex,
     });
 
-    let answer = await streamSseContent(finalResponse, onStreamToken, onSearchSources);
+    const answer = await streamSseContent(finalResponse, onStreamToken, onSearchSources);
     if (!answer.trim()) {
       throw new Error('Step 3 streaming returned no content');
     }

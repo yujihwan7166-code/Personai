@@ -8,7 +8,6 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY a
 // 환경 변수 미설정 시 앱 전체 크래시 방지. 콘솔 경고 + 더미 URL 로 fallback.
 // 인증·DB 호출 은 실패하지만 앱 UI 는 정상 로드됨.
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  // eslint-disable-next-line no-console
   console.warn(
     '[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY 가 설정되지 않았어요. ' +
     '인증·DB 기능이 비활성화됩니다. Vercel Settings → Environment Variables 에서 추가하세요.',

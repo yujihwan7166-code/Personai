@@ -140,7 +140,7 @@ export function CalculatorW({ widget, editable }: WProps<CalculatorWidget>) {
     const e = expr.replace(/[^0-9+\-*/().% ]/g, '');
     if (!e.trim()) return '';
     try {
-      // eslint-disable-next-line no-new-func
+      // eslint-disable-next-line no-new-func -- 입력은 /[^0-9+\-*/().% ]/g 로 사전 필터링 — 계산기 위젯 한정 안전 사용
       const v = Function(`"use strict";return (${e})`)();
       if (typeof v === 'number' && Number.isFinite(v)) return String(Math.round(v * 1e8) / 1e8);
       return '';
