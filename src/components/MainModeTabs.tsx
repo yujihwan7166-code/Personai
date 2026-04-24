@@ -880,8 +880,8 @@ export function MainModeTabs({
                 'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
               )}
             >
-            {/* 4 컬럼 — 유틸리티(검색·날씨·타일) / 대화+전문 / 라이프 / 플레이어 */}
-            <div className="grid grid-cols-4 gap-x-3 p-4">
+            {/* 3 컬럼 — 유틸리티(검색·TODAY·로그인) / 대화+전문 / 라이프 (플레이어는 하단 band 로 격하) */}
+            <div className="grid grid-cols-3 gap-x-3 p-4">
               {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·달력·날씨+미세·시세) */}
               <div className="min-w-0 flex flex-col space-y-2">
                 <div className="px-1 -mt-1">
@@ -1584,19 +1584,42 @@ export function MainModeTabs({
                   </div>
                 </div>
               </div>
-              {/* 맨 오른쪽 컬럼: 플레이어 — 캐릭터·게임·롤플레이 */}
-              <div className="min-w-0 flex flex-col">
-                <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                    {PLAYER_GROUP.label}
-                  </span>
-                  <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                    {PLAYER_GROUP.description}
-                  </span>
-                </div>
-                <div className="space-y-0.5">
-                  {PLAYER_TOOLS_FEATURED.map(renderPlayerToolItem)}
-                </div>
+            </div>
+
+            {/* ── 플레이어 미니 밴드 — 캐릭터챗·게임·RPG·추리 4카드 (재미 요소) ── */}
+            <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
+            <div className="px-4 py-3">
+              <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                  {PLAYER_GROUP.label}
+                </span>
+                <span className="text-[10.5px] text-muted-foreground/70 truncate flex-1">
+                  {PLAYER_GROUP.description}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {PLAYER_TOOLS_FEATURED.slice(0, 4).map((tool) => (
+                  <button
+                    key={`player-hero-${tool.id}`}
+                    type="button"
+                    onClick={() => handleSelectPlayerTool(tool.id)}
+                    role="menuitem"
+                    className={cn(
+                      'group flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5',
+                    )}
+                    style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 11%, transparent)` }}
+                  >
+                    <span
+                      className="flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110"
+                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 22%, transparent)` }}
+                    >
+                      <span className="text-[17px] leading-none select-none">{tool.emoji}</span>
+                    </span>
+                    <span className="text-[11px] font-semibold leading-none truncate max-w-full text-foreground/85">
+                      {tool.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
