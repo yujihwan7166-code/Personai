@@ -966,8 +966,8 @@ export function MainModeTabs({
                     );
                   })}
                 </div>
-                {/* 탭 콘텐츠 — AnimatePresence 로 전환 */}
-                <div className="flex-1 min-h-0 relative">
+                {/* 탭 콘텐츠 — AnimatePresence 로 전환. min-h 로 홈 탭 기준 높이 고정 → 탭 전환 시 흔들림 방지. */}
+                <div className="flex-1 min-h-[384px] relative">
                   <AnimatePresence mode="wait">
                 {leftTab === 'today' && (<motion.div
                   key="tab-today"
