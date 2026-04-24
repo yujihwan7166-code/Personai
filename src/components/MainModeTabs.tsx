@@ -1703,48 +1703,17 @@ export function MainModeTabs({
                               </button>
                             );
                           })}
+                          {/* 하단 featured: 캐릭터챗·AI 게임 — 라이프 리스트와 hairline 한 줄로 구분. */}
+                          <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                          {(['character-chat', 'ai-game'] as const).map((toolId) => {
+                            const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
+                            return tool ? renderPlayerToolItem(tool) : null;
+                          })}
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
                 </div>
-                {/* 라이프 컬럼 하단 featured — 캐릭터챗 + AI 게임.
-                    서브그룹 오픈 중이면 숨김 → 서브그룹이 이 영역까지 확장해 사용. */}
-                {!openLifeSubgroup && (
-                  <div className="mt-auto mb-3 pt-2 border-t border-[hsl(var(--hairline))] space-y-2">
-                    {(['character-chat', 'ai-game'] as const).map((toolId) => {
-                      const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
-                      if (!tool) return null;
-                      return (
-                        <button
-                          key={`life-bottom-${tool.id}`}
-                          type="button"
-                          onClick={() => handleSelectPlayerTool(tool.id)}
-                          role="menuitem"
-                          className="group w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                          style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
-                        >
-                          <span
-                            className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
-                          >
-                            <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
-                              {tool.label}
-                            </span>
-                            {tool.desc && (
-                              <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
-                                {tool.desc}
-                              </span>
-                            )}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             </div>
 
