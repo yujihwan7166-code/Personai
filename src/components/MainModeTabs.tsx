@@ -1650,17 +1650,17 @@ export function MainModeTabs({
                       onClick={() => handleSelectPlayerTool(tool.id)}
                       role="menuitem"
                       className={cn(
-                        'group flex flex-col items-center justify-center gap-1.5 py-5 px-3 rounded-2xl text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                        'group flex flex-col items-center justify-center gap-2 py-8 px-4 rounded-2xl text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
                       )}
-                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 13%, transparent)` }}
+                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
                     >
                       <span
-                        className="flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110"
-                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 25%, transparent)` }}
+                        className="flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-110"
+                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
                       >
-                        <span className="text-[24px] leading-none select-none">{tool.emoji}</span>
+                        <span className="text-[30px] leading-none select-none">{tool.emoji}</span>
                       </span>
-                      <span className="text-[13px] font-semibold leading-none truncate max-w-full text-foreground mt-1">
+                      <span className="text-[14px] font-semibold leading-none truncate max-w-full text-foreground mt-1.5">
                         {tool.label}
                       </span>
                       {tool.desc && (
