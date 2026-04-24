@@ -284,35 +284,6 @@ export const ASSISTANT_TILES: Array<{
   { cardId: 'spreadsheet',    label: '엑셀·표',     icon: FileSpreadsheet, tint: 'hsl(135 55% 42%)', placeholder: true },
 ];
 
-/** 좌측 컬럼 — 날씨 위젯 (v1 하드코드, v2 API 연동). */
-export const WEATHER_WIDGET = {
-  city: '서울',
-  temp: 13,
-  condition: '맑음',
-  emoji: '☀️',
-  tint: 'hsl(210 70% 55%)',
-};
-
-/** 좌측 컬럼 — 미세먼지 위젯 (v1 하드코드, v2 에어코리아 API). */
-type DustGrade = '좋음' | '보통' | '나쁨' | '매우나쁨';
-export const DUST_WIDGET: {
-  pm10: number;
-  pm10Grade: DustGrade;
-  pm25: number;
-  pm25Grade: DustGrade;
-} = {
-  pm10: 33,
-  pm10Grade: '좋음',
-  pm25: 18,
-  pm25Grade: '보통',
-};
-export const DUST_GRADE_COLOR: Record<DustGrade, string> = {
-  '좋음':     'text-blue-500',
-  '보통':     'text-emerald-500',
-  '나쁨':     'text-amber-500',
-  '매우나쁨': 'text-rose-500',
-};
-
 /** 시간대별 컨텍스트 인사 — Ambient Dashboard 감성. */
 export function getGreeting(hour: number): { emoji: string; text: string } {
   if (hour < 6)  return { emoji: '🌙', text: '늦은 시간이네요' };
@@ -453,10 +424,6 @@ export const UPCOMING_EVENTS: Array<{
   { name: '크리스마스', date: '2026-12-25', emoji: '🎄' },
   { name: '새해',       date: '2027-01-01', emoji: '🎊' },
 ];
-
-/** 하위 호환 — 기존 import 유지 (사용 중단 예정). */
-export const MARKET_TICKERS: Array<never> = [];
-export const EXCHANGE_RATES: Array<never> = [];
 
 /** 토론 서브모드 정의 — 각자 독립 항목으로 논의 그룹에 직접 노출. 각자 고유 색. */
 export const DEBATE_SUBS: Array<{
