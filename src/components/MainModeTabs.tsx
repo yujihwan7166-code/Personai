@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
   FlaskConical, BookOpen, ChevronDown, ChevronRight, ChevronLeft, MessagesSquare, Telescope,
@@ -201,7 +202,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'wiki',     label: '마이위키', desc: '주제별 정리된 지식',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '기록' },
 ];
 
-export const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+export const MODE_ICON: Record<MainMode, LucideIcon> = {
   general:          MessageCircle,
   multi:            GitMerge,
   brainstorm_main:  Sparkles,
@@ -257,7 +258,7 @@ export const ASSISTANT_FEATURED_TOOLS: Array<{
   cardId: string;
   label: string;
   desc: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   tint: string;
 }> = [
   { cardId: 'image-gen',      label: '이미지·동영상', desc: '프롬프트로 생성',      icon: Wand2,        tint: 'hsl(32 95% 50%)' },
@@ -270,7 +271,7 @@ export const ASSISTANT_FEATURED_TOOLS: Array<{
 export const ASSISTANT_TILES: Array<{
   cardId: string;
   label: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   tint: string;
   placeholder?: boolean;
 }> = [
@@ -308,7 +309,7 @@ export function getTimeGradient(hour: number): string {
 export const TOOL_TILES: Array<{
   id: string;
   label: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   /** Tailwind 그라디언트 배경 (light + dark). */
   bgClass: string;
   /** 아이콘/라벨 컬러 */
@@ -430,7 +431,7 @@ export const DEBATE_SUBS: Array<{
   key: DebateSubMode;
   label: string;
   desc: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   tint: string;
 }> = [
   { key: 'procon',     label: '찬반토론',     desc: '찬성 · 반대 구조',    icon: Swords,         tint: 'hsl(var(--mode-debate-b))' },     // red — 대립

@@ -129,14 +129,14 @@ const PROCESS_PREVIEW: ProcessStep[] = [
 ];
 
 // Phase 그룹 (PHASE I / II / III — 로마자, 번호 원 제거)
-interface Phase {
+interface PhaseGroup {
   roman: 'I' | 'II' | 'III';
   title: string;
   stepIndices: number[];
   accent: { dot: string; border: string };
 }
 
-const PHASES: Phase[] = [
+const PHASES: PhaseGroup[] = [
   { roman: 'I',   title: '계획 · 데이터 수집',    stepIndices: [0, 1, 2], accent: { dot: 'bg-violet-500',  border: 'before:bg-violet-500/70'  } },
   { roman: 'II',  title: '인용 검증 · 데이터 종합', stepIndices: [6, 3, 8], accent: { dot: 'bg-sky-500',     border: 'before:bg-sky-500/70'     } },
   { roman: 'III', title: '답변 작성 · 품질 검증', stepIndices: [4, 7],    accent: { dot: 'bg-emerald-500', border: 'before:bg-emerald-500/70' } },

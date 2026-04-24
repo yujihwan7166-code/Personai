@@ -12,7 +12,13 @@
     "moduleDetection": "force",
     "moduleResolution": "bundler",
     "noEmit": true,
-    "noFallthroughCasesInSwitch": false,
+    "noFallthroughCasesInSwitch": true,
+    // Phase 2: 점진적 strict 전환 계획
+    //   단계 1 (현재): eslint @typescript-eslint/no-unused-vars 로 warn (빌드 차단 X) — 300+ 건 점진 정리
+    //   단계 2: 위 정리 완료 시 noUnusedLocals / noUnusedParameters 를 true 로
+    //   단계 3: any 52 건 제거 후 noImplicitAny: true
+    //   단계 4: null 경계 정리 후 strictNullChecks: true
+    //   단계 5: strict: true 로 전부 활성화
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
