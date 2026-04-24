@@ -84,8 +84,6 @@ export const LIFE_TOOLS: Array<{
   { id: 'tojeong',    label: '토정비결',      desc: '올해 운세 · 월별 흐름',     emoji: '📜', tint: 'hsl(35 75% 48%)',  featured: false, group: 'fortune'   },
   // ── 2026-04 추가 (fortune 그룹 확장) ──
   { id: 'daily',      label: '일일운세',      desc: '오늘의 종합·애정·재물',     emoji: '🌟', tint: 'hsl(50 90% 55%)',  featured: false, group: 'fortune'   },
-  { id: 'naming',     label: '이름 풀이·작명', desc: '사람·아기·반려·브랜드',     emoji: '✍️', tint: 'hsl(160 45% 45%)', featured: false, group: 'fortune'   },
-  { id: 'past-life',  label: '나의 전생',     desc: '전생 직업·시대·이야기',     emoji: '👤', tint: 'hsl(280 40% 48%)', featured: false, group: 'fortune'   },
   { id: 'dating',     label: '연애 코치',     desc: '썸·데이트·이별 조언',       emoji: '💌', tint: 'hsl(350 80% 62%)', featured: true                       },
   // ── 건강 도우미 그룹 ──
   { id: 'workout',    label: '운동 코치',     desc: '홈트·헬스·요가 루틴',       emoji: '💪', tint: 'hsl(155 65% 45%)', featured: false, group: 'health'    },
