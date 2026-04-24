@@ -820,18 +820,16 @@ export function MainModeTabs({
                     getTimeGradient(now.getHours()),
                   )}
                 >
-                  {/* 컨텍스트 인사 */}
-                  <div className="flex items-center gap-1.5 text-[10.5px] font-mono tracking-[0.1em] text-muted-foreground">
-                    <span className="text-[12px] leading-none">{getGreeting(now.getHours()).emoji}</span>
-                    <span>{getGreeting(now.getHours()).text}</span>
-                  </div>
-                  {/* 시계 hero + 날짜 subtitle */}
-                  <div>
-                    <div className="text-[36px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
+                  {/* 시계 hero (좌) + 요일/날짜 (우, 우측 정렬) — 한 줄 가로 분할 */}
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="text-[40px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
                       {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </div>
-                    <div className="mt-1.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
-                      {now.getMonth() + 1}월 {now.getDate()}일 · {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
+                    <div className="text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground text-right leading-tight">
+                      <div className="font-semibold text-foreground/75">
+                        {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
+                      </div>
+                      <div className="mt-0.5">{now.getMonth() + 1}월 {now.getDate()}일</div>
                     </div>
                   </div>
                   {/* 주간 달력 */}
