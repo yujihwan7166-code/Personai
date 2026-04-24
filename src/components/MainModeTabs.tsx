@@ -1703,12 +1703,42 @@ export function MainModeTabs({
                               </button>
                             );
                           })}
-                          {/* 하단 featured: 캐릭터챗·AI 게임 — 라이프 리스트와 hairline 한 줄로 구분. */}
-                          <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                          {(['character-chat', 'ai-game'] as const).map((toolId) => {
-                            const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
-                            return tool ? renderPlayerToolItem(tool) : null;
-                          })}
+                          {/* 하단 featured: 캐릭터챗·AI 게임 — 라이프 리스트와 hairline 한 줄로 구분.
+                              일반 아이템과 달리 tint 배경 카드 스타일로 강조. */}
+                          <div className="my-1.5 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                          <div className="pt-0.5 space-y-1.5">
+                            {(['character-chat', 'ai-game'] as const).map((toolId) => {
+                              const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
+                              if (!tool) return null;
+                              return (
+                                <button
+                                  key={`life-featured-${tool.id}`}
+                                  type="button"
+                                  onClick={() => handleSelectPlayerTool(tool.id)}
+                                  role="menuitem"
+                                  className="group w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                                  style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
+                                >
+                                  <span
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
+                                    style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
+                                  >
+                                    <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
+                                      {tool.label}
+                                    </span>
+                                    {tool.desc && (
+                                      <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
+                                        {tool.desc}
+                                      </span>
+                                    )}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
