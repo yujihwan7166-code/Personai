@@ -1716,21 +1716,21 @@ export function MainModeTabs({
                                   type="button"
                                   onClick={() => handleSelectPlayerTool(tool.id)}
                                   role="menuitem"
-                                  className="group w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                                  className="group w-full flex items-center gap-2 py-1.5 px-2 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                                   style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
                                 >
                                   <span
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
+                                    className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 transition-transform duration-200 group-hover:scale-110"
                                     style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
                                   >
-                                    <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
+                                    <span className="text-[14px] leading-none select-none">{tool.emoji}</span>
                                   </span>
                                   <span className="min-w-0 flex-1">
-                                    <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
+                                    <span className="block text-[11px] font-semibold leading-tight text-foreground truncate">
                                       {tool.label}
                                     </span>
                                     {tool.desc && (
-                                      <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
+                                      <span className="block text-[9px] text-muted-foreground leading-tight mt-0.5 truncate">
                                         {tool.desc}
                                       </span>
                                     )}
