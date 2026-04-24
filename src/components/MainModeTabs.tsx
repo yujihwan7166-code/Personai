@@ -1495,8 +1495,8 @@ export function MainModeTabs({
                   })}
                 </div>
               ))}
-              {/* 3번째 컬럼: 📝 노트 — 라이프처럼 단순 메뉴 목록 (일정·할일·메모·북마크 등) */}
-              <div className="min-w-0 flex flex-col space-y-3">
+              {/* 3번째 컬럼: 📝 노트 (상단) + 캐릭터 챗 featured 카드 (하단 mt-auto) */}
+              <div className="min-w-0 flex flex-col">
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -1546,9 +1546,38 @@ export function MainModeTabs({
                     ))}
                   </div>
                 </div>
+                {/* 캐릭터 챗 featured 카드 — 노트 컬럼 하단 빈 공간 채움 (mt-auto) */}
+                {(() => {
+                  const tool = PLAYER_TOOLS.find((t) => t.id === 'character-chat');
+                  if (!tool) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPlayerTool(tool.id)}
+                      role="menuitem"
+                      className="group mt-auto flex flex-col items-center justify-center py-6 px-3 rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
+                    >
+                      <span
+                        className="flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-110 mb-3"
+                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
+                      >
+                        <span className="text-[30px] leading-none select-none">{tool.emoji}</span>
+                      </span>
+                      <span className="block text-[14px] font-semibold leading-tight text-foreground">
+                        {tool.label}
+                      </span>
+                      {tool.desc && (
+                        <span className="block text-[10.5px] text-muted-foreground leading-tight mt-1">
+                          {tool.desc}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
-              {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + 더보기 */}
-              <div className="min-w-0 flex flex-col space-y-3">
+              {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + AI 게임 featured 카드 하단 */}
+              <div className="min-w-0 flex flex-col">
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     {openLifeSubgroup ? (
@@ -1635,23 +1664,16 @@ export function MainModeTabs({
                     </AnimatePresence>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* ── 플레이어 featured 2 큰 카드 — col 3-4 하단 영역 (노란색 박스) ── */}
-            <div className="px-4 pb-3 grid grid-cols-4 gap-x-3">
-              <div className="col-span-2" aria-hidden />
-              <div className="col-span-2">
-                <div className="grid grid-cols-2 gap-3">
-                  {PLAYER_TOOLS.filter((t) => t.id === 'character-chat' || t.id === 'ai-game').map((tool) => (
+                {/* AI 게임 featured 카드 — 라이프 컬럼 하단 빈 공간 채움 (mt-auto) */}
+                {(() => {
+                  const tool = PLAYER_TOOLS.find((t) => t.id === 'ai-game');
+                  if (!tool) return null;
+                  return (
                     <button
-                      key={`player-feat-${tool.id}`}
                       type="button"
                       onClick={() => handleSelectPlayerTool(tool.id)}
                       role="menuitem"
-                      className={cn(
-                        'group flex flex-col items-center justify-center py-6 px-3 rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                      )}
+                      className="group mt-auto flex flex-col items-center justify-center py-6 px-3 rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                       style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
                     >
                       <span
@@ -1669,11 +1691,10 @@ export function MainModeTabs({
                         </span>
                       )}
                     </button>
-                  ))}
-                </div>
+                  );
+                })()}
               </div>
             </div>
-            <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
 
             {/* ── 바텀 Hero 밴드 — AI 어시스턴트 6카드 (실무 도구 일렬) ── */}
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
