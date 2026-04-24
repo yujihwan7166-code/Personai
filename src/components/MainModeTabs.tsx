@@ -135,8 +135,6 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
   | { kind: 'mental-tests' }  // 심리 테스트 모음 페이지 바로가기
 > = [
   { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로
-  { kind: 'group', groupId: 'mental' },    // 🧠 멘탈 테스트
-  { kind: 'mental-tests' },                // ✨ 심리 테스트 모음
   { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미
   { kind: 'group', groupId: 'money' },     // 💰 머니·투자·재테크
   { kind: 'group', groupId: 'enjoy' },     // 🎉 놀고·먹고·즐기고
@@ -1546,34 +1544,6 @@ export function MainModeTabs({
                     ))}
                   </div>
                 </div>
-                {/* 노트 컬럼 하단 featured — AI 요약 (기록 정리 보조). 가로형 컴팩트 카드. */}
-                {(() => {
-                  const card = { label: 'AI 요약', desc: '노트 자동 정리', emoji: '✨', tint: 'hsl(45 85% 55%)' };
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => { setOpen(false); setTimeout(() => { if (currentMode !== 'general') onChange('general'); }, 40); }}
-                      role="menuitem"
-                      className="group mt-auto flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                      style={{ backgroundColor: `color-mix(in oklab, ${card.tint} 14%, transparent)` }}
-                    >
-                      <span
-                        className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
-                        style={{ backgroundColor: `color-mix(in oklab, ${card.tint} 26%, transparent)` }}
-                      >
-                        <span className="text-[16px] leading-none select-none">{card.emoji}</span>
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
-                          {card.label}
-                        </span>
-                        <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
-                          {card.desc}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })()}
               </div>
               {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + AI 게임 featured 카드 하단 */}
               <div className="min-w-0 flex flex-col">
