@@ -1067,7 +1067,7 @@ export function MainModeTabs({
                               onClick={() => { setOpen(false); setTimeout(() => onOpenBookmarks?.(), 40); }}
                               disabled={!onOpenBookmarks}
                               className={cn(
-                                'aspect-[3/2] flex items-center justify-center rounded-lg border border-dashed',
+                                'aspect-[2/1] flex items-center justify-center rounded-lg border border-dashed',
                                 'border-[hsl(var(--hairline))] text-muted-foreground/60',
                                 'hover:border-[hsl(var(--focus-ring))] hover:text-foreground hover:bg-[hsl(var(--accent))]/40',
                                 'transition-colors',
@@ -1099,7 +1099,7 @@ export function MainModeTabs({
                               }, 40);
                             }}
                             className={cn(
-                              'group aspect-[3/2] flex flex-col items-center justify-center gap-0.5 p-1 rounded-lg',
+                              'group aspect-[2/1] flex flex-col items-center justify-center gap-0.5 p-1 rounded-lg',
                               'bg-[hsl(var(--muted))]/50 border border-[hsl(var(--hairline))]',
                               'hover:bg-[hsl(var(--accent))] hover:-translate-y-0.5 hover:shadow-md transition-all',
                             )}
@@ -1252,7 +1252,7 @@ export function MainModeTabs({
                                 }
                               }}
                               className={cn(
-                                'group relative flex flex-col items-center justify-center gap-1 aspect-[3/2] rounded-xl p-1',
+                                'group relative flex flex-col items-center justify-center gap-1 aspect-[2/1] rounded-xl p-1',
                                 'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
                               )}
                               style={{ backgroundColor: `color-mix(in oklab, ${pin.tint} 10%, transparent)` }}
