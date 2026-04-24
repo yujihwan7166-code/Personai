@@ -1638,27 +1638,19 @@ export function MainModeTabs({
               </div>
             </div>
 
-            {/* ── 플레이어 featured 2카드 — 노란색 영역 (col-span-2 우측) ── */}
+            {/* ── 플레이어 featured 2카드 — 노란색 영역 (col-span-2 우측, col 3-4 하단 빈 공간) ── */}
             <div className="px-4 pb-3 grid grid-cols-4 gap-x-3">
               <div className="col-span-2" aria-hidden />
               <div className="col-span-2">
-                <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                    {PLAYER_GROUP.label}
-                  </span>
-                  <span className="text-[10.5px] text-muted-foreground/70 truncate flex-1">
-                    {PLAYER_GROUP.description}
-                  </span>
-                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {PLAYER_TOOLS.filter((t) => t.id === 'character-chat' || t.id === 'ai-game').map((tool) => (
                     <button
-                      key={`player-hero-${tool.id}`}
+                      key={`player-feat-${tool.id}`}
                       type="button"
                       onClick={() => handleSelectPlayerTool(tool.id)}
                       role="menuitem"
                       className={cn(
-                        'group flex flex-col items-center justify-center gap-1.5 py-4 px-3 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5',
+                        'group flex flex-col items-center justify-center gap-1 py-4 px-3 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5',
                       )}
                       style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
                     >
@@ -1668,7 +1660,7 @@ export function MainModeTabs({
                       >
                         <span className="text-[20px] leading-none select-none">{tool.emoji}</span>
                       </span>
-                      <span className="text-[12px] font-semibold leading-none truncate max-w-full text-foreground/85 mt-1">
+                      <span className="text-[12px] font-semibold leading-none truncate max-w-full text-foreground/90 mt-1">
                         {tool.label}
                       </span>
                       {tool.desc && (
@@ -1679,6 +1671,43 @@ export function MainModeTabs({
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* ── 플레이어 전체 band — 4카드 (캐릭터챗·AI게임·스토리RPG·추리) 유지 ── */}
+            <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
+            <div className="px-4 py-3">
+              <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                  {PLAYER_GROUP.label}
+                </span>
+                <span className="text-[10.5px] text-muted-foreground/70 truncate flex-1">
+                  {PLAYER_GROUP.description}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {PLAYER_TOOLS_FEATURED.slice(0, 4).map((tool) => (
+                  <button
+                    key={`player-band-${tool.id}`}
+                    type="button"
+                    onClick={() => handleSelectPlayerTool(tool.id)}
+                    role="menuitem"
+                    className={cn(
+                      'group flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5',
+                    )}
+                    style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 10%, transparent)` }}
+                  >
+                    <span
+                      className="flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110"
+                      style={{ color: tool.tint }}
+                    >
+                      <span className="text-[17px] leading-none select-none">{tool.emoji}</span>
+                    </span>
+                    <span className="text-[11px] font-semibold leading-none truncate max-w-full text-foreground/85">
+                      {tool.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
