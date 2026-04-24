@@ -1546,6 +1546,35 @@ export function MainModeTabs({
                     ))}
                   </div>
                 </div>
+                {/* 캐릭터 챗 featured 카드 — 노트 컬럼 하단 빈 공간 채움 (mt-auto) */}
+                {(() => {
+                  const tool = PLAYER_TOOLS.find((t) => t.id === 'character-chat');
+                  if (!tool) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPlayerTool(tool.id)}
+                      role="menuitem"
+                      className="group mt-auto flex flex-col items-center justify-center py-3 px-3 rounded-xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
+                    >
+                      <span
+                        className="flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 mb-1.5"
+                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
+                      >
+                        <span className="text-[22px] leading-none select-none">{tool.emoji}</span>
+                      </span>
+                      <span className="block text-[12.5px] font-semibold leading-tight text-foreground">
+                        {tool.label}
+                      </span>
+                      {tool.desc && (
+                        <span className="block text-[10px] text-muted-foreground leading-tight mt-0.5">
+                          {tool.desc}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
               {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + AI 게임 featured 카드 하단 */}
               <div className="min-w-0 flex flex-col">
@@ -1635,67 +1664,35 @@ export function MainModeTabs({
                     </AnimatePresence>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* ── 플레이어 밴드 — 캐릭터챗 + AI 게임 (어시스턴트 밴드와 대칭) ── */}
-            <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-            <div className="px-4 py-3">
-              <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                  AI 플레이어
-                </span>
-                <span className="text-[10.5px] text-muted-foreground/70 truncate flex-1">
-                  놀이 도구
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {(['character-chat', 'ai-game'] as const).map((toolId) => {
-                  const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
+                {/* AI 게임 featured 카드 — 라이프 컬럼 하단 빈 공간 채움 (mt-auto) */}
+                {(() => {
+                  const tool = PLAYER_TOOLS.find((t) => t.id === 'ai-game');
                   if (!tool) return null;
                   return (
                     <button
-                      key={`player-band-${tool.id}`}
                       type="button"
                       onClick={() => handleSelectPlayerTool(tool.id)}
                       role="menuitem"
-                      className="group relative flex items-center gap-3 py-3 px-3.5 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md overflow-hidden"
-                      style={{
-                        background: `linear-gradient(135deg, color-mix(in oklab, ${tool.tint} 16%, transparent), color-mix(in oklab, ${tool.tint} 6%, transparent))`,
-                      }}
+                      className="group mt-auto flex flex-col items-center justify-center py-3 px-3 rounded-xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
                     >
-                      {/* 우상단 PLAY 배지 */}
                       <span
-                        className="absolute top-1.5 right-1.5 inline-flex items-center gap-0.5 text-[8.5px] font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full leading-none"
-                        style={{
-                          backgroundColor: `color-mix(in oklab, ${tool.tint} 22%, transparent)`,
-                          color: tool.tint,
-                        }}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 mb-1.5"
+                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
                       >
-                        ▶ PLAY
+                        <span className="text-[22px] leading-none select-none">{tool.emoji}</span>
                       </span>
-                      <span
-                        className="flex h-11 w-11 items-center justify-center rounded-xl shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3"
-                        style={{
-                          backgroundColor: `color-mix(in oklab, ${tool.tint} 28%, transparent)`,
-                          boxShadow: `0 2px 8px color-mix(in oklab, ${tool.tint} 22%, transparent)`,
-                        }}
-                      >
-                        <span className="text-[24px] leading-none select-none">{tool.emoji}</span>
+                      <span className="block text-[12.5px] font-semibold leading-tight text-foreground">
+                        {tool.label}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[13px] font-semibold leading-tight text-foreground">
-                          {tool.label}
+                      {tool.desc && (
+                        <span className="block text-[10px] text-muted-foreground leading-tight mt-0.5">
+                          {tool.desc}
                         </span>
-                        {tool.desc && (
-                          <span className="block text-[10.5px] text-muted-foreground leading-tight mt-0.5 truncate">
-                            {tool.desc}
-                          </span>
-                        )}
-                      </span>
+                      )}
                     </button>
                   );
-                })}
+                })()}
               </div>
             </div>
 
