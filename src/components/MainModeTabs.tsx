@@ -930,50 +930,6 @@ export function MainModeTabs({
                     </div>
                   </div>
                 </div>
-                {/* 로그인 줄 — 로그인 상태면 유저 정보 한 줄, 미로그인 시 로그인 버튼 */}
-                {user ? (
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors"
-                    title="계정 설정"
-                  >
-                    <span
-                      className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[10px] font-semibold text-white"
-                      style={{
-                        background: `linear-gradient(135deg, hsl(${(user.email?.charCodeAt(0) ?? 65) * 7 % 360} 70% 55%), hsl(${(user.email?.charCodeAt(1) ?? 66) * 11 % 360} 70% 50%))`,
-                      }}
-                    >
-                      {(user.email?.[0] ?? 'U').toUpperCase()}
-                    </span>
-                    <span className="min-w-0 flex-1 flex items-center gap-1.5">
-                      <span className="text-[11.5px] font-medium text-foreground/90 truncate">
-                        {user.email?.split('@')[0] ?? '사용자'}
-                      </span>
-                      {profile?.plan && (
-                        <span className={cn(
-                          'text-[9px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded-full leading-none',
-                          profile.plan === 'pro'     && 'bg-gradient-to-r from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-300',
-                          profile.plan === 'premium' && 'bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-300',
-                          profile.plan === 'free'    && 'bg-muted text-muted-foreground',
-                        )}>
-                          {profile.plan}
-                        </span>
-                      )}
-                    </span>
-                    <Settings className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-muted/30 hover:bg-[hsl(var(--accent))] transition-colors"
-                  >
-                    <LogIn className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-[11.5px] font-medium text-foreground/85 flex-1 text-left">
-                      로그인 / 가입
-                    </span>
-                    <ChevronRight className="h-3 w-3 text-muted-foreground/70 shrink-0" />
-                  </button>
-                )}
                 {/* 빠른 이동 — 플랫폼 기능 + 외부 사이트 믹스 4핀 */}
                 <div>
                   <div className="mb-1 px-1">
@@ -1017,6 +973,52 @@ export function MainModeTabs({
                       </button>
                     ))}
                   </div>
+                </div>
+                {/* 로그인 줄 — 프로필 (컬럼 최하단 footer) */}
+                <div className="mt-auto pt-2 border-t border-[hsl(var(--hairline))]">
+                  {user ? (
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors"
+                      title="계정 설정"
+                    >
+                      <span
+                        className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[10px] font-semibold text-white"
+                        style={{
+                          background: `linear-gradient(135deg, hsl(${(user.email?.charCodeAt(0) ?? 65) * 7 % 360} 70% 55%), hsl(${(user.email?.charCodeAt(1) ?? 66) * 11 % 360} 70% 50%))`,
+                        }}
+                      >
+                        {(user.email?.[0] ?? 'U').toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                        <span className="text-[11.5px] font-medium text-foreground/90 truncate">
+                          {user.email?.split('@')[0] ?? '사용자'}
+                        </span>
+                        {profile?.plan && (
+                          <span className={cn(
+                            'text-[9px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded-full leading-none shrink-0',
+                            profile.plan === 'pro'     && 'bg-gradient-to-r from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-300',
+                            profile.plan === 'premium' && 'bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-300',
+                            profile.plan === 'free'    && 'bg-muted text-muted-foreground',
+                          )}>
+                            {profile.plan}
+                          </span>
+                        )}
+                      </span>
+                      <Settings className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg bg-muted/30 hover:bg-[hsl(var(--accent))] transition-colors"
+                    >
+                      <LogIn className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-[11.5px] font-medium text-foreground/85 flex-1 text-left">
+                        로그인 / 가입
+                      </span>
+                      <ChevronRight className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+                    </button>
+                  )}
                 </div>
               </div>
               {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
