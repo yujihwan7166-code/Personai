@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { visualizer } from "rollup-plugin-visualizer";
 import { localApiMiddleware } from "./scripts/localApiMiddleware";
 
 function manualChunks(id: string) {
@@ -55,7 +56,19 @@ export default defineConfig(({ mode }) => {
         overlay: false,
       },
     },
-    plugins: [localApiMiddleware(), react(), mode === "development" && componentTagger()].filter(Boolean),
+    plugins: [
+      localApiMiddleware(),
+      react(),
+      mode === "development" && componentTagger(),
+      // ANALYZE=1 npm run build — dist/bundle-stats.html 생성. 평소 빌드에는 미적용.
+      process.env.ANALYZE === "1" && visualizer({
+        filename: "dist/bundle-stats.html",
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+        template: "treemap",
+      }),
+    ].filter(Boolean),
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
