@@ -1571,7 +1571,7 @@ export function MainModeTabs({
                       </>
                     )}
                   </div>
-                  <div className="relative overflow-hidden min-h-[324px]">
+                  <div className="relative overflow-hidden">
                     <AnimatePresence mode="wait" initial={false}>
                       {openLifeSubgroup ? (
                         <motion.div
