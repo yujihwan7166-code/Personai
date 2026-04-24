@@ -881,7 +881,7 @@ export function MainModeTabs({
               )}
             >
             {/* 4 컬럼 — 유틸리티 / 대화+전문 / 📝 노트(NEW) / 라이프 (플레이어는 하단 band 로 격하) */}
-            <div className="grid grid-cols-4 gap-x-3 p-4">
+            <div className="grid grid-cols-4 gap-x-3 px-4 pt-4">
               {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·달력·날씨+미세·시세) */}
               <div className="min-w-0 flex flex-col space-y-2">
                 <div className="px-1 -mt-1">
