@@ -14,7 +14,7 @@ import {
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
-  Home, Star, History,
+  Home, Star, History, Bell,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -378,6 +378,21 @@ export const TOOL_TILES: Array<{
   },
 ];
 
+/** 좌측 컬럼 — 알림 피드 (v1 하드코드 · 플랫폼 업데이트/공지). */
+export const SYSTEM_NOTIFICATIONS: Array<{
+  id: string;
+  title: string;
+  desc: string;
+  emoji: string;
+  date: string;  // YYYY-MM-DD
+  tint: string;
+}> = [
+  { id: 'n-tabs',      title: '좌측 사이드바 탭',    desc: '오늘·대화·즐겨찾기·알림 4탭',      emoji: '🎉', date: '2026-04-25', tint: 'hsl(340 70% 55%)' },
+  { id: 'n-dashboard', title: 'Ambient 대시보드',    desc: '시간대별 그라디언트 · 미세먼지 게이지', emoji: '✨', date: '2026-04-24', tint: 'hsl(262 70% 55%)' },
+  { id: 'n-enjoy',     title: '놀고·먹고·즐기고 신설', desc: '여행·맛집·놀거리 6개 도구',         emoji: '🎊', date: '2026-04-23', tint: 'hsl(25 85% 55%)' },
+  { id: 'n-fun-tab',   title: '플레이어 탭 분리',     desc: '캐릭터챗·AI 게임·추리 독립',        emoji: '🎮', date: '2026-04-20', tint: 'hsl(280 70% 55%)' },
+];
+
 /** 좌측 컬럼 — 빠른 이동 핀 (플랫폼 내부 + 외부 사이트 믹스). */
 export const QUICK_PINS: Array<{
   id: string;
@@ -460,8 +475,21 @@ export function MainModeTabs({
   /** 로그인 상태 — 좌측 컬럼 로그인 줄에 사용. */
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
-  /** 좌측 사이드바 탭 — 오늘 / 대화 / 즐겨찾기. */
-  const [leftTab, setLeftTab] = useState<'today' | 'recent' | 'pins'>('today');
+  /** 좌측 사이드바 탭 — 오늘 / 대화 / 즐겨찾기 / 알림. */
+  const [leftTab, setLeftTab] = useState<'today' | 'recent' | 'pins' | 'notifications'>('today');
+  /** 읽은 알림 id 세트 — localStorage 유지. */
+  const [readNotifications, setReadNotifications] = useState<Set<string>>(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem('personai.read_notifications') : null;
+      return new Set<string>(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch { return new Set<string>(); }
+  });
+  const unreadCount = SYSTEM_NOTIFICATIONS.filter((n) => !readNotifications.has(n.id)).length;
+  const markAllRead = () => {
+    const all = new Set(SYSTEM_NOTIFICATIONS.map((n) => n.id));
+    setReadNotifications(all);
+    try { window.localStorage.setItem('personai.read_notifications', JSON.stringify([...all])); } catch { /* noop */ }
+  };
   /** 최근 모드 사용 이력 (localStorage 기반). */
   const [recentModes, setRecentModes] = useState<Array<{ id: string; label: string; emoji: string; tint: string; at: number; target: { kind: 'mode'; mode: MainMode } | { kind: 'life'; toolId: string } | { kind: 'assistant'; cardId: string } | { kind: 'player'; toolId: string } }>>(() => {
     try {
@@ -859,21 +887,29 @@ export function MainModeTabs({
                 <div className="px-1 -mt-1">
                   <QuickSearchBar variant="inline" />
                 </div>
-                {/* 좌측 사이드바 탭 바 — 오늘 / 대화 / 즐겨찾기 */}
+                {/* 좌측 사이드바 탭 바 — 오늘 / 대화 / 즐겨찾기 / 알림 */}
                 <div className="flex gap-0.5 px-1">
                   {[
-                    { id: 'today'  as const, icon: Home,          label: '오늘' },
-                    { id: 'recent' as const, icon: History,       label: '대화' },
-                    { id: 'pins'   as const, icon: Star,          label: '즐겨찾기' },
+                    { id: 'today'         as const, icon: Home,     label: '오늘' },
+                    { id: 'recent'        as const, icon: History,  label: '대화' },
+                    { id: 'pins'          as const, icon: Star,     label: '즐겨찾기' },
+                    { id: 'notifications' as const, icon: Bell,     label: '알림', badge: unreadCount },
                   ].map((t) => {
                     const Icon = t.icon;
                     const isActive = leftTab === t.id;
+                    const badgeCount = 'badge' in t ? t.badge : 0;
                     return (
                       <button
                         key={t.id}
                         type="button"
                         title={t.label}
-                        onClick={() => setLeftTab(t.id)}
+                        onClick={() => {
+                          setLeftTab(t.id);
+                          if (t.id === 'notifications' && badgeCount > 0) {
+                            // 탭 클릭 시 전체 읽음 처리 (0.5초 후 — 유저가 뱃지 확인 가능)
+                            setTimeout(() => markAllRead(), 500);
+                          }
+                        }}
                         className={cn(
                           'group relative flex-1 flex items-center justify-center h-7 rounded-md transition-colors',
                           isActive
@@ -882,6 +918,11 @@ export function MainModeTabs({
                         )}
                       >
                         <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+                        {badgeCount > 0 && (
+                          <span className="absolute top-1 right-1.5 flex h-3 min-w-[12px] items-center justify-center rounded-full bg-rose-500 px-1 text-[8.5px] font-bold text-white leading-none">
+                            {badgeCount > 9 ? '9+' : badgeCount}
+                          </span>
+                        )}
                         {isActive && (
                           <motion.span
                             layoutId="left-tab-indicator"
@@ -1137,6 +1178,82 @@ export function MainModeTabs({
                       </div>
                     );
                   })}
+                </motion.div>)}
+
+                {leftTab === 'notifications' && (<motion.div
+                  key="tab-notifications"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="space-y-1"
+                >
+                  <div className="mb-1.5 flex items-center justify-between px-1">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      🔔 알림
+                    </span>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => markAllRead()}
+                        className="text-[9.5px] text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        모두 읽음
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-0.5 px-1">
+                    {SYSTEM_NOTIFICATIONS.map((n) => {
+                      const isRead = readNotifications.has(n.id);
+                      const ago = (() => {
+                        const [y, m, d] = n.date.split('-').map(Number);
+                        const diff = Math.floor((Date.now() - new Date(y, m - 1, d).getTime()) / 86_400_000);
+                        if (diff < 1) return '오늘';
+                        if (diff < 7) return `${diff}일 전`;
+                        if (diff < 30) return `${Math.floor(diff / 7)}주 전`;
+                        return `${Math.floor(diff / 30)}달 전`;
+                      })();
+                      return (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => {
+                            if (!isRead) {
+                              const next = new Set(readNotifications);
+                              next.add(n.id);
+                              setReadNotifications(next);
+                              try { window.localStorage.setItem('personai.read_notifications', JSON.stringify([...next])); } catch { /* noop */ }
+                            }
+                          }}
+                          className={cn(
+                            'flex w-full items-start gap-2 px-2 py-1.5 rounded-lg text-left transition-colors',
+                            'hover:bg-[hsl(var(--accent))]',
+                          )}
+                        >
+                          <span
+                            className="flex h-6 w-6 items-center justify-center rounded-md shrink-0 mt-0.5 relative"
+                            style={{ backgroundColor: `color-mix(in oklab, ${n.tint} 14%, transparent)` }}
+                          >
+                            <span className="text-[13px] leading-none select-none">{n.emoji}</span>
+                            {!isRead && (
+                              <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-rose-500" aria-hidden />
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className={cn('block text-[11.5px] leading-tight truncate', isRead ? 'font-medium text-foreground/70' : 'font-semibold text-foreground')}>
+                              {n.title}
+                            </span>
+                            <span className="block text-[9.5px] text-muted-foreground/80 truncate mt-0.5">
+                              {n.desc}
+                            </span>
+                            <span className="block text-[9px] text-muted-foreground/60 mt-0.5 font-mono uppercase tracking-wider">
+                              {ago}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </motion.div>)}
                   </AnimatePresence>
                 </div>
