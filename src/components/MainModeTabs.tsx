@@ -1635,7 +1635,7 @@ export function MainModeTabs({
                   </div>
                 </div>
                 {/* 라이프 컬럼 하단 featured — 캐릭터챗 + AI 게임 2개 가로형 컴팩트, 세로 스택 */}
-                <div className="mt-auto space-y-1">
+                <div className="mt-auto mb-3 space-y-1">
                   {(['character-chat', 'ai-game'] as const).map((toolId) => {
                     const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
                     if (!tool) return null;
