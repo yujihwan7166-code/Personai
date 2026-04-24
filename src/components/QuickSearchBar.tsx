@@ -172,7 +172,7 @@ export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoF
             <span>{engine.label}</span>
             <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', pickerOpen && 'rotate-180')} />
           </button>
-          {renderPicker('w-[130px]', 'up', 'left')}
+          {renderPicker('w-[130px]', 'down', 'left')}
         </div>
 
         {/* 구분선 */}
