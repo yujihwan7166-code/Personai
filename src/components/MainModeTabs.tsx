@@ -91,7 +91,6 @@ export const LIFE_TOOLS: Array<{
   { id: 'sleep',      label: '수면 코치',     desc: '불면·취침 루틴·수면 일지',  emoji: '💤', tint: 'hsl(225 55% 55%)', featured: false, group: 'health'    },
   { id: 'meal-plan',  label: '식단 관리',     desc: '목표별 식단·칼로리·알러지', emoji: '🥗', tint: 'hsl(95 60% 42%)',  featured: false, group: 'health'    },
   { id: 'stretching', label: '자세·스트레칭', desc: '거북목·허리·하체 루틴',     emoji: '🧎', tint: 'hsl(180 55% 42%)', featured: false, group: 'health'    },
-  { id: 'checkup',    label: '건강검진 해석', desc: '수치·소견 쉬운 해설',       emoji: '🩺', tint: 'hsl(170 60% 38%)', featured: false, group: 'health'    },
   // ── 머니·투자·재테크 그룹 ──
   { id: 'budget',     label: '가계부·지출',   desc: '카테고리 분석 · 절약 포인트',   emoji: '💳', tint: 'hsl(200 72% 50%)', featured: false, group: 'money'     },
   { id: 'tax',        label: '연말정산·세금', desc: '예상 환급 · 놓친 공제 체크',    emoji: '🧾', tint: 'hsl(28 72% 48%)',  featured: false, group: 'money'     },
