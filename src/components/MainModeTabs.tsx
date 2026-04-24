@@ -1280,7 +1280,7 @@ export function MainModeTabs({
                 </div>
                 {/* 로그인 줄 — 프로필 (TODAY 카드 바로 아래, 자연 배치).
                     ※ Supabase 미연동 환경에서도 UI 가 보이도록 실 유저 없으면 '데모 사용자' 로 대체. */}
-                <div className="pt-2 border-t border-[hsl(var(--hairline))]">
+                <div className="pt-1 border-t border-[hsl(var(--hairline))]">
                   {(() => {
                     const isReal = !!user;
                     const displayEmail = user?.email ?? 'demo@personai.kr';
@@ -1294,7 +1294,7 @@ export function MainModeTabs({
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors"
+                            className="w-full flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors"
                           >
                             <span
                               className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[10px] font-semibold text-white"
@@ -1555,20 +1555,20 @@ export function MainModeTabs({
                       type="button"
                       onClick={() => handleSelectPlayerTool(tool.id)}
                       role="menuitem"
-                      className="group mt-auto flex flex-col items-center justify-center py-6 px-3 rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      className="group mt-auto flex flex-col items-center justify-center py-3 px-3 rounded-xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                       style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
                     >
                       <span
-                        className="flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-110 mb-3"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 mb-1.5"
                         style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
                       >
-                        <span className="text-[30px] leading-none select-none">{tool.emoji}</span>
+                        <span className="text-[22px] leading-none select-none">{tool.emoji}</span>
                       </span>
-                      <span className="block text-[14px] font-semibold leading-tight text-foreground">
+                      <span className="block text-[12.5px] font-semibold leading-tight text-foreground">
                         {tool.label}
                       </span>
                       {tool.desc && (
-                        <span className="block text-[10.5px] text-muted-foreground leading-tight mt-1">
+                        <span className="block text-[10px] text-muted-foreground leading-tight mt-0.5">
                           {tool.desc}
                         </span>
                       )}
@@ -1673,20 +1673,20 @@ export function MainModeTabs({
                       type="button"
                       onClick={() => handleSelectPlayerTool(tool.id)}
                       role="menuitem"
-                      className="group mt-auto flex flex-col items-center justify-center py-6 px-3 rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      className="group mt-auto flex flex-col items-center justify-center py-3 px-3 rounded-xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                       style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
                     >
                       <span
-                        className="flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-110 mb-3"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 mb-1.5"
                         style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
                       >
-                        <span className="text-[30px] leading-none select-none">{tool.emoji}</span>
+                        <span className="text-[22px] leading-none select-none">{tool.emoji}</span>
                       </span>
-                      <span className="block text-[14px] font-semibold leading-tight text-foreground">
+                      <span className="block text-[12.5px] font-semibold leading-tight text-foreground">
                         {tool.label}
                       </span>
                       {tool.desc && (
-                        <span className="block text-[10.5px] text-muted-foreground leading-tight mt-1">
+                        <span className="block text-[10px] text-muted-foreground leading-tight mt-0.5">
                           {tool.desc}
                         </span>
                       )}
