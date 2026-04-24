@@ -12,6 +12,7 @@ import {
   FlaskConical, BookOpen, ChevronDown, ChevronRight, ChevronLeft, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet,
+  Calculator, Timer,
 } from 'lucide-react';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
@@ -279,6 +280,92 @@ export const DUST_GRADE_COLOR: Record<DustGrade, string> = {
   '나쁨':     'text-amber-500',
   '매우나쁨': 'text-rose-500',
 };
+
+/** 시간대별 컨텍스트 인사 — Ambient Dashboard 감성. */
+export function getGreeting(hour: number): { emoji: string; text: string } {
+  if (hour < 6)  return { emoji: '🌙', text: '늦은 시간이네요' };
+  if (hour < 11) return { emoji: '☀️', text: '좋은 아침입니다' };
+  if (hour < 14) return { emoji: '🍱', text: '점심 드셨나요?' };
+  if (hour < 18) return { emoji: '✨', text: '좋은 오후입니다' };
+  if (hour < 22) return { emoji: '🌆', text: '수고하셨어요' };
+  return { emoji: '🌙', text: '편안한 밤 되세요' };
+}
+
+/** 시간대별 TODAY 카드 그라디언트 — 새벽/아침/점심/오후/저녁/밤. */
+export function getTimeGradient(hour: number): string {
+  if (hour < 6)  return 'from-indigo-500/15 to-purple-500/10';
+  if (hour < 11) return 'from-amber-300/20 to-orange-300/10';
+  if (hour < 14) return 'from-sky-400/15 to-blue-400/10';
+  if (hour < 18) return 'from-sky-500/12 to-blue-500/8';
+  if (hour < 22) return 'from-pink-400/15 to-orange-400/10';
+  return 'from-indigo-700/15 to-slate-700/10';
+}
+
+/** 좌측 하단 Bento 도구 — 4개 아이콘 타일. */
+export const TOOL_TILES: Array<{
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  /** Tailwind 그라디언트 배경 (light + dark). */
+  bgClass: string;
+  /** 아이콘/라벨 컬러 */
+  iconClass: string;
+  labelClass: string;
+  /** hover 시 컬러 섀도우 */
+  shadowClass: string;
+  borderClass: string;
+  /** 실제 동작 — 번역은 기존 assistant 재사용, 나머지는 일반 채팅 폴백. */
+  action: 'translate' | 'chat';
+  prompt?: string;
+}> = [
+  {
+    id: 'calculator',
+    label: '계산',
+    icon: Calculator,
+    bgClass: 'from-blue-50 to-blue-100/60 dark:from-blue-950/30 dark:to-blue-900/20',
+    iconClass: 'text-blue-500',
+    labelClass: 'text-blue-700 dark:text-blue-300',
+    shadowClass: 'hover:shadow-blue-500/25',
+    borderClass: 'border-blue-200/50 dark:border-blue-800/40',
+    action: 'chat',
+    prompt: '계산해줘',
+  },
+  {
+    id: 'translate',
+    label: '번역',
+    icon: Languages,
+    bgClass: 'from-emerald-50 to-emerald-100/60 dark:from-emerald-950/30 dark:to-emerald-900/20',
+    iconClass: 'text-emerald-500',
+    labelClass: 'text-emerald-700 dark:text-emerald-300',
+    shadowClass: 'hover:shadow-emerald-500/25',
+    borderClass: 'border-emerald-200/50 dark:border-emerald-800/40',
+    action: 'translate',
+  },
+  {
+    id: 'timer',
+    label: '타이머',
+    icon: Timer,
+    bgClass: 'from-orange-50 to-orange-100/60 dark:from-orange-950/30 dark:to-orange-900/20',
+    iconClass: 'text-orange-500',
+    labelClass: 'text-orange-700 dark:text-orange-300',
+    shadowClass: 'hover:shadow-orange-500/25',
+    borderClass: 'border-orange-200/50 dark:border-orange-800/40',
+    action: 'chat',
+    prompt: '타이머',
+  },
+  {
+    id: 'memo',
+    label: '메모',
+    icon: PenLine,
+    bgClass: 'from-amber-50 to-amber-100/60 dark:from-amber-950/30 dark:to-amber-900/20',
+    iconClass: 'text-amber-500',
+    labelClass: 'text-amber-700 dark:text-amber-300',
+    shadowClass: 'hover:shadow-amber-500/25',
+    borderClass: 'border-amber-200/50 dark:border-amber-800/40',
+    action: 'chat',
+    prompt: '메모 정리',
+  },
+];
 
 /** 좌측 컬럼 — 다가오는 공휴일/이벤트 (v1 하드코드 2026년, v2 다년도). */
 export const UPCOMING_EVENTS: Array<{
@@ -727,14 +814,21 @@ export function MainModeTabs({
                   <QuickSearchBar variant="inline" />
                 </div>
                 <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-                {/* TODAY 통합 카드 — 시계·날짜 + 주간달력 + 날씨 + 미세먼지 */}
+                {/* TODAY 통합 카드 — Ambient (시간대별 그라디언트 + 인사 + 시계 + 달력 + 날씨 + 미세) */}
                 <div
-                  className="p-3 rounded-xl space-y-2.5"
-                  style={{ backgroundColor: `color-mix(in oklab, ${WEATHER_WIDGET.tint} 10%, transparent)` }}
+                  className={cn(
+                    'p-3 rounded-xl space-y-2.5 bg-gradient-to-br border border-[hsl(var(--hairline))]',
+                    getTimeGradient(now.getHours()),
+                  )}
                 >
+                  {/* 컨텍스트 인사 */}
+                  <div className="flex items-center gap-1.5 text-[10.5px] font-mono tracking-[0.1em] text-muted-foreground">
+                    <span className="text-[12px] leading-none">{getGreeting(now.getHours()).emoji}</span>
+                    <span>{getGreeting(now.getHours()).text}</span>
+                  </div>
                   {/* 시계 hero + 날짜 subtitle */}
                   <div>
-                    <div className="text-[32px] font-semibold tracking-tight leading-none text-foreground tabular-nums">
+                    <div className="text-[36px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
                       {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </div>
                     <div className="mt-1.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
@@ -772,36 +866,95 @@ export function MainModeTabs({
                       })}
                     </div>
                   </div>
-                  {/* 날씨 */}
-                  <div className="pt-2 border-t border-[hsl(var(--hairline))] flex items-center gap-2.5">
-                    <span className="text-[26px] leading-none select-none">{WEATHER_WIDGET.emoji}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                        {WEATHER_WIDGET.city}
-                      </div>
-                      <div className="text-[14px] font-semibold text-foreground/90 leading-tight mt-0.5">
-                        {WEATHER_WIDGET.temp}° · {WEATHER_WIDGET.condition}
+                  {/* 날씨 + 미세먼지 progress bar */}
+                  <div className="pt-2 border-t border-[hsl(var(--hairline))]">
+                    <div className="flex items-center gap-2.5">
+                      <motion.span
+                        animate={{ y: [0, -2, 0] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                        className="text-[26px] leading-none select-none inline-block"
+                      >
+                        {WEATHER_WIDGET.emoji}
+                      </motion.span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                          {WEATHER_WIDGET.city}
+                        </div>
+                        <div className="text-[14px] font-semibold text-foreground/90 leading-tight mt-0.5">
+                          {WEATHER_WIDGET.temp}° · {WEATHER_WIDGET.condition}
+                        </div>
                       </div>
                     </div>
+                    {/* 미세먼지 progress bars */}
+                    <div className="mt-2 space-y-1.5">
+                      {[
+                        { label: '미세', value: DUST_WIDGET.pm10, max: 150, grade: DUST_WIDGET.pm10Grade },
+                        { label: '초미', value: DUST_WIDGET.pm25, max: 75,  grade: DUST_WIDGET.pm25Grade },
+                      ].map((d) => {
+                        const pct = Math.min(100, (d.value / d.max) * 100);
+                        const colorClass = DUST_GRADE_COLOR[d.grade];
+                        return (
+                          <div key={d.label} className="flex items-center gap-2 text-[10px]">
+                            <span className="w-7 text-muted-foreground/80 font-mono uppercase tracking-[0.1em]">{d.label}</span>
+                            <div className="flex-1 h-1 bg-muted/70 rounded-full overflow-hidden">
+                              <motion.div
+                                className={cn('h-full rounded-full', colorClass.replace('text-', 'bg-'))}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 0.8, ease: 'easeOut' }}
+                              />
+                            </div>
+                            <span className="font-mono font-semibold text-foreground/90 tabular-nums w-6 text-right">{d.value}</span>
+                            <span className={cn('text-[9px] font-medium w-10 text-right', colorClass)}>{d.grade}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  {/* 미세먼지 */}
-                  <div className="pt-2 border-t border-[hsl(var(--hairline))] flex items-center gap-2 text-[11px] tabular-nums">
-                    <span className="text-[12px] leading-none">🫧</span>
-                    <span className="flex items-center gap-1">
-                      <span className="text-muted-foreground/80">미세</span>
-                      <span className="font-semibold text-foreground/90">{DUST_WIDGET.pm10}</span>
-                      <span className={cn('font-medium', DUST_GRADE_COLOR[DUST_WIDGET.pm10Grade])}>
-                        {DUST_WIDGET.pm10Grade}
-                      </span>
+                </div>
+                {/* Bento — 도구 4개 (2x2) */}
+                <div>
+                  <div className="mb-1.5 px-1">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      🔧 도구
                     </span>
-                    <span className="text-muted-foreground/40">·</span>
-                    <span className="flex items-center gap-1">
-                      <span className="text-muted-foreground/80">초미</span>
-                      <span className="font-semibold text-foreground/90">{DUST_WIDGET.pm25}</span>
-                      <span className={cn('font-medium', DUST_GRADE_COLOR[DUST_WIDGET.pm25Grade])}>
-                        {DUST_WIDGET.pm25Grade}
-                      </span>
-                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {TOOL_TILES.map((t) => {
+                      const Icon = t.icon;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setOpen(false);
+                            setTimeout(() => {
+                              if (t.action === 'translate') {
+                                onSelectAssistantCard?.('translate');
+                                if (currentMode !== 'assistant') onChange('assistant');
+                              } else {
+                                if (currentMode !== 'general') onChange('general');
+                              }
+                            }, 40);
+                          }}
+                          role="menuitem"
+                          aria-label={t.label}
+                          className={cn(
+                            'group relative flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl',
+                            'bg-gradient-to-br border',
+                            'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg',
+                            t.bgClass,
+                            t.borderClass,
+                            t.shadowClass,
+                          )}
+                        >
+                          <Icon className={cn('h-4 w-4 transition-transform group-hover:scale-110', t.iconClass)} strokeWidth={2} />
+                          <span className={cn('text-[10px] font-semibold leading-none', t.labelClass)}>
+                            {t.label}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
