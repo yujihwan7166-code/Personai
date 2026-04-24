@@ -825,7 +825,7 @@ export function MainModeTabs({
                     <div className="text-[40px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
                       {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </div>
-                    <div className="text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground text-right leading-tight">
+                    <div className="mt-2 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground text-right leading-tight">
                       <div className="font-semibold text-foreground/75">
                         {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
                       </div>
