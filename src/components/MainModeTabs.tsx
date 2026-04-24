@@ -967,7 +967,7 @@ export function MainModeTabs({
                   })}
                 </div>
                 {/* 탭 콘텐츠 — AnimatePresence 로 전환 */}
-                <div className="flex-1 min-h-0 relative">
+                <div className="relative h-[384px]">
                   <AnimatePresence mode="wait">
                 {leftTab === 'today' && (<motion.div
                   key="tab-today"
