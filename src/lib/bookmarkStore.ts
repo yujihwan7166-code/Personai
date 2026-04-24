@@ -17,7 +17,7 @@ export type InternalTarget =
   | { type: 'assistant'; cardId: string }             // 어시스턴트 카드
   | { type: 'player'; toolId: string };               // 플레이어 툴 (캐릭터챗·AI 게임)
 
-export const BOOKMARK_SLOT_COUNT = 9;
+export const BOOKMARK_SLOT_COUNT = 6;
 const STORAGE_KEY = 'personai.bookmarks';
 
 export const emptySlots = (): BookmarkSlot[] =>
@@ -40,10 +40,14 @@ export function loadBookmarks(): BookmarkSlot[] {
   }
 }
 
+/** 스토어 변경 브로드캐스트용 이벤트 — 즐겨찾기 뷰가 수신해 재로드. */
+export const BOOKMARKS_CHANGED_EVENT = 'personai:bookmarks-changed';
+
 export function saveBookmarks(slots: BookmarkSlot[]): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(slots));
+    window.dispatchEvent(new CustomEvent(BOOKMARKS_CHANGED_EVENT));
   } catch { /* noop */ }
 }
 

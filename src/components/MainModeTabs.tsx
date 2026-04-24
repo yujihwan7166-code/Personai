@@ -29,7 +29,7 @@ import {
 import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
-import { loadBookmarks, type BookmarkSlot } from '@/lib/bookmarkStore';
+import { loadBookmarks, BOOKMARKS_CHANGED_EVENT, type BookmarkSlot } from '@/lib/bookmarkStore';
 
 interface MainModeTabsProps {
   modes: MainMode[];
@@ -527,11 +527,16 @@ export function MainModeTabs({
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
   }, [open]);
-  /** 좌측 컬럼 즐겨찾기 — 북마크 스토어와 동일 데이터 (first 6 slots). 드롭다운 열 때마다 재로드. */
+  /** 좌측 컬럼 즐겨찾기 — 북마크 스토어와 동일 데이터 (6 slots). 드롭다운 열 때 + 북마크 변경 이벤트 시 재로드. */
   const [favoriteBookmarks, setFavoriteBookmarks] = useState<BookmarkSlot[]>([]);
   useEffect(() => {
     if (open) setFavoriteBookmarks(loadBookmarks());
   }, [open]);
+  useEffect(() => {
+    const handler = () => setFavoriteBookmarks(loadBookmarks());
+    window.addEventListener(BOOKMARKS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(BOOKMARKS_CHANGED_EVENT, handler);
+  }, []);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const disabled = isDiscussing || transitionPhase !== 0;
@@ -1048,7 +1053,7 @@ export function MainModeTabs({
                       </span>
                       <button
                         type="button"
-                        onClick={() => { setOpen(false); setTimeout(() => onOpenBookmarks?.(), 40); }}
+                        onClick={() => onOpenBookmarks?.()}
                         className="text-[9.5px] text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
                         disabled={!onOpenBookmarks}
                       >
@@ -1064,7 +1069,7 @@ export function MainModeTabs({
                             <button
                               key={`fav-${idx}`}
                               type="button"
-                              onClick={() => { setOpen(false); setTimeout(() => onOpenBookmarks?.(), 40); }}
+                              onClick={() => onOpenBookmarks?.()}
                               disabled={!onOpenBookmarks}
                               className={cn(
                                 'aspect-[2/1] flex items-center justify-center rounded-lg border border-dashed',

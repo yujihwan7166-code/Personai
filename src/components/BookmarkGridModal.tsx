@@ -75,17 +75,18 @@ export function BookmarkGridModal({ open, onClose, onNavigate }: BookmarkGridMod
       className="fixed inset-0 z-[200] flex items-center justify-center p-4"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      {/* 아주 가벼운 backdrop — 드롭다운 컨텍스트 유지됨 */}
+      <div className="absolute inset-0 bg-black/15" />
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-[520px] rounded-2xl bg-[hsl(var(--card))] border border-[hsl(var(--hairline))] shadow-2xl overflow-hidden"
+        className="relative w-full max-w-[440px] rounded-2xl bg-[hsl(var(--card))] border border-[hsl(var(--hairline))] shadow-2xl overflow-hidden"
       >
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[hsl(var(--hairline))]">
           <div>
             <p className="text-[15px] font-semibold text-foreground">북마크</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              외부 사이트·내 기능 9개까지 저장
+              외부 사이트·내 기능 6개까지 저장
             </p>
           </div>
           <button
