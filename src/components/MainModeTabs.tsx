@@ -724,7 +724,7 @@ export function MainModeTabs({
               {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·달력·날씨+미세·시세) */}
               <div className="min-w-0 flex flex-col space-y-2.5">
                 <div className="px-1 -mt-1">
-                  <QuickSearchBar />
+                  <QuickSearchBar variant="inline" />
                 </div>
                 <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
                 {/* TODAY 통합 카드 — 시계·날짜 + 주간달력 + 날씨 + 미세먼지 */}
