@@ -732,13 +732,13 @@ export function MainModeTabs({
                   className="p-3 rounded-xl space-y-2.5"
                   style={{ backgroundColor: `color-mix(in oklab, ${WEATHER_WIDGET.tint} 10%, transparent)` }}
                 >
-                  {/* 시계 + 날짜 (상단, 한 줄) */}
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="text-[20px] font-semibold tracking-tight leading-none text-foreground tabular-nums">
+                  {/* 시계 hero + 날짜 subtitle */}
+                  <div>
+                    <div className="text-[32px] font-semibold tracking-tight leading-none text-foreground tabular-nums">
                       {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </div>
-                    <div className="text-[10.5px] font-mono uppercase tracking-[0.12em] text-muted-foreground whitespace-nowrap">
-                      {now.getMonth() + 1}월 {now.getDate()}일 {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
+                    <div className="mt-1.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                      {now.getMonth() + 1}월 {now.getDate()}일 · {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
                     </div>
                   </div>
                   {/* 주간 달력 */}
