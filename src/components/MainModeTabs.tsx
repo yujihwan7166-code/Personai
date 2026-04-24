@@ -187,19 +187,17 @@ export interface HubTool {
   emoji: string;
   tint: string;
   axis: HubAxis;
-  /** v1 구현 전 플레이스홀더 표시. 클릭 비활성 + Soon 배지. */
-  soon?: boolean;
 }
 
 export const HUB_TOOLS: HubTool[] = [
   // ── 계획 ─────────────────────────────────
-  { id: 'schedule', label: '일정',     desc: '오늘·이번 주 약속',        emoji: '📅', tint: 'hsl(210 70% 55%)', axis: '계획', soon: true },
-  { id: 'todo',     label: '할 일',    desc: '오늘의 체크리스트',         emoji: '✅', tint: 'hsl(145 55% 45%)', axis: '계획', soon: true },
+  { id: 'schedule', label: '일정',     desc: '오늘·이번 주 약속',        emoji: '📅', tint: 'hsl(210 70% 55%)', axis: '계획' },
+  { id: 'todo',     label: '할 일',    desc: '오늘의 체크리스트',         emoji: '✅', tint: 'hsl(145 55% 45%)', axis: '계획' },
   // ── 기록 (즉흥 → 정리 순) ──────────────────
-  { id: 'note',     label: '메모',     desc: '빠른 노트 · 생각 정리',     emoji: '🗒️', tint: 'hsl(45 85% 55%)',  axis: '기록', soon: true },
-  { id: 'journal',  label: '일기',     desc: '하루 기록 · 감정',          emoji: '📖', tint: 'hsl(25 85% 55%)',  axis: '기록', soon: true },
-  { id: 'log',      label: '기록',     desc: '운동·독서·식사 등 로그',    emoji: '📋', tint: 'hsl(0 75% 55%)',   axis: '기록', soon: true },
-  { id: 'wiki',     label: '마이위키', desc: '주제별 정리된 지식',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '기록', soon: true },
+  { id: 'note',     label: '메모',     desc: '빠른 노트 · 생각 정리',     emoji: '🗒️', tint: 'hsl(45 85% 55%)',  axis: '기록' },
+  { id: 'journal',  label: '일기',     desc: '하루 기록 · 감정',          emoji: '📖', tint: 'hsl(25 85% 55%)',  axis: '기록' },
+  { id: 'log',      label: '기록',     desc: '운동·독서·식사 등 로그',    emoji: '📋', tint: 'hsl(0 75% 55%)',   axis: '기록' },
+  { id: 'wiki',     label: '마이위키', desc: '주제별 정리된 지식',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '기록' },
 ];
 
 export const MODE_ICON: Record<MainMode, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
@@ -1530,61 +1528,37 @@ export function MainModeTabs({
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    {/* 2축 그룹핑: 계획(일정·할 일) / 기록(메모·일기·기록·마이위키). 축 사이 hairline 구분선. */}
+                    {/* 2축 그룹핑: 계획(일정·할 일) / 기록(메모·일기·기록·마이위키). 축 사이 hairline 구분선.
+                        클릭 시 기능 미연결 — onClick 무동작(no-op). 시각적으로는 클릭 가능 hover 상태 유지. */}
                     {(['계획', '기록'] as HubAxis[]).map((axis, axisIdx) => (
                       <div key={axis}>
                         {axisIdx > 0 && (
                           <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
                         )}
-                        {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => {
-                          const disabled = !!item.soon;
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              disabled={disabled}
-                              aria-disabled={disabled || undefined}
-                              onClick={() => {
-                                if (disabled) return;
-                                setOpen(false);
-                                setTimeout(() => {
-                                  if (currentMode !== 'general') onChange('general');
-                                }, 40);
-                              }}
-                              role="menuitem"
-                              title={disabled ? '곧 추가됩니다' : undefined}
-                              className={cn(
-                                'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
-                                disabled
-                                  ? 'opacity-60 cursor-not-allowed'
-                                  : 'hover:bg-[hsl(var(--accent))]',
-                              )}
+                        {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => { /* no-op — v1 기능 미연결 */ }}
+                            role="menuitem"
+                            className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                          >
+                            <span
+                              className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                              style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)` }}
                             >
-                              <span
-                                className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                                style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)` }}
-                              >
-                                <span className="text-[15px] leading-none select-none">{item.emoji}</span>
+                              <span className="text-[15px] leading-none select-none">{item.emoji}</span>
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+                                {item.label}
                               </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
-                                  {item.label}
-                                </span>
-                                <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                                  {item.desc}
-                                </span>
+                              <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                                {item.desc}
                               </span>
-                              {disabled && (
-                                <span
-                                  aria-label="곧 추가됩니다"
-                                  className="shrink-0 text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[hsl(var(--surface-2))] text-muted-foreground/80"
-                                >
-                                  Soon
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
+                            </span>
+                          </button>
+                        ))}
                       </div>
                     ))}
                   </div>
