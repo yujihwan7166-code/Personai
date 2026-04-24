@@ -950,7 +950,7 @@ export function MainModeTabs({
                 >
                   {/* 시계 hero (좌) + 요일/날짜 (우, 우측 정렬) — 한 줄 가로 분할 */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="text-[34px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
+                    <div className="text-[28px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
                       {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </div>
                     <div className="mt-1.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground text-right leading-tight">
