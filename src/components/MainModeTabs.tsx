@@ -813,7 +813,6 @@ export function MainModeTabs({
                 <div className="px-1 -mt-1">
                   <QuickSearchBar variant="inline" />
                 </div>
-                <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
                 {/* TODAY 통합 카드 — Ambient (시간대별 그라디언트 + 인사 + 시계 + 달력 + 날씨 + 미세) */}
                 <div
                   className={cn(
@@ -910,51 +909,6 @@ export function MainModeTabs({
                         );
                       })}
                     </div>
-                  </div>
-                </div>
-                {/* Bento — 도구 4개 (2x2) */}
-                <div>
-                  <div className="mb-1.5 px-1">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      🔧 도구
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {TOOL_TILES.map((t) => {
-                      const Icon = t.icon;
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => {
-                            setOpen(false);
-                            setTimeout(() => {
-                              if (t.action === 'translate') {
-                                onSelectAssistantCard?.('translate');
-                                if (currentMode !== 'assistant') onChange('assistant');
-                              } else {
-                                if (currentMode !== 'general') onChange('general');
-                              }
-                            }, 40);
-                          }}
-                          role="menuitem"
-                          aria-label={t.label}
-                          className={cn(
-                            'group relative flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl',
-                            'bg-gradient-to-br border',
-                            'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg',
-                            t.bgClass,
-                            t.borderClass,
-                            t.shadowClass,
-                          )}
-                        >
-                          <Icon className={cn('h-4 w-4 transition-transform group-hover:scale-110', t.iconClass)} strokeWidth={2} />
-                          <span className={cn('text-[10px] font-semibold leading-none', t.labelClass)}>
-                            {t.label}
-                          </span>
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
               </div>
