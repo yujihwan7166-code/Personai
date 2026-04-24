@@ -727,53 +727,55 @@ export function MainModeTabs({
                   <QuickSearchBar />
                 </div>
                 <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-                {/* 시계 + 날짜 */}
-                <div className="px-1">
-                  <div className="text-[26px] font-semibold tracking-tight leading-none text-foreground tabular-nums">
-                    {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-1">
-                    {now.getMonth() + 1}월 {now.getDate()}일 {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
-                  </div>
-                </div>
-                {/* 주간 달력 — 이번 주 7일, 오늘 강조 */}
-                <div className="px-1">
-                  <div className="grid grid-cols-7 gap-0.5 text-center">
-                    {['일', '월', '화', '수', '목', '금', '토'].map((d) => (
-                      <div key={`wh-${d}`} className="text-[9px] font-mono uppercase tracking-[0.1em] text-muted-foreground/70">
-                        {d}
-                      </div>
-                    ))}
-                    {Array.from({ length: 7 }, (_, i) => {
-                      const ws = new Date(now);
-                      ws.setDate(now.getDate() - now.getDay() + i);
-                      const isToday = ws.toDateString() === now.toDateString();
-                      const day = ws.getDay();
-                      return (
-                        <div
-                          key={`wd-${i}`}
-                          className={cn(
-                            'flex items-center justify-center h-5 text-[11px] tabular-nums rounded-full',
-                            isToday && 'font-semibold text-foreground',
-                            !isToday && day === 0 && 'text-rose-500/80',
-                            !isToday && day === 6 && 'text-blue-500/80',
-                            !isToday && day !== 0 && day !== 6 && 'text-foreground/70',
-                          )}
-                          style={isToday ? { backgroundColor: `color-mix(in oklab, hsl(262 70% 55%) 18%, transparent)` } : undefined}
-                        >
-                          {ws.getDate()}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {/* 날씨 카드 + 미세먼지 통합 */}
+                {/* TODAY 통합 카드 — 시계·날짜 + 주간달력 + 날씨 + 미세먼지 */}
                 <div
-                  className="p-2.5 rounded-xl"
+                  className="p-3 rounded-xl space-y-2.5"
                   style={{ backgroundColor: `color-mix(in oklab, ${WEATHER_WIDGET.tint} 10%, transparent)` }}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[24px] leading-none select-none">{WEATHER_WIDGET.emoji}</span>
+                  {/* 시계 + 날짜 (상단) */}
+                  <div className="flex items-end justify-between gap-2">
+                    <div className="text-[24px] font-semibold tracking-tight leading-none text-foreground tabular-nums">
+                      {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                    </div>
+                    <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground text-right">
+                      <div>{now.getMonth() + 1}월 {now.getDate()}일</div>
+                      <div className="mt-0.5">{['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일</div>
+                    </div>
+                  </div>
+                  {/* 주간 달력 */}
+                  <div className="pt-2 border-t border-[hsl(var(--hairline))]">
+                    <div className="grid grid-cols-7 gap-0.5 text-center">
+                      {['일', '월', '화', '수', '목', '금', '토'].map((d) => (
+                        <div key={`wh-${d}`} className="text-[9px] font-mono uppercase tracking-[0.1em] text-muted-foreground/70">
+                          {d}
+                        </div>
+                      ))}
+                      {Array.from({ length: 7 }, (_, i) => {
+                        const ws = new Date(now);
+                        ws.setDate(now.getDate() - now.getDay() + i);
+                        const isToday = ws.toDateString() === now.toDateString();
+                        const day = ws.getDay();
+                        return (
+                          <div
+                            key={`wd-${i}`}
+                            className={cn(
+                              'flex items-center justify-center h-5 text-[11px] tabular-nums rounded-full',
+                              isToday && 'font-semibold text-foreground',
+                              !isToday && day === 0 && 'text-rose-500/80',
+                              !isToday && day === 6 && 'text-blue-500/80',
+                              !isToday && day !== 0 && day !== 6 && 'text-foreground/70',
+                            )}
+                            style={isToday ? { backgroundColor: `color-mix(in oklab, hsl(262 70% 55%) 18%, transparent)` } : undefined}
+                          >
+                            {ws.getDate()}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* 날씨 */}
+                  <div className="pt-2 border-t border-[hsl(var(--hairline))] flex items-center gap-2.5">
+                    <span className="text-[26px] leading-none select-none">{WEATHER_WIDGET.emoji}</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                         {WEATHER_WIDGET.city}
@@ -783,8 +785,8 @@ export function MainModeTabs({
                       </div>
                     </div>
                   </div>
-                  {/* 미세먼지 섹션 (카드 내부) */}
-                  <div className="mt-2 pt-2 border-t border-[hsl(var(--hairline))] flex items-center gap-2 text-[11px] tabular-nums">
+                  {/* 미세먼지 */}
+                  <div className="pt-2 border-t border-[hsl(var(--hairline))] flex items-center gap-2 text-[11px] tabular-nums">
                     <span className="text-[12px] leading-none">🫧</span>
                     <span className="flex items-center gap-1">
                       <span className="text-muted-foreground/80">미세</span>
