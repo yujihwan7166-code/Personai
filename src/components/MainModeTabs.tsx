@@ -1495,125 +1495,57 @@ export function MainModeTabs({
                   })}
                 </div>
               ))}
-              {/* 3번째 컬럼: 📝 노트 — 할 일 · 최근 메모 · 저장한 프롬프트 (v1 preview, 전체 편집은 추후) */}
+              {/* 3번째 컬럼: 📝 노트 — 라이프처럼 단순 메뉴 목록 (일정·할일·메모·북마크 등) */}
               <div className="min-w-0 flex flex-col space-y-3">
-                <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                    📝 노트
-                  </span>
-                  <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                    할 일 · 메모
-                  </span>
-                </div>
-
-                {/* 오늘 할 일 */}
                 <div>
-                  <div className="mb-1 px-1 flex items-baseline gap-1.5">
-                    <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/80">
-                      오늘 할 일
+                  <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      노트
                     </span>
-                    <span className="text-[9.5px] text-muted-foreground/60">2/3</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {[
-                      { text: '프로젝트 마감',   done: false },
-                      { text: '운동 30분',       done: true  },
-                      { text: '책 20p 읽기',    done: true  },
-                    ].map((todo, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-[hsl(var(--accent))] transition-colors cursor-pointer text-[11.5px]"
-                      >
-                        <span
-                          className={cn(
-                            'flex h-3.5 w-3.5 items-center justify-center rounded-sm border shrink-0',
-                            todo.done ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground/40',
-                          )}
-                        >
-                          {todo.done && (
-                            <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none">
-                              <path d="M2 6l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
-                        </span>
-                        <span className={cn('truncate flex-1', todo.done ? 'line-through text-muted-foreground/60' : 'text-foreground/85')}>
-                          {todo.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 최근 메모 */}
-                <div>
-                  <div className="mb-1 px-1">
-                    <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/80">
-                      최근 메모
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                      기록 · 정리
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    {[
-                      { emoji: '💡', title: '아이디어 정리',   ago: '2시간 전', tint: 'hsl(45 85% 55%)' },
-                      { emoji: '📋', title: '회의록 요약',     ago: '어제',     tint: 'hsl(210 70% 55%)' },
-                    ].map((note, i) => (
+                    {([
+                      { id: 'schedule', label: '일정',       desc: '오늘·이번 주 약속',       emoji: '📅', tint: 'hsl(210 70% 55%)' },
+                      { id: 'todo',     label: '할 일',      desc: '오늘의 체크리스트',        emoji: '✅', tint: 'hsl(145 55% 45%)' },
+                      { id: 'note',     label: '메모',       desc: '빠른 노트 · 생각 정리',    emoji: '🗒️', tint: 'hsl(45 85% 55%)'  },
+                      { id: 'bookmark', label: '북마크',     desc: '저장한 링크',             emoji: '📌', tint: 'hsl(0 75% 55%)'   },
+                      { id: 'saved',    label: '대화 저장',  desc: 'AI 대화 · 프롬프트',      emoji: '💾', tint: 'hsl(262 70% 55%)' },
+                      { id: 'journal',  label: '일기',       desc: '오늘의 기록',             emoji: '📖', tint: 'hsl(25 85% 55%)'  },
+                    ] as const).map((item) => (
                       <button
-                        key={i}
+                        key={item.id}
                         type="button"
-                        className="flex w-full items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[hsl(var(--accent))] transition-colors text-left"
+                        onClick={() => {
+                          // v1: 드롭다운 닫고 일반 채팅 폴백. v2 에서 각자 전용 페이지·패널 연결.
+                          setOpen(false);
+                          setTimeout(() => {
+                            if (currentMode !== 'general') onChange('general');
+                          }, 40);
+                        }}
+                        role="menuitem"
+                        className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                       >
                         <span
-                          className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
-                          style={{ backgroundColor: `color-mix(in oklab, ${note.tint} 14%, transparent)` }}
+                          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                          style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)` }}
                         >
-                          <span className="text-[13px] leading-none">{note.emoji}</span>
+                          <span className="text-[15px] leading-none select-none">{item.emoji}</span>
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[11.5px] leading-tight truncate font-medium text-foreground/90">
-                            {note.title}
+                          <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+                            {item.label}
                           </span>
-                          <span className="block text-[9.5px] text-muted-foreground/70 mt-0.5">
-                            {note.ago}
+                          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                            {item.desc}
                           </span>
                         </span>
                       </button>
                     ))}
                   </div>
                 </div>
-
-                {/* 저장한 프롬프트 */}
-                <div>
-                  <div className="mb-1 px-1">
-                    <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/80">
-                      저장한 프롬프트
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {[
-                      { emoji: '💬', title: '코드 리뷰 템플릿' },
-                      { emoji: '💬', title: '마케팅 카피 체크' },
-                    ].map((p, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        className="flex w-full items-center gap-2 px-2 py-1 rounded-md hover:bg-[hsl(var(--accent))] transition-colors text-left text-[11.5px]"
-                      >
-                        <span className="text-[11px] leading-none text-muted-foreground/70 shrink-0">{p.emoji}</span>
-                        <span className="truncate flex-1 text-foreground/85">{p.title}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 전체 보기 링크 — mt-auto 로 하단 고정 */}
-                <button
-                  type="button"
-                  className="mt-auto flex w-full items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors text-muted-foreground hover:text-foreground"
-                >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
-                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  </span>
-                  <span className="text-[12px] font-medium">전체 노트 보기</span>
-                </button>
               </div>
               {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + 더보기 */}
               <div className="min-w-0 flex flex-col space-y-3">
