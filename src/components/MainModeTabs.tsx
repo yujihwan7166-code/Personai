@@ -1546,32 +1546,31 @@ export function MainModeTabs({
                     ))}
                   </div>
                 </div>
-                {/* 캐릭터 챗 featured 카드 — 노트 컬럼 하단 빈 공간 채움 (mt-auto) */}
+                {/* 노트 컬럼 하단 featured — AI 요약 (기록 정리 보조). 가로형 컴팩트 카드. */}
                 {(() => {
-                  const tool = PLAYER_TOOLS.find((t) => t.id === 'character-chat');
-                  if (!tool) return null;
+                  const card = { label: 'AI 요약', desc: '노트 자동 정리', emoji: '✨', tint: 'hsl(45 85% 55%)' };
                   return (
                     <button
                       type="button"
-                      onClick={() => handleSelectPlayerTool(tool.id)}
+                      onClick={() => { setOpen(false); setTimeout(() => { if (currentMode !== 'general') onChange('general'); }, 40); }}
                       role="menuitem"
-                      className="group mt-auto flex flex-col items-center justify-center py-2 px-2.5 rounded-lg text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
+                      className="group mt-auto flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      style={{ backgroundColor: `color-mix(in oklab, ${card.tint} 14%, transparent)` }}
                     >
                       <span
-                        className="flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110 mb-1"
-                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        style={{ backgroundColor: `color-mix(in oklab, ${card.tint} 26%, transparent)` }}
                       >
-                        <span className="text-[18px] leading-none select-none">{tool.emoji}</span>
+                        <span className="text-[16px] leading-none select-none">{card.emoji}</span>
                       </span>
-                      <span className="block text-[11.5px] font-semibold leading-tight text-foreground">
-                        {tool.label}
-                      </span>
-                      {tool.desc && (
-                        <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5">
-                          {tool.desc}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
+                          {card.label}
                         </span>
-                      )}
+                        <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
+                          {card.desc}
+                        </span>
+                      </span>
                     </button>
                   );
                 })()}
@@ -1664,35 +1663,40 @@ export function MainModeTabs({
                     </AnimatePresence>
                   </div>
                 </div>
-                {/* AI 게임 featured 카드 — 라이프 컬럼 하단 빈 공간 채움 (mt-auto) */}
-                {(() => {
-                  const tool = PLAYER_TOOLS.find((t) => t.id === 'ai-game');
-                  if (!tool) return null;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => handleSelectPlayerTool(tool.id)}
-                      role="menuitem"
-                      className="group mt-auto flex flex-col items-center justify-center py-2 px-2.5 rounded-lg text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
-                    >
-                      <span
-                        className="flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110 mb-1"
-                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
+                {/* 라이프 컬럼 하단 featured — 캐릭터챗 + AI 게임 2개 가로형 컴팩트, 세로 스택 */}
+                <div className="mt-auto space-y-1">
+                  {(['character-chat', 'ai-game'] as const).map((toolId) => {
+                    const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
+                    if (!tool) return null;
+                    return (
+                      <button
+                        key={`life-bottom-${tool.id}`}
+                        type="button"
+                        onClick={() => handleSelectPlayerTool(tool.id)}
+                        role="menuitem"
+                        className="group w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
                       >
-                        <span className="text-[18px] leading-none select-none">{tool.emoji}</span>
-                      </span>
-                      <span className="block text-[11.5px] font-semibold leading-tight text-foreground">
-                        {tool.label}
-                      </span>
-                      {tool.desc && (
-                        <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5">
-                          {tool.desc}
+                        <span
+                          className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
+                          style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
+                        >
+                          <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
                         </span>
-                      )}
-                    </button>
-                  );
-                })()}
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
+                            {tool.label}
+                          </span>
+                          {tool.desc && (
+                            <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
+                              {tool.desc}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
