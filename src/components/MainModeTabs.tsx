@@ -51,6 +51,8 @@ interface MainModeTabsProps {
   onSelectLifeTool?: (toolId: string) => void;
   /** 멘탈 테스트 모음 페이지 트리거 — 드롭다운 mental 그룹 서브 뷰에서 호출. */
   onOpenMentalTests?: () => void;
+  /** 북마크 그리드 모달 트리거 — 노트 컬럼 '북마크' 칩에서 호출. */
+  onOpenBookmarks?: () => void;
   /** 플레이어 도구 (캐릭터챗/게임/롤플레이 등) 선택 콜백. */
   onSelectPlayerTool?: (toolId: string) => void;
 }
@@ -461,6 +463,7 @@ export function MainModeTabs({
   onSelectAssistantCard,
   onSelectLifeTool,
   onOpenMentalTests,
+  onOpenBookmarks,
   onSelectPlayerTool,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
@@ -1515,9 +1518,13 @@ export function MainModeTabs({
                         key={item.id}
                         type="button"
                         onClick={() => {
-                          // v1: 드롭다운 닫고 일반 채팅 폴백. v2 에서 각자 전용 페이지·패널 연결.
+                          // 북마크 는 전용 모달 (9슬롯 3x3) 오픈. 그 외는 v1 일반 채팅 폴백.
                           setOpen(false);
                           setTimeout(() => {
+                            if (item.id === 'bookmark' && onOpenBookmarks) {
+                              onOpenBookmarks();
+                              return;
+                            }
                             if (currentMode !== 'general') onChange('general');
                           }, 40);
                         }}

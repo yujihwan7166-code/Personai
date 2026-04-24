@@ -52,6 +52,7 @@ const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
 const LazyModePaletteModal = lazy(() => import('@/components/ModePaletteModal').then((module) => ({ default: module.ModePaletteModal })));
 const LazyMentalTestBrowserModal = lazy(() => import('@/components/MentalTestBrowserModal').then((module) => ({ default: module.MentalTestBrowserModal })));
+const LazyBookmarkGridModal = lazy(() => import('@/components/BookmarkGridModal').then((module) => ({ default: module.BookmarkGridModal })));
 const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
 const LazyOnboardingTour = lazy(() => import('@/components/OnboardingTour').then((module) => ({ default: module.OnboardingTour })));
 const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
@@ -136,6 +137,7 @@ const Index = () => {
   const [modePaletteOpen, setModePaletteOpen] = useState(false);
   const [modePaletteAnchor, setModePaletteAnchor] = useState<{ top: number; left: number; right: number; bottom: number; width: number; height: number } | null>(null);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
+  const [bookmarksOpen, setBookmarksOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
   useEffect(() => {
@@ -4634,6 +4636,18 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             }}
           />
         </Suspense>
+        {/* 북마크 그리드 모달 — 노트 컬럼 '북마크' 칩에서 트리거 */}
+        <Suspense fallback={null}>
+          <LazyBookmarkGridModal
+            open={bookmarksOpen}
+            onClose={() => setBookmarksOpen(false)}
+            onNavigate={(target) => {
+              // 현재 MVP: 내부 기능 바로가기 시 일반 채팅 폴백. 추후 target.type 별 정확한 라우팅 연결.
+              void target;
+              if (getMainMode(discussionMode) !== 'general') handleModeChange(mainToDiscussion('general'));
+            }}
+          />
+        </Suspense>
         {!hideAppSidebar && <Suspense fallback={null}>
           <LazyAppSidebar
             experts={experts}
@@ -5092,6 +5106,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     }}
                     onAssistantSubmit={handleAssistantSubmit}
                     onOpenMentalTests={() => setMentalTestsOpen(true)}
+                    onOpenBookmarks={() => setBookmarksOpen(true)}
                   />
                 </Suspense>
               )}
