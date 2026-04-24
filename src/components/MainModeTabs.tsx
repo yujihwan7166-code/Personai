@@ -953,11 +953,13 @@ export function MainModeTabs({
                     <div className="text-[28px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
                       {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </div>
-                    <div className="mt-0 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground text-right leading-tight">
-                      <div className="font-semibold text-foreground/75">
+                    <div className="mt-0 text-right leading-tight">
+                      <div className="text-[11px] font-mono uppercase tracking-[0.14em] font-semibold text-foreground/80">
                         {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
                       </div>
-                      <div className="mt-0.5">{now.getMonth() + 1}월 {now.getDate()}일</div>
+                      <div className="mt-0.5 text-[9.5px] font-mono uppercase tracking-[0.1em] text-muted-foreground tabular-nums whitespace-nowrap">
+                        {now.getFullYear()}년 {now.getMonth() + 1}월 {now.getDate()}일
+                      </div>
                     </div>
                   </div>
                   {/* 월간 달력 */}
