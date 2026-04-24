@@ -960,35 +960,58 @@ export function MainModeTabs({
                       <div className="mt-0.5">{now.getMonth() + 1}월 {now.getDate()}일</div>
                     </div>
                   </div>
-                  {/* 주간 달력 */}
+                  {/* 월간 달력 */}
                   <div className="pt-2 border-t border-[hsl(var(--hairline))]">
+                    <div className="mb-1 text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/80 text-center">
+                      {now.getFullYear()} . {String(now.getMonth() + 1).padStart(2, '0')}
+                    </div>
                     <div className="grid grid-cols-7 gap-0.5 text-center">
-                      {['일', '월', '화', '수', '목', '금', '토'].map((d) => (
-                        <div key={`wh-${d}`} className="text-[9px] font-mono uppercase tracking-[0.1em] text-muted-foreground/70">
+                      {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
+                        <div
+                          key={`mh-${d}`}
+                          className={cn(
+                            'text-[8.5px] font-mono uppercase tracking-[0.08em]',
+                            i === 0 && 'text-rose-500/70',
+                            i === 6 && 'text-blue-500/70',
+                            i !== 0 && i !== 6 && 'text-muted-foreground/60',
+                          )}
+                        >
                           {d}
                         </div>
                       ))}
-                      {Array.from({ length: 7 }, (_, i) => {
-                        const ws = new Date(now);
-                        ws.setDate(now.getDate() - now.getDay() + i);
-                        const isToday = ws.toDateString() === now.toDateString();
-                        const day = ws.getDay();
-                        return (
-                          <div
-                            key={`wd-${i}`}
-                            className={cn(
-                              'flex items-center justify-center h-5 text-[11px] tabular-nums rounded-full',
-                              isToday && 'font-semibold text-foreground',
-                              !isToday && day === 0 && 'text-rose-500/80',
-                              !isToday && day === 6 && 'text-blue-500/80',
-                              !isToday && day !== 0 && day !== 6 && 'text-foreground/70',
-                            )}
-                            style={isToday ? { backgroundColor: `color-mix(in oklab, hsl(262 70% 55%) 18%, transparent)` } : undefined}
-                          >
-                            {ws.getDate()}
-                          </div>
-                        );
-                      })}
+                      {(() => {
+                        const year = now.getFullYear();
+                        const month = now.getMonth();
+                        const firstOfMonth = new Date(year, month, 1);
+                        const startOffset = firstOfMonth.getDay();
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
+                        const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+                        return Array.from({ length: totalCells }, (_, i) => {
+                          const dayNum = i - startOffset + 1;
+                          const isValid = dayNum >= 1 && dayNum <= daysInMonth;
+                          if (!isValid) {
+                            return <div key={`md-${i}`} className="h-4" aria-hidden />;
+                          }
+                          const date = new Date(year, month, dayNum);
+                          const isToday = date.toDateString() === now.toDateString();
+                          const dow = date.getDay();
+                          return (
+                            <div
+                              key={`md-${i}`}
+                              className={cn(
+                                'flex items-center justify-center h-4 text-[10px] tabular-nums rounded-full',
+                                isToday && 'font-semibold text-foreground',
+                                !isToday && dow === 0 && 'text-rose-500/80',
+                                !isToday && dow === 6 && 'text-blue-500/80',
+                                !isToday && dow !== 0 && dow !== 6 && 'text-foreground/70',
+                              )}
+                              style={isToday ? { backgroundColor: `color-mix(in oklab, hsl(262 70% 55%) 22%, transparent)` } : undefined}
+                            >
+                              {dayNum}
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                   {/* 날씨 + 미세먼지 progress bar */}
