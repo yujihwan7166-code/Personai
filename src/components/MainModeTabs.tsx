@@ -135,6 +135,7 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
   | { kind: 'mental-tests' }  // 심리 테스트 모음 페이지 바로가기
 > = [
   { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로
+  { kind: 'mental-tests' },                // ✨ 심리 테스트 모음
   { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미
   { kind: 'group', groupId: 'money' },     // 💰 머니·투자·재테크
   { kind: 'group', groupId: 'enjoy' },     // 🎉 놀고·먹고·즐기고
