@@ -1280,7 +1280,7 @@ export function MainModeTabs({
                 </div>
                 {/* 로그인 줄 — 프로필 (TODAY 카드 바로 아래, 자연 배치).
                     ※ Supabase 미연동 환경에서도 UI 가 보이도록 실 유저 없으면 '데모 사용자' 로 대체. */}
-                <div className="pt-1 border-t border-[hsl(var(--hairline))]">
+                <div className="py-1 border-t border-[hsl(var(--hairline))]">
                   {(() => {
                     const isReal = !!user;
                     const displayEmail = user?.email ?? 'demo@personai.kr';
