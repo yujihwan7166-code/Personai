@@ -883,12 +883,12 @@ export function MainModeTabs({
             {/* 4 컬럼 — 유틸리티(검색·날씨·타일) / 대화+전문 / 라이프 / 플레이어 */}
             <div className="grid grid-cols-4 gap-x-3 p-4">
               {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·달력·날씨+미세·시세) */}
-              <div className="min-w-0 flex flex-col space-y-2.5">
+              <div className="min-w-0 flex flex-col space-y-2">
                 <div className="px-1 -mt-1">
                   <QuickSearchBar variant="inline" />
                 </div>
-                {/* 좌측 사이드바 탭 바 — 오늘 / 대화 / 즐겨찾기 / 알림 */}
-                <div className="flex gap-0.5 px-1">
+                {/* 좌측 사이드바 탭 바 — iOS Segmented Control 스타일 */}
+                <div className="flex gap-0 px-1 py-0.5 bg-muted/40 rounded-full">
                   {[
                     { id: 'today'         as const, icon: Home,     label: '오늘' },
                     { id: 'recent'        as const, icon: History,  label: '대화' },
@@ -906,27 +906,26 @@ export function MainModeTabs({
                         onClick={() => {
                           setLeftTab(t.id);
                           if (t.id === 'notifications' && badgeCount > 0) {
-                            // 탭 클릭 시 전체 읽음 처리 (0.5초 후 — 유저가 뱃지 확인 가능)
                             setTimeout(() => markAllRead(), 500);
                           }
                         }}
                         className={cn(
-                          'group relative flex-1 flex items-center justify-center h-7 rounded-md transition-colors',
+                          'group relative flex-1 flex items-center justify-center h-7 rounded-full transition-colors z-10',
                           isActive
-                            ? 'bg-[hsl(var(--accent))] text-foreground'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/40',
+                            ? 'text-foreground'
+                            : 'text-muted-foreground hover:text-foreground/80',
                         )}
                       >
-                        <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+                        <Icon className="h-3.5 w-3.5 relative z-10" strokeWidth={isActive ? 2.2 : 1.8} />
                         {badgeCount > 0 && (
-                          <span className="absolute top-1 right-1.5 flex h-3 min-w-[12px] items-center justify-center rounded-full bg-rose-500 px-1 text-[8.5px] font-bold text-white leading-none">
+                          <span className="absolute top-0.5 right-1 flex h-3 min-w-[12px] items-center justify-center rounded-full bg-rose-500 px-1 text-[8.5px] font-bold text-white leading-none z-20">
                             {badgeCount > 9 ? '9+' : badgeCount}
                           </span>
                         )}
                         {isActive && (
                           <motion.span
                             layoutId="left-tab-indicator"
-                            className="absolute inset-0 rounded-md ring-1 ring-[hsl(var(--border))]"
+                            className="absolute inset-0 rounded-full bg-[hsl(var(--card))] shadow-sm ring-1 ring-[hsl(var(--hairline))]"
                             aria-hidden
                             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                           />
@@ -945,16 +944,16 @@ export function MainModeTabs({
                   exit={{ opacity: 0, x: -8 }}
                   transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
                   className={cn(
-                    'p-3 rounded-xl space-y-2.5 bg-gradient-to-br',
+                    'p-2.5 rounded-xl space-y-2 bg-gradient-to-br h-full',
                     getTimeGradient(now.getHours()),
                   )}
                 >
                   {/* 시계 hero (좌) + 요일/날짜 (우, 우측 정렬) — 한 줄 가로 분할 */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="text-[40px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
+                    <div className="text-[34px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
                       {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </div>
-                    <div className="mt-2 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground text-right leading-tight">
+                    <div className="mt-1.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground text-right leading-tight">
                       <div className="font-semibold text-foreground/75">
                         {['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일
                       </div>
@@ -1257,9 +1256,9 @@ export function MainModeTabs({
                 </motion.div>)}
                   </AnimatePresence>
                 </div>
-                {/* 로그인 줄 — 프로필 (컬럼 최하단 footer).
+                {/* 로그인 줄 — 프로필 (TODAY 카드 바로 아래, 자연 배치).
                     ※ Supabase 미연동 환경에서도 UI 가 보이도록 실 유저 없으면 '데모 사용자' 로 대체. */}
-                <div className="mt-auto pt-2 border-t border-[hsl(var(--hairline))]">
+                <div className="pt-2 border-t border-[hsl(var(--hairline))]">
                   {(() => {
                     const isReal = !!user;
                     const displayEmail = user?.email ?? 'demo@personai.kr';
