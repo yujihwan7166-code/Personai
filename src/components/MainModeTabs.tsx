@@ -12,8 +12,9 @@ import {
   FlaskConical, BookOpen, ChevronDown, ChevronRight, ChevronLeft, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet,
-  Calculator, Timer,
+  Calculator, Timer, Settings, LogIn,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
@@ -367,6 +368,24 @@ export const TOOL_TILES: Array<{
   },
 ];
 
+/** 좌측 컬럼 — 빠른 이동 핀 (플랫폼 내부 + 외부 사이트 믹스, 4개). */
+export const QUICK_PINS: Array<{
+  id: string;
+  label: string;
+  emoji: string;
+  tint: string;
+  /** 내부 플랫폼 이동: lifeToolId / assistantCardId / mode 중 하나. */
+  target:
+    | { type: 'life'; toolId: string }
+    | { type: 'assistant'; cardId: string }
+    | { type: 'external'; url: string };
+}> = [
+  { id: 'saju',      label: 'AI 사주',  emoji: '🔮', tint: 'hsl(262 70% 55%)', target: { type: 'life',      toolId: 'saju' } },
+  { id: 'image',     label: '이미지',   emoji: '🖼️', tint: 'hsl(340 70% 55%)', target: { type: 'assistant', cardId: 'image-gen' } },
+  { id: 'google',    label: 'Google',   emoji: '🌐', tint: 'hsl(210 70% 55%)', target: { type: 'external',  url: 'https://google.com' } },
+  { id: 'youtube',   label: 'YouTube',  emoji: '▶️', tint: 'hsl(0 75% 55%)',   target: { type: 'external',  url: 'https://youtube.com' } },
+];
+
 /** 좌측 컬럼 — 다가오는 공휴일/이벤트 (v1 하드코드 2026년, v2 다년도). */
 export const UPCOMING_EVENTS: Array<{
   name: string;
@@ -423,6 +442,8 @@ export function MainModeTabs({
   const [openLifeSubgroup, setOpenLifeSubgroup] = useState<LifeSubgroupId | null>(null);
   /** AI 토론 세부 뷰 — 전문 그룹 자체가 드릴다운 전환(라이프 서브그룹 패턴). */
   const [debateOpen, setDebateOpen] = useState(false);
+  /** 로그인 상태 — 좌측 컬럼 로그인 줄에 사용. */
+  const { user, profile } = useAuth();
   /** 좌측 컬럼 시계 — 분 단위 업데이트. */
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
@@ -907,6 +928,94 @@ export function MainModeTabs({
                         );
                       })}
                     </div>
+                  </div>
+                </div>
+                {/* 로그인 줄 — 로그인 상태면 유저 정보 한 줄, 미로그인 시 로그인 버튼 */}
+                {user ? (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors"
+                    title="계정 설정"
+                  >
+                    <span
+                      className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[10px] font-semibold text-white"
+                      style={{
+                        background: `linear-gradient(135deg, hsl(${(user.email?.charCodeAt(0) ?? 65) * 7 % 360} 70% 55%), hsl(${(user.email?.charCodeAt(1) ?? 66) * 11 % 360} 70% 50%))`,
+                      }}
+                    >
+                      {(user.email?.[0] ?? 'U').toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1 flex items-center gap-1.5">
+                      <span className="text-[11.5px] font-medium text-foreground/90 truncate">
+                        {user.email?.split('@')[0] ?? '사용자'}
+                      </span>
+                      {profile?.plan && (
+                        <span className={cn(
+                          'text-[9px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded-full leading-none',
+                          profile.plan === 'pro'     && 'bg-gradient-to-r from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-300',
+                          profile.plan === 'premium' && 'bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-300',
+                          profile.plan === 'free'    && 'bg-muted text-muted-foreground',
+                        )}>
+                          {profile.plan}
+                        </span>
+                      )}
+                    </span>
+                    <Settings className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-muted/30 hover:bg-[hsl(var(--accent))] transition-colors"
+                  >
+                    <LogIn className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-[11.5px] font-medium text-foreground/85 flex-1 text-left">
+                      로그인 / 가입
+                    </span>
+                    <ChevronRight className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+                  </button>
+                )}
+                {/* 빠른 이동 — 플랫폼 기능 + 외부 사이트 믹스 4핀 */}
+                <div>
+                  <div className="mb-1 px-1">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      ⭐ 빠른 이동
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5 px-1">
+                    {QUICK_PINS.map((pin) => (
+                      <button
+                        key={pin.id}
+                        type="button"
+                        title={pin.label}
+                        aria-label={pin.label}
+                        onClick={() => {
+                          if (pin.target.type === 'external') {
+                            window.open(pin.target.url, '_blank', 'noopener,noreferrer');
+                          } else if (pin.target.type === 'assistant') {
+                            setOpen(false);
+                            setTimeout(() => {
+                              onSelectAssistantCard?.(pin.target.type === 'assistant' ? pin.target.cardId : '');
+                              if (currentMode !== 'assistant') onChange('assistant');
+                            }, 40);
+                          } else {
+                            setOpen(false);
+                            setTimeout(() => {
+                              if (currentMode !== 'general') onChange('general');
+                              if (pin.target.type === 'life') onSelectLifeTool?.(pin.target.toolId);
+                            }, 40);
+                          }
+                        }}
+                        className={cn(
+                          'group relative flex flex-col items-center justify-center gap-0.5 aspect-square rounded-lg',
+                          'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                        )}
+                        style={{ backgroundColor: `color-mix(in oklab, ${pin.tint} 10%, transparent)` }}
+                      >
+                        <span className="text-[18px] leading-none select-none group-hover:scale-110 transition-transform">
+                          {pin.emoji}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
