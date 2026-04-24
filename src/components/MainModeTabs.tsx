@@ -804,40 +804,6 @@ export function MainModeTabs({
                     </span>
                   </div>
                 </div>
-                {/* UPCOMING — 다가오는 공휴일/이벤트 3개 D-Day */}
-                <div>
-                  <div className="mb-1.5 px-1">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      ⏳ 다가오는 날
-                    </span>
-                  </div>
-                  <div className="space-y-1 px-1">
-                    {(() => {
-                      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                      const upcoming = UPCOMING_EVENTS
-                        .map((e) => {
-                          const [y, m, d] = e.date.split('-').map(Number);
-                          const event = new Date(y, m - 1, d);
-                          const diff = Math.ceil((event.getTime() - today.getTime()) / 86_400_000);
-                          return { ...e, diff };
-                        })
-                        .filter((e) => e.diff >= 0)
-                        .slice(0, 3);
-                      return upcoming.map((e) => (
-                        <div
-                          key={e.name}
-                          className="flex items-center gap-2.5 py-1 text-[11.5px]"
-                        >
-                          <span className="text-[14px] leading-none select-none">{e.emoji}</span>
-                          <span className="font-mono font-semibold text-foreground/90 w-10 shrink-0 tabular-nums">
-                            {e.diff === 0 ? 'D-day' : `D-${e.diff}`}
-                          </span>
-                          <span className="text-foreground/80 truncate flex-1">{e.name}</span>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                </div>
               </div>
               {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
               {[[0, 1]].map((indices, colIdx) => (
