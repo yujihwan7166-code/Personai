@@ -1705,8 +1705,8 @@ export function MainModeTabs({
                           })}
                           {/* 하단 featured: 캐릭터챗·AI 게임 — 라이프 리스트와 hairline 한 줄로 구분.
                               일반 아이템과 달리 tint 배경 카드 스타일로 강조. */}
-                          <div className="my-1.5 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                          <div className="pt-2 space-y-3">
+                          <div className="!mt-3 mb-1.5 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                          <div className="!pt-4 space-y-3">
                             {(['character-chat', 'ai-game'] as const).map((toolId) => {
                               const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
                               if (!tool) return null;
