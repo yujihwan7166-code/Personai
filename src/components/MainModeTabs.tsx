@@ -29,6 +29,7 @@ import {
 import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
+import { loadBookmarks, type BookmarkSlot } from '@/lib/bookmarkStore';
 
 interface MainModeTabsProps {
   modes: MainMode[];
@@ -525,6 +526,11 @@ export function MainModeTabs({
     setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
+  }, [open]);
+  /** 좌측 컬럼 즐겨찾기 — 북마크 스토어와 동일 데이터 (first 6 slots). 드롭다운 열 때마다 재로드. */
+  const [favoriteBookmarks, setFavoriteBookmarks] = useState<BookmarkSlot[]>([]);
+  useEffect(() => {
+    if (open) setFavoriteBookmarks(loadBookmarks());
   }, [open]);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -1034,47 +1040,90 @@ export function MainModeTabs({
                       })()}
                     </div>
                   </div>
-                  {/* 날씨 + 미세먼지 progress bar */}
+                  {/* 즐겨찾기 2x3 그리드 — 북마크 스토어 첫 6슬롯. 편집은 북마크 모달에서. */}
                   <div className="pt-2 border-t border-[hsl(var(--hairline))]">
-                    <div className="flex items-center gap-2.5">
-                      <motion.span
-                        animate={{ y: [0, -2, 0] }}
-                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                        className="text-[26px] leading-none select-none inline-block"
+                    <div className="mb-1.5 flex items-center justify-between px-0.5">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                        ⭐ 즐겨찾기
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setOpen(false); setTimeout(() => onOpenBookmarks?.(), 40); }}
+                        className="text-[9.5px] text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
+                        disabled={!onOpenBookmarks}
                       >
-                        {WEATHER_WIDGET.emoji}
-                      </motion.span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                          {WEATHER_WIDGET.city}
-                        </div>
-                        <div className="text-[14px] font-semibold text-foreground/90 leading-tight mt-0.5">
-                          {WEATHER_WIDGET.temp}° · {WEATHER_WIDGET.condition}
-                        </div>
-                      </div>
+                        편집
+                        <ChevronRight className="h-2.5 w-2.5" />
+                      </button>
                     </div>
-                    {/* 미세먼지 progress bars */}
-                    <div className="mt-2 space-y-1.5">
-                      {[
-                        { label: '미세', value: DUST_WIDGET.pm10, max: 150, grade: DUST_WIDGET.pm10Grade },
-                        { label: '초미', value: DUST_WIDGET.pm25, max: 75,  grade: DUST_WIDGET.pm25Grade },
-                      ].map((d) => {
-                        const pct = Math.min(100, (d.value / d.max) * 100);
-                        const colorClass = DUST_GRADE_COLOR[d.grade];
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {Array.from({ length: 6 }).map((_, idx) => {
+                        const slot = favoriteBookmarks[idx] ?? { kind: 'empty' as const };
+                        if (slot.kind === 'empty') {
+                          return (
+                            <button
+                              key={`fav-${idx}`}
+                              type="button"
+                              onClick={() => { setOpen(false); setTimeout(() => onOpenBookmarks?.(), 40); }}
+                              disabled={!onOpenBookmarks}
+                              className={cn(
+                                'aspect-square flex items-center justify-center rounded-lg border border-dashed',
+                                'border-[hsl(var(--hairline))] text-muted-foreground/60',
+                                'hover:border-[hsl(var(--focus-ring))] hover:text-foreground hover:bg-[hsl(var(--accent))]/40',
+                                'transition-colors',
+                              )}
+                              aria-label="빈 즐겨찾기 — 추가"
+                            >
+                              <span className="text-[14px] font-light leading-none">+</span>
+                            </button>
+                          );
+                        }
                         return (
-                          <div key={d.label} className="flex items-center gap-2 text-[10px]">
-                            <span className="w-7 text-muted-foreground/80 font-mono uppercase tracking-[0.1em]">{d.label}</span>
-                            <div className="flex-1 h-1 bg-muted/70 rounded-full overflow-hidden">
-                              <motion.div
-                                className={cn('h-full rounded-full', colorClass.replace('text-', 'bg-'))}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${pct}%` }}
-                                transition={{ duration: 0.8, ease: 'easeOut' }}
-                              />
-                            </div>
-                            <span className="font-mono font-semibold text-foreground/90 tabular-nums w-6 text-right">{d.value}</span>
-                            <span className={cn('text-[9px] font-medium w-10 text-right', colorClass)}>{d.grade}</span>
-                          </div>
+                          <button
+                            key={`fav-${idx}`}
+                            type="button"
+                            onClick={() => {
+                              setOpen(false);
+                              setTimeout(() => {
+                                if (slot.kind === 'url') {
+                                  window.open(slot.url, '_blank', 'noopener,noreferrer');
+                                  return;
+                                }
+                                // 내부 기능 — target.type 별로 콜백 라우팅
+                                const t = slot.target;
+                                if (t.type === 'mode') onChange(t.mode as MainMode);
+                                else if (t.type === 'life' && onSelectLifeTool) onSelectLifeTool(t.toolId);
+                                else if (t.type === 'assistant' && onSelectAssistantCard) onSelectAssistantCard(t.cardId);
+                                else if (t.type === 'player' && onSelectPlayerTool) onSelectPlayerTool(t.toolId);
+                                else if (currentMode !== 'general') onChange('general');
+                              }, 40);
+                            }}
+                            className={cn(
+                              'group aspect-square flex flex-col items-center justify-center gap-0.5 p-1 rounded-lg',
+                              'bg-[hsl(var(--muted))]/50 border border-[hsl(var(--hairline))]',
+                              'hover:bg-[hsl(var(--accent))] hover:-translate-y-0.5 hover:shadow-md transition-all',
+                            )}
+                            title={slot.label}
+                            aria-label={slot.label}
+                          >
+                            {slot.kind === 'url' ? (
+                              slot.favicon ? (
+                                <img
+                                  src={slot.favicon}
+                                  alt=""
+                                  className="h-5 w-5 rounded object-contain"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              ) : (
+                                <Globe className="h-4 w-4 text-muted-foreground" />
+                              )
+                            ) : (
+                              <span className="text-[16px] leading-none select-none">{slot.emoji}</span>
+                            )}
+                            <span className="text-[8.5px] font-medium text-foreground/80 leading-tight truncate max-w-full">
+                              {slot.label}
+                            </span>
+                          </button>
                         );
                       })}
                     </div>
