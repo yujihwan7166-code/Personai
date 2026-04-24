@@ -816,7 +816,7 @@ export function MainModeTabs({
                 {/* TODAY 통합 카드 — Ambient (시간대별 그라디언트 + 인사 + 시계 + 달력 + 날씨 + 미세) */}
                 <div
                   className={cn(
-                    'p-3 rounded-xl space-y-2.5 bg-gradient-to-br border border-[hsl(var(--hairline))]',
+                    'p-3 rounded-xl space-y-2.5 bg-gradient-to-br',
                     getTimeGradient(now.getHours()),
                   )}
                 >
