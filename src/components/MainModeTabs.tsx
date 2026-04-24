@@ -14,6 +14,7 @@ import {
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
+  Home, Star, History,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -377,22 +378,27 @@ export const TOOL_TILES: Array<{
   },
 ];
 
-/** 좌측 컬럼 — 빠른 이동 핀 (플랫폼 내부 + 외부 사이트 믹스, 4개). */
+/** 좌측 컬럼 — 빠른 이동 핀 (플랫폼 내부 + 외부 사이트 믹스). */
 export const QUICK_PINS: Array<{
   id: string;
   label: string;
   emoji: string;
   tint: string;
-  /** 내부 플랫폼 이동: lifeToolId / assistantCardId / mode 중 하나. */
+  section: 'platform' | 'external';
   target:
     | { type: 'life'; toolId: string }
     | { type: 'assistant'; cardId: string }
+    | { type: 'player'; toolId: string }
     | { type: 'external'; url: string };
 }> = [
-  { id: 'saju',      label: 'AI 사주',  emoji: '🔮', tint: 'hsl(262 70% 55%)', target: { type: 'life',      toolId: 'saju' } },
-  { id: 'image',     label: '이미지',   emoji: '🖼️', tint: 'hsl(340 70% 55%)', target: { type: 'assistant', cardId: 'image-gen' } },
-  { id: 'google',    label: 'Google',   emoji: '🌐', tint: 'hsl(210 70% 55%)', target: { type: 'external',  url: 'https://google.com' } },
-  { id: 'youtube',   label: 'YouTube',  emoji: '▶️', tint: 'hsl(0 75% 55%)',   target: { type: 'external',  url: 'https://youtube.com' } },
+  // 내 기능 3개
+  { id: 'saju',      label: 'AI 사주',   emoji: '🔮', tint: 'hsl(262 70% 55%)', section: 'platform', target: { type: 'life',      toolId: 'saju' } },
+  { id: 'character', label: '캐릭터 챗', emoji: '🎭', tint: 'hsl(280 70% 55%)', section: 'platform', target: { type: 'player',    toolId: 'character-chat' } },
+  { id: 'image',     label: '이미지',    emoji: '🖼️', tint: 'hsl(340 70% 55%)', section: 'platform', target: { type: 'assistant', cardId: 'image-gen' } },
+  // 외부 3개
+  { id: 'google',    label: 'Google',    emoji: '🌐', tint: 'hsl(210 70% 55%)', section: 'external', target: { type: 'external',  url: 'https://google.com' } },
+  { id: 'youtube',   label: 'YouTube',   emoji: '▶️', tint: 'hsl(0 75% 55%)',   section: 'external', target: { type: 'external',  url: 'https://youtube.com' } },
+  { id: 'chatgpt',   label: 'ChatGPT',   emoji: '💬', tint: 'hsl(145 55% 45%)', section: 'external', target: { type: 'external',  url: 'https://chatgpt.com' } },
 ];
 
 /** 좌측 컬럼 — 다가오는 공휴일/이벤트 (v1 하드코드 2026년, v2 다년도). */
@@ -454,6 +460,15 @@ export function MainModeTabs({
   /** 로그인 상태 — 좌측 컬럼 로그인 줄에 사용. */
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  /** 좌측 사이드바 탭 — 오늘 / 대화 / 즐겨찾기. */
+  const [leftTab, setLeftTab] = useState<'today' | 'recent' | 'pins'>('today');
+  /** 최근 모드 사용 이력 (localStorage 기반). */
+  const [recentModes, setRecentModes] = useState<Array<{ id: string; label: string; emoji: string; tint: string; at: number; target: { kind: 'mode'; mode: MainMode } | { kind: 'life'; toolId: string } | { kind: 'assistant'; cardId: string } | { kind: 'player'; toolId: string } }>>(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem('personai.recent_modes') : null;
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
   /** 좌측 컬럼 시계 — 분 단위 업데이트. */
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
@@ -844,8 +859,50 @@ export function MainModeTabs({
                 <div className="px-1 -mt-1">
                   <QuickSearchBar variant="inline" />
                 </div>
-                {/* TODAY 통합 카드 — Ambient (시간대별 그라디언트 + 인사 + 시계 + 달력 + 날씨 + 미세) */}
-                <div
+                {/* 좌측 사이드바 탭 바 — 오늘 / 대화 / 즐겨찾기 */}
+                <div className="flex gap-0.5 px-1">
+                  {[
+                    { id: 'today'  as const, icon: Home,          label: '오늘' },
+                    { id: 'recent' as const, icon: History,       label: '대화' },
+                    { id: 'pins'   as const, icon: Star,          label: '즐겨찾기' },
+                  ].map((t) => {
+                    const Icon = t.icon;
+                    const isActive = leftTab === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        title={t.label}
+                        onClick={() => setLeftTab(t.id)}
+                        className={cn(
+                          'group relative flex-1 flex items-center justify-center h-7 rounded-md transition-colors',
+                          isActive
+                            ? 'bg-[hsl(var(--accent))] text-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/40',
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+                        {isActive && (
+                          <motion.span
+                            layoutId="left-tab-indicator"
+                            className="absolute inset-0 rounded-md ring-1 ring-[hsl(var(--border))]"
+                            aria-hidden
+                            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* 탭 콘텐츠 — AnimatePresence 로 전환 */}
+                <div className="flex-1 min-h-0 relative">
+                  <AnimatePresence mode="wait">
+                {leftTab === 'today' && (<motion.div
+                  key="tab-today"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
                   className={cn(
                     'p-3 rounded-xl space-y-2.5 bg-gradient-to-br',
                     getTimeGradient(now.getHours()),
@@ -939,50 +996,149 @@ export function MainModeTabs({
                       })}
                     </div>
                   </div>
-                </div>
-                {/* 빠른 이동 — 플랫폼 기능 + 외부 사이트 믹스 4핀 */}
-                <div>
-                  <div className="mb-1 px-1">
+                </motion.div>)}
+
+                {leftTab === 'recent' && (<motion.div
+                  key="tab-recent"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="space-y-1"
+                >
+                  <div className="mb-1.5 px-1">
                     <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      ⭐ 빠른 이동
+                      최근 사용
                     </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1.5 px-1">
-                    {QUICK_PINS.map((pin) => (
-                      <button
-                        key={pin.id}
-                        type="button"
-                        title={pin.label}
-                        aria-label={pin.label}
-                        onClick={() => {
-                          if (pin.target.type === 'external') {
-                            window.open(pin.target.url, '_blank', 'noopener,noreferrer');
-                          } else if (pin.target.type === 'assistant') {
-                            setOpen(false);
-                            setTimeout(() => {
-                              onSelectAssistantCard?.(pin.target.type === 'assistant' ? pin.target.cardId : '');
-                              if (currentMode !== 'assistant') onChange('assistant');
-                            }, 40);
-                          } else {
-                            setOpen(false);
-                            setTimeout(() => {
-                              if (currentMode !== 'general') onChange('general');
-                              if (pin.target.type === 'life') onSelectLifeTool?.(pin.target.toolId);
-                            }, 40);
-                          }
-                        }}
-                        className={cn(
-                          'group relative flex flex-col items-center justify-center gap-0.5 aspect-square rounded-lg',
-                          'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                        )}
-                        style={{ backgroundColor: `color-mix(in oklab, ${pin.tint} 10%, transparent)` }}
-                      >
-                        <span className="text-[18px] leading-none select-none group-hover:scale-110 transition-transform">
-                          {pin.emoji}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  {recentModes.length === 0 ? (
+                    <div className="px-3 py-6 rounded-xl bg-muted/30 text-center">
+                      <History className="h-5 w-5 mx-auto mb-2 text-muted-foreground/50" strokeWidth={1.5} />
+                      <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+                        아직 사용 기록이 없어요.<br />
+                        모드를 선택하면 여기에 기록돼요.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5 px-1">
+                      {recentModes.slice(0, 5).map((m) => {
+                        const ago = (() => {
+                          const d = Math.floor((Date.now() - m.at) / 60_000);
+                          if (d < 1) return '방금';
+                          if (d < 60) return `${d}분 전`;
+                          if (d < 1440) return `${Math.floor(d / 60)}시간 전`;
+                          return `${Math.floor(d / 1440)}일 전`;
+                        })();
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              setOpen(false);
+                              setTimeout(() => {
+                                if (m.target.kind === 'mode') {
+                                  if (currentMode !== m.target.mode) onChange(m.target.mode);
+                                } else if (m.target.kind === 'life') {
+                                  if (currentMode !== 'general') onChange('general');
+                                  onSelectLifeTool?.(m.target.toolId);
+                                } else if (m.target.kind === 'assistant') {
+                                  if (currentMode !== 'assistant') onChange('assistant');
+                                  onSelectAssistantCard?.(m.target.cardId);
+                                } else if (m.target.kind === 'player') {
+                                  onSelectPlayerTool?.(m.target.toolId);
+                                }
+                              }, 40);
+                            }}
+                            className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                          >
+                            <span
+                              className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                              style={{ backgroundColor: `color-mix(in oklab, ${m.tint} 12%, transparent)` }}
+                            >
+                              <span className="text-[14px] leading-none select-none">{m.emoji}</span>
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[12px] leading-tight truncate font-medium text-foreground/90">
+                                {m.label}
+                              </span>
+                              <span className="block text-[9.5px] text-muted-foreground truncate mt-0.5">
+                                {ago}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>)}
+
+                {leftTab === 'pins' && (<motion.div
+                  key="tab-pins"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="space-y-2.5"
+                >
+                  {(['platform', 'external'] as const).map((sec) => {
+                    const items = QUICK_PINS.filter((p) => p.section === sec);
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={sec}>
+                        <div className="mb-1 px-1">
+                          <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                            {sec === 'platform' ? '⭐ 내 기능' : '🔗 사이트'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5 px-1">
+                          {items.map((pin) => (
+                            <button
+                              key={pin.id}
+                              type="button"
+                              title={pin.label}
+                              aria-label={pin.label}
+                              onClick={() => {
+                                if (pin.target.type === 'external') {
+                                  window.open(pin.target.url, '_blank', 'noopener,noreferrer');
+                                } else if (pin.target.type === 'assistant') {
+                                  setOpen(false);
+                                  setTimeout(() => {
+                                    if (pin.target.type === 'assistant') onSelectAssistantCard?.(pin.target.cardId);
+                                    if (currentMode !== 'assistant') onChange('assistant');
+                                  }, 40);
+                                } else if (pin.target.type === 'player') {
+                                  setOpen(false);
+                                  setTimeout(() => {
+                                    if (pin.target.type === 'player') onSelectPlayerTool?.(pin.target.toolId);
+                                  }, 40);
+                                } else if (pin.target.type === 'life') {
+                                  setOpen(false);
+                                  setTimeout(() => {
+                                    if (currentMode !== 'general') onChange('general');
+                                    if (pin.target.type === 'life') onSelectLifeTool?.(pin.target.toolId);
+                                  }, 40);
+                                }
+                              }}
+                              className={cn(
+                                'group relative flex flex-col items-center justify-center gap-1 aspect-square rounded-xl p-1',
+                                'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                              )}
+                              style={{ backgroundColor: `color-mix(in oklab, ${pin.tint} 10%, transparent)` }}
+                            >
+                              <span className="text-[18px] leading-none select-none group-hover:scale-110 transition-transform">
+                                {pin.emoji}
+                              </span>
+                              <span className="text-[9px] font-medium text-foreground/70 truncate max-w-full">
+                                {pin.label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </motion.div>)}
+                  </AnimatePresence>
                 </div>
                 {/* 로그인 줄 — 프로필 (컬럼 최하단 footer).
                     ※ Supabase 미연동 환경에서도 UI 가 보이도록 실 유저 없으면 '데모 사용자' 로 대체. */}
