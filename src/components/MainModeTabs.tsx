@@ -124,6 +124,7 @@ export const LIFE_TOOLS: Array<{
   // ── 기존 비공개 (그룹 미지정) ──
   { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',       emoji: '📔', tint: 'hsl(32 80% 55%)',  featured: false                     },
   { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',          emoji: '🧘', tint: 'hsl(175 55% 45%)', featured: false                     },
+  { id: 'shopping',   label: '쇼핑 도우미',   desc: '가격 비교 · 리뷰 요약 · 추천', emoji: '🛍️', tint: 'hsl(340 75% 58%)', featured: false                    },
 ];
 
 /**
@@ -135,6 +136,7 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
   | { kind: 'group'; groupId: LifeSubgroupId }
   | { kind: 'mental-tests' }  // 심리 테스트 모음 페이지 바로가기
 > = [
+  { kind: 'tool', toolId: 'shopping' },    // 🛍️ 쇼핑 도우미 (사주·타로 위)
   { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로
   { kind: 'mental-tests' },                // ✨ 심리 테스트 모음
   { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미
