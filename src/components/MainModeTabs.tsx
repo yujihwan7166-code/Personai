@@ -509,6 +509,14 @@ export function MainModeTabs({
     window.addEventListener(BOOKMARKS_CHANGED_EVENT, handler);
     return () => window.removeEventListener(BOOKMARKS_CHANGED_EVENT, handler);
   }, []);
+  /** 오늘 할 일 — v1 샘플. 클릭 시 삭제. v2 에서 노트 todo 동기화. */
+  const [todayTodos, setTodayTodos] = useState<Array<{ id: string; label: string; done: boolean }>>([
+    { id: 't1', label: '보고서 마무리', done: false },
+    { id: 't2', label: '영어 학습 30분', done: false },
+    { id: 't3', label: '운동 20분', done: true },
+    { id: 't4', label: '책 30페이지 읽기', done: false },
+    { id: 't5', label: '주간 회고 작성', done: false },
+  ]);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const disabled = isDiscussing || transitionPhase !== 0;
@@ -1055,21 +1063,22 @@ export function MainModeTabs({
                         </button>
                       </div>
                       <div className="space-y-0.5 max-h-[72px] overflow-y-auto pr-0.5">
-                        {[
-                          { id: 't1', label: '보고서 마무리', done: false },
-                          { id: 't2', label: '영어 학습 30분', done: false },
-                          { id: 't3', label: '운동 20분', done: true },
-                          { id: 't4', label: '책 30페이지 읽기', done: false },
-                          { id: 't5', label: '주간 회고 작성', done: false },
-                        ].map((todo) => (
-                          <label
+                        {todayTodos.map((todo) => (
+                          <button
                             key={todo.id}
-                            className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--accent))]/40 cursor-pointer transition-colors"
+                            type="button"
+                            onClick={() => setTodayTodos((prev) => prev.filter((t) => t.id !== todo.id))}
+                            className="w-full flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--accent))]/40 cursor-pointer transition-colors text-left"
+                            aria-label={`${todo.label} 완료 (삭제)`}
                           >
-                            <input
-                              type="checkbox"
-                              defaultChecked={todo.done}
-                              className="h-3 w-3 rounded border-[hsl(var(--hairline))] accent-foreground/80 cursor-pointer"
+                            <span
+                              className={cn(
+                                'h-3 w-3 rounded border shrink-0 transition-colors',
+                                todo.done
+                                  ? 'bg-foreground/80 border-foreground/80'
+                                  : 'border-[hsl(var(--hairline))]',
+                              )}
+                              aria-hidden
                             />
                             <span className={cn(
                               'text-[11px] leading-tight flex-1 truncate transition-colors',
@@ -1077,8 +1086,13 @@ export function MainModeTabs({
                             )}>
                               {todo.label}
                             </span>
-                          </label>
+                          </button>
                         ))}
+                        {todayTodos.length === 0 && (
+                          <p className="text-[10.5px] text-muted-foreground/70 text-center py-3">
+                            모두 완료! 🎉
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
