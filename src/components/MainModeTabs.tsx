@@ -1022,36 +1022,24 @@ export function MainModeTabs({
                   </div>
                   {/* 다음 일정 + 오늘 할 일 — v1 샘플 데이터, v2 에서 실제 캘린더/노트 동기화 */}
                   <div className="pt-2 border-t border-[hsl(var(--hairline))] space-y-2.5">
-                    {/* 다음 일정 */}
-                    <div>
-                      <div className="mb-1 flex items-center justify-between px-0.5">
-                        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                          🔔 다음 일정
-                        </span>
-                        <button
-                          type="button"
-                          className="text-[9.5px] text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
-                        >
-                          + 추가
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg bg-[hsl(var(--muted))]/50 border border-[hsl(var(--hairline))] hover:bg-[hsl(var(--accent))] transition-colors"
-                      >
-                        <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                          <span className="text-[10px] font-mono font-semibold tabular-nums leading-none">14:00</span>
-                        </span>
-                        <span className="min-w-0 flex-1 text-left">
-                          <span className="block text-[11.5px] font-medium text-foreground/90 truncate leading-tight">
-                            팀 미팅
-                          </span>
-                          <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5">
-                            30분 후 · 회의실 A
-                          </span>
-                        </span>
-                      </button>
-                    </div>
+                    {/* 다음 일정 — 한 줄 컴팩트 */}
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[hsl(var(--accent))]/40 transition-colors"
+                    >
+                      <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground shrink-0">
+                        🔔
+                      </span>
+                      <span className="text-[10px] font-mono font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none shrink-0">
+                        14:00
+                      </span>
+                      <span className="text-[11.5px] font-medium text-foreground/90 truncate leading-none flex-1 text-left">
+                        팀 미팅
+                      </span>
+                      <span className="text-[9.5px] text-muted-foreground leading-none shrink-0">
+                        30분 후
+                      </span>
+                    </button>
 
                     {/* 오늘 할 일 */}
                     <div>
