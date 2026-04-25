@@ -63,7 +63,7 @@ interface MainModeTabsProps {
 export type LifeSubgroupId = 'fortune' | 'mental' | 'health' | 'money' | 'enjoy';
 
 export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: string; description: string; tint: string }> = {
-  fortune: { emoji: '🔮', label: '사주·타로',         description: '사주·타로·꿈·토정 등',              tint: 'hsl(262 70% 55%)' },
+  fortune: { emoji: '🔮', label: '사주·타로·심리',     description: '사주·타로·꿈·토정·MBTI·테스트',     tint: 'hsl(262 70% 55%)' },
   mental:  { emoji: '🧠', label: '멘탈 테스트',       description: 'MBTI·자가체크·심리 테스트',         tint: 'hsl(210 60% 55%)' },
   health:  { emoji: '🩺', label: '건강 도우미',       description: '운동·영양제·수면·식단',              tint: 'hsl(170 60% 42%)' },
   money:   { emoji: '💰', label: '머니·투자·재테크', description: '가계부·세금·투자·대출·부동산·노후', tint: 'hsl(130 55% 40%)' },
@@ -136,9 +136,8 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
   | { kind: 'group'; groupId: LifeSubgroupId }
   | { kind: 'mental-tests' }  // 심리 테스트 모음 페이지 바로가기
 > = [
-  { kind: 'tool', toolId: 'shopping' },    // 🛍️ 쇼핑 도우미 (사주·타로 위)
-  { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로
-  { kind: 'mental-tests' },                // ✨ 심리 테스트 모음
+  { kind: 'tool', toolId: 'shopping' },    // 🛍️ 쇼핑 도우미
+  { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로·심리 (mental-tests 도 이 안으로 통합)
   { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미
   { kind: 'group', groupId: 'money' },     // 💰 머니·투자·재테크
   { kind: 'group', groupId: 'enjoy' },     // 🎉 놀고·먹고·즐기고
@@ -1525,6 +1524,52 @@ export function MainModeTabs({
                             {group.modes.flatMap((m) => [renderModeItem(m)])}
                           </div>
                         )}
+                        {/* 전문 컬럼 하단 — AI Play (캐릭터챗 + AI 게임). debate 드릴다운 중엔 숨김. */}
+                        {isExpert && !debateOpen && (
+                          <div className="mt-3">
+                            <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                              <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                                AI Play
+                              </span>
+                              <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                                캐릭터 · 게임
+                              </span>
+                            </div>
+                            <div className="space-y-1.5">
+                              {(['character-chat', 'ai-game'] as const).map((toolId) => {
+                                const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
+                                if (!tool) return null;
+                                return (
+                                  <button
+                                    key={`aiplay-${tool.id}`}
+                                    type="button"
+                                    onClick={() => handleSelectPlayerTool(tool.id)}
+                                    role="menuitem"
+                                    className="group w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                                    style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
+                                  >
+                                    <span
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
+                                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
+                                    >
+                                      <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
+                                        {tool.label}
+                                      </span>
+                                      {tool.desc && (
+                                        <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
+                                          {tool.desc}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1610,6 +1655,31 @@ export function MainModeTabs({
                           className="space-y-0.5"
                         >
                           {LIFE_TOOLS.filter((t) => t.group === openLifeSubgroup).map(renderLifeToolItem)}
+                          {/* fortune 그룹: 심리 테스트 모음 통합 entry */}
+                          {openLifeSubgroup === 'fortune' && onOpenMentalTests && (
+                            <button
+                              type="button"
+                              onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
+                              role="menuitem"
+                              className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                            >
+                              <span
+                                className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                                style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
+                              >
+                                <span className="text-[15px] leading-none select-none">✨</span>
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+                                  심리 테스트 모음
+                                </span>
+                                <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                                  테토·에겐·에니어그램·휴먼디자인…
+                                </span>
+                              </span>
+                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                            </button>
+                          )}
                         </motion.div>
                       ) : (
                         <motion.div
@@ -1656,41 +1726,37 @@ export function MainModeTabs({
                               </button>
                             );
                           })}
-                          {/* 하단 featured: 캐릭터챗·AI 게임 — 라이프 리스트와 hairline 한 줄로 구분.
-                              일반 아이템과 달리 tint 배경 카드 스타일로 강조. */}
+                          {/* 라이프 컬럼 하단 — 광고 슬롯 (캐릭터챗·AI 게임은 전문 컬럼 AI Play 로 이동). */}
                           <div className="!mt-1 mb-0.5 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                          <div className="!pt-2 space-y-3">
-                            {(['character-chat', 'ai-game'] as const).map((toolId) => {
-                              const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
-                              if (!tool) return null;
-                              return (
-                                <button
-                                  key={`life-featured-${tool.id}`}
-                                  type="button"
-                                  onClick={() => handleSelectPlayerTool(tool.id)}
-                                  role="menuitem"
-                                  className="group w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                                  style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
-                                >
-                                  <span
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
-                                    style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
-                                  >
-                                    <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
-                                  </span>
-                                  <span className="min-w-0 flex-1">
-                                    <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
-                                      {tool.label}
-                                    </span>
-                                    {tool.desc && (
-                                      <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
-                                        {tool.desc}
-                                      </span>
-                                    )}
-                                  </span>
-                                </button>
-                              );
-                            })}
+                          <div className="!pt-2">
+                            <div className="mb-1 flex items-center justify-between px-0.5">
+                              <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                                💡 오늘의 추천
+                              </span>
+                              <span className="text-[8.5px] font-mono uppercase text-muted-foreground/60">AD</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="group w-full text-left rounded-xl px-2.5 py-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                              style={{ backgroundColor: `color-mix(in oklab, hsl(95 60% 42%) 12%, transparent)` }}
+                              aria-label="오늘의 추천: 환절기 비타민D"
+                            >
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="text-[14px] leading-none">🌿</span>
+                                <span className="text-[9px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+                                  영양제
+                                </span>
+                              </div>
+                              <div className="text-[12px] font-semibold leading-tight text-foreground">
+                                환절기 비타민D
+                              </div>
+                              <div className="text-[9.5px] text-muted-foreground leading-tight mt-0.5">
+                                한국 22% 부족 (질병관리청)
+                              </div>
+                              <div className="text-[10px] font-medium text-foreground/85 mt-1.5 inline-flex items-center gap-0.5">
+                                아이허브에서 보기 <ChevronRight className="h-2.5 w-2.5" />
+                              </div>
+                            </button>
                           </div>
                         </motion.div>
                       )}
