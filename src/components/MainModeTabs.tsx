@@ -949,10 +949,7 @@ export function MainModeTabs({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -8 }}
                   transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                  className={cn(
-                    'p-2.5 rounded-xl space-y-2 bg-gradient-to-br h-full',
-                    getTimeGradient(now.getHours()),
-                  )}
+                  className="p-2.5 rounded-xl space-y-2 h-full"
                 >
                   {/* 시계 hero (좌) + 요일/날짜 (우, 우측 정렬) — 한 줄 가로 분할 */}
                   <div className="flex items-start justify-between gap-2">
