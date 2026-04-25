@@ -953,8 +953,9 @@ export function MainModeTabs({
                   transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
                   className="p-2.5 rounded-xl space-y-2 h-full"
                 >
-                  {/* 시계 hero (좌) + 요일/날짜 (우, 우측 정렬) — 한 줄 가로 분할 */}
-                  <div className="flex items-start justify-between gap-2">
+                  {/* 시계 hero (좌) + 요일/날짜 (우, 우측 정렬) — 한 줄 가로 분할.
+                      transform translate-y 로 시각적으로만 위로 이동 (달력 등 다른 요소 위치 영향 X). */}
+                  <div className="-translate-y-1 flex items-start justify-between gap-2">
                     <div className="text-[28px] font-semibold tracking-tighter leading-none text-foreground tabular-nums">
                       {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </div>
