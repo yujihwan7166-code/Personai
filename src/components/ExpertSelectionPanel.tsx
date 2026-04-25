@@ -108,7 +108,7 @@ const mainModeLabels: Record<MainMode, string> = {
   general: '일반 채팅',
   multi: '멀티 채팅',
   debate: 'AI 토론',
-  stakeholder_main: 'AI 시뮬레이션',
+  stakeholder_main: 'AI 리허설',
   brainstorm_main: '브레인스토밍',
   premium_main: 'AI 법률 자문',
   assistant: '어시스턴트',

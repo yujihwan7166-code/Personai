@@ -106,7 +106,7 @@ export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; d
     general: { label: '단일 AI', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
     multi: { label: '다중 AI', icon: '🔄', description: '여러 AI의 답변을 종합합니다' },
     brainstorm_main: { label: '브레인스토밍', icon: '💡', description: 'AI들이 협업해 아이디어를 정리합니다' },
-    stakeholder_main: { label: '시뮬레이션', icon: '🎭', description: '이해관계자 역할극으로 아이디어를 검증합니다' },
+    stakeholder_main: { label: 'AI 리허설', icon: '🎭', description: '이해관계자 역할극으로 아이디어를 검증합니다' },
     premium_main: { label: 'AI 법률 자문', icon: '⚖️', description: '판례·계약·민사·형사 가이드 (정보 제공 — 정확한 자문은 변호사 상담 권장)' },
     debate: { label: 'AI 토론', icon: '⚔️', description: '전문가들이 토론 후 결론을 냅니다' },
     assistant: { label: '어시스턴트', icon: '🛠️', description: '작업을 도와주는 AI 도구' },
