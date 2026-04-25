@@ -1054,7 +1054,7 @@ export function MainModeTabs({
                           + 추가
                         </button>
                       </div>
-                      <div className="space-y-0.5">
+                      <div className="space-y-0.5 max-h-[72px] overflow-y-auto pr-0.5">
                         {[
                           { id: 't1', label: '보고서 마무리', done: false },
                           { id: 't2', label: '영어 학습 30분', done: false },
