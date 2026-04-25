@@ -1,0 +1,21 @@
+{
+  "name": "Personai — AI 토론·상담·노트",
+  "short_name": "Personai",
+  "description": "246+ AI 전문가와 토론·상담·브레인스토밍, 그리고 캘린더·할일·습관까지 한 곳에서.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1220",
+  "theme_color": "#1e293b",
+  "lang": "ko-KR",
+  "scope": "/",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "education", "lifestyle"]
+}
