@@ -1059,6 +1059,8 @@ export function MainModeTabs({
                           { id: 't1', label: '보고서 마무리', done: false },
                           { id: 't2', label: '영어 학습 30분', done: false },
                           { id: 't3', label: '운동 20분', done: true },
+                          { id: 't4', label: '책 30페이지 읽기', done: false },
+                          { id: 't5', label: '주간 회고 작성', done: false },
                         ].map((todo) => (
                           <label
                             key={todo.id}
