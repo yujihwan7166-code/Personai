@@ -968,8 +968,9 @@ export function MainModeTabs({
                       </div>
                     </div>
                   </div>
-                  {/* 월간 달력 */}
-                  <div className="pt-px border-t border-[hsl(var(--hairline))]">
+                  {/* 월간 달력 — hairline 만 시각적으로 위로 (달력 본체 위치는 그대로). */}
+                  <div className="border-t border-[hsl(var(--hairline))] -translate-y-1" aria-hidden />
+                  <div className="pt-px">
                     <div className="grid grid-cols-7 gap-0.5 text-center">
                       {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
                         <div
