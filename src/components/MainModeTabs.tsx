@@ -1043,7 +1043,7 @@ export function MainModeTabs({
 
                     {/* 오늘 할 일 */}
                     <div>
-                      <div className="mb-1 flex items-center justify-between px-0.5">
+                      <div className="mb-1 flex items-center justify-between pl-0.5 pr-2">
                         <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                           ✓ 오늘 할 일
                         </span>
