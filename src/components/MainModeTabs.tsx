@@ -198,10 +198,12 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'schedule', label: '일정',     desc: '오늘·이번 주 약속',        emoji: '📅', tint: 'hsl(210 70% 55%)', axis: '계획' },
   { id: 'todo',     label: '할 일',    desc: '오늘의 체크리스트',         emoji: '✅', tint: 'hsl(145 55% 45%)', axis: '계획' },
   { id: 'note',     label: '메모',     desc: '빠른 노트 · 생각 정리',     emoji: '🗒️', tint: 'hsl(45 85% 55%)',  axis: '계획' },
+  { id: 'goals',    label: '목표',     desc: '분기·연간 목표 · 진행률',   emoji: '🎯', tint: 'hsl(190 65% 48%)', axis: '계획' },
   // ── 기록 (장기 보관) ──────────────────
   { id: 'journal',  label: '일기',     desc: '하루 기록 · 감정',          emoji: '📖', tint: 'hsl(25 85% 55%)',  axis: '기록' },
   { id: 'log',      label: '기록',     desc: '운동·독서·식사 등 로그',    emoji: '📋', tint: 'hsl(0 75% 55%)',   axis: '기록' },
   { id: 'wiki',     label: '마이위키', desc: '주제별 정리된 지식',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '기록' },
+  { id: 'meeting',  label: '회의록',   desc: '회의 요약 · 액션 추출',     emoji: '🎙️', tint: 'hsl(280 60% 55%)', axis: '기록' },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
