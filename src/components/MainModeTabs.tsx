@@ -916,7 +916,7 @@ export function MainModeTabs({
                           }
                         }}
                         className={cn(
-                          'group relative flex-1 flex items-center justify-center h-6 rounded-full transition-colors z-10',
+                          'group relative flex-1 flex items-center justify-center h-5 rounded-full transition-colors z-10',
                           isActive
                             ? 'text-foreground'
                             : 'text-muted-foreground hover:text-foreground/80',

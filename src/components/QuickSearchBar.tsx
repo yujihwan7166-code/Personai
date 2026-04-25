@@ -146,7 +146,7 @@ export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoF
     return (
       <div
         className={cn(
-          'flex items-center h-7 pl-1 pr-1.5 gap-1 rounded-full',
+          'flex items-center h-6 pl-1 pr-1.5 gap-1 rounded-full',
           'bg-[hsl(var(--muted))]/50 border border-transparent',
           'hover:bg-[hsl(var(--muted))] hover:border-[hsl(var(--hairline))]',
           'focus-within:bg-[hsl(var(--background))] focus-within:border-[hsl(var(--focus-ring))] focus-within:ring-2 focus-within:ring-[hsl(var(--focus-ring))]/30',
@@ -163,7 +163,7 @@ export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoF
             aria-expanded={pickerOpen}
             aria-label={`검색 엔진: ${engine.label}`}
             className={cn(
-              'inline-flex items-center gap-1 h-6 pl-1.5 pr-1 rounded-full',
+              'inline-flex items-center gap-1 h-5 pl-1.5 pr-1 rounded-full',
               'text-[10.5px] font-medium text-foreground/85 hover:text-foreground',
               'hover:bg-[hsl(var(--background))]/80 transition-colors',
             )}
@@ -196,7 +196,7 @@ export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoF
           onClick={submit}
           disabled={!query.trim()}
           className={cn(
-            'shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full',
+            'shrink-0 inline-flex items-center justify-center h-5 w-5 rounded-full',
             'text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--background))]/80',
             'disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-default',
             'transition-colors',
