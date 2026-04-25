@@ -250,7 +250,7 @@ export const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
   debate:           '찬반·자유·심층·브레인스토밍',
   stakeholder_main: '이해관계자 역할극 시뮬레이션',
   research_main:    '멀티 AI 교차 검증 리포트',
-  premium_main:     '법률·의료·금융 자문',
+  premium_main:     '판례·계약·민사·형사 가이드',
   study_main:       '공부 노트북·퀴즈·팟캐스트',
   assistant:        '전체 도구 브라우즈',
 };
