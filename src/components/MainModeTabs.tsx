@@ -966,7 +966,7 @@ export function MainModeTabs({
                     </div>
                   </div>
                   {/* 월간 달력 */}
-                  <div className="pt-0.5 border-t border-[hsl(var(--hairline))]">
+                  <div className="pt-px border-t border-[hsl(var(--hairline))]">
                     <div className="grid grid-cols-7 gap-0.5 text-center">
                       {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
                         <div
