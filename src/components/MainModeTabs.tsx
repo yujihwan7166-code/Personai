@@ -60,7 +60,7 @@ interface MainModeTabsProps {
 }
 
 /** 라이프 서브 그룹 — 드롭다운에서 여러 도구를 한 칩으로 묶는 단위. */
-export type LifeSubgroupId = 'fortune' | 'mental' | 'health' | 'money' | 'enjoy';
+export type LifeSubgroupId = 'fortune' | 'mental' | 'health' | 'money' | 'enjoy' | 'aiplay';
 
 export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: string; description: string; tint: string }> = {
   fortune: { emoji: '🔮', label: '사주·타로·심리',     description: '사주·타로·꿈·토정·MBTI·테스트',     tint: 'hsl(262 70% 55%)' },
@@ -68,6 +68,7 @@ export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: stri
   health:  { emoji: '🩺', label: '건강 도우미',       description: '운동·영양제·수면·식단',              tint: 'hsl(170 60% 42%)' },
   money:   { emoji: '💰', label: '머니·투자·재테크', description: '가계부·세금·투자·대출·부동산·노후', tint: 'hsl(130 55% 40%)' },
   enjoy:   { emoji: '🎉', label: '놀고·먹고·즐기고',    description: '여행·맛집·놀거리·볼거리·데이트',    tint: 'hsl(25 85% 55%)' },
+  aiplay:  { emoji: '🎮', label: 'AI Play',           description: '캐릭터챗·게임·롤플레이',            tint: 'hsl(280 70% 55%)' },
 };
 
 /** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
@@ -137,10 +138,11 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
   | { kind: 'mental-tests' }  // 심리 테스트 모음 페이지 바로가기
 > = [
   { kind: 'tool', toolId: 'shopping' },    // 🛍️ 쇼핑 도우미
-  { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로·심리 (mental-tests 도 이 안으로 통합)
+  { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로·심리
   { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미
   { kind: 'group', groupId: 'money' },     // 💰 머니·투자·재테크
   { kind: 'group', groupId: 'enjoy' },     // 🎉 놀고·먹고·즐기고
+  { kind: 'group', groupId: 'aiplay' },    // 🎮 AI Play (캐릭터챗·게임)
 ];
 
 /** 드롭다운 노출용 featured 서브셋. */
@@ -1524,52 +1526,6 @@ export function MainModeTabs({
                             {group.modes.flatMap((m) => [renderModeItem(m)])}
                           </div>
                         )}
-                        {/* 전문 컬럼 하단 — AI Play (캐릭터챗 + AI 게임). debate 드릴다운 중엔 숨김. */}
-                        {isExpert && !debateOpen && (
-                          <div className="mt-3">
-                            <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
-                              <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                                AI Play
-                              </span>
-                              <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                                캐릭터 · 게임
-                              </span>
-                            </div>
-                            <div className="space-y-1.5">
-                              {(['character-chat', 'ai-game'] as const).map((toolId) => {
-                                const tool = PLAYER_TOOLS.find((t) => t.id === toolId);
-                                if (!tool) return null;
-                                return (
-                                  <button
-                                    key={`aiplay-${tool.id}`}
-                                    type="button"
-                                    onClick={() => handleSelectPlayerTool(tool.id)}
-                                    role="menuitem"
-                                    className="group w-full flex items-center gap-2.5 py-2 px-2.5 rounded-lg text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                                    style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 14%, transparent)` }}
-                                  >
-                                    <span
-                                      className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
-                                      style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 26%, transparent)` }}
-                                    >
-                                      <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
-                                    </span>
-                                    <span className="min-w-0 flex-1">
-                                      <span className="block text-[11.5px] font-semibold leading-tight text-foreground truncate">
-                                        {tool.label}
-                                      </span>
-                                      {tool.desc && (
-                                        <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5 truncate">
-                                          {tool.desc}
-                                        </span>
-                                      )}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
@@ -1654,7 +1610,10 @@ export function MainModeTabs({
                           transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
                           className="space-y-0.5"
                         >
-                          {LIFE_TOOLS.filter((t) => t.group === openLifeSubgroup).map(renderLifeToolItem)}
+                          {/* aiplay 서브그룹: PLAYER_TOOLS 렌더 */}
+                          {openLifeSubgroup === 'aiplay'
+                            ? PLAYER_TOOLS.map(renderPlayerToolItem)
+                            : LIFE_TOOLS.filter((t) => t.group === openLifeSubgroup).map(renderLifeToolItem)}
                           {/* fortune 그룹: 심리 테스트 모음 통합 entry */}
                           {openLifeSubgroup === 'fortune' && onOpenMentalTests && (
                             <button
