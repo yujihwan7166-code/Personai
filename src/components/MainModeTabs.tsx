@@ -996,7 +996,7 @@ export function MainModeTabs({
                           const dayNum = i - startOffset + 1;
                           const isValid = dayNum >= 1 && dayNum <= daysInMonth;
                           if (!isValid) {
-                            return <div key={`md-${i}`} className="h-4" aria-hidden />;
+                            return <div key={`md-${i}`} className="h-5" aria-hidden />;
                           }
                           const date = new Date(year, month, dayNum);
                           const isToday = date.toDateString() === now.toDateString();
@@ -1005,7 +1005,7 @@ export function MainModeTabs({
                             <div
                               key={`md-${i}`}
                               className={cn(
-                                'flex items-center justify-center h-4 text-[10px] tabular-nums rounded-full',
+                                'flex items-center justify-center h-5 text-[10px] tabular-nums rounded-full',
                                 isToday && 'font-semibold text-foreground',
                                 !isToday && dow === 0 && 'text-rose-500/80',
                                 !isToday && dow === 6 && 'text-blue-500/80',
