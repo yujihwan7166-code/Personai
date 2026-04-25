@@ -197,8 +197,8 @@ export const HUB_TOOLS: HubTool[] = [
   // ── 계획 ─────────────────────────────────
   { id: 'schedule', label: '일정',     desc: '오늘·이번 주 약속',        emoji: '📅', tint: 'hsl(210 70% 55%)', axis: '계획' },
   { id: 'todo',     label: '할 일',    desc: '오늘의 체크리스트',         emoji: '✅', tint: 'hsl(145 55% 45%)', axis: '계획' },
-  // ── 기록 (즉흥 → 정리 순) ──────────────────
-  { id: 'note',     label: '메모',     desc: '빠른 노트 · 생각 정리',     emoji: '🗒️', tint: 'hsl(45 85% 55%)',  axis: '기록' },
+  { id: 'note',     label: '메모',     desc: '빠른 노트 · 생각 정리',     emoji: '🗒️', tint: 'hsl(45 85% 55%)',  axis: '계획' },
+  // ── 기록 (장기 보관) ──────────────────
   { id: 'journal',  label: '일기',     desc: '하루 기록 · 감정',          emoji: '📖', tint: 'hsl(25 85% 55%)',  axis: '기록' },
   { id: 'log',      label: '기록',     desc: '운동·독서·식사 등 로그',    emoji: '📋', tint: 'hsl(0 75% 55%)',   axis: '기록' },
   { id: 'wiki',     label: '마이위키', desc: '주제별 정리된 지식',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '기록' },
@@ -882,10 +882,14 @@ export function MainModeTabs({
                 'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
               )}
             >
-            {/* 4 컬럼 — 유틸리티 / 대화+전문 / 📝 노트(NEW) / 라이프 (플레이어는 하단 band 로 격하) */}
-            <div className="grid grid-cols-4 gap-x-3 px-4 pt-4">
-              {/* 좌측 컬럼: 빠른검색 + 일일 정보 대시보드 (시계·달력·날씨+미세·시세) */}
-              <div className="min-w-0 flex flex-col space-y-2">
+            {/* 4 컬럼 그리드 (재구성):
+                  Col 1: TODAY (row-span-2)
+                  Col 2: 대화        →  Col 3: 전문
+                       └ 노트 계획   └ 노트 기록  (col-span-2 row-2 로 합침)
+                  Col 4: 라이프 (row-span-2) */}
+            <div className="grid grid-cols-4 grid-rows-[auto_1fr] gap-x-3 px-4 pt-4">
+              {/* 좌측 컬럼 (TODAY): row-span-2 — 우측 노트 영역까지 풀 높이 */}
+              <div className="row-span-2 min-w-0 flex flex-col space-y-2">
                 <div className="px-1 -mt-1">
                   <QuickSearchBar variant="inline" />
                 </div>
@@ -1405,17 +1409,14 @@ export function MainModeTabs({
                   })()}
                 </div>
               </div>
-              {/* 가운데 컬럼: 대화 + 전문 그룹 스택 */}
-              {[[0, 1]].map((indices, colIdx) => (
-                <div key={colIdx} className="min-w-0 flex flex-col space-y-3">
-                  {indices.map((i) => MODE_GROUPS[i]).map((group, groupIdx) => {
+              {/* Col 2 = 대화, Col 3 = 전문 — 각자 독립 컬럼 (row-start-1 row 1 고정) */}
+              {[0, 1].map((idx) => {
+                    const group = MODE_GROUPS[idx];
                     const isExpert = group.label === '전문';
                     const isAssistant = false;
+                    const colClass = idx === 0 ? 'col-start-2' : 'col-start-3';
                     return (
-                      <div key={group.label}>
-                        {groupIdx > 0 && (
-                          <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                        )}
+                      <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col')}>
                         {/* 헤더 — 전문 그룹은 debateOpen 시 뒤로가기 버튼으로 전환 */}
                         <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                           {isExpert && debateOpen ? (
@@ -1538,58 +1539,51 @@ export function MainModeTabs({
                       </div>
                     );
                   })}
+              {/* 노트 (Col 2-3, Row 2): 계획 / 기록 2 sub-col 좌우 분할.
+                  단일 헤더가 두 컬럼 위에 spans. */}
+              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-3">
+                <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                    노트
+                  </span>
+                  <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                    계획 · 기록
+                  </span>
                 </div>
-              ))}
-              {/* 3번째 컬럼: 📝 노트 (상단) + 캐릭터 챗 featured 카드 (하단 mt-auto) */}
-              <div className="min-w-0 flex flex-col">
-                <div>
-                  <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                      노트
-                    </span>
-                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                      계획 · 기록
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {/* 2축 그룹핑: 계획(일정·할 일) / 기록(메모·일기·기록·마이위키). 축 사이 hairline 구분선.
-                        클릭 시 기능 미연결 — onClick 무동작(no-op). 시각적으로는 클릭 가능 hover 상태 유지. */}
-                    {(['계획', '기록'] as HubAxis[]).map((axis, axisIdx) => (
-                      <div key={axis}>
-                        {axisIdx > 0 && (
-                          <div className="my-1 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                        )}
-                        {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => { /* no-op — v1 기능 미연결 */ }}
-                            role="menuitem"
-                            className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                <div className="grid grid-cols-2 gap-x-3">
+                  {(['계획', '기록'] as HubAxis[]).map((axis) => (
+                    <div key={axis} className="space-y-0.5">
+                      {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => { /* no-op — v1 기능 미연결 */ }}
+                          role="menuitem"
+                          className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                        >
+                          <span
+                            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                            style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)` }}
                           >
-                            <span
-                              className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                              style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)` }}
-                            >
-                              <span className="text-[15px] leading-none select-none">{item.emoji}</span>
+                            <span className="text-[15px] leading-none select-none">{item.emoji}</span>
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+                              {item.label}
                             </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
-                                {item.label}
-                              </span>
-                              <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                                {item.desc}
-                              </span>
+                            <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                              {item.desc}
                             </span>
-                          </button>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ))}
                 </div>
               </div>
-              {/* 오른쪽 컬럼: 라이프 (재미·건강·생활 통합) + AI 게임 featured 카드 하단 */}
-              <div className="min-w-0 flex flex-col">
+              {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
+              <div className="col-start-4 row-span-2 min-w-0 flex flex-col">
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     {openLifeSubgroup ? (
