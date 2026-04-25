@@ -312,6 +312,12 @@ const Index = () => {
     const prevMain = getMainMode(discussionMode);
     const nextMain = getMainMode(mode);
     setDiscussionMode(mode);
+    // premium_main 진입 시 자동으로 'law' 도메인 선택 — 별도 랜딩 페이지 없이 바로 챗 진입.
+    if (nextMain === 'premium_main') {
+      setSelectedPremiumDomain('law');
+    } else if (prevMain === 'premium_main' && nextMain !== 'premium_main') {
+      setSelectedPremiumDomain(null);
+    }
     // 토론 서브모드 전환 시에도 선택 리셋
     const isDebateSwitch = prevMain === 'debate' && nextMain === 'debate' && discussionMode !== mode;
     setSelectedExpertIds(isDebateSwitch ? [] : nextMain === prevMain ? selectedExpertIds : nextMain === 'general' ? ['gemini-flash-lite'] : nextMain === 'multi' ? ['gemini-flash-lite'] : []);
