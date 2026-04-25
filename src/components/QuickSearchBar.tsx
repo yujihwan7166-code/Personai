@@ -186,7 +186,7 @@ export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoF
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="검색어 입력"
-          className="flex-1 min-w-0 bg-transparent outline-none text-[11.5px] placeholder:text-muted-foreground/55"
+          className="flex-1 min-w-0 bg-transparent outline-none text-[10.5px] leading-none placeholder:text-muted-foreground/55"
           aria-label="빠른 웹 검색"
         />
 
