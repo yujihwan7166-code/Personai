@@ -164,13 +164,13 @@ export function QuickSearchBar({ className, variant = 'stacked', onSearch, autoF
             aria-label={`검색 엔진: ${engine.label}`}
             className={cn(
               'inline-flex items-center gap-1 h-5 pl-1.5 pr-1 rounded-full',
-              'text-[10.5px] font-medium text-foreground/85 hover:text-foreground',
+              'text-[10.5px] leading-none font-medium text-foreground/85 hover:text-foreground',
               'hover:bg-[hsl(var(--background))]/80 transition-colors',
             )}
           >
             <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: engine.dot }} aria-hidden />
-            <span>{engine.label}</span>
-            <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', pickerOpen && 'rotate-180')} />
+            <span className="leading-none">{engine.label}</span>
+            <ChevronDown className={cn('h-2.5 w-2.5 shrink-0 transition-transform', pickerOpen && 'rotate-180')} />
           </button>
           {renderPicker('w-[130px]', 'down', 'left')}
         </div>
