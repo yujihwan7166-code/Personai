@@ -1020,92 +1020,76 @@ export function MainModeTabs({
                       })()}
                     </div>
                   </div>
-                  {/* 즐겨찾기 2x3 그리드 — 북마크 스토어 첫 6슬롯. 편집은 북마크 모달에서. */}
-                  <div className="pt-2 border-t border-[hsl(var(--hairline))]">
-                    <div className="mb-1.5 flex items-center justify-between px-0.5">
-                      <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                        ⭐ 즐겨찾기
-                      </span>
+                  {/* 다음 일정 + 오늘 할 일 — v1 샘플 데이터, v2 에서 실제 캘린더/노트 동기화 */}
+                  <div className="pt-2 border-t border-[hsl(var(--hairline))] space-y-2.5">
+                    {/* 다음 일정 */}
+                    <div>
+                      <div className="mb-1 flex items-center justify-between px-0.5">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                          🔔 다음 일정
+                        </span>
+                        <button
+                          type="button"
+                          className="text-[9.5px] text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
+                        >
+                          + 추가
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => onOpenBookmarks?.()}
-                        className="text-[9.5px] text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
-                        disabled={!onOpenBookmarks}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg bg-[hsl(var(--muted))]/50 border border-[hsl(var(--hairline))] hover:bg-[hsl(var(--accent))] transition-colors"
                       >
-                        편집
-                        <ChevronRight className="h-2.5 w-2.5" />
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                          <span className="text-[10px] font-mono font-semibold tabular-nums leading-none">14:00</span>
+                        </span>
+                        <span className="min-w-0 flex-1 text-left">
+                          <span className="block text-[11.5px] font-medium text-foreground/90 truncate leading-tight">
+                            팀 미팅
+                          </span>
+                          <span className="block text-[9.5px] text-muted-foreground leading-tight mt-0.5">
+                            30분 후 · 회의실 A
+                          </span>
+                        </span>
                       </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {Array.from({ length: 6 }).map((_, idx) => {
-                        const slot = favoriteBookmarks[idx] ?? { kind: 'empty' as const };
-                        if (slot.kind === 'empty') {
-                          return (
-                            <button
-                              key={`fav-${idx}`}
-                              type="button"
-                              onClick={() => onOpenBookmarks?.()}
-                              disabled={!onOpenBookmarks}
-                              className={cn(
-                                'aspect-[2/1] flex items-center justify-center rounded-lg border border-dashed',
-                                'border-[hsl(var(--hairline))] text-muted-foreground/60',
-                                'hover:border-[hsl(var(--focus-ring))] hover:text-foreground hover:bg-[hsl(var(--accent))]/40',
-                                'transition-colors',
-                              )}
-                              aria-label="빈 즐겨찾기 — 추가"
-                            >
-                              <span className="text-[14px] font-light leading-none">+</span>
-                            </button>
-                          );
-                        }
-                        return (
-                          <button
-                            key={`fav-${idx}`}
-                            type="button"
-                            onClick={() => {
-                              setOpen(false);
-                              setTimeout(() => {
-                                if (slot.kind === 'url') {
-                                  window.open(slot.url, '_blank', 'noopener,noreferrer');
-                                  return;
-                                }
-                                // 내부 기능 — target.type 별로 콜백 라우팅
-                                const t = slot.target;
-                                if (t.type === 'mode') onChange(t.mode as MainMode);
-                                else if (t.type === 'life' && onSelectLifeTool) onSelectLifeTool(t.toolId);
-                                else if (t.type === 'assistant' && onSelectAssistantCard) onSelectAssistantCard(t.cardId);
-                                else if (t.type === 'player' && onSelectPlayerTool) onSelectPlayerTool(t.toolId);
-                                else if (currentMode !== 'general') onChange('general');
-                              }, 40);
-                            }}
-                            className={cn(
-                              'group aspect-[2/1] flex flex-col items-center justify-center gap-0.5 p-1 rounded-lg',
-                              'bg-[hsl(var(--muted))]/50 border border-[hsl(var(--hairline))]',
-                              'hover:bg-[hsl(var(--accent))] hover:-translate-y-0.5 hover:shadow-md transition-all',
-                            )}
-                            title={slot.label}
-                            aria-label={slot.label}
+
+                    {/* 오늘 할 일 */}
+                    <div>
+                      <div className="mb-1 flex items-center justify-between px-0.5">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                          ✓ 오늘 할 일
+                        </span>
+                        <button
+                          type="button"
+                          className="text-[9.5px] text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
+                        >
+                          + 추가
+                        </button>
+                      </div>
+                      <div className="space-y-0.5">
+                        {[
+                          { id: 't1', label: '보고서 마무리', done: false },
+                          { id: 't2', label: '영어 학습 30분', done: false },
+                          { id: 't3', label: '운동 20분', done: true },
+                        ].map((todo) => (
+                          <label
+                            key={todo.id}
+                            className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--accent))]/40 cursor-pointer transition-colors"
                           >
-                            {slot.kind === 'url' ? (
-                              slot.favicon ? (
-                                <img
-                                  src={slot.favicon}
-                                  alt=""
-                                  className="h-5 w-5 rounded object-contain"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              ) : (
-                                <Globe className="h-4 w-4 text-muted-foreground" />
-                              )
-                            ) : (
-                              <span className="text-[16px] leading-none select-none">{slot.emoji}</span>
-                            )}
-                            <span className="text-[8.5px] font-medium text-foreground/80 leading-tight truncate max-w-full">
-                              {slot.label}
+                            <input
+                              type="checkbox"
+                              defaultChecked={todo.done}
+                              className="h-3 w-3 rounded border-[hsl(var(--hairline))] accent-foreground/80 cursor-pointer"
+                            />
+                            <span className={cn(
+                              'text-[11px] leading-tight flex-1 truncate transition-colors',
+                              todo.done ? 'text-muted-foreground/60 line-through' : 'text-foreground/85',
+                            )}>
+                              {todo.label}
                             </span>
-                          </button>
-                        );
-                      })}
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </motion.div>)}
