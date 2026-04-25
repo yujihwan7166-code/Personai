@@ -139,10 +139,10 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
 > = [
   { kind: 'tool', toolId: 'shopping' },    // 🛍️ 쇼핑 도우미
   { kind: 'group', groupId: 'fortune' },   // 🔮 사주·타로·심리
+  { kind: 'group', groupId: 'aiplay' },    // 🎮 AI Play (캐릭터챗·게임)
   { kind: 'group', groupId: 'health' },    // 🩺 건강 도우미
   { kind: 'group', groupId: 'money' },     // 💰 머니·투자·재테크
   { kind: 'group', groupId: 'enjoy' },     // 🎉 놀고·먹고·즐기고
-  { kind: 'group', groupId: 'aiplay' },    // 🎮 AI Play (캐릭터챗·게임)
 ];
 
 /** 드롭다운 노출용 featured 서브셋. */
@@ -689,7 +689,10 @@ export function MainModeTabs({
   /** 라이프 서브 그룹 칩 — 클릭 시 드롭다운 라이프 컬럼이 해당 그룹 전용 뷰로 전환. */
   const renderLifeGroupChip = (groupId: LifeSubgroupId) => {
     const group = LIFE_SUBGROUPS[groupId];
-    const count = LIFE_TOOLS.filter((t) => t.group === groupId).length;
+    // aiplay 는 PLAYER_TOOLS 사용, 그 외는 LIFE_TOOLS
+    const count = groupId === 'aiplay'
+      ? PLAYER_TOOLS.length
+      : LIFE_TOOLS.filter((t) => t.group === groupId).length;
     // 그룹 소속 도구가 0개면 칩 자체를 숨김 (데이터 정합성)
     if (count === 0) return null;
     return (
