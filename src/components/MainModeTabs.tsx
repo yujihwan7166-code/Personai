@@ -190,8 +190,8 @@ export const PLAYER_GROUP = {
   description: '캐릭터·게임·롤플레이',
 };
 
-/** 노트(허브) 컬럼 도구 — 2축(계획·기록). 기록 축은 "즉흥→정리" 순서로 배치. */
-export type HubAxis = '계획' | '기록';
+/** 노트(허브) 컬럼 도구 — 2축(행동·성장). 행동=오늘 무엇을, 성장=깊이·자기관리. */
+export type HubAxis = '행동' | '성장';
 export interface HubTool {
   id: string;
   label: string;
@@ -202,16 +202,16 @@ export interface HubTool {
 }
 
 export const HUB_TOOLS: HubTool[] = [
-  // ── 계획 ─────────────────────────────────
-  { id: 'schedule', label: '일정',     desc: '오늘·이번 주 약속',        emoji: '📅', tint: 'hsl(210 70% 55%)', axis: '계획' },
-  { id: 'todo',     label: '할 일',    desc: '오늘의 체크리스트',         emoji: '✅', tint: 'hsl(145 55% 45%)', axis: '계획' },
-  { id: 'note',     label: '메모',     desc: '빠른 노트 · 생각 정리',     emoji: '🗒️', tint: 'hsl(45 85% 55%)',  axis: '계획' },
-  { id: 'goals',    label: '목표',     desc: '분기·연간 목표 · 진행률',   emoji: '🎯', tint: 'hsl(190 65% 48%)', axis: '계획' },
-  // ── 기록 (장기 보관) ──────────────────
-  { id: 'journal',  label: '일기',     desc: '하루 기록 · 감정',          emoji: '📖', tint: 'hsl(25 85% 55%)',  axis: '기록' },
-  { id: 'log',      label: '기록',     desc: '운동·독서·식사 등 로그',    emoji: '📋', tint: 'hsl(0 75% 55%)',   axis: '기록' },
-  { id: 'wiki',     label: '마이위키', desc: '주제별 정리된 지식',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '기록' },
-  { id: 'meeting',  label: '회의록',   desc: '회의 요약 · 액션 추출',     emoji: '🎙️', tint: 'hsl(280 60% 55%)', axis: '기록' },
+  // ── 행동 (오늘 무엇을) ─────────────────
+  { id: 'today',    label: '오늘',         desc: '할일·일정·습관 한눈에',     emoji: '☀️', tint: 'hsl(45 85% 55%)',  axis: '행동' },
+  { id: 'calendar', label: '캘린더',       desc: '월·주·일 통합 뷰',          emoji: '📅', tint: 'hsl(210 70% 55%)', axis: '행동' },
+  { id: 'todo',     label: '할 일',        desc: '오늘의 체크리스트',         emoji: '✅', tint: 'hsl(145 55% 45%)', axis: '행동' },
+  { id: 'habit',    label: '습관',         desc: '매일 반복 추적',            emoji: '🌱', tint: 'hsl(170 60% 45%)', axis: '행동' },
+  // ── 성장 (깊이·자기관리) ──────────────
+  { id: 'wiki',     label: '마이위키',     desc: '나만의 지식 베이스',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '성장' },
+  { id: 'pomodoro', label: '포모도로',     desc: '25분 집중 타이머',          emoji: '🍅', tint: 'hsl(0 75% 55%)',   axis: '성장' },
+  { id: 'briefing', label: '데일리 브리핑', desc: 'AI 가 요약해주는 오늘',     emoji: '☕', tint: 'hsl(25 85% 55%)',  axis: '성장' },
+  { id: 'journal',  label: '일기',         desc: '하루 기록 · 감정',          emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '성장' },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -1555,11 +1555,11 @@ export function MainModeTabs({
                     노트
                   </span>
                   <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                    계획 · 기록
+                    행동 · 성장
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-x-3">
-                  {(['계획', '기록'] as HubAxis[]).map((axis) => (
+                  {(['행동', '성장'] as HubAxis[]).map((axis) => (
                     <div key={axis} className="space-y-0.5">
                       {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => (
                         <button
