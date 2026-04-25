@@ -57,6 +57,13 @@ interface MainModeTabsProps {
   onOpenBookmarks?: () => void;
   /** 플레이어 도구 (캐릭터챗/게임/롤플레이 등) 선택 콜백. */
   onSelectPlayerTool?: (toolId: string) => void;
+  /** 외부 트리거 핸들 (예: 사이드바 LayoutGrid 버튼). 마운트 후 .current 에 open()/close() 메서드 주입. */
+  apiRef?: React.MutableRefObject<{ open: () => void; close: () => void } | null>;
+}
+
+export interface MainModeTabsApi {
+  open: () => void;
+  close: () => void;
 }
 
 /** 라이프 서브 그룹 — 드롭다운에서 여러 도구를 한 칩으로 묶는 단위. */
@@ -461,8 +468,15 @@ export function MainModeTabs({
   onOpenMentalTests,
   onOpenBookmarks,
   onSelectPlayerTool,
+  apiRef,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
+  // 외부에서 패널 열기/닫기 (사이드바 LayoutGrid 버튼 등)
+  useEffect(() => {
+    if (!apiRef) return;
+    apiRef.current = { open: () => setOpen(true), close: () => setOpen(false) };
+    return () => { if (apiRef) apiRef.current = null; };
+  }, [apiRef]);
   /** 라이프 컬럼에서 열려 있는 서브 그룹 (null 이면 메인 뷰). */
   const [openLifeSubgroup, setOpenLifeSubgroup] = useState<LifeSubgroupId | null>(null);
   /** AI 토론 세부 뷰 — 전문 그룹 자체가 드릴다운 전환(라이프 서브그룹 패턴). */

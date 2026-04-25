@@ -89,6 +89,8 @@ interface Props {
   onAssistantSubmit?: (cardId: string, question: string) => void;
   onOpenMentalTests?: () => void;
   onOpenBookmarks?: () => void;
+  /** MainModeTabs 외부 트리거 핸들 — 사이드바 LayoutGrid 버튼이 패널 오픈에 사용. */
+  mainModeTabsApiRef?: React.MutableRefObject<{ open: () => void; close: () => void } | null>;
 }
 
 const mainModes: MainMode[] = ['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant'];
@@ -1750,6 +1752,7 @@ export function ExpertSelectionPanel({
   onAssistantCardChange,
   onOpenMentalTests,
   onOpenBookmarks,
+  mainModeTabsApiRef,
   onAssistantSubmit,
 }: Props) {
   // Phase C: 히어로 개인화 인사에 사용. AccountStatus 서브컴포넌트가 쓰던 것과 별개로 여기서도 호출.
@@ -2138,6 +2141,7 @@ export function ExpertSelectionPanel({
               }}
               onOpenMentalTests={onOpenMentalTests}
               onOpenBookmarks={onOpenBookmarks}
+              apiRef={mainModeTabsApiRef}
             />
           </div>
         )}

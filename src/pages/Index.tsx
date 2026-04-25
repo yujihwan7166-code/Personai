@@ -136,6 +136,8 @@ const Index = () => {
   const [isDiscussing, setIsDiscussing] = useState(false);
   const [modePaletteOpen, setModePaletteOpen] = useState(false);
   const [modePaletteAnchor, setModePaletteAnchor] = useState<{ top: number; left: number; right: number; bottom: number; width: number; height: number } | null>(null);
+  // 사이드바 LayoutGrid 버튼 → MainModeTabs 패널 외부 트리거
+  const mainModeTabsApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
@@ -4657,7 +4659,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onModeChange={handleModeChange}
             isDiscussing={isDiscussing}
             onNewDiscussion={handleNewDiscussion}
-            onOpenModePalette={(anchor) => { setModePaletteAnchor(anchor ?? null); setModePaletteOpen(true); }}
+            onOpenModePalette={() => { mainModeTabsApiRef.current?.open(); }}
             onStartChat={(expertId, mode, content) => {
               handleNewDiscussion();
               setSelectedExpertIds([expertId]);
@@ -5107,6 +5109,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     onAssistantSubmit={handleAssistantSubmit}
                     onOpenMentalTests={() => setMentalTestsOpen(true)}
                     onOpenBookmarks={() => setBookmarksOpen(true)}
+                    mainModeTabsApiRef={mainModeTabsApiRef}
                   />
                 </Suspense>
               )}
