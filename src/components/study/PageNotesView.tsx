@@ -312,36 +312,7 @@ export function PageNotesEmptyChooser({
   fallbackOnly?: boolean;
   fallbackReason?: string;
 }) {
-  // PDF 인 경우 — 메인 액션 1개 (이미지 인식) + 보조 (전체 요약)
-  if (visionAvailable && !fallbackOnly) {
-    return (
-      <div className="px-6 py-10 flex flex-col items-center text-center">
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
-          <FileText className="h-5 w-5 text-indigo-500" strokeWidth={1.8} />
-        </div>
-        <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100 mb-1">
-          페이지별 노트를 만들어 드릴게요
-        </p>
-        <p className="text-[12px] text-slate-500 dark:text-slate-400 mb-5">
-          {pageCount ? `${pageCount}페이지 · ` : ''}AI 가 페이지를 직접 읽어 도식·그림까지 정리해요
-        </p>
-        <button
-          onClick={onStartVision}
-          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-[13px] font-bold shadow-sm"
-        >
-          📑 페이지별 정리 시작
-        </button>
-        <button
-          onClick={onWhole}
-          className="mt-3 text-[11.5px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline-offset-2 hover:underline"
-        >
-          또는 전체를 한 번에 요약 →
-        </button>
-      </div>
-    );
-  }
-
-  // PDF 가 아니거나 페이지 모드 자체 불가 → 텍스트 페이지 모드 OR 전체 요약만
+  // 페이지별 자체가 불가 — 안내 + 전체 요약 단일 버튼
   if (fallbackOnly) {
     return (
       <div className="px-6 py-10 flex flex-col items-center text-center">
@@ -364,30 +335,64 @@ export function PageNotesEmptyChooser({
     );
   }
 
-  // 텍스트 PDF (markers 있음) — 페이지별 텍스트 모드 + 전체 요약
+  // 일반 — 두 카드: 페이지별 / 전체 요약
+  const recommendPages = (pageCount ?? 0) >= 11;
+  const startPages = visionAvailable ? onStartVision : onStartText;
+  const pagesHint = visionAvailable
+    ? 'AI 가 페이지를 직접 읽어 도식·그림까지 정리'
+    : '1p, 2p, 3p… 페이지마다 정리';
+
   return (
-    <div className="px-6 py-10 flex flex-col items-center text-center">
-      <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
-        <FileText className="h-5 w-5 text-indigo-500" strokeWidth={1.8} />
+    <div className="px-6 py-10">
+      <div className="text-center mb-6">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
+          <FileText className="h-5 w-5 text-indigo-500" strokeWidth={1.8} />
+        </div>
+        <p className="text-[13.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">
+          어떤 방식으로 정리할까요?
+        </p>
+        <p className="text-[11.5px] text-slate-500 dark:text-slate-400">
+          {pageCount ? `${pageCount}페이지 자료 · 둘 다 사용해볼 수 있어요` : '둘 다 사용해볼 수 있어요'}
+        </p>
       </div>
-      <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100 mb-1">
-        페이지별 노트를 만들어 드릴게요
-      </p>
-      <p className="text-[12px] text-slate-500 dark:text-slate-400 mb-5">
-        {pageCount ? `${pageCount}페이지 · ` : ''}1p, 2p, 3p… 페이지마다 정리
-      </p>
-      <button
-        onClick={onStartText}
-        className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-[13px] font-bold shadow-sm"
-      >
-        📑 페이지별 정리 시작
-      </button>
-      <button
-        onClick={onWhole}
-        className="mt-3 text-[11.5px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline-offset-2 hover:underline"
-      >
-        또는 전체를 한 번에 요약 →
-      </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+        <button
+          onClick={startPages}
+          className={cn(
+            'group relative text-left rounded-xl border p-4 transition-all hover:shadow-md',
+            recommendPages
+              ? 'border-indigo-300 bg-indigo-50/40 hover:border-indigo-500'
+              : 'border-slate-200 hover:border-indigo-300',
+          )}
+        >
+          {recommendPages && (
+            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">⭐ 추천</span>
+          )}
+          <div className="text-2xl mb-2">📑</div>
+          <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">페이지별 정리</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+            {pagesHint}.<br />PDF 와 1:1 로 따라보며 학습하기 좋아요.
+          </p>
+        </button>
+        <button
+          onClick={onWhole}
+          className={cn(
+            'group relative text-left rounded-xl border p-4 transition-all hover:shadow-md',
+            !recommendPages
+              ? 'border-indigo-300 bg-indigo-50/40 hover:border-indigo-500'
+              : 'border-slate-200 hover:border-indigo-300',
+          )}
+        >
+          {!recommendPages && (
+            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">⭐ 추천</span>
+          )}
+          <div className="text-2xl mb-2">📋</div>
+          <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">전체 한 번에 요약</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+            자료 전체를 6~10개 대주제로 묶은 한 덩어리 마크다운.<br />훑어보기·발표 도입부에 좋아요.
+          </p>
+        </button>
+      </div>
     </div>
   );
 }
