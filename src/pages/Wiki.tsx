@@ -66,6 +66,7 @@ const Wiki = () => {
     return window.localStorage.getItem(AI_PANEL_KEY) === '1';
   });
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [graphFocusId, setGraphFocusId] = useState<string | null>(null);
 
   const activePage = activeId ? pages.find((p) => p.id === activeId) ?? null : null;
 
@@ -422,24 +423,44 @@ const Wiki = () => {
           </button>
         )}
         {view === 'graph' ? (
-          <div className="px-6 lg:px-10 py-8 max-w-6xl mx-auto">
-            <header className="mb-4">
-              <p className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-1">
-                MY WIKI · GRAPH
-              </p>
-              <h1 className="text-2xl font-serif font-bold text-foreground"
-                style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}>
-                연결 그래프
-              </h1>
-              <p className="text-[12px] text-muted-foreground mt-1">
-                전체 페이지를 타입별 클러스터로 시각화. 노드 클릭 → 페이지 열기.
-              </p>
-            </header>
-            <WikiGraph
+          pages.length === 0 ? (
+            <WikiHome
               pages={pages}
-              onSelect={(id) => { setActiveId(id); setView('page'); setEditing(false); }}
+              onSelect={(id) => setActiveId(id)}
+              onCreate={openTemplatePicker}
+              onGoToday={() => { void openTodayNote(); }}
+              onCreateMissing={(title) => handleOpenByTitleOrId(title)}
+              onPickStarterPack={async (pack) => {
+                const built = pack.build();
+                for (const p of built) await upsertPage(p);
+                const home = built.find((p) => p.type === 'index') ?? built[0];
+                setActiveId(home.id);
+                setEditing(false);
+                setView('page');
+                notify.success(`${pack.label} 스타터 팩 적용 — ${built.length}개 페이지`, { duration: 2200 });
+              }}
             />
-          </div>
+          ) : (
+            <div className="px-6 lg:px-10 py-8 max-w-6xl mx-auto">
+              <header className="mb-4">
+                <p className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-1">
+                  MY WIKI · GRAPH
+                </p>
+                <h1 className="text-2xl font-serif font-bold text-foreground"
+                  style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}>
+                  연결 그래프
+                </h1>
+                <p className="text-[12px] text-muted-foreground mt-1">
+                  검색·필터·줌·팬·경로 찾기. 노드 클릭 → 페이지 열기.
+                </p>
+              </header>
+              <WikiGraph
+                pages={pages}
+                onSelect={(id) => { setActiveId(id); setView('page'); setEditing(false); setGraphFocusId(null); }}
+                initialFocusId={graphFocusId}
+              />
+            </div>
+          )
         ) : activePage ? (
           <WikiPageView
             page={activePage}
@@ -455,6 +476,11 @@ const Wiki = () => {
             onDelete={() => handleDelete(activePage.id)}
             onToggleEdit={() => setEditing((v) => !v)}
             onOpenLink={handleOpenByTitleOrId}
+            onOpenInGlobalGraph={(centerId) => {
+              setGraphFocusId(centerId);
+              setView('graph');
+              setActiveId(null);
+            }}
             onTagClick={(tag) => {
               setSidebarQuery(tag);
               setActiveId(null);
@@ -499,6 +525,12 @@ const Wiki = () => {
         onClearAll={handleClearAll}
         onQuickCapture={() => setQuickCaptureOpen(true)}
         onAskAi={() => setAiOpen(true)}
+        currentPageId={activeId}
+        onGoGraphFocus={(id) => {
+          setGraphFocusId(id);
+          setView('graph');
+          setActiveId(null);
+        }}
       />
 
       {/* 템플릿 픽커 */}

@@ -17,6 +17,9 @@ interface Props {
   onClearAll: () => void;
   onQuickCapture?: () => void;
   onAskAi?: () => void;
+  /** 현재 페이지 id — 있으면 '이 페이지를 그래프에서' 항목 노출 */
+  currentPageId?: string | null;
+  onGoGraphFocus?: (id: string) => void;
   onClose?: () => void;
 }
 
@@ -26,7 +29,7 @@ interface Props {
  */
 export function WikiCommandPalette({
   open, onOpenChange, pages,
-  onOpen, onCreate, onGoHome, onGoGraph, onGoToday, onImport, onClearAll, onQuickCapture, onAskAi, onClose,
+  onOpen, onCreate, onGoHome, onGoGraph, onGoToday, onImport, onClearAll, onQuickCapture, onAskAi, currentPageId, onGoGraphFocus, onClose,
 }: Props) {
   const [query, setQuery] = useState('');
   useEffect(() => { if (!open) setQuery(''); }, [open]);
@@ -132,6 +135,13 @@ export function WikiCommandPalette({
               label="연결 그래프"
               onSelect={() => run(onGoGraph)}
             />
+            {currentPageId && onGoGraphFocus && (
+              <Item
+                icon={<Network className="h-3.5 w-3.5 text-primary" />}
+                label="이 페이지를 그래프에서 보기"
+                onSelect={() => run(() => onGoGraphFocus(currentPageId))}
+              />
+            )}
             <Item
               icon={<Download className="h-3.5 w-3.5" />}
               label="전체 백업 (.json)"

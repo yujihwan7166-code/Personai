@@ -27,6 +27,8 @@ interface Props {
   onDelete: () => void;
   onToggleEdit: () => void;
   onOpenLink: (titleOrId: string) => void;
+  /** 로컬 그래프 '전체 그래프에서 보기' — 부모가 view='graph' + focusId 처리 */
+  onOpenInGlobalGraph?: (centerId: string) => void;
   /** 인포박스 태그 칩 클릭 시 — 부모가 사이드바 검색에 반영. */
   onTagClick?: (tag: string) => void;
   /** 방문(최근 본) 페이지 id Set — 위키링크 visited 색상 적용용. */
@@ -54,7 +56,7 @@ function relativeTime(ts: number): string {
 export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
-  onChange, onRestore, onDelete, onToggleEdit, onOpenLink,
+  onChange, onRestore, onDelete, onToggleEdit, onOpenLink, onOpenInGlobalGraph,
   onTagClick, visitedIds,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
@@ -392,7 +394,7 @@ export function WikiPageView({
         <div className="hidden lg:flex flex-col gap-3">
           {!editing && <WikiInfobox page={page} onTagClick={onTagClick} />}
           {!editing && (
-            <WikiLocalGraph page={page} allPages={allPages} onSelect={onOpenLink} />
+            <WikiLocalGraph page={page} allPages={allPages} onSelect={onOpenLink} onOpenInGlobal={onOpenInGlobalGraph} />
           )}
         </div>
       </div>
