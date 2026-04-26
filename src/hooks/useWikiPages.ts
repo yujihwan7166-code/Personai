@@ -14,11 +14,22 @@ export function useWikiPages() {
   const [pages, setPages] = useState<WikiPage[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const reload = useCallback(async () => {
+    setLoading(true);
+    let all = await loadAllPages();
+    // 첫 방문 — 시드 (기존 데이터 0 + 시드 플래그 미설정 일 때만)
+    if (all.length === 0 && !isWikiSeeded()) {
+      await seedWiki();
+      all = await loadAllPages();
+    }
+    setPages(all);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       let all = await loadAllPages();
-      // 첫 방문 — 시드 (기존 데이터 0 + 시드 플래그 미설정 일 때만)
       if (all.length === 0 && !isWikiSeeded()) {
         await seedWiki();
         all = await loadAllPages();
@@ -87,5 +98,6 @@ export function useWikiPages() {
     deletePage,
     getBacklinks,
     findByTitle,
+    reload,
   };
 }

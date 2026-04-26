@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, Network } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { createEmptyWikiPage, type WikiPage } from '@/types/wiki';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
 import { WikiPageView } from '@/components/wiki/WikiPageView';
 import { WikiHome } from '@/components/wiki/WikiHome';
+import { WikiGraph } from '@/components/wiki/WikiGraph';
+import { WikiSettingsMenu } from '@/components/wiki/WikiSettingsMenu';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_KEY = 'wiki_sidebar_open';
@@ -17,9 +19,10 @@ const SIDEBAR_KEY = 'wiki_sidebar_open';
  * 우: 활성 페이지가 있으면 뷰어/에디터, 없으면 홈 대시보드.
  */
 const Wiki = () => {
-  const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle } = useWikiPages();
+  const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, reload } = useWikiPages();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [view, setView] = useState<'page' | 'graph'>('page');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
     return window.localStorage.getItem(SIDEBAR_KEY) !== '0';
@@ -102,7 +105,7 @@ const Wiki = () => {
         aria-hidden={!sidebarOpen}
       >
         <div className="w-[260px] h-full flex flex-col">
-          <div className="px-3 py-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
+          <div className="px-3 py-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <Link
               to="/"
               className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -113,12 +116,27 @@ const Wiki = () => {
             </Link>
             <button
               type="button"
-              onClick={() => setActiveId(null)}
+              onClick={() => { setActiveId(null); setView('page'); }}
               className="text-[13px] font-bold flex-1 text-left truncate hover:text-primary transition-colors"
               title="대문으로"
             >
               🌐 마이위키
             </button>
+            <button
+              type="button"
+              onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); }}
+              className={cn(
+                'p-1 rounded-md transition-colors',
+                view === 'graph'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+              title="연결 그래프"
+              aria-label="연결 그래프"
+            >
+              <Network className="h-3.5 w-3.5" />
+            </button>
+            <WikiSettingsMenu onMutated={() => { void reload(); setActiveId(null); }} />
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
@@ -153,7 +171,26 @@ const Wiki = () => {
       )}
 
       <main className="flex-1 min-w-0 overflow-y-auto relative">
-        {activePage ? (
+        {view === 'graph' ? (
+          <div className="px-6 lg:px-10 py-8 max-w-6xl mx-auto">
+            <header className="mb-4">
+              <p className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-1">
+                MY WIKI · GRAPH
+              </p>
+              <h1 className="text-2xl font-serif font-bold text-foreground"
+                style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}>
+                연결 그래프
+              </h1>
+              <p className="text-[12px] text-muted-foreground mt-1">
+                전체 페이지를 타입별 클러스터로 시각화. 노드 클릭 → 페이지 열기.
+              </p>
+            </header>
+            <WikiGraph
+              pages={pages}
+              onSelect={(id) => { setActiveId(id); setView('page'); setEditing(false); }}
+            />
+          </div>
+        ) : activePage ? (
           <WikiPageView
             page={activePage}
             editing={editing}
