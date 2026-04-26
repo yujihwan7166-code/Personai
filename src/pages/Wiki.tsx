@@ -16,6 +16,7 @@ import { WikiCommandPalette } from '@/components/wiki/WikiCommandPalette';
 import { WikiTemplatePicker } from '@/components/wiki/WikiTemplatePicker';
 import { WikiStoragePanel } from '@/components/wiki/WikiStoragePanel';
 import { WikiAiPanel } from '@/components/wiki/WikiAiPanel';
+import { WikiQuickCapture } from '@/components/wiki/WikiQuickCapture';
 import { clearAllPages } from '@/lib/wikiStore';
 import { getOrBuildTodayNote, todayKey } from '@/lib/wikiDailyNote';
 import { notify } from '@/lib/notify';
@@ -64,6 +65,7 @@ const Wiki = () => {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem(AI_PANEL_KEY) === '1';
   });
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
 
   const activePage = activeId ? pages.find((p) => p.id === activeId) ?? null : null;
 
@@ -191,6 +193,9 @@ const Wiki = () => {
       } else if (meta && e.key.toLowerCase() === 'j') {
         e.preventDefault();
         setAiOpen((v) => !v);
+      } else if (meta && e.shiftKey && (e.key === ';' || e.key === ':' || e.code === 'Semicolon')) {
+        e.preventDefault();
+        setQuickCaptureOpen(true);
       } else if (!inEditor && e.key.toLowerCase() === 'e' && activePage && !editing) {
         e.preventDefault();
         setEditing(true);
@@ -482,6 +487,8 @@ const Wiki = () => {
           notify.info('백업 가져오기는 사이드바 ⚙ 설정 메뉴에서', { duration: 3500 });
         }}
         onClearAll={handleClearAll}
+        onQuickCapture={() => setQuickCaptureOpen(true)}
+        onAskAi={() => setAiOpen(true)}
       />
 
       {/* 템플릿 픽커 */}
@@ -493,6 +500,16 @@ const Wiki = () => {
 
       {/* 저장소 사용량 — 헤더 배지·설정 메뉴 둘 다에서 열 수 있게 위로 lift */}
       <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
+
+      {/* 빠른 캡처 — 어디서든 Ctrl/Cmd+Shift+; 로 호출, #inbox draft 페이지 1개 생성 */}
+      <WikiQuickCapture
+        open={quickCaptureOpen}
+        onClose={() => setQuickCaptureOpen(false)}
+        onCreate={async (page) => {
+          await upsertPage(page);
+          notify.info(`Inbox 에 새 페이지: ${page.title}`, { duration: 2200 });
+        }}
+      />
 
       {/* AI 보조 패널 — 활성 페이지가 있으면 그 컨텍스트, 없으면 위키 전체 메타 */}
       <WikiAiPanel

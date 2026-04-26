@@ -1,6 +1,6 @@
 import { Command } from 'cmdk';
-import { useEffect } from 'react';
-import { Plus, Network, Home, Download, Upload, Trash2, X, CalendarDays } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Network, Home, Download, Upload, Trash2, X, CalendarDays, Inbox, Sparkles } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
 import { exportAllAsJson } from '@/lib/wikiBackup';
 
@@ -15,6 +15,8 @@ interface Props {
   onGoToday: () => void;
   onImport: () => void;
   onClearAll: () => void;
+  onQuickCapture?: () => void;
+  onAskAi?: () => void;
   onClose?: () => void;
 }
 
@@ -24,8 +26,10 @@ interface Props {
  */
 export function WikiCommandPalette({
   open, onOpenChange, pages,
-  onOpen, onCreate, onGoHome, onGoGraph, onGoToday, onImport, onClearAll, onClose,
+  onOpen, onCreate, onGoHome, onGoGraph, onGoToday, onImport, onClearAll, onQuickCapture, onAskAi, onClose,
 }: Props) {
+  const [query, setQuery] = useState('');
+  useEffect(() => { if (!open) setQuery(''); }, [open]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -60,7 +64,9 @@ export function WikiCommandPalette({
       >
         <div className="border-b border-[hsl(var(--hairline))] px-3">
           <Command.Input
-            placeholder="페이지 또는 동작 검색…"
+            value={query}
+            onValueChange={setQuery}
+            placeholder="페이지·동작 검색  ·  자연어로 물어보면 AI 진입"
             autoFocus
             className="w-full h-11 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
           />
@@ -70,6 +76,20 @@ export function WikiCommandPalette({
           <Command.Empty className="p-6 text-center text-[12px] text-muted-foreground">
             일치하는 항목이 없어요
           </Command.Empty>
+
+          {onAskAi && (query.trim().length >= 6 || query.includes('?') || query.includes('?')) && (
+            <Command.Group
+              heading="AI"
+              className="px-2 pt-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground/70 [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:py-1"
+            >
+              <Item
+                icon={<Sparkles className="h-3.5 w-3.5 text-primary" />}
+                label={`AI 에게 묻기 — "${query.trim().slice(0, 40)}${query.trim().length > 40 ? '…' : ''}"`}
+                hint="Ctrl/Cmd+J"
+                onSelect={() => run(onAskAi)}
+              />
+            </Command.Group>
+          )}
 
           <Command.Group
             heading="동작"
@@ -81,6 +101,22 @@ export function WikiCommandPalette({
               hint="Ctrl/Cmd+N"
               onSelect={() => run(onCreate)}
             />
+            {onQuickCapture && (
+              <Item
+                icon={<Inbox className="h-3.5 w-3.5" />}
+                label="빠른 캡처 — Inbox 에 던지기"
+                hint="Ctrl+Shift+;"
+                onSelect={() => run(onQuickCapture)}
+              />
+            )}
+            {onAskAi && (
+              <Item
+                icon={<Sparkles className="h-3.5 w-3.5" />}
+                label="AI 보조 열기"
+                hint="Ctrl/Cmd+J"
+                onSelect={() => run(onAskAi)}
+              />
+            )}
             <Item
               icon={<Home className="h-3.5 w-3.5" />}
               label="대문으로"

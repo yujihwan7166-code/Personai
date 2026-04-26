@@ -1262,31 +1262,136 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
   return (
     <>
 
-      {/* Unified grid */}
-      <div className="grid grid-cols-3 gap-2">
-        {(() => {
-          const priorityOrder = ['admission', 'investment', 'interview', 'b2b_sales', 'crisis', 'product', 'content_pitch', 'collab', 'complaint', 'policy', 'strategy', 'internal', 'salary', 'parent_meeting', 'regulation', 'partnership', 'budget', 'committee', 'startup_pitch', 'medical_consult', 'wedding_plan', 'school_bully', 'estate_dispute', 'franchise_consult', 'tenant_dispute', 'career_change', 'insurance_claim', 'neighborhood', 'immigration', 'influencer_crisis', 'divorce_mediation', 'elderly_care', 'whistleblower', 'debt_crisis', 'child_custody', 'workplace_harassment', 'medical_decision', 'startup_cofounder', 'school_transfer', 'contract_negotiation', 'mental_health', 'inheritance_plan'];
-          return [...SIMULATION_SCENARIOS].sort((a, b) => priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id));
-        })().map((scenario, i) => (
-          <button key={scenario.id}
-            onClick={() => handleSelectScenario(scenario)}
-            style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'both' }}
-            className="relative text-left rounded-xl bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-400">
+      {/* Scenario sections — 추천 / 전체 분리 */}
+      {(() => {
+        const priorityOrder = ['admission', 'investment', 'interview', 'b2b_sales', 'crisis', 'product', 'content_pitch', 'collab', 'complaint', 'policy', 'strategy', 'internal', 'salary', 'parent_meeting', 'regulation', 'partnership', 'budget', 'committee', 'startup_pitch', 'medical_consult', 'wedding_plan', 'school_bully', 'estate_dispute', 'franchise_consult', 'tenant_dispute', 'career_change', 'insurance_claim', 'neighborhood', 'immigration', 'influencer_crisis', 'divorce_mediation', 'elderly_care', 'whistleblower', 'debt_crisis', 'child_custody', 'workplace_harassment', 'medical_decision', 'startup_cofounder', 'school_transfer', 'contract_negotiation', 'mental_health', 'inheritance_plan'];
+        const popular = SIMULATION_SCENARIOS.filter(s => s.isPopular)
+          .sort((a, b) => priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id));
+        const rest = SIMULATION_SCENARIOS.filter(s => !s.isPopular)
+          .sort((a, b) => priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id));
+        const filteredRest = simFilter === 'all' ? rest : rest.filter(s => s.simType === simFilter);
+        const restCounts = {
+          all: rest.length,
+          roleplay: rest.filter(s => s.simType === 'roleplay').length,
+          consultation: rest.filter(s => s.simType === 'consultation').length,
+        };
 
-            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${scenario.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+        const renderCard = (scenario: SimulationScenario, i: number) => {
+          const isSelected = selectedScenario?.id === scenario.id || step2Scenario?.id === scenario.id;
+          const simTypeLabel = scenario.simType === 'roleplay' ? '역할극' : '자문';
+          return (
+            <button key={scenario.id}
+              onClick={() => handleSelectScenario(scenario)}
+              style={{ animationDelay: `${Math.min(i, 6) * 30}ms`, animationFillMode: 'both' }}
+              aria-pressed={isSelected}
+              className={cn(
+                'relative text-left rounded-xl bg-white border transition-all duration-300 group overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300',
+                'hover:border-indigo-300 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5',
+                isSelected ? 'border-indigo-300 ring-2 ring-indigo-200 ring-offset-1' : 'border-slate-200'
+              )}>
+              {/* resting 시 옅게, hover/selected 시 진하게 */}
+              <div className={cn(
+                'absolute left-0 top-0 bottom-0 bg-gradient-to-b transition-all duration-300',
+                scenario.gradient,
+                isSelected ? 'w-1.5 opacity-100' : 'w-1 opacity-50 group-hover:opacity-100'
+              )} />
+              {/* 카드 배경 옅은 그라데이션 오버레이 (resting 컬러 큐) */}
+              <div className={cn(
+                'absolute inset-0 bg-gradient-to-br opacity-[0.18] pointer-events-none transition-opacity duration-300 group-hover:opacity-[0.32]',
+                scenario.gradient
+              )} />
 
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${scenario.gradient} flex items-center justify-center text-[22px] shrink-0 group-hover:scale-105 transition-transform duration-300`}>
-                {scenario.icon}
+              {/* 우상단 simType 뱃지 */}
+              <span
+                aria-label={simTypeLabel}
+                className="absolute top-2 right-2 z-[1] text-[8.5px] font-semibold px-1.5 py-0.5 rounded bg-white/70 backdrop-blur-sm text-slate-500 border border-slate-200/70"
+              >
+                {simTypeLabel}
+              </span>
+
+              <div className="relative flex items-center gap-3 px-4 py-4">
+                <div className={cn(
+                  'w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-[20px] shrink-0 group-hover:scale-105 transition-transform duration-300 ring-1 ring-white/60',
+                  scenario.gradient
+                )}>
+                  {scenario.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-[14px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors leading-tight truncate">{scenario.name}</h3>
+                    {scenario.isPopular && (
+                      <span aria-label="인기 시나리오" title="인기 시나리오" className="text-[9px] shrink-0">🔥</span>
+                    )}
+                  </div>
+                  <p className="text-[11.5px] text-slate-500 mt-1 leading-snug line-clamp-2">{scenario.description}</p>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-[13px] font-bold text-slate-800 group-hover:text-indigo-700 transition-colors leading-tight">{scenario.name}</h3>
-                <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{scenario.description}</p>
+            </button>
+          );
+        };
+
+        return (
+          <div className="space-y-5">
+            {/* 추천 섹션 */}
+            {popular.length > 0 && (
+              <section>
+                <h4 className="text-[11px] font-semibold text-slate-500 mb-2 px-0.5 flex items-center gap-1.5">
+                  <span>🔥</span>
+                  <span>추천 시나리오</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {popular.map(renderCard)}
+                </div>
+              </section>
+            )}
+
+            {/* 전체 섹션 */}
+            <section>
+              <div className="flex items-center justify-between mb-2 px-0.5 gap-3">
+                <h4 className="text-[11px] font-semibold text-slate-500 shrink-0">전체 시나리오</h4>
+                <div role="tablist" aria-label="시나리오 유형 필터" className="flex gap-1">
+                  {([
+                    { key: 'all', label: '전체', count: restCounts.all },
+                    { key: 'roleplay', label: '역할극', count: restCounts.roleplay },
+                    { key: 'consultation', label: '자문', count: restCounts.consultation },
+                  ] as const).map(chip => {
+                    const active = simFilter === chip.key;
+                    const disabled = chip.count === 0;
+                    return (
+                      <button
+                        key={chip.key}
+                        role="tab"
+                        aria-selected={active}
+                        disabled={disabled}
+                        onClick={() => setSimFilter(chip.key)}
+                        className={cn(
+                          'text-[10.5px] font-medium px-2 py-0.5 rounded-md border transition-all',
+                          active
+                            ? 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/40',
+                          disabled && 'opacity-40 cursor-not-allowed hover:border-slate-200 hover:bg-white'
+                        )}
+                      >
+                        {chip.label}
+                        <span className={cn('ml-1 text-[9.5px]', active ? 'text-indigo-500' : 'text-slate-400')}>{chip.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
-      </div>
+              {filteredRest.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-[11px] text-slate-400">
+                  해당 유형의 시나리오가 없습니다
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {filteredRest.map(renderCard)}
+                </div>
+              )}
+            </section>
+          </div>
+        );
+      })()}
 
       {/* Floating Modal — Roleplay */}
       {selectedScenario && selectedScenario.simType === 'roleplay' && createPortal(
