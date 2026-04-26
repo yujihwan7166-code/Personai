@@ -8,6 +8,7 @@ import {
 import { WikiBody } from './WikiBody';
 import { WikiToc } from './WikiToc';
 import { WikiInfobox } from './WikiInfobox';
+import { WikiLocalGraph } from './WikiLocalGraph';
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
 import { saveImage } from '@/lib/wikiImageStore';
 import { WikiHistoryPanel } from './WikiHistoryPanel';
@@ -387,9 +388,12 @@ export function WikiPageView({
           )}
         </article>
 
-        {/* 우: 인포박스 */}
-        <div className="hidden lg:block">
+        {/* 우: 인포박스 + 로컬 그래프 */}
+        <div className="hidden lg:flex flex-col gap-3">
           {!editing && <WikiInfobox page={page} onTagClick={onTagClick} />}
+          {!editing && (
+            <WikiLocalGraph page={page} allPages={allPages} onSelect={onOpenLink} />
+          )}
         </div>
       </div>
 
