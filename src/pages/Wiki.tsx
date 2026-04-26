@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, PanelLeftClose, PanelLeftOpen, Network, Menu } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
+import { useWikiFavorites } from '@/hooks/useWikiFavorites';
 import type { WikiPage } from '@/types/wiki';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
 import { WikiPageView } from '@/components/wiki/WikiPageView';
@@ -18,6 +19,7 @@ const SIDEBAR_KEY = 'wiki_sidebar_open';
 
 const Wiki = () => {
   const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, reload } = useWikiPages();
+  const { favorites, recent, toggleFavorite, isFavorite, recordView, purge } = useWikiFavorites();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [view, setView] = useState<'page' | 'graph'>('page');
@@ -34,6 +36,11 @@ const Wiki = () => {
   });
 
   const activePage = activeId ? pages.find((p) => p.id === activeId) ?? null : null;
+
+  // 활성 페이지 변경 시 최근 본 기록
+  useEffect(() => {
+    if (activeId) recordView(activeId);
+  }, [activeId, recordView]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -60,6 +67,7 @@ const Wiki = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('이 페이지를 삭제할까요?')) return;
     await deletePage(id);
+    purge(id);  // 즐겨찾기·최근 정리
     if (activeId === id) {
       setActiveId(null);
       setEditing(false);
@@ -200,6 +208,8 @@ const Wiki = () => {
             pages={pages}
             loading={loading}
             activeId={activeId}
+            favorites={favorites}
+            recent={recent}
             onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
             onCreate={openTemplatePicker}
           />
@@ -246,6 +256,8 @@ const Wiki = () => {
             backlinks={getBacklinks(activePage.id)}
             allPages={pages}
             findByTitle={findByTitle}
+            isFavorite={isFavorite(activePage.id)}
+            onToggleFavorite={() => toggleFavorite(activePage.id)}
             onChange={(next) => { void upsertPage(next); }}
             onDelete={() => handleDelete(activePage.id)}
             onToggleEdit={() => setEditing((v) => !v)}

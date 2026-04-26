@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Star, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META } from '@/types/wiki';
 
@@ -7,6 +7,9 @@ interface Props {
   pages: WikiPage[];
   loading: boolean;
   activeId: string | null;
+  /** 즐겨찾기 + 최근 — 부모에서 지속화 */
+  favorites: string[];
+  recent: string[];
   onSelect: (id: string) => void;
   onCreate: () => void;
 }
@@ -20,9 +23,23 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: 'draft',  label: '🚧 초안' },
 ];
 
-export function WikiSidebar({ pages, loading, activeId, onSelect, onCreate }: Props) {
+export function WikiSidebar({ pages, loading, activeId, favorites, recent, onSelect, onCreate }: Props) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+
+  const pageById = useMemo(() => new Map(pages.map((p) => [p.id, p])), [pages]);
+  const favoritePages = useMemo(
+    () => favorites.map((id) => pageById.get(id)).filter((p): p is WikiPage => !!p),
+    [favorites, pageById]
+  );
+  const recentPages = useMemo(
+    () => recent.map((id) => pageById.get(id)).filter((p): p is WikiPage => !!p)
+      .filter((p) => !favorites.includes(p.id))  // 즐겨찾기와 중복 제거
+      .slice(0, 5),
+    [recent, pageById, favorites]
+  );
+
+  const showQuickSections = !query.trim() && filter === 'all';
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -85,6 +102,31 @@ export function WikiSidebar({ pages, loading, activeId, onSelect, onCreate }: Pr
 
       {/* 리스트 */}
       <div className="flex-1 min-h-0 overflow-y-auto px-1.5 pb-3">
+        {/* 즐겨찾기 + 최근 — 검색·필터 X 일 때만 */}
+        {showQuickSections && favoritePages.length > 0 && (
+          <QuickSection
+            icon={<Star className="w-3 h-3 fill-amber-400 text-amber-400" />}
+            label="즐겨찾기"
+            pages={favoritePages}
+            activeId={activeId}
+            onSelect={onSelect}
+          />
+        )}
+        {showQuickSections && recentPages.length > 0 && (
+          <QuickSection
+            icon={<Clock className="w-3 h-3" />}
+            label="최근 본"
+            pages={recentPages}
+            activeId={activeId}
+            onSelect={onSelect}
+          />
+        )}
+        {showQuickSections && (favoritePages.length > 0 || recentPages.length > 0) && (
+          <p className="px-2 pt-2 pb-1 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70">
+            모든 페이지 · {pages.length}
+          </p>
+        )}
+
         {loading ? (
           <p className="px-2 py-4 text-[11px] text-muted-foreground">불러오는 중…</p>
         ) : filtered.length === 0 ? (
@@ -131,6 +173,48 @@ export function WikiSidebar({ pages, loading, activeId, onSelect, onCreate }: Pr
         <span>{pages.length}개 페이지</span>
         {filter !== 'all' && <span>{filtered.length} 필터</span>}
       </div>
+    </div>
+  );
+}
+
+/* ── 즐겨찾기·최근 섹션 ── */
+function QuickSection({
+  icon, label, pages, activeId, onSelect,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  pages: WikiPage[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="mb-2">
+      <p className="flex items-center gap-1 px-2 pt-2 pb-1 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70">
+        {icon}
+        {label} · {pages.length}
+      </p>
+      <ul className="space-y-0.5">
+        {pages.map((p) => {
+          const meta = WIKI_TYPE_META[p.type];
+          return (
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(p.id)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2 py-1 rounded-md text-left transition-colors',
+                  activeId === p.id
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-foreground/85 hover:bg-accent',
+                )}
+              >
+                <span className="text-[12.5px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
+                <span className="flex-1 min-w-0 truncate text-[12px]">{p.title}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

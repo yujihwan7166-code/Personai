@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X, Download } from 'lucide-react';
+import { Pencil, Trash2, Save, X, Download, Star, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
@@ -14,34 +14,81 @@ interface Props {
   page: WikiPage;
   editing: boolean;
   backlinks: WikiPage[];
-  /** 모든 페이지 — 자동완성·호버 프리뷰용 */
   allPages: WikiPage[];
   findByTitle: (title: string) => WikiPage | undefined;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   onChange: (next: WikiPage) => void;
   onDelete: () => void;
   onToggleEdit: () => void;
-  /** 본문 [[link]] 클릭 또는 백링크 클릭 시 호출. */
   onOpenLink: (titleOrId: string) => void;
+}
+
+type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved';
+
+const AUTOSAVE_DELAY_MS = 1200;
+
+function relativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const s = Math.floor(diff / 1000);
+  if (s < 10) return '방금';
+  if (s < 60) return `${s}초 전`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}시간 전`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}일 전`;
+  return new Date(ts).toLocaleDateString('ko-KR');
 }
 
 export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
+  isFavorite, onToggleFavorite,
   onChange, onDelete, onToggleEdit, onOpenLink,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
-    if (!editing) setDraft(page);
+    if (!editing) {
+      setDraft(page);
+      setSaveStatus('idle');
+    }
   }, [page, editing]);
+
+  // 자동 저장 — 편집 중 1.2초 idle 시 저장
+  useEffect(() => {
+    if (!editing) return;
+    // 첫 마운트 (draft === page) 시엔 저장 X
+    if (draft === page) return;
+    setSaveStatus('pending');
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      setSaveStatus('saving');
+      onChangeRef.current(draft);
+      // onChange 후 외부 page prop 이 바뀌면 useEffect[page] 가 draft 동기화 — 그 사이 잠깐 saved 표시
+      window.setTimeout(() => setSaveStatus('saved'), 80);
+      window.setTimeout(() => setSaveStatus((s) => (s === 'saved' ? 'idle' : s)), 1800);
+    }, AUTOSAVE_DELAY_MS);
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [draft, editing, page]);
 
   const typeMeta = WIKI_TYPE_META[page.type];
 
   const save = () => {
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     onChange(draft);
     onToggleEdit();
   };
   const cancel = () => {
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     setDraft(page);
     onToggleEdit();
   };
@@ -112,10 +159,16 @@ export function WikiPageView({
                     {page.title}
                   </h1>
                 )}
+                {!editing && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    마지막 수정 · {relativeTime(page.updatedAt)}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {editing ? (
                   <>
+                    <SaveStatusBadge status={saveStatus} />
                     <button onClick={cancel} className="px-2.5 h-8 rounded-md text-[12px] text-muted-foreground hover:bg-accent transition-colors flex items-center gap-1">
                       <X className="w-3.5 h-3.5" /> 취소
                     </button>
@@ -125,6 +178,19 @@ export function WikiPageView({
                   </>
                 ) : (
                   <>
+                    <button
+                      onClick={onToggleFavorite}
+                      className={cn(
+                        'p-1.5 rounded-md transition-colors',
+                        isFavorite
+                          ? 'text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      )}
+                      title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                      aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                    >
+                      <Star className={cn('w-3.5 h-3.5', isFavorite && 'fill-current')} />
+                    </button>
                     <button onClick={onToggleEdit} className="px-2 h-7 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center gap-1" title="편집 (E)">
                       <Pencil className="w-3.5 h-3.5" /> 편집
                     </button>
@@ -225,6 +291,23 @@ export function WikiPageView({
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── 자동 저장 상태 배지 ── */
+function SaveStatusBadge({ status }: { status: SaveStatus }) {
+  if (status === 'idle') return null;
+  const map: Record<Exclude<SaveStatus, 'idle'>, { text: string; cls: string; icon?: React.ReactNode }> = {
+    pending: { text: '입력 중…', cls: 'text-muted-foreground' },
+    saving:  { text: '저장 중', cls: 'text-blue-600 dark:text-blue-300' },
+    saved:   { text: '저장됨',   cls: 'text-emerald-600 dark:text-emerald-300', icon: <Check className="w-3 h-3" /> },
+  };
+  const m = map[status];
+  return (
+    <span className={cn('inline-flex items-center gap-1 text-[10.5px] px-1.5 py-0.5 mr-1', m.cls)}>
+      {m.icon}
+      {m.text}
+    </span>
   );
 }
 
