@@ -17,7 +17,11 @@ export interface AttachedFile {
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 export const MAX_TOTAL_SIZE = 20 * 1024 * 1024;
 export const MAX_FILES = 5;
-export const MAX_EXTRACTED_TEXT_LENGTH = 15000;
+/** 추출 텍스트 최대 길이.
+ * 15,000 → 200,000 으로 상향 (Phase 1, 2026-04-27).
+ * 평균 한국어 강의 PDF 100+ 페이지까지 손실 없이 담는다.
+ * LLM 호출 시점의 토큰 예산은 별도(consumer 측)에서 청킹·압축으로 관리. */
+export const MAX_EXTRACTED_TEXT_LENGTH = 200_000;
 
 let xlsxModulePromise: Promise<typeof import('xlsx')> | null = null;
 let jsZipModulePromise: Promise<typeof import('jszip')> | null = null;
@@ -276,7 +280,8 @@ export async function processFile(file: File): Promise<AttachedFile> {
       result.pageCount = pageCount;
       result.scanPages = scanPages;
       if (text.trim().length < 20) {
-        result.extractedText = '[이 PDF는 텍스트가 없는 이미지 기반일 수 있어요. 스캔본은 지원하지 않습니다.]';
+        // Phase 1: 스캔본도 거부하지 않음. OCR 자동 트리거 (ocrEnabled = true).
+        result.extractedText = '[스캔본 PDF — 원본에서 OCR 로 텍스트를 추출하는 중입니다. 잠시 후 자동으로 채워집니다.]';
       } else {
         result.extractedText = text;
         result.base64 = '';
@@ -306,7 +311,8 @@ export async function processFile(file: File): Promise<AttachedFile> {
       const arrayBuffer = await file.arrayBuffer();
       const { text, slideCount } = await extractPptxTextFromArrayBuffer(arrayBuffer);
       if (text.trim().length < 20) {
-        result.extractedText = '[이 PPT는 텍스트를 거의 포함하지 않습니다 (이미지 위주일 수 있어요).]';
+        // Phase 1: 이미지 위주 PPT 도 거부하지 않음. 원본 보존.
+        result.extractedText = '[이미지 위주 PPT — 원본 뷰어에서 확인해주세요. (Phase 2 에서 비전 추출 예정)]';
       } else {
         result.extractedText = text;
         result.base64 = '';

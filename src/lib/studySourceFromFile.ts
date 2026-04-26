@@ -82,12 +82,18 @@ export async function filesToStudySources(
           errors.push(`"${f.name}": ${extracted.replace(/^\[|\]$/g, '')}`);
           continue;
         }
-        extracted = '(텍스트 추출이 제한적입니다. 원본 뷰어에서 확인해주세요.)';
+        // Phase 1: 스캔본·이미지 위주여도 거부하지 않음. placeholder + 백그라운드 OCR.
+        extracted = '(원본에서 OCR 로 텍스트를 추출하는 중입니다. 잠시 후 자동으로 채워집니다.)';
       }
       if (!blobRef && extracted.length < 50) {
         errors.push(`"${f.name}": 텍스트를 추출하지 못했어요.`);
         continue;
       }
+
+      // Phase 1: 스캔 페이지가 있으면 OCR 자동 활성화 — 사용자가 별도 동의 안 해도 시작.
+      // 텍스트 PDF 라도 그림 안 라벨 등을 못 잡을 수 있어, scanPages 가 1장이라도 있으면 켠다.
+      const scanPagesList = processed?.scanPages;
+      const autoOcr = (scanPagesList?.length ?? 0) > 0;
 
       sources.push({
         id: newId('src'),
@@ -101,7 +107,8 @@ export async function filesToStudySources(
         mimeType: fileMime,
         pageCount: processed?.pageCount,
         renderMode,
-        scanPages: processed?.scanPages,
+        scanPages: scanPagesList,
+        ocrEnabled: autoOcr || undefined,
       });
     } catch {
       errors.push(`"${f.name}" 처리 실패`);
