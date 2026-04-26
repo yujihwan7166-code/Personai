@@ -32,6 +32,8 @@ interface GenReq {
     density?: SummaryDensity;
     /** 비전 모드용 — 페이지 이미지 dataURL 배열 */
     pageImages?: Array<{ page: number; dataUrl: string }>;
+    /** Phase 3: PDF outline/bookmark 힌트. pages-index 모드에서 챕터 경계 ground truth 로 사용. */
+    outline?: Array<{ title: string; page: number; depth: number }>;
   };
 }
 
@@ -71,11 +73,16 @@ ${sourceBlock}
   switch (req.lens) {
     case 'summary':
       if (summaryMode === 'pages-index') {
+        const outline = req.options?.outline;
+        // PDF 자체에 outline 이 있으면 그걸 ground truth 로. 깊이 0~1 만 사용 (대주제 위주).
+        const outlineHint = outline && outline.length > 0
+          ? `\n\n[중요 — 자료에 내장된 목차]\n자료에 다음 목차가 있습니다. 이를 챕터 ground truth 로 사용하되, 너무 잘게 쪼개지 말고 4~8개 챕터로 압축·병합해도 됩니다.\n${outline.filter((e) => e.depth <= 1).map((e) => `- p.${e.page}: ${'  '.repeat(e.depth)}${e.title}`).join('\n')}\n`
+          : '';
         return {
           system: `당신은 공부 도우미입니다. 학습 자료를 의미 단위 챕터(덩어리)로 자르고 각 페이지를 한 줄씩 요약합니다.
 원본에 없는 사실 금지. 페이지 마커 [p.N] 만 신뢰.`,
           user: `${common}
-위 소스에는 [p.N] 형식의 페이지 마커가 들어 있습니다.
+위 소스에는 [p.N] 형식의 페이지 마커가 들어 있습니다.${outlineHint}
 
 다음 JSON 객체만 출력하세요(코드블록·주석·부가 텍스트 금지):
 
@@ -498,8 +505,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : `당신은 공부 도우미입니다. 지정된 페이지 이미지들을 보고 학습 노트로 정리합니다.
 이미지에 보이는 내용만 신뢰하세요. 보이지 않는 내용을 추측하지 마세요.`;
 
+    const visionOutlineHint = isIndex && body.options?.outline && body.options.outline.length > 0
+      ? `\n[중요 — 자료에 내장된 목차]\n자료에 다음 목차가 있습니다. 이를 챕터 ground truth 로 사용하되, 너무 잘게 쪼개지 말고 4~8개 챕터로 압축·병합해도 됩니다.\n${body.options.outline.filter((e) => e.depth <= 1).map((e) => `- p.${e.page}: ${'  '.repeat(e.depth)}${e.title}`).join('\n')}\n`
+      : '';
+
     const visionUserText = isIndex
-      ? `다음은 학습 자료의 페이지 이미지들입니다. 각 이미지는 페이지 번호 라벨과 함께 제공됩니다.
+      ? `다음은 학습 자료의 페이지 이미지들입니다. 각 이미지는 페이지 번호 라벨과 함께 제공됩니다.${visionOutlineHint}
 
 다음 JSON 객체만 출력하세요(코드블록·주석·부가 텍스트 금지):
 

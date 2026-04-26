@@ -1234,6 +1234,8 @@ function SummarySection({
     }
     setPagesIndexLoading(true);
     try {
+      // Phase 3: PDF 가 자체 outline 갖고 있으면 LLM 에 ground truth 로 전달
+      const firstPdfOutline = enabledSources.find((s) => s.kind === 'pdf' && s.outline && s.outline.length > 0)?.outline;
       const r = await fetch('/api/study-generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1241,7 +1243,10 @@ function SummarySection({
           sources: enabledSources.map((s) => ({ title: s.title, content: s.content })),
           tone: summary?.tone ?? 'student',
           level: summary?.level ?? 'standard',
-          options: { summaryMode: 'pages-index' },
+          options: {
+            summaryMode: 'pages-index',
+            ...(firstPdfOutline ? { outline: firstPdfOutline } : {}),
+          },
         }),
       });
       const data = await r.json();
@@ -1343,7 +1348,12 @@ function SummarySection({
           sources: [{ title: pdfSource.title, content: '(image-based PDF)' }],
           tone: summary?.tone ?? 'student',
           level: summary?.level ?? 'standard',
-          options: { summaryMode: 'pages-vision-index', pageImages: images },
+          options: {
+            summaryMode: 'pages-vision-index',
+            pageImages: images,
+            // Phase 3: PDF 자체 outline 이 있으면 비전 모드에도 ground truth 로 전달
+            ...(pdfSource.outline && pdfSource.outline.length > 0 ? { outline: pdfSource.outline } : {}),
+          },
         }),
       });
       const data = await r.json();

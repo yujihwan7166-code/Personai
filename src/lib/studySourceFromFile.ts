@@ -95,6 +95,17 @@ export async function filesToStudySources(
       const scanPagesList = processed?.scanPages;
       const autoOcr = (scanPagesList?.length ?? 0) > 0;
 
+      // Phase 3: PDF outline/bookmark 추출. AI 챕터 추측보다 정확한 TOC 를 ground truth 로.
+      // 실패해도 치명적이지 않음 (LLM 폴백).
+      let outline: Array<{ title: string; page: number; depth: number }> | undefined;
+      if (kind === 'pdf') {
+        try {
+          const { extractPdfOutline } = await import('@/lib/fileConvert/converters/pdf');
+          const entries = await extractPdfOutline(f);
+          if (entries.length > 0) outline = entries;
+        } catch { /* outline 추출 실패는 무시 */ }
+      }
+
       sources.push({
         id: newId('src'),
         kind,
@@ -109,6 +120,7 @@ export async function filesToStudySources(
         renderMode,
         scanPages: scanPagesList,
         ocrEnabled: autoOcr || undefined,
+        outline,
       });
     } catch {
       errors.push(`"${f.name}" 처리 실패`);

@@ -24,6 +24,9 @@ export interface StudySource {
   scanPages?: number[];
   /** 스캔본 OCR 을 자동으로 시작할지 여부. 사용자가 배너에서 [시작] 누르면 true. */
   ocrEnabled?: boolean;
+  /** PDF 의 outline/bookmark 평탄화 결과 (Phase 3).
+   *  AI 챕터 추측보다 정확한 TOC 가 있으면 챕터 경계 결정의 ground truth 로 사용. */
+  outline?: Array<{ title: string; page: number; depth: number }>;
 }
 
 export type StudyLens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast' | 'diagram';

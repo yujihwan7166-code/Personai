@@ -154,6 +154,64 @@ export async function renderPdfPagesToImages(
   return out;
 }
 
+/** PDF 의 outline(bookmark/TOC) 평탄화 결과. 페이지 번호는 1-based. */
+export interface PdfOutlineEntry {
+  title: string;
+  page: number;
+  /** 트리 깊이 (0 이 최상위) — 챕터·섹션 구분용 */
+  depth: number;
+}
+
+/**
+ * PDF 북마크/outline 을 평탄한 배열로 추출.
+ * 강의 자료·텍스트북·논문 PDF 가 종종 가진 실제 TOC 정보를 사용해
+ * AI 가 챕터 추측하는 것보다 정확한 챕터 경계를 얻을 수 있다.
+ *
+ * 반환 비어 있으면 PDF 에 outline 이 없거나 추출 실패한 경우.
+ */
+export async function extractPdfOutline(file: File | Blob): Promise<PdfOutlineEntry[]> {
+  try {
+    const pdfjs = await loadPdfJs();
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjs.getDocument({ data: buf }).promise;
+    type RawOutlineItem = { title: string; dest?: unknown; items?: RawOutlineItem[] };
+    const outline = (await doc.getOutline()) as RawOutlineItem[] | null;
+    if (!outline || outline.length === 0) return [];
+
+    const flat: PdfOutlineEntry[] = [];
+    const walk = async (items: RawOutlineItem[], depth: number): Promise<void> => {
+      for (const item of items) {
+        let pageNum: number | null = null;
+        try {
+          if (Array.isArray(item.dest) && item.dest.length > 0) {
+            const pageIdx = await doc.getPageIndex(item.dest[0]);
+            pageNum = pageIdx + 1;
+          } else if (typeof item.dest === 'string') {
+            const dest = await doc.getDestination(item.dest);
+            if (dest && Array.isArray(dest) && dest.length > 0) {
+              const pageIdx = await doc.getPageIndex(dest[0]);
+              pageNum = pageIdx + 1;
+            }
+          }
+        } catch { /* dest 해상도 실패 시 스킵 */ }
+        const title = (item.title || '').trim();
+        if (title && pageNum != null) {
+          flat.push({ title, page: pageNum, depth });
+        }
+        if (item.items && item.items.length > 0) {
+          await walk(item.items, depth + 1);
+        }
+      }
+    };
+    await walk(outline, 0);
+    // 페이지 순으로 정렬 (PDF 가 hash 등으로 순서 어긋난 경우 보정)
+    flat.sort((a, b) => a.page - b.page);
+    return flat;
+  } catch {
+    return [];
+  }
+}
+
 // ───── 내부 재사용용: PDF → 일반 문자열 ─────
 export async function extractPdfText(file: File, maxLen = 15000): Promise<string> {
   const pdfjs = await loadPdfJs();
