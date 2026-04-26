@@ -24,6 +24,7 @@ import { MainModeTabs } from './MainModeTabs';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
 import { AssistantCardsPanel } from './AssistantCardsPanel';
+import { EasterEgg } from './EasterEgg';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavoriteExperts } from '@/hooks/useFavoriteExperts';
 import { useHoverExpertTip } from '@/hooks/useHoverExpertTip';
@@ -1758,6 +1759,9 @@ export function ExpertSelectionPanel({
   const { user, profile } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
+  // 이스터에그 — 즐겨찾기 탭 5번 연속 클릭 시 발동.
+  const [favTabClicks, setFavTabClicks] = useState(0);
+  const [easterEggOpen, setEasterEggOpen] = useState(false);
   const [aiModelExpanded, setAiModelExpanded] = useState(false);
   const isProcon = discussionMode === 'procon';
   const [proconAssignMode, setProconAssignMode] = useState<'manual' | 'auto'>('manual');
@@ -2286,7 +2290,24 @@ export function ExpertSelectionPanel({
                       return (
                         <button key={cat} type="button"
                           disabled={isAiDisabled || autoAssign}
-                          onClick={() => { if (!isAiDisabled) { setActiveCategory(cat); setActiveSubCategory('전체'); } }}
+                          onClick={() => {
+                            if (isAiDisabled) return;
+                            setActiveCategory(cat);
+                            setActiveSubCategory('전체');
+                            // 이스터에그 트리거 — 즐겨찾기 탭만 카운트, 다른 탭 누르면 리셋.
+                            if (cat === 'favorites') {
+                              setFavTabClicks((n) => {
+                                const next = n + 1;
+                                if (next >= 5) {
+                                  setEasterEggOpen(true);
+                                  return 0;
+                                }
+                                return next;
+                              });
+                            } else {
+                              setFavTabClicks(0);
+                            }
+                          }}
                           className={cn(
                             'flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap',
                             isAiDisabled
@@ -2560,6 +2581,9 @@ export function ExpertSelectionPanel({
           {maxLimitMsg}
         </div>
       )}
+
+      {/* 이스터에그 — 즐겨찾기 5번 연속 클릭 시 */}
+      <EasterEgg open={easterEggOpen} onClose={() => setEasterEggOpen(false)} />
 
       {/* Mode-specific settings panels */}
       {mainMode === 'debate' && <div>
