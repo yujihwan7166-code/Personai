@@ -10,6 +10,8 @@ import { ChevronLeft, ChevronRight, Minus, Plus, Maximize2, Search, Download, X,
 import { getBlob } from '@/lib/studyBlobStore';
 import { OcrQueue } from '@/lib/studyOcrQueue';
 import { getCompletedPages, getAllForBlob, type OcrRecord } from '@/lib/studyOcrStore';
+import { VisionQueue } from '@/lib/studyVisionQueue';
+import { getAllVisionForBlob } from '@/lib/studyVisionStore';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -84,6 +86,12 @@ export function PdfViewer({
   const [ocrRunning, setOcrRunning] = useState(false);
   const [ocrPagesReady, setOcrPagesReady] = useState<Set<number>>(new Set());
   const ocrQueueRef = useRef<OcrQueue | null>(null);
+  // Vision LLM 큐 (Phase 2) — Tesseract 결과가 빈약한 페이지(그림 위주) 보강용
+  const visionQueueRef = useRef<VisionQueue | null>(null);
+  const fileBlobRef = useRef<Blob | null>(null);
+  const [visionDone, setVisionDone] = useState(0);
+  const [visionTotal, setVisionTotal] = useState(0);
+  const [visionRunning, setVisionRunning] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -100,6 +108,7 @@ export function PdfViewer({
       try {
         const blob = await getBlob(blobRef);
         if (!blob) throw new Error('파일을 찾을 수 없습니다.');
+        fileBlobRef.current = blob; // Vision 큐에서 페이지 렌더용
         currentUrl = URL.createObjectURL(blob);
         setDownloadUrl(currentUrl);
         const pdfjs = await loadPdfJs();
@@ -323,6 +332,64 @@ export function PdfViewer({
     return () => document.removeEventListener('selectionchange', onSelChange);
   }, []);
 
+  // Vision 큐 시동: OCR 결과가 빈약한 페이지(< 200자) 들을 vision LLM 으로 보강.
+  // OCR 큐 onFinish 콜백에서 호출됨.
+  const startVisionQueueIfNeeded = useCallback(async () => {
+    if (!doc || !blobRef) return;
+    if (visionQueueRef.current) return; // 이미 실행 중
+    const file = fileBlobRef.current;
+    if (!file) return;
+
+    // OCR 결과가 빈약한 페이지 선정
+    const ocrRecs = await getAllForBlob(blobRef);
+    const SPARSE_THRESHOLD = 200;
+    const sparsePages = ocrRecs
+      .filter((r) => (r.text?.length ?? 0) < SPARSE_THRESHOLD)
+      .map((r) => r.page);
+
+    if (sparsePages.length === 0) return;
+
+    setVisionRunning(true);
+    setVisionTotal(sparsePages.length);
+    setVisionDone(0);
+
+    const q = new VisionQueue(
+      { blobRef, doc, file, pages: sparsePages, batchSize: 4, maxWidth: 1024, quality: 0.72 },
+      {
+        onProgress: (done) => setVisionDone(done),
+        onPageDone: () => { void rebuildCombinedContent(); },
+        onError: (e) => console.warn('[vision]', e),
+        onFinish: () => setVisionRunning(false),
+      },
+    );
+    visionQueueRef.current = q;
+    void q.start();
+  }, [doc, blobRef, rebuildCombinedContent]);
+
+  // OCR + Vision 결과를 페이지별로 병합. Vision 텍스트가 있으면 우선, 없으면 OCR.
+  // 호출 비용이 크지 않으므로 두 store 를 매번 같이 읽는다.
+  const rebuildCombinedContent = useCallback(async () => {
+    if (!onOcrContentUpdate || !blobRef) return;
+    const [ocrRecs, visionRecs] = await Promise.all([
+      getAllForBlob(blobRef),
+      getAllVisionForBlob(blobRef),
+    ]);
+    const visionMap = new Map<number, string>();
+    for (const v of visionRecs) visionMap.set(v.page, v.text);
+    const pages = new Set<number>([
+      ...ocrRecs.map((r) => r.page),
+      ...visionRecs.map((r) => r.page),
+    ]);
+    const sorted = Array.from(pages).sort((a, b) => a - b);
+    const combined = sorted.map((p) => {
+      const v = visionMap.get(p);
+      if (v) return `[p.${p}] ${v}`;
+      const ocr = ocrRecs.find((r) => r.page === p);
+      return ocr ? `[p.${p}] ${ocr.text}` : '';
+    }).filter(Boolean).join('\n\n');
+    onOcrContentUpdate(combined);
+  }, [blobRef, onOcrContentUpdate]);
+
   // OCR 큐 생명주기 — doc 준비 + scanPages 존재 + 사용자 동의(ocrEnabled) 시 자동 시작
   useEffect(() => {
     if (!doc || !blobRef) return;
@@ -333,11 +400,9 @@ export function PdfViewer({
     (async () => {
       const completed = await getCompletedPages(blobRef);
       setOcrPagesReady(completed);
-      // 완료된 OCR 있으면 content 먼저 업데이트
-      if (completed.size > 0 && onOcrContentUpdate) {
-        const recs = await getAllForBlob(blobRef);
-        const combined = recs.map((r) => `[p.${r.page}] ${r.text}`).join('\n\n');
-        onOcrContentUpdate(combined);
+      // 완료된 OCR + Vision 있으면 content 먼저 업데이트
+      if (completed.size > 0) {
+        await rebuildCombinedContent();
       }
     })();
 
@@ -365,15 +430,14 @@ export function PdfViewer({
             // 가시 영역이면 다음 scroll/observer tick 에 자연 재렌더
             setTimeout(() => scrollRef.current?.dispatchEvent(new Event('scroll')), 0);
           }
-          // content 갱신 (전체 결과 재집계)
-          if (onOcrContentUpdate) {
-            void getAllForBlob(blobRef).then((recs) => {
-              const combined = recs.map((r) => `[p.${r.page}] ${r.text}`).join('\n\n');
-              onOcrContentUpdate(combined);
-            });
-          }
+          // content 갱신 (OCR+Vision 합본 재집계)
+          void rebuildCombinedContent();
         },
-        onFinish: () => setOcrRunning(false),
+        onFinish: () => {
+          setOcrRunning(false);
+          // OCR 끝나면 Vision 큐 자동 시동 — 결과가 빈약한 페이지(< 200자) 만 vision 으로 보강
+          void startVisionQueueIfNeeded();
+        },
         onError: (e) => console.warn('[ocr]', e),
       },
     );
@@ -383,6 +447,9 @@ export function PdfViewer({
     return () => {
       q.cancel();
       ocrQueueRef.current = null;
+      // Vision 큐도 같이 정리
+      visionQueueRef.current?.cancel();
+      visionQueueRef.current = null;
     };
     // onOcrContentUpdate 는 일부러 deps 제외 — 매 렌더마다 재시작 방지
     // eslint-disable-next-line react-hooks/exhaustive-deps
