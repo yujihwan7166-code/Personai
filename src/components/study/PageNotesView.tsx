@@ -77,7 +77,7 @@ export function PageNotesView({
         <DensityToggle value={density} onChange={onChangeDensity} />
       </div>
 
-      <div className="pt-2 space-y-2">
+      <div className="pt-2 divide-y divide-slate-100 dark:divide-slate-800/60">
         {effectiveChunks.map((chunk, idx) => {
           const isOpen = openChunkId === chunk.id;
           const isLoading = loadingChunkId === chunk.id;
@@ -117,48 +117,34 @@ function ChunkAccordion({
   onJumpToPage?: (page: number) => void;
   onRegeneratePage: (page: number) => void;
 }) {
+  // Notion 스타일: 카드 박스·border 제거. 헤딩 + 흐름 텍스트만.
   return (
-    <div className={cn(
-      'rounded-xl border transition-colors overflow-hidden',
-      isOpen
-        ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50/30 dark:bg-indigo-950/10'
-        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300',
-    )}>
+    <div className="group">
       <button
         onClick={onToggle}
-        className="w-full flex items-start gap-3 px-4 py-3 text-left"
+        className="w-full flex items-baseline gap-2 px-1 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded"
       >
-        <span className="inline-flex h-6 min-w-[2.5rem] items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold tabular-nums px-2 shrink-0 mt-0.5">
-          {chunk.range[0]}~{chunk.range[1]}p
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CH.{index}</span>
-            <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate">
-              {chunk.title}
-            </h3>
-          </div>
-          {!isOpen && chunk.summary && (
-            <p className="text-[11.5px] text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2">
-              {chunk.summary.replace(/\*\*/g, '')}
-            </p>
-          )}
-        </div>
         {isOpen
-          ? <ChevronDown className="h-4 w-4 text-slate-400 shrink-0 mt-1" />
-          : <ChevronRight className="h-4 w-4 text-slate-400 shrink-0 mt-1" />}
+          ? <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0 self-center" />
+          : <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0 self-center" />}
+        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-400 shrink-0">
+          ch.{index} · {chunk.range[0]}~{chunk.range[1]}p
+        </span>
+        <h3 className="text-[15px] font-bold text-slate-900 dark:text-slate-100 truncate flex-1">
+          {chunk.title}
+        </h3>
       </button>
 
       {isOpen && (
-        <div className="px-4 pb-3 border-t border-indigo-100 dark:border-indigo-900/30 pt-3">
+        <div className="pl-5 pb-4">
           {chunk.summary && (
-            <div className="prose prose-sm max-w-none text-[12.5px] leading-relaxed text-slate-700 dark:text-slate-300 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-1.5 mb-3 pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <div className="prose prose-sm max-w-none text-[13px] leading-[1.7] text-slate-700 dark:text-slate-300 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-2 mb-4">
               <LazyMarkdown content={chunk.summary} />
             </div>
           )}
 
           {isLoading ? (
-            <div className="space-y-2 py-2">
+            <div className="space-y-3 py-2">
               {Array.from({ length: Math.min(notes.length, 5) }).map((_, i) => (
                 <div key={i} className="space-y-1.5">
                   <div className="study-shimmer h-3 w-1/4 rounded" />
@@ -168,7 +154,7 @@ function ChunkAccordion({
               ))}
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {notes.map((note) => (
                 <PageRow
                   key={note.page}
@@ -197,34 +183,36 @@ function PageRow({ note, density, active, onJump, onRegenerate }: {
   const isImageOnly = note.kind === 'image-only';
   const onelineMode = density === 'oneline';
 
+  // Notion 스타일: 카드·border·배경 제거. 페이지번호 prefix + 흐름 텍스트.
+  // hover 시에만 액션 아이콘 노출 (시각 노이즈 ↓).
   return (
     <div className={cn(
-      'rounded-lg px-3 py-2 transition-colors',
-      active && 'bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200',
-      !active && 'hover:bg-white dark:hover:bg-slate-900',
+      'group/row relative pl-1 transition-colors',
+      active && 'border-l-2 border-amber-400 -ml-1 pl-2',
     )}>
-      <div className="flex items-center gap-2 mb-1.5">
+      <div className="flex items-baseline gap-2">
         <span className={cn(
-          'inline-flex items-center justify-center rounded px-1.5 h-5 text-[10px] font-bold tabular-nums shrink-0',
-          isImageOnly
-            ? 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300',
+          'text-[11px] font-mono tabular-nums shrink-0 select-none',
+          isImageOnly ? 'text-slate-400' : 'text-slate-500 dark:text-slate-500',
         )}>
           p.{note.page}
         </span>
         {note.title && (
-          <span className="text-[11.5px] font-semibold text-slate-800 dark:text-slate-200 truncate">
+          <span className="text-[13.5px] font-semibold text-slate-800 dark:text-slate-200">
             {note.title}
           </span>
         )}
-        <span className={cn(
-          'text-[11.5px] flex-1 min-w-0 truncate',
-          isImageOnly ? 'text-slate-500' : 'text-slate-600 dark:text-slate-400',
-        )}>
-          {isImageOnly && <ImageIcon className="inline h-3 w-3 mr-1 -mt-0.5 text-slate-400" />}
-          {!note.body && note.oneLiner}
-        </span>
-        <div className="flex items-center gap-2 shrink-0">
+        {!note.body && (
+          <span className={cn(
+            'text-[12.5px] flex-1 min-w-0',
+            isImageOnly ? 'text-slate-500' : 'text-slate-700 dark:text-slate-300',
+          )}>
+            {isImageOnly && <ImageIcon className="inline h-3 w-3 mr-1 -mt-0.5 text-slate-400" />}
+            {note.oneLiner}
+          </span>
+        )}
+        {/* 액션 아이콘 — hover 시만 노출 (Notion 패턴) */}
+        <div className="ml-auto flex items-center gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
           {onJump && (
             <button onClick={onJump} className="text-slate-400 hover:text-indigo-700" title="원본 보기">
               <ExternalLink className="h-3 w-3" />
@@ -246,12 +234,12 @@ function PageRow({ note, density, active, onJump, onRegenerate }: {
       </div>
 
       {!onelineMode && note.body && !isImageOnly && (
-        <div className="pl-9 prose prose-sm max-w-none text-[12px] leading-relaxed text-slate-700 dark:text-slate-300 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-1">
+        <div className="mt-1 prose prose-sm max-w-none text-[13px] leading-[1.7] text-slate-700 dark:text-slate-300 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-1.5">
           <LazyMarkdown content={note.body} />
         </div>
       )}
       {!onelineMode && !note.body && note.status === 'error' && (
-        <p className="pl-9 text-[11px] text-rose-600">이 페이지를 정리하지 못했어요.</p>
+        <p className="mt-1 text-[11.5px] text-rose-600">이 페이지를 정리하지 못했어요.</p>
       )}
     </div>
   );

@@ -1610,18 +1610,8 @@ function SummarySection({
       </div>
 
       {/* 본문 */}
-      {/* OCR/Vision 진행 중 안내 배너 — 빈/placeholder 소스 + PDF blob 있을 때만 */}
-      {(isEmptyOrPlaceholder || isMostlyScanned) && enabledSources.some((s) => s.kind === 'pdf' && s.blobRef) && (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-          <span aria-hidden className="text-base leading-none">⏳</span>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold">OCR/비전 분석 진행 중</p>
-            <p className="text-[11px] mt-0.5 text-amber-800/90 dark:text-amber-200/80">
-              스캔본 PDF 라 텍스트 추출이 백그라운드에서 진행 중입니다. 좌측 PDF 뷰어를 열어두면 진행률이 표시되고, 추출이 끝나면 노트정리를 다시 시도해주세요.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* OCR/Vision 진행 중 안내 배너 제거 — 노트북 진입 전 PdfProcessingScreen 이
+          이미 분석 완료 보장. 노트정리 도달 시점엔 항상 분석 끝난 상태. */}
       {mode === 'whole' ? (
         loading && !hasWhole ? (
           <WholeSummaryShimmer />
