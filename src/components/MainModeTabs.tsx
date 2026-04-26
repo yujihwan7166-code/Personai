@@ -959,11 +959,9 @@ export function MainModeTabs({
                           </span>
                         )}
                         {isActive && (
-                          <motion.span
-                            layoutId="left-tab-indicator"
+                          <span
                             className="absolute inset-0 rounded-full bg-[hsl(var(--card))] shadow-sm ring-1 ring-[hsl(var(--hairline))]"
                             aria-hidden
-                            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                           />
                         )}
                       </button>
@@ -972,7 +970,7 @@ export function MainModeTabs({
                 </div>
                 {/* 탭 콘텐츠 — AnimatePresence 로 전환 */}
                 <div className="flex-1 min-h-0 relative">
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence mode="wait" initial={false}>
                 {leftTab === 'today' && (<motion.div
                   key="tab-today"
                   initial={{ opacity: 0, x: -8 }}
