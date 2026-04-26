@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, CalendarDays, Home, Plus, LayoutGrid } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, Plus, LayoutGrid } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -12,7 +12,6 @@ import { WikiGraph } from '@/components/wiki/WikiGraph';
 import { WikiSettingsMenu } from '@/components/wiki/WikiSettingsMenu';
 import { WikiCommandPalette } from '@/components/wiki/WikiCommandPalette';
 import { WikiTemplatePicker } from '@/components/wiki/WikiTemplatePicker';
-import { WikiHeaderBadges } from '@/components/wiki/WikiHeaderBadges';
 import { WikiStoragePanel } from '@/components/wiki/WikiStoragePanel';
 import { clearAllPages } from '@/lib/wikiStore';
 import { getOrBuildTodayNote, todayKey } from '@/lib/wikiDailyNote';
@@ -195,7 +194,7 @@ const Wiki = () => {
             </span>
             <button
               type="button"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/', { state: { openModePalette: true } })}
               className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               title="모드 전환"
               aria-label="모드 전환"
@@ -213,7 +212,7 @@ const Wiki = () => {
             </button>
           </div>
 
-          {/* 아랫줄 — 진입 액션 4개 (좌) + 신뢰성/설정 (우) */}
+          {/* 아랫줄 — 4 균등 (홈 / 그래프 / 새 / 설정) */}
           <div className="px-1.5 h-9 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <button
               type="button"
@@ -228,15 +227,6 @@ const Wiki = () => {
               aria-label="대문(홈)"
             >
               <Home className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => { void openTodayNote(); }}
-              className="flex-1 h-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="오늘 데일리 노트"
-              aria-label="오늘 데일리 노트"
-            >
-              <CalendarDays className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
@@ -261,12 +251,12 @@ const Wiki = () => {
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
-            <div className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" aria-hidden />
-            <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
-            <WikiSettingsMenu
-              onMutated={() => { void reload(); setActiveId(null); }}
-              onOpenStorage={() => setStorageOpen(true)}
-            />
+            <div className="flex-1 h-7 flex items-center justify-center">
+              <WikiSettingsMenu
+                onMutated={() => { void reload(); setActiveId(null); }}
+                onOpenStorage={() => setStorageOpen(true)}
+              />
+            </div>
           </div>
           <WikiSidebar
             pages={pages}
@@ -311,7 +301,7 @@ const Wiki = () => {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/', { state: { openModePalette: true } })}
             className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
             title="모드 전환"
             aria-label="모드 전환"
@@ -320,7 +310,7 @@ const Wiki = () => {
           </button>
           <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
 
-          {/* 진입 액션 4개 */}
+          {/* 진입 액션 3개 */}
           <button
             type="button"
             onClick={() => { setActiveId(null); setView('page'); }}
@@ -334,15 +324,6 @@ const Wiki = () => {
             aria-label="대문(홈)"
           >
             <Home className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => { void openTodayNote(); }}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="오늘 데일리 노트"
-            aria-label="오늘 데일리 노트"
-          >
-            <CalendarDays className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -368,10 +349,9 @@ const Wiki = () => {
             <Plus className="h-4 w-4" />
           </button>
 
-          {/* 하단으로 밀기 + 시스템 (배지·설정) */}
+          {/* 하단: 설정 */}
           <div className="flex-1" aria-hidden />
           <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-          <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
           <WikiSettingsMenu
             onMutated={() => { void reload(); setActiveId(null); }}
             onOpenStorage={() => setStorageOpen(true)}
@@ -426,6 +406,7 @@ const Wiki = () => {
             pages={pages}
             onSelect={(id) => setActiveId(id)}
             onCreate={openTemplatePicker}
+            onGoToday={() => { void openTodayNote(); }}
           />
         )}
       </main>
@@ -439,6 +420,7 @@ const Wiki = () => {
         onCreate={openTemplatePicker}
         onGoHome={() => { setActiveId(null); setView('page'); }}
         onGoGraph={() => { setView('graph'); setActiveId(null); }}
+        onGoToday={() => { void openTodayNote(); }}
         onImport={() => {
           // 가벼운 트리거 — 실제 파일 picker 는 settings menu 안에 있음.
           notify.info('백업 가져오기는 사이드바 ⚙ 설정 메뉴에서', { duration: 3500 });

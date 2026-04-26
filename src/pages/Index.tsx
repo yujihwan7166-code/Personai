@@ -1,4 +1,5 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
+import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
@@ -138,6 +139,23 @@ const Index = () => {
   const [modePaletteAnchor, setModePaletteAnchor] = useState<{ top: number; left: number; right: number; bottom: number; width: number; height: number } | null>(null);
   // 사이드바 LayoutGrid 버튼 → MainModeTabs 패널 외부 트리거
   const mainModeTabsApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
+  // /wiki 등 외부 페이지에서 navigate('/', { state: { openModePalette: true } }) 로 진입 시
+  // 마운트 후 자동으로 모드 패널 열기.
+  const location = useLocation();
+  useEffect(() => {
+    const state = location.state as { openModePalette?: boolean } | null;
+    if (state?.openModePalette) {
+      // 다음 프레임에 트리거 — apiRef 가 ExpertSelectionPanel 마운트 후 setting 되도록.
+      const t = window.setTimeout(() => {
+        mainModeTabsApiRef.current?.open();
+      }, 80);
+      // history state 정리 (뒤로가기 시 재발동 방지)
+      window.history.replaceState({}, '');
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+   
+  }, [location.key]);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.

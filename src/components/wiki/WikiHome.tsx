@@ -1,14 +1,15 @@
 import { useMemo } from 'react';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, CalendarDays, ArrowRight } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
 
 interface Props {
   pages: WikiPage[];
   onSelect: (id: string) => void;
   onCreate: () => void;
+  onGoToday?: () => void;
 }
 
-export function WikiHome({ pages, onSelect, onCreate }: Props) {
+export function WikiHome({ pages, onSelect, onCreate, onGoToday }: Props) {
   const stats = useMemo(() => {
     const byStatus = { draft: 0, active: 0, stable: 0, archived: 0 };
     for (const p of pages) byStatus[p.status]++;
@@ -68,6 +69,26 @@ export function WikiHome({ pages, onSelect, onCreate }: Props) {
           최근 수정 · 초안 · MOC · 관리 — 한눈에.
         </p>
       </header>
+
+      {/* 오늘 데일리 노트 진입 카드 */}
+      {onGoToday && (
+        <button
+          type="button"
+          onClick={onGoToday}
+          className="group w-full mb-5 flex items-center gap-3 rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/40 hover:bg-primary/5 wiki-trans-color px-4 py-3 text-left"
+        >
+          <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary text-lg shrink-0">
+            <CalendarDays className="w-4 h-4" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-[13px] font-bold text-foreground">📅 오늘 데일리 노트</span>
+            <span className="block text-[11px] text-muted-foreground mt-0.5">
+              매일 한 줄이라도 — 오늘 페이지로 이동하거나 자동 생성
+            </span>
+          </span>
+          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 wiki-trans-color shrink-0" />
+        </button>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 최근 수정 */}

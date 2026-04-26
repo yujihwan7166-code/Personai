@@ -1,6 +1,6 @@
 import { Command } from 'cmdk';
 import { useEffect } from 'react';
-import { Plus, Network, Home, Download, Upload, Trash2, X } from 'lucide-react';
+import { Plus, Network, Home, Download, Upload, Trash2, X, CalendarDays } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
 import { exportAllAsJson } from '@/lib/wikiBackup';
 
@@ -12,6 +12,7 @@ interface Props {
   onCreate: () => void;
   onGoHome: () => void;
   onGoGraph: () => void;
+  onGoToday: () => void;
   onImport: () => void;
   onClearAll: () => void;
   onClose?: () => void;
@@ -23,7 +24,7 @@ interface Props {
  */
 export function WikiCommandPalette({
   open, onOpenChange, pages,
-  onOpen, onCreate, onGoHome, onGoGraph, onImport, onClearAll, onClose,
+  onOpen, onCreate, onGoHome, onGoGraph, onGoToday, onImport, onClearAll, onClose,
 }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -84,6 +85,11 @@ export function WikiCommandPalette({
               icon={<Home className="h-3.5 w-3.5" />}
               label="대문으로"
               onSelect={() => run(onGoHome)}
+            />
+            <Item
+              icon={<CalendarDays className="h-3.5 w-3.5" />}
+              label="오늘 데일리 노트"
+              onSelect={() => run(onGoToday)}
             />
             <Item
               icon={<Network className="h-3.5 w-3.5" />}
