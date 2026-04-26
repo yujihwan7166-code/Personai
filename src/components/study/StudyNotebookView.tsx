@@ -1,8 +1,9 @@
-import { Fragment, useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { Download, Trash2, MoreHorizontal, PanelLeft, Home } from 'lucide-react';
 import type { StudyNotebook, Flashcard, StudyPaneKind } from '@/types/study';
 import { newId } from '@/types/study';
 import { usePersistedStudyLayout } from '@/hooks/usePersistedStudyLayout';
+import { useStudyAutoOcr } from '@/hooks/useStudyAutoOcr';
 import { SourceViewer } from './SourceViewer';
 import { StudyChat } from './StudyChat';
 import { StudioDeck } from './StudioDeck';
@@ -44,6 +45,17 @@ export function StudyNotebookView({
   const overflowRef = useRef<HTMLDivElement>(null);
   const { prefs, setMode, setSlot, toggleLockSource, setWeights } = usePersistedStudyLayout();
   const desktopGridRef = useRef<HTMLDivElement>(null);
+
+  // 노트북 진입 즉시 백그라운드 OCR + Vision 자동 시동.
+  // PdfViewer 진입을 기다리지 않음 — 노트정리만 쓰는 흐름도 지원.
+  const handleAutoOcrUpdate = useCallback((sourceId: string, content: string) => {
+    onChange({
+      ...notebook,
+      sources: notebook.sources.map((s) => s.id === sourceId ? { ...s, content } : s),
+      updatedAt: Date.now(),
+    });
+  }, [notebook, onChange]);
+  useStudyAutoOcr(notebook, handleAutoOcrUpdate);
 
   useEffect(() => {
     if (!paletteTrigger?.action) return;
