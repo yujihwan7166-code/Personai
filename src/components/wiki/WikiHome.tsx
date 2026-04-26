@@ -1,15 +1,18 @@
 import { useMemo } from 'react';
 import { Plus, Sparkles, CalendarDays, ArrowRight } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
+import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 
 interface Props {
   pages: WikiPage[];
   onSelect: (id: string) => void;
   onCreate: () => void;
   onGoToday?: () => void;
+  /** 스타터 팩 선택 시 호출 — Wiki 페이지가 IDB upsert + activeId 설정 */
+  onPickStarterPack?: (pack: StarterPack) => void | Promise<void>;
 }
 
-export function WikiHome({ pages, onSelect, onCreate, onGoToday }: Props) {
+export function WikiHome({ pages, onSelect, onCreate, onGoToday, onPickStarterPack }: Props) {
   const stats = useMemo(() => {
     const byStatus = { draft: 0, active: 0, stable: 0, archived: 0 };
     for (const p of pages) byStatus[p.status]++;
@@ -37,22 +40,43 @@ export function WikiHome({ pages, onSelect, onCreate, onGoToday }: Props) {
 
   if (pages.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-full px-8">
-        <div className="text-center max-w-md">
-          <div className="text-5xl mb-4">🌐</div>
-          <h1 className="text-xl font-bold text-foreground mb-2">마이위키</h1>
-          <p className="text-[13px] text-muted-foreground mb-6 leading-relaxed">
-            나만의 지식 베이스를 시작해보세요.<br />
-            첫 페이지를 만들면 [[다른 페이지]] 로 연결할 수 있어요.
-          </p>
-          <button
-            type="button"
-            onClick={onCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:opacity-90 transition-opacity"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            첫 페이지 만들기
-          </button>
+      <div className="min-h-full flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-3xl">
+          <header className="text-center mb-7">
+            <div className="text-5xl mb-3">🌐</div>
+            <h1 className="text-2xl font-bold text-foreground mb-1.5">마이위키 시작하기</h1>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">
+              아래 스타터 팩으로 시작하면 30초 안에 위키 골격이 생겨요.<br />
+              나중에 자유롭게 바꾸거나 지울 수 있어요.
+            </p>
+          </header>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+            {STARTER_PACKS.map((pack) => (
+              <button
+                key={pack.id}
+                type="button"
+                onClick={() => { void onPickStarterPack?.(pack); }}
+                className="group flex items-start gap-3 text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/40 hover:bg-primary/5 p-4 wiki-trans-color"
+              >
+                <span className="text-2xl shrink-0 leading-none mt-0.5">{pack.emoji}</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[13.5px] font-bold text-foreground">{pack.label}</span>
+                  <span className="block text-[11.5px] text-muted-foreground mt-1 leading-relaxed">{pack.description}</span>
+                </span>
+                <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 wiki-trans-color shrink-0 mt-0.5" />
+              </button>
+            ))}
+          </div>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={onCreate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              빈 페이지로 시작
+            </button>
+          </div>
         </div>
       </div>
     );

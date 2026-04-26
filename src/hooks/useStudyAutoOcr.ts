@@ -28,6 +28,32 @@ interface RegistryEntry {
 /** blobRef → 진행 중 큐. 모듈 레벨 — 같은 PDF 가 여러 곳에서 시동되어도 1개만. */
 const queueRegistry = new Map<string, RegistryEntry>();
 
+/** 자동 OCR 전체 진행 상황. UI 가 로딩 화면 노출 여부·진행률 결정에 사용. */
+export interface AutoOcrProgress {
+  /** 어느 페이지든 처리 중이면 true. 끝나면 false. */
+  isProcessing: boolean;
+  /** 단계 — UI 라벨용 */
+  phase: 'idle' | 'ocr' | 'vision' | 'done';
+  /** OCR 완료 페이지 수 (모든 소스 합산) */
+  ocrDone: number;
+  /** OCR 대상 페이지 총 수 */
+  ocrTotal: number;
+  /** Vision 완료 페이지 수 */
+  visionDone: number;
+  /** Vision 대상 페이지 총 수 (sparse 페이지) */
+  visionTotal: number;
+}
+
+interface SourceProgress {
+  ocrDone: number;
+  ocrTotal: number;
+  visionDone: number;
+  visionTotal: number;
+  ocrFinished: boolean;
+  visionStarted: boolean;
+  visionFinished: boolean;
+}
+
 interface PdfDoc {
   getPage: (n: number) => Promise<{
     getViewport: (opts: { scale: number }) => { width: number; height: number };
@@ -48,14 +74,58 @@ interface PdfDoc {
 export function useStudyAutoOcr(
   notebook: StudyNotebook,
   onSourceContentUpdate: (sourceId: string, content: string) => void,
-) {
+): AutoOcrProgress {
   // 최신 콜백을 ref 로 보관 — useEffect 가 매번 재시동되지 않도록
   const callbackRef = useRef(onSourceContentUpdate);
   useEffect(() => { callbackRef.current = onSourceContentUpdate; }, [onSourceContentUpdate]);
 
+  // per-source 진행 추적 (ref) — 콜백에서 mutation, recompute() 가 setProgress 호출
+  const sourceProgressRef = useRef<Map<string, SourceProgress>>(new Map());
+  const [progress, setProgress] = useState<AutoOcrProgress>({
+    isProcessing: false,
+    phase: 'idle',
+    ocrDone: 0, ocrTotal: 0,
+    visionDone: 0, visionTotal: 0,
+  });
+
+  const recompute = useCallback(() => {
+    const all = Array.from(sourceProgressRef.current.values());
+    if (all.length === 0) {
+      setProgress({ isProcessing: false, phase: 'idle', ocrDone: 0, ocrTotal: 0, visionDone: 0, visionTotal: 0 });
+      return;
+    }
+    const ocrDone = all.reduce((s, p) => s + p.ocrDone, 0);
+    const ocrTotal = all.reduce((s, p) => s + p.ocrTotal, 0);
+    const visionDone = all.reduce((s, p) => s + p.visionDone, 0);
+    const visionTotal = all.reduce((s, p) => s + p.visionTotal, 0);
+    const anyOcrRunning = all.some((p) => !p.ocrFinished);
+    const anyVisionRunning = all.some((p) => p.visionStarted && !p.visionFinished);
+    const isProcessing = anyOcrRunning || anyVisionRunning;
+    let phase: AutoOcrProgress['phase'] = 'done';
+    if (anyOcrRunning) phase = 'ocr';
+    else if (anyVisionRunning) phase = 'vision';
+    else if (ocrTotal === 0 && visionTotal === 0) phase = 'idle';
+    setProgress({ isProcessing, phase, ocrDone, ocrTotal, visionDone, visionTotal });
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const localStarted: string[] = [];
+
+    // 노트북 변경 시 per-source 진행 추적 초기화 — 다른 노트북 영향 안 받게
+    sourceProgressRef.current = new Map();
+    // 초기 상태: PDF 소스가 OCR 대상이면 isProcessing 즉시 true (loading screen 깜빡임 방지)
+    const needsProcessing = notebook.sources.some(
+      (s) => s.kind === 'pdf' && s.blobRef && s.ocrEnabled && (s.scanPages?.length ?? 0) > 0,
+    );
+    if (needsProcessing) {
+      setProgress({
+        isProcessing: true, phase: 'ocr',
+        ocrDone: 0, ocrTotal: 0, visionDone: 0, visionTotal: 0,
+      });
+    } else {
+      setProgress({ isProcessing: false, phase: 'idle', ocrDone: 0, ocrTotal: 0, visionDone: 0, visionTotal: 0 });
+    }
 
     (async () => {
       // 동적 import — pdfjs 워커가 무거우므로 lazy
@@ -77,8 +147,22 @@ export function useStudyAutoOcr(
 
         const blobRef = source.blobRef;
 
-        // 이미 다른 곳에서 큐가 돌고 있으면 스킵
-        if (queueRegistry.has(blobRef)) continue;
+        // per-source progress 등록 — UI 진행률 집계 대상
+        sourceProgressRef.current.set(source.id, {
+          ocrDone: 0, ocrTotal: scanPages.length,
+          visionDone: 0, visionTotal: 0,
+          ocrFinished: false, visionStarted: false, visionFinished: false,
+        });
+        recompute();
+
+        // 이미 다른 곳에서 큐가 돌고 있으면 스킵 (단, 진행상황은 캐시에서 유추 어려우니
+        // 그냥 ocrFinished=true 표시해서 progress 안 막음)
+        if (queueRegistry.has(blobRef)) {
+          const sp = sourceProgressRef.current.get(source.id);
+          if (sp) { sp.ocrFinished = true; sp.visionFinished = true; }
+          recompute();
+          continue;
+        }
 
         // 이미 모든 페이지가 OCR 캐시에 있으면 시동 불필요 (content 만 한 번 동기화)
         try {
@@ -93,8 +177,18 @@ export function useStudyAutoOcr(
             const sparseNotVisioned = ocrRecs
               .filter((r) => (r.text?.length ?? 0) < 200 && !visionDone.has(r.page))
               .map((r) => r.page);
+            // 캐시 완료 — OCR 단계 끝
+            const sp = sourceProgressRef.current.get(source.id);
+            if (sp) {
+              sp.ocrDone = scanPages.length;
+              sp.ocrFinished = true;
+              if (sparseNotVisioned.length === 0) {
+                sp.visionFinished = true;
+              }
+            }
+            recompute();
             if (sparseNotVisioned.length === 0) continue;
-            // Vision 만 시동 (doc + file 필요)
+            // Vision 만 시동 (doc + file 필요) — 아래 try 블록이 시동
           }
         } catch { /* 캐시 조회 실패 — 정상 흐름 계속 */ }
 
@@ -111,6 +205,11 @@ export function useStudyAutoOcr(
           const ocrQueue = new OcrQueue(
             { blobRef, doc, pages: scanPages, renderScale: 1.8, concurrency: 2 },
             {
+              onProgress: (done) => {
+                const sp = sourceProgressRef.current.get(source.id);
+                if (sp) { sp.ocrDone = done; }
+                recompute();
+              },
               onPageDone: async () => {
                 if (cancelled) return;
                 const combined = await buildMergedContent(blobRef, source.nativeText);
@@ -118,6 +217,11 @@ export function useStudyAutoOcr(
               },
               onFinish: async () => {
                 if (cancelled) return;
+                {
+                  const sp = sourceProgressRef.current.get(source.id);
+                  if (sp) { sp.ocrFinished = true; sp.ocrDone = scanPages.length; }
+                  recompute();
+                }
                 // Vision 체이닝 — OCR 결과가 빈약한 페이지(< 200자)
                 try {
                   const ocrRecs = await getAllForBlob(blobRef);
@@ -125,18 +229,37 @@ export function useStudyAutoOcr(
                   const sparsePages = ocrRecs
                     .filter((r) => (r.text?.length ?? 0) < 200 && !visionDone.has(r.page))
                     .map((r) => r.page);
-                  if (sparsePages.length === 0) return;
+                  if (sparsePages.length === 0) {
+                    const sp = sourceProgressRef.current.get(source.id);
+                    if (sp) { sp.visionFinished = true; }
+                    recompute();
+                    return;
+                  }
+
+                  // Vision 시동 표시
+                  {
+                    const sp = sourceProgressRef.current.get(source.id);
+                    if (sp) { sp.visionStarted = true; sp.visionTotal = sparsePages.length; }
+                    recompute();
+                  }
 
                   const visionQueue = new VisionQueue(
                     { blobRef, doc, file: blob, pages: sparsePages, batchSize: 4, maxWidth: 1024, quality: 0.72 },
                     {
+                      onProgress: (done) => {
+                        const sp = sourceProgressRef.current.get(source.id);
+                        if (sp) { sp.visionDone = done; }
+                        recompute();
+                      },
                       onPageDone: async () => {
                         if (cancelled) return;
                         const combined = await buildMergedContent(blobRef, source.nativeText);
                         if (combined && !cancelled) callbackRef.current(source.id, combined);
                       },
                       onFinish: () => {
-                        // 큐 정리는 registry 지움
+                        const sp = sourceProgressRef.current.get(source.id);
+                        if (sp) { sp.visionFinished = true; sp.visionDone = sparsePages.length; }
+                        recompute();
                         queueRegistry.delete(blobRef);
                       },
                       onError: (e) => console.warn('[auto-vision]', e),
@@ -148,6 +271,9 @@ export function useStudyAutoOcr(
                 } catch (e) {
                   console.warn('[auto-vision-chain]', e);
                   queueRegistry.delete(blobRef);
+                  const sp = sourceProgressRef.current.get(source.id);
+                  if (sp) { sp.visionFinished = true; }
+                  recompute();
                 }
               },
               onError: (e) => console.warn('[auto-ocr]', e),
@@ -172,4 +298,6 @@ export function useStudyAutoOcr(
     // notebook.sources 의 식별자만 deps 로 — content 변화에는 재실행 X
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notebook.id, notebook.sources.map((s) => `${s.id}:${s.blobRef ?? ''}:${s.ocrEnabled ? 1 : 0}`).join('|')]);
+
+  return progress;
 }

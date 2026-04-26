@@ -55,7 +55,7 @@ export function StudyNotebookView({
       updatedAt: Date.now(),
     });
   }, [notebook, onChange]);
-  useStudyAutoOcr(notebook, handleAutoOcrUpdate);
+  const ocrProgress = useStudyAutoOcr(notebook, handleAutoOcrUpdate);
 
   useEffect(() => {
     if (!paletteTrigger?.action) return;
@@ -93,6 +93,11 @@ export function StudyNotebookView({
     };
     onChange({ ...notebook, flashcards: [card, ...notebook.flashcards] });
   };
+
+  // OCR/Vision 진행 중이면 로딩 화면 노출 — 끝나면 자동으로 노트북 진입
+  if (ocrProgress.isProcessing) {
+    return <PdfProcessingScreen progress={ocrProgress} notebookTitle={notebook.title} onBack={onBack} />;
+  }
 
   return (
     <div className="study-root flex flex-col h-full bg-[#FAFBFC] dark:bg-[#0B1220]">
