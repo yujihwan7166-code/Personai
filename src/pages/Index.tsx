@@ -1,6 +1,7 @@
 ﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { MainModeTabs } from '@/components/MainModeTabs';
 import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
@@ -4615,8 +4616,20 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
       case 'translate_main':   return 'translate';
       case 'convert_main':     return 'convert';
       case 'study_main':       return 'study';
+      case 'voice_main':       return 'voice';
+      case 'media_main':       return 'media';
     }
   };
+
+  // MAIN_MODE_LABELS → 단순 label 만 추출 (MainModeTabs labels prop 형식)
+  const mainModeLabelMap = (() => {
+    type MainMode = import('@/types/expert').MainMode;
+    const out: Partial<Record<MainMode, string>> = {};
+    for (const [k, v] of Object.entries(MAIN_MODE_LABELS)) {
+      out[k as MainMode] = (v as { label: string }).label;
+    }
+    return out as Record<MainMode, string>;
+  })();
 
   // Phase C 대수술: 루트에 모드별 클래스 주입 → --mode 변수 상속 + 배경 gradient 연결
   const rootModeClass = (() => {
@@ -4645,6 +4658,33 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           "before:transition-[background] before:duration-700",
         )}
       >
+        {/* 항상 마운트되는 fallback MainModeTabs — 사이드바 LayoutGrid 가
+            현재 mainMode (심층리서치 등 ExpertSelectionPanel 미마운트 케이스 포함)
+            상관없이 동작하도록. 트리거 pill 은 화면 밖, panel 만 portal 로 등장. */}
+        <div
+          style={{ position: 'fixed', left: -9999, top: -9999, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}
+          aria-hidden
+        >
+          <MainModeTabs
+            modes={['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
+            labels={mainModeLabelMap}
+            currentMode={getMainMode(discussionMode)}
+            pendingMode={null}
+            isDiscussing={false}
+            transitionPhase={0}
+            showPlayerBg={false}
+            onChange={(m) => handleModeChange(mainToDiscussion(m))}
+            onSelectDebateSub={(sub) => handleModeChange(sub)}
+            onSelectAssistantCard={(cardId) => {
+              if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
+              setSelectedAssistantCard(cardId);
+            }}
+            onOpenMentalTests={() => setMentalTestsOpen(true)}
+            onOpenBookmarks={() => setBookmarksOpen(true)}
+            apiRef={mainModeTabsApiRef}
+          />
+        </div>
+
         {/* 전역 커맨드 팔레트 (Cmd+K / Ctrl+K) — 어디서든 호출 가능 */}
         <Suspense fallback={null}>
           <LazyCommandPalette
@@ -5173,7 +5213,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     onAssistantSubmit={handleAssistantSubmit}
                     onOpenMentalTests={() => setMentalTestsOpen(true)}
                     onOpenBookmarks={() => setBookmarksOpen(true)}
-                    mainModeTabsApiRef={mainModeTabsApiRef}
                   />
                 </Suspense>
               )}
