@@ -1565,7 +1565,13 @@ export function MainModeTabs({
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => { /* no-op — v1 기능 미연결 */ }}
+                          onClick={() => {
+                            // 마이위키만 v1 구현 — 다른 도구는 아직 no-op.
+                            if (item.id === 'wiki') {
+                              setOpen(false);
+                              navigate('/wiki');
+                            }
+                          }}
                           role="menuitem"
                           className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                         >
