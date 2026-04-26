@@ -9,6 +9,8 @@ import {
 type Lens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast' | 'diagram' | 'diagram-suggest';
 type Tone = 'plain' | 'student' | 'exam' | 'interview' | 'kid';
 type Level = 'basic' | 'standard' | 'advanced';
+type SummaryMode = 'whole' | 'pages-index' | 'pages-detail';
+type SummaryDensity = 'oneline' | 'standard' | 'detailed';
 
 interface SourceInput {
   title: string;
@@ -25,6 +27,9 @@ interface GenReq {
     weakConcepts?: string[];
     expertA?: { name: string; role?: string };
     expertB?: { name: string; role?: string };
+    summaryMode?: SummaryMode;
+    pages?: number[];
+    density?: SummaryDensity;
   };
 }
 
@@ -59,8 +64,61 @@ ${sourceBlock}
 === /소스 ===
 `;
 
+  const summaryMode: SummaryMode = req.options?.summaryMode ?? 'whole';
+
   switch (req.lens) {
     case 'summary':
+      if (summaryMode === 'pages-index') {
+        return {
+          system: `당신은 공부 도우미입니다. 학습 자료의 각 페이지를 한 줄씩 요약해 JSON 배열로 출력합니다.
+원본에 없는 사실 금지. 페이지 마커 [p.N] 만 신뢰.`,
+          user: `${common}
+위 소스에는 [p.N] 형식의 페이지 마커가 들어 있습니다.
+각 페이지를 정확히 1줄로 요약해 아래 JSON 배열만 출력하세요(코드블록·주석·부가 텍스트 금지):
+
+[
+  { "page": 1, "title": "표지/섹션 제목(있으면, 없으면 생략)", "oneLiner": "한 줄 요약(≤45자)", "kind": "text" },
+  { "page": 2, "title": "...", "oneLiner": "...", "kind": "text" }
+]
+
+규칙:
+- **모든 페이지** 를 빠짐없이 포함 (소스에 등장한 [p.N] 전부)
+- 'oneLiner' 는 **반드시 ≤45자**, 명사구·요점만, 마침표 X
+- 'title' 은 그 페이지의 헤딩이 보일 때만 (예: "Liver", "Bile ducts")
+- 텍스트 거의 없이 그림·도식만 있는 페이지는 "kind":"image-only", 'oneLiner' 는 "🖼️ 도식/그림" 으로
+- 빈 페이지(완전 백지)도 "kind":"image-only", 'oneLiner' 는 "(빈 페이지)" 로
+- 페이지 마커가 없으면 빈 배열 [] 만 출력`,
+        };
+      }
+      if (summaryMode === 'pages-detail') {
+        const pages = (req.options?.pages ?? []).filter((n) => Number.isFinite(n));
+        const density = req.options?.density ?? 'standard';
+        const lengthHint = density === 'oneline'
+          ? '각 페이지 1-2문장 (≤80자)'
+          : density === 'detailed'
+          ? '각 페이지 7-10문장, 핵심 용어 굵게(**), 가능하면 예시 1개'
+          : '각 페이지 3-5문장, 핵심 용어 굵게(**)';
+        return {
+          system: `당신은 공부 도우미입니다. 지정된 페이지만 학습 노트로 정리합니다.
+원본에 없는 사실 금지. 인접 페이지는 맥락 참고만, 본문은 지정 페이지 내용만.`,
+          user: `${common}
+다음 페이지들만 학습 노트로 정리하세요: ${pages.join(', ')}
+
+각 페이지의 노트를 아래 JSON 배열로만 출력 (코드블록·주석 금지):
+
+[
+  { "page": 1, "body": "마크다운 본문" },
+  { "page": 2, "body": "..." }
+]
+
+규칙:
+- ${lengthHint}
+- 'body' 는 마크다운, 핵심 용어는 **굵게**
+- 도입부·결론부 금지, 바로 핵심 서술
+- 해당 페이지에 텍스트가 거의 없으면 'body' 를 "🖼️ 그림 위주 페이지로 텍스트 정리가 어려워요" 로
+- 지정한 페이지만 정확히 출력 (다른 페이지 추가 금지)`,
+        };
+      }
       return {
         system: `당신은 공부 도우미입니다. 학습 자료를 "심층 구조화 요약"으로 만듭니다.
 핵심 원칙: 원본에 없는 사실 금지 · 단순 나열 금지 · 인과·흐름·비교로 서술 · 핵심 용어는 반드시 굵게(**)`,
@@ -416,6 +474,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : body.lens === 'podcast' ? 5000
           : body.lens === 'diagram-suggest' ? 800
           : body.lens === 'diagram' ? 2500
+          : (body.lens === 'summary' && body.options?.summaryMode === 'pages-index') ? 4500
+          : (body.lens === 'summary' && body.options?.summaryMode === 'pages-detail') ? 4500
           : 3500,
       }),
     });
@@ -425,6 +485,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const data = await response.json();
     const content: string = data?.choices?.[0]?.message?.content ?? '';
+
+    if (body.lens === 'summary' && (body.options?.summaryMode === 'pages-index' || body.options?.summaryMode === 'pages-detail')) {
+      let parsed: unknown = null;
+      try {
+        const trimmed = content.replace(/^```json\s*|\s*```$/g, '').trim();
+        parsed = JSON.parse(trimmed);
+      } catch {
+        const match = content.match(/\[[\s\S]*\]/);
+        if (match) {
+          try { parsed = JSON.parse(match[0]); } catch { /* noop */ }
+        }
+      }
+      return res.status(200).json({ content, structured: parsed });
+    }
 
     if (body.lens === 'quiz' || body.lens === 'flashcards') {
       let parsed: unknown = null;

@@ -39,6 +39,37 @@ export interface LensOutput {
   meta?: Record<string, unknown>;
 }
 
+/* ── 노트정리: 페이지별 모드 ── */
+export type PageNoteStatus = 'pending' | 'oneLiner' | 'full' | 'skipped' | 'error';
+export type PageNoteKind = 'text' | 'image-only';
+export type SummaryDensity = 'oneline' | 'standard' | 'detailed';
+
+export interface PageNote {
+  page: number;
+  title?: string;
+  oneLiner: string;
+  body?: string;
+  kind?: PageNoteKind;
+  status: PageNoteStatus;
+  generatedAt?: number;
+}
+
+export interface PageNoteGroup {
+  id: string;
+  title: string;
+  pageRange: [number, number];
+  pages: number[];
+}
+
+export interface SummaryStructured {
+  mode: 'whole' | 'pages';
+  pages?: {
+    notes: PageNote[];
+    groups?: PageNoteGroup[];
+    density: SummaryDensity;
+  };
+}
+
 export interface StudyQuizItem {
   id: string;
   question: string;

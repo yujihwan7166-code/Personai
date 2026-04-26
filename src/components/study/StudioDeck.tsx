@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   RefreshCw, Copy, Play, Users, FileText, Sparkles, GitBranch, Target, Map, MessagesSquare,
   ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star, Mic, BarChart3,
 } from 'lucide-react';
-import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType, QuizDeck, PodcastEpisode, PodcastLine, PodcastLength, PodcastTone, PodcastPurpose, DiagramItem, DiagramKind, DiagramVariant } from '@/types/study';
+import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType, QuizDeck, PodcastEpisode, PodcastLine, PodcastLength, PodcastTone, PodcastPurpose, DiagramItem, DiagramKind, DiagramVariant, SummaryStructured, SummaryDensity, PageNote } from '@/types/study';
 import { TONE_META, LEVEL_META, newId, FLASHCARD_CARD_TYPE_META, migrateQuizDecks, PODCAST_LENGTH_META } from '@/types/study';
 import { PodcastConfigModal, type PodcastConfig } from './PodcastConfigModal';
 import { PodcastDeckView } from './PodcastDeckView';
@@ -15,6 +15,7 @@ import { DEFAULT_EXPERTS } from '@/types/expert';
 import { ExpertPickerModal } from './ExpertPickerModal';
 import { DebateLayout } from './DebateLayout';
 import { KeypointsLayout, MindmapLayout, GuideLayout, SummaryLayout } from './LensLayouts';
+import { PageNotesView, PageNotesEmptyChooser, buildPageGroups } from './PageNotesView';
 import { MindmapCanvas } from './MindmapCanvas';
 import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
@@ -385,8 +386,8 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
     const existing = notebook.lensOutputs[lens];
     // 단일 뷰: 클릭한 렌즈로 전환. 캐시 있으면 즉시 전환.
     setActiveLens(lens);
-    // 퀴즈·플래시카드·팟캐스트·도식은 설정 단계가 필요하므로 자동 생성하지 않음.
-    if (!existing && lens !== 'quiz' && lens !== 'flashcards' && lens !== 'podcast' && lens !== 'diagram') generate(lens);
+    // 퀴즈·플래시카드·팟캐스트·도식·노트정리는 설정/모드 단계가 필요하므로 자동 생성하지 않음.
+    if (!existing && lens !== 'quiz' && lens !== 'flashcards' && lens !== 'podcast' && lens !== 'diagram' && lens !== 'summary') generate(lens);
   };
 
   const activeOutput = activeLens ? notebook.lensOutputs[activeLens] : undefined;
@@ -494,9 +495,11 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
           </div>
         ) : activeLens === 'summary' ? (
           <SummarySection
+            notebook={notebook}
+            onChange={onChange}
             summary={activeOutput}
             loading={activeLoading}
-            onRegenerate={(tone, level) => generate('summary', tone, level)}
+            onRegenerateWhole={(tone, level) => generate('summary', tone, level)}
             onJumpToPage={onJumpToPage}
           />
         ) : activeLens === 'quiz' && quizSubView === 'wrong' ? (
@@ -1138,41 +1141,330 @@ function QuizConfigModal({
   );
 }
 
-/* ── 요약 전용 상단 고정 뷰 ── */
+/* ── 노트정리 — 모드 컨트롤러 (페이지별 / 전체 요약) ── */
 function SummarySection({
-  summary, loading, onJumpToPage,
+  notebook, onChange, summary, loading, onRegenerateWhole, onJumpToPage,
 }: {
+  notebook: StudyNotebook;
+  onChange: (nb: StudyNotebook) => void;
   summary: LensOutput | undefined;
   loading: boolean;
-  onRegenerate: (tone?: StudyTone, level?: StudyLevel) => void;
+  onRegenerateWhole: (tone?: StudyTone, level?: StudyLevel) => void;
   onJumpToPage?: (page: number) => void;
 }) {
-  if (loading && !summary) {
+  const structured = (summary?.meta?.structured as SummaryStructured | undefined) ?? undefined;
+  const hasWhole = !!summary?.content;
+  const hasPages = !!structured?.pages && structured.pages.notes.length > 0;
+
+  // 자동으로 mode 결정: structured.mode 우선 → 둘 중 있는 것 → 없으면 chooser
+  const initialMode: 'whole' | 'pages' | null = structured?.mode
+    ?? (hasPages ? 'pages' : hasWhole ? 'whole' : null);
+  const [mode, setMode] = useState<'whole' | 'pages' | null>(initialMode);
+  const [pagesIndexLoading, setPagesIndexLoading] = useState(false);
+  const [detailLoadingPages, setDetailLoadingPages] = useState<number[]>([]);
+
+  const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready');
+  const aggregatePageCount = enabledSources.reduce((acc, s) => acc + (s.pageCount ?? 0), 0) || undefined;
+
+  // 페이지 마커가 소스에 있는지 빠르게 검사 (없으면 페이지 모드 비활성화)
+  const sourceText = useMemo(
+    () => enabledSources.map((s) => s.content).join('\n').slice(0, 60000),
+    [enabledSources],
+  );
+  const hasPageMarkers = useMemo(() => /\[p\.\d+\]/.test(sourceText), [sourceText]);
+
+  // structured 메타 저장 헬퍼
+  const writeStructured = (next: SummaryStructured, contentOverride?: string) => {
+    const baseOutput: LensOutput = summary ?? {
+      lens: 'summary' as StudyLens,
+      content: '',
+      tone: 'student' as StudyTone,
+      level: 'standard' as StudyLevel,
+      generatedAt: Date.now(),
+    };
+    onChange({
+      ...notebook,
+      lensOutputs: {
+        ...notebook.lensOutputs,
+        summary: {
+          ...baseOutput,
+          content: contentOverride ?? baseOutput.content,
+          generatedAt: Date.now(),
+          meta: { ...(baseOutput.meta ?? {}), structured: next },
+        },
+      },
+    });
+  };
+
+  const fetchPagesIndex = async () => {
+    if (enabledSources.length === 0) {
+      toast({ title: '소스가 필요해요', description: '먼저 자료를 하나 이상 추가하고 활성화해주세요.' });
+      return;
+    }
+    setPagesIndexLoading(true);
+    try {
+      const r = await fetch('/api/study-generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lens: 'summary',
+          sources: enabledSources.map((s) => ({ title: s.title, content: s.content })),
+          tone: summary?.tone ?? 'student',
+          level: summary?.level ?? 'standard',
+          options: { summaryMode: 'pages-index' },
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        toast({ title: '페이지 정리 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
+        return;
+      }
+      const arr = Array.isArray(data?.structured) ? data.structured : [];
+      if (arr.length === 0) {
+        toast({ title: '페이지 정보가 없어요', description: '이 자료에는 페이지 마커가 없어 페이지별 모드를 쓸 수 없어요.' });
+        return;
+      }
+      const notes: PageNote[] = arr
+        .filter((n: { page?: number }) => Number.isFinite(n?.page))
+        .map((n: { page: number; title?: string; oneLiner?: string; kind?: 'image-only' | 'text' }) => ({
+          page: n.page,
+          title: n.title?.trim() || undefined,
+          oneLiner: (n.oneLiner ?? '').trim() || '(요약 없음)',
+          kind: n.kind === 'image-only' ? 'image-only' : 'text',
+          status: n.kind === 'image-only' ? 'skipped' : 'oneLiner',
+        }));
+      const groups = buildPageGroups(notes);
+      writeStructured({
+        mode: 'pages',
+        pages: { notes, groups, density: structured?.pages?.density ?? 'standard' },
+      });
+      setMode('pages');
+    } catch {
+      toast({ title: '네트워크 오류', description: '연결을 확인하고 다시 시도해주세요.', variant: 'destructive' });
+    } finally {
+      setPagesIndexLoading(false);
+    }
+  };
+
+  const fetchPagesDetail = async (pages: number[]) => {
+    if (pages.length === 0) return;
+    setDetailLoadingPages((prev) => Array.from(new Set([...prev, ...pages])));
+    try {
+      const r = await fetch('/api/study-generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lens: 'summary',
+          sources: enabledSources.map((s) => ({ title: s.title, content: s.content })),
+          tone: summary?.tone ?? 'student',
+          level: summary?.level ?? 'standard',
+          options: {
+            summaryMode: 'pages-detail',
+            pages,
+            density: structured?.pages?.density ?? 'standard',
+          },
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        toast({ title: '페이지 본문 생성 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
+        // 실패 표시
+        if (structured?.pages) {
+          const updated = structured.pages.notes.map((n) =>
+            pages.includes(n.page) ? { ...n, status: 'error' as const } : n,
+          );
+          writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
+        }
+        return;
+      }
+      const arr = Array.isArray(data?.structured) ? data.structured : [];
+      const bodyByPage = new Map<number, string>();
+      for (const item of arr) {
+        if (Number.isFinite(item?.page) && typeof item?.body === 'string') {
+          bodyByPage.set(item.page, item.body);
+        }
+      }
+      if (structured?.pages) {
+        const updated = structured.pages.notes.map((n) => {
+          if (!pages.includes(n.page)) return n;
+          const body = bodyByPage.get(n.page);
+          if (!body) return { ...n, status: 'error' as const };
+          return { ...n, body, status: 'full' as const, generatedAt: Date.now() };
+        });
+        writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
+      }
+    } catch {
+      toast({ title: '네트워크 오류', description: '연결을 확인하고 다시 시도해주세요.', variant: 'destructive' });
+    } finally {
+      setDetailLoadingPages((prev) => prev.filter((p) => !pages.includes(p)));
+    }
+  };
+
+  const changeDensity = (d: SummaryDensity) => {
+    if (!structured?.pages) return;
+    writeStructured({ ...structured, pages: { ...structured.pages, density: d } });
+    // 이미 본문이 있는 카드는 즉시 재생성하지 않음 — 다음 펼침/재생성 시 새 밀도 반영
+  };
+
+  const regeneratePage = (page: number) => {
+    if (!structured?.pages) return;
+    const updated = structured.pages.notes.map((n) =>
+      n.page === page ? { ...n, body: undefined, status: 'oneLiner' as const } : n,
+    );
+    writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
+    fetchPagesDetail([page]);
+  };
+
+  // 첫 진입: 모드 미정 + 캐시 없음 → 선택 카드
+  if (mode === null) {
     return (
-      <div className="px-5 py-5">
-        <div className="flex items-center gap-2 mb-4">
-          <FileText className="h-4 w-4 text-indigo-500" />
-          <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">요약 생성 중…</span>
-        </div>
-        <div className="space-y-2">
-          <div className="study-shimmer h-5 w-1/3 rounded" />
-          <div className="study-shimmer h-3 w-full rounded" />
-          <div className="study-shimmer h-3 w-[92%] rounded" />
-          <div className="study-shimmer h-3 w-[85%] rounded" />
-          <div className="study-shimmer h-3 w-[70%] rounded mt-3" />
-          <div className="study-shimmer h-5 w-1/4 rounded mt-6" />
-          <div className="study-shimmer h-3 w-full rounded" />
-          <div className="study-shimmer h-3 w-[88%] rounded" />
-        </div>
-      </div>
+      <PageNotesEmptyChooser
+        pageCount={aggregatePageCount}
+        onPick={(picked) => {
+          if (picked === 'pages') {
+            if (!hasPageMarkers) {
+              toast({ title: '페이지 정보가 없어요', description: '이 자료는 페이지 마커가 없어 전체 요약 모드만 가능해요.' });
+              setMode('whole');
+              if (!hasWhole) onRegenerateWhole();
+              return;
+            }
+            fetchPagesIndex();
+          } else {
+            setMode('whole');
+            if (!hasWhole) onRegenerateWhole();
+          }
+        }}
+      />
     );
   }
 
-  if (!summary) return null;
-
   return (
-    <div className="px-5 py-4">
-      <SummaryLayout content={summary.content} onPageClick={onJumpToPage} />
+    <div className="px-4 py-3">
+      {/* 모드 탭 */}
+      <div className="flex items-center gap-1 mb-3">
+        <button
+          onClick={() => {
+            if (!hasPages) {
+              if (!hasPageMarkers) {
+                toast({ title: '페이지 정보가 없어요', description: '이 자료는 페이지 마커가 없어요.' });
+                return;
+              }
+              fetchPagesIndex();
+            } else {
+              setMode('pages');
+              if (structured) writeStructured({ ...structured, mode: 'pages' });
+            }
+          }}
+          disabled={pagesIndexLoading}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-semibold transition-colors',
+            mode === 'pages'
+              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+            pagesIndexLoading && 'opacity-60 cursor-wait',
+          )}
+        >
+          {pagesIndexLoading
+            ? <span className="study-shimmer h-3 w-3 rounded-full" />
+            : <span>📑</span>}
+          페이지별
+        </button>
+        <button
+          onClick={() => {
+            setMode('whole');
+            if (structured) writeStructured({ ...structured, mode: 'whole' });
+            if (!hasWhole) onRegenerateWhole();
+          }}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-semibold transition-colors',
+            mode === 'whole'
+              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
+          )}
+        >
+          <span>📋</span>
+          전체 요약
+        </button>
+        <div className="flex-1" />
+        {mode === 'whole' && hasWhole && (
+          <button
+            onClick={() => onRegenerateWhole()}
+            disabled={loading}
+            className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-700 disabled:opacity-40"
+          >
+            <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} /> 재생성
+          </button>
+        )}
+        {mode === 'pages' && hasPages && (
+          <button
+            onClick={() => fetchPagesIndex()}
+            disabled={pagesIndexLoading}
+            className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-700 disabled:opacity-40"
+          >
+            <RefreshCw className={cn('h-3 w-3', pagesIndexLoading && 'animate-spin')} /> 인덱스 재생성
+          </button>
+        )}
+      </div>
+
+      {/* 본문 */}
+      {mode === 'whole' ? (
+        loading && !hasWhole ? (
+          <WholeSummaryShimmer />
+        ) : hasWhole ? (
+          <SummaryLayout content={summary!.content} onPageClick={onJumpToPage} />
+        ) : null
+      ) : pagesIndexLoading && !hasPages ? (
+        <PagesIndexShimmer />
+      ) : hasPages && structured?.pages ? (
+        <PageNotesView
+          notes={structured.pages.notes}
+          groups={structured.pages.groups}
+          density={structured.pages.density}
+          onChangeDensity={changeDensity}
+          onLoadDetail={fetchPagesDetail}
+          detailLoadingPages={detailLoadingPages}
+          onRegeneratePage={regeneratePage}
+          onJumpToPage={onJumpToPage}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function WholeSummaryShimmer() {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <FileText className="h-4 w-4 text-indigo-500" />
+        <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">요약 생성 중…</span>
+      </div>
+      <div className="space-y-2">
+        <div className="study-shimmer h-5 w-1/3 rounded" />
+        <div className="study-shimmer h-3 w-full rounded" />
+        <div className="study-shimmer h-3 w-[92%] rounded" />
+        <div className="study-shimmer h-3 w-[85%] rounded" />
+        <div className="study-shimmer h-3 w-[70%] rounded mt-3" />
+        <div className="study-shimmer h-5 w-1/4 rounded mt-6" />
+        <div className="study-shimmer h-3 w-full rounded" />
+        <div className="study-shimmer h-3 w-[88%] rounded" />
+      </div>
+    </div>
+  );
+}
+
+function PagesIndexShimmer() {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <FileText className="h-4 w-4 text-indigo-500" />
+        <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">페이지를 한 줄씩 살펴보는 중…</span>
+      </div>
+      <div className="space-y-1.5">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="study-shimmer h-5 w-8 rounded-md" />
+            <div className="study-shimmer h-3 flex-1 rounded" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
