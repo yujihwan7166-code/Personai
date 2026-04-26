@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, FileText, RefreshCw, Image as ImageIcon, ExternalLink, Copy } from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
+import { RefreshCw, Image as ImageIcon, ExternalLink, Copy } from 'lucide-react';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { cn } from '@/lib/utils';
 import type { PageNote, PageChunk, SummaryDensity } from '@/types/study';
@@ -9,7 +9,7 @@ interface Props {
   chunks?: PageChunk[];
   density: SummaryDensity;
   onChangeDensity: (d: SummaryDensity) => void;
-  /** 챕터 펼침 시 그 챕터의 모든 페이지 본문을 한 번에 fetch */
+  /** 챕터 단위 본문 fetch — 챕터 UI 는 숨겨졌지만 데이터는 백그라운드로 로드. */
   onLoadChunkDetail: (chunk: PageChunk) => void;
   /** 현재 본문 로딩 중인 챕터 id */
   loadingChunkId?: string | null;
@@ -25,150 +25,58 @@ export function PageNotesView({
   density,
   onChangeDensity,
   onLoadChunkDetail,
-  loadingChunkId,
   onRegeneratePage,
   onJumpToPage,
   currentViewerPage,
 }: Props) {
-  // 한 번에 하나만 펼침 (아코디언)
-  const [openChunkId, setOpenChunkId] = useState<string | null>(null);
-
   const noteByPage = useMemo(() => {
     const m = new Map<number, PageNote>();
     for (const n of notes) m.set(n.page, n);
     return m;
   }, [notes]);
 
-  // chunks 가 없으면 단일 가상 chunk 로 폴백
-  const effectiveChunks: PageChunk[] = useMemo(() => {
-    if (chunks && chunks.length > 0) return chunks;
-    if (notes.length === 0) return [];
-    const sorted = [...notes].sort((a, b) => a.page - b.page);
-    const allPages = sorted.map((n) => n.page);
-    return [{
-      id: 'all',
-      range: [allPages[0], allPages[allPages.length - 1]],
-      pages: allPages,
-      title: '전체',
-      summary: '',
-    }];
-  }, [chunks, notes]);
+  // 페이지 번호 순 평탄화 — 챕터 그룹핑 없이 그냥 쭉 보여줌
+  const sortedNotes = useMemo(() => [...notes].sort((a, b) => a.page - b.page), [notes]);
 
-  const toggleChunk = (chunk: PageChunk) => {
-    if (openChunkId === chunk.id) {
-      setOpenChunkId(null);
-      return;
+  // 챕터 자동 fetch — UI 는 숨겼지만 본문 로드 위해 모든 chunk 백그라운드 fetch.
+  // 한 번만 실행 (chunk id 집합 변경 감지).
+  const fetchedChunksRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!chunks || chunks.length === 0) return;
+    for (const chunk of chunks) {
+      if (fetchedChunksRef.current.has(chunk.id)) continue;
+      const needsFetch = chunk.pages.some((p) => {
+        const note = noteByPage.get(p);
+        return note && !note.body && note.kind !== 'image-only' && note.status !== 'error';
+      });
+      if (needsFetch) {
+        fetchedChunksRef.current.add(chunk.id);
+        onLoadChunkDetail(chunk);
+      }
     }
-    setOpenChunkId(chunk.id);
-    // 본문이 비어있는 페이지가 하나라도 있으면 일괄 fetch
-    const needFetch = chunk.pages.some((p) => {
-      const note = noteByPage.get(p);
-      return note && !note.body && note.kind !== 'image-only' && note.status !== 'error';
-    });
-    if (needFetch) onLoadChunkDetail(chunk);
-  };
+  }, [chunks, noteByPage, onLoadChunkDetail]);
 
   return (
     <div className="flex flex-col">
       <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-1 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800">
         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-          총 {notes.length}페이지 · {effectiveChunks.length}개 챕터
+          총 {notes.length}페이지
         </p>
         <DensityToggle value={density} onChange={onChangeDensity} />
       </div>
 
-      <div className="pt-2 divide-y divide-slate-100 dark:divide-slate-800/60">
-        {effectiveChunks.map((chunk, idx) => {
-          const isOpen = openChunkId === chunk.id;
-          const isLoading = loadingChunkId === chunk.id;
-          return (
-            <ChunkAccordion
-              key={chunk.id}
-              chunk={chunk}
-              index={idx + 1}
-              isOpen={isOpen}
-              isLoading={isLoading}
-              notes={chunk.pages.map((p) => noteByPage.get(p)).filter((n): n is PageNote => !!n)}
-              density={density}
-              currentViewerPage={currentViewerPage}
-              onToggle={() => toggleChunk(chunk)}
-              onJumpToPage={onJumpToPage}
-              onRegeneratePage={onRegeneratePage}
-            />
-          );
-        })}
+      <div className="pt-3 space-y-4">
+        {sortedNotes.map((note) => (
+          <PageRow
+            key={note.page}
+            note={note}
+            density={density}
+            active={currentViewerPage === note.page}
+            onJump={onJumpToPage ? () => onJumpToPage(note.page) : undefined}
+            onRegenerate={() => onRegeneratePage(note.page)}
+          />
+        ))}
       </div>
-    </div>
-  );
-}
-
-function ChunkAccordion({
-  chunk, index, isOpen, isLoading, notes, density, currentViewerPage,
-  onToggle, onJumpToPage, onRegeneratePage,
-}: {
-  chunk: PageChunk;
-  index: number;
-  isOpen: boolean;
-  isLoading: boolean;
-  notes: PageNote[];
-  density: SummaryDensity;
-  currentViewerPage?: number;
-  onToggle: () => void;
-  onJumpToPage?: (page: number) => void;
-  onRegeneratePage: (page: number) => void;
-}) {
-  // Notion 스타일: 카드 박스·border 제거. 헤딩 + 흐름 텍스트만.
-  return (
-    <div className="group">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-baseline gap-2 px-1 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded"
-      >
-        {isOpen
-          ? <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0 self-center" />
-          : <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0 self-center" />}
-        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-400 shrink-0">
-          ch.{index} · {chunk.range[0]}~{chunk.range[1]}p
-        </span>
-        <h3 className="text-[15px] font-bold text-slate-900 dark:text-slate-100 truncate flex-1">
-          {chunk.title}
-        </h3>
-      </button>
-
-      {isOpen && (
-        <div className="pl-5 pb-4">
-          {chunk.summary && (
-            <div className="prose prose-sm max-w-none text-[13px] leading-[1.7] text-slate-700 dark:text-slate-300 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-2 mb-4">
-              <LazyMarkdown content={chunk.summary} />
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="space-y-3 py-2">
-              {Array.from({ length: Math.min(notes.length, 5) }).map((_, i) => (
-                <div key={i} className="space-y-1.5">
-                  <div className="study-shimmer h-3 w-1/4 rounded" />
-                  <div className="study-shimmer h-2.5 w-full rounded" />
-                  <div className="study-shimmer h-2.5 w-[88%] rounded" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {notes.map((note) => (
-                <PageRow
-                  key={note.page}
-                  note={note}
-                  density={density}
-                  active={currentViewerPage === note.page}
-                  onJump={onJumpToPage ? () => onJumpToPage(note.page) : undefined}
-                  onRegenerate={() => onRegeneratePage(note.page)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
