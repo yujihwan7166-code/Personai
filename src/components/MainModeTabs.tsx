@@ -203,7 +203,7 @@ export interface HubTool {
 
 export const HUB_TOOLS: HubTool[] = [
   // ── 행동 (오늘 무엇을) ─────────────────
-  { id: 'today',    label: '오늘',         desc: '할일·일정·습관 한눈에',     emoji: '☀️', tint: 'hsl(45 85% 55%)',  axis: '행동' },
+  { id: 'dashboard', label: '대시보드',    desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '행동' },
   { id: 'calendar', label: '캘린더',       desc: '월·주·일 통합 뷰',          emoji: '📅', tint: 'hsl(210 70% 55%)', axis: '행동' },
   { id: 'todo',     label: '할 일',        desc: '오늘의 체크리스트',         emoji: '✅', tint: 'hsl(145 55% 45%)', axis: '행동' },
   { id: 'habit',    label: '습관',         desc: '매일 반복 추적',            emoji: '🌱', tint: 'hsl(170 60% 45%)', axis: '행동' },
