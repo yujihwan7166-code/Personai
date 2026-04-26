@@ -887,20 +887,22 @@ export function MainModeTabs({
               aria-hidden
             />
 
-            {/* 드롭다운 — 뷰포트 상단 고정, max-h 로 항상 한 화면 */}
+            {/* 드롭다운 — 뷰포트 상단 고정, max-h 로 항상 한 화면.
+                방향 없는 fade + 미세 scale 로 전체가 같이 등장하는 느낌. */}
             <motion.div
               key="dropdown"
               ref={panelRef}
-              initial={{ opacity: 0, y: -6, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.98 }}
-              transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
               role="menu"
               style={{
                 position: 'fixed',
                 top: 56,
                 left: '50%',
                 translateX: '-50%',
+                transformOrigin: 'top center',
                 maxHeight: 'calc(100vh - 72px)',
               }}
               className={cn(
