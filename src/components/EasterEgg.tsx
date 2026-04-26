@@ -100,7 +100,7 @@ export function EasterEgg({ open, onClose }: Props) {
               <span className="ml-2 text-[10px] font-mono text-white/40 tracking-wider">~/personai/about-me.tsx</span>
             </div>
 
-            {/* 푸앙 카메오 — 중앙대 청룡 마스코트. 공식 이미지 사용 금지로 청룡 이모지 + 푸른 톤. */}
+            {/* 푸앙 카메오 — 중앙대 청룡 마스코트. /public/puang.png 사용, 실패 시 🐲 폴백. */}
             <motion.div
               initial={{ y: -40, opacity: 0, rotate: -20 }}
               animate={{ y: [0, -4, 0], opacity: 1, rotate: [-8, -4, -8] }}
@@ -109,16 +109,26 @@ export function EasterEgg({ open, onClose }: Props) {
                 opacity: { delay: 0.4, duration: 0.5 },
                 rotate:  { delay: 0.4, duration: 2.4, repeat: Infinity, ease: 'easeInOut' },
               }}
-              className="absolute top-12 right-5 z-10 pointer-events-none select-none flex flex-col items-center gap-1"
+              className="absolute top-10 right-4 z-10 pointer-events-none select-none flex flex-col items-center gap-1.5"
             >
-              <span
-                className="text-5xl"
+              <img
+                src="/puang.png"
+                alt="푸앙 — 중앙대 청룡 마스코트"
+                width={72}
+                height={72}
+                className="w-[72px] h-[72px] object-contain"
                 style={{
-                  filter: 'drop-shadow(0 0 12px rgba(56,189,248,0.55)) drop-shadow(0 0 24px rgba(99,102,241,0.35))',
+                  filter: 'drop-shadow(0 0 14px rgba(56,189,248,0.55)) drop-shadow(0 0 28px rgba(99,102,241,0.35))',
                 }}
-              >
-                🐲
-              </span>
+                onError={(e) => {
+                  // 이미지 로드 실패 시 청룡 이모지로 폴백
+                  const el = e.currentTarget;
+                  const fallback = document.createElement('span');
+                  fallback.textContent = '🐲';
+                  fallback.style.cssText = 'font-size:48px;filter:drop-shadow(0 0 12px rgba(56,189,248,0.55))';
+                  el.replaceWith(fallback);
+                }}
+              />
               <span className="px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-300/25 text-[8.5px] font-mono uppercase tracking-wider text-cyan-200/80">
                 푸앙 · 청룡
               </span>
