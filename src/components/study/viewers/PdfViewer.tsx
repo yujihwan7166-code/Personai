@@ -332,6 +332,31 @@ export function PdfViewer({
     return () => document.removeEventListener('selectionchange', onSelChange);
   }, []);
 
+  // OCR + Vision 결과를 페이지별로 병합. Vision 텍스트가 있으면 우선, 없으면 OCR.
+  // 호출 비용이 크지 않으므로 두 store 를 매번 같이 읽는다.
+  // [중요] startVisionQueueIfNeeded 가 deps 로 참조하므로 반드시 먼저 선언한다 (TDZ 방지).
+  const rebuildCombinedContent = useCallback(async () => {
+    if (!onOcrContentUpdate || !blobRef) return;
+    const [ocrRecs, visionRecs] = await Promise.all([
+      getAllForBlob(blobRef),
+      getAllVisionForBlob(blobRef),
+    ]);
+    const visionMap = new Map<number, string>();
+    for (const v of visionRecs) visionMap.set(v.page, v.text);
+    const pages = new Set<number>([
+      ...ocrRecs.map((r) => r.page),
+      ...visionRecs.map((r) => r.page),
+    ]);
+    const sorted = Array.from(pages).sort((a, b) => a - b);
+    const combined = sorted.map((p) => {
+      const v = visionMap.get(p);
+      if (v) return `[p.${p}] ${v}`;
+      const ocr = ocrRecs.find((r) => r.page === p);
+      return ocr ? `[p.${p}] ${ocr.text}` : '';
+    }).filter(Boolean).join('\n\n');
+    onOcrContentUpdate(combined);
+  }, [blobRef, onOcrContentUpdate]);
+
   // Vision 큐 시동: OCR 결과가 빈약한 페이지(< 200자) 들을 vision LLM 으로 보강.
   // OCR 큐 onFinish 콜백에서 호출됨.
   const startVisionQueueIfNeeded = useCallback(async () => {
@@ -365,30 +390,6 @@ export function PdfViewer({
     visionQueueRef.current = q;
     void q.start();
   }, [doc, blobRef, rebuildCombinedContent]);
-
-  // OCR + Vision 결과를 페이지별로 병합. Vision 텍스트가 있으면 우선, 없으면 OCR.
-  // 호출 비용이 크지 않으므로 두 store 를 매번 같이 읽는다.
-  const rebuildCombinedContent = useCallback(async () => {
-    if (!onOcrContentUpdate || !blobRef) return;
-    const [ocrRecs, visionRecs] = await Promise.all([
-      getAllForBlob(blobRef),
-      getAllVisionForBlob(blobRef),
-    ]);
-    const visionMap = new Map<number, string>();
-    for (const v of visionRecs) visionMap.set(v.page, v.text);
-    const pages = new Set<number>([
-      ...ocrRecs.map((r) => r.page),
-      ...visionRecs.map((r) => r.page),
-    ]);
-    const sorted = Array.from(pages).sort((a, b) => a - b);
-    const combined = sorted.map((p) => {
-      const v = visionMap.get(p);
-      if (v) return `[p.${p}] ${v}`;
-      const ocr = ocrRecs.find((r) => r.page === p);
-      return ocr ? `[p.${p}] ${ocr.text}` : '';
-    }).filter(Boolean).join('\n\n');
-    onOcrContentUpdate(combined);
-  }, [blobRef, onOcrContentUpdate]);
 
   // OCR 큐 생명주기 — doc 준비 + scanPages 존재 + 사용자 동의(ocrEnabled) 시 자동 시작
   useEffect(() => {
