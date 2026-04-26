@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { WikiPage } from '@/types/wiki';
 import { extractWikiLinks } from '@/types/wiki';
 import { deletePage as idbDelete, loadAllPages, upsertPage as idbUpsert } from '@/lib/wikiStore';
+import { isWikiSeeded, seedWiki } from '@/lib/wikiSeed';
 
 export function useWikiPages() {
   const [pages, setPages] = useState<WikiPage[]>([]);
@@ -15,12 +16,18 @@ export function useWikiPages() {
 
   useEffect(() => {
     let cancelled = false;
-    void loadAllPages().then((all) => {
+    (async () => {
+      let all = await loadAllPages();
+      // 첫 방문 — 시드 (기존 데이터 0 + 시드 플래그 미설정 일 때만)
+      if (all.length === 0 && !isWikiSeeded()) {
+        await seedWiki();
+        all = await loadAllPages();
+      }
       if (!cancelled) {
         setPages(all);
         setLoading(false);
       }
-    });
+    })();
     return () => { cancelled = true; };
   }, []);
 

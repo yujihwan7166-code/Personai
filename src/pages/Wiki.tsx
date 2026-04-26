@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { createEmptyWikiPage, type WikiPage } from '@/types/wiki';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
@@ -35,14 +36,21 @@ const Wiki = () => {
     }
   };
 
-  const handleOpenByTitle = (title: string) => {
-    const found = findByTitle(title);
+  // 백링크는 id, 위키링크는 title 을 넘긴다 — 둘 다 처리.
+  const handleOpenByTitleOrId = (titleOrId: string) => {
+    const byId = pages.find((p) => p.id === titleOrId);
+    if (byId) {
+      setActiveId(byId.id);
+      setEditing(false);
+      return;
+    }
+    const found = findByTitle(titleOrId);
     if (found) {
       setActiveId(found.id);
       setEditing(false);
     } else {
       // 미존재 — 새 페이지로 만들기 (제목만 채워서)
-      void handleCreate({ title });
+      void handleCreate({ title: titleOrId });
     }
   };
 
@@ -74,10 +82,12 @@ const Wiki = () => {
             page={activePage}
             editing={editing}
             backlinks={getBacklinks(activePage.id)}
+            allPages={pages}
+            findByTitle={findByTitle}
             onChange={(next) => { void upsertPage(next); }}
             onDelete={() => handleDelete(activePage.id)}
             onToggleEdit={() => setEditing((v) => !v)}
-            onOpenLink={handleOpenByTitle}
+            onOpenLink={handleOpenByTitleOrId}
           />
         ) : (
           <WikiHome
