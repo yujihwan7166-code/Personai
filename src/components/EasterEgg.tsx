@@ -87,7 +87,7 @@ export function EasterEgg({ open, onClose }: Props) {
             exit={{ scale: 0.9, opacity: 0, y: 12 }}
             transition={{ type: 'spring', stiffness: 220, damping: 22 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative cursor-default max-w-md w-[88vw] rounded-2xl border border-white/15 bg-[#0a0a0f]/95 shadow-2xl overflow-hidden"
+            className="relative cursor-default max-w-2xl w-[92vw] rounded-2xl border border-white/15 bg-[#0a0a0f]/95 shadow-2xl overflow-hidden"
             style={{
               boxShadow: '0 0 60px rgba(99,102,241,0.3), 0 0 120px rgba(236,72,153,0.15)',
             }}
@@ -100,8 +100,25 @@ export function EasterEgg({ open, onClose }: Props) {
               <span className="ml-2 text-[10px] font-mono text-white/40 tracking-wider">~/personai/about-me.tsx</span>
             </div>
 
+            {/* 푸앙 카메오 — 우측 상단에서 빼꼼 */}
+            <motion.div
+              initial={{ y: -40, opacity: 0, rotate: -20 }}
+              animate={{ y: [0, -4, 0], opacity: 1, rotate: [-8, -4, -8] }}
+              transition={{
+                y:       { delay: 0.4, duration: 2.4, repeat: Infinity, ease: 'easeInOut' },
+                opacity: { delay: 0.4, duration: 0.5 },
+                rotate:  { delay: 0.4, duration: 2.4, repeat: Infinity, ease: 'easeInOut' },
+              }}
+              className="absolute top-12 right-5 z-10 pointer-events-none select-none flex flex-col items-center gap-1"
+            >
+              <span className="text-4xl drop-shadow-[0_2px_8px_rgba(255,255,255,0.15)]">🐦</span>
+              <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-[8.5px] font-mono uppercase tracking-wider text-white/60">
+                푸앙 cameo
+              </span>
+            </motion.div>
+
             {/* 본문 */}
-            <div className="px-7 py-9 text-center">
+            <div className="px-10 py-10 text-center">
               <motion.div
                 initial={{ rotateY: -90 }}
                 animate={{ rotateY: 0 }}
@@ -119,7 +136,7 @@ export function EasterEgg({ open, onClose }: Props) {
                   유 지 환
                 </span>
               </h1>
-              <p className="text-[12px] text-white/50 font-mono mb-7">@yujihwan7166</p>
+              <p className="text-[12px] text-white/50 font-mono mb-7">@yujihwan7166 · 중앙대 🐦</p>
 
               {/* 터미널 라인 */}
               <div className="text-left bg-black/40 rounded-lg border border-white/5 px-3 py-2 mb-6 font-mono text-[11px] min-h-[32px] flex items-center">
@@ -144,8 +161,8 @@ export function EasterEgg({ open, onClose }: Props) {
                 </AnimatePresence>
               </div>
 
-              {/* 스탯 */}
-              <div className="grid grid-cols-2 gap-2 mb-7">
+              {/* 스탯 — 넓어진 모달이니 4 컬럼 균등 */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-7">
                 {STATS.map((s) => (
                   <div
                     key={s.label}
@@ -170,6 +187,9 @@ export function EasterEgg({ open, onClose }: Props) {
 
               <p className="mt-4 text-[9.5px] font-mono text-white/25 tracking-wide">
                 {'<'} 즐겨찾기 5번 클릭하면 다시 만나요 {'/>'}
+              </p>
+              <p className="mt-1 text-[9.5px] font-mono text-white/25 tracking-wide">
+                made @ 중앙대 with 푸앙 🐦
               </p>
             </div>
           </motion.div>
