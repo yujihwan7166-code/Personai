@@ -304,13 +304,16 @@ function DensityToggle({ value, onChange }: { value: SummaryDensity; onChange: (
 }
 
 export function PageNotesEmptyChooser({
-  pageCount, onPick, pagesDisabled, pagesDisabledReason,
+  pageCount, onPick, pagesDisabled, pagesDisabledReason, visionAvailable, onPickVision,
 }: {
   pageCount: number | undefined;
   onPick: (mode: 'pages' | 'whole') => void;
   /** true 면 페이지별 카드를 비활성화하고 이유를 표시 */
   pagesDisabled?: boolean;
   pagesDisabledReason?: string;
+  /** 스캔본/이미지 PDF 일 때 비전 옵션 노출 */
+  visionAvailable?: boolean;
+  onPickVision?: () => void;
 }) {
   const recommendPages = (pageCount ?? 0) >= 11 && !pagesDisabled;
   return (
@@ -326,7 +329,7 @@ export function PageNotesEmptyChooser({
           {pageCount ? `${pageCount}페이지 자료 · 둘 다 사용해볼 수 있어요` : '둘 다 사용해볼 수 있어요'}
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+      <div className={cn('grid grid-cols-1 gap-3 max-w-2xl mx-auto', visionAvailable ? 'md:grid-cols-3' : 'md:grid-cols-2')}>
         <button
           onClick={() => onPick('pages')}
           disabled={pagesDisabled}
@@ -372,6 +375,93 @@ export function PageNotesEmptyChooser({
             훑어보기·발표 도입부에 좋아요.
           </p>
         </button>
+        {visionAvailable && onPickVision && (
+          <button
+            onClick={onPickVision}
+            className="group relative text-left rounded-xl border border-amber-300 bg-gradient-to-br from-amber-50 to-white p-4 transition-all hover:shadow-md hover:border-amber-500"
+          >
+            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">📷 NEW</span>
+            <div className="text-2xl mb-2">🔍</div>
+            <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">이미지 인식으로 정리</p>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+              스캔본·손글씨 PDF 도 OK. AI 가 페이지를 그림으로 직접 읽어 정리해요.
+              <span className="block mt-1 text-amber-700 dark:text-amber-300 font-semibold">⏱️ 시간·비용 ↑</span>
+            </p>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function VisionConfirmModal({
+  pageCount, onConfirm, onCancel, progress,
+}: {
+  pageCount: number;
+  onConfirm: () => void;
+  onCancel: () => void;
+  progress: { phase: 'render' | 'ai'; done: number; total: number } | null;
+}) {
+  const isRunning = !!progress;
+  const phaseLabel = progress?.phase === 'render' ? '페이지를 이미지로 변환 중' : 'AI 가 페이지를 읽고 있어요';
+  const pct = progress ? Math.round((progress.done / Math.max(1, progress.total)) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-5 border border-slate-200 dark:border-slate-700">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40 shrink-0">
+            <span className="text-xl">🔍</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[14px] font-bold text-slate-900 dark:text-slate-100">이미지 인식으로 정리</h3>
+            <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
+              AI 가 {pageCount} 페이지를 그림으로 보고 정리해요
+            </p>
+          </div>
+        </div>
+
+        {!isRunning ? (
+          <>
+            <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3 text-[11.5px] text-slate-700 dark:text-slate-300 leading-relaxed space-y-1.5 mb-4">
+              <p><b>⏱️ 예상 시간:</b> 약 {Math.max(20, Math.round(pageCount * 0.7))}~{Math.round(pageCount * 1.5)}초</p>
+              <p><b>💰 비용:</b> 텍스트 PDF 의 1.5~2배</p>
+              <p><b>🎯 결과:</b> 도식·그림·손글씨까지 페이지별로 정리</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={onCancel}
+                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-[12.5px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                취소
+              </button>
+              <button
+                onClick={onConfirm}
+                className="flex-1 rounded-lg bg-amber-600 hover:bg-amber-700 px-3 py-2 text-[12.5px] font-semibold text-white"
+              >
+                시작하기
+              </button>
+            </div>
+          </>
+        ) : (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="study-shimmer h-3 w-3 rounded-full" />
+              <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">{phaseLabel}…</p>
+            </div>
+            <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 transition-all"
+                style={{ width: progress?.phase === 'ai' ? '95%' : `${pct}%` }}
+              />
+            </div>
+            <p className="text-[10.5px] text-slate-500 mt-1.5 tabular-nums">
+              {progress?.phase === 'render'
+                ? `${progress.done} / ${progress.total} 페이지`
+                : '잠시만 기다려주세요…'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

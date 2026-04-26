@@ -119,6 +119,41 @@ export async function renderPdfThumbnail(
   return canvas.toDataURL('image/jpeg', opts.quality ?? 0.7);
 }
 
+/** 지정 페이지들을 JPEG dataURL 배열로 렌더 (비전 입력용). 한 번 PDF 로드 → 여러 페이지 처리. */
+export async function renderPdfPagesToImages(
+  file: File | Blob,
+  pages: number[],
+  opts: { maxWidth?: number; quality?: number; onProgress?: (done: number, total: number) => void } = {},
+): Promise<Array<{ page: number; dataUrl: string }>> {
+  if (pages.length === 0) return [];
+  const pdfjs = await loadPdfJs();
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  const out: Array<{ page: number; dataUrl: string }> = [];
+  const maxW = opts.maxWidth ?? 1024;
+  const quality = opts.quality ?? 0.72;
+  let done = 0;
+  for (const p of pages) {
+    if (p < 1 || p > doc.numPages) { done++; opts.onProgress?.(done, pages.length); continue; }
+    const page = await doc.getPage(p);
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scale = Math.min(2, maxW / baseViewport.width);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { done++; opts.onProgress?.(done, pages.length); continue; }
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    out.push({ page: p, dataUrl: canvas.toDataURL('image/jpeg', quality) });
+    done++;
+    opts.onProgress?.(done, pages.length);
+    // 메모리 해제 + UI 양보
+    if (done % 4 === 0) await new Promise((r) => setTimeout(r, 0));
+  }
+  return out;
+}
+
 // ───── 내부 재사용용: PDF → 일반 문자열 ─────
 export async function extractPdfText(file: File, maxLen = 15000): Promise<string> {
   const pdfjs = await loadPdfJs();

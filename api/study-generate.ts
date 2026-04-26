@@ -9,7 +9,7 @@ import {
 type Lens = 'summary' | 'keypoints' | 'mindmap' | 'quiz' | 'guide' | 'debate' | 'flashcards' | 'podcast' | 'diagram' | 'diagram-suggest';
 type Tone = 'plain' | 'student' | 'exam' | 'interview' | 'kid';
 type Level = 'basic' | 'standard' | 'advanced';
-type SummaryMode = 'whole' | 'pages-index' | 'pages-detail';
+type SummaryMode = 'whole' | 'pages-index' | 'pages-detail' | 'pages-vision-index' | 'pages-vision-detail';
 type SummaryDensity = 'oneline' | 'standard' | 'detailed';
 
 interface SourceInput {
@@ -30,6 +30,8 @@ interface GenReq {
     summaryMode?: SummaryMode;
     pages?: number[];
     density?: SummaryDensity;
+    /** 비전 모드용 — 페이지 이미지 dataURL 배열 */
+    pageImages?: Array<{ page: number; dataUrl: string }>;
   };
 }
 
@@ -456,6 +458,103 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!body.lens || !Array.isArray(body.sources) || body.sources.length === 0) {
     return res.status(400).json({ error: '소스와 렌즈를 지정해 주세요.' });
   }
+
+  // ── 비전 모드 분기: 멀티모달 메시지 ──
+  const isVisionMode = body.lens === 'summary'
+    && (body.options?.summaryMode === 'pages-vision-index' || body.options?.summaryMode === 'pages-vision-detail');
+  if (isVisionMode) {
+    const images = body.options?.pageImages ?? [];
+    if (images.length === 0) {
+      return res.status(400).json({ error: '페이지 이미지가 필요해요.' });
+    }
+    const isIndex = body.options?.summaryMode === 'pages-vision-index';
+    const density = body.options?.density ?? 'standard';
+    const lengthHint = density === 'oneline'
+      ? '각 페이지 1-2문장 (≤80자)'
+      : density === 'detailed'
+      ? '각 페이지 7-10문장, 핵심 용어 굵게(**), 가능하면 예시 1개'
+      : '각 페이지 3-5문장, 핵심 용어 굵게(**)';
+
+    const visionSystem = isIndex
+      ? `당신은 공부 도우미입니다. 학습 자료의 각 페이지 이미지를 보고 한 줄씩 요약해 JSON 배열로 출력합니다.
+이미지에 보이는 내용만 신뢰하세요. 보이지 않는 내용을 추측하지 마세요.`
+      : `당신은 공부 도우미입니다. 지정된 페이지 이미지들을 보고 학습 노트로 정리합니다.
+이미지에 보이는 내용만 신뢰하세요. 보이지 않는 내용을 추측하지 마세요.`;
+
+    const visionUserText = isIndex
+      ? `다음은 학습 자료의 페이지 이미지들입니다. 각 이미지는 페이지 번호 라벨과 함께 제공됩니다.
+각 페이지를 정확히 1줄로 요약해 아래 JSON 배열만 출력하세요(코드블록·주석·부가 텍스트 금지):
+
+[
+  { "page": 1, "title": "페이지 제목/헤딩(있으면, 없으면 생략)", "oneLiner": "한 줄 요약(≤45자)", "kind": "text" }
+]
+
+규칙:
+- 입력된 모든 페이지를 빠짐없이 포함
+- 'oneLiner' 는 ≤45자, 명사구·요점만, 마침표 X
+- 'title' 은 그 페이지의 헤딩이 보일 때만
+- 페이지에 텍스트는 거의 없고 그림/도식만 있다면 "kind":"image-only", 'oneLiner' 는 그 그림이 무엇을 보여주는지 한 줄로 (예: "🖼️ 간 혈관 구조 도식")
+- 완전히 빈 페이지면 "kind":"image-only", 'oneLiner' 는 "(빈 페이지)" 로`
+      : `다음은 학습 자료의 특정 페이지 이미지들입니다. 각 페이지를 학습 노트로 정리하세요.
+아래 JSON 배열로만 출력 (코드블록·주석 금지):
+
+[
+  { "page": 1, "body": "마크다운 본문" }
+]
+
+규칙:
+- ${lengthHint}
+- 'body' 는 마크다운, 핵심 용어는 **굵게**, 페이지에 도식/그림이 있으면 그 의미도 풀어 설명
+- 도입부·결론부 금지, 바로 핵심 서술
+- 입력된 페이지만 정확히 출력 (다른 페이지 추가 금지)`;
+
+    // 멀티모달 content 구성: 각 이미지마다 라벨 텍스트 + 이미지 순서로 삽입
+    const userContent: Array<
+      | { type: 'text'; text: string }
+      | { type: 'image_url'; image_url: { url: string } }
+    > = [{ type: 'text', text: visionUserText }];
+    for (const img of images) {
+      userContent.push({ type: 'text', text: `[페이지 ${img.page}]` });
+      userContent.push({ type: 'image_url', image_url: { url: img.dataUrl } });
+    }
+
+    try {
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: getOpenRouterHeaders(apiKey),
+        body: JSON.stringify({
+          model: DEFAULT_OPENROUTER_TEXT_MODEL,
+          messages: [
+            { role: 'system', content: visionSystem },
+            { role: 'user', content: userContent },
+          ],
+          stream: false,
+          temperature: 0.3,
+          max_tokens: isIndex ? 4500 : 4500,
+        }),
+      });
+      if (!response.ok) {
+        const t = await response.text();
+        return res.status(response.status).json({ error: t || '비전 생성 실패' });
+      }
+      const data = await response.json();
+      const content: string = data?.choices?.[0]?.message?.content ?? '';
+      let parsed: unknown = null;
+      try {
+        const trimmed = content.replace(/^```json\s*|\s*```$/g, '').trim();
+        parsed = JSON.parse(trimmed);
+      } catch {
+        const match = content.match(/\[[\s\S]*\]/);
+        if (match) {
+          try { parsed = JSON.parse(match[0]); } catch { /* noop */ }
+        }
+      }
+      return res.status(200).json({ content, structured: parsed });
+    } catch (err) {
+      return res.status(500).json({ error: err instanceof Error ? err.message : '오류' });
+    }
+  }
+
   const { system, user } = buildPrompt(body);
 
   try {

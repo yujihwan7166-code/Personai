@@ -67,6 +67,10 @@ export interface SummaryStructured {
     notes: PageNote[];
     groups?: PageNoteGroup[];
     density: SummaryDensity;
+    /** true = 페이지를 이미지로 보내 비전 모델로 생성. 스캔본 PDF 등에 사용. */
+    vision?: boolean;
+    /** 비전 모드 시 PDF blob 식별 (재로드용) */
+    sourceBlobRef?: string;
   };
 }
 

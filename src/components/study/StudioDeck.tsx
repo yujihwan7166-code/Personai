@@ -15,7 +15,7 @@ import { DEFAULT_EXPERTS } from '@/types/expert';
 import { ExpertPickerModal } from './ExpertPickerModal';
 import { DebateLayout } from './DebateLayout';
 import { KeypointsLayout, MindmapLayout, GuideLayout, SummaryLayout } from './LensLayouts';
-import { PageNotesView, PageNotesEmptyChooser, buildPageGroups } from './PageNotesView';
+import { PageNotesView, PageNotesEmptyChooser, VisionConfirmModal, buildPageGroups } from './PageNotesView';
 import { MindmapCanvas } from './MindmapCanvas';
 import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
@@ -1162,6 +1162,8 @@ function SummarySection({
   const [mode, setMode] = useState<'whole' | 'pages' | null>(initialMode);
   const [pagesIndexLoading, setPagesIndexLoading] = useState(false);
   const [detailLoadingPages, setDetailLoadingPages] = useState<number[]>([]);
+  const [visionConfirmOpen, setVisionConfirmOpen] = useState(false);
+  const [visionProgress, setVisionProgress] = useState<{ phase: 'render' | 'ai'; done: number; total: number } | null>(null);
 
   const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready');
   const aggregatePageCount = enabledSources.reduce((acc, s) => acc + (s.pageCount ?? 0), 0) || undefined;
@@ -1328,6 +1330,145 @@ function SummarySection({
     }
   };
 
+  const fetchVisionIndex = async () => {
+    const pdfSource = enabledSources.find((s) => s.kind === 'pdf' && s.blobRef);
+    if (!pdfSource || !pdfSource.blobRef) {
+      toast({ title: '원본 파일이 필요해요', description: '비전 모드는 PDF 원본이 저장된 자료에서만 가능해요.' });
+      return;
+    }
+    const total = pdfSource.pageCount ?? 0;
+    if (total === 0) {
+      toast({ title: '페이지 정보가 없어요', description: '이 PDF는 페이지 수를 알 수 없어요.' });
+      return;
+    }
+    setPagesIndexLoading(true);
+    setVisionProgress({ phase: 'render', done: 0, total });
+    try {
+      const { getBlob } = await import('@/lib/studyBlobStore');
+      const { renderPdfPagesToImages } = await import('@/lib/fileConvert/converters/pdf');
+      const blob = await getBlob(pdfSource.blobRef);
+      if (!blob) {
+        toast({ title: '원본 파일을 찾을 수 없어요', description: '자료를 다시 업로드해주세요.', variant: 'destructive' });
+        return;
+      }
+      const file = new File([blob], pdfSource.title || 'doc.pdf', { type: pdfSource.mimeType || 'application/pdf' });
+      const allPages = Array.from({ length: total }, (_, i) => i + 1);
+      const images = await renderPdfPagesToImages(file, allPages, {
+        maxWidth: 900,
+        quality: 0.7,
+        onProgress: (done, all) => setVisionProgress({ phase: 'render', done, total: all }),
+      });
+      setVisionProgress({ phase: 'ai', done: 0, total: 1 });
+      const r = await fetch('/api/study-generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lens: 'summary',
+          sources: [{ title: pdfSource.title, content: '(image-based PDF)' }],
+          tone: summary?.tone ?? 'student',
+          level: summary?.level ?? 'standard',
+          options: { summaryMode: 'pages-vision-index', pageImages: images },
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        toast({ title: '비전 인식 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
+        return;
+      }
+      const arr = Array.isArray(data?.structured) ? data.structured : [];
+      if (arr.length === 0) {
+        toast({ title: '인식 결과가 비었어요', description: '페이지 이미지를 다시 시도해보세요.', variant: 'destructive' });
+        return;
+      }
+      const notes: PageNote[] = arr
+        .filter((n: { page?: number }) => Number.isFinite(n?.page))
+        .map((n: { page: number; title?: string; oneLiner?: string; kind?: 'image-only' | 'text' }) => ({
+          page: n.page,
+          title: n.title?.trim() || undefined,
+          oneLiner: (n.oneLiner ?? '').trim() || '(요약 없음)',
+          kind: n.kind === 'image-only' ? 'image-only' : 'text',
+          status: 'oneLiner' as const,
+        }));
+      const groups = buildPageGroups(notes);
+      writeStructured({
+        mode: 'pages',
+        pages: {
+          notes, groups,
+          density: structured?.pages?.density ?? 'standard',
+          vision: true,
+          sourceBlobRef: pdfSource.blobRef,
+        },
+      });
+      setMode('pages');
+    } catch {
+      toast({ title: '네트워크 오류', description: '연결을 확인하고 다시 시도해주세요.', variant: 'destructive' });
+    } finally {
+      setPagesIndexLoading(false);
+      setVisionProgress(null);
+    }
+  };
+
+  const fetchVisionDetail = async (pages: number[]) => {
+    if (pages.length === 0 || !structured?.pages?.sourceBlobRef) return;
+    setDetailLoadingPages((prev) => Array.from(new Set([...prev, ...pages])));
+    try {
+      const { getBlob } = await import('@/lib/studyBlobStore');
+      const { renderPdfPagesToImages } = await import('@/lib/fileConvert/converters/pdf');
+      const blob = await getBlob(structured.pages.sourceBlobRef);
+      if (!blob) {
+        toast({ title: '원본 파일을 찾을 수 없어요', variant: 'destructive' });
+        return;
+      }
+      const pdfSource = enabledSources.find((s) => s.blobRef === structured.pages?.sourceBlobRef);
+      const file = new File([blob], pdfSource?.title || 'doc.pdf', { type: pdfSource?.mimeType || 'application/pdf' });
+      const images = await renderPdfPagesToImages(file, pages, { maxWidth: 1024, quality: 0.75 });
+      const r = await fetch('/api/study-generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lens: 'summary',
+          sources: [{ title: pdfSource?.title || 'doc', content: '(image-based PDF)' }],
+          tone: summary?.tone ?? 'student',
+          level: summary?.level ?? 'standard',
+          options: {
+            summaryMode: 'pages-vision-detail',
+            pageImages: images,
+            density: structured.pages.density,
+          },
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        toast({ title: '비전 본문 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
+        if (structured?.pages) {
+          const updated = structured.pages.notes.map((n) =>
+            pages.includes(n.page) ? { ...n, status: 'error' as const } : n,
+          );
+          writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
+        }
+        return;
+      }
+      const arr = Array.isArray(data?.structured) ? data.structured : [];
+      const bodyByPage = new Map<number, string>();
+      for (const item of arr) {
+        if (Number.isFinite(item?.page) && typeof item?.body === 'string') {
+          bodyByPage.set(item.page, item.body);
+        }
+      }
+      if (structured?.pages) {
+        const updated = structured.pages.notes.map((n) => {
+          if (!pages.includes(n.page)) return n;
+          const body = bodyByPage.get(n.page);
+          if (!body) return { ...n, status: 'error' as const };
+          return { ...n, body, status: 'full' as const, generatedAt: Date.now() };
+        });
+        writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
+      }
+    } catch {
+      toast({ title: '네트워크 오류', description: '연결을 확인하고 다시 시도해주세요.', variant: 'destructive' });
+    } finally {
+      setDetailLoadingPages((prev) => prev.filter((p) => !pages.includes(p)));
+    }
+  };
+
   const changeDensity = (d: SummaryDensity) => {
     if (!structured?.pages) return;
     writeStructured({ ...structured, pages: { ...structured.pages, density: d } });
@@ -1340,7 +1481,13 @@ function SummarySection({
       n.page === page ? { ...n, body: undefined, status: 'oneLiner' as const } : n,
     );
     writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
-    fetchPagesDetail([page]);
+    if (structured.pages.vision) fetchVisionDetail([page]);
+    else fetchPagesDetail([page]);
+  };
+
+  const loadDetailRouter = (pages: number[]) => {
+    if (structured?.pages?.vision) fetchVisionDetail(pages);
+    else fetchPagesDetail(pages);
   };
 
   const pagesUnavailable = !hasPageMarkers;
@@ -1348,28 +1495,48 @@ function SummarySection({
     ? '이미지/스캔본 PDF 라 텍스트가 인식되지 않았어요. 페이지별 정리를 만들 수 없어요.'
     : '페이지 구분자가 없는 자료(URL·복사 텍스트 등)에서는 사용할 수 없어요.';
 
+  // 비전 모드 사용 가능 조건: PDF 원본이 IndexedDB 에 있고 페이지 수가 잡혀 있음
+  const visionPdf = enabledSources.find((s) => s.kind === 'pdf' && s.blobRef && s.pageCount);
+  const visionAvailable = !!visionPdf;
+
   // 첫 진입: 모드 미정 + 캐시 없음 → 선택 카드
   if (mode === null) {
     return (
-      <PageNotesEmptyChooser
-        pageCount={aggregatePageCount}
-        pagesDisabled={pagesUnavailable}
-        pagesDisabledReason={pagesUnavailableReason}
-        onPick={(picked) => {
-          if (picked === 'pages') {
-            if (!hasPageMarkers) {
-              showPageUnavailableToast();
+      <>
+        <PageNotesEmptyChooser
+          pageCount={aggregatePageCount}
+          pagesDisabled={pagesUnavailable}
+          pagesDisabledReason={pagesUnavailableReason}
+          visionAvailable={visionAvailable}
+          onPickVision={() => setVisionConfirmOpen(true)}
+          onPick={(picked) => {
+            if (picked === 'pages') {
+              if (!hasPageMarkers) {
+                showPageUnavailableToast();
+                setMode('whole');
+                if (!hasWhole) onRegenerateWhole();
+                return;
+              }
+              fetchPagesIndex();
+            } else {
               setMode('whole');
               if (!hasWhole) onRegenerateWhole();
-              return;
             }
-            fetchPagesIndex();
-          } else {
-            setMode('whole');
-            if (!hasWhole) onRegenerateWhole();
-          }
-        }}
-      />
+          }}
+        />
+        {visionConfirmOpen && visionPdf && (
+          <VisionConfirmModal
+            pageCount={visionPdf.pageCount ?? 0}
+            progress={visionProgress}
+            onCancel={() => {
+              if (!visionProgress) setVisionConfirmOpen(false);
+            }}
+            onConfirm={() => {
+              fetchVisionIndex().finally(() => setVisionConfirmOpen(false));
+            }}
+          />
+        )}
+      </>
     );
   }
 
@@ -1432,11 +1599,15 @@ function SummarySection({
         )}
         {mode === 'pages' && hasPages && (
           <button
-            onClick={() => fetchPagesIndex()}
+            onClick={() => {
+              if (structured?.pages?.vision) setVisionConfirmOpen(true);
+              else fetchPagesIndex();
+            }}
             disabled={pagesIndexLoading}
             className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-700 disabled:opacity-40"
           >
-            <RefreshCw className={cn('h-3 w-3', pagesIndexLoading && 'animate-spin')} /> 인덱스 재생성
+            <RefreshCw className={cn('h-3 w-3', pagesIndexLoading && 'animate-spin')} />
+            {structured?.pages?.vision ? '이미지 다시 인식' : '인덱스 재생성'}
           </button>
         )}
       </div>
@@ -1456,12 +1627,25 @@ function SummarySection({
           groups={structured.pages.groups}
           density={structured.pages.density}
           onChangeDensity={changeDensity}
-          onLoadDetail={fetchPagesDetail}
+          onLoadDetail={loadDetailRouter}
           detailLoadingPages={detailLoadingPages}
           onRegeneratePage={regeneratePage}
           onJumpToPage={onJumpToPage}
         />
       ) : null}
+
+      {visionConfirmOpen && visionPdf && (
+        <VisionConfirmModal
+          pageCount={visionPdf.pageCount ?? 0}
+          progress={visionProgress}
+          onCancel={() => {
+            if (!visionProgress) setVisionConfirmOpen(false);
+          }}
+          onConfirm={() => {
+            fetchVisionIndex().finally(() => setVisionConfirmOpen(false));
+          }}
+        />
+      )}
     </div>
   );
 }
