@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import type { WikiPage } from '@/types/wiki';
 import { WIKI_TYPE_META } from '@/types/wiki';
+import { WikiImage } from './WikiImage';
 
 interface Props {
   body: string;
@@ -42,6 +43,10 @@ export function WikiBody({ body, onOpenLink, findByTitle }: Props) {
         h3: ({ children, ...rest }) => (
           <h3 id={slug(stringifyChildren(children))} {...rest}>{children}</h3>
         ),
+        img: ({ src, alt }) => {
+          if (typeof src !== 'string') return null;
+          return <WikiImage src={src} alt={alt} />;
+        },
         a: ({ href, children, ...rest }) => {
           if (typeof href === 'string' && href.startsWith('##wiki:')) {
             const title = decodeURIComponent(href.slice('##wiki:'.length));

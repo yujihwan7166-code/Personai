@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X, Download, Star, Check } from 'lucide-react';
+import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
@@ -9,6 +9,7 @@ import { WikiBody } from './WikiBody';
 import { WikiToc } from './WikiToc';
 import { WikiInfobox } from './WikiInfobox';
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
+import { saveImage } from '@/lib/wikiImageStore';
 
 interface Props {
   page: WikiPage;
@@ -91,6 +92,65 @@ export function WikiPageView({
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     setDraft(page);
     onToggleEdit();
+  };
+
+  /** caret 위치에 텍스트 삽입. */
+  const insertAtCaret = (text: string) => {
+    const ta = textareaRef.current;
+    const before = ta?.selectionStart ?? draft.body.length;
+    const after = ta?.selectionEnd ?? draft.body.length;
+    const next = draft.body.slice(0, before) + text + draft.body.slice(after);
+    setDraft({ ...draft, body: next });
+    requestAnimationFrame(() => {
+      if (!ta) return;
+      const newCaret = before + text.length;
+      ta.setSelectionRange(newCaret, newCaret);
+      ta.focus();
+    });
+  };
+
+  /** File 들을 IDB 에 저장 후 caret 에 markdown 이미지 삽입. */
+  const handleImageFiles = async (files: FileList | File[]) => {
+    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (arr.length === 0) return;
+    const inserts: string[] = [];
+    for (const f of arr) {
+      const id = await saveImage(f);
+      const alt = f.name.replace(/\.[^.]+$/, '');
+      inserts.push(`![${alt}](wiki-image:${id})`);
+    }
+    insertAtCaret('\n\n' + inserts.join('\n\n') + '\n\n');
+  };
+
+  const onDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+    const hasImage = Array.from(e.dataTransfer.files).some((f) => f.type.startsWith('image/'));
+    if (!hasImage) return;
+    e.preventDefault();
+    void handleImageFiles(e.dataTransfer.files);
+  };
+
+  const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files: File[] = [];
+    for (const it of items) {
+      if (it.kind === 'file') {
+        const f = it.getAsFile();
+        if (f && f.type.startsWith('image/')) files.push(f);
+      }
+    }
+    if (files.length === 0) return;
+    e.preventDefault();
+    void handleImageFiles(files);
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const onPickImage = () => fileInputRef.current?.click();
+  const onFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files;
+    e.target.value = '';
+    if (f) void handleImageFiles(f);
   };
 
   /** 페이지를 frontmatter + 본문 형식의 .md 파일로 다운로드. */
@@ -232,11 +292,33 @@ export function WikiPageView({
           <section className={cn('min-h-[200px]', editing ? '' : 'wiki-prose')}>
             {editing ? (
               <>
+                <div className="mb-2 flex items-center gap-2 text-[10.5px] text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={onPickImage}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-[hsl(var(--hairline))] hover:bg-accent transition-colors text-foreground/80"
+                    title="이미지 추가"
+                  >
+                    <ImagePlus className="w-3 h-3" />
+                    이미지
+                  </button>
+                  <span>드래그·드롭 또는 붙여넣기 (Ctrl/Cmd+V) 도 OK</span>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={onFileChosen}
+                />
                 <textarea
                   ref={textareaRef}
                   value={draft.body}
                   onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-                  placeholder="마크다운 본문… [[다른 페이지]] 로 위키링크 (자동완성 지원)"
+                  onDrop={onDrop}
+                  onPaste={onPaste}
+                  placeholder="마크다운 본문… [[다른 페이지]] · 이미지 드롭/붙여넣기 OK"
                   className="w-full min-h-[420px] bg-background border border-[hsl(var(--hairline))] rounded-lg p-4 text-[13.5px] leading-7 font-mono outline-none focus:border-primary/40 transition-colors resize-y"
                   autoFocus
                 />
