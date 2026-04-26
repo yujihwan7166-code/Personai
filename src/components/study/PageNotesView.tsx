@@ -92,78 +92,69 @@ export function PageNotesView({
         <DensityToggle value={density} onChange={onChangeDensity} />
       </div>
 
-      <div className="space-y-3 pt-3">
-        {groups && groups.length > 0 && groups.map((g) => {
+      <div className="pt-1 divide-y divide-slate-100 dark:divide-slate-800/60">
+        {groups && groups.length > 0 ? groups.map((g) => {
           const collapsed = collapsedGroups.has(g.id);
           return (
-            <div key={g.id} className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-              <div className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50/70 dark:bg-slate-800/40">
+            <div key={g.id}>
+              <div className="flex items-center gap-2 pt-3 pb-1.5 px-1">
                 <button
                   onClick={() => toggleGroup(g.id)}
-                  className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                  className="flex items-center gap-1.5 text-left text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  title={collapsed ? '펼치기' : '접기'}
                 >
                   {collapsed
-                    ? <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                    : <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />}
-                  <span className="text-[12.5px] font-bold text-slate-800 dark:text-slate-200 truncate">{g.title}</span>
-                  <span className="text-[10.5px] text-slate-400 tabular-nums shrink-0">
-                    p.{g.pageRange[0]}–{g.pageRange[1]} · {g.pages.length}p
+                    ? <ChevronRight className="h-3 w-3 shrink-0" />
+                    : <ChevronDown className="h-3 w-3 shrink-0" />}
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider">{g.title}</span>
+                  <span className="text-[10px] text-slate-400 tabular-nums">
+                    p.{g.pageRange[0]}–{g.pageRange[1]}
                   </span>
                 </button>
+                <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
                 {!collapsed && (
                   <button
                     onClick={() => expandGroup(g)}
-                    className="text-[10.5px] text-indigo-600 hover:text-indigo-800 font-semibold shrink-0"
+                    className="text-[10px] text-slate-400 hover:text-indigo-700 font-semibold"
                   >
-                    전체 펼치기
+                    전체 본문 보기
                   </button>
                 )}
               </div>
-              {!collapsed && (
-                <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {g.pages.map((p) => {
-                    const note = noteByPage.get(p);
-                    if (!note) return null;
-                    return (
-                      <PageCard
-                        key={p}
-                        note={note}
-                        expanded={expandedPages.has(p)}
-                        onToggle={() => togglePage(p)}
-                        loading={detailLoadingPages.includes(p)}
-                        onRegenerate={() => onRegeneratePage(p)}
-                        onJump={onJumpToPage ? () => onJumpToPage(p) : undefined}
-                        active={currentViewerPage === p}
-                        density={density}
-                      />
-                    );
-                  })}
-                </div>
-              )}
+              {!collapsed && g.pages.map((p) => {
+                const note = noteByPage.get(p);
+                if (!note) return null;
+                return (
+                  <PageCard
+                    key={p}
+                    note={note}
+                    expanded={expandedPages.has(p)}
+                    onToggle={() => togglePage(p)}
+                    loading={detailLoadingPages.includes(p)}
+                    onRegenerate={() => onRegeneratePage(p)}
+                    onJump={onJumpToPage ? () => onJumpToPage(p) : undefined}
+                    active={currentViewerPage === p}
+                    density={density}
+                  />
+                );
+              })}
             </div>
           );
-        })}
+        }) : null}
 
-        {ungrouped.length > 0 && (
-          <div className={cn(
-            'rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/60',
-            groups && groups.length > 0 && 'mt-3',
-          )}>
-            {ungrouped.map((n) => (
-              <PageCard
-                key={n.page}
-                note={n}
-                expanded={expandedPages.has(n.page)}
-                onToggle={() => togglePage(n.page)}
-                loading={detailLoadingPages.includes(n.page)}
-                onRegenerate={() => onRegeneratePage(n.page)}
-                onJump={onJumpToPage ? () => onJumpToPage(n.page) : undefined}
-                active={currentViewerPage === n.page}
-                density={density}
-              />
-            ))}
-          </div>
-        )}
+        {ungrouped.length > 0 && ungrouped.map((n) => (
+          <PageCard
+            key={n.page}
+            note={n}
+            expanded={expandedPages.has(n.page)}
+            onToggle={() => togglePage(n.page)}
+            loading={detailLoadingPages.includes(n.page)}
+            onRegenerate={() => onRegeneratePage(n.page)}
+            onJump={onJumpToPage ? () => onJumpToPage(n.page) : undefined}
+            active={currentViewerPage === n.page}
+            density={density}
+          />
+        ))}
       </div>
     </div>
   );
@@ -304,164 +295,137 @@ function DensityToggle({ value, onChange }: { value: SummaryDensity; onChange: (
 }
 
 export function PageNotesEmptyChooser({
-  pageCount, onPick, pagesDisabled, pagesDisabledReason, visionAvailable, onPickVision,
+  pageCount,
+  visionAvailable,
+  onStartVision,
+  onStartText,
+  onWhole,
+  fallbackOnly,
+  fallbackReason,
 }: {
   pageCount: number | undefined;
-  onPick: (mode: 'pages' | 'whole') => void;
-  /** true 면 페이지별 카드를 비활성화하고 이유를 표시 */
-  pagesDisabled?: boolean;
-  pagesDisabledReason?: string;
-  /** 스캔본/이미지 PDF 일 때 비전 옵션 노출 */
-  visionAvailable?: boolean;
-  onPickVision?: () => void;
+  visionAvailable: boolean;
+  onStartVision: () => void;
+  onStartText: () => void;
+  onWhole: () => void;
+  /** true 면 페이지별 자체가 불가 → 전체 요약만 노출 */
+  fallbackOnly?: boolean;
+  fallbackReason?: string;
 }) {
-  const recommendPages = (pageCount ?? 0) >= 11 && !pagesDisabled;
-  return (
-    <div className="px-6 py-10">
-      <div className="text-center mb-6">
+  // PDF 인 경우 — 메인 액션 1개 (이미지 인식) + 보조 (전체 요약)
+  if (visionAvailable && !fallbackOnly) {
+    return (
+      <div className="px-6 py-10 flex flex-col items-center text-center">
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
           <FileText className="h-5 w-5 text-indigo-500" strokeWidth={1.8} />
         </div>
-        <p className="text-[13.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">
-          어떤 방식으로 정리할까요?
+        <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100 mb-1">
+          페이지별 노트를 만들어 드릴게요
         </p>
-        <p className="text-[11.5px] text-slate-500 dark:text-slate-400">
-          {pageCount ? `${pageCount}페이지 자료 · 둘 다 사용해볼 수 있어요` : '둘 다 사용해볼 수 있어요'}
+        <p className="text-[12px] text-slate-500 dark:text-slate-400 mb-5">
+          {pageCount ? `${pageCount}페이지 · ` : ''}AI 가 페이지를 직접 읽어 도식·그림까지 정리해요
         </p>
-      </div>
-      <div className={cn('grid grid-cols-1 gap-3 max-w-2xl mx-auto', visionAvailable ? 'md:grid-cols-3' : 'md:grid-cols-2')}>
         <button
-          onClick={() => onPick('pages')}
-          disabled={pagesDisabled}
-          className={cn(
-            'group relative text-left rounded-xl border p-4 transition-all',
-            pagesDisabled
-              ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-70'
-              : recommendPages
-              ? 'border-indigo-300 bg-indigo-50/40 hover:border-indigo-500 hover:shadow-md'
-              : 'border-slate-200 hover:border-indigo-300 hover:shadow-md',
-          )}
+          onClick={onStartVision}
+          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-[13px] font-bold shadow-sm"
         >
-          {recommendPages && (
-            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">⭐ 추천</span>
-          )}
-          {pagesDisabled && (
-            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">사용 불가</span>
-          )}
-          <div className="text-2xl mb-2">📑</div>
-          <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">페이지별 정리</p>
-          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-            {pagesDisabled
-              ? pagesDisabledReason ?? '이 자료에서는 사용할 수 없어요.'
-              : '1p, 2p, 3p… 페이지마다 노트를 만들어 PDF 와 1:1 로 따라봐요. 긴 자료에 강해요.'}
-          </p>
+          📑 페이지별 정리 시작
         </button>
         <button
-          onClick={() => onPick('whole')}
-          className={cn(
-            'group relative text-left rounded-xl border p-4 transition-all hover:shadow-md',
-            !recommendPages
-              ? 'border-indigo-300 bg-indigo-50/40 hover:border-indigo-500'
-              : 'border-slate-200 hover:border-indigo-300',
-          )}
+          onClick={onWhole}
+          className="mt-3 text-[11.5px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline-offset-2 hover:underline"
         >
-          {!recommendPages && (
-            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">⭐ 추천</span>
-          )}
-          <div className="text-2xl mb-2">📋</div>
-          <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">전체 한 번에 요약</p>
-          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-            자료 전체를 6~10개 대주제로 묶은 한 덩어리 마크다운.
-            훑어보기·발표 도입부에 좋아요.
-          </p>
+          또는 전체를 한 번에 요약 →
         </button>
-        {visionAvailable && onPickVision && (
-          <button
-            onClick={onPickVision}
-            className="group relative text-left rounded-xl border border-amber-300 bg-gradient-to-br from-amber-50 to-white p-4 transition-all hover:shadow-md hover:border-amber-500"
-          >
-            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">📷 NEW</span>
-            <div className="text-2xl mb-2">🔍</div>
-            <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">이미지 인식으로 정리</p>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-              스캔본·손글씨 PDF 도 OK. AI 가 페이지를 그림으로 직접 읽어 정리해요.
-              <span className="block mt-1 text-amber-700 dark:text-amber-300 font-semibold">⏱️ 시간·비용 ↑</span>
-            </p>
-          </button>
-        )}
       </div>
+    );
+  }
+
+  // PDF 가 아니거나 페이지 모드 자체 불가 → 텍스트 페이지 모드 OR 전체 요약만
+  if (fallbackOnly) {
+    return (
+      <div className="px-6 py-10 flex flex-col items-center text-center">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 mb-3">
+          <FileText className="h-5 w-5 text-slate-500" strokeWidth={1.8} />
+        </div>
+        <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100 mb-1">
+          전체 요약으로 만들어 드릴게요
+        </p>
+        <p className="text-[12px] text-slate-500 dark:text-slate-400 mb-5 max-w-sm">
+          {fallbackReason ?? '페이지 단위로 나눌 수 있는 자료가 아니에요.'}
+        </p>
+        <button
+          onClick={onWhole}
+          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-[13px] font-bold shadow-sm"
+        >
+          📋 전체 요약 시작
+        </button>
+      </div>
+    );
+  }
+
+  // 텍스트 PDF (markers 있음) — 페이지별 텍스트 모드 + 전체 요약
+  return (
+    <div className="px-6 py-10 flex flex-col items-center text-center">
+      <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
+        <FileText className="h-5 w-5 text-indigo-500" strokeWidth={1.8} />
+      </div>
+      <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100 mb-1">
+        페이지별 노트를 만들어 드릴게요
+      </p>
+      <p className="text-[12px] text-slate-500 dark:text-slate-400 mb-5">
+        {pageCount ? `${pageCount}페이지 · ` : ''}1p, 2p, 3p… 페이지마다 정리
+      </p>
+      <button
+        onClick={onStartText}
+        className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-[13px] font-bold shadow-sm"
+      >
+        📑 페이지별 정리 시작
+      </button>
+      <button
+        onClick={onWhole}
+        className="mt-3 text-[11.5px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline-offset-2 hover:underline"
+      >
+        또는 전체를 한 번에 요약 →
+      </button>
     </div>
   );
 }
 
-export function VisionConfirmModal({
-  pageCount, onConfirm, onCancel, progress,
+export function VisionProgressOverlay({
+  pageCount, progress,
 }: {
   pageCount: number;
-  onConfirm: () => void;
-  onCancel: () => void;
-  progress: { phase: 'render' | 'ai'; done: number; total: number } | null;
+  progress: { phase: 'render' | 'ai'; done: number; total: number };
 }) {
-  const isRunning = !!progress;
-  const phaseLabel = progress?.phase === 'render' ? '페이지를 이미지로 변환 중' : 'AI 가 페이지를 읽고 있어요';
-  const pct = progress ? Math.round((progress.done / Math.max(1, progress.total)) * 100) : 0;
+  const phaseLabel = progress.phase === 'render' ? '페이지를 이미지로 변환 중' : 'AI 가 페이지를 읽고 있어요';
+  const pct = Math.round((progress.done / Math.max(1, progress.total)) * 100);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-5 border border-slate-200 dark:border-slate-700">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40 shrink-0">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-5 border border-slate-200 dark:border-slate-700">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/40 shrink-0">
             <span className="text-xl">🔍</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-[14px] font-bold text-slate-900 dark:text-slate-100">이미지 인식으로 정리</h3>
-            <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
-              AI 가 {pageCount} 페이지를 그림으로 보고 정리해요
+            <h3 className="text-[13.5px] font-bold text-slate-900 dark:text-slate-100">{phaseLabel}…</h3>
+            <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {pageCount} 페이지 자료
             </p>
           </div>
         </div>
-
-        {!isRunning ? (
-          <>
-            <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3 text-[11.5px] text-slate-700 dark:text-slate-300 leading-relaxed space-y-1.5 mb-4">
-              <p><b>⏱️ 예상 시간:</b> 약 {Math.max(20, Math.round(pageCount * 0.7))}~{Math.round(pageCount * 1.5)}초</p>
-              <p><b>💰 비용:</b> 텍스트 PDF 의 1.5~2배</p>
-              <p><b>🎯 결과:</b> 도식·그림·손글씨까지 페이지별로 정리</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={onCancel}
-                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-[12.5px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-              >
-                취소
-              </button>
-              <button
-                onClick={onConfirm}
-                className="flex-1 rounded-lg bg-amber-600 hover:bg-amber-700 px-3 py-2 text-[12.5px] font-semibold text-white"
-              >
-                시작하기
-              </button>
-            </div>
-          </>
-        ) : (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="study-shimmer h-3 w-3 rounded-full" />
-              <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">{phaseLabel}…</p>
-            </div>
-            <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-amber-500 transition-all"
-                style={{ width: progress?.phase === 'ai' ? '95%' : `${pct}%` }}
-              />
-            </div>
-            <p className="text-[10.5px] text-slate-500 mt-1.5 tabular-nums">
-              {progress?.phase === 'render'
-                ? `${progress.done} / ${progress.total} 페이지`
-                : '잠시만 기다려주세요…'}
-            </p>
-          </div>
-        )}
+        <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-indigo-500 transition-all"
+            style={{ width: progress.phase === 'ai' ? '95%' : `${pct}%` }}
+          />
+        </div>
+        <p className="text-[10.5px] text-slate-500 mt-1.5 tabular-nums">
+          {progress.phase === 'render'
+            ? `${progress.done} / ${progress.total} 페이지 변환`
+            : '잠시만 기다려주세요…'}
+        </p>
       </div>
     </div>
   );

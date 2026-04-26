@@ -15,7 +15,7 @@ import { DEFAULT_EXPERTS } from '@/types/expert';
 import { ExpertPickerModal } from './ExpertPickerModal';
 import { DebateLayout } from './DebateLayout';
 import { KeypointsLayout, MindmapLayout, GuideLayout, SummaryLayout } from './LensLayouts';
-import { PageNotesView, PageNotesEmptyChooser, VisionConfirmModal, buildPageGroups } from './PageNotesView';
+import { PageNotesView, PageNotesEmptyChooser, VisionProgressOverlay, buildPageGroups } from './PageNotesView';
 import { MindmapCanvas } from './MindmapCanvas';
 import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
@@ -1162,7 +1162,6 @@ function SummarySection({
   const [mode, setMode] = useState<'whole' | 'pages' | null>(initialMode);
   const [pagesIndexLoading, setPagesIndexLoading] = useState(false);
   const [detailLoadingPages, setDetailLoadingPages] = useState<number[]>([]);
-  const [visionConfirmOpen, setVisionConfirmOpen] = useState(false);
   const [visionProgress, setVisionProgress] = useState<{ phase: 'render' | 'ai'; done: number; total: number } | null>(null);
 
   const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready');
@@ -1499,42 +1498,34 @@ function SummarySection({
   const visionPdf = enabledSources.find((s) => s.kind === 'pdf' && s.blobRef && s.pageCount);
   const visionAvailable = !!visionPdf;
 
-  // 첫 진입: 모드 미정 + 캐시 없음 → 선택 카드
+  // 첫 진입 — PDF 면 즉시 비전 모드로 시작 (chooser 생략)
   if (mode === null) {
     return (
       <>
         <PageNotesEmptyChooser
           pageCount={aggregatePageCount}
-          pagesDisabled={pagesUnavailable}
-          pagesDisabledReason={pagesUnavailableReason}
+          fallbackOnly={!visionAvailable && pagesUnavailable}
+          fallbackReason={pagesUnavailableReason}
           visionAvailable={visionAvailable}
-          onPickVision={() => setVisionConfirmOpen(true)}
-          onPick={(picked) => {
-            if (picked === 'pages') {
-              if (!hasPageMarkers) {
-                showPageUnavailableToast();
-                setMode('whole');
-                if (!hasWhole) onRegenerateWhole();
-                return;
-              }
-              fetchPagesIndex();
-            } else {
+          onStartVision={() => {
+            void fetchVisionIndex();
+          }}
+          onStartText={() => {
+            if (!hasPageMarkers) {
+              showPageUnavailableToast();
               setMode('whole');
               if (!hasWhole) onRegenerateWhole();
+              return;
             }
+            void fetchPagesIndex();
+          }}
+          onWhole={() => {
+            setMode('whole');
+            if (!hasWhole) onRegenerateWhole();
           }}
         />
-        {visionConfirmOpen && visionPdf && (
-          <VisionConfirmModal
-            pageCount={visionPdf.pageCount ?? 0}
-            progress={visionProgress}
-            onCancel={() => {
-              if (!visionProgress) setVisionConfirmOpen(false);
-            }}
-            onConfirm={() => {
-              fetchVisionIndex().finally(() => setVisionConfirmOpen(false));
-            }}
-          />
+        {(pagesIndexLoading && visionProgress) && visionPdf && (
+          <VisionProgressOverlay pageCount={visionPdf.pageCount ?? 0} progress={visionProgress} />
         )}
       </>
     );
@@ -1600,8 +1591,8 @@ function SummarySection({
         {mode === 'pages' && hasPages && (
           <button
             onClick={() => {
-              if (structured?.pages?.vision) setVisionConfirmOpen(true);
-              else fetchPagesIndex();
+              if (structured?.pages?.vision) void fetchVisionIndex();
+              else void fetchPagesIndex();
             }}
             disabled={pagesIndexLoading}
             className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-700 disabled:opacity-40"
@@ -1634,17 +1625,8 @@ function SummarySection({
         />
       ) : null}
 
-      {visionConfirmOpen && visionPdf && (
-        <VisionConfirmModal
-          pageCount={visionPdf.pageCount ?? 0}
-          progress={visionProgress}
-          onCancel={() => {
-            if (!visionProgress) setVisionConfirmOpen(false);
-          }}
-          onConfirm={() => {
-            fetchVisionIndex().finally(() => setVisionConfirmOpen(false));
-          }}
-        />
+      {pagesIndexLoading && visionProgress && visionPdf && (
+        <VisionProgressOverlay pageCount={visionPdf.pageCount ?? 0} progress={visionProgress} />
       )}
     </div>
   );
