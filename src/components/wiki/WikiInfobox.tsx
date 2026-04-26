@@ -2,6 +2,7 @@ import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META } from '@/types/wiki';
 
 interface Props {
   page: WikiPage;
+  onTagClick?: (tag: string) => void;
 }
 
 function formatDate(ts: number): string {
@@ -13,7 +14,7 @@ function formatDate(ts: number): string {
  * 위키 인포박스 — Wikipedia 우상단 카드 패턴.
  * 페이지의 메타데이터를 한곳에 정리해 보여준다.
  */
-export function WikiInfobox({ page }: Props) {
+export function WikiInfobox({ page, onTagClick }: Props) {
   const typeMeta = WIKI_TYPE_META[page.type];
   const statusMeta = WIKI_STATUS_META[page.status];
 
@@ -60,9 +61,21 @@ export function WikiInfobox({ page }: Props) {
           <Row label="태그">
             <span className="flex flex-wrap gap-1">
               {page.tags.map((t) => (
-                <span key={t} className="px-1.5 py-0.5 rounded bg-accent text-foreground/75 text-[10px]">
-                  #{t}
-                </span>
+                onTagClick ? (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => onTagClick(t)}
+                    className="px-1.5 py-0.5 rounded bg-accent text-foreground/75 text-[10px] hover:bg-primary/15 hover:text-primary transition-colors"
+                    title={`#${t} 태그로 검색`}
+                  >
+                    #{t}
+                  </button>
+                ) : (
+                  <span key={t} className="px-1.5 py-0.5 rounded bg-accent text-foreground/75 text-[10px]">
+                    #{t}
+                  </span>
+                )
               ))}
             </span>
           </Row>

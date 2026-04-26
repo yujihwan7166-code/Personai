@@ -25,6 +25,7 @@ const Wiki = () => {
   const [view, setView] = useState<'page' | 'graph'>('page');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [sidebarQuery, setSidebarQuery] = useState('');
   // 모바일에선 기본 닫힘, 데스크탑은 localStorage. 768px 미만은 오버레이 모드.
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < 768
@@ -210,6 +211,8 @@ const Wiki = () => {
             activeId={activeId}
             favorites={favorites}
             recent={recent}
+            externalQuery={sidebarQuery}
+            onQueryChange={setSidebarQuery}
             onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
             onCreate={openTemplatePicker}
           />
@@ -263,6 +266,12 @@ const Wiki = () => {
             onDelete={() => handleDelete(activePage.id)}
             onToggleEdit={() => setEditing((v) => !v)}
             onOpenLink={handleOpenByTitleOrId}
+            onTagClick={(tag) => {
+              setSidebarQuery(tag);
+              setActiveId(null);
+              setView('page');
+              if (isMobile) setSidebarOpen(true);
+            }}
           />
         ) : (
           <WikiHome

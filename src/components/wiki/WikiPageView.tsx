@@ -25,6 +25,8 @@ interface Props {
   onDelete: () => void;
   onToggleEdit: () => void;
   onOpenLink: (titleOrId: string) => void;
+  /** 인포박스 태그 칩 클릭 시 — 부모가 사이드바 검색에 반영. */
+  onTagClick?: (tag: string) => void;
 }
 
 type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved';
@@ -49,6 +51,7 @@ export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
   onChange, onRestore, onDelete, onToggleEdit, onOpenLink,
+  onTagClick,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -375,7 +378,7 @@ export function WikiPageView({
 
         {/* 우: 인포박스 */}
         <div className="hidden lg:block">
-          {!editing && <WikiInfobox page={page} />}
+          {!editing && <WikiInfobox page={page} onTagClick={onTagClick} />}
         </div>
       </div>
 

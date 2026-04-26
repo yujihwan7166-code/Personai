@@ -7,9 +7,11 @@ interface Props {
   pages: WikiPage[];
   loading: boolean;
   activeId: string | null;
-  /** 즐겨찾기 + 최근 — 부모에서 지속화 */
   favorites: string[];
   recent: string[];
+  /** 외부에서 검색어 주입 — 태그 클릭 등 (선택). undefined 면 internal state. */
+  externalQuery?: string;
+  onQueryChange?: (q: string) => void;
   onSelect: (id: string) => void;
   onCreate: () => void;
 }
@@ -23,8 +25,16 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: 'draft',  label: '🚧 초안' },
 ];
 
-export function WikiSidebar({ pages, loading, activeId, favorites, recent, onSelect, onCreate }: Props) {
-  const [query, setQuery] = useState('');
+export function WikiSidebar({
+  pages, loading, activeId, favorites, recent,
+  externalQuery, onQueryChange, onSelect, onCreate,
+}: Props) {
+  const [internalQuery, setInternalQuery] = useState('');
+  const query = externalQuery ?? internalQuery;
+  const setQuery = (v: string) => {
+    if (onQueryChange) onQueryChange(v);
+    else setInternalQuery(v);
+  };
   const [filter, setFilter] = useState<Filter>('all');
 
   const pageById = useMemo(() => new Map(pages.map((p) => [p.id, p])), [pages]);

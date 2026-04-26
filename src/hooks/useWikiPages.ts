@@ -14,6 +14,7 @@ import { extractWikiLinks } from '@/types/wiki';
 import { deletePage as idbDelete, loadAllPages, upsertPage as idbUpsert } from '@/lib/wikiStore';
 import { isWikiSeeded, seedWiki } from '@/lib/wikiSeed';
 import { recordRevision, deleteRevisionsForPage } from '@/lib/wikiHistory';
+import { garbageCollectImages } from '@/lib/wikiMaintenance';
 
 export function useWikiPages() {
   const [pages, setPages] = useState<WikiPage[]>([]);
@@ -90,6 +91,9 @@ export function useWikiPages() {
   const deletePage = useCallback(async (id: string) => {
     await idbDelete(id);
     void deleteRevisionsForPage(id);
+    // 비활성: 즉시 GC 는 사용자가 직접 트리거 — 삭제 직후 자동 정리는 사용량 패널 권장.
+    // 단, 현재 페이지 삭제로 더 이상 어디서도 참조 안 되는 이미지를 백그라운드 정리.
+    void garbageCollectImages().catch(() => {});
     setPages((prev) => prev.filter((p) => p.id !== id));
   }, []);
 

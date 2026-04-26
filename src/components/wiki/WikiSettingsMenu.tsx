@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Settings, Download, Upload, Trash2 } from 'lucide-react';
+import { Settings, Download, Upload, Trash2, HardDrive } from 'lucide-react';
 import { exportAllAsJson, importFromJson, type ImportMode } from '@/lib/wikiBackup';
 import { clearAllPages } from '@/lib/wikiStore';
+import { WikiStoragePanel } from './WikiStoragePanel';
 
 interface Props {
   /** 가져오기·전체삭제 후 부모가 페이지 다시 로드하도록 */
@@ -10,6 +11,7 @@ interface Props {
 
 export function WikiSettingsMenu({ onMutated }: Props) {
   const [open, setOpen] = useState(false);
+  const [storageOpen, setStorageOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -97,6 +99,11 @@ export function WikiSettingsMenu({ onMutated }: Props) {
         <div className="absolute right-0 top-full mt-1 z-40 min-w-[200px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
           <MenuItem icon={<Download className="w-3.5 h-3.5" />} onClick={handleExport} label="전체 백업 (.json)" />
           <MenuItem icon={<Upload className="w-3.5 h-3.5" />} onClick={handlePickFile} label="백업 가져오기" />
+          <MenuItem
+            icon={<HardDrive className="w-3.5 h-3.5" />}
+            onClick={() => { setOpen(false); setStorageOpen(true); }}
+            label="저장소 사용량"
+          />
           <div className="my-1 border-t border-[hsl(var(--hairline))]" />
           <MenuItem
             icon={<Trash2 className="w-3.5 h-3.5" />}
@@ -120,6 +127,8 @@ export function WikiSettingsMenu({ onMutated }: Props) {
         className="hidden"
         onChange={handleImport}
       />
+
+      <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
     </div>
   );
 }

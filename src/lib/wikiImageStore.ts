@@ -93,3 +93,30 @@ export function revokeImageUrl(id: string): void {
     objectUrlCache.delete(id);
   }
 }
+
+/** 모든 이미지 메타 (blob 제외) — GC·사용량 계산용. */
+export interface ImageMeta { id: string; type: string; size: number; addedAt: number }
+
+export async function listAllImageMetas(): Promise<ImageMeta[]> {
+  if (typeof indexedDB === 'undefined') return [];
+  try {
+    const db = await openDb();
+    const tx = db.transaction(STORE, 'readonly');
+    const all = (await reqToPromise(tx.objectStore(STORE).getAll())) as BlobRecord[];
+    return all.map(({ id, type, size, addedAt }) => ({ id, type, size, addedAt }));
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteImage(id: string): Promise<void> {
+  if (typeof indexedDB === 'undefined') return;
+  try {
+    const db = await openDb();
+    const tx = db.transaction(STORE, 'readwrite');
+    await reqToPromise(tx.objectStore(STORE).delete(id));
+    revokeImageUrl(id);
+  } catch (e) {
+    console.warn('[wiki-image] delete failed', id, e);
+  }
+}
