@@ -478,10 +478,11 @@ const Wiki = () => {
       {/* 저장소 사용량 — 헤더 배지·설정 메뉴 둘 다에서 열 수 있게 위로 lift */}
       <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
 
-      {/* 메인 모드 전환 패널 — 트리거 pill 은 시각적으로 가려두고 panel 만 portal 로 노출.
+      {/* 메인 모드 전환 패널 — 트리거 pill 은 화면 밖으로 완전 이동 (left: -9999px).
+          panel 만 portal 로 body 에 노출되어 viewport 정중앙에 등장.
           모드 선택 시 그 모드의 default DiscussionMode 를 state 로 넘겨 메인으로 이동. */}
       <div
-        className="fixed top-0 left-0 opacity-0 pointer-events-none -z-10"
+        style={{ position: 'fixed', left: -9999, top: -9999, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}
         aria-hidden
       >
         <MainModeTabs
