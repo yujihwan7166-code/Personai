@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { Settings, Download, Upload, Trash2, HardDrive } from 'lucide-react';
 import { exportAllAsJson, importFromJson, type ImportMode } from '@/lib/wikiBackup';
 import { clearAllPages } from '@/lib/wikiStore';
-import { WikiStoragePanel } from './WikiStoragePanel';
+import { notify } from '@/lib/notify';
 
 interface Props {
   /** 가져오기·전체삭제 후 부모가 페이지 다시 로드하도록 */
   onMutated: () => void;
+  /** 사용량 패널은 외부에서 제어 (헤더 배지에서도 열 수 있도록). */
+  onOpenStorage: () => void;
 }
 
-export function WikiSettingsMenu({ onMutated }: Props) {
+export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
   const [open, setOpen] = useState(false);
-  const [storageOpen, setStorageOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -26,18 +26,13 @@ export function WikiSettingsMenu({ onMutated }: Props) {
     return () => window.removeEventListener('mousedown', onClick);
   }, [open]);
 
-  const flash = (text: string) => {
-    setMsg(text);
-    setTimeout(() => setMsg(null), 3500);
-  };
-
   const handleExport = async () => {
     setBusy(true);
     try {
       await exportAllAsJson();
-      flash('백업 다운로드 완료');
+      notify.success('백업 다운로드 완료');
     } catch (e) {
-      flash(`실패: ${(e as Error).message}`);
+      notify.error(`백업 실패: ${(e as Error).message}`);
     } finally {
       setBusy(false);
       setOpen(false);
@@ -58,10 +53,13 @@ export function WikiSettingsMenu({ onMutated }: Props) {
     setBusy(true);
     try {
       const result = await importFromJson(file, mode);
-      flash(`${result.imported}개 가져옴, ${result.skipped}개 건너뜀`);
+      notify.success(
+        `${result.imported}개 가져옴`,
+        { description: `${result.skipped}개 건너뜀${'images' in result ? ` · 이미지 ${result.images}개 · 히스토리 ${result.revisions}개` : ''}` }
+      );
       onMutated();
     } catch (err) {
-      alert(`가져오기 실패: ${(err as Error).message}`);
+      notify.error('가져오기 실패', { description: (err as Error).message });
     } finally {
       setBusy(false);
       setOpen(false);
@@ -74,7 +72,7 @@ export function WikiSettingsMenu({ onMutated }: Props) {
     setBusy(true);
     try {
       await clearAllPages();
-      flash('모든 페이지 삭제 완료');
+      notify.success('모든 페이지 삭제 완료');
       onMutated();
     } finally {
       setBusy(false);
@@ -96,12 +94,12 @@ export function WikiSettingsMenu({ onMutated }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-40 min-w-[200px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
+        <div className="absolute right-0 top-full mt-1 wiki-z-popover min-w-[200px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
           <MenuItem icon={<Download className="w-3.5 h-3.5" />} onClick={handleExport} label="전체 백업 (.json)" />
           <MenuItem icon={<Upload className="w-3.5 h-3.5" />} onClick={handlePickFile} label="백업 가져오기" />
           <MenuItem
             icon={<HardDrive className="w-3.5 h-3.5" />}
-            onClick={() => { setOpen(false); setStorageOpen(true); }}
+            onClick={() => { setOpen(false); onOpenStorage(); }}
             label="저장소 사용량"
           />
           <div className="my-1 border-t border-[hsl(var(--hairline))]" />
@@ -114,12 +112,6 @@ export function WikiSettingsMenu({ onMutated }: Props) {
         </div>
       )}
 
-      {msg && (
-        <span className="absolute right-0 top-full mt-9 z-50 px-2.5 py-1.5 rounded-md bg-foreground text-background text-[11px] whitespace-nowrap shadow-lg">
-          {msg}
-        </span>
-      )}
-
       <input
         ref={fileRef}
         type="file"
@@ -127,8 +119,6 @@ export function WikiSettingsMenu({ onMutated }: Props) {
         className="hidden"
         onChange={handleImport}
       />
-
-      <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
     </div>
   );
 }

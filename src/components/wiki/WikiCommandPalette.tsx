@@ -47,7 +47,7 @@ export function WikiCommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[12vh] px-4"
+      className="fixed inset-0 wiki-z-palette-backdrop flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[12vh] px-4"
       onClick={() => onOpenChange(false)}
       role="dialog"
       aria-label="명령 팔레트"

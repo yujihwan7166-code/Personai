@@ -48,7 +48,7 @@ export function WikiStoragePanel({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[180] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+      className="fixed inset-0 wiki-z-modal-backdrop flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
       onClick={onClose}
       role="dialog"
       aria-label="저장소 사용량"

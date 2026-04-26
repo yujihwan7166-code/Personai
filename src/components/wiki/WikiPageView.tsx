@@ -11,6 +11,7 @@ import { WikiInfobox } from './WikiInfobox';
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
 import { saveImage } from '@/lib/wikiImageStore';
 import { WikiHistoryPanel } from './WikiHistoryPanel';
+import { WikiLiveEditor } from './WikiLiveEditor';
 
 interface Props {
   page: WikiPage;
@@ -257,8 +258,8 @@ export function WikiPageView({
                     >
                       <Star className={cn('w-3.5 h-3.5', isFavorite && 'fill-current')} />
                     </button>
-                    <button onClick={onToggleEdit} className="px-2 h-7 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center gap-1" title="편집 (E)">
-                      <Pencil className="w-3.5 h-3.5" /> 편집
+                    <button onClick={onToggleEdit} className="px-2 h-7 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center gap-1" title="전체 편집 모드 (E) — 본문을 한 덩어리로 편집">
+                      <Pencil className="w-3.5 h-3.5" /> 전체 편집
                     </button>
                     <button onClick={() => setHistoryOpen(true)} className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="버전 히스토리" aria-label="버전 히스토리">
                       <History className="w-3.5 h-3.5" />
@@ -339,12 +340,13 @@ export function WikiPageView({
                   onChange={(v) => setDraft({ ...draft, body: v })}
                 />
               </>
-            ) : page.body.trim() === '' ? (
-              <p className="text-muted-foreground text-[13px] italic">
-                본문이 비어있어요. 우측 상단 ✏️ 편집 으로 시작하세요.
-              </p>
             ) : (
-              <WikiBody body={page.body} onOpenLink={onOpenLink} findByTitle={findByTitle} />
+              <WikiLiveEditor
+                body={page.body}
+                findByTitle={findByTitle}
+                onOpenLink={onOpenLink}
+                onChange={(newBody) => onChange({ ...page, body: newBody })}
+              />
             )}
           </section>
 

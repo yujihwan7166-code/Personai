@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, Network, Menu } from 'lucide-react';
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, Network, Menu, CalendarDays } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -12,7 +12,11 @@ import { WikiGraph } from '@/components/wiki/WikiGraph';
 import { WikiSettingsMenu } from '@/components/wiki/WikiSettingsMenu';
 import { WikiCommandPalette } from '@/components/wiki/WikiCommandPalette';
 import { WikiTemplatePicker } from '@/components/wiki/WikiTemplatePicker';
+import { WikiHeaderBadges } from '@/components/wiki/WikiHeaderBadges';
+import { WikiStoragePanel } from '@/components/wiki/WikiStoragePanel';
 import { clearAllPages } from '@/lib/wikiStore';
+import { getOrBuildTodayNote, todayKey } from '@/lib/wikiDailyNote';
+import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_KEY = 'wiki_sidebar_open';
@@ -26,6 +30,7 @@ const Wiki = () => {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [sidebarQuery, setSidebarQuery] = useState('');
+  const [storageOpen, setStorageOpen] = useState(false);
   // 모바일에선 기본 닫힘, 데스크탑은 localStorage. 768px 미만은 오버레이 모드.
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < 768
@@ -55,6 +60,20 @@ const Wiki = () => {
   }, []);
 
   const openTemplatePicker = useCallback(() => setTemplatePickerOpen(true), []);
+
+  /** 오늘 데일리 노트로 점프 — 없으면 자동 생성. */
+  const openTodayNote = useCallback(async () => {
+    const { page, created } = await getOrBuildTodayNote();
+    if (created) {
+      await upsertPage(page);
+      notify.success(`${todayKey()} 데일리 노트를 만들었어요`, { duration: 1800 });
+    }
+    // 저장된 후 useWikiPages 가 setPages 한 시점이 setActiveId 이전이라 안전.
+    setActiveId(page.id);
+    setEditing(false);
+    setView('page');
+    if (isMobile) setSidebarOpen(false);
+  }, [upsertPage, isMobile]);
 
   const handleTemplatePicked = useCallback(async (page: WikiPage) => {
     await upsertPage(page);
@@ -143,7 +162,7 @@ const Wiki = () => {
       {/* 모바일: 사이드바 열렸을 때 백드롭 */}
       {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/40"
+          className="fixed inset-0 wiki-z-sidebar-overlay bg-black/40"
           onClick={() => setSidebarOpen(false)}
           aria-hidden
         />
@@ -154,7 +173,7 @@ const Wiki = () => {
         className={cn(
           'shrink-0 h-full overflow-hidden transition-[width,transform,border-right-width] duration-200 ease-out border-r flex flex-col',
           isMobile
-            ? 'fixed left-0 top-0 z-40 w-[280px] bg-background border-[hsl(var(--hairline))]'
+            ? 'fixed left-0 top-0 wiki-z-sidebar w-[280px] bg-background border-[hsl(var(--hairline))]'
             : (sidebarOpen
                 ? 'w-[260px] border-[hsl(var(--hairline))]'
                 : 'w-0 border-r-0'),
@@ -182,6 +201,15 @@ const Wiki = () => {
             </button>
             <button
               type="button"
+              onClick={() => { void openTodayNote(); }}
+              className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              title="오늘 데일리 노트"
+              aria-label="오늘 데일리 노트"
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
               onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); if (isMobile) setSidebarOpen(false); }}
               className={cn(
                 'p-1 rounded-md transition-colors',
@@ -194,7 +222,11 @@ const Wiki = () => {
             >
               <Network className="h-3.5 w-3.5" />
             </button>
-            <WikiSettingsMenu onMutated={() => { void reload(); setActiveId(null); }} />
+            <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
+            <WikiSettingsMenu
+              onMutated={() => { void reload(); setActiveId(null); }}
+              onOpenStorage={() => setStorageOpen(true)}
+            />
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
@@ -224,7 +256,7 @@ const Wiki = () => {
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="absolute top-3 left-3 z-30 p-1.5 rounded-md bg-card border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shadow-sm"
+          className="absolute top-3 left-3 wiki-z-toolbar p-1.5 rounded-md bg-card border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shadow-sm"
           title="사이드바 펴기 (Ctrl/Cmd+B)"
           aria-label="사이드바 펴기"
         >
@@ -293,7 +325,7 @@ const Wiki = () => {
         onGoGraph={() => { setView('graph'); setActiveId(null); }}
         onImport={() => {
           // 가벼운 트리거 — 실제 파일 picker 는 settings menu 안에 있음.
-          alert('백업 가져오기는 좌상단 ⚙ 설정 메뉴에서 진행해주세요.');
+          notify.info('백업 가져오기는 사이드바 ⚙ 설정 메뉴에서', { duration: 3500 });
         }}
         onClearAll={handleClearAll}
       />
@@ -304,6 +336,9 @@ const Wiki = () => {
         onClose={() => setTemplatePickerOpen(false)}
         onPick={handleTemplatePicked}
       />
+
+      {/* 저장소 사용량 — 헤더 배지·설정 메뉴 둘 다에서 열 수 있게 위로 lift */}
+      <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
     </div>
   );
 };

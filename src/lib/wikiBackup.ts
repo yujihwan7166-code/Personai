@@ -9,6 +9,7 @@ import type { WikiPage } from '@/types/wiki';
 import { loadAllPages, upsertPage, clearAllPages } from '@/lib/wikiStore';
 import { saveImage, getImage } from '@/lib/wikiImageStore';
 import { listRevisions, recordRevision, type Revision } from '@/lib/wikiHistory';
+import { setLastBackupAt } from '@/lib/wikiBackupMeta';
 
 const SCHEMA_V2 = 'wiki-v2';
 const SCHEMA_V1 = 'wiki-v1';
@@ -108,6 +109,7 @@ export async function exportAllAsJson(): Promise<void> {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  setLastBackupAt();
 }
 
 /* ── Import ── */

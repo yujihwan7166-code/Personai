@@ -38,7 +38,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[150] flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[10vh] px-4"
+      className="fixed inset-0 wiki-z-modal-backdrop flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[10vh] px-4"
       onClick={onClose}
       role="dialog"
       aria-label="새 페이지 템플릿 선택"

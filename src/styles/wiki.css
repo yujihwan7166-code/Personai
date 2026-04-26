@@ -1,5 +1,27 @@
 /* 마이위키 본문 타이포그래피 — Wikipedia / 나무위키 느낌. */
 
+/* z-index 시스템 — 모달 충돌 방지 + 한곳에서 관리. */
+:root {
+  --wiki-z-sidebar-overlay: 30;       /* 모바일 사이드바 백드롭 */
+  --wiki-z-sidebar: 40;                /* 모바일 사이드바 자체 */
+  --wiki-z-popover: 50;                /* hover preview, dropdown menu */
+  --wiki-z-toolbar: 60;                /* 떠 있는 작은 toolbar (예: 사이드바 펴기) */
+  --wiki-z-modal-backdrop: 100;        /* 모달 백드롭 */
+  --wiki-z-modal: 101;                 /* 모달 카드 */
+  --wiki-z-palette-backdrop: 200;      /* 명령 팔레트 백드롭 */
+  --wiki-z-palette: 201;               /* 명령 팔레트 카드 */
+}
+
+.wiki-z-sidebar-overlay { z-index: var(--wiki-z-sidebar-overlay); }
+.wiki-z-sidebar         { z-index: var(--wiki-z-sidebar); }
+.wiki-z-popover         { z-index: var(--wiki-z-popover); }
+.wiki-z-toolbar         { z-index: var(--wiki-z-toolbar); }
+.wiki-z-modal-backdrop  { z-index: var(--wiki-z-modal-backdrop); }
+.wiki-z-modal           { z-index: var(--wiki-z-modal); }
+.wiki-z-palette-backdrop{ z-index: var(--wiki-z-palette-backdrop); }
+.wiki-z-palette         { z-index: var(--wiki-z-palette); }
+
+
 .wiki-prose {
   /* 본문은 가독성 우선 — 산세리프 유지하되 헤딩에만 serif. */
   color: hsl(var(--foreground));
