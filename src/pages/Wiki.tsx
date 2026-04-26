@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, Plus, LayoutGrid, Shuffle } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, LayoutGrid, Shuffle } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -215,7 +215,7 @@ const Wiki = () => {
       >
         <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
           {/* 윗줄 — 정체성 / 모드 전환 / 사이드바 닫기 */}
-          <div className="px-2 h-10 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
+          <div className="px-2 h-11 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <span
               className="flex-1 text-[12.5px] font-bold text-foreground/90 truncate px-1"
               style={{ fontFamily: 'var(--wiki-font-meta)' }}
@@ -242,7 +242,7 @@ const Wiki = () => {
             </button>
           </div>
 
-          {/* 아랫줄 — 4 균등 (홈 / 그래프 / 새 / 무작위) */}
+          {/* 아랫줄 — 3 균등 (홈 / 그래프 / 무작위). 새 페이지는 Ctrl+N · 명령 팔레트 · 대문 CTA 로 접근. */}
           <div className="px-1.5 h-9 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <button
               type="button"
@@ -271,15 +271,6 @@ const Wiki = () => {
               aria-label="연결 그래프"
             >
               <Network className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={openTemplatePicker}
-              className="flex-1 h-7 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/15 wiki-trans-color"
-              title="새 페이지 (Ctrl/Cmd+N)"
-              aria-label="새 페이지"
-            >
-              <Plus className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
@@ -378,15 +369,6 @@ const Wiki = () => {
             aria-label="연결 그래프"
           >
             <Network className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={openTemplatePicker}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/15 wiki-trans-color"
-            title="새 페이지 (Ctrl/Cmd+N)"
-            aria-label="새 페이지"
-          >
-            <Plus className="h-4 w-4" />
           </button>
 
           {/* 하단: 설정 */}
