@@ -468,6 +468,7 @@ const Wiki = () => {
             onSelect={(id) => setActiveId(id)}
             onCreate={openTemplatePicker}
             onGoToday={() => { void openTodayNote(); }}
+            onCreateMissing={(title) => handleOpenByTitleOrId(title)}
             onPickStarterPack={async (pack) => {
               const built = pack.build();
               for (const p of built) await upsertPage(p);

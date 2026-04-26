@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Plus, Sparkles, CalendarDays, ArrowRight } from 'lucide-react';
-import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
+import { type WikiPage, WIKI_TYPE_META, extractWikiLinks } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 
 interface Props {
@@ -10,9 +10,15 @@ interface Props {
   onGoToday?: () => void;
   /** 스타터 팩 선택 시 호출 — Wiki 페이지가 IDB upsert + activeId 설정 */
   onPickStarterPack?: (pack: StarterPack) => void | Promise<void>;
+  /** Wanted 링크 클릭 시 — 그 제목으로 새 draft 페이지 생성 + 진입 */
+  onCreateMissing?: (title: string) => void;
 }
 
-export function WikiHome({ pages, onSelect, onCreate, onGoToday, onPickStarterPack }: Props) {
+/** 30일 — 페이지 부패 임계 */
+const STALE_DAYS = 30;
+const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
+
+export function WikiHome({ pages, onSelect, onCreate, onGoToday, onPickStarterPack, onCreateMissing }: Props) {
   const stats = useMemo(() => {
     const byStatus = { draft: 0, active: 0, stable: 0, archived: 0 };
     for (const p of pages) byStatus[p.status]++;
@@ -35,7 +41,29 @@ export function WikiHome({ pages, onSelect, onCreate, onGoToday, onPickStarterPa
     for (const p of pages) for (const t of p.tags) tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
     const topTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
 
-    return { byStatus, recent, inbox, mocs, orphans, topTags };
+    // Wanted pages — 본문에서 [[링크]] 추출 → 존재 X 인 제목들 빈도순
+    const titleSet = new Set<string>();
+    for (const p of pages) {
+      titleSet.add(p.title.toLowerCase());
+      for (const a of p.aliases) titleSet.add(a.toLowerCase());
+    }
+    const wantedCount = new Map<string, number>();
+    for (const p of pages) {
+      for (const link of extractWikiLinks(p.body)) {
+        if (!titleSet.has(link.toLowerCase())) {
+          wantedCount.set(link, (wantedCount.get(link) ?? 0) + 1);
+        }
+      }
+    }
+    const wanted = [...wantedCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+    // Stale — status='active' 인데 N일 동안 updatedAt 없음
+    const cutoff = Date.now() - STALE_MS;
+    const stale = pages
+      .filter((p) => p.status === 'active' && p.updatedAt < cutoff)
+      .slice(0, 5);
+
+    return { byStatus, recent, inbox, mocs, orphans, topTags, wanted, stale };
   }, [pages]);
 
   if (pages.length === 0) {
@@ -142,6 +170,38 @@ export function WikiHome({ pages, onSelect, onCreate, onGoToday, onPickStarterPa
           empty="모든 페이지가 어딘가에 연결됐어요 ✓"
         >
           {stats.orphans.slice(0, 5).map((p) => (
+            <PageRow key={p.id} page={p} onSelect={onSelect} />
+          ))}
+        </Section>
+
+        {/* Wanted pages — 빨간 링크가 가리키는데 아직 만들지 않은 페이지 */}
+        <Section
+          title="🔴 만들 페이지 — 빨간 링크"
+          empty="모든 위키링크가 충족됐어요 ✓"
+        >
+          {stats.wanted.map(([title, n]) => (
+            <li key={title}>
+              <button
+                type="button"
+                onClick={() => onCreateMissing?.(title)}
+                disabled={!onCreateMissing}
+                className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-60"
+                title={`${n}개 페이지에서 가리킴 — 클릭하면 생성`}
+              >
+                <span className="text-[14px] leading-none shrink-0" aria-hidden>🔴</span>
+                <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{title}</span>
+                <span className="text-[10px] text-muted-foreground shrink-0">×{n}</span>
+              </button>
+            </li>
+          ))}
+        </Section>
+
+        {/* Stale — 30일 안 본 active 페이지 */}
+        <Section
+          title="🍃 부패 위험 — 30일+ 미수정"
+          empty="모든 active 페이지가 신선해요 ✓"
+        >
+          {stats.stale.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
           ))}
         </Section>

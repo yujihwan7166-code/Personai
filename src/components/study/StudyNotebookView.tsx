@@ -387,3 +387,134 @@ function OverflowItem({
     </button>
   );
 }
+
+/* ── PDF 분석 진행 화면 — OCR + Vision 실시간 진행률 ── */
+function PdfProcessingScreen({
+  progress,
+  notebookTitle,
+  onBack,
+}: {
+  progress: import('@/hooks/useStudyAutoOcr').AutoOcrProgress;
+  notebookTitle: string;
+  onBack: () => void;
+}) {
+  const ocrPct = progress.ocrTotal > 0
+    ? Math.round((progress.ocrDone / progress.ocrTotal) * 100)
+    : 0;
+  const visionPct = progress.visionTotal > 0
+    ? Math.round((progress.visionDone / progress.visionTotal) * 100)
+    : 0;
+  const overallPct = (() => {
+    const total = progress.ocrTotal + progress.visionTotal;
+    if (total === 0) return 0;
+    return Math.round(((progress.ocrDone + progress.visionDone) / total) * 100);
+  })();
+
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center bg-[#FAFBFC] px-6 dark:bg-[#0B1220]">
+      <div className="w-full max-w-md">
+        <div className="mb-6 flex items-center gap-2 text-[12px] text-slate-500">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            ← 홈
+          </button>
+          <span className="text-slate-300">/</span>
+          <span className="truncate font-medium text-slate-700 dark:text-slate-200">{notebookTitle}</span>
+        </div>
+
+        <div className="mb-2 text-center text-[28px] font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          PDF 분석 중
+        </div>
+        <p className="mb-8 text-center text-[13px] text-slate-500 dark:text-slate-400">
+          텍스트와 그림 라벨을 모두 추출하고 있어요. 끝나면 자동으로 노트북이 열립니다.
+        </p>
+
+        {/* 전체 진행률 큰 바 */}
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-[12px] font-mono uppercase tracking-[0.18em] text-slate-500">전체 진행률</span>
+            <span className="text-[20px] font-bold tabular-nums text-slate-900 dark:text-slate-100">{overallPct}%</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300"
+              style={{ width: `${overallPct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* OCR + Vision 단계별 */}
+        <div className="space-y-3">
+          <PhaseRow
+            emoji="🔤"
+            label="텍스트 추출 (OCR)"
+            sub={progress.ocrTotal > 0 ? `${progress.ocrDone}/${progress.ocrTotal} 페이지` : '준비 중'}
+            pct={ocrPct}
+            active={progress.phase === 'ocr'}
+            done={progress.phase !== 'ocr' && progress.phase !== 'idle' && progress.ocrTotal > 0}
+          />
+          <PhaseRow
+            emoji="🖼️"
+            label="그림·라벨 분석 (Vision)"
+            sub={progress.visionTotal > 0 ? `${progress.visionDone}/${progress.visionTotal} 페이지` : (progress.phase === 'ocr' ? '대기 중' : '대상 없음')}
+            pct={visionPct}
+            active={progress.phase === 'vision'}
+            done={progress.phase === 'done' && progress.visionTotal > 0}
+          />
+        </div>
+
+        <p className="mt-8 text-center text-[11px] text-slate-400">
+          시간이 걸려도 한 번만 처리하면 다음부터는 즉시 열려요.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PhaseRow({
+  emoji, label, sub, pct, active, done,
+}: {
+  emoji: string;
+  label: string;
+  sub: string;
+  pct: number;
+  active: boolean;
+  done: boolean;
+}) {
+  return (
+    <div className={cn(
+      'rounded-xl border px-4 py-3 transition-colors',
+      active
+        ? 'border-indigo-300 bg-indigo-50/50 dark:border-indigo-700 dark:bg-indigo-950/20'
+        : done
+          ? 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-950/20'
+          : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
+    )}>
+      <div className="flex items-center gap-2.5">
+        <span className="text-[18px] leading-none">{emoji}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[13px] font-semibold text-slate-900 dark:text-slate-100">{label}</span>
+            <span className="text-[11px] tabular-nums text-slate-500">{sub}</span>
+          </div>
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div
+              className={cn(
+                'h-full transition-all duration-300',
+                active ? 'bg-indigo-500' : done ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700',
+              )}
+              style={{ width: `${done ? 100 : pct}%` }}
+            />
+          </div>
+        </div>
+        {done && <span className="text-emerald-600 dark:text-emerald-400" aria-label="완료">✓</span>}
+        {active && (
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-indigo-500" aria-label="진행 중" />
+        )}
+      </div>
+    </div>
+  );
+}
