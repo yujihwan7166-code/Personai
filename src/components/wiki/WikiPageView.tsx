@@ -28,6 +28,8 @@ interface Props {
   onOpenLink: (titleOrId: string) => void;
   /** 인포박스 태그 칩 클릭 시 — 부모가 사이드바 검색에 반영. */
   onTagClick?: (tag: string) => void;
+  /** 방문(최근 본) 페이지 id Set — 위키링크 visited 색상 적용용. */
+  visitedIds?: Set<string>;
 }
 
 type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved';
@@ -52,7 +54,7 @@ export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
   onChange, onRestore, onDelete, onToggleEdit, onOpenLink,
-  onTagClick,
+  onTagClick, visitedIds,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -220,15 +222,21 @@ export function WikiPageView({
                   />
                 ) : (
                   <h1
-                    className="text-3xl font-serif font-bold text-foreground tracking-tight"
-                    style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+                    className="text-[28px] leading-[1.2] font-bold text-foreground tracking-tight"
+                    style={{ fontFamily: 'var(--wiki-font-display)' }}
                   >
                     {page.title}
                   </h1>
                 )}
                 {!editing && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
+                  <p
+                    className="text-[12px] mt-1.5"
+                    style={{ fontFamily: 'var(--wiki-font-meta)', color: 'hsl(var(--muted-foreground))' }}
+                  >
                     마지막 수정 · {relativeTime(page.updatedAt)}
+                    {page.aliases.length > 0 && (
+                      <span className="ml-2 opacity-70">· 별칭: {page.aliases.join(' · ')}</span>
+                    )}
                   </p>
                 )}
               </div>
@@ -248,7 +256,7 @@ export function WikiPageView({
                     <button
                       onClick={onToggleFavorite}
                       className={cn(
-                        'p-1.5 rounded-md transition-colors',
+                        'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
                         isFavorite
                           ? 'text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'
                           : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -258,16 +266,16 @@ export function WikiPageView({
                     >
                       <Star className={cn('w-3.5 h-3.5', isFavorite && 'fill-current')} />
                     </button>
-                    <button onClick={onToggleEdit} className="px-2 h-7 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center gap-1" title="전체 편집 모드 (E) — 본문을 한 덩어리로 편집">
+                    <button onClick={onToggleEdit} className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="전체 편집 모드 (E) — 본문을 한 덩어리로 편집">
                       <Pencil className="w-3.5 h-3.5" /> 전체 편집
                     </button>
-                    <button onClick={() => setHistoryOpen(true)} className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="버전 히스토리" aria-label="버전 히스토리">
+                    <button onClick={() => setHistoryOpen(true)} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="버전 히스토리" aria-label="버전 히스토리">
                       <History className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={exportMd} className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Markdown 다운로드" aria-label="Markdown 다운로드">
+                    <button onClick={exportMd} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="Markdown 다운로드" aria-label="Markdown 다운로드">
                       <Download className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={onDelete} className="p-1.5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors" title="삭제" aria-label="삭제">
+                    <button onClick={onDelete} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive wiki-trans-color" title="삭제" aria-label="삭제">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </>
@@ -344,6 +352,7 @@ export function WikiPageView({
               <WikiLiveEditor
                 body={page.body}
                 findByTitle={findByTitle}
+                visitedIds={visitedIds}
                 onOpenLink={onOpenLink}
                 onChange={(newBody) => onChange({ ...page, body: newBody })}
               />

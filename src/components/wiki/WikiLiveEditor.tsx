@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WikiPage } from '@/types/wiki';
 import { splitIntoBlocks, replaceBlock, insertBlockAfter, joinBlocks } from '@/lib/wikiBlocks';
@@ -8,6 +8,7 @@ import { WikiBody } from './WikiBody';
 interface Props {
   body: string;
   findByTitle: (title: string) => WikiPage | undefined;
+  visitedIds?: Set<string>;
   onChange: (newBody: string) => void;
   onOpenLink: (titleOrId: string) => void;
 }
@@ -21,7 +22,7 @@ interface Props {
  *
  * "전체 편집" 모드는 부모가 별도로 관리 (대량 수정용 폴백).
  */
-export function WikiLiveEditor({ body, findByTitle, onChange, onOpenLink }: Props) {
+export function WikiLiveEditor({ body, findByTitle, visitedIds, onChange, onOpenLink }: Props) {
   const blocks = splitIntoBlocks(body);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -68,6 +69,7 @@ export function WikiLiveEditor({ body, findByTitle, onChange, onOpenLink }: Prop
           onCancelEdit={() => setEditingIdx(null)}
           onAddAfter={() => addAt(i)}
           findByTitle={findByTitle}
+          visitedIds={visitedIds}
           onOpenLink={onOpenLink}
         />
       ))}
@@ -80,7 +82,7 @@ function BlockRow({
   blockContent, editing, hovered,
   onEnterHover, onLeaveHover,
   onStartEdit, onSaveEdit, onCancelEdit, onAddAfter,
-  findByTitle, onOpenLink,
+  findByTitle, visitedIds, onOpenLink,
 }: {
   blockContent: string;
   editing: boolean;
@@ -92,6 +94,7 @@ function BlockRow({
   onCancelEdit: () => void;
   onAddAfter: () => void;
   findByTitle: (title: string) => WikiPage | undefined;
+  visitedIds?: Set<string>;
   onOpenLink: (titleOrId: string) => void;
 }) {
   if (editing) {
@@ -110,25 +113,34 @@ function BlockRow({
       onMouseLeave={onLeaveHover}
       className="relative group/block"
     >
+      {/* 좌측 ⋮ 핸들 — Notion 패턴. 호버 시 -16px 위치에 살짝 등장. */}
+      <span
+        aria-hidden
+        className={cn(
+          'absolute top-1.5 -left-5 inline-flex items-center justify-center w-4 h-5 rounded text-muted-foreground/60 wiki-trans-color pointer-events-none',
+          hovered ? 'opacity-60' : 'opacity-0',
+        )}
+      >
+        <GripVertical className="w-3 h-3" />
+      </span>
       <button
         type="button"
         onClick={onStartEdit}
         className={cn(
-          'block w-full text-left rounded-md transition-colors px-2 py-0.5 -mx-2 cursor-text',
+          'block w-full text-left rounded-md wiki-trans-color px-2 py-0.5 -mx-2 cursor-text',
           hovered ? 'bg-accent/40' : 'bg-transparent',
         )}
         aria-label="이 블록 편집"
       >
         <div className="wiki-prose pointer-events-auto">
-          {/* 위키링크·이미지·헤딩 모두 정상 작동 */}
           <WikiBody
             body={blockContent}
             onOpenLink={onOpenLink}
             findByTitle={findByTitle}
+            visitedIds={visitedIds}
           />
         </div>
       </button>
-      {/* 호버 시 우측에 + 버튼 */}
       {hovered && (
         <BlockInserter onClick={onAddAfter} compact />
       )}

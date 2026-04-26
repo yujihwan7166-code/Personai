@@ -24,6 +24,8 @@ const SIDEBAR_KEY = 'wiki_sidebar_open';
 const Wiki = () => {
   const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, reload, restoreRevision } = useWikiPages();
   const { favorites, recent, toggleFavorite, isFavorite, recordView, purge } = useWikiFavorites();
+  // 위키링크 visited 색상용 — 최근 본 + 즐겨찾기 합집합
+  const visitedIds = new Set([...recent, ...favorites]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [view, setView] = useState<'page' | 'graph'>('page');
@@ -182,45 +184,24 @@ const Wiki = () => {
         aria-hidden={!sidebarOpen}
       >
         <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
-          <div className="px-3 py-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
+          {/* 윗줄 (32px): 정체성 + 신뢰성 배지 + 설정 + 접기 */}
+          <div className="px-3 h-9 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <Link
               to="/"
-              className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               aria-label="홈으로"
               title="홈으로"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5" />
             </Link>
             <button
               type="button"
               onClick={() => { setActiveId(null); setView('page'); if (isMobile) setSidebarOpen(false); }}
-              className="text-[13px] font-bold flex-1 text-left truncate hover:text-primary transition-colors"
+              className="text-[13px] font-bold flex-1 text-left truncate hover:text-primary wiki-trans-color"
               title="대문으로"
+              style={{ fontFamily: 'var(--wiki-font-meta)' }}
             >
               🌐 마이위키
-            </button>
-            <button
-              type="button"
-              onClick={() => { void openTodayNote(); }}
-              className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              title="오늘 데일리 노트"
-              aria-label="오늘 데일리 노트"
-            >
-              <CalendarDays className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); if (isMobile) setSidebarOpen(false); }}
-              className={cn(
-                'p-1 rounded-md transition-colors',
-                view === 'graph'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-              title="연결 그래프"
-              aria-label="연결 그래프"
-            >
-              <Network className="h-3.5 w-3.5" />
             </button>
             <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
             <WikiSettingsMenu
@@ -230,11 +211,46 @@ const Wiki = () => {
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
-              className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               title="사이드바 접기 (Ctrl/Cmd+B)"
               aria-label="사이드바 접기"
             >
               <PanelLeftClose className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* 아랫줄 (32px): 진입 액션 3개 — 오늘·그래프·새 페이지 */}
+          <div className="px-2 h-8 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => { void openTodayNote(); }}
+              className="flex-1 h-6 inline-flex items-center justify-center gap-1 rounded text-[11px] font-medium text-foreground/80 hover:bg-accent wiki-trans-color"
+              title="오늘 데일리 노트"
+            >
+              <CalendarDays className="h-3 w-3" />
+              오늘
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); if (isMobile) setSidebarOpen(false); }}
+              className={cn(
+                'flex-1 h-6 inline-flex items-center justify-center gap-1 rounded text-[11px] font-medium wiki-trans-color',
+                view === 'graph'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-foreground/80 hover:bg-accent',
+              )}
+              title="연결 그래프"
+            >
+              <Network className="h-3 w-3" />
+              그래프
+            </button>
+            <button
+              type="button"
+              onClick={openTemplatePicker}
+              className="flex-1 h-6 inline-flex items-center justify-center gap-1 rounded text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/15 wiki-trans-color"
+              title="새 페이지 (Ctrl/Cmd+N)"
+            >
+              + 새 페이지
             </button>
           </div>
           <WikiSidebar
@@ -293,6 +309,7 @@ const Wiki = () => {
             findByTitle={findByTitle}
             isFavorite={isFavorite(activePage.id)}
             onToggleFavorite={() => toggleFavorite(activePage.id)}
+            visitedIds={visitedIds}
             onChange={(next) => { void upsertPage(next); }}
             onRestore={(snapshot) => { void restoreRevision(snapshot); }}
             onDelete={() => handleDelete(activePage.id)}

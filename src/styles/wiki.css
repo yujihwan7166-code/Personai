@@ -1,15 +1,54 @@
-/* 마이위키 본문 타이포그래피 — Wikipedia / 나무위키 느낌. */
+/* 마이위키 디자인 토큰 — Wikipedia / 나무위키 풍 + 한국어 가독성. */
 
-/* z-index 시스템 — 모달 충돌 방지 + 한곳에서 관리. */
 :root {
-  --wiki-z-sidebar-overlay: 30;       /* 모바일 사이드바 백드롭 */
-  --wiki-z-sidebar: 40;                /* 모바일 사이드바 자체 */
-  --wiki-z-popover: 50;                /* hover preview, dropdown menu */
-  --wiki-z-toolbar: 60;                /* 떠 있는 작은 toolbar (예: 사이드바 펴기) */
-  --wiki-z-modal-backdrop: 100;        /* 모달 백드롭 */
-  --wiki-z-modal: 101;                 /* 모달 카드 */
-  --wiki-z-palette-backdrop: 200;      /* 명령 팔레트 백드롭 */
-  --wiki-z-palette: 201;               /* 명령 팔레트 카드 */
+  /* z-index 시스템 — 모달 충돌 방지 + 한곳에서 관리. */
+  --wiki-z-sidebar-overlay: 30;
+  --wiki-z-sidebar: 40;
+  --wiki-z-popover: 50;
+  --wiki-z-toolbar: 60;
+  --wiki-z-modal-backdrop: 100;
+  --wiki-z-modal: 101;
+  --wiki-z-palette-backdrop: 200;
+  --wiki-z-palette: 201;
+
+  /* ── 타이포 패밀리 ──
+     본문도 serif 로 — 위키 톤 일관 + 한국어 가독성(Noto Serif KR 우선). */
+  --wiki-font-display: "Newsreader", "Noto Serif KR", Georgia, serif;
+  --wiki-font-heading: "Newsreader", "Noto Serif KR", Georgia, serif;
+  --wiki-font-body:    "Noto Serif KR", "Newsreader", Georgia, serif;
+  --wiki-font-meta:    "Pretendard", system-ui, sans-serif;
+  --wiki-font-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  /* ── 상태 컬러 (위계: 정리 안 됨 → 진행 → 안정 → 빠짐) ── */
+  --wiki-status-draft:    38 95% 50%;   /* 노랑 */
+  --wiki-status-active:   210 70% 48%;  /* 파랑 */
+  --wiki-status-stable:   0 0% 35%;     /* 검정 — 가장 안정 = 무색 */
+  --wiki-status-archived: 0 0% 70%;     /* 옅은 회색 — 빠짐 */
+
+  /* ── 위키링크 (Wikipedia 표준 3색) ── */
+  --wiki-link-default: 210 80% 38%;    /* 파랑 */
+  --wiki-link-visited: 280 50% 38%;    /* 보라 */
+  --wiki-link-missing: 0 75% 45%;      /* 빨강 */
+
+  /* ── 표면 / hairline ── */
+  --wiki-hairline:        220 14% 88%;
+  --wiki-hairline-strong: 220 14% 78%;
+
+  /* ── 모션 ── */
+  --wiki-ease:      cubic-bezier(0.16, 1, 0.3, 1);  /* easeOutExpo */
+  --wiki-dur-fast:  120ms;
+  --wiki-dur-base:  200ms;
+  --wiki-dur-slow:  320ms;
+}
+
+/* 다크 모드 — hairline·tint 보이도록 별도 정의. */
+.dark {
+  --wiki-hairline:        220 6% 22%;
+  --wiki-hairline-strong: 220 6% 32%;
+  --wiki-status-stable:   0 0% 80%;     /* 다크 = 흰색 톤 */
+  --wiki-link-default:    210 90% 70%;
+  --wiki-link-visited:    280 70% 75%;
+  --wiki-link-missing:    0 80% 65%;
 }
 
 .wiki-z-sidebar-overlay { z-index: var(--wiki-z-sidebar-overlay); }
@@ -21,11 +60,57 @@
 .wiki-z-palette-backdrop{ z-index: var(--wiki-z-palette-backdrop); }
 .wiki-z-palette         { z-index: var(--wiki-z-palette); }
 
+/* ── 모션 토큰 클래스 — 모든 위키 컴포넌트 통일 ── */
+.wiki-trans-color {
+  transition: color var(--wiki-dur-fast) var(--wiki-ease),
+              background-color var(--wiki-dur-fast) var(--wiki-ease),
+              border-color var(--wiki-dur-fast) var(--wiki-ease),
+              opacity var(--wiki-dur-fast) var(--wiki-ease);
+}
+.wiki-trans-base {
+  transition: all var(--wiki-dur-base) var(--wiki-ease);
+}
+.wiki-trans-slow {
+  transition: all var(--wiki-dur-slow) var(--wiki-ease);
+}
 
+/* ── 위키링크 3색 ── */
+.wiki-link {
+  font-weight: 500;
+  text-underline-offset: 2px;
+  transition: color var(--wiki-dur-fast) var(--wiki-ease);
+}
+.wiki-link:hover { text-decoration: underline; }
+.wiki-link-default { color: hsl(var(--wiki-link-default)); }
+.wiki-link-visited { color: hsl(var(--wiki-link-visited)); }
+.wiki-link-missing {
+  color: hsl(var(--wiki-link-missing));
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+}
+
+/* ── 상태 칩 ── */
+.wiki-status-chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--wiki-font-meta);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.wiki-status-draft    { background: hsl(var(--wiki-status-draft)    / 0.18); color: hsl(var(--wiki-status-draft)); }
+.wiki-status-active   { background: hsl(var(--wiki-status-active)   / 0.14); color: hsl(var(--wiki-status-active)); }
+.wiki-status-stable   { background: hsl(var(--wiki-status-stable)   / 0.10); color: hsl(var(--wiki-status-stable)); }
+.wiki-status-archived { background: hsl(var(--wiki-status-archived) / 0.20); color: hsl(var(--wiki-status-archived)); }
+
+/* ── 페이지 본문 — 위키 톤 (헤딩 + 본문 모두 serif) ── */
 .wiki-prose {
-  /* 본문은 가독성 우선 — 산세리프 유지하되 헤딩에만 serif. */
   color: hsl(var(--foreground));
-  font-size: 14px;
+  font-family: var(--wiki-font-body);
+  font-size: 15px;
   line-height: 1.78;
 }
 
@@ -33,7 +118,7 @@
 .wiki-prose h2,
 .wiki-prose h3,
 .wiki-prose h4 {
-  font-family: "Newsreader", "Noto Serif KR", Georgia, serif;
+  font-family: var(--wiki-font-heading);
   color: hsl(var(--foreground));
   font-weight: 700;
   letter-spacing: -0.01em;

@@ -12,43 +12,53 @@ function formatDate(ts: number): string {
 
 /**
  * 위키 인포박스 — Wikipedia 우상단 카드 패턴.
- * 페이지의 메타데이터를 한곳에 정리해 보여준다.
+ * 굵은 격자 + 굵은 라벨 + 폭 280px 로 위키 톤 강화.
  */
 export function WikiInfobox({ page, onTagClick }: Props) {
   const typeMeta = WIKI_TYPE_META[page.type];
-  const statusMeta = WIKI_STATUS_META[page.status];
+  const statusKey = page.status; // 'draft'|'active'|'stable'|'archived'
 
   return (
     <aside
-      className="rounded-lg border-2 border-[hsl(var(--hairline))] bg-card overflow-hidden"
+      className="w-[280px] rounded-md border-2 bg-card overflow-hidden shadow-sm"
+      style={{
+        borderColor: 'hsl(var(--wiki-hairline-strong))',
+        fontFamily: 'var(--wiki-font-meta)',
+      }}
       aria-label="페이지 정보"
     >
-      {/* 헤더 — 타입 색 띠 */}
+      {/* 헤더 — 타입 색 띠 (alpha 18% 로 다크에서도 명확) */}
       <div
-        className="px-3 py-2 text-center border-b-2 border-[hsl(var(--hairline))]"
-        style={{ backgroundColor: `${typeMeta.tint}14` }}
+        className="px-3.5 py-2.5 text-center border-b-2"
+        style={{
+          backgroundColor: `${typeMeta.tint}26`,
+          borderColor: 'hsl(var(--wiki-hairline-strong))',
+        }}
       >
-        <p className="text-[9.5px] font-mono uppercase tracking-[0.2em]" style={{ color: typeMeta.tint }}>
-          {typeMeta.label}
+        <p
+          className="text-[10.5px] font-bold uppercase tracking-[0.18em]"
+          style={{ color: typeMeta.tint }}
+        >
+          {typeMeta.icon} {typeMeta.label}
         </p>
-        <p className="text-[13.5px] font-bold text-foreground mt-0.5 leading-tight">
+        <p className="text-[14px] font-bold text-foreground mt-1 leading-tight">
           {page.title}
         </p>
       </div>
 
-      {/* 메타 표 */}
-      <dl className="text-[11px] divide-y divide-[hsl(var(--hairline))]">
+      {/* 메타 표 — 굵은 격자 */}
+      <dl
+        className="text-[12px]"
+        style={{ '--row-line': '1px solid hsl(var(--wiki-hairline-strong))' } as React.CSSProperties}
+      >
         <Row label="유형">
           <span className="inline-flex items-center gap-1">
             <span aria-hidden>{typeMeta.icon}</span> {typeMeta.label}
           </span>
         </Row>
         <Row label="상태">
-          <span
-            className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
-            style={{ backgroundColor: `${statusMeta.tint}22`, color: statusMeta.tint }}
-          >
-            {statusMeta.label}
+          <span className={`wiki-status-chip wiki-status-${statusKey}`}>
+            {WIKI_STATUS_META[statusKey].label}
           </span>
         </Row>
         {page.category && <Row label="분류">{page.category}</Row>}
@@ -66,13 +76,13 @@ export function WikiInfobox({ page, onTagClick }: Props) {
                     key={t}
                     type="button"
                     onClick={() => onTagClick(t)}
-                    className="px-1.5 py-0.5 rounded bg-accent text-foreground/75 text-[10px] hover:bg-primary/15 hover:text-primary transition-colors"
+                    className="px-1.5 py-0.5 rounded bg-accent text-foreground/80 text-[10.5px] hover:bg-primary/15 hover:text-primary wiki-trans-color"
                     title={`#${t} 태그로 검색`}
                   >
                     #{t}
                   </button>
                 ) : (
-                  <span key={t} className="px-1.5 py-0.5 rounded bg-accent text-foreground/75 text-[10px]">
+                  <span key={t} className="px-1.5 py-0.5 rounded bg-accent text-foreground/75 text-[10.5px]">
                     #{t}
                   </span>
                 )
@@ -89,8 +99,11 @@ export function WikiInfobox({ page, onTagClick }: Props) {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[64px_1fr] items-start gap-2 px-3 py-1.5">
-      <dt className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-0.5">
+    <div
+      className="grid grid-cols-[72px_1fr] items-start gap-2 px-3.5 py-2"
+      style={{ borderTop: '1px solid hsl(var(--wiki-hairline-strong))' }}
+    >
+      <dt className="text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground pt-0.5">
         {label}
       </dt>
       <dd className="text-foreground/90">{children}</dd>

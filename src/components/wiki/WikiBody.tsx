@@ -12,6 +12,8 @@ interface Props {
   onOpenLink: (title: string) => void;
   /** 호버 프리뷰용 — 제목으로 페이지를 찾는 함수. 없으면 미존재 표시. */
   findByTitle: (title: string) => WikiPage | undefined;
+  /** 방문(최근 본) 페이지 id 모음 — wiki-link-visited 색상 적용용. 옵션. */
+  visitedIds?: Set<string>;
 }
 
 /**
@@ -26,7 +28,7 @@ function transformWikiLinks(body: string): string {
   });
 }
 
-export function WikiBody({ body, onOpenLink, findByTitle }: Props) {
+export function WikiBody({ body, onOpenLink, findByTitle, visitedIds }: Props) {
   const transformed = useMemo(() => transformWikiLinks(body), [body]);
 
   return (
@@ -55,6 +57,7 @@ export function WikiBody({ body, onOpenLink, findByTitle }: Props) {
                 title={title}
                 onOpen={onOpenLink}
                 findByTitle={findByTitle}
+                visitedIds={visitedIds}
               >
                 {children}
               </WikiLink>
@@ -73,20 +76,22 @@ export function WikiBody({ body, onOpenLink, findByTitle }: Props) {
   );
 }
 
-/* ── 위키 링크 컴포넌트: 호버 시 프리뷰 ── */
+/* ── 위키 링크 컴포넌트: 호버 시 프리뷰 + 3색 (default/visited/missing) ── */
 interface WikiLinkProps {
   title: string;
   onOpen: (title: string) => void;
   findByTitle: (title: string) => WikiPage | undefined;
+  visitedIds?: Set<string>;
   children: React.ReactNode;
 }
 
-function WikiLink({ title, onOpen, findByTitle, children }: WikiLinkProps) {
+function WikiLink({ title, onOpen, findByTitle, visitedIds, children }: WikiLinkProps) {
   const [hovered, setHovered] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const linkRef = useRef<HTMLButtonElement>(null);
   const target = findByTitle(title);
   const exists = !!target;
+  const visited = exists && visitedIds?.has(target.id);
 
   useEffect(() => {
     if (!hovered || !linkRef.current) return;
@@ -103,12 +108,12 @@ function WikiLink({ title, onOpen, findByTitle, children }: WikiLinkProps) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         className={cn(
-          'font-medium underline-offset-2 transition-colors',
-          exists
-            ? 'text-blue-700 dark:text-blue-300 hover:underline'
-            : 'text-rose-600 dark:text-rose-400 hover:underline decoration-dashed underline'
+          'wiki-link',
+          !exists && 'wiki-link-missing',
+          exists && visited && 'wiki-link-visited',
+          exists && !visited && 'wiki-link-default',
         )}
-        title={exists ? title : `${title} (없음 — 클릭하면 만들어짐)`}
+        title={exists ? (visited ? `${title} (방문함)` : title) : `${title} (없음 — 클릭하면 만들어짐)`}
       >
         {children}
       </button>
