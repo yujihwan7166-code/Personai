@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 const SIDEBAR_KEY = 'wiki_sidebar_open';
 
 const Wiki = () => {
-  const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, reload } = useWikiPages();
+  const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, reload, restoreRevision } = useWikiPages();
   const { favorites, recent, toggleFavorite, isFavorite, recordView, purge } = useWikiFavorites();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -259,6 +259,7 @@ const Wiki = () => {
             isFavorite={isFavorite(activePage.id)}
             onToggleFavorite={() => toggleFavorite(activePage.id)}
             onChange={(next) => { void upsertPage(next); }}
+            onRestore={(snapshot) => { void restoreRevision(snapshot); }}
             onDelete={() => handleDelete(activePage.id)}
             onToggleEdit={() => setEditing((v) => !v)}
             onOpenLink={handleOpenByTitleOrId}

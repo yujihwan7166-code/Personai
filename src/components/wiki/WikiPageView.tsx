@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus } from 'lucide-react';
+import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
@@ -10,6 +10,7 @@ import { WikiToc } from './WikiToc';
 import { WikiInfobox } from './WikiInfobox';
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
 import { saveImage } from '@/lib/wikiImageStore';
+import { WikiHistoryPanel } from './WikiHistoryPanel';
 
 interface Props {
   page: WikiPage;
@@ -20,6 +21,7 @@ interface Props {
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onChange: (next: WikiPage) => void;
+  onRestore: (snapshot: WikiPage) => void;
   onDelete: () => void;
   onToggleEdit: () => void;
   onOpenLink: (titleOrId: string) => void;
@@ -46,10 +48,11 @@ function relativeTime(ts: number): string {
 export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
-  onChange, onDelete, onToggleEdit, onOpenLink,
+  onChange, onRestore, onDelete, onToggleEdit, onOpenLink,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [historyOpen, setHistoryOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimerRef = useRef<number | null>(null);
   const onChangeRef = useRef(onChange);
@@ -254,6 +257,9 @@ export function WikiPageView({
                     <button onClick={onToggleEdit} className="px-2 h-7 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center gap-1" title="편집 (E)">
                       <Pencil className="w-3.5 h-3.5" /> 편집
                     </button>
+                    <button onClick={() => setHistoryOpen(true)} className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="버전 히스토리" aria-label="버전 히스토리">
+                      <History className="w-3.5 h-3.5" />
+                    </button>
                     <button onClick={exportMd} className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Markdown 다운로드" aria-label="Markdown 다운로드">
                       <Download className="w-3.5 h-3.5" />
                     </button>
@@ -372,6 +378,14 @@ export function WikiPageView({
           {!editing && <WikiInfobox page={page} />}
         </div>
       </div>
+
+      {/* 버전 히스토리 패널 */}
+      <WikiHistoryPanel
+        open={historyOpen}
+        page={page}
+        onClose={() => setHistoryOpen(false)}
+        onRestore={onRestore}
+      />
     </div>
   );
 }

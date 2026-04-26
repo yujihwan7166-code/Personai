@@ -1,23 +1,30 @@
 /**
  * 마이위키 페이지 컬렉션 훅 — IDB CRUD + 메모리 캐시 + dirty 추적.
  *
- * 컴포넌트는 이 훅 하나만 호출하면 되고, 내부에서 wikiStore 와 동기화한다.
+ * 책임:
+ * - 페이지 CRUD
+ * - 저장 시 직전 스냅샷을 history 에 기록
+ * - 페이지 삭제 시 history·이미지 청소
+ * - 본문 [[link]] 자동 refersTo 갱신
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { WikiPage } from '@/types/wiki';
 import { extractWikiLinks } from '@/types/wiki';
 import { deletePage as idbDelete, loadAllPages, upsertPage as idbUpsert } from '@/lib/wikiStore';
 import { isWikiSeeded, seedWiki } from '@/lib/wikiSeed';
+import { recordRevision, deleteRevisionsForPage } from '@/lib/wikiHistory';
 
 export function useWikiPages() {
   const [pages, setPages] = useState<WikiPage[]>([]);
   const [loading, setLoading] = useState(true);
+  // 최신 pages snapshot ref — upsert 시 정확한 title 매핑 + 직전 페이지 가져오기.
+  const pagesRef = useRef<WikiPage[]>([]);
+  pagesRef.current = pages;
 
   const reload = useCallback(async () => {
     setLoading(true);
     let all = await loadAllPages();
-    // 첫 방문 — 시드 (기존 데이터 0 + 시드 플래그 미설정 일 때만)
     if (all.length === 0 && !isWikiSeeded()) {
       await seedWiki();
       all = await loadAllPages();
@@ -42,18 +49,17 @@ export function useWikiPages() {
     return () => { cancelled = true; };
   }, []);
 
-  /** 본문에서 [[link]] 추출 → refersTo 자동 갱신 후 저장. */
+  /** 본문에서 [[link]] 추출 → refersTo 자동 갱신 + 직전 스냅샷 history 기록 후 저장. */
   const upsertPage = useCallback(async (page: WikiPage) => {
+    // 직전 페이지 (있으면 history 에 기록할 스냅샷)
+    const prev = pagesRef.current.find((p) => p.id === page.id);
+
+    // title → id 매핑 (현재 정확한 snapshot 기준)
     const titleToId = new Map<string, string>();
-    setPages((prev) => {
-      for (const p of prev) {
-        titleToId.set(p.title, p.id);
-        for (const a of p.aliases) titleToId.set(a, p.id);
-      }
-      return prev;
-    });
-    // 위 setPages 는 반환만 하고 prev 를 안 바꾸지만, snapshot 이 클로저에 잡힘.
-    // 더 정확하게는 ref 로 잡는 것이 좋지만 v1 에서는 충분.
+    for (const p of pagesRef.current) {
+      titleToId.set(p.title, p.id);
+      for (const a of p.aliases) titleToId.set(a, p.id);
+    }
 
     const linkedTitles = extractWikiLinks(page.body);
     const refersTo = linkedTitles
@@ -65,10 +71,16 @@ export function useWikiPages() {
       refersTo,
       updatedAt: Date.now(),
     };
+
+    // 직전 스냅샷이 본문 또는 제목/메타가 다르면 히스토리 기록
+    if (prev && hasMeaningfulChange(prev, next)) {
+      void recordRevision(prev);
+    }
+
     await idbUpsert(next);
-    setPages((prev) => {
-      const i = prev.findIndex((p) => p.id === next.id);
-      const copy = i === -1 ? [next, ...prev] : prev.slice();
+    setPages((cur) => {
+      const i = cur.findIndex((p) => p.id === next.id);
+      const copy = i === -1 ? [next, ...cur] : cur.slice();
       if (i !== -1) copy[i] = next;
       return copy.sort((a, b) => b.updatedAt - a.updatedAt);
     });
@@ -77,15 +89,21 @@ export function useWikiPages() {
 
   const deletePage = useCallback(async (id: string) => {
     await idbDelete(id);
+    void deleteRevisionsForPage(id);
     setPages((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  /** 백링크 — 이 id 를 참조하는 페이지 목록. */
+  /** 직전 버전으로 복원 — history 에서 받은 snapshot 으로 upsert. */
+  const restoreRevision = useCallback(async (snapshot: WikiPage) => {
+    // upsertPage 가 직전 페이지를 자동으로 history 에 기록하므로
+    // restore 자체도 새 revision 으로 남는다.
+    return upsertPage(snapshot);
+  }, [upsertPage]);
+
   const getBacklinks = useCallback((id: string): WikiPage[] => {
     return pages.filter((p) => p.refersTo.includes(id) || p.cites.includes(id));
   }, [pages]);
 
-  /** 제목 또는 alias 로 페이지 조회. */
   const findByTitle = useCallback((title: string): WikiPage | undefined => {
     const t = title.trim();
     return pages.find((p) => p.title === t || p.aliases.includes(t));
@@ -96,8 +114,21 @@ export function useWikiPages() {
     loading,
     upsertPage,
     deletePage,
+    restoreRevision,
     getBacklinks,
     findByTitle,
     reload,
   };
+}
+
+/** 의미 있는 변경인지 — 메타 변경 + 본문 변경. timestamp 만 다른 건 제외. */
+function hasMeaningfulChange(prev: WikiPage, next: WikiPage): boolean {
+  if (prev.title !== next.title) return true;
+  if (prev.body !== next.body) return true;
+  if (prev.type !== next.type) return true;
+  if (prev.status !== next.status) return true;
+  if (prev.category !== next.category) return true;
+  if (prev.tags.join('|') !== next.tags.join('|')) return true;
+  if (prev.aliases.join('|') !== next.aliases.join('|')) return true;
+  return false;
 }
