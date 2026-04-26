@@ -61,10 +61,26 @@ export interface PageNoteGroup {
   pages: number[];
 }
 
+/** AI 가 자료를 의미 단위로 4~8개로 잘라낸 챕터(덩어리). 각 챕터는 자체 요약을 가진다. */
+export interface PageChunk {
+  id: string;
+  /** 시작·끝 페이지 (포함) */
+  range: [number, number];
+  /** 챕터에 포함된 페이지 번호 배열 */
+  pages: number[];
+  /** 챕터 제목 (예: "간 해부학") */
+  title: string;
+  /** 챕터 요약 (마크다운 2~4문장) */
+  summary: string;
+}
+
 export interface SummaryStructured {
   mode: 'whole' | 'pages';
   pages?: {
     notes: PageNote[];
+    /** 챕터(덩어리) 단위 그룹 — 메인 UI 의 아코디언 항목 */
+    chunks?: PageChunk[];
+    /** @deprecated 이전 버전 그룹 — chunks 로 대체 */
     groups?: PageNoteGroup[];
     density: SummaryDensity;
     /** true = 페이지를 이미지로 보내 비전 모델로 생성. 스캔본 PDF 등에 사용. */

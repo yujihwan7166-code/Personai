@@ -3,7 +3,7 @@ import {
   RefreshCw, Copy, Play, Users, FileText, Sparkles, GitBranch, Target, Map, MessagesSquare,
   ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star, Mic, BarChart3,
 } from 'lucide-react';
-import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType, QuizDeck, PodcastEpisode, PodcastLine, PodcastLength, PodcastTone, PodcastPurpose, DiagramItem, DiagramKind, DiagramVariant, SummaryStructured, SummaryDensity, PageNote } from '@/types/study';
+import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType, QuizDeck, PodcastEpisode, PodcastLine, PodcastLength, PodcastTone, PodcastPurpose, DiagramItem, DiagramKind, DiagramVariant, SummaryStructured, SummaryDensity, PageNote, PageChunk } from '@/types/study';
 import { TONE_META, LEVEL_META, newId, FLASHCARD_CARD_TYPE_META, migrateQuizDecks, PODCAST_LENGTH_META } from '@/types/study';
 import { PodcastConfigModal, type PodcastConfig } from './PodcastConfigModal';
 import { PodcastDeckView } from './PodcastDeckView';
@@ -15,7 +15,7 @@ import { DEFAULT_EXPERTS } from '@/types/expert';
 import { ExpertPickerModal } from './ExpertPickerModal';
 import { DebateLayout } from './DebateLayout';
 import { KeypointsLayout, MindmapLayout, GuideLayout, SummaryLayout } from './LensLayouts';
-import { PageNotesView, PageNotesEmptyChooser, VisionProgressOverlay, buildPageGroups } from './PageNotesView';
+import { PageNotesView, PageNotesEmptyChooser, VisionProgressOverlay, buildFallbackChunks } from './PageNotesView';
 import { MindmapCanvas } from './MindmapCanvas';
 import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
@@ -1161,7 +1161,7 @@ function SummarySection({
     ?? (hasPages ? 'pages' : hasWhole ? 'whole' : null);
   const [mode, setMode] = useState<'whole' | 'pages' | null>(initialMode);
   const [pagesIndexLoading, setPagesIndexLoading] = useState(false);
-  const [detailLoadingPages, setDetailLoadingPages] = useState<number[]>([]);
+  const [loadingChunkId, setLoadingChunkId] = useState<string | null>(null);
   const [visionProgress, setVisionProgress] = useState<{ phase: 'render' | 'ai'; done: number; total: number } | null>(null);
 
   const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready');
@@ -1249,24 +1249,18 @@ function SummarySection({
         toast({ title: '페이지 정리 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
         return;
       }
-      const arr = Array.isArray(data?.structured) ? data.structured : [];
-      if (arr.length === 0) {
+      const { notes, chunks } = parseIndexResponse(data?.structured);
+      if (notes.length === 0) {
         showPageUnavailableToast();
         return;
       }
-      const notes: PageNote[] = arr
-        .filter((n: { page?: number }) => Number.isFinite(n?.page))
-        .map((n: { page: number; title?: string; oneLiner?: string; kind?: 'image-only' | 'text' }) => ({
-          page: n.page,
-          title: n.title?.trim() || undefined,
-          oneLiner: (n.oneLiner ?? '').trim() || '(요약 없음)',
-          kind: n.kind === 'image-only' ? 'image-only' : 'text',
-          status: n.kind === 'image-only' ? 'skipped' : 'oneLiner',
-        }));
-      const groups = buildPageGroups(notes);
       writeStructured({
         mode: 'pages',
-        pages: { notes, groups, density: structured?.pages?.density ?? 'standard' },
+        pages: {
+          notes,
+          chunks: chunks.length > 0 ? chunks : buildFallbackChunks(notes),
+          density: structured?.pages?.density ?? 'standard',
+        },
       });
       setMode('pages');
     } catch {
@@ -1276,9 +1270,9 @@ function SummarySection({
     }
   };
 
-  const fetchPagesDetail = async (pages: number[]) => {
-    if (pages.length === 0) return;
-    setDetailLoadingPages((prev) => Array.from(new Set([...prev, ...pages])));
+  const fetchTextChunkDetail = async (chunk: PageChunk) => {
+    if (chunk.pages.length === 0) return;
+    setLoadingChunkId(chunk.id);
     try {
       const r = await fetch('/api/study-generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1289,43 +1283,27 @@ function SummarySection({
           level: summary?.level ?? 'standard',
           options: {
             summaryMode: 'pages-detail',
-            pages,
+            pages: chunk.pages,
             density: structured?.pages?.density ?? 'standard',
           },
         }),
       });
       const data = await r.json();
       if (!r.ok) {
-        toast({ title: '페이지 본문 생성 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
-        // 실패 표시
+        toast({ title: '본문 생성 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
         if (structured?.pages) {
           const updated = structured.pages.notes.map((n) =>
-            pages.includes(n.page) ? { ...n, status: 'error' as const } : n,
+            chunk.pages.includes(n.page) ? { ...n, status: 'error' as const } : n,
           );
           writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
         }
         return;
       }
-      const arr = Array.isArray(data?.structured) ? data.structured : [];
-      const bodyByPage = new Map<number, string>();
-      for (const item of arr) {
-        if (Number.isFinite(item?.page) && typeof item?.body === 'string') {
-          bodyByPage.set(item.page, item.body);
-        }
-      }
-      if (structured?.pages) {
-        const updated = structured.pages.notes.map((n) => {
-          if (!pages.includes(n.page)) return n;
-          const body = bodyByPage.get(n.page);
-          if (!body) return { ...n, status: 'error' as const };
-          return { ...n, body, status: 'full' as const, generatedAt: Date.now() };
-        });
-        writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
-      }
+      applyDetailResponse(chunk, data?.structured);
     } catch {
       toast({ title: '네트워크 오류', description: '연결을 확인하고 다시 시도해주세요.', variant: 'destructive' });
     } finally {
-      setDetailLoadingPages((prev) => prev.filter((p) => !pages.includes(p)));
+      setLoadingChunkId(null);
     }
   };
 
@@ -1373,25 +1351,16 @@ function SummarySection({
         toast({ title: '비전 인식 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
         return;
       }
-      const arr = Array.isArray(data?.structured) ? data.structured : [];
-      if (arr.length === 0) {
+      const { notes, chunks } = parseIndexResponse(data?.structured);
+      if (notes.length === 0) {
         toast({ title: '인식 결과가 비었어요', description: '페이지 이미지를 다시 시도해보세요.', variant: 'destructive' });
         return;
       }
-      const notes: PageNote[] = arr
-        .filter((n: { page?: number }) => Number.isFinite(n?.page))
-        .map((n: { page: number; title?: string; oneLiner?: string; kind?: 'image-only' | 'text' }) => ({
-          page: n.page,
-          title: n.title?.trim() || undefined,
-          oneLiner: (n.oneLiner ?? '').trim() || '(요약 없음)',
-          kind: n.kind === 'image-only' ? 'image-only' : 'text',
-          status: 'oneLiner' as const,
-        }));
-      const groups = buildPageGroups(notes);
       writeStructured({
         mode: 'pages',
         pages: {
-          notes, groups,
+          notes,
+          chunks: chunks.length > 0 ? chunks : buildFallbackChunks(notes),
           density: structured?.pages?.density ?? 'standard',
           vision: true,
           sourceBlobRef: pdfSource.blobRef,
@@ -1406,9 +1375,9 @@ function SummarySection({
     }
   };
 
-  const fetchVisionDetail = async (pages: number[]) => {
-    if (pages.length === 0 || !structured?.pages?.sourceBlobRef) return;
-    setDetailLoadingPages((prev) => Array.from(new Set([...prev, ...pages])));
+  const fetchVisionChunkDetail = async (chunk: PageChunk) => {
+    if (chunk.pages.length === 0 || !structured?.pages?.sourceBlobRef) return;
+    setLoadingChunkId(chunk.id);
     try {
       const { getBlob } = await import('@/lib/studyBlobStore');
       const { renderPdfPagesToImages } = await import('@/lib/fileConvert/converters/pdf');
@@ -1419,7 +1388,7 @@ function SummarySection({
       }
       const pdfSource = enabledSources.find((s) => s.blobRef === structured.pages?.sourceBlobRef);
       const file = new File([blob], pdfSource?.title || 'doc.pdf', { type: pdfSource?.mimeType || 'application/pdf' });
-      const images = await renderPdfPagesToImages(file, pages, { maxWidth: 1024, quality: 0.75 });
+      const images = await renderPdfPagesToImages(file, chunk.pages, { maxWidth: 1024, quality: 0.75 });
       const r = await fetch('/api/study-generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1439,33 +1408,36 @@ function SummarySection({
         toast({ title: '비전 본문 실패', description: data?.error || '다시 시도해주세요.', variant: 'destructive' });
         if (structured?.pages) {
           const updated = structured.pages.notes.map((n) =>
-            pages.includes(n.page) ? { ...n, status: 'error' as const } : n,
+            chunk.pages.includes(n.page) ? { ...n, status: 'error' as const } : n,
           );
           writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
         }
         return;
       }
-      const arr = Array.isArray(data?.structured) ? data.structured : [];
-      const bodyByPage = new Map<number, string>();
-      for (const item of arr) {
-        if (Number.isFinite(item?.page) && typeof item?.body === 'string') {
-          bodyByPage.set(item.page, item.body);
-        }
-      }
-      if (structured?.pages) {
-        const updated = structured.pages.notes.map((n) => {
-          if (!pages.includes(n.page)) return n;
-          const body = bodyByPage.get(n.page);
-          if (!body) return { ...n, status: 'error' as const };
-          return { ...n, body, status: 'full' as const, generatedAt: Date.now() };
-        });
-        writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
-      }
+      applyDetailResponse(chunk, data?.structured);
     } catch {
       toast({ title: '네트워크 오류', description: '연결을 확인하고 다시 시도해주세요.', variant: 'destructive' });
     } finally {
-      setDetailLoadingPages((prev) => prev.filter((p) => !pages.includes(p)));
+      setLoadingChunkId(null);
     }
+  };
+
+  const applyDetailResponse = (chunk: PageChunk, structuredResp: unknown) => {
+    if (!structured?.pages) return;
+    const arr = Array.isArray(structuredResp) ? structuredResp : [];
+    const bodyByPage = new Map<number, string>();
+    for (const item of arr as Array<{ page?: number; body?: string }>) {
+      if (Number.isFinite(item?.page) && typeof item?.body === 'string') {
+        bodyByPage.set(item.page!, item.body);
+      }
+    }
+    const updated = structured.pages.notes.map((n) => {
+      if (!chunk.pages.includes(n.page)) return n;
+      const body = bodyByPage.get(n.page);
+      if (!body) return { ...n, status: 'error' as const };
+      return { ...n, body, status: 'full' as const, generatedAt: Date.now() };
+    });
+    writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
   };
 
   const changeDensity = (d: SummaryDensity) => {
@@ -1480,13 +1452,15 @@ function SummarySection({
       n.page === page ? { ...n, body: undefined, status: 'oneLiner' as const } : n,
     );
     writeStructured({ ...structured, pages: { ...structured.pages, notes: updated } });
-    if (structured.pages.vision) fetchVisionDetail([page]);
-    else fetchPagesDetail([page]);
+    // 단일 페이지를 임시 chunk 로 감싸 재사용
+    const oneChunk: PageChunk = { id: `regen_${page}`, range: [page, page], pages: [page], title: '', summary: '' };
+    if (structured.pages.vision) void fetchVisionChunkDetail(oneChunk);
+    else void fetchTextChunkDetail(oneChunk);
   };
 
-  const loadDetailRouter = (pages: number[]) => {
-    if (structured?.pages?.vision) fetchVisionDetail(pages);
-    else fetchPagesDetail(pages);
+  const loadChunkDetail = (chunk: PageChunk) => {
+    if (structured?.pages?.vision) void fetchVisionChunkDetail(chunk);
+    else void fetchTextChunkDetail(chunk);
   };
 
   const pagesUnavailable = !hasPageMarkers;
@@ -1615,11 +1589,11 @@ function SummarySection({
       ) : hasPages && structured?.pages ? (
         <PageNotesView
           notes={structured.pages.notes}
-          groups={structured.pages.groups}
+          chunks={structured.pages.chunks}
           density={structured.pages.density}
           onChangeDensity={changeDensity}
-          onLoadDetail={loadDetailRouter}
-          detailLoadingPages={detailLoadingPages}
+          onLoadChunkDetail={loadChunkDetail}
+          loadingChunkId={loadingChunkId}
           onRegeneratePage={regeneratePage}
           onJumpToPage={onJumpToPage}
         />
@@ -1630,6 +1604,62 @@ function SummarySection({
       )}
     </div>
   );
+}
+
+/* ── 인덱스 응답({chunks,notes} 또는 레거시 [notes]) 파싱 ── */
+function parseIndexResponse(structured: unknown): { notes: PageNote[]; chunks: PageChunk[] } {
+  const empty = { notes: [] as PageNote[], chunks: [] as PageChunk[] };
+  if (!structured) return empty;
+
+  // 레거시 — notes 배열만 반환된 경우
+  if (Array.isArray(structured)) {
+    const notes = parseNotesArr(structured);
+    return { notes, chunks: [] };
+  }
+
+  if (typeof structured !== 'object') return empty;
+  const obj = structured as { chunks?: unknown; notes?: unknown };
+  const notes = parseNotesArr(Array.isArray(obj.notes) ? obj.notes : []);
+  const rawChunks = Array.isArray(obj.chunks) ? obj.chunks : [];
+
+  // chunks 의 pages 필드가 비어있으면 range 로 채움
+  const chunks: PageChunk[] = [];
+  for (const c of rawChunks) {
+    const ch = c as { range?: unknown; pages?: unknown; title?: unknown; summary?: unknown };
+    const range = Array.isArray(ch.range) && ch.range.length === 2
+      && Number.isFinite(ch.range[0]) && Number.isFinite(ch.range[1])
+      ? [Number(ch.range[0]), Number(ch.range[1])] as [number, number]
+      : null;
+    if (!range) continue;
+    const givenPages = Array.isArray(ch.pages)
+      ? (ch.pages as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
+      : [];
+    const pages = givenPages.length > 0
+      ? givenPages
+      : Array.from({ length: range[1] - range[0] + 1 }, (_, i) => range[0] + i);
+    chunks.push({
+      id: `c_${chunks.length + 1}`,
+      range,
+      pages,
+      title: typeof ch.title === 'string' ? ch.title.trim() : '',
+      summary: typeof ch.summary === 'string' ? ch.summary.trim() : '',
+    });
+  }
+  return { notes, chunks };
+}
+
+function parseNotesArr(arr: unknown[]): PageNote[] {
+  return arr
+    .filter((n): n is { page: number; title?: string; oneLiner?: string; kind?: string } =>
+      !!n && typeof n === 'object' && Number.isFinite((n as { page?: unknown }).page),
+    )
+    .map((n) => ({
+      page: n.page,
+      title: n.title?.trim() || undefined,
+      oneLiner: (n.oneLiner ?? '').trim() || '(요약 없음)',
+      kind: n.kind === 'image-only' ? 'image-only' as const : 'text' as const,
+      status: n.kind === 'image-only' ? 'skipped' as const : 'oneLiner' as const,
+    }));
 }
 
 function WholeSummaryShimmer() {

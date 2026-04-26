@@ -72,24 +72,41 @@ ${sourceBlock}
     case 'summary':
       if (summaryMode === 'pages-index') {
         return {
-          system: `당신은 공부 도우미입니다. 학습 자료의 각 페이지를 한 줄씩 요약해 JSON 배열로 출력합니다.
+          system: `당신은 공부 도우미입니다. 학습 자료를 의미 단위 챕터(덩어리)로 자르고 각 페이지를 한 줄씩 요약합니다.
 원본에 없는 사실 금지. 페이지 마커 [p.N] 만 신뢰.`,
           user: `${common}
 위 소스에는 [p.N] 형식의 페이지 마커가 들어 있습니다.
-각 페이지를 정확히 1줄로 요약해 아래 JSON 배열만 출력하세요(코드블록·주석·부가 텍스트 금지):
 
-[
-  { "page": 1, "title": "표지/섹션 제목(있으면, 없으면 생략)", "oneLiner": "한 줄 요약(≤45자)", "kind": "text" },
-  { "page": 2, "title": "...", "oneLiner": "...", "kind": "text" }
-]
+다음 JSON 객체만 출력하세요(코드블록·주석·부가 텍스트 금지):
 
-규칙:
-- **모든 페이지** 를 빠짐없이 포함 (소스에 등장한 [p.N] 전부)
+{
+  "chunks": [
+    {
+      "range": [1, 11],
+      "title": "간 해부학",
+      "summary": "이 챕터는 간의 혈관 구조와 소엽 단위 미세구조를 다룬다. 하대정맥·간문맥·간동맥의 흐름과 30~40 / 60~70 비율, 간소엽의 구역별 대사 경로가 핵심이다."
+    }
+  ],
+  "notes": [
+    { "page": 1, "title": "표지/섹션 제목(있으면, 없으면 생략)", "oneLiner": "한 줄 요약(≤45자)", "kind": "text" }
+  ]
+}
+
+규칙 — chunks:
+- **자료를 의미 단위로 4~8개 챕터로 자르세요**. 페이지 수가 많아도 8개 이하로.
+- 각 챕터는 보통 **8~15페이지** 분량. 자료 전체 페이지를 빠짐없이 분배(겹침·누락 금지).
+- 'range' 는 [시작, 끝] 페이지 번호(포함). 'pages' 필드는 생략(서버가 채움).
+- 'title' 은 그 덩어리의 핵심 주제를 ≤15자 명사구로.
+- 'summary' 는 **2~4문장 마크다운**. 그 챕터에서 무엇을 다루는지 + 핵심 개념·수치·관계. 단순 나열 금지, 인과·흐름·비교로 서술.
+
+규칙 — notes:
+- **모든 페이지**를 빠짐없이 포함 (소스에 등장한 [p.N] 전부)
 - 'oneLiner' 는 **반드시 ≤45자**, 명사구·요점만, 마침표 X
-- 'title' 은 그 페이지의 헤딩이 보일 때만 (예: "Liver", "Bile ducts")
+- 'title' 은 그 페이지의 헤딩이 보일 때만
 - 텍스트 거의 없이 그림·도식만 있는 페이지는 "kind":"image-only", 'oneLiner' 는 "🖼️ 도식/그림" 으로
-- 빈 페이지(완전 백지)도 "kind":"image-only", 'oneLiner' 는 "(빈 페이지)" 로
-- 페이지 마커가 없으면 빈 배열 [] 만 출력`,
+- 빈 페이지면 "kind":"image-only", 'oneLiner' 는 "(빈 페이지)" 로
+
+페이지 마커가 없으면 {"chunks":[], "notes":[]} 만 출력`,
         };
       }
       if (summaryMode === 'pages-detail') {
@@ -483,17 +500,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const visionUserText = isIndex
       ? `다음은 학습 자료의 페이지 이미지들입니다. 각 이미지는 페이지 번호 라벨과 함께 제공됩니다.
-각 페이지를 정확히 1줄로 요약해 아래 JSON 배열만 출력하세요(코드블록·주석·부가 텍스트 금지):
 
-[
-  { "page": 1, "title": "페이지 제목/헤딩(있으면, 없으면 생략)", "oneLiner": "한 줄 요약(≤45자)", "kind": "text" }
-]
+다음 JSON 객체만 출력하세요(코드블록·주석·부가 텍스트 금지):
 
-규칙:
+{
+  "chunks": [
+    {
+      "range": [1, 11],
+      "title": "간 해부학",
+      "summary": "이 챕터는 간의 혈관 구조와 소엽 단위 미세구조를 다룬다. 하대정맥·간문맥·간동맥의 흐름과 30~40 / 60~70 비율, 간소엽의 구역별 대사 경로가 핵심이다."
+    }
+  ],
+  "notes": [
+    { "page": 1, "title": "페이지 제목/헤딩(있으면, 없으면 생략)", "oneLiner": "한 줄 요약(≤45자)", "kind": "text" }
+  ]
+}
+
+규칙 — chunks:
+- 자료를 의미 단위로 4~8개 챕터로 자르세요. 페이지가 많아도 8개 이하.
+- 각 챕터 보통 8~15페이지. 전체 페이지를 빠짐없이 분배(겹침·누락 금지).
+- 'range' 는 [시작, 끝] (포함). 'pages' 필드는 생략(서버가 채움).
+- 'title' 은 ≤15자 명사구.
+- 'summary' 는 **2~4문장 마크다운**, 챕터에서 다루는 핵심 개념·관계·수치를 인과·흐름으로 서술.
+
+규칙 — notes:
 - 입력된 모든 페이지를 빠짐없이 포함
 - 'oneLiner' 는 ≤45자, 명사구·요점만, 마침표 X
 - 'title' 은 그 페이지의 헤딩이 보일 때만
-- 페이지에 텍스트는 거의 없고 그림/도식만 있다면 "kind":"image-only", 'oneLiner' 는 그 그림이 무엇을 보여주는지 한 줄로 (예: "🖼️ 간 혈관 구조 도식")
+- 페이지에 텍스트는 거의 없고 그림/도식만 있다면 "kind":"image-only", 'oneLiner' 는 그 그림이 보여주는 내용을 한 줄로 (예: "🖼️ 간 혈관 구조 도식")
 - 완전히 빈 페이지면 "kind":"image-only", 'oneLiner' 는 "(빈 페이지)" 로`
       : `다음은 학습 자료의 특정 페이지 이미지들입니다. 각 페이지를 학습 노트로 정리하세요.
 아래 JSON 배열로만 출력 (코드블록·주석 금지):
@@ -544,9 +578,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const trimmed = content.replace(/^```json\s*|\s*```$/g, '').trim();
         parsed = JSON.parse(trimmed);
       } catch {
-        const match = content.match(/\[[\s\S]*\]/);
-        if (match) {
-          try { parsed = JSON.parse(match[0]); } catch { /* noop */ }
+        const obj = content.match(/\{[\s\S]*\}/);
+        if (obj) {
+          try { parsed = JSON.parse(obj[0]); } catch { /* noop */ }
+        }
+        if (!parsed) {
+          const arr = content.match(/\[[\s\S]*\]/);
+          if (arr) {
+            try { parsed = JSON.parse(arr[0]); } catch { /* noop */ }
+          }
         }
       }
       return res.status(200).json({ content, structured: parsed });
@@ -591,9 +631,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const trimmed = content.replace(/^```json\s*|\s*```$/g, '').trim();
         parsed = JSON.parse(trimmed);
       } catch {
-        const match = content.match(/\[[\s\S]*\]/);
-        if (match) {
-          try { parsed = JSON.parse(match[0]); } catch { /* noop */ }
+        // pages-index 는 객체, pages-detail 는 배열
+        const obj = content.match(/\{[\s\S]*\}/);
+        if (obj) {
+          try { parsed = JSON.parse(obj[0]); } catch { /* noop */ }
+        }
+        if (!parsed) {
+          const arr = content.match(/\[[\s\S]*\]/);
+          if (arr) {
+            try { parsed = JSON.parse(arr[0]); } catch { /* noop */ }
+          }
         }
       }
       return res.status(200).json({ content, structured: parsed });

@@ -2,15 +2,17 @@ import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, FileText, RefreshCw, Image as ImageIcon, ExternalLink, Copy } from 'lucide-react';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { cn } from '@/lib/utils';
-import type { PageNote, PageNoteGroup, SummaryDensity } from '@/types/study';
+import type { PageNote, PageChunk, SummaryDensity } from '@/types/study';
 
 interface Props {
   notes: PageNote[];
-  groups?: PageNoteGroup[];
+  chunks?: PageChunk[];
   density: SummaryDensity;
   onChangeDensity: (d: SummaryDensity) => void;
-  onLoadDetail: (pages: number[]) => void;
-  detailLoadingPages: number[];
+  /** 챕터 펼침 시 그 챕터의 모든 페이지 본문을 한 번에 fetch */
+  onLoadChunkDetail: (chunk: PageChunk) => void;
+  /** 현재 본문 로딩 중인 챕터 id */
+  loadingChunkId?: string | null;
   onRegeneratePage: (page: number) => void;
   onJumpToPage?: (page: number) => void;
   /** 현재 PDF 뷰어가 보고 있는 페이지(있으면 카드 하이라이트) */
@@ -19,17 +21,17 @@ interface Props {
 
 export function PageNotesView({
   notes,
-  groups,
+  chunks,
   density,
   onChangeDensity,
-  onLoadDetail,
-  detailLoadingPages,
+  onLoadChunkDetail,
+  loadingChunkId,
   onRegeneratePage,
   onJumpToPage,
   currentViewerPage,
 }: Props) {
-  const [expandedPages, setExpandedPages] = useState<Set<number>>(new Set());
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  // 한 번에 하나만 펼침 (아코디언)
+  const [openChunkId, setOpenChunkId] = useState<string | null>(null);
 
   const noteByPage = useMemo(() => {
     const m = new Map<number, PageNote>();
@@ -37,157 +39,173 @@ export function PageNotesView({
     return m;
   }, [notes]);
 
-  const ungrouped = useMemo(() => {
-    if (!groups || groups.length === 0) return notes;
-    const inGroup = new Set<number>();
-    for (const g of groups) for (const p of g.pages) inGroup.add(p);
-    return notes.filter((n) => !inGroup.has(n.page));
-  }, [notes, groups]);
+  // chunks 가 없으면 단일 가상 chunk 로 폴백
+  const effectiveChunks: PageChunk[] = useMemo(() => {
+    if (chunks && chunks.length > 0) return chunks;
+    if (notes.length === 0) return [];
+    const sorted = [...notes].sort((a, b) => a.page - b.page);
+    const allPages = sorted.map((n) => n.page);
+    return [{
+      id: 'all',
+      range: [allPages[0], allPages[allPages.length - 1]],
+      pages: allPages,
+      title: '전체',
+      summary: '',
+    }];
+  }, [chunks, notes]);
 
-  const togglePage = (page: number) => {
-    setExpandedPages((prev) => {
-      const next = new Set(prev);
-      if (next.has(page)) {
-        next.delete(page);
-      } else {
-        next.add(page);
-        const note = noteByPage.get(page);
-        if (note && !note.body && note.kind !== 'image-only') {
-          onLoadDetail([page]);
-        }
-      }
-      return next;
+  const toggleChunk = (chunk: PageChunk) => {
+    if (openChunkId === chunk.id) {
+      setOpenChunkId(null);
+      return;
+    }
+    setOpenChunkId(chunk.id);
+    // 본문이 비어있는 페이지가 하나라도 있으면 일괄 fetch
+    const needFetch = chunk.pages.some((p) => {
+      const note = noteByPage.get(p);
+      return note && !note.body && note.kind !== 'image-only' && note.status !== 'error';
     });
-  };
-
-  const toggleGroup = (id: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const expandGroup = (g: PageNoteGroup) => {
-    const needFetch: number[] = [];
-    setExpandedPages((prev) => {
-      const next = new Set(prev);
-      for (const p of g.pages) {
-        next.add(p);
-        const note = noteByPage.get(p);
-        if (note && !note.body && note.kind !== 'image-only') needFetch.push(p);
-      }
-      return next;
-    });
-    if (needFetch.length > 0) onLoadDetail(needFetch);
+    if (needFetch) onLoadChunkDetail(chunk);
   };
 
   return (
     <div className="flex flex-col">
       <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-1 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800">
         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-          총 {notes.length}페이지
-          {groups && groups.length > 0 && ` · ${groups.length}개 챕터`}
+          총 {notes.length}페이지 · {effectiveChunks.length}개 챕터
         </p>
         <DensityToggle value={density} onChange={onChangeDensity} />
       </div>
 
-      <div className="pt-1 divide-y divide-slate-100 dark:divide-slate-800/60">
-        {groups && groups.length > 0 ? groups.map((g) => {
-          const collapsed = collapsedGroups.has(g.id);
+      <div className="pt-2 space-y-2">
+        {effectiveChunks.map((chunk, idx) => {
+          const isOpen = openChunkId === chunk.id;
+          const isLoading = loadingChunkId === chunk.id;
           return (
-            <div key={g.id}>
-              <div className="flex items-center gap-2 pt-3 pb-1.5 px-1">
-                <button
-                  onClick={() => toggleGroup(g.id)}
-                  className="flex items-center gap-1.5 text-left text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                  title={collapsed ? '펼치기' : '접기'}
-                >
-                  {collapsed
-                    ? <ChevronRight className="h-3 w-3 shrink-0" />
-                    : <ChevronDown className="h-3 w-3 shrink-0" />}
-                  <span className="text-[10.5px] font-bold uppercase tracking-wider">{g.title}</span>
-                  <span className="text-[10px] text-slate-400 tabular-nums">
-                    p.{g.pageRange[0]}–{g.pageRange[1]}
-                  </span>
-                </button>
-                <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
-                {!collapsed && (
-                  <button
-                    onClick={() => expandGroup(g)}
-                    className="text-[10px] text-slate-400 hover:text-indigo-700 font-semibold"
-                  >
-                    전체 본문 보기
-                  </button>
-                )}
-              </div>
-              {!collapsed && g.pages.map((p) => {
-                const note = noteByPage.get(p);
-                if (!note) return null;
-                return (
-                  <PageCard
-                    key={p}
-                    note={note}
-                    expanded={expandedPages.has(p)}
-                    onToggle={() => togglePage(p)}
-                    loading={detailLoadingPages.includes(p)}
-                    onRegenerate={() => onRegeneratePage(p)}
-                    onJump={onJumpToPage ? () => onJumpToPage(p) : undefined}
-                    active={currentViewerPage === p}
-                    density={density}
-                  />
-                );
-              })}
-            </div>
+            <ChunkAccordion
+              key={chunk.id}
+              chunk={chunk}
+              index={idx + 1}
+              isOpen={isOpen}
+              isLoading={isLoading}
+              notes={chunk.pages.map((p) => noteByPage.get(p)).filter((n): n is PageNote => !!n)}
+              density={density}
+              currentViewerPage={currentViewerPage}
+              onToggle={() => toggleChunk(chunk)}
+              onJumpToPage={onJumpToPage}
+              onRegeneratePage={onRegeneratePage}
+            />
           );
-        }) : null}
-
-        {ungrouped.length > 0 && ungrouped.map((n) => (
-          <PageCard
-            key={n.page}
-            note={n}
-            expanded={expandedPages.has(n.page)}
-            onToggle={() => togglePage(n.page)}
-            loading={detailLoadingPages.includes(n.page)}
-            onRegenerate={() => onRegeneratePage(n.page)}
-            onJump={onJumpToPage ? () => onJumpToPage(n.page) : undefined}
-            active={currentViewerPage === n.page}
-            density={density}
-          />
-        ))}
+        })}
       </div>
     </div>
   );
 }
 
-function PageCard({
-  note, expanded, onToggle, loading, onRegenerate, onJump, active, density,
+function ChunkAccordion({
+  chunk, index, isOpen, isLoading, notes, density, currentViewerPage,
+  onToggle, onJumpToPage, onRegeneratePage,
 }: {
-  note: PageNote;
-  expanded: boolean;
-  onToggle: () => void;
-  loading: boolean;
-  onRegenerate: () => void;
-  onJump?: () => void;
-  active?: boolean;
+  chunk: PageChunk;
+  index: number;
+  isOpen: boolean;
+  isLoading: boolean;
+  notes: PageNote[];
   density: SummaryDensity;
+  currentViewerPage?: number;
+  onToggle: () => void;
+  onJumpToPage?: (page: number) => void;
+  onRegeneratePage: (page: number) => void;
+}) {
+  return (
+    <div className={cn(
+      'rounded-xl border transition-colors overflow-hidden',
+      isOpen
+        ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50/30 dark:bg-indigo-950/10'
+        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300',
+    )}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-start gap-3 px-4 py-3 text-left"
+      >
+        <span className="inline-flex h-6 min-w-[2.5rem] items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold tabular-nums px-2 shrink-0 mt-0.5">
+          {chunk.range[0]}~{chunk.range[1]}p
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CH.{index}</span>
+            <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate">
+              {chunk.title}
+            </h3>
+          </div>
+          {!isOpen && chunk.summary && (
+            <p className="text-[11.5px] text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2">
+              {chunk.summary.replace(/\*\*/g, '')}
+            </p>
+          )}
+        </div>
+        {isOpen
+          ? <ChevronDown className="h-4 w-4 text-slate-400 shrink-0 mt-1" />
+          : <ChevronRight className="h-4 w-4 text-slate-400 shrink-0 mt-1" />}
+      </button>
+
+      {isOpen && (
+        <div className="px-4 pb-3 border-t border-indigo-100 dark:border-indigo-900/30 pt-3">
+          {chunk.summary && (
+            <div className="prose prose-sm max-w-none text-[12.5px] leading-relaxed text-slate-700 dark:text-slate-300 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-1.5 mb-3 pb-3 border-b border-slate-100 dark:border-slate-800/60">
+              <LazyMarkdown content={chunk.summary} />
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-2 py-2">
+              {Array.from({ length: Math.min(notes.length, 5) }).map((_, i) => (
+                <div key={i} className="space-y-1.5">
+                  <div className="study-shimmer h-3 w-1/4 rounded" />
+                  <div className="study-shimmer h-2.5 w-full rounded" />
+                  <div className="study-shimmer h-2.5 w-[88%] rounded" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {notes.map((note) => (
+                <PageRow
+                  key={note.page}
+                  note={note}
+                  density={density}
+                  active={currentViewerPage === note.page}
+                  onJump={onJumpToPage ? () => onJumpToPage(note.page) : undefined}
+                  onRegenerate={() => onRegeneratePage(note.page)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PageRow({ note, density, active, onJump, onRegenerate }: {
+  note: PageNote;
+  density: SummaryDensity;
+  active?: boolean;
+  onJump?: () => void;
+  onRegenerate: () => void;
 }) {
   const isImageOnly = note.kind === 'image-only';
-  const hasBody = !!note.body;
   const onelineMode = density === 'oneline';
 
   return (
     <div className={cn(
-      'transition-colors',
-      active && 'bg-indigo-50/40 dark:bg-indigo-950/20 ring-2 ring-inset ring-indigo-200 dark:ring-indigo-900/50',
-      isImageOnly && 'bg-slate-50/60 dark:bg-slate-900/40',
+      'rounded-lg px-3 py-2 transition-colors',
+      active && 'bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200',
+      !active && 'hover:bg-white dark:hover:bg-slate-900',
     )}>
-      <button
-        onClick={onelineMode ? (onJump ?? onToggle) : onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40"
-      >
+      <div className="flex items-center gap-2 mb-1.5">
         <span className={cn(
-          'inline-flex items-center justify-center rounded-md px-1.5 h-5 text-[10px] font-bold tabular-nums shrink-0',
+          'inline-flex items-center justify-center rounded px-1.5 h-5 text-[10px] font-bold tabular-nums shrink-0',
           isImageOnly
             ? 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
             : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300',
@@ -195,77 +213,50 @@ function PageCard({
           p.{note.page}
         </span>
         {note.title && (
-          <span className="text-[11.5px] font-semibold text-slate-800 dark:text-slate-200 shrink-0 max-w-[35%] truncate">
+          <span className="text-[11.5px] font-semibold text-slate-800 dark:text-slate-200 truncate">
             {note.title}
           </span>
         )}
         <span className={cn(
-          'text-[12px] flex-1 min-w-0 truncate',
-          isImageOnly ? 'text-slate-500' : 'text-slate-700 dark:text-slate-300',
+          'text-[11.5px] flex-1 min-w-0 truncate',
+          isImageOnly ? 'text-slate-500' : 'text-slate-600 dark:text-slate-400',
         )}>
           {isImageOnly && <ImageIcon className="inline h-3 w-3 mr-1 -mt-0.5 text-slate-400" />}
-          {note.oneLiner}
+          {!note.body && note.oneLiner}
         </span>
-        {!onelineMode && !isImageOnly && (
-          expanded
-            ? <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            : <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-        )}
-      </button>
-
-      {!onelineMode && expanded && !isImageOnly && (
-        <div className="px-3 pb-3">
-          {loading && !hasBody ? (
-            <div className="space-y-1.5 pl-7 pt-1">
-              <div className="study-shimmer h-3 w-[92%] rounded" />
-              <div className="study-shimmer h-3 w-[85%] rounded" />
-              <div className="study-shimmer h-3 w-[70%] rounded" />
-            </div>
-          ) : note.status === 'error' ? (
-            <div className="pl-7 pt-1 flex items-center gap-2">
-              <p className="text-[11.5px] text-rose-600">이 페이지를 정리하지 못했어요.</p>
-              <button
-                onClick={onRegenerate}
-                className="text-[10.5px] text-indigo-600 hover:text-indigo-800 font-semibold"
-              >
-                다시 시도
-              </button>
-            </div>
-          ) : hasBody ? (
-            <>
-              <div className="pl-7 prose prose-sm max-w-none text-[12.5px] leading-relaxed text-slate-700 dark:text-slate-300 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-1.5">
-                <LazyMarkdown content={note.body!} />
-              </div>
-              <div className="pl-7 mt-2 flex items-center gap-3 pt-1.5 border-t border-slate-100 dark:border-slate-800/60">
-                {onJump && (
-                  <button
-                    onClick={onJump}
-                    className="inline-flex items-center gap-1 text-[10.5px] text-slate-500 hover:text-indigo-700"
-                  >
-                    <ExternalLink className="h-3 w-3" /> 원본 보기
-                  </button>
-                )}
-                <button
-                  onClick={onRegenerate}
-                  disabled={loading}
-                  className="inline-flex items-center gap-1 text-[10.5px] text-slate-500 hover:text-indigo-700 disabled:opacity-40"
-                >
-                  <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} /> 이 페이지만 다시
-                </button>
-                <button
-                  onClick={() => navigator.clipboard?.writeText(note.body!)}
-                  className="inline-flex items-center gap-1 text-[10.5px] text-slate-500 hover:text-indigo-700"
-                >
-                  <Copy className="h-3 w-3" /> 복사
-                </button>
-              </div>
-            </>
-          ) : null}
+        <div className="flex items-center gap-2 shrink-0">
+          {onJump && (
+            <button onClick={onJump} className="text-slate-400 hover:text-indigo-700" title="원본 보기">
+              <ExternalLink className="h-3 w-3" />
+            </button>
+          )}
+          <button onClick={onRegenerate} className="text-slate-400 hover:text-indigo-700" title="이 페이지만 다시">
+            <RefreshCw className="h-3 w-3" />
+          </button>
+          {note.body && (
+            <button
+              onClick={() => navigator.clipboard?.writeText(note.body!)}
+              className="text-slate-400 hover:text-indigo-700"
+              title="복사"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          )}
         </div>
+      </div>
+
+      {!onelineMode && note.body && !isImageOnly && (
+        <div className="pl-9 prose prose-sm max-w-none text-[12px] leading-relaxed text-slate-700 dark:text-slate-300 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100 [&_p]:my-1">
+          <LazyMarkdown content={note.body} />
+        </div>
+      )}
+      {!onelineMode && !note.body && note.status === 'error' && (
+        <p className="pl-9 text-[11px] text-rose-600">이 페이지를 정리하지 못했어요.</p>
       )}
     </div>
   );
 }
+
 
 function DensityToggle({ value, onChange }: { value: SummaryDensity; onChange: (d: SummaryDensity) => void }) {
   const items: { id: SummaryDensity; label: string }[] = [
@@ -436,43 +427,57 @@ export function VisionProgressOverlay({
   );
 }
 
-/* ── 페이지 인덱스를 챕터로 묶는 휴리스틱 ──
-   - title 이 있는 페이지를 챕터 시작점으로
-   - 같은 title 이 연속이면 하나의 챕터로
-   - title 이 전혀 없으면 그룹 없이 ungrouped 로 처리
+/* ── chunks 가 누락된 응답일 때 클라이언트에서 폴백 chunk 를 만든다.
+   - title 연속을 보고 묶거나 (없으면) 페이지 N개씩 균등 분할
 */
-export function buildPageGroups(notes: PageNote[]): PageNoteGroup[] {
+export function buildFallbackChunks(notes: PageNote[]): PageChunk[] {
+  if (notes.length === 0) return [];
   const sorted = [...notes].sort((a, b) => a.page - b.page);
   const titled = sorted.filter((n) => !!n.title?.trim());
-  if (titled.length === 0) return [];
-
-  const groups: PageNoteGroup[] = [];
-  let currentTitle: string | null = null;
-  let currentPages: number[] = [];
-
-  const flush = () => {
-    if (currentTitle && currentPages.length > 0) {
-      groups.push({
-        id: `g_${groups.length + 1}`,
-        title: currentTitle,
-        pageRange: [currentPages[0], currentPages[currentPages.length - 1]],
-        pages: [...currentPages],
-      });
+  if (titled.length >= 4) {
+    const chunks: PageChunk[] = [];
+    let curTitle: string | null = null;
+    let curPages: number[] = [];
+    const flush = () => {
+      if (curTitle && curPages.length > 0) {
+        chunks.push({
+          id: `c_${chunks.length + 1}`,
+          range: [curPages[0], curPages[curPages.length - 1]],
+          pages: [...curPages],
+          title: curTitle,
+          summary: '',
+        });
+      }
+    };
+    for (const n of sorted) {
+      const t = n.title?.trim();
+      if (t && t !== curTitle) {
+        flush();
+        curTitle = t;
+        curPages = [n.page];
+      } else if (curTitle) {
+        curPages.push(n.page);
+      }
     }
-  };
-
-  for (const n of sorted) {
-    const title = n.title?.trim();
-    if (title && title !== currentTitle) {
-      flush();
-      currentTitle = title;
-      currentPages = [n.page];
-    } else if (currentTitle) {
-      currentPages.push(n.page);
-    }
+    flush();
+    if (chunks.length >= 2) return chunks;
   }
-  flush();
 
-  if (groups.length <= 1) return [];
-  return groups;
+  // 균등 분할 (5~7개 chunk 목표)
+  const total = sorted.length;
+  const chunkCount = Math.min(7, Math.max(2, Math.round(total / 12)));
+  const size = Math.ceil(total / chunkCount);
+  const out: PageChunk[] = [];
+  for (let i = 0; i < total; i += size) {
+    const slice = sorted.slice(i, i + size);
+    out.push({
+      id: `c_${out.length + 1}`,
+      range: [slice[0].page, slice[slice.length - 1].page],
+      pages: slice.map((n) => n.page),
+      title: `${slice[0].page}~${slice[slice.length - 1].page}p`,
+      summary: '',
+    });
+  }
+  return out;
 }
+
