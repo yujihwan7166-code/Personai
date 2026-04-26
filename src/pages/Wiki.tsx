@@ -170,185 +170,50 @@ const Wiki = () => {
         />
       )}
 
-      {/* 사이드바 */}
-      <aside
-        className={cn(
-          'shrink-0 h-full overflow-hidden transition-[width,transform,border-right-width] duration-200 ease-out border-r flex flex-col',
-          isMobile
-            ? 'fixed left-0 top-0 wiki-z-sidebar w-[280px] bg-background border-[hsl(var(--hairline))]'
-            : (sidebarOpen
-                ? 'w-[260px] border-[hsl(var(--hairline))]'
-                : 'w-0 border-r-0'),
-          isMobile && !sidebarOpen && '-translate-x-full',
-        )}
-        aria-hidden={!sidebarOpen}
-      >
-        <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
-          {/* 한 줄 헤더 — 라벨(좌) + 아이콘 그룹(우). 단순·일관. */}
-          <div className="px-2 h-10 border-b border-[hsl(var(--hairline))] flex items-center gap-0.5">
-            <Link
-              to="/"
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              aria-label="앱으로 돌아가기"
-              title="앱으로 돌아가기"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-            </Link>
-            <span
-              className="flex-1 text-[12.5px] font-bold text-foreground/90 truncate px-1"
-              style={{ fontFamily: 'var(--wiki-font-meta)' }}
-            >
-              🌐 마이위키
-            </span>
-            <button
-              type="button"
-              onClick={() => { setActiveId(null); setView('page'); if (isMobile) setSidebarOpen(false); }}
-              className={cn(
-                'h-7 w-7 inline-flex items-center justify-center rounded-md wiki-trans-color',
-                !activeId && view === 'page'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-              title="대문(홈)"
-              aria-label="대문(홈)"
-            >
-              <Home className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => { void openTodayNote(); }}
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="오늘 데일리 노트"
-              aria-label="오늘 데일리 노트"
-            >
-              <CalendarDays className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); if (isMobile) setSidebarOpen(false); }}
-              className={cn(
-                'h-7 w-7 inline-flex items-center justify-center rounded-md wiki-trans-color',
-                view === 'graph'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-              title="연결 그래프"
-              aria-label="연결 그래프"
-            >
-              <Network className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={openTemplatePicker}
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/15 wiki-trans-color"
-              title="새 페이지 (Ctrl/Cmd+N)"
-              aria-label="새 페이지"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-            <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
-            <WikiSettingsMenu
-              onMutated={() => { void reload(); setActiveId(null); }}
-              onOpenStorage={() => setStorageOpen(true)}
-            />
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(false)}
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="사이드바 접기 (Ctrl/Cmd+B)"
-              aria-label="사이드바 접기"
-            >
-              <PanelLeftClose className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <WikiSidebar
-            pages={pages}
-            loading={loading}
-            activeId={activeId}
-            favorites={favorites}
-            recent={recent}
-            externalQuery={sidebarQuery}
-            onQueryChange={setSidebarQuery}
-            onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
-            onCreate={openTemplatePicker}
-          />
-        </div>
-      </aside>
-
-      {/* 사이드바 닫혔을 때 — 데스크탑은 세로 아이콘 스트립(activity bar), 모바일은 햄버거 1개 */}
-      {!sidebarOpen && isMobile && (
-        <button
-          type="button"
-          onClick={() => setSidebarOpen(true)}
-          className="absolute top-3 left-3 wiki-z-toolbar p-1.5 rounded-md bg-card border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent wiki-trans-color shadow-sm"
-          title="사이드바 펴기 (Ctrl/Cmd+B)"
-          aria-label="사이드바 펴기"
-        >
-          <Menu className="h-3.5 w-3.5" />
-        </button>
-      )}
-      {!sidebarOpen && !isMobile && (
+      {/* 활동 스트립 — 데스크탑에선 항상 보이는 좌측 44px 세로 바 */}
+      {!isMobile && (
         <nav
           className="shrink-0 h-full w-11 border-r border-[hsl(var(--hairline))] bg-background flex flex-col items-center py-2 gap-1"
           aria-label="마이위키 빠른 액션"
         >
           <button
             type="button"
-            onClick={() => setSidebarOpen(true)}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="사이드바 펴기 (Ctrl/Cmd+B)"
-            aria-label="사이드바 펴기"
+            onClick={() => setSidebarOpen((v) => !v)}
+            className={cn(
+              'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
+              sidebarOpen
+                ? 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+            title={sidebarOpen ? '페이지 목록 접기 (Ctrl/Cmd+B)' : '페이지 목록 펴기 (Ctrl/Cmd+B)'}
+            aria-label={sidebarOpen ? '페이지 목록 접기' : '페이지 목록 펴기'}
           >
-            <PanelLeftOpen className="h-4 w-4" />
+            {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
           </button>
           <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-          <button
-            type="button"
+          <StripButton
+            label="대문(홈)"
+            active={!activeId && view === 'page'}
             onClick={() => { setActiveId(null); setView('page'); }}
-            className={cn(
-              'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
-              !activeId && view === 'page'
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            title="대문(홈)"
-            aria-label="대문(홈)"
-          >
-            <Home className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
+            icon={<Home className="h-4 w-4" />}
+          />
+          <StripButton
+            label="오늘 데일리 노트"
             onClick={() => { void openTodayNote(); }}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="오늘 데일리 노트"
-            aria-label="오늘 데일리 노트"
-          >
-            <CalendarDays className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
+            icon={<CalendarDays className="h-4 w-4" />}
+          />
+          <StripButton
+            label="연결 그래프"
+            active={view === 'graph'}
             onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); }}
-            className={cn(
-              'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
-              view === 'graph'
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            title="연결 그래프"
-            aria-label="연결 그래프"
-          >
-            <Network className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
+            icon={<Network className="h-4 w-4" />}
+          />
+          <StripButton
+            label="새 페이지 (Ctrl/Cmd+N)"
+            accent
             onClick={openTemplatePicker}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/15 wiki-trans-color"
-            title="새 페이지 (Ctrl/Cmd+N)"
-            aria-label="새 페이지"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-          {/* 하단으로 밀기 */}
+            icon={<Plus className="h-4 w-4" />}
+          />
           <div className="flex-1" aria-hidden />
           <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
           <WikiSettingsMenu
@@ -364,6 +229,67 @@ const Wiki = () => {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </nav>
+      )}
+
+      {/* 페이지 목록 패널 — 사이드바 펴짐 상태에만 노출 */}
+      <aside
+        className={cn(
+          'shrink-0 h-full overflow-hidden transition-[width,transform,border-right-width] duration-200 ease-out border-r flex flex-col',
+          isMobile
+            ? 'fixed left-0 top-0 wiki-z-sidebar w-[280px] bg-background border-[hsl(var(--hairline))]'
+            : (sidebarOpen
+                ? 'w-[244px] border-[hsl(var(--hairline))]'
+                : 'w-0 border-r-0'),
+          isMobile && !sidebarOpen && '-translate-x-full',
+        )}
+        aria-hidden={!sidebarOpen}
+      >
+        <div className={cn(isMobile ? 'w-[280px]' : 'w-[244px]', 'h-full flex flex-col')}>
+          {/* 패널 헤더 — 모바일은 닫기 버튼 + 타이틀, 데스크탑은 타이틀만 */}
+          <div className="px-3 h-10 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+                title="닫기"
+                aria-label="닫기"
+              >
+                <PanelLeftClose className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <span
+              className="flex-1 text-[12.5px] font-bold text-foreground/90 truncate"
+              style={{ fontFamily: 'var(--wiki-font-meta)' }}
+            >
+              🌐 마이위키
+            </span>
+          </div>
+          <WikiSidebar
+            pages={pages}
+            loading={loading}
+            activeId={activeId}
+            favorites={favorites}
+            recent={recent}
+            externalQuery={sidebarQuery}
+            onQueryChange={setSidebarQuery}
+            onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
+            onCreate={openTemplatePicker}
+          />
+        </div>
+      </aside>
+
+      {/* 모바일: 사이드바 닫혔을 때 햄버거 */}
+      {!sidebarOpen && isMobile && (
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          className="absolute top-3 left-3 wiki-z-toolbar p-1.5 rounded-md bg-card border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent wiki-trans-color shadow-sm"
+          title="사이드바 펴기 (Ctrl/Cmd+B)"
+          aria-label="사이드바 펴기"
+        >
+          <Menu className="h-3.5 w-3.5" />
+        </button>
       )}
 
       <main className="flex-1 min-w-0 overflow-y-auto relative">
@@ -445,5 +371,35 @@ const Wiki = () => {
     </div>
   );
 };
+
+/* ── 활동 스트립 버튼 — 정렬·active·accent 톤 일관 ── */
+function StripButton({
+  label, onClick, icon, active, accent,
+}: {
+  label: string;
+  onClick: () => void;
+  icon: React.ReactNode;
+  active?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
+        active
+          ? 'bg-primary/10 text-primary'
+          : accent
+            ? 'text-primary hover:bg-primary/15'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+      )}
+      title={label}
+      aria-label={label}
+    >
+      {icon}
+    </button>
+  );
+}
 
 export default Wiki;
