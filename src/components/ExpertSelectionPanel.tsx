@@ -21,7 +21,6 @@ import {
 import { AivsBattleConfigModal } from './AivsBattleConfigModal';
 import { ExpertHoverTip } from './ExpertHoverTip';
 import { MainModeTabs } from './MainModeTabs';
-import { PremiumDomainLanding } from './PremiumDomainLanding';
 import { ExpertAvatar } from './ExpertAvatar';
 import { QuestionInput } from './QuestionInput';
 import { AssistantCardsPanel } from './AssistantCardsPanel';
@@ -2228,10 +2227,7 @@ export function ExpertSelectionPanel({
         !contentVisible ? 'opacity-0 scale-[0.97] translate-y-2 duration-200' : 'opacity-100 scale-100 translate-y-0 duration-400'
       )}>
 
-      {/* ── Premium Domain Landing (hidden when consultation chat is open) ── */}
-      {mainMode === 'premium_main' && !selectedPremiumDomain && (
-        <PremiumDomainLanding onSelectDomain={(domainId) => onSelectPremiumDomain?.(domainId)} />
-      )}
+      {/* premium_main 단일화 — 랜딩 제거. Index.tsx 의 effect 가 'law' 자동 선택 → 바로 챗 진입. */}
 
       {/* ── Assistant Mode ── */}
       {mainMode === 'assistant' && (

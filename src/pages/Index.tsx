@@ -792,8 +792,17 @@ const Index = () => {
     setPremiumSteps([]);
   }, []);
 
+  // 'AI 법률 자문' 단일화 — premium_main 진입 시 도메인 랜딩 페이지를 건너뛰고 바로 'law' 챗으로.
+  useEffect(() => {
+    if (discussionMode === 'expert' && !selectedPremiumDomain) {
+      setSelectedPremiumDomain('law');
+    }
+  }, [discussionMode, selectedPremiumDomain]);
+
+  // 챗 상단 '뒤로' 버튼 — 랜딩이 사라졌으므로 일반 채팅으로 빠져나간다.
   const handlePremiumBack = useCallback(() => {
     setSelectedPremiumDomain(null);
+    setDiscussionMode('general');
   }, []);
 
   // ── Debate analysis panel state ──
