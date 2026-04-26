@@ -50,20 +50,39 @@ export function WikiSidebar({
 
   const showQuickSections = !query.trim() && filter === 'all';
 
-  const filtered = useMemo(() => {
+  type HitKind = 'title' | 'alias' | 'tag' | 'body' | 'none';
+  interface FilteredPage { page: WikiPage; hit: HitKind; bodySnippet?: string; matchedAlias?: string; matchedTag?: string }
+
+  const filtered = useMemo<FilteredPage[]>(() => {
     const q = query.trim().toLowerCase();
-    return pages.filter((p) => {
-      if (filter === 'moc'    && p.type !== 'moc') return false;
-      if (filter === 'source' && p.type !== 'source') return false;
-      if (filter === 'draft'  && p.status !== 'draft') return false;
-      if (!q) return true;
-      if (p.title.toLowerCase().includes(q)) return true;
-      if (p.aliases.some((a) => a.toLowerCase().includes(q))) return true;
-      if (p.tags.some((t) => t.toLowerCase().includes(q))) return true;
-      // 본문 전문 검색 — 길이 짧은 쿼리(2자 이상)만 본문 매칭 허용해 노이즈 ↓
-      if (q.length >= 2 && p.body.toLowerCase().includes(q)) return true;
-      return false;
-    });
+    const out: FilteredPage[] = [];
+    for (const p of pages) {
+      if (filter === 'moc'    && p.type !== 'moc') continue;
+      if (filter === 'source' && p.type !== 'source') continue;
+      if (filter === 'draft'  && p.status !== 'draft') continue;
+      if (!q) { out.push({ page: p, hit: 'none' }); continue; }
+      if (p.title.toLowerCase().includes(q)) { out.push({ page: p, hit: 'title' }); continue; }
+      const aHit = p.aliases.find((a) => a.toLowerCase().includes(q));
+      if (aHit) { out.push({ page: p, hit: 'alias', matchedAlias: aHit }); continue; }
+      const tHit = p.tags.find((t) => t.toLowerCase().includes(q));
+      if (tHit) { out.push({ page: p, hit: 'tag', matchedTag: tHit }); continue; }
+      if (q.length >= 2) {
+        const lower = p.body.toLowerCase();
+        const idx = lower.indexOf(q);
+        if (idx >= 0) {
+          const start = Math.max(0, idx - 30);
+          const end = Math.min(p.body.length, idx + q.length + 30);
+          const prefix = start > 0 ? '…' : '';
+          const suffix = end < p.body.length ? '…' : '';
+          out.push({
+            page: p,
+            hit: 'body',
+            bodySnippet: prefix + p.body.slice(start, end).replace(/\s+/g, ' ').trim() + suffix,
+          });
+        }
+      }
+    }
+    return out;
   }, [pages, query, filter]);
 
   return (
@@ -126,6 +145,11 @@ export function WikiSidebar({
             모든 페이지 · {pages.length}
           </p>
         )}
+        {!showQuickSections && query.trim() && filtered.length > 0 && (
+          <p className="px-2 pt-1 pb-1.5 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70">
+            검색 결과 {filtered.length}건
+          </p>
+        )}
 
         {loading ? (
           <p className="px-2 py-4 text-[11px] text-muted-foreground">불러오는 중…</p>
@@ -135,30 +159,50 @@ export function WikiSidebar({
           </p>
         ) : (
           <ul className="space-y-0.5">
-            {filtered.map((p) => {
+            {filtered.map(({ page: p, hit, bodySnippet, matchedAlias, matchedTag }) => {
               const typeMeta = WIKI_TYPE_META[p.type];
               const statusMeta = WIKI_STATUS_META[p.status];
+              const q = query.trim();
               return (
                 <li key={p.id}>
                   <button
                     type="button"
                     onClick={() => onSelect(p.id)}
                     className={cn(
-                      'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors',
+                      'w-full flex flex-col gap-0.5 px-2 py-1.5 rounded-md text-left transition-colors',
                       activeId === p.id
                         ? 'bg-primary/10 text-primary'
                         : 'text-foreground/85 hover:bg-accent',
                     )}
                   >
-                    <span className="text-[14px] leading-none shrink-0" aria-hidden>{typeMeta.icon}</span>
-                    <span className="flex-1 min-w-0 truncate text-[12.5px]">{p.title}</span>
-                    {p.status !== 'stable' && (
-                      <span
-                        className="shrink-0 text-[8.5px] px-1 py-0.5 rounded font-medium uppercase tracking-wider"
-                        style={{ backgroundColor: `${statusMeta.tint}22`, color: statusMeta.tint }}
-                      >
-                        {statusMeta.label}
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="text-[14px] leading-none shrink-0" aria-hidden>{typeMeta.icon}</span>
+                      <span className="flex-1 min-w-0 truncate text-[12.5px]">
+                        <Highlight text={p.title} q={hit === 'title' ? q : ''} />
                       </span>
+                      {p.status !== 'stable' && (
+                        <span
+                          className="shrink-0 text-[8.5px] px-1 py-0.5 rounded font-medium uppercase tracking-wider"
+                          style={{ backgroundColor: `${statusMeta.tint}22`, color: statusMeta.tint }}
+                        >
+                          {statusMeta.label}
+                        </span>
+                      )}
+                    </div>
+                    {hit === 'body' && bodySnippet && (
+                      <p className="ml-[22px] text-[10.5px] text-muted-foreground line-clamp-2 leading-relaxed">
+                        <Highlight text={bodySnippet} q={q} />
+                      </p>
+                    )}
+                    {hit === 'alias' && matchedAlias && (
+                      <p className="ml-[22px] text-[10.5px] text-muted-foreground">
+                        alias: <Highlight text={matchedAlias} q={q} />
+                      </p>
+                    )}
+                    {hit === 'tag' && matchedTag && (
+                      <p className="ml-[22px] text-[10.5px] text-muted-foreground">
+                        #<Highlight text={matchedTag} q={q} />
+                      </p>
                     )}
                   </button>
                 </li>
@@ -174,6 +218,24 @@ export function WikiSidebar({
         {filter !== 'all' && <span>{filtered.length} 필터</span>}
       </div>
     </div>
+  );
+}
+
+/** 검색어 매칭 부분만 강조 — 위키 link tint 와 같은 토큰. */
+function Highlight({ text, q }: { text: string; q: string }) {
+  if (!q) return <>{text}</>;
+  const lower = text.toLowerCase();
+  const ql = q.toLowerCase();
+  const i = lower.indexOf(ql);
+  if (i < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="bg-primary/20 text-primary px-0.5 rounded font-semibold">
+        {text.slice(i, i + q.length)}
+      </mark>
+      {text.slice(i + q.length)}
+    </>
   );
 }
 

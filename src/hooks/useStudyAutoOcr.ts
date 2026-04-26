@@ -10,7 +10,7 @@
  * 모듈 레벨 registry 로 중복 큐 방지 (PdfViewer 가 같은 blobRef 로 큐를
  * 또 만들어도 큰 문제는 아님 — IDB 캐시가 이미 처리한 페이지를 자동 스킵).
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { getBlob } from '@/lib/studyBlobStore';
 import { OcrQueue } from '@/lib/studyOcrQueue';
 import { getCompletedPages, getAllForBlob } from '@/lib/studyOcrStore';
