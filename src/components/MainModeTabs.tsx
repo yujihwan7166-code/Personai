@@ -206,7 +206,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'dashboard', label: '대시보드',    desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '행동' },
   { id: 'calendar', label: '캘린더',       desc: '월·주·일 통합 뷰',          emoji: '📅', tint: 'hsl(210 70% 55%)', axis: '행동' },
   { id: 'todo',     label: '할 일',        desc: '오늘의 체크리스트',         emoji: '✅', tint: 'hsl(145 55% 45%)', axis: '행동' },
-  { id: 'habit',    label: '습관',         desc: '단일 습관 · 묶음 루틴',     emoji: '🌱', tint: 'hsl(170 60% 45%)', axis: '행동' },
+  { id: 'habit',    label: '습관·루틴 트래커', desc: '매일 반복·꾸준함을 시각화', emoji: '🌱', tint: 'hsl(170 60% 45%)', axis: '행동' },
   // ── 성장 (깊이·자기관리) ──────────────
   { id: 'wiki',     label: '마이위키',     desc: '나만의 지식 베이스',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '성장' },
   { id: 'pomodoro', label: '포모도로',     desc: '25분 집중 타이머',          emoji: '🍅', tint: 'hsl(0 75% 55%)',   axis: '성장' },
