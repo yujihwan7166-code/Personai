@@ -20,10 +20,14 @@ export interface StudySource {
   pageCount?: number;
   /** 'native' = 원본 렌더, 'text' = 텍스트 폴백. blobRef 없거나 파싱 실패 시 'text'. */
   renderMode?: 'native' | 'text';
-  /** 업로드 시 감지된, 텍스트가 거의 없는 스캔본 페이지 번호들. OCR 대상. */
+  /** 업로드 시 감지된, 텍스트가 거의 없는 스캔본 페이지 번호들. OCR 대상.
+   *  Phase 4 변경: PDF 는 모든 페이지를 OCR 대상으로 설정 (글자 + 그림 라벨 모두 추출 위해). */
   scanPages?: number[];
-  /** 스캔본 OCR 을 자동으로 시작할지 여부. 사용자가 배너에서 [시작] 누르면 true. */
+  /** OCR 자동 시작 여부. PDF 면 기본 true (Phase 4). */
   ocrEnabled?: boolean;
+  /** PDF native 텍스트(extractPdfMeta 원본). OCR/Vision 으로 덮어쓰지 않는 보존 필드.
+   *  page-level merge 시 native 가 OCR 보다 정확한 페이지에서 fallback 으로 사용. */
+  nativeText?: string;
   /** PDF 의 outline/bookmark 평탄화 결과 (Phase 3).
    *  AI 챕터 추측보다 정확한 TOC 가 있으면 챕터 경계 결정의 ground truth 로 사용. */
   outline?: Array<{ title: string; page: number; depth: number }>;

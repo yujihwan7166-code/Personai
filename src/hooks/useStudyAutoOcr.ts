@@ -15,7 +15,8 @@ import { getBlob } from '@/lib/studyBlobStore';
 import { OcrQueue } from '@/lib/studyOcrQueue';
 import { getCompletedPages, getAllForBlob } from '@/lib/studyOcrStore';
 import { VisionQueue } from '@/lib/studyVisionQueue';
-import { getAllVisionForBlob, getCompletedVisionPages } from '@/lib/studyVisionStore';
+import { getCompletedVisionPages } from '@/lib/studyVisionStore';
+import { buildMergedContent } from '@/lib/studyContentMerge';
 import type { StudyNotebook } from '@/types/study';
 
 interface RegistryEntry {
@@ -35,26 +36,8 @@ interface PdfDoc {
   numPages: number;
 }
 
-/** OCR + Vision 결과를 페이지별로 병합. Vision 우선, 없으면 OCR. [p.N] 페이지 마커 부여. */
-async function buildCombinedContent(blobRef: string): Promise<string> {
-  const [ocrRecs, visionRecs] = await Promise.all([
-    getAllForBlob(blobRef),
-    getAllVisionForBlob(blobRef),
-  ]);
-  const visionMap = new Map<number, string>();
-  for (const v of visionRecs) visionMap.set(v.page, v.text);
-  const pages = new Set<number>([
-    ...ocrRecs.map((r) => r.page),
-    ...visionRecs.map((r) => r.page),
-  ]);
-  const sorted = Array.from(pages).sort((a, b) => a - b);
-  return sorted.map((p) => {
-    const v = visionMap.get(p);
-    if (v) return `[p.${p}] ${v}`;
-    const ocr = ocrRecs.find((r) => r.page === p);
-    return ocr ? `[p.${p}] ${ocr.text}` : '';
-  }).filter(Boolean).join('\n\n');
-}
+// buildCombinedContent 는 src/lib/studyContentMerge.ts 의 buildMergedContent 로 대체.
+// Native + OCR + Vision page-level 병합 (native 텍스트 손실 방지).
 
 /**
  * 노트북의 PDF 소스에 대해 OCR + Vision 자동 시동.
@@ -102,7 +85,7 @@ export function useStudyAutoOcr(
           const completed = await getCompletedPages(blobRef);
           const allDone = scanPages.every((p) => completed.has(p));
           if (allDone) {
-            const combined = await buildCombinedContent(blobRef);
+            const combined = await buildMergedContent(blobRef, source.nativeText);
             if (combined && !cancelled) callbackRef.current(source.id, combined);
             // OCR 다 끝났어도 Vision 미완료 페이지가 있으면 시동 (아래 코드가 처리)
             const visionDone = await getCompletedVisionPages(blobRef);
@@ -130,7 +113,7 @@ export function useStudyAutoOcr(
             {
               onPageDone: async () => {
                 if (cancelled) return;
-                const combined = await buildCombinedContent(blobRef);
+                const combined = await buildMergedContent(blobRef, source.nativeText);
                 if (combined && !cancelled) callbackRef.current(source.id, combined);
               },
               onFinish: async () => {
@@ -149,7 +132,7 @@ export function useStudyAutoOcr(
                     {
                       onPageDone: async () => {
                         if (cancelled) return;
-                        const combined = await buildCombinedContent(blobRef);
+                        const combined = await buildMergedContent(blobRef, source.nativeText);
                         if (combined && !cancelled) callbackRef.current(source.id, combined);
                       },
                       onFinish: () => {

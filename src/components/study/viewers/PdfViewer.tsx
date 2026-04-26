@@ -11,7 +11,8 @@ import { getBlob } from '@/lib/studyBlobStore';
 import { OcrQueue } from '@/lib/studyOcrQueue';
 import { getCompletedPages, getAllForBlob, type OcrRecord } from '@/lib/studyOcrStore';
 import { VisionQueue } from '@/lib/studyVisionQueue';
-import { getAllVisionForBlob } from '@/lib/studyVisionStore';
+// getAllVisionForBlob 은 buildMergedContent 가 내부에서 사용 — 직접 import 불필요
+import { buildMergedContent } from '@/lib/studyContentMerge';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -332,29 +333,15 @@ export function PdfViewer({
     return () => document.removeEventListener('selectionchange', onSelChange);
   }, []);
 
-  // OCR + Vision 결과를 페이지별로 병합. Vision 텍스트가 있으면 우선, 없으면 OCR.
-  // 호출 비용이 크지 않으므로 두 store 를 매번 같이 읽는다.
+  // OCR + Vision 결과를 페이지별로 병합 — 공유 util 사용.
   // [중요] startVisionQueueIfNeeded 가 deps 로 참조하므로 반드시 먼저 선언한다 (TDZ 방지).
+  // 주의: PdfViewer 는 nativeText 를 prop 으로 받지 않으므로 native 텍스트가 빠질 수 있음.
+  // 실제 content 갱신은 useStudyAutoOcr 훅(StudyNotebookView 에서 호출)이 책임지고 native 포함.
+  // 여기는 PdfViewer 자체 fallback (StudyNotebookView 외부에서 단독 사용 시).
   const rebuildCombinedContent = useCallback(async () => {
     if (!onOcrContentUpdate || !blobRef) return;
-    const [ocrRecs, visionRecs] = await Promise.all([
-      getAllForBlob(blobRef),
-      getAllVisionForBlob(blobRef),
-    ]);
-    const visionMap = new Map<number, string>();
-    for (const v of visionRecs) visionMap.set(v.page, v.text);
-    const pages = new Set<number>([
-      ...ocrRecs.map((r) => r.page),
-      ...visionRecs.map((r) => r.page),
-    ]);
-    const sorted = Array.from(pages).sort((a, b) => a - b);
-    const combined = sorted.map((p) => {
-      const v = visionMap.get(p);
-      if (v) return `[p.${p}] ${v}`;
-      const ocr = ocrRecs.find((r) => r.page === p);
-      return ocr ? `[p.${p}] ${ocr.text}` : '';
-    }).filter(Boolean).join('\n\n');
-    onOcrContentUpdate(combined);
+    const combined = await buildMergedContent(blobRef);
+    if (combined) onOcrContentUpdate(combined);
   }, [blobRef, onOcrContentUpdate]);
 
   // Vision 큐 시동: OCR 결과가 빈약한 페이지(< 200자) 들을 vision LLM 으로 보강.

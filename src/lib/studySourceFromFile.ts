@@ -90,10 +90,15 @@ export async function filesToStudySources(
         continue;
       }
 
-      // Phase 1: 스캔 페이지가 있으면 OCR 자동 활성화 — 사용자가 별도 동의 안 해도 시작.
-      // 텍스트 PDF 라도 그림 안 라벨 등을 못 잡을 수 있어, scanPages 가 1장이라도 있으면 켠다.
-      const scanPagesList = processed?.scanPages;
-      const autoOcr = (scanPagesList?.length ?? 0) > 0;
+      // Phase 4: PDF 면 모든 페이지를 OCR 대상으로 설정. 사용자 요청:
+      // "어떤 자료를 넣던지간에 글씨·그림 싹다 읽어버리고" — 강의 슬라이드처럼
+      // 페이지마다 native 가 약간 있어도 그림 라벨까지 잡으려면 모든 페이지 OCR 필요.
+      // 시간 비용은 사용자가 OK. IDB 캐시로 재업로드 시 무료.
+      const pageCount = processed?.pageCount ?? 0;
+      const allPagesForOcr: number[] = kind === 'pdf' && pageCount > 0
+        ? Array.from({ length: pageCount }, (_, i) => i + 1)
+        : (processed?.scanPages ?? []);
+      const autoOcr = kind === 'pdf' ? pageCount > 0 : false;
 
       // Phase 3: PDF outline/bookmark 추출. AI 챕터 추측보다 정확한 TOC 를 ground truth 로.
       // 실패해도 치명적이지 않음 (LLM 폴백).
@@ -105,6 +110,12 @@ export async function filesToStudySources(
           if (entries.length > 0) outline = entries;
         } catch { /* outline 추출 실패는 무시 */ }
       }
+
+      // Phase 4: PDF native 텍스트 보존 — OCR/Vision 결과로 덮어쓰지 않음.
+      // extractPdfMeta 가 이미 [p.N] 페이지 마커 형식으로 반환하므로 그대로 저장.
+      const nativeText = kind === 'pdf' && !extracted.startsWith('(') && !extracted.startsWith('[')
+        ? extracted
+        : undefined;
 
       sources.push({
         id: newId('src'),
@@ -118,9 +129,10 @@ export async function filesToStudySources(
         mimeType: fileMime,
         pageCount: processed?.pageCount,
         renderMode,
-        scanPages: scanPagesList,
+        scanPages: allPagesForOcr.length > 0 ? allPagesForOcr : undefined,
         ocrEnabled: autoOcr || undefined,
         outline,
+        nativeText,
       });
     } catch {
       errors.push(`"${f.name}" 처리 실패`);
