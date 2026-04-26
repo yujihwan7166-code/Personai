@@ -122,6 +122,17 @@
   line-height: 1.78;
 }
 
+/* 모바일 — 좁은 화면에서 한 글자 더 크게 + 줄간격 살짝 ↓ (가독성 ↑, 스크롤 ↓) */
+@media (max-width: 640px) {
+  .wiki-prose {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+  .wiki-prose h1 { font-size: 1.5rem; }
+  .wiki-prose h2 { font-size: 1.22rem; }
+  .wiki-prose h3 { font-size: 1.08rem; }
+}
+
 .wiki-prose h1,
 .wiki-prose h2,
 .wiki-prose h3,
