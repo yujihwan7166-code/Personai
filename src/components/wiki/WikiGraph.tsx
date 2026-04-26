@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useReducer, useCallback } from 'react';
-import { Search, X, Maximize2, Route, Layers, Filter as FilterIcon, Sliders, Pause, Play, Group } from 'lucide-react';
+import { Search, X, Maximize2, Route, Layers, Filter as FilterIcon, SlidersHorizontal, Pause, Play, Group } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META } from '@/types/wiki';
 import { cn } from '@/lib/utils';
 
@@ -729,7 +729,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
           )}
           title="Force 슬라이더"
         >
-          <Sliders className="w-3 h-3" />
+          <SlidersHorizontal className="w-3 h-3" />
         </button>
 
         <button
