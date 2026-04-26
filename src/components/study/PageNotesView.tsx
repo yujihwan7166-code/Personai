@@ -304,12 +304,15 @@ function DensityToggle({ value, onChange }: { value: SummaryDensity; onChange: (
 }
 
 export function PageNotesEmptyChooser({
-  pageCount, onPick,
+  pageCount, onPick, pagesDisabled, pagesDisabledReason,
 }: {
   pageCount: number | undefined;
   onPick: (mode: 'pages' | 'whole') => void;
+  /** true 면 페이지별 카드를 비활성화하고 이유를 표시 */
+  pagesDisabled?: boolean;
+  pagesDisabledReason?: string;
 }) {
-  const recommendPages = (pageCount ?? 0) >= 11;
+  const recommendPages = (pageCount ?? 0) >= 11 && !pagesDisabled;
   return (
     <div className="px-6 py-10">
       <div className="text-center mb-6">
@@ -326,21 +329,28 @@ export function PageNotesEmptyChooser({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
         <button
           onClick={() => onPick('pages')}
+          disabled={pagesDisabled}
           className={cn(
-            'group relative text-left rounded-xl border p-4 transition-all hover:shadow-md',
-            recommendPages
-              ? 'border-indigo-300 bg-indigo-50/40 hover:border-indigo-500'
-              : 'border-slate-200 hover:border-indigo-300',
+            'group relative text-left rounded-xl border p-4 transition-all',
+            pagesDisabled
+              ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-70'
+              : recommendPages
+              ? 'border-indigo-300 bg-indigo-50/40 hover:border-indigo-500 hover:shadow-md'
+              : 'border-slate-200 hover:border-indigo-300 hover:shadow-md',
           )}
         >
           {recommendPages && (
             <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">⭐ 추천</span>
           )}
+          {pagesDisabled && (
+            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">사용 불가</span>
+          )}
           <div className="text-2xl mb-2">📑</div>
           <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">페이지별 정리</p>
           <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-            1p, 2p, 3p… 페이지마다 노트를 만들어 PDF 와 1:1 로 따라봐요.
-            긴 자료에 강해요.
+            {pagesDisabled
+              ? pagesDisabledReason ?? '이 자료에서는 사용할 수 없어요.'
+              : '1p, 2p, 3p… 페이지마다 노트를 만들어 PDF 와 1:1 로 따라봐요. 긴 자료에 강해요.'}
           </p>
         </button>
         <button

@@ -1172,6 +1172,36 @@ function SummarySection({
     [enabledSources],
   );
   const hasPageMarkers = useMemo(() => /\[p\.\d+\]/.test(sourceText), [sourceText]);
+  // 텍스트가 비었거나 placeholder만 있는지 (스캔/이미지 PDF 진단용)
+  const isEmptyOrPlaceholder = useMemo(() => {
+    const stripped = sourceText.trim();
+    if (stripped.length < 50) return true;
+    if (stripped.startsWith('(텍스트 추출이 제한적')) return true;
+    return false;
+  }, [sourceText]);
+  // 스캔본 PDF 비율이 매우 높은지
+  const isMostlyScanned = useMemo(() => {
+    const pdfSources = enabledSources.filter((s) => s.kind === 'pdf' && s.pageCount);
+    if (pdfSources.length === 0) return false;
+    const totalPages = pdfSources.reduce((a, s) => a + (s.pageCount ?? 0), 0);
+    const scanned = pdfSources.reduce((a, s) => a + (s.scanPages?.length ?? 0), 0);
+    return totalPages > 0 && scanned / totalPages > 0.5;
+  }, [enabledSources]);
+
+  const showPageUnavailableToast = () => {
+    if (isEmptyOrPlaceholder || isMostlyScanned) {
+      toast({
+        title: '텍스트가 인식되지 않은 자료에요',
+        description: '이미지/스캔본 PDF는 페이지별 정리를 만들 수 없어요. 텍스트가 추출되는 PDF나 직접 입력한 자료가 필요해요.',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: '페이지 정보가 없어요',
+        description: '페이지 구분자([p.1] 같은 표시)가 자료에 없어요. URL·복사 텍스트는 페이지 개념이 없어 페이지별 모드를 쓸 수 없어요.',
+      });
+    }
+  };
 
   // structured 메타 저장 헬퍼
   const writeStructured = (next: SummaryStructured, contentOverride?: string) => {
@@ -1220,7 +1250,7 @@ function SummarySection({
       }
       const arr = Array.isArray(data?.structured) ? data.structured : [];
       if (arr.length === 0) {
-        toast({ title: '페이지 정보가 없어요', description: '이 자료에는 페이지 마커가 없어 페이지별 모드를 쓸 수 없어요.' });
+        showPageUnavailableToast();
         return;
       }
       const notes: PageNote[] = arr
@@ -1313,15 +1343,22 @@ function SummarySection({
     fetchPagesDetail([page]);
   };
 
+  const pagesUnavailable = !hasPageMarkers;
+  const pagesUnavailableReason = isEmptyOrPlaceholder || isMostlyScanned
+    ? '이미지/스캔본 PDF 라 텍스트가 인식되지 않았어요. 페이지별 정리를 만들 수 없어요.'
+    : '페이지 구분자가 없는 자료(URL·복사 텍스트 등)에서는 사용할 수 없어요.';
+
   // 첫 진입: 모드 미정 + 캐시 없음 → 선택 카드
   if (mode === null) {
     return (
       <PageNotesEmptyChooser
         pageCount={aggregatePageCount}
+        pagesDisabled={pagesUnavailable}
+        pagesDisabledReason={pagesUnavailableReason}
         onPick={(picked) => {
           if (picked === 'pages') {
             if (!hasPageMarkers) {
-              toast({ title: '페이지 정보가 없어요', description: '이 자료는 페이지 마커가 없어 전체 요약 모드만 가능해요.' });
+              showPageUnavailableToast();
               setMode('whole');
               if (!hasWhole) onRegenerateWhole();
               return;
@@ -1344,7 +1381,7 @@ function SummarySection({
           onClick={() => {
             if (!hasPages) {
               if (!hasPageMarkers) {
-                toast({ title: '페이지 정보가 없어요', description: '이 자료는 페이지 마커가 없어요.' });
+                showPageUnavailableToast();
                 return;
               }
               fetchPagesIndex();
