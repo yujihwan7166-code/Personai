@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, Plus, LayoutGrid } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, Plus, LayoutGrid, Shuffle } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -62,6 +62,20 @@ const Wiki = () => {
   }, []);
 
   const openTemplatePicker = useCallback(() => setTemplatePickerOpen(true), []);
+
+  /** 무작위 페이지 — 보관 제외, 현재 페이지 제외. */
+  const openRandomPage = useCallback(() => {
+    const candidates = pages.filter((p) => p.status !== 'archived' && p.id !== activeId);
+    if (candidates.length === 0) {
+      notify.info('무작위 후보 페이지가 없어요', { duration: 1800 });
+      return;
+    }
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    setActiveId(pick.id);
+    setEditing(false);
+    setView('page');
+    if (isMobile) setSidebarOpen(false);
+  }, [pages, activeId, isMobile]);
 
   /** 오늘 데일리 노트로 점프 — 없으면 자동 생성. */
   const openTodayNote = useCallback(async () => {
@@ -212,7 +226,7 @@ const Wiki = () => {
             </button>
           </div>
 
-          {/* 아랫줄 — 4 균등 (홈 / 그래프 / 새 / 설정) */}
+          {/* 아랫줄 — 4 균등 (홈 / 그래프 / 새 / 무작위) */}
           <div className="px-1.5 h-9 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <button
               type="button"
@@ -251,12 +265,15 @@ const Wiki = () => {
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
-            <div className="flex-1 h-7 flex items-center justify-center">
-              <WikiSettingsMenu
-                onMutated={() => { void reload(); setActiveId(null); }}
-                onOpenStorage={() => setStorageOpen(true)}
-              />
-            </div>
+            <button
+              type="button"
+              onClick={openRandomPage}
+              className="flex-1 h-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              title="무작위 페이지"
+              aria-label="무작위 페이지"
+            >
+              <Shuffle className="h-3.5 w-3.5" />
+            </button>
           </div>
           <WikiSidebar
             pages={pages}
@@ -269,6 +286,13 @@ const Wiki = () => {
             onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
             onCreate={openTemplatePicker}
           />
+          {/* 사이드바 footer — 우하단 설정 */}
+          <div className="px-2 h-9 border-t border-[hsl(var(--hairline))] flex items-center justify-end shrink-0">
+            <WikiSettingsMenu
+              onMutated={() => { void reload(); setActiveId(null); }}
+              onOpenStorage={() => setStorageOpen(true)}
+            />
+          </div>
         </div>
       </aside>
 
