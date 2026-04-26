@@ -26,7 +26,12 @@ export function WikiHome({ pages, onSelect, onCreate }: Props) {
       (p) => p.refersTo.length === 0 && p.cites.length === 0 && !referencedIds.has(p.id)
     );
 
-    return { byStatus, recent, inbox, mocs, orphans };
+    // 태그 빈도
+    const tagCount = new Map<string, number>();
+    for (const p of pages) for (const t of p.tags) tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
+    const topTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
+
+    return { byStatus, recent, inbox, mocs, orphans, topTags };
   }, [pages]);
 
   if (pages.length === 0) {
@@ -96,6 +101,27 @@ export function WikiHome({ pages, onSelect, onCreate }: Props) {
           ))}
         </Section>
       </div>
+
+      {/* 인기 태그 */}
+      {stats.topTags.length > 0 && (
+        <div className="mt-7">
+          <h2 className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground mb-2">
+            🏷 자주 쓰는 태그
+          </h2>
+          <div className="flex flex-wrap gap-1.5">
+            {stats.topTags.map(([tag, n]) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent/60 text-foreground/80 text-[11px]"
+                title={`${tag} (${n}건)`}
+              >
+                #{tag}
+                <span className="text-[9.5px] text-muted-foreground">{n}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 상태 요약 */}
       <div className="mt-7 grid grid-cols-4 gap-2">

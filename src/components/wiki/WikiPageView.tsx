@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X } from 'lucide-react';
+import { Pencil, Trash2, Save, X, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
@@ -44,6 +44,30 @@ export function WikiPageView({
   const cancel = () => {
     setDraft(page);
     onToggleEdit();
+  };
+
+  /** 페이지를 frontmatter + 본문 형식의 .md 파일로 다운로드. */
+  const exportMd = () => {
+    const fm: string[] = ['---'];
+    fm.push(`title: ${page.title}`);
+    if (page.aliases.length) fm.push(`aliases: [${page.aliases.map((a) => JSON.stringify(a)).join(', ')}]`);
+    fm.push(`type: ${page.type}`);
+    if (page.category) fm.push(`category: ${page.category}`);
+    fm.push(`status: ${page.status}`);
+    if (page.tags.length) fm.push(`tags: [${page.tags.map((t) => JSON.stringify(t)).join(', ')}]`);
+    fm.push(`created: ${new Date(page.createdAt).toISOString()}`);
+    fm.push(`updated: ${new Date(page.updatedAt).toISOString()}`);
+    fm.push('---', '');
+    const md = fm.join('\n') + page.body;
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${page.title.replace(/[\\/:*?"<>|]/g, '_')}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -103,6 +127,9 @@ export function WikiPageView({
                   <>
                     <button onClick={onToggleEdit} className="px-2 h-7 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center gap-1" title="편집 (E)">
                       <Pencil className="w-3.5 h-3.5" /> 편집
+                    </button>
+                    <button onClick={exportMd} className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Markdown 다운로드" aria-label="Markdown 다운로드">
+                      <Download className="w-3.5 h-3.5" />
                     </button>
                     <button onClick={onDelete} className="p-1.5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors" title="삭제" aria-label="삭제">
                       <Trash2 className="w-3.5 h-3.5" />

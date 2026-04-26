@@ -34,6 +34,8 @@ export function WikiSidebar({ pages, loading, activeId, onSelect, onCreate }: Pr
       if (p.title.toLowerCase().includes(q)) return true;
       if (p.aliases.some((a) => a.toLowerCase().includes(q))) return true;
       if (p.tags.some((t) => t.toLowerCase().includes(q))) return true;
+      // 본문 전문 검색 — 길이 짧은 쿼리(2자 이상)만 본문 매칭 허용해 노이즈 ↓
+      if (q.length >= 2 && p.body.toLowerCase().includes(q)) return true;
       return false;
     });
   }, [pages, query, filter]);
