@@ -480,7 +480,10 @@ const Wiki = () => {
 
       {/* 메인 모드 전환 패널 — 트리거 pill 은 시각적으로 가려두고 panel 만 portal 로 노출.
           모드 선택 시 그 모드의 default DiscussionMode 를 state 로 넘겨 메인으로 이동. */}
-      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }} aria-hidden>
+      <div
+        className="fixed top-0 left-0 opacity-0 pointer-events-none -z-10"
+        aria-hidden
+      >
         <MainModeTabs
           modes={['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
           labels={mainModeLabelMap}
