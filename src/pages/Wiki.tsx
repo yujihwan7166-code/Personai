@@ -275,17 +275,95 @@ const Wiki = () => {
         </div>
       </aside>
 
-      {/* 사이드바 닫혔을 때 펴기 버튼 (모바일은 햄버거) */}
-      {!sidebarOpen && (
+      {/* 사이드바 닫혔을 때 — 데스크탑은 세로 아이콘 스트립(activity bar), 모바일은 햄버거 1개 */}
+      {!sidebarOpen && isMobile && (
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="absolute top-3 left-3 wiki-z-toolbar p-1.5 rounded-md bg-card border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shadow-sm"
+          className="absolute top-3 left-3 wiki-z-toolbar p-1.5 rounded-md bg-card border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent wiki-trans-color shadow-sm"
           title="사이드바 펴기 (Ctrl/Cmd+B)"
           aria-label="사이드바 펴기"
         >
-          {isMobile ? <Menu className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
+          <Menu className="h-3.5 w-3.5" />
         </button>
+      )}
+      {!sidebarOpen && !isMobile && (
+        <nav
+          className="shrink-0 h-full w-11 border-r border-[hsl(var(--hairline))] bg-background flex flex-col items-center py-2 gap-1"
+          aria-label="마이위키 빠른 액션"
+        >
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+            title="사이드바 펴기 (Ctrl/Cmd+B)"
+            aria-label="사이드바 펴기"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+          <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+          <button
+            type="button"
+            onClick={() => { setActiveId(null); setView('page'); }}
+            className={cn(
+              'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
+              !activeId && view === 'page'
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+            title="대문(홈)"
+            aria-label="대문(홈)"
+          >
+            <Home className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => { void openTodayNote(); }}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+            title="오늘 데일리 노트"
+            aria-label="오늘 데일리 노트"
+          >
+            <CalendarDays className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); }}
+            className={cn(
+              'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
+              view === 'graph'
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+            title="연결 그래프"
+            aria-label="연결 그래프"
+          >
+            <Network className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={openTemplatePicker}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/15 wiki-trans-color"
+            title="새 페이지 (Ctrl/Cmd+N)"
+            aria-label="새 페이지"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          {/* 하단으로 밀기 */}
+          <div className="flex-1" aria-hidden />
+          <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
+          <WikiSettingsMenu
+            onMutated={() => { void reload(); setActiveId(null); }}
+            onOpenStorage={() => setStorageOpen(true)}
+          />
+          <Link
+            to="/"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+            title="앱으로 돌아가기"
+            aria-label="앱으로 돌아가기"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </nav>
       )}
 
       <main className="flex-1 min-w-0 overflow-y-auto relative">
