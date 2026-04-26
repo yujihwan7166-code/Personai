@@ -70,6 +70,14 @@
 .wiki-trans-base {
   transition: all var(--wiki-dur-base) var(--wiki-ease);
 }
+.wiki-ai-panel-enter {
+  animation: wikiAiPanelIn var(--wiki-dur-base) var(--wiki-ease);
+}
+@keyframes wikiAiPanelIn {
+  from { transform: translateX(8%); opacity: 0; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+
 .wiki-trans-slow {
   transition: all var(--wiki-dur-slow) var(--wiki-ease);
 }

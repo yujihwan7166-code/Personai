@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, LayoutGrid, Shuffle } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, LayoutGrid, Shuffle, Plus, Sparkles } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -15,12 +15,14 @@ import { WikiSettingsMenu } from '@/components/wiki/WikiSettingsMenu';
 import { WikiCommandPalette } from '@/components/wiki/WikiCommandPalette';
 import { WikiTemplatePicker } from '@/components/wiki/WikiTemplatePicker';
 import { WikiStoragePanel } from '@/components/wiki/WikiStoragePanel';
+import { WikiAiPanel } from '@/components/wiki/WikiAiPanel';
 import { clearAllPages } from '@/lib/wikiStore';
 import { getOrBuildTodayNote, todayKey } from '@/lib/wikiDailyNote';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_KEY = 'wiki_sidebar_open';
+const AI_PANEL_KEY = 'wiki_ai_panel_open';
 
 const Wiki = () => {
   const navigate = useNavigate();
@@ -58,6 +60,10 @@ const Wiki = () => {
     if (window.innerWidth < 768) return false;
     return window.localStorage.getItem(SIDEBAR_KEY) !== '0';
   });
+  const [aiOpen, setAiOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(AI_PANEL_KEY) === '1';
+  });
 
   const activePage = activeId ? pages.find((p) => p.id === activeId) ?? null : null;
 
@@ -70,6 +76,11 @@ const Wiki = () => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0');
   }, [sidebarOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(AI_PANEL_KEY, aiOpen ? '1' : '0');
+  }, [aiOpen]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -177,6 +188,9 @@ const Wiki = () => {
       } else if (meta && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         setSidebarOpen((v) => !v);
+      } else if (meta && e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        setAiOpen((v) => !v);
       } else if (!inEditor && e.key.toLowerCase() === 'e' && activePage && !editing) {
         e.preventDefault();
         setEditing(true);
@@ -215,9 +229,9 @@ const Wiki = () => {
       >
         <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
           {/* 윗줄 — 정체성 / 모드 전환 / 사이드바 닫기 */}
-          <div className="px-2 h-11 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
+          <div className="px-2 h-12 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <span
-              className="flex-1 text-[12.5px] font-bold text-foreground/90 truncate px-1"
+              className="flex-1 text-[13px] font-bold text-foreground/90 truncate px-1"
               style={{ fontFamily: 'var(--wiki-font-meta)' }}
             >
               🌐 마이위키
@@ -225,30 +239,30 @@ const Wiki = () => {
             <button
               type="button"
               onClick={() => modeApiRef.current?.open()}
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               title="모드 전환"
               aria-label="모드 전환"
             >
-              <LayoutGrid className="h-3.5 w-3.5" />
+              <LayoutGrid className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               title="사이드바 접기 (Ctrl/Cmd+B)"
               aria-label="사이드바 접기"
             >
-              <PanelLeftClose className="h-3.5 w-3.5" />
+              <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
 
-          {/* 아랫줄 — 3 균등 (홈 / 그래프 / 무작위). 새 페이지는 Ctrl+N · 명령 팔레트 · 대문 CTA 로 접근. */}
-          <div className="px-1.5 h-9 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
+          {/* 아랫줄 — 4 균등 (홈 / 그래프 / 새 / 무작위) */}
+          <div className="px-2 h-10 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <button
               type="button"
               onClick={() => { setActiveId(null); setView('page'); if (isMobile) setSidebarOpen(false); }}
               className={cn(
-                'flex-1 h-7 inline-flex items-center justify-center rounded-md wiki-trans-color',
+                'flex-1 h-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
                 !activeId && view === 'page'
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -256,13 +270,13 @@ const Wiki = () => {
               title="대문(홈)"
               aria-label="대문(홈)"
             >
-              <Home className="h-3.5 w-3.5" />
+              <Home className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); if (isMobile) setSidebarOpen(false); }}
               className={cn(
-                'flex-1 h-7 inline-flex items-center justify-center rounded-md wiki-trans-color',
+                'flex-1 h-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
                 view === 'graph'
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -270,16 +284,25 @@ const Wiki = () => {
               title="연결 그래프"
               aria-label="연결 그래프"
             >
-              <Network className="h-3.5 w-3.5" />
+              <Network className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={openTemplatePicker}
+              className="flex-1 h-8 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/15 wiki-trans-color"
+              title="새 페이지 (Ctrl/Cmd+N)"
+              aria-label="새 페이지"
+            >
+              <Plus className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={openRandomPage}
-              className="flex-1 h-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              className="flex-1 h-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               title="무작위 페이지"
               aria-label="무작위 페이지"
             >
-              <Shuffle className="h-3.5 w-3.5" />
+              <Shuffle className="h-4 w-4" />
             </button>
           </div>
           <WikiSidebar
@@ -291,7 +314,6 @@ const Wiki = () => {
             externalQuery={sidebarQuery}
             onQueryChange={setSidebarQuery}
             onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
-            onCreate={openTemplatePicker}
           />
           {/* 사이드바 footer — 우하단 설정 */}
           <div className="px-2 h-9 border-t border-[hsl(var(--hairline))] flex items-center justify-end shrink-0">
@@ -382,6 +404,18 @@ const Wiki = () => {
       )}
 
       <main className="flex-1 min-w-0 overflow-y-auto relative">
+        {!aiOpen && (
+          <button
+            type="button"
+            onClick={() => setAiOpen(true)}
+            className="absolute top-3 right-4 z-10 h-8 inline-flex items-center gap-1 px-2.5 rounded-md border border-[hsl(var(--hairline))] bg-background/80 backdrop-blur text-muted-foreground hover:text-primary hover:border-primary/40 wiki-trans-color"
+            title="AI 보조 (Ctrl/Cmd+J)"
+            aria-label="AI 보조 열기"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="text-[11.5px] font-medium">AI</span>
+          </button>
+        )}
         {view === 'graph' ? (
           <div className="px-6 lg:px-10 py-8 max-w-6xl mx-auto">
             <header className="mb-4">
@@ -459,6 +493,35 @@ const Wiki = () => {
 
       {/* 저장소 사용량 — 헤더 배지·설정 메뉴 둘 다에서 열 수 있게 위로 lift */}
       <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
+
+      {/* AI 보조 패널 — 활성 페이지가 있으면 그 컨텍스트, 없으면 위키 전체 메타 */}
+      <WikiAiPanel
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        page={activePage}
+        totalPages={pages.length}
+        onAppendToBody={activePage ? (snippet) => {
+          const quoted = snippet.split('\n').map((l) => `> ${l}`).join('\n');
+          const next: WikiPage = { ...activePage, body: `${activePage.body}\n\n${quoted}\n`, updatedAt: Date.now() };
+          void upsertPage(next);
+          notify.success('현재 페이지 본문에 추가했어요');
+        } : undefined}
+        onCreatePageFromAnswer={async (title, body) => {
+          const { newWikiId } = await import('@/types/wiki');
+          const now = Date.now();
+          const next: WikiPage = {
+            id: newWikiId(), title: title || '제목 없음', aliases: [], type: 'concept',
+            status: 'draft', tags: [], body,
+            refersTo: [], cites: [], inherits: [], similarTo: [], parentMocs: [],
+            createdAt: now, updatedAt: now,
+          };
+          await upsertPage(next);
+          setActiveId(next.id);
+          setEditing(true);
+          setView('page');
+          notify.success('새 draft 페이지로 만들었어요');
+        }}
+      />
 
       {/* 메인 모드 전환 패널 — 트리거 pill 은 화면 밖으로 완전 이동 (left: -9999px).
           panel 만 portal 로 body 에 노출되어 viewport 정중앙에 등장.

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Search, Star, Clock } from 'lucide-react';
+import { Search, Star, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META } from '@/types/wiki';
 
@@ -13,7 +13,6 @@ interface Props {
   externalQuery?: string;
   onQueryChange?: (q: string) => void;
   onSelect: (id: string) => void;
-  onCreate: () => void;
 }
 
 type Filter = 'all' | 'moc' | 'source' | 'draft';
@@ -27,7 +26,7 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
 
 export function WikiSidebar({
   pages, loading, activeId, favorites, recent,
-  externalQuery, onQueryChange, onSelect, onCreate,
+  externalQuery, onQueryChange, onSelect,
 }: Props) {
   const [internalQuery, setInternalQuery] = useState('');
   const query = externalQuery ?? internalQuery;
@@ -69,7 +68,7 @@ export function WikiSidebar({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* 검색 + 새 페이지 */}
+      {/* 검색 — 새 페이지는 헤더 + 버튼 / Ctrl+N / 명령 팔레트로 접근 */}
       <div className="px-3 pt-2.5 pb-2 flex items-center gap-1.5">
         <div className="flex-1 flex items-center gap-1.5 px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background focus-within:border-primary/50 transition-colors">
           <Search className="w-3 h-3 text-muted-foreground shrink-0" />
@@ -80,15 +79,6 @@ export function WikiSidebar({
             className="flex-1 bg-transparent text-[12px] outline-none placeholder:text-muted-foreground/60"
           />
         </div>
-        <button
-          type="button"
-          onClick={onCreate}
-          className="h-7 w-7 flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-          title="새 페이지 (Ctrl/Cmd+N)"
-          aria-label="새 페이지"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
       </div>
 
       {/* 필터 */}
