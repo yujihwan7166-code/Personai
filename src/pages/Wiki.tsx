@@ -1,30 +1,35 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, Network } from 'lucide-react';
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, Network, Menu } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
-import { createEmptyWikiPage, type WikiPage } from '@/types/wiki';
+import type { WikiPage } from '@/types/wiki';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
 import { WikiPageView } from '@/components/wiki/WikiPageView';
 import { WikiHome } from '@/components/wiki/WikiHome';
 import { WikiGraph } from '@/components/wiki/WikiGraph';
 import { WikiSettingsMenu } from '@/components/wiki/WikiSettingsMenu';
+import { WikiCommandPalette } from '@/components/wiki/WikiCommandPalette';
+import { WikiTemplatePicker } from '@/components/wiki/WikiTemplatePicker';
+import { clearAllPages } from '@/lib/wikiStore';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_KEY = 'wiki_sidebar_open';
 
-/**
- * /wiki — 마이위키 풀스크린 페이지.
- * 좌: 사이드바 (검색·필터·페이지 리스트, 토글 가능)
- * 우: 활성 페이지가 있으면 뷰어/에디터, 없으면 홈 대시보드.
- */
 const Wiki = () => {
   const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, reload } = useWikiPages();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [view, setView] = useState<'page' | 'graph'>('page');
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  // 모바일에선 기본 닫힘, 데스크탑은 localStorage. 768px 미만은 오버레이 모드.
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768
+  );
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
+    if (window.innerWidth < 768) return false;
     return window.localStorage.getItem(SIDEBAR_KEY) !== '0';
   });
 
@@ -35,12 +40,22 @@ const Wiki = () => {
     window.localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0');
   }, [sidebarOpen]);
 
-  const handleCreate = useCallback(async (overrides: Partial<WikiPage> = {}) => {
-    const next = createEmptyWikiPage(overrides);
-    await upsertPage(next);
-    setActiveId(next.id);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const openTemplatePicker = useCallback(() => setTemplatePickerOpen(true), []);
+
+  const handleTemplatePicked = useCallback(async (page: WikiPage) => {
+    await upsertPage(page);
+    setActiveId(page.id);
     setEditing(true);
-  }, [upsertPage]);
+    setView('page');
+    setTemplatePickerOpen(false);
+    if (isMobile) setSidebarOpen(false);
+  }, [upsertPage, isMobile]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('이 페이지를 삭제할까요?')) return;
@@ -51,24 +66,46 @@ const Wiki = () => {
     }
   };
 
-  // 백링크는 id, 위키링크는 title 을 넘긴다 — 둘 다 처리.
   const handleOpenByTitleOrId = useCallback((titleOrId: string) => {
     const byId = pages.find((p) => p.id === titleOrId);
     if (byId) {
       setActiveId(byId.id);
       setEditing(false);
+      if (isMobile) setSidebarOpen(false);
       return;
     }
     const found = findByTitle(titleOrId);
     if (found) {
       setActiveId(found.id);
       setEditing(false);
+      if (isMobile) setSidebarOpen(false);
     } else {
-      void handleCreate({ title: titleOrId });
+      // 미존재 — 즉시 새 페이지로 (제목만 채워서, 빈 본문)
+      void (async () => {
+        const { newWikiId } = await import('@/types/wiki');
+        const now = Date.now();
+        const next: WikiPage = {
+          id: newWikiId(), title: titleOrId, aliases: [], type: 'concept',
+          status: 'draft', tags: [], body: '',
+          refersTo: [], cites: [], inherits: [], similarTo: [], parentMocs: [],
+          createdAt: now, updatedAt: now,
+        };
+        await upsertPage(next);
+        setActiveId(next.id);
+        setEditing(true);
+      })();
     }
-  }, [pages, findByTitle, handleCreate]);
+  }, [pages, findByTitle, upsertPage, isMobile]);
 
-  // 단축키 — Ctrl/Cmd+N 새 페이지, Ctrl/Cmd+B 사이드바 토글, E 편집 토글, Esc 편집 취소
+  const handleClearAll = async () => {
+    if (!confirm('정말 모든 위키 페이지를 삭제할까요?')) return;
+    if (!confirm('한 번 더 확인 — 모든 페이지가 사라집니다.')) return;
+    await clearAllPages();
+    void reload();
+    setActiveId(null);
+  };
+
+  // 단축키 — Ctrl/Cmd+N 새 페이지(템플릿 픽커), Ctrl/Cmd+B 사이드바, E 편집, Esc 편집취소
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -76,7 +113,7 @@ const Wiki = () => {
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key.toLowerCase() === 'n') {
         e.preventDefault();
-        void handleCreate();
+        openTemplatePicker();
       } else if (meta && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         setSidebarOpen((v) => !v);
@@ -90,21 +127,33 @@ const Wiki = () => {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [handleCreate, activePage, editing]);
+  }, [openTemplatePicker, activePage, editing]);
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
-      {/* 사이드바 — 토글 가능 */}
+    <div className="flex h-screen w-full bg-background overflow-hidden relative">
+      {/* 모바일: 사이드바 열렸을 때 백드롭 */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
+      )}
+
+      {/* 사이드바 */}
       <aside
         className={cn(
-          'shrink-0 h-full overflow-hidden transition-[width,border-right-width] duration-200 ease-out border-r flex flex-col',
-          sidebarOpen
-            ? 'w-[260px] border-[hsl(var(--hairline))]'
-            : 'w-0 border-r-0',
+          'shrink-0 h-full overflow-hidden transition-[width,transform,border-right-width] duration-200 ease-out border-r flex flex-col',
+          isMobile
+            ? 'fixed left-0 top-0 z-40 w-[280px] bg-background border-[hsl(var(--hairline))]'
+            : (sidebarOpen
+                ? 'w-[260px] border-[hsl(var(--hairline))]'
+                : 'w-0 border-r-0'),
+          isMobile && !sidebarOpen && '-translate-x-full',
         )}
         aria-hidden={!sidebarOpen}
       >
-        <div className="w-[260px] h-full flex flex-col">
+        <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
           <div className="px-3 py-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <Link
               to="/"
@@ -116,7 +165,7 @@ const Wiki = () => {
             </Link>
             <button
               type="button"
-              onClick={() => { setActiveId(null); setView('page'); }}
+              onClick={() => { setActiveId(null); setView('page'); if (isMobile) setSidebarOpen(false); }}
               className="text-[13px] font-bold flex-1 text-left truncate hover:text-primary transition-colors"
               title="대문으로"
             >
@@ -124,7 +173,7 @@ const Wiki = () => {
             </button>
             <button
               type="button"
-              onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); }}
+              onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); if (isMobile) setSidebarOpen(false); }}
               className={cn(
                 'p-1 rounded-md transition-colors',
                 view === 'graph'
@@ -151,13 +200,13 @@ const Wiki = () => {
             pages={pages}
             loading={loading}
             activeId={activeId}
-            onSelect={(id) => { setActiveId(id); setEditing(false); }}
-            onCreate={() => handleCreate()}
+            onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
+            onCreate={openTemplatePicker}
           />
         </div>
       </aside>
 
-      {/* 사이드바 닫혔을 때 좌측 모서리에 작은 펴기 버튼 */}
+      {/* 사이드바 닫혔을 때 펴기 버튼 (모바일은 햄버거) */}
       {!sidebarOpen && (
         <button
           type="button"
@@ -166,7 +215,7 @@ const Wiki = () => {
           title="사이드바 펴기 (Ctrl/Cmd+B)"
           aria-label="사이드바 펴기"
         >
-          <PanelLeftOpen className="h-3.5 w-3.5" />
+          {isMobile ? <Menu className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
         </button>
       )}
 
@@ -206,10 +255,33 @@ const Wiki = () => {
           <WikiHome
             pages={pages}
             onSelect={(id) => setActiveId(id)}
-            onCreate={() => handleCreate()}
+            onCreate={openTemplatePicker}
           />
         )}
       </main>
+
+      {/* 명령 팔레트 (Ctrl/Cmd+K) */}
+      <WikiCommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        pages={pages}
+        onOpen={(id) => { setActiveId(id); setView('page'); setEditing(false); }}
+        onCreate={openTemplatePicker}
+        onGoHome={() => { setActiveId(null); setView('page'); }}
+        onGoGraph={() => { setView('graph'); setActiveId(null); }}
+        onImport={() => {
+          // 가벼운 트리거 — 실제 파일 picker 는 settings menu 안에 있음.
+          alert('백업 가져오기는 좌상단 ⚙ 설정 메뉴에서 진행해주세요.');
+        }}
+        onClearAll={handleClearAll}
+      />
+
+      {/* 템플릿 픽커 */}
+      <WikiTemplatePicker
+        open={templatePickerOpen}
+        onClose={() => setTemplatePickerOpen(false)}
+        onPick={handleTemplatePicked}
+      />
     </div>
   );
 };
