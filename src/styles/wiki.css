@@ -242,3 +242,47 @@
 
 .wiki-prose strong { font-weight: 700; color: hsl(var(--foreground)); }
 .wiki-prose em { font-style: italic; }
+
+/* ── 각주 (GFM footnotes) — 위키피디아 톤의 출처 섹션 ── */
+.wiki-prose .footnotes {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid hsl(var(--wiki-hairline-strong));
+  font-size: 0.86em;
+  color: hsl(var(--muted-foreground));
+}
+.wiki-prose .footnotes h2,
+.wiki-prose .footnotes .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+}
+.wiki-prose .footnotes::before {
+  content: "출처 · 각주";
+  display: block;
+  font-family: var(--wiki-font-meta);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.4rem;
+}
+.wiki-prose .footnotes ol {
+  padding-left: 1.4rem;
+}
+.wiki-prose .footnotes li {
+  padding: 0.15rem 0;
+  margin: 0.15rem 0;
+}
+.wiki-prose sup a,
+.wiki-prose .footnotes a {
+  color: hsl(var(--primary));
+  text-decoration: none;
+}
+.wiki-prose sup a:hover,
+.wiki-prose .footnotes a:hover {
+  text-decoration: underline;
+}

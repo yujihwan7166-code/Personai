@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META } from '@/types/wiki';
 
 interface Props {
@@ -10,6 +11,16 @@ function formatDate(ts: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** 본문 첫 URL 추출 — source 인포박스의 '원본 링크' 칩에 사용. */
+function firstUrl(body: string): string | null {
+  const m = body.match(/https?:\/\/[^\s)\]]+/i);
+  return m ? m[0] : null;
+}
+
+function hostnameFor(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
+}
+
 /**
  * 위키 인포박스 — Wikipedia 우상단 카드 패턴.
  * 굵은 격자 + 굵은 라벨 + 폭 280px 로 위키 톤 강화.
@@ -17,6 +28,7 @@ function formatDate(ts: number): string {
 export function WikiInfobox({ page, onTagClick }: Props) {
   const typeMeta = WIKI_TYPE_META[page.type];
   const statusKey = page.status; // 'draft'|'active'|'stable'|'archived'
+  const sourceUrl = page.type === 'source' ? firstUrl(page.body) : null;
 
   return (
     <aside
@@ -56,6 +68,20 @@ export function WikiInfobox({ page, onTagClick }: Props) {
             <span aria-hidden>{typeMeta.icon}</span> {typeMeta.label}
           </span>
         </Row>
+        {sourceUrl && (
+          <Row label="원본">
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11.5px] text-primary hover:underline truncate max-w-full"
+              title={sourceUrl}
+            >
+              <ExternalLink className="h-3 w-3 shrink-0" />
+              <span className="truncate">{hostnameFor(sourceUrl)}</span>
+            </a>
+          </Row>
+        )}
         <Row label="상태">
           <span className={`wiki-status-chip wiki-status-${statusKey}`}>
             {WIKI_STATUS_META[statusKey].label}
