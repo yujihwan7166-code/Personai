@@ -28,16 +28,6 @@ interface Props {
   onTogglePin: (id: string) => void;
 }
 
-/** 가벼운 상대시간 포매터. studio deck 의 timeAgo 와 동일 패턴. */
-function timeAgo(ts: number): string {
-  const s = (Date.now() - ts) / 1000;
-  if (s < 60) return '방금';
-  if (s < 3600) return `${Math.floor(s / 60)}분 전`;
-  if (s < 86400) return `${Math.floor(s / 3600)}시간 전`;
-  if (s < 7 * 86400) return `${Math.floor(s / 86400)}일 전`;
-  return `${Math.floor(s / (7 * 86400))}주 전`;
-}
-
 type SortMode = 'recent' | 'name' | 'sources';
 
 const SORT_LABELS: Record<SortMode, string> = {
@@ -183,67 +173,6 @@ export function StudyHome({
           />
         </div>
       </div>
-
-      {/* "이어 학습" Hero — 전체 뷰 + 검색 X + 활동 있는 노트북 존재 시만 노출.
-          가장 최근 updatedAt 의 (샘플 제외) 노트북 1개를 크게 띄워 즉시 재진입 유도. */}
-      {!activeFolder && !query && (() => {
-        const candidate = notebooks
-          .filter((n) => !isSampleNotebook(n))
-          .filter((n) => (n.chat?.length ?? 0) > 0 || (n.sources?.length ?? 0) > 0)
-          .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-        if (!candidate) return null;
-        const sourceCount = candidate.sources?.length ?? 0;
-        const chatCount = candidate.chat?.length ?? 0;
-        const quizCount = candidate.quizDecks?.reduce((s, d) => s + d.items.length, 0) ?? candidate.quizItems.length;
-        const flashCount = candidate.flashcards.length;
-        const due = countDueCards(candidate);
-        return (
-          <button
-            type="button"
-            onClick={() => onSelect(candidate.id)}
-            className="group mb-3 w-full overflow-hidden rounded-2xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-3 text-left shadow-sm transition-all hover:shadow-md hover:border-indigo-300 dark:from-indigo-950/40 dark:via-slate-900 dark:to-violet-950/30 dark:border-indigo-900/60"
-            aria-label={`이어 학습: ${candidate.title}`}
-          >
-            <div className="flex items-center gap-3">
-              {/* 좌측 표지 — 노트북 색·아이콘 */}
-              <div
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-2xl shadow-inner sm:h-16 sm:w-16 sm:text-3xl"
-                style={{
-                  backgroundColor: candidate.color ?? 'hsl(245 70% 60%)',
-                  color: 'white',
-                }}
-                aria-hidden
-              >
-                {candidate.icon || '📘'}
-              </div>
-              {/* 본문 */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">
-                  <span>이어 학습</span>
-                  <span className="text-indigo-300">·</span>
-                  <span className="font-sans normal-case tracking-normal text-slate-500 dark:text-slate-400">{timeAgo(candidate.updatedAt)}</span>
-                </div>
-                <h2 className="mt-0.5 truncate text-[15px] font-bold text-slate-900 dark:text-slate-100">
-                  {candidate.title}
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                  {sourceCount > 0 && <span>📚 소스 {sourceCount}</span>}
-                  {chatCount > 0 && <span>💬 대화 {chatCount}</span>}
-                  {quizCount > 0 && <span>🎯 퀴즈 {quizCount}</span>}
-                  {flashCount > 0 && <span>🎴 카드 {flashCount}</span>}
-                  {due > 0 && <span className="text-rose-600 dark:text-rose-400 font-semibold">🔔 복습 {due}</span>}
-                </div>
-              </div>
-              {/* CTA */}
-              <div className="hidden shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-transform group-hover:translate-x-0.5 sm:flex">
-                이어 학습
-                <span aria-hidden>→</span>
-              </div>
-              <div className="shrink-0 text-lg text-indigo-600 sm:hidden" aria-hidden>→</div>
-            </div>
-          </button>
-        );
-      })()}
 
       <div
           onDragOver={(e) => {
