@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, Network, Menu, CalendarDays, Home, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, CalendarDays, Home, Plus, LayoutGrid } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 const SIDEBAR_KEY = 'wiki_sidebar_open';
 
 const Wiki = () => {
+  const navigate = useNavigate();
   const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, reload, restoreRevision } = useWikiPages();
   const { favorites, recent, toggleFavorite, isFavorite, recordView, purge } = useWikiFavorites();
   // 위키링크 visited 색상용 — 최근 본 + 즐겨찾기 합집합
@@ -184,27 +185,23 @@ const Wiki = () => {
         aria-hidden={!sidebarOpen}
       >
         <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
-          {/* 윗줄 — 정체성 + 시스템 (라벨/배지/설정/접기) */}
-          <div className="px-2 h-10 border-b border-[hsl(var(--hairline))] flex items-center gap-0.5">
-            <Link
-              to="/"
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              aria-label="앱으로 돌아가기"
-              title="앱으로 돌아가기"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-            </Link>
+          {/* 윗줄 — 정체성 / 모드 전환 / 사이드바 닫기 */}
+          <div className="px-2 h-10 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <span
               className="flex-1 text-[12.5px] font-bold text-foreground/90 truncate px-1"
               style={{ fontFamily: 'var(--wiki-font-meta)' }}
             >
               🌐 마이위키
             </span>
-            <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
-            <WikiSettingsMenu
-              onMutated={() => { void reload(); setActiveId(null); }}
-              onOpenStorage={() => setStorageOpen(true)}
-            />
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              title="모드 전환"
+              aria-label="모드 전환"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
@@ -216,7 +213,7 @@ const Wiki = () => {
             </button>
           </div>
 
-          {/* 아랫줄 — 진입 액션 4개 균등 분할 (홈/오늘/그래프/새 페이지) */}
+          {/* 아랫줄 — 진입 액션 4개 (좌) + 신뢰성/설정 (우) */}
           <div className="px-1.5 h-9 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <button
               type="button"
@@ -264,6 +261,12 @@ const Wiki = () => {
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
+            <div className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" aria-hidden />
+            <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
+            <WikiSettingsMenu
+              onMutated={() => { void reload(); setActiveId(null); }}
+              onOpenStorage={() => setStorageOpen(true)}
+            />
           </div>
           <WikiSidebar
             pages={pages}
@@ -296,6 +299,7 @@ const Wiki = () => {
           className="shrink-0 h-full w-11 border-r border-[hsl(var(--hairline))] bg-background flex flex-col items-center py-2 gap-1"
           aria-label="마이위키 빠른 액션"
         >
+          {/* 최상단: 사이드바 펴기 → 모드 전환 */}
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
@@ -305,7 +309,18 @@ const Wiki = () => {
           >
             <PanelLeftOpen className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+            title="모드 전환"
+            aria-label="모드 전환"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
           <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+
+          {/* 진입 액션 4개 */}
           <button
             type="button"
             onClick={() => { setActiveId(null); setView('page'); }}
@@ -352,21 +367,15 @@ const Wiki = () => {
           >
             <Plus className="h-4 w-4" />
           </button>
-          {/* 하단으로 밀기 */}
+
+          {/* 하단으로 밀기 + 시스템 (배지·설정) */}
           <div className="flex-1" aria-hidden />
+          <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
           <WikiHeaderBadges onOpenStorage={() => setStorageOpen(true)} />
           <WikiSettingsMenu
             onMutated={() => { void reload(); setActiveId(null); }}
             onOpenStorage={() => setStorageOpen(true)}
           />
-          <Link
-            to="/"
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="앱으로 돌아가기"
-            aria-label="앱으로 돌아가기"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
         </nav>
       )}
 
