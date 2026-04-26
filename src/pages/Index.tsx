@@ -139,22 +139,53 @@ const Index = () => {
   const [modePaletteAnchor, setModePaletteAnchor] = useState<{ top: number; left: number; right: number; bottom: number; width: number; height: number } | null>(null);
   // 사이드바 LayoutGrid 버튼 → MainModeTabs 패널 외부 트리거
   const mainModeTabsApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
-  // /wiki 등 외부 페이지에서 navigate('/', { state: { openModePalette: true } }) 로 진입 시
-  // 마운트 후 자동으로 모드 패널 열기.
+  // /wiki 등 외부 페이지에서 navigate('/', { state: { ... } }) 로 진입 시 처리.
+  // - openModePalette: 모드 패널 자동 오픈
+  // - selectMainMode: 해당 메인 모드로 자동 전환 (DiscussionMode 매핑)
   const location = useLocation();
   useEffect(() => {
-    const state = location.state as { openModePalette?: boolean } | null;
-    if (state?.openModePalette) {
-      // 다음 프레임에 트리거 — apiRef 가 ExpertSelectionPanel 마운트 후 setting 되도록.
+    const state = location.state as {
+      openModePalette?: boolean;
+      selectMainMode?: import('@/types/expert').MainMode;
+    } | null;
+    if (!state) return undefined;
+
+    if (state.selectMainMode) {
+      // MainMode → 기본 DiscussionMode 매핑
+      const mainToDisc = (m: import('@/types/expert').MainMode): DiscussionMode => {
+        switch (m) {
+          case 'general':          return 'general';
+          case 'multi':            return 'multi';
+          case 'debate':           return 'standard';
+          case 'premium_main':     return 'expert';
+          case 'assistant':        return 'assistant';
+          case 'player':           return 'player';
+          case 'brainstorm_main':  return 'brainstorm';
+          case 'stakeholder_main': return 'stakeholder';
+          case 'research_main':    return 'research';
+          case 'translate_main':   return 'translate';
+          case 'convert_main':     return 'convert';
+          case 'study_main':       return 'study';
+          case 'voice_main':       return 'assistant';
+          case 'media_main':       return 'assistant';
+        }
+      };
+      const t = window.setTimeout(() => {
+        setDiscussionMode(mainToDisc(state.selectMainMode!));
+      }, 60);
+      window.history.replaceState({}, '');
+      return () => window.clearTimeout(t);
+    }
+
+    if (state.openModePalette) {
       const t = window.setTimeout(() => {
         mainModeTabsApiRef.current?.open();
       }, 80);
-      // history state 정리 (뒤로가기 시 재발동 방지)
       window.history.replaceState({}, '');
       return () => window.clearTimeout(t);
     }
     return undefined;
-   
+
   }, [location.key]);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);

@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, Plus, LayoutGrid, Shuffle } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
+import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import type { WikiPage } from '@/types/wiki';
+import { MainModeTabs } from '@/components/MainModeTabs';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
 import { WikiPageView } from '@/components/wiki/WikiPageView';
 import { WikiHome } from '@/components/wiki/WikiHome';
@@ -33,6 +35,20 @@ const Wiki = () => {
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [sidebarQuery, setSidebarQuery] = useState('');
   const [storageOpen, setStorageOpen] = useState(false);
+  // ⊞ 모드 전환 패널 — Wiki 페이지 위에 직접 띄우기 (페이지 이동 X)
+  const modeApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
+
+  const goToMainWith = useCallback((state: Record<string, unknown>) => {
+    navigate('/', { state });
+  }, [navigate]);
+
+  const mainModeLabelMap = (() => {
+    const out: Partial<Record<MainMode, string>> = {};
+    for (const [k, v] of Object.entries(MAIN_MODE_LABELS)) {
+      out[k as MainMode] = (v as { label: string }).label;
+    }
+    return out as Record<MainMode, string>;
+  })();
   // 모바일에선 기본 닫힘, 데스크탑은 localStorage. 768px 미만은 오버레이 모드.
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < 768
@@ -208,7 +224,7 @@ const Wiki = () => {
             </span>
             <button
               type="button"
-              onClick={() => navigate('/', { state: { openModePalette: true } })}
+              onClick={() => modeApiRef.current?.open()}
               className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               title="모드 전환"
               aria-label="모드 전환"
@@ -325,7 +341,7 @@ const Wiki = () => {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/', { state: { openModePalette: true } })}
+            onClick={() => modeApiRef.current?.open()}
             className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
             title="모드 전환"
             aria-label="모드 전환"
@@ -461,6 +477,28 @@ const Wiki = () => {
 
       {/* 저장소 사용량 — 헤더 배지·설정 메뉴 둘 다에서 열 수 있게 위로 lift */}
       <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
+
+      {/* 메인 모드 전환 패널 — 트리거 pill 은 시각적으로 가려두고 panel 만 portal 로 노출.
+          모드 선택 시 그 모드의 default DiscussionMode 를 state 로 넘겨 메인으로 이동. */}
+      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }} aria-hidden>
+        <MainModeTabs
+          modes={['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
+          labels={mainModeLabelMap}
+          currentMode="general"
+          pendingMode={null}
+          isDiscussing={false}
+          transitionPhase={0}
+          showPlayerBg={false}
+          onChange={(mode) => goToMainWith({ selectMainMode: mode })}
+          onSelectDebateSub={(sub) => goToMainWith({ selectMainMode: 'debate', selectDebateSub: sub })}
+          onSelectAssistantCard={(cardId) => goToMainWith({ selectMainMode: 'assistant', selectAssistantCard: cardId })}
+          onSelectLifeTool={(toolId) => goToMainWith({ selectMainMode: 'general', selectLifeTool: toolId })}
+          onOpenMentalTests={() => goToMainWith({ openMentalTests: true })}
+          onOpenBookmarks={() => goToMainWith({ openBookmarks: true })}
+          onSelectPlayerTool={(toolId) => goToMainWith({ selectMainMode: 'player', selectPlayerTool: toolId })}
+          apiRef={modeApiRef}
+        />
+      </div>
     </div>
   );
 };
