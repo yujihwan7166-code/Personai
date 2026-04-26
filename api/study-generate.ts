@@ -483,9 +483,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: '소스와 렌즈를 지정해 주세요.' });
   }
 
-  // ── 비전 모드 분기: 멀티모달 메시지 ──
+  // ── 빈/placeholder 소스 가드 — 환각 방지 마지막 방어선 ──
+  // 비전 모드는 별도 (이미지 입력이 있으니 텍스트가 비어도 정상)
   const isVisionMode = body.lens === 'summary'
     && (body.options?.summaryMode === 'pages-vision-index' || body.options?.summaryMode === 'pages-vision-detail');
+  if (!isVisionMode) {
+    const totalText = body.sources
+      .map((s) => (s.content ?? '').trim())
+      .filter((t) => t.length > 0)
+      .join('\n');
+    const isPlaceholderOnly = body.sources.every((s) => {
+      const t = (s.content ?? '').trim();
+      if (t.length < 50) return true;
+      if (t.startsWith('(텍스트 추출이 제한적')) return true;
+      if (t.startsWith('(원본에서 OCR')) return true;
+      if (t.startsWith('[') && /추출|스캔|OCR/i.test(t.slice(0, 100))) return true;
+      return false;
+    });
+    if (totalText.length < 50 || isPlaceholderOnly) {
+      return res.status(400).json({
+        error: '소스에 추출된 텍스트가 거의 없어요. OCR/비전 분석이 끝난 뒤 다시 시도해주세요.',
+        code: 'SOURCE_EMPTY_OR_PLACEHOLDER',
+      });
+    }
+  }
+
   if (isVisionMode) {
     const images = body.options?.pageImages ?? [];
     if (images.length === 0) {

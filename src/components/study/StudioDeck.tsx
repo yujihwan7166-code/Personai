@@ -1177,7 +1177,12 @@ function SummarySection({
   const isEmptyOrPlaceholder = useMemo(() => {
     const stripped = sourceText.trim();
     if (stripped.length < 50) return true;
+    // Phase 1 이전 placeholder (마이그레이션 호환)
     if (stripped.startsWith('(텍스트 추출이 제한적')) return true;
+    // Phase 1 이후 placeholder — "(원본에서 OCR 로 텍스트를 추출하는 중입니다...)"
+    if (stripped.startsWith('(원본에서 OCR')) return true;
+    // 일반 안전망: 괄호로 시작하고 'OCR'·'추출' 키워드가 있는 짧은 안내문
+    if (stripped.startsWith('(') && stripped.length < 200 && /OCR|추출/i.test(stripped)) return true;
     return false;
   }, [sourceText]);
   // 스캔본 PDF 비율이 매우 높은지
@@ -1202,6 +1207,20 @@ function SummarySection({
         description: '페이지 구분자([p.1] 같은 표시)가 자료에 없어요. URL·복사 텍스트는 페이지 개념이 없어 페이지별 모드를 쓸 수 없어요.',
       });
     }
+  };
+
+  /** "전체 요약" 등 LLM 호출 직전 빈/placeholder 소스 가드.
+   *  true 반환이면 호출 막힘(이미 toast 띄움), false 면 정상 진행 OK. */
+  const blockIfSourceUnready = (): boolean => {
+    if (isEmptyOrPlaceholder || isMostlyScanned) {
+      toast({
+        title: '아직 텍스트 추출 중이에요',
+        description: '스캔본 PDF는 OCR/비전 분석이 끝나야 요약 가능해요. 좌측 PDF 뷰어를 열어 진행률을 확인해주세요.',
+        variant: 'destructive',
+      });
+      return true;
+    }
+    return false;
   };
 
   // structured 메타 저장 헬퍼
@@ -1497,6 +1516,7 @@ function SummarySection({
           onStartText={() => {
             if (!hasPageMarkers) {
               showPageUnavailableToast();
+              if (blockIfSourceUnready()) return;
               setMode('whole');
               if (!hasWhole) onRegenerateWhole();
               return;
@@ -1504,6 +1524,7 @@ function SummarySection({
             void fetchPagesIndex();
           }}
           onWhole={() => {
+            if (blockIfSourceUnready()) return;
             setMode('whole');
             if (!hasWhole) onRegenerateWhole();
           }}
@@ -1548,6 +1569,7 @@ function SummarySection({
         </button>
         <button
           onClick={() => {
+            if (!hasWhole && blockIfSourceUnready()) return;
             setMode('whole');
             if (structured) writeStructured({ ...structured, mode: 'whole' });
             if (!hasWhole) onRegenerateWhole();
@@ -1565,7 +1587,7 @@ function SummarySection({
         <div className="flex-1" />
         {mode === 'whole' && hasWhole && (
           <button
-            onClick={() => onRegenerateWhole()}
+            onClick={() => { if (!blockIfSourceUnready()) onRegenerateWhole(); }}
             disabled={loading}
             className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-700 disabled:opacity-40"
           >
@@ -1588,6 +1610,18 @@ function SummarySection({
       </div>
 
       {/* 본문 */}
+      {/* OCR/Vision 진행 중 안내 배너 — 빈/placeholder 소스 + PDF blob 있을 때만 */}
+      {(isEmptyOrPlaceholder || isMostlyScanned) && enabledSources.some((s) => s.kind === 'pdf' && s.blobRef) && (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+          <span aria-hidden className="text-base leading-none">⏳</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold">OCR/비전 분석 진행 중</p>
+            <p className="text-[11px] mt-0.5 text-amber-800/90 dark:text-amber-200/80">
+              스캔본 PDF 라 텍스트 추출이 백그라운드에서 진행 중입니다. 좌측 PDF 뷰어를 열어두면 진행률이 표시되고, 추출이 끝나면 노트정리를 다시 시도해주세요.
+            </p>
+          </div>
+        </div>
+      )}
       {mode === 'whole' ? (
         loading && !hasWhole ? (
           <WholeSummaryShimmer />
