@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Sparkles, ArrowRight, Star, FileText, Link2, Sprout, Moon, BookOpen } from 'lucide-react';
+import { Plus, Sparkles, ArrowRight, Star, FileText, Link2, Sprout, Moon, BookOpen, Play, Shuffle, RotateCw, TrendingUp } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, extractWikiLinks } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,14 @@ export function WikiHome({
   onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag,
 }: Props) {
   const [tab, setTab] = useState<QueueTab>('inbox');
+  const [randomSeed, setRandomSeed] = useState(0);
+  const randomPage = useMemo(() => {
+    if (pages.length <= 1) return null;
+    const candidates = pages.filter((p) => p.id !== (pages[0]?.id ?? ''));
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages, randomSeed]);
 
   const stats = useMemo(() => {
     const byStatus = { draft: 0, active: 0, stable: 0, archived: 0 };
@@ -77,7 +85,26 @@ export function WikiHome({
       .filter((p) => p.status === 'active' && p.updatedAt < cutoff)
       .slice(0, 8);
 
-    return { byStatus, recentEdits, inbox, mocs, orphans, topTags, wanted, stale };
+    // 가장 최근 편집 페이지 (대문 '이어쓰기' 카드)
+    const lastEdited = pages.length > 0 ? pages[0] : null;
+
+    // 7일 일별 편집 차트 — 오늘 포함 7일
+    const day = 24 * 60 * 60 * 1000;
+    const today0 = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+    const buckets = Array.from({ length: 7 }, (_, i) => ({
+      ts: today0 - (6 - i) * day,
+      count: 0,
+    }));
+    for (const p of pages) {
+      const idx = Math.floor((p.updatedAt - (today0 - 6 * day)) / day);
+      if (idx >= 0 && idx < 7) buckets[idx].count++;
+    }
+    const weekChart = buckets;
+    const weekTotal = buckets.reduce((a, b) => a + b.count, 0);
+    // 신규 = 만든 날짜가 7일 이내
+    const weekNew = pages.filter((p) => p.createdAt > today0 - 6 * day).length;
+
+    return { byStatus, recentEdits, inbox, mocs, orphans, topTags, wanted, stale, lastEdited, weekChart, weekTotal, weekNew };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -168,7 +195,37 @@ export function WikiHome({
         </p>
       </header>
 
-      {/* 1. 목차 — 메인 */}
+      {/* 1. 위젯 영역 — 이어쓰기 / 무작위 / 만들 Top1 / 미니 차트 */}
+      <section className="mb-9 grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-3">
+        {/* A. 이어쓰기 — 큰 카드 */}
+        {stats.lastEdited && (
+          <ContinueCard page={stats.lastEdited} onSelect={onSelect} />
+        )}
+
+        {/* 우측 사이드 — 3개 작은 카드 stack */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3">
+          {/* B. 무작위 */}
+          {randomPage && (
+            <RandomCard page={randomPage} onSelect={onSelect} onShuffle={() => setRandomSeed((s) => s + 1)} />
+          )}
+          {/* D. 만들 Top1 */}
+          {stats.wanted.length > 0 && (
+            <WantedTopCard
+              title={stats.wanted[0][0]}
+              count={stats.wanted[0][1]}
+              onCreate={() => onCreateMissing?.(stats.wanted[0][0])}
+            />
+          )}
+          {/* C. 이번 주 미니 차트 */}
+          <WeekActivityCard
+            chart={stats.weekChart}
+            total={stats.weekTotal}
+            newCount={stats.weekNew}
+          />
+        </div>
+      </section>
+
+      {/* 2. 목차 — 메인 */}
       <section className="mb-9">
         <SectionHeader
           symbol="◆"
@@ -201,7 +258,7 @@ export function WikiHome({
         )}
       </section>
 
-      {/* 2. 정리 큐 — 색 차별 탭 */}
+      {/* 3. 정리 큐 — 색 차별 탭 */}
       <section className="mb-9">
         <SectionHeader
           symbol="▮"
@@ -313,6 +370,189 @@ export function WikiHome({
           본문에 <code className="px-1 rounded bg-accent">[[페이지명]]</code> 으로 위키링크
         </span>
       </div>
+    </div>
+  );
+}
+
+/* ── 상대 시간 ── */
+function relTime(ts: number): string {
+  const d = Date.now() - ts;
+  const m = Math.floor(d / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}시간 전`;
+  const day = Math.floor(h / 24);
+  if (day < 7) return `${day}일 전`;
+  if (day < 30) return `${Math.floor(day / 7)}주 전`;
+  return `${Math.floor(day / 30)}달 전`;
+}
+
+/* ── A. 이어쓰기 큰 카드 ── */
+function ContinueCard({ page, onSelect }: { page: WikiPage; onSelect: (id: string) => void }) {
+  const meta = WIKI_TYPE_META[page.type];
+  const sMeta = WIKI_STATUS_META[page.status];
+  // 본문 첫 5줄
+  const lines = page.body.split('\n').filter((l) => l.trim()).slice(0, 5).join('\n');
+  const preview = lines.replace(/^[#>\s]+/gm, '').slice(0, 240);
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(page.id)}
+      className="group relative flex flex-col text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/50 hover:shadow-md wiki-trans-base overflow-hidden min-h-[180px]"
+    >
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary group-hover:bg-primary wiki-trans-color" />
+      <div className="px-5 pt-4 pb-2 flex items-center gap-2">
+        <Play className="w-3.5 h-3.5 text-primary shrink-0 fill-primary/20" />
+        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/80 font-bold">이어쓰기</span>
+        <span className="ml-auto text-[10.5px] font-mono text-muted-foreground/80">{relTime(page.updatedAt)}</span>
+      </div>
+      <div className="px-5 pb-3">
+        <h3
+          className="text-[20px] font-bold text-foreground leading-snug mb-1.5 line-clamp-2"
+          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
+        >
+          <span className="text-[16px] mr-1.5 align-middle">{meta.icon}</span>
+          {page.title}
+        </h3>
+        {preview && (
+          <p className="text-[12px] text-muted-foreground/90 leading-relaxed line-clamp-3">
+            {preview}
+          </p>
+        )}
+      </div>
+      <div className="mt-auto px-5 pb-4 pt-1.5 flex items-center gap-2">
+        <span
+          className="inline-flex items-center px-2 h-5 rounded text-[10px] font-bold uppercase tracking-wider"
+          style={{ backgroundColor: `${sMeta.tint}1F`, color: sMeta.tint }}
+        >
+          {sMeta.label}
+        </span>
+        {page.tags.slice(0, 3).map((t) => (
+          <span key={t} className="text-[10px] text-muted-foreground/80">#{t}</span>
+        ))}
+        <span className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-semibold text-primary group-hover:translate-x-0.5 wiki-trans-base">
+          이어쓰기 <ArrowRight className="w-3 h-3" />
+        </span>
+      </div>
+    </button>
+  );
+}
+
+/* ── B. 무작위 페이지 ── */
+function RandomCard({
+  page, onSelect, onShuffle,
+}: { page: WikiPage; onSelect: (id: string) => void; onShuffle: () => void }) {
+  const meta = WIKI_TYPE_META[page.type];
+  const preview = page.body.replace(/^[#>\s\n]+/g, '').replace(/\n+/g, ' ').slice(0, 60);
+  return (
+    <div className="relative flex flex-col rounded-xl border border-[hsl(var(--hairline))] bg-card overflow-hidden hover:border-primary/40 hover:shadow-sm wiki-trans-base">
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-violet-400/60" />
+      <div className="px-3 pt-2.5 pb-1 flex items-center gap-1.5">
+        <Shuffle className="w-3 h-3 text-violet-500" />
+        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-violet-700 dark:text-violet-300 font-bold">무작위</span>
+        <button
+          type="button"
+          onClick={onShuffle}
+          className="ml-auto inline-flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-foreground hover:bg-accent wiki-trans-color"
+          title="다른 페이지로"
+          aria-label="다시"
+        >
+          <RotateCw className="w-3 h-3" />
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={() => onSelect(page.id)}
+        className="px-3 pb-3 text-left group"
+      >
+        <p className="text-[13px] font-bold text-foreground truncate group-hover:text-primary wiki-trans-color"
+           style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}>
+          <span className="text-[14px] mr-1 align-middle">{meta.icon}</span>{page.title}
+        </p>
+        {preview && (
+          <p className="text-[11px] text-muted-foreground/85 line-clamp-2 mt-0.5 leading-relaxed">{preview}</p>
+        )}
+      </button>
+    </div>
+  );
+}
+
+/* ── D. 만들 Top1 ── */
+function WantedTopCard({
+  title, count, onCreate,
+}: { title: string; count: number; onCreate: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onCreate}
+      className="group relative flex flex-col text-left rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50/40 dark:bg-rose-950/20 hover:border-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 wiki-trans-base overflow-hidden"
+    >
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-rose-500/70" />
+      <div className="px-3 pt-2.5 pb-1 flex items-center gap-1.5">
+        <Link2 className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300 font-bold">만들 Top</span>
+        <span className="ml-auto text-[10px] font-mono font-bold text-rose-700 dark:text-rose-300">×{count}</span>
+      </div>
+      <div className="px-3 pb-3">
+        <p className="text-[13px] font-bold text-foreground truncate group-hover:text-rose-700 dark:group-hover:text-rose-300 wiki-trans-color">
+          {title}
+        </p>
+        <p className="text-[10.5px] text-muted-foreground/85 mt-0.5">
+          {count}개 페이지에서 가리킴 — 만들면 {count}개 풀림
+        </p>
+      </div>
+    </button>
+  );
+}
+
+/* ── C. 이번 주 미니 차트 (sparkbar 7일) ── */
+function WeekActivityCard({
+  chart, total, newCount,
+}: { chart: Array<{ ts: number; count: number }>; total: number; newCount: number }) {
+  const max = Math.max(1, ...chart.map((b) => b.count));
+  const bw = 14, gap = 4, h = 40;
+  const w = chart.length * (bw + gap) - gap;
+  const todayIdx = chart.length - 1;
+  const dayLabels = ['일','월','화','수','목','금','토'];
+  return (
+    <div className="relative flex flex-col rounded-xl border border-[hsl(var(--hairline))] bg-card px-3 pt-2.5 pb-3 overflow-hidden">
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-emerald-400/60" />
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300 font-bold">이번 주</span>
+        <span className="ml-auto font-mono text-[10.5px] text-muted-foreground/80">
+          <span className="font-bold text-foreground/85">{total}</span> 편집
+          <span className="text-muted-foreground/40"> · </span>
+          <span className="font-bold text-foreground/85">{newCount}</span> 신규
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h + 12}`} className="w-full h-[52px]" aria-label="이번 주 일별 편집">
+        {chart.map((b, i) => {
+          const bh = (b.count / max) * h;
+          const x = i * (bw + gap);
+          const y = h - bh;
+          const isToday = i === todayIdx;
+          const dayName = dayLabels[new Date(b.ts).getDay()];
+          return (
+            <g key={i}>
+              <rect
+                x={x} y={y} width={bw} height={Math.max(bh, 1)}
+                fill={isToday ? 'rgb(16 185 129)' : 'rgb(16 185 129 / 0.45)'}
+                rx={2}
+              >
+                <title>{`${dayName}요일 — ${b.count}건`}</title>
+              </rect>
+              <text x={x + bw / 2} y={h + 9} textAnchor="middle"
+                    fontSize="8" fontFamily="ui-monospace, monospace"
+                    fill={isToday ? 'rgb(16 185 129)' : 'hsl(var(--muted-foreground))'}
+                    fontWeight={isToday ? 700 : 400}>
+                {dayName}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
