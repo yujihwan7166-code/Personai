@@ -19,6 +19,8 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import { Markdown } from 'tiptap-markdown';
 import { WikiEditorToolbar } from './WikiEditorToolbar';
+import { WikiPagePickerModal } from './WikiPagePickerModal';
+import type { WikiPage as WikiPageT } from '@/types/wiki';
 import {
   Bold, Italic, Strikethrough, Code, Link as LinkIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code2, Minus, ImagePlus, CheckSquare, BookOpen, Lightbulb,
@@ -77,6 +79,8 @@ export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: P
         openOnClick: false,
         HTMLAttributes: { class: 'wiki-extlink' },
         autolink: true,
+        // ##wiki: 같은 커스텀 scheme 허용
+        validate: (href) => true,
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -166,6 +170,49 @@ export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: P
   const [slashCoords, setSlashCoords] = useState<{ left: number; top: number } | null>(null);
   const [slashIndex, setSlashIndex] = useState(0);
   const slashAnchorRef = useRef<{ from: number; to: number } | null>(null);
+
+  /* 페이지 picker 상태 — Ctrl+K 또는 텍스트 선택 + 링크 버튼 */
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSelText, setPickerSelText] = useState('');
+  const pickerSelRangeRef = useRef<{ from: number; to: number } | null>(null);
+
+  /* Ctrl+K — 페이지 picker (선택 범위 있으면 그 텍스트가 ID 링크로) */
+  useEffect(() => {
+    if (!editor) return;
+    const handler = (e: KeyboardEvent) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'k') return;
+      // 에디터에 포커스 있을 때만
+      if (!editor.isFocused) return;
+      e.preventDefault();
+      const { from, to, empty } = editor.state.selection;
+      if (!empty) {
+        const text = editor.state.doc.textBetween(from, to, ' ');
+        setPickerSelText(text);
+        pickerSelRangeRef.current = { from, to };
+      } else {
+        setPickerSelText('');
+        pickerSelRangeRef.current = null;
+      }
+      setPickerOpen(true);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [editor]);
+
+  function handlePickPage(page: WikiPageT) {
+    if (!editor) return;
+    const range = pickerSelRangeRef.current;
+    if (range) {
+      // 선택 범위에 ID 링크 적용 — 텍스트는 그대로, href = ##wiki:id
+      editor.chain().focus().setTextSelection(range).extendMarkRange('link').setLink({ href: `##wiki:${page.id}` }).run();
+    } else {
+      // 선택 X — 위키링크 (제목 기반) 인라인 삽입
+      editor.chain().focus().insertContent(`[[${page.title}]]`).run();
+    }
+    setPickerOpen(false);
+    pickerSelRangeRef.current = null;
+  }
 
   // 키보드 — `/` 입력 감지, ESC 닫기
   useEffect(() => {
@@ -386,6 +433,16 @@ export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: P
           ))}
         </div>
       )}
+
+      {/* 페이지 picker — Ctrl+K 또는 ID 기반 첨부 */}
+      <WikiPagePickerModal
+        open={pickerOpen}
+        pages={allPages}
+        excludeId={currentId}
+        initialQuery={pickerSelText}
+        onPick={handlePickPage}
+        onClose={() => setPickerOpen(false)}
+      />
     </div>
   );
 }

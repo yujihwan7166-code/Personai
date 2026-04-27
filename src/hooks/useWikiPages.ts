@@ -113,6 +113,16 @@ export function useWikiPages() {
     return pages.find((p) => p.title === t || p.aliases.includes(t));
   }, [pages]);
 
+  /** ID(`w_xxx`) 또는 제목으로 페이지 찾기. ID 우선, 없으면 제목 매칭. */
+  const findByIdOrTitle = useCallback((target: string): WikiPage | undefined => {
+    const t = target.trim();
+    if (t.startsWith('w_')) {
+      const byId = pages.find((p) => p.id === t);
+      if (byId) return byId;
+    }
+    return pages.find((p) => p.title === t || p.aliases.includes(t));
+  }, [pages]);
+
   return {
     pages,
     loading,
@@ -121,6 +131,7 @@ export function useWikiPages() {
     restoreRevision,
     getBacklinks,
     findByTitle,
+    findByIdOrTitle,
     reload,
   };
 }

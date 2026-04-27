@@ -26,7 +26,7 @@ const AI_PANEL_KEY = 'wiki_ai_panel_open';
 
 const Wiki = () => {
   const navigate = useNavigate();
-  const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, reload, restoreRevision } = useWikiPages();
+  const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, findByIdOrTitle, reload, restoreRevision } = useWikiPages();
   const { favorites, recent, toggleFavorite, isFavorite, recordView, purge } = useWikiFavorites();
   // 위키링크 visited 색상용 — 최근 본 + 즐겨찾기 합집합
   const visitedIds = new Set([...recent, ...favorites]);
@@ -527,7 +527,7 @@ const Wiki = () => {
             editing={editing}
             backlinks={getBacklinks(activePage.id)}
             allPages={pages}
-            findByTitle={findByTitle}
+            findByTitle={findByIdOrTitle}
             isFavorite={isFavorite(activePage.id)}
             onToggleFavorite={() => toggleFavorite(activePage.id)}
             visitedIds={visitedIds}

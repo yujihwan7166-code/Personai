@@ -118,6 +118,18 @@ export function WikiInfobox({ page, onTagClick }: Props) {
         )}
         <Row label="만든 날">{formatDate(page.createdAt)}</Row>
         <Row label="마지막 수정">{formatDate(page.updatedAt)}</Row>
+        <Row label="ID">
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(page.id).catch(() => {});
+            }}
+            className="font-mono text-[10.5px] text-muted-foreground hover:text-foreground hover:bg-accent rounded px-1 wiki-trans-color"
+            title="고유 ID 복사 — 다른 페이지 본문에 붙이면 ID 기반 링크"
+          >
+            📋 {page.id}
+          </button>
+        </Row>
       </dl>
     </aside>
   );
