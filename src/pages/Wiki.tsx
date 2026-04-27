@@ -456,7 +456,6 @@ const Wiki = () => {
             <WikiHome
               pages={pages}
               favorites={favorites}
-              recent={recent}
               onSelect={(id) => setActiveId(id)}
               onCreate={openTemplatePicker}
               onCreateMissing={(title) => handleOpenByTitleOrId(title)}
@@ -523,7 +522,6 @@ const Wiki = () => {
           <WikiHome
             pages={pages}
             favorites={favorites}
-            recent={recent}
             onSelect={(id) => setActiveId(id)}
             onCreate={openTemplatePicker}
             onCreateMissing={(title) => handleOpenByTitleOrId(title)}

@@ -1,15 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Plus, Sparkles, ArrowRight, Star, Clock, FileText, Link2, Sprout, Moon, BookOpen } from 'lucide-react';
+import { Plus, Sparkles, ArrowRight, Star, FileText, Link2, Sprout, Moon, BookOpen } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, extractWikiLinks } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 import { cn } from '@/lib/utils';
 
 interface Props {
   pages: WikiPage[];
-  /** 즐겨찾기 페이지 id 모음 */
+  /** 즐겨찾기 페이지 id 모음 — 목차 카드 ⭐ 표시용 */
   favorites?: string[];
-  /** 최근 본 페이지 id 모음 (최신순) */
-  recent?: string[];
   onSelect: (id: string) => void;
   onCreate: () => void;
   /** 스타터 팩 선택 시 — Wiki 페이지가 IDB upsert + activeId 설정 */
@@ -27,7 +25,7 @@ const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
 type QueueTab = 'inbox' | 'wanted' | 'orphan' | 'stale';
 
 export function WikiHome({
-  pages, favorites = [], recent = [],
+  pages, favorites = [],
   onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag,
 }: Props) {
   const [tab, setTab] = useState<QueueTab>('inbox');
@@ -127,17 +125,6 @@ export function WikiHome({
     );
   }
 
-  /* ── 자주 보는 곳: 즐겨찾기 → 최근 (즐겨찾기 우선, 중복 제거, 최대 8개) ── */
-  const pageById = new Map(pages.map((p) => [p.id, p]));
-  const quickIds: string[] = [];
-  const seen = new Set<string>();
-  for (const id of favorites) {
-    if (pageById.has(id) && !seen.has(id)) { quickIds.push(id); seen.add(id); }
-  }
-  for (const id of recent) {
-    if (pageById.has(id) && !seen.has(id)) { quickIds.push(id); seen.add(id); }
-    if (quickIds.length >= 8) break;
-  }
   const favSet = new Set(favorites);
 
   const totalQueue = stats.inbox.length + stats.wanted.length + stats.orphans.length + stats.stale.length;
@@ -181,48 +168,7 @@ export function WikiHome({
         </p>
       </header>
 
-      {/* 1. 자주 보는 곳 */}
-      {quickIds.length > 0 && (
-        <section className="mb-9">
-          <SectionHeader symbol="✦" label="자주 보는 곳" />
-          <div className="flex flex-wrap gap-1.5">
-            {quickIds.map((id) => {
-              const p = pageById.get(id)!;
-              const meta = WIKI_TYPE_META[p.type];
-              const isFav = favSet.has(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => onSelect(id)}
-                  className={cn(
-                    'group inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md border bg-card wiki-trans-base text-left',
-                    isFav
-                      ? 'border-amber-300/60 bg-amber-50/40 dark:border-amber-700/40 dark:bg-amber-950/20 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                      : 'border-[hsl(var(--hairline))] hover:border-primary/50 hover:bg-primary/5',
-                    'hover:shadow-sm',
-                  )}
-                >
-                  {isFav ? (
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />
-                  ) : (
-                    <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
-                  )}
-                  <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
-                  <span className={cn(
-                    'text-[12px] truncate max-w-[180px] group-hover:text-foreground',
-                    isFav ? 'text-amber-900 dark:text-amber-100 font-semibold' : 'text-foreground/85',
-                  )}>
-                    {p.title}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* 2. 목차 — 메인 */}
+      {/* 1. 목차 — 메인 */}
       <section className="mb-9">
         <SectionHeader
           symbol="◆"
@@ -255,7 +201,7 @@ export function WikiHome({
         )}
       </section>
 
-      {/* 3. 정리 큐 — 색 차별 탭 */}
+      {/* 2. 정리 큐 — 색 차별 탭 */}
       <section className="mb-9">
         <SectionHeader
           symbol="▮"
