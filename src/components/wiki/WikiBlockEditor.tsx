@@ -59,7 +59,9 @@ export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: P
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // remove default link mark — use Link extension below for autolink/openOnClick
+        // 별도 import 하는 마크는 StarterKit 에서 비활성 (중복 등록 throw 방지)
+        link: false,
+        underline: false,
         codeBlock: { HTMLAttributes: { class: 'wiki-codeblock' } },
         heading: { levels: [1, 2, 3] },
       }),
