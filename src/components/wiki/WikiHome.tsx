@@ -114,7 +114,21 @@ export function WikiHome({
     // 일반 문서 = 메인 문서 아닌 페이지 (대문 'index' 도 메인성이라 제외)
     const regulars = pages.filter((p) => !isMainDoc(p) && p.type !== 'index');
 
-    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars };
+    // 일반 문서 → 부모 메인 문서들 (= 본문에서 [[일반]] 으로 가리키는 메인 문서들)
+    const regularToMains = new Map<string, WikiPage[]>();
+    for (const main of mocs) {
+      for (const t of extractWikiLinks(main.body)) {
+        const target = byTitle.get(t.toLowerCase());
+        if (!target) continue;
+        if (isMainDoc(target)) continue; // 다른 메인이면 sub-main 으로 처리됨
+        if (target.type === 'index') continue;
+        if (!regularToMains.has(target.id)) regularToMains.set(target.id, []);
+        const list = regularToMains.get(target.id)!;
+        if (!list.some((m) => m.id === main.id)) list.push(main);
+      }
+    }
+
+    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToMains };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -268,9 +282,14 @@ export function WikiHome({
         )}
       </section>
 
-      {/* 📄 일반 문서 — 메인 아닌 모든 페이지 리스트 */}
+      {/* 📄 일반 문서 — 메인 아닌 모든 페이지 리스트 (메인 문서별 카테고리 필터) */}
       {stats.regulars.length > 0 && (
-        <RegularDocsSection pages={stats.regulars} onSelect={onSelect} />
+        <RegularDocsSection
+          pages={stats.regulars}
+          mainDocs={stats.mocs}
+          regularToMains={stats.regularToMains}
+          onSelect={onSelect}
+        />
       )}
 
       {/* 5 카드 그리드 — 최근/초안/연결/만들/잠자 */}
@@ -408,31 +427,56 @@ function Section({
   );
 }
 
-/* ── 일반 문서 섹션 — 메인 아닌 모든 페이지, 타입 필터 + 리스트 ── */
+/* ── 일반 문서 섹션 — 메인 문서별 카테고리 필터 + 리스트 ── */
+type MainFilter = 'all' | 'orphan' | string; // string = main page id
+
 function RegularDocsSection({
-  pages, onSelect,
+  pages, mainDocs, regularToMains, onSelect,
 }: {
   pages: WikiPage[];
+  mainDocs: WikiPage[];
+  regularToMains: Map<string, WikiPage[]>;
   onSelect: (id: string) => void;
 }) {
-  const [typeFilter, setTypeFilter] = useState<WikiPage['type'] | 'all'>('all');
+  const [filter, setFilter] = useState<MainFilter>('all');
   const [expanded, setExpanded] = useState(false);
 
-  // 사용 중인 타입만 칩으로 노출 (use)
-  const usedTypes = useMemo(() => {
-    const s = new Set<WikiPage['type']>();
-    for (const p of pages) s.add(p.type);
-    return Array.from(s);
-  }, [pages]);
+  // 사용 중인 메인 문서만 (자식 일반 문서가 1개 이상인 것) 칩으로 노출
+  const mainsWithChildren = useMemo(() => {
+    const out: Array<{ main: WikiPage; count: number }> = [];
+    for (const m of mainDocs) {
+      let n = 0;
+      for (const p of pages) {
+        if (regularToMains.get(p.id)?.some((parent) => parent.id === m.id)) n++;
+      }
+      if (n > 0) out.push({ main: m, count: n });
+    }
+    // count desc, then title
+    return out.sort((a, b) => b.count - a.count || a.main.title.localeCompare(b.main.title));
+  }, [mainDocs, pages, regularToMains]);
+
+  const orphanCount = useMemo(() =>
+    pages.filter((p) => !regularToMains.has(p.id) || regularToMains.get(p.id)!.length === 0).length,
+    [pages, regularToMains]);
 
   const filtered = useMemo(() => {
-    if (typeFilter === 'all') return pages;
-    return pages.filter((p) => p.type === typeFilter);
-  }, [pages, typeFilter]);
+    if (filter === 'all') return pages;
+    if (filter === 'orphan') {
+      return pages.filter((p) => !regularToMains.has(p.id) || regularToMains.get(p.id)!.length === 0);
+    }
+    return pages.filter((p) => regularToMains.get(p.id)?.some((m) => m.id === filter));
+  }, [pages, filter, regularToMains]);
 
   const COLLAPSED = 12;
   const visible = expanded ? filtered : filtered.slice(0, COLLAPSED);
   const hidden = filtered.length - visible.length;
+
+  // 활성 메인 문서 라벨 (헤더 표시용)
+  const activeLabel = useMemo(() => {
+    if (filter === 'all') return null;
+    if (filter === 'orphan') return '독립';
+    return mainDocs.find((m) => m.id === filter)?.title ?? null;
+  }, [filter, mainDocs]);
 
   return (
     <section className="mb-6">
@@ -444,53 +488,69 @@ function RegularDocsSection({
         >
           일반 문서
         </h2>
-        <span className="text-[10.5px] text-muted-foreground/80">— 메인이 아닌 페이지</span>
+        <span className="text-[10.5px] text-muted-foreground/80">
+          {activeLabel ? `— in ${activeLabel}` : '— 메인이 아닌 페이지'}
+        </span>
         <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
         <span className="text-[11px] font-mono font-bold text-muted-foreground">
           <span className="text-foreground/85">{filtered.length}</span>
-          {typeFilter !== 'all' && pages.length !== filtered.length && (
+          {filter !== 'all' && pages.length !== filtered.length && (
             <span className="text-muted-foreground/60"> / {pages.length}</span>
           )}
         </span>
       </div>
 
-      {/* 타입 필터 칩 */}
-      {usedTypes.length > 1 && (
+      {/* 카테고리 칩 — 메인 문서별 + 독립 */}
+      {(mainsWithChildren.length > 0 || orphanCount > 0) && (
         <div className="flex flex-wrap items-center gap-1 mb-2">
           <button
             type="button"
-            onClick={() => setTypeFilter('all')}
+            onClick={() => setFilter('all')}
             className={cn(
-              'inline-flex items-center px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
-              typeFilter === 'all'
+              'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+              filter === 'all'
                 ? 'bg-primary/10 text-primary font-semibold'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
           >
-            전체 {pages.length}
+            전체 <span className="font-mono opacity-70">{pages.length}</span>
           </button>
-          {usedTypes.map((t) => {
-            const m = WIKI_TYPE_META[t];
-            const count = pages.filter((p) => p.type === t).length;
-            const active = typeFilter === t;
+          {mainsWithChildren.map(({ main, count }) => {
+            const active = filter === main.id;
             return (
               <button
-                key={t}
+                key={main.id}
                 type="button"
-                onClick={() => setTypeFilter(t)}
+                onClick={() => setFilter(main.id)}
                 className={cn(
-                  'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+                  'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color max-w-[200px]',
                   active
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                 )}
+                title={`${main.title} 의 자식 일반 문서`}
               >
-                <span aria-hidden className="text-[12px] leading-none">{m.icon}</span>
-                {m.label}
-                <span className="text-[9.5px] font-mono opacity-70">{count}</span>
+                <BookOpen className="w-2.5 h-2.5 shrink-0" />
+                <span className="truncate">{main.title}</span>
+                <span className="text-[9.5px] font-mono opacity-70 shrink-0">{count}</span>
               </button>
             );
           })}
+          {orphanCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilter('orphan')}
+              className={cn(
+                'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+                filter === 'orphan'
+                  ? 'bg-primary/10 text-primary font-semibold'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+              title="어느 메인 문서도 가리키지 않는 독립 일반 문서"
+            >
+              🪐 독립 <span className="font-mono opacity-70">{orphanCount}</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -498,13 +558,14 @@ function RegularDocsSection({
       <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-2">
         {filtered.length === 0 ? (
           <p className="text-[11.5px] text-muted-foreground/70 py-3 text-center">
-            해당 타입의 일반 문서가 없어요
+            해당 카테고리의 일반 문서가 없어요
           </p>
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
             {visible.map((p) => {
               const m = WIKI_TYPE_META[p.type];
               const sMeta = WIKI_STATUS_META[p.status];
+              const parents = regularToMains.get(p.id) ?? [];
               return (
                 <li key={p.id}>
                   <button
@@ -514,6 +575,14 @@ function RegularDocsSection({
                   >
                     <span className="text-[13px] leading-none shrink-0" aria-hidden>{m.icon}</span>
                     <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{p.title}</span>
+                    {parents.length > 0 && filter === 'all' && (
+                      <span className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[100px]" title={parents.map((m) => m.title).join(', ')}>
+                        in {parents.map((m) => m.title).join(', ')}
+                      </span>
+                    )}
+                    {parents.length === 0 && filter === 'all' && (
+                      <span className="shrink-0 text-[10px] text-muted-foreground/50">독립</span>
+                    )}
                     {p.status !== 'stable' && (
                       <span
                         className="shrink-0 text-[8.5px] px-1 py-0.5 rounded font-medium uppercase tracking-wider"
