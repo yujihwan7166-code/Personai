@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History } from 'lucide-react';
+import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
@@ -272,6 +272,23 @@ export function WikiPageView({
                     <button onClick={onToggleEdit} className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="전체 편집 모드 (E) — 본문을 한 덩어리로 편집">
                       <Pencil className="w-3.5 h-3.5" /> 전체 편집
                     </button>
+                    {page.type !== 'moc' ? (
+                      <button
+                        onClick={() => onChange({ ...page, type: 'moc' })}
+                        className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-primary hover:bg-primary/10 wiki-trans-color"
+                        title="이 페이지를 메인 문서로 — 다른 페이지 묶기 시작"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" /> 메인 문서로
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onChange({ ...page, type: 'concept' })}
+                        className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+                        title="메인 문서 → 일반 문서로"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" /> 일반 문서로
+                      </button>
+                    )}
                     <button onClick={() => setHistoryOpen(true)} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="버전 히스토리" aria-label="버전 히스토리">
                       <History className="w-3.5 h-3.5" />
                     </button>
