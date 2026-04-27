@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { Plus, Sparkles, ArrowRight, BookOpen, Star, Link2 } from 'lucide-react';
+import { Plus, Sparkles, ArrowRight, BookOpen, Star } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, extractWikiLinks } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
+import { cn } from '@/lib/utils';
 
 interface Props {
   pages: WikiPage[];
@@ -37,6 +38,40 @@ export function WikiHome({
     const recent = pages.slice(0, 6); // pages 는 updatedAt desc 정렬됨
     const inbox = pages.filter((p) => p.status === 'draft').slice(0, 5);
     const mocs = pages.filter((p) => p.type === 'moc');
+
+    // 제목·alias → 페이지 맵 (대소문자 무시)
+    const byTitle = new Map<string, WikiPage>();
+    for (const p of pages) {
+      byTitle.set(p.title.toLowerCase(), p);
+      for (const a of p.aliases) byTitle.set(a.toLowerCase(), p);
+    }
+    // 다른 MOC 가 참조하는 MOC = sub-MOC
+    const subMocIds = new Set<string>();
+    for (const m of mocs) {
+      for (const t of extractWikiLinks(m.body)) {
+        const target = byTitle.get(t.toLowerCase());
+        if (target && target.type === 'moc' && target.id !== m.id) {
+          subMocIds.add(target.id);
+        }
+      }
+    }
+    // root-MOC = 다른 MOC 의 참조를 받지 않은 MOC (= 가장 큰 우산)
+    const rootMocs = mocs.filter((m) => !subMocIds.has(m.id));
+    // 각 root-MOC 의 즉각 하위 (1-hop): 본문 [[링크]] 중 존재하는 페이지들
+    const rootMocChildren = new Map<string, { mocs: WikiPage[]; pages: WikiPage[] }>();
+    for (const m of rootMocs) {
+      const childMocs: WikiPage[] = [];
+      const childPages: WikiPage[] = [];
+      const seen = new Set<string>();
+      for (const t of extractWikiLinks(m.body)) {
+        const target = byTitle.get(t.toLowerCase());
+        if (!target || target.id === m.id || seen.has(target.id)) continue;
+        seen.add(target.id);
+        if (target.type === 'moc') childMocs.push(target);
+        else childPages.push(target);
+      }
+      rootMocChildren.set(m.id, { mocs: childMocs, pages: childPages });
+    }
 
     // 연결 안 된 페이지 = refersTo 도 cites 도 비어있고, 아무도 참조하지 않는 페이지
     const referencedIds = new Set<string>();
@@ -74,7 +109,7 @@ export function WikiHome({
       .filter((p) => p.status === 'active' && p.updatedAt < cutoff)
       .slice(0, 5);
 
-    return { byStatus, recentEdits, recent, inbox, mocs, orphans, topTags, wanted, stale };
+    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, rootMocChildren, subMocIds, orphans, topTags, wanted, stale };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -159,7 +194,7 @@ export function WikiHome({
         </p>
       </header>
 
-      {/* 📚 목차 — featured (전폭, 큰 카드 그리드) */}
+      {/* 📚 목차 — featured. root-MOC = 큰 hero 카드, sub-MOC = 작은 카드 */}
       <section className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <BookOpen className="w-4 h-4 text-primary" />
@@ -172,7 +207,12 @@ export function WikiHome({
           <span className="text-[11px] text-muted-foreground/80">— 주제별 묶음</span>
           <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
           {stats.mocs.length > 0 && (
-            <span className="text-[11px] font-mono font-bold text-muted-foreground">{stats.mocs.length}</span>
+            <span className="text-[11px] font-mono font-bold text-muted-foreground">
+              <span className="text-foreground/85">{stats.rootMocs.length}</span> root
+              {stats.subMocIds.size > 0 && (
+                <span className="ml-1 text-muted-foreground/70">+ {stats.subMocIds.size} sub</span>
+              )}
+            </span>
           )}
         </div>
 
@@ -183,18 +223,52 @@ export function WikiHome({
             onMakeFromTag={onMakeMocFromTag}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {stats.mocs.map((p) => (
-              <MocCard key={p.id} page={p} pages={pages} isFav={favSet.has(p.id)} onSelect={onSelect} />
-            ))}
+          <>
+            {/* root-MOC 큰 hero 카드 */}
+            <div className={cn(
+              'grid gap-3 mb-3',
+              stats.rootMocs.length === 1 ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2',
+            )}>
+              {stats.rootMocs.map((p) => (
+                <RootMocCard
+                  key={p.id}
+                  page={p}
+                  isFav={favSet.has(p.id)}
+                  childMocs={stats.rootMocChildren.get(p.id)?.mocs ?? []}
+                  childPages={stats.rootMocChildren.get(p.id)?.pages ?? []}
+                  onSelect={onSelect}
+                />
+              ))}
+            </div>
+
+            {/* sub-MOC 작은 칩 줄 (있을 때만) */}
+            {stats.mocs.some((m) => stats.subMocIds.has(m.id)) && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                <span className="inline-flex items-center text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 mr-1">
+                  하위 목차
+                </span>
+                {stats.mocs.filter((m) => stats.subMocIds.has(m.id)).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => onSelect(m.id)}
+                    className="inline-flex items-center gap-1 px-2 h-6 rounded border border-[hsl(var(--hairline))] bg-card text-foreground/85 text-[11px] hover:border-primary/40 hover:bg-primary/5 hover:text-primary wiki-trans-base"
+                  >
+                    <BookOpen className="w-2.5 h-2.5" />
+                    {m.title}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={onCreate}
-              className="group flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[12px] font-medium px-4 py-3 min-h-[100px]"
+              className="group inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[11.5px] font-medium px-3 py-1.5"
             >
-              <Plus className="w-3.5 h-3.5 group-hover:scale-110 wiki-trans-base" /> 새 목차
+              <Plus className="w-3 h-3 group-hover:scale-110 wiki-trans-base" /> 새 목차
             </button>
-          </div>
+          </>
         )}
       </section>
 
@@ -333,49 +407,106 @@ function Section({
   );
 }
 
-/* ── 목차 큰 카드 — 좌측 4px primary 띠 ── */
-function MocCard({
-  page, pages, isFav, onSelect,
+/* ── Root 목차 hero 카드 — 가장 큰 우산 + 하위 구조 미리보기 ── */
+function RootMocCard({
+  page, isFav, childMocs, childPages, onSelect,
 }: {
-  page: WikiPage; pages: WikiPage[]; isFav: boolean; onSelect: (id: string) => void;
+  page: WikiPage;
+  isFav: boolean;
+  childMocs: WikiPage[];
+  childPages: WikiPage[];
+  onSelect: (id: string) => void;
 }) {
-  const preview = page.body.replace(/^[#>\s\n]+/g, '').replace(/\n+/g, ' ').slice(0, 80);
-  const links = useMemo(() => extractWikiLinks(page.body), [page.body]);
-  const titleSet = useMemo(() => {
-    const s = new Set<string>();
-    for (const p of pages) {
-      s.add(p.title.toLowerCase());
-      for (const a of p.aliases) s.add(a.toLowerCase());
-    }
-    return s;
-  }, [pages]);
-  const linkedCount = links.filter((l) => titleSet.has(l.toLowerCase())).length;
-
+  const preview = page.body.replace(/^[#>\s\n]+/g, '').replace(/\n+/g, ' ').slice(0, 100);
+  const totalChildren = childMocs.length + childPages.length;
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(page.id)}
-      className="group relative flex flex-col gap-1.5 text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/50 hover:shadow-md wiki-trans-base pl-5 pr-4 py-3.5 overflow-hidden min-h-[100px]"
-    >
-      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary/70 group-hover:bg-primary wiki-trans-color" />
-      <div className="flex items-center gap-1.5">
-        <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
-        <span
-          className="text-[14.5px] font-bold text-foreground truncate flex-1"
-          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
+    <div className="group relative rounded-xl border-2 border-[hsl(var(--hairline))] bg-card hover:border-primary/40 hover:shadow-md wiki-trans-base overflow-hidden min-h-[200px]">
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[5px] bg-primary group-hover:bg-primary wiki-trans-color" />
+
+      {/* 헤더 — 클릭 시 진입 */}
+      <button
+        type="button"
+        onClick={() => onSelect(page.id)}
+        className="w-full text-left pl-6 pr-5 pt-4 pb-3"
+      >
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[9.5px] font-mono font-bold uppercase tracking-wider bg-primary/15 text-primary">
+            <BookOpen className="w-2.5 h-2.5" />
+            ROOT
+          </span>
+          {isFav && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />}
+          <span className="ml-auto text-[10.5px] font-mono text-muted-foreground">
+            <span className="font-bold text-foreground/85">{totalChildren}</span> 항목
+          </span>
+        </div>
+        <h3
+          className="text-[22px] font-bold text-foreground leading-tight mb-1 truncate group-hover:text-primary wiki-trans-color"
+          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.01em' }}
         >
           {page.title}
-        </span>
-        {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />}
-      </div>
-      {preview && (
-        <p className="text-[11.5px] text-muted-foreground/90 line-clamp-2 leading-relaxed">{preview}</p>
+        </h3>
+        {preview && (
+          <p className="text-[11.5px] text-muted-foreground/90 line-clamp-2 leading-relaxed">{preview}</p>
+        )}
+      </button>
+
+      {/* 하위 구조 — 한 줄씩 (sub-MOC + 일반 페이지 분리) */}
+      {(childMocs.length > 0 || childPages.length > 0) && (
+        <div className="pl-6 pr-3 pb-3 space-y-0.5">
+          {childMocs.length > 0 && (
+            <p className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70 mb-1 mt-0.5">
+              하위 목차
+            </p>
+          )}
+          {childMocs.slice(0, 4).map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onSelect(m.id)}
+              className="w-full flex items-center gap-1.5 px-2 py-0.5 rounded text-left hover:bg-primary/5 wiki-trans-color"
+            >
+              <BookOpen className="w-3 h-3 text-primary/80 shrink-0" />
+              <span className="flex-1 truncate text-[12px] font-semibold text-foreground/90">
+                {m.title}
+              </span>
+              <ArrowRight className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+            </button>
+          ))}
+          {childMocs.length > 4 && (
+            <p className="px-2 text-[10px] text-muted-foreground/70">+ 외 {childMocs.length - 4}개 하위 목차</p>
+          )}
+
+          {childPages.length > 0 && (
+            <p className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70 mb-1 mt-2">
+              페이지
+            </p>
+          )}
+          {childPages.slice(0, 4).map((p) => {
+            const meta = WIKI_TYPE_META[p.type];
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onSelect(p.id)}
+                className="w-full flex items-center gap-1.5 px-2 py-0.5 rounded text-left hover:bg-accent wiki-trans-color"
+              >
+                <span className="text-[12px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
+                <span className="flex-1 truncate text-[11.5px] text-foreground/85">{p.title}</span>
+              </button>
+            );
+          })}
+          {childPages.length > 4 && (
+            <p className="px-2 text-[10px] text-muted-foreground/70">+ 외 {childPages.length - 4}개 페이지</p>
+          )}
+        </div>
       )}
-      <p className="text-[10.5px] text-muted-foreground/80 inline-flex items-center gap-1 font-mono mt-auto">
-        <Link2 className="w-2.5 h-2.5" />
-        {linkedCount > 0 ? <><span className="font-bold text-foreground/85">{linkedCount}</span> pages</> : '아직 페이지 안 묶임'}
-      </p>
-    </button>
+
+      {totalChildren === 0 && (
+        <p className="pl-6 pr-3 pb-3 text-[11px] text-muted-foreground/70">
+          본문에 <code className="px-1 rounded bg-accent text-[10px]">[[페이지명]]</code> 으로 연결을 추가해 주세요.
+        </p>
+      )}
+    </div>
   );
 }
 
