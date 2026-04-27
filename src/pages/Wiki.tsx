@@ -18,7 +18,6 @@ import { WikiStoragePanel } from '@/components/wiki/WikiStoragePanel';
 import { WikiAiPanel } from '@/components/wiki/WikiAiPanel';
 import { WikiQuickCapture } from '@/components/wiki/WikiQuickCapture';
 import { clearAllPages } from '@/lib/wikiStore';
-import { getOrBuildTodayNote, todayKey } from '@/lib/wikiDailyNote';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 
@@ -106,20 +105,6 @@ const Wiki = () => {
     setView('page');
     if (isMobile) setSidebarOpen(false);
   }, [pages, activeId, isMobile]);
-
-  /** 오늘 데일리 노트로 점프 — 없으면 자동 생성. */
-  const openTodayNote = useCallback(async () => {
-    const { page, created } = await getOrBuildTodayNote();
-    if (created) {
-      await upsertPage(page);
-      notify.success(`${todayKey()} 데일리 노트를 만들었어요`, { duration: 1800 });
-    }
-    // 저장된 후 useWikiPages 가 setPages 한 시점이 setActiveId 이전이라 안전.
-    setActiveId(page.id);
-    setEditing(false);
-    setView('page');
-    if (isMobile) setSidebarOpen(false);
-  }, [upsertPage, isMobile]);
 
   const handleTemplatePicked = useCallback(async (page: WikiPage) => {
     await upsertPage(page);
@@ -428,7 +413,6 @@ const Wiki = () => {
               pages={pages}
               onSelect={(id) => setActiveId(id)}
               onCreate={openTemplatePicker}
-              onGoToday={() => { void openTodayNote(); }}
               onCreateMissing={(title) => handleOpenByTitleOrId(title)}
               onPickStarterPack={async (pack) => {
                 const built = pack.build();
@@ -493,7 +477,6 @@ const Wiki = () => {
             pages={pages}
             onSelect={(id) => setActiveId(id)}
             onCreate={openTemplatePicker}
-            onGoToday={() => { void openTodayNote(); }}
             onCreateMissing={(title) => handleOpenByTitleOrId(title)}
             onPickStarterPack={async (pack) => {
               const built = pack.build();
@@ -517,7 +500,6 @@ const Wiki = () => {
         onCreate={openTemplatePicker}
         onGoHome={() => { setActiveId(null); setView('page'); }}
         onGoGraph={() => { setView('graph'); setActiveId(null); }}
-        onGoToday={() => { void openTodayNote(); }}
         onImport={() => {
           // 가벼운 트리거 — 실제 파일 picker 는 settings menu 안에 있음.
           notify.info('백업 가져오기는 사이드바 ⚙ 설정 메뉴에서', { duration: 3500 });
