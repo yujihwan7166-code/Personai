@@ -6,7 +6,7 @@ import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
 import { useAivsBattleState } from '@/hooks/useAivsBattleState';
-import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, MAIN_MODE_LABELS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
+import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, SCENARIO_CATEGORIES, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, MAIN_MODE_LABELS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
@@ -4929,8 +4929,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className="text-[14px] font-extrabold text-slate-800 truncate">{scenario.name}</span>
-                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white text-slate-500 border border-slate-200">
-                                    {isConsult ? '자문' : '역할극'}
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white text-slate-600 border border-slate-200">
+                                    <span>{SCENARIO_CATEGORIES[scenario.category].icon}</span>
+                                    <span>{SCENARIO_CATEGORIES[scenario.category].fullLabel}</span>
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -5044,8 +5045,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                     <div className="text-[14px] font-extrabold text-slate-800">리허설 결과</div>
                                     <div className="text-[10.5px] text-slate-700/70">{scenario.name}</div>
                                   </div>
-                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/70 text-slate-600 border border-white/60">
-                                    {scenario.simType === 'roleplay' ? '역할극' : '자문'}
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/70 text-slate-600 border border-white/60">
+                                    <span>{SCENARIO_CATEGORIES[scenario.category].icon}</span>
+                                    <span>{SCENARIO_CATEGORIES[scenario.category].fullLabel}</span>
                                   </span>
                                 </div>
                                 <div className="bg-white p-4 space-y-1.5">

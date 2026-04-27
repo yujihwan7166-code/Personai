@@ -2934,12 +2934,24 @@ export const DEFAULT_EXPERTS: Expert[] = _DEFAULT_EXPERTS_RAW.map(e => {
 // ── Simulation Scenarios (stakeholder mode) ──
 // ══════════════════════════════════════════
 
+export type ScenarioCategory = 'business' | 'work' | 'education' | 'society' | 'legal' | 'family';
+
+export const SCENARIO_CATEGORIES: Record<ScenarioCategory, { label: string; fullLabel: string; icon: string }> = {
+  business: { label: '비즈니스', fullLabel: '비즈니스', icon: '💼' },
+  work: { label: '직장', fullLabel: '직장·커리어', icon: '🏢' },
+  education: { label: '학교', fullLabel: '교육·학교', icon: '🎓' },
+  society: { label: '정책', fullLabel: '사회·정책', icon: '🏛️' },
+  legal: { label: '법률', fullLabel: '법률·분쟁', icon: '⚖️' },
+  family: { label: '가족', fullLabel: '가족·관계', icon: '🏠' },
+};
+
 export interface SimulationScenario {
   id: string;
   name: string;
   icon: string;
   description: string;
   simType: 'roleplay' | 'consultation';
+  category: ScenarioCategory;
   roles: { name: string; icon: string; focus: string }[];
   defaultIntensity: number;
   gaugeLabel: string;
@@ -2959,7 +2971,7 @@ export interface SimulationScenario {
 
 export const SIMULATION_SCENARIOS: SimulationScenario[] = [
   {
-    id: 'investment', name: '투자 유치', icon: '💰', gradient: 'from-amber-100 to-orange-50', isPopular: true, simType: 'roleplay',
+    id: 'investment', category: 'business', name: '투자 유치', icon: '💰', gradient: 'from-amber-100 to-orange-50', isPopular: true, simType: 'roleplay',
     description: 'VC 앞에서 사업 계획을 피칭합니다',
     roles: [
       { name: 'VC 파트너', icon: '🏦', focus: '시장 규모(TAM), 경쟁 우위, 엑싯 전략' },
@@ -2979,7 +2991,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['발표', '질의응답', '최종 판정'],
   },
   {
-    id: 'interview', name: '채용 면접', icon: '🎤', gradient: 'from-amber-100 to-yellow-50', isPopular: true, simType: 'roleplay',
+    id: 'interview', category: 'work', name: '채용 면접', icon: '🎤', gradient: 'from-amber-100 to-yellow-50', isPopular: true, simType: 'roleplay',
     description: '면접관 앞에서 역량을 검증받습니다',
     roles: [
       { name: '직무 면접관', icon: '🧑‍💼', focus: '직무 전문성, 문제해결 사례, 실무 역량 검증' },
@@ -2999,7 +3011,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['자기소개', '기술 면접', '인성 면접', '실무 면접', '결과'],
   },
   {
-    id: 'product', name: '제품 런칭', icon: '📱', gradient: 'from-sky-100 to-blue-50', simType: 'roleplay',
+    id: 'product', category: 'business', name: '제품 런칭', icon: '📱', gradient: 'from-sky-100 to-blue-50', simType: 'roleplay',
     description: '시장 반응을 미리 검증합니다',
     roles: [
       { name: '타겟 고객', icon: '🙋', focus: '실제 필요성, 사용 편의성, 가격 대비 가치' },
@@ -3017,7 +3029,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'policy', name: '정책 검토', icon: '🏛️', gradient: 'from-emerald-100 to-green-50', simType: 'roleplay',
+    id: 'policy', category: 'society', name: '정책 검토', icon: '🏛️', gradient: 'from-emerald-100 to-green-50', simType: 'roleplay',
     description: '이해관계자 반응을 확인합니다',
     roles: [
       { name: '시민 대표', icon: '🧑‍🤝‍🧑', focus: '실생활 영향, 형평성, 국민 감정, 여론 반응' },
@@ -3035,7 +3047,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'strategy', name: '전략 회의', icon: '📊', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
+    id: 'strategy', category: 'work', name: '전략 회의', icon: '📊', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
     description: '팀원들과 전략을 논의합니다',
     roles: [
       { name: '마케팅 이사', icon: '📣', focus: '시장 접근 전략, 고객 세그먼트, 브랜딩 방향' },
@@ -3053,7 +3065,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'internal', name: '사내 제안', icon: '🏢', gradient: 'from-slate-100 to-gray-50', simType: 'roleplay',
+    id: 'internal', category: 'work', name: '사내 제안', icon: '🏢', gradient: 'from-slate-100 to-gray-50', simType: 'roleplay',
     description: '경영진에게 제안을 발표합니다',
     roles: [
       { name: '대표이사', icon: '👔', focus: '전략적 방향, 회사 비전과의 부합, 장기 가치' },
@@ -3071,7 +3083,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'admission', name: '입시 면접', icon: '🎓', gradient: 'from-teal-100 to-cyan-50', simType: 'roleplay',
+    id: 'admission', category: 'education', name: '입시 면접', icon: '🎓', gradient: 'from-teal-100 to-cyan-50', simType: 'roleplay',
     description: '대학 입시 면접을 연습합니다',
     roles: [
       { name: '학과 교수', icon: '👨‍🏫', focus: '전공 적합성, 학업 계획, 지적 호기심' },
@@ -3092,7 +3104,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
   },
   // ── 신규 시나리오 5개 ──
   {
-    id: 'content_pitch', name: '콘텐츠 기획안 피칭', icon: '🎬', gradient: 'from-rose-100 to-pink-50', simType: 'roleplay',
+    id: 'content_pitch', category: 'business', name: '콘텐츠 기획안 피칭', icon: '🎬', gradient: 'from-rose-100 to-pink-50', simType: 'roleplay',
     description: '방송·유튜브·콘텐츠 기획안을 통과시킵니다',
     roles: [
       { name: '편성 PD', icon: '🎥', focus: '시청률 예측, 타겟 시청자, 편성 적합성, 기존 프로그램과 차별점' },
@@ -3110,7 +3122,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'b2b_sales', name: 'B2B 영업 미팅', icon: '💼', gradient: 'from-blue-100 to-indigo-50', simType: 'roleplay',
+    id: 'b2b_sales', category: 'business', name: 'B2B 영업 미팅', icon: '💼', gradient: 'from-blue-100 to-indigo-50', simType: 'roleplay',
     description: '기업 고객에게 솔루션 도입을 설득합니다',
     roles: [
       { name: '구매 담당자', icon: '🏢', focus: '비용 대비 효과, 기존 시스템과 호환성, 도입 리스크' },
@@ -3129,7 +3141,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'crisis', name: '위기 대응', icon: '🚨', gradient: 'from-red-100 to-orange-50', simType: 'roleplay',
+    id: 'crisis', category: 'work', name: '위기 대응', icon: '🚨', gradient: 'from-red-100 to-orange-50', simType: 'roleplay',
     description: '기업 위기 상황에서 해명하고 대책을 발표합니다',
     roles: [
       { name: '기자', icon: '📰', focus: '사건 경위, 책임 소재, 피해 규모, 재발 방지 대책' },
@@ -3148,7 +3160,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'collab', name: '브랜드 제휴 제안', icon: '🤝', gradient: 'from-violet-100 to-purple-50', simType: 'roleplay',
+    id: 'collab', category: 'business', name: '브랜드 제휴 제안', icon: '🤝', gradient: 'from-violet-100 to-purple-50', simType: 'roleplay',
     description: '타사 브랜드에 콜라보레이션을 제안합니다',
     roles: [
       { name: '상대 브랜드 매니저', icon: '🏷️', focus: '브랜드 이미지 적합성, 타겟 고객 겹침, 리스크' },
@@ -3166,7 +3178,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'complaint', name: '강성 컴플레인 대응', icon: '😠', gradient: 'from-orange-100 to-amber-50', simType: 'roleplay',
+    id: 'complaint', category: 'work', name: '강성 컴플레인 대응', icon: '😠', gradient: 'from-orange-100 to-amber-50', simType: 'roleplay',
     description: '무리한 요구를 하는 고객을 진정시키고 대안을 제시합니다',
     roles: [
       { name: '화난 고객', icon: '🤬', focus: '감정 폭발, 무리한 보상 요구, 온라인 악성 리뷰 위협' },
@@ -3185,7 +3197,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
   },
   // ── 신규 시나리오 6개 (2026-04) ──
   {
-    id: 'salary', name: '연봉 협상', icon: '💸', gradient: 'from-emerald-100 to-teal-50', simType: 'roleplay',
+    id: 'salary', category: 'work', name: '연봉 협상', icon: '💸', gradient: 'from-emerald-100 to-teal-50', simType: 'roleplay',
     description: '승진·연봉 인상을 설득합니다',
     roles: [
       { name: '팀장', icon: '🧑‍💼', focus: '팀 내 기여도, 성과 근거, 대체 가능성' },
@@ -3205,7 +3217,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'parent_meeting', name: '학부모 상담', icon: '🏫', gradient: 'from-cyan-100 to-sky-50', simType: 'roleplay',
+    id: 'parent_meeting', category: 'education', name: '학부모 상담', icon: '🏫', gradient: 'from-cyan-100 to-sky-50', simType: 'roleplay',
     description: '학교 문제를 학부모와 상담합니다',
     roles: [
       { name: '학부모', icon: '👨‍👩‍👧', focus: '자녀 보호, 학교 책임, 감정적 반응' },
@@ -3224,7 +3236,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'regulation', name: '규제 대응', icon: '⚖️', gradient: 'from-amber-100 to-yellow-50', simType: 'roleplay',
+    id: 'regulation', category: 'society', name: '규제 대응', icon: '⚖️', gradient: 'from-amber-100 to-yellow-50', simType: 'roleplay',
     description: '신사업 규제 이슈에 대응합니다',
     roles: [
       { name: '규제기관 담당자', icon: '🏛️', focus: '법률 준수, 소비자 보호, 규제 선례' },
@@ -3243,7 +3255,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'partnership', name: '파트너십 협상', icon: '🔗', gradient: 'from-purple-100 to-violet-50', simType: 'roleplay',
+    id: 'partnership', category: 'business', name: '파트너십 협상', icon: '🔗', gradient: 'from-purple-100 to-violet-50', simType: 'roleplay',
     description: '대기업과 기술 제휴를 협상합니다',
     roles: [
       { name: '대기업 사업 임원', icon: '👔', focus: '전략적 가치, 시장 선점, 경쟁사 견제' },
@@ -3262,7 +3274,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'budget', name: '예산 심의', icon: '📊', gradient: 'from-blue-100 to-sky-50', simType: 'roleplay',
+    id: 'budget', category: 'work', name: '예산 심의', icon: '📊', gradient: 'from-blue-100 to-sky-50', simType: 'roleplay',
     description: '내년도 부서 예산을 확보합니다',
     roles: [
       { name: 'CFO', icon: '💰', focus: '전사 예산 한도, 비용 효율, 재무 건전성' },
@@ -3281,7 +3293,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: [],
   },
   {
-    id: 'committee', name: '위원회 발표', icon: '🔬', gradient: 'from-teal-100 to-emerald-50', simType: 'roleplay',
+    id: 'committee', category: 'society', name: '위원회 발표', icon: '🔬', gradient: 'from-teal-100 to-emerald-50', simType: 'roleplay',
     description: '연구 과제 선정 심사를 받습니다',
     roles: [
       { name: '심사위원장', icon: '🎓', focus: '연구 독창성, 학술적 기여, 방법론 타당성' },
@@ -3302,7 +3314,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
   },
   // ── 신규 시나리오 12개 (2026-04-08) ──
   {
-    id: 'startup_pitch', name: '스타트업 투자 유치', icon: '🚀', gradient: 'from-orange-100 to-amber-50', simType: 'roleplay',
+    id: 'startup_pitch', category: 'business', name: '스타트업 투자 유치', icon: '🚀', gradient: 'from-orange-100 to-amber-50', simType: 'roleplay',
     description: '초기 스타트업이 투자자를 설득합니다',
     roles: [
       { name: 'VC 심사역', icon: '🏦', focus: '시장 규모, 경쟁 우위, 팀 역량, 엑싯 전략' },
@@ -3322,7 +3334,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['피칭 발표', '질의응답', '팀 검증', '최종 판정'],
   },
   {
-    id: 'career_change', name: '이직·전직 상담', icon: '🧳', gradient: 'from-indigo-100 to-violet-50', simType: 'roleplay',
+    id: 'career_change', category: 'work', name: '이직·전직 상담', icon: '🧳', gradient: 'from-indigo-100 to-violet-50', simType: 'roleplay',
     description: '이직 또는 전직을 검토합니다',
     roles: [
       { name: '헤드헌터', icon: '📱', focus: '시장 가치, 포지션 매칭, 연봉 협상, 이직 타이밍' },
@@ -3342,7 +3354,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['현황 파악', '시장 분석', '커리어 설계', '최종 조언'],
   },
   {
-    id: 'whistleblower', name: '내부 고발 결정', icon: '📣', gradient: 'from-yellow-100 to-amber-50', simType: 'roleplay',
+    id: 'whistleblower', category: 'work', name: '내부 고발 결정', icon: '📣', gradient: 'from-yellow-100 to-amber-50', simType: 'roleplay',
     description: '회사 비리를 목격한 후 고발 여부를 결정하고, 신변 보호와 법적 절차를 확인합니다',
     roles: [
       { name: '상사', icon: '😰', focus: '은폐 시도, 회유·협박, 조직 논리, 보복 가능성 암시' },
@@ -3362,7 +3374,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['상황 인식', '선택지 탐색', '리스크 분석', '최종 결정'],
   },
   {
-    id: 'contract_negotiation', name: '대형 계약 협상', icon: '🤞', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
+    id: 'contract_negotiation', category: 'business', name: '대형 계약 협상', icon: '🤞', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
     description: '납품 단가·결제 조건·독점 조항 등 실전 B2B 협상을 연습합니다',
     roles: [
       { name: '대기업 구매팀장', icon: '🏭', focus: '납품 단가 인하, 결제 조건 유리하게, 독점 공급 요구, 경쟁 입찰 언급' },
@@ -3383,7 +3395,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
   },
   // ── Tier 1 신규 시나리오 (2026-04-17) ──
   {
-    id: 'resignation_notice', name: '퇴사 통보', icon: '👋', gradient: 'from-slate-100 to-zinc-50', simType: 'roleplay',
+    id: 'resignation_notice', category: 'work', name: '퇴사 통보', icon: '👋', gradient: 'from-slate-100 to-zinc-50', simType: 'roleplay',
     description: '팀장에게 퇴사 통보하고 인수인계까지 원만하게 마무리합니다',
     roles: [
       { name: '회유형 상사', icon: '🫂', focus: '연봉·승진 재제안, 감정 호소, 이유 캐묻기, 만류 시도' },
@@ -3403,7 +3415,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['통보', '만류·설득 대응', '인수인계 협의', '마무리'],
   },
   {
-    id: 'home_purchase', name: '집 매수 협상', icon: '🏡', gradient: 'from-amber-100 to-orange-50', isPopular: true, simType: 'roleplay',
+    id: 'home_purchase', category: 'family', name: '집 매수 협상', icon: '🏡', gradient: 'from-amber-100 to-orange-50', isPopular: true, simType: 'roleplay',
     description: '매도인·중개사·대출심사와 인생 최대 거래를 협상합니다',
     roles: [
       { name: '매도인', icon: '🔑', focus: '호가 고수, 타 매수자 비교, 가격 인하 저항, 매도 시급성' },
@@ -3423,7 +3435,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['시세·매물 파악', '가격 협상', '계약 조건', '대출·최종'],
   },
   {
-    id: 'thesis_defense', name: '학위 심사 디펜스', icon: '🎓', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
+    id: 'thesis_defense', category: 'education', name: '학위 심사 디펜스', icon: '🎓', gradient: 'from-indigo-100 to-blue-50', simType: 'roleplay',
     description: '논문 심사위원 앞에서 연구 성과를 방어합니다',
     roles: [
       { name: '지도교수', icon: '👨‍🏫', focus: '연구 맥락 정리, 약점 보완 유도, 학생 보호와 학술 엄격성 균형' },
@@ -3443,7 +3455,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['발표', '질의응답', '비공개 심의', '결과 통보'],
   },
   {
-    id: 'startup_pivot', name: '스타트업 피벗 결정', icon: '🔀', gradient: 'from-purple-100 to-fuchsia-50', simType: 'roleplay',
+    id: 'startup_pivot', category: 'business', name: '스타트업 피벗 결정', icon: '🔀', gradient: 'from-purple-100 to-fuchsia-50', simType: 'roleplay',
     description: '기존 제품을 버리고 방향을 바꿀지 팀·투자자·시장 관점에서 결정합니다',
     roles: [
       { name: '리드 투자자', icon: '💰', focus: '런웨이·포트폴리오 맥락, 피벗 합당성, 팀 역량 재평가, 후속 투자 여부' },
@@ -3463,7 +3475,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['현황 진단', '대안 검토', '이해관계자 설득', '최종 결정'],
   },
   {
-    id: 'tax_audit', name: '세무조사 대응', icon: '🔍', gradient: 'from-slate-100 to-gray-50', simType: 'roleplay',
+    id: 'tax_audit', category: 'legal', name: '세무조사 대응', icon: '🔍', gradient: 'from-slate-100 to-gray-50', simType: 'roleplay',
     description: '국세청 조사에서 쟁점 항목을 해명하고 과세 규모를 최소화합니다',
     roles: [
       { name: '세무조사관', icon: '🧑‍💼', focus: '매출 누락·경비 과다 여부, 원천징수, 친인척 거래, 가산세 적용' },
@@ -3483,7 +3495,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['예비 대응', '현장 조사', '쟁점 해명', '결과 협의'],
   },
   {
-    id: 'court_testimony', name: '법정 증언', icon: '⚖️', gradient: 'from-stone-100 to-amber-50', simType: 'roleplay',
+    id: 'court_testimony', category: 'legal', name: '법정 증언', icon: '⚖️', gradient: 'from-stone-100 to-amber-50', simType: 'roleplay',
     description: '검사·상대 변호사의 교차신문에서 핵심 진술을 흔들림 없이 유지합니다',
     roles: [
       { name: '상대측 변호사', icon: '🎯', focus: '진술 모순 유도, 기억 흐리기, 유도신문, 신뢰도 공격' },
@@ -3504,7 +3516,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
   },
   // ── Tier 2 신규 시나리오 (2026-04-17) ──
   {
-    id: 'proposal_breakup', name: '관계 고백·이별 통보', icon: '💐', gradient: 'from-pink-100 to-rose-50', simType: 'roleplay',
+    id: 'proposal_breakup', category: 'family', name: '관계 고백·이별 통보', icon: '💐', gradient: 'from-pink-100 to-rose-50', simType: 'roleplay',
     description: '프로포즈 또는 이별 통보 상황에서 감정과 말을 정리합니다',
     roles: [
       { name: '상대방', icon: '🫶', focus: '감정적 반응, 받아들이기·거절, 과거 맥락, 진심 탐색' },
@@ -3524,7 +3536,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['감정 정리', '말 꺼내기', '반응 대응', '마무리'],
   },
   {
-    id: 'shareholder_meeting', name: '주주총회 발언', icon: '📣', gradient: 'from-sky-100 to-blue-50', simType: 'roleplay',
+    id: 'shareholder_meeting', category: 'business', name: '주주총회 발언', icon: '📣', gradient: 'from-sky-100 to-blue-50', simType: 'roleplay',
     description: '소액주주·기관투자자·행동주의 앞에서 경영 성과와 비전을 설득합니다',
     roles: [
       { name: '소액주주', icon: '🧑‍💼', focus: '배당 확대, 주가 부진, 임원 보수, 도덕적 이슈 추궁' },
@@ -3544,7 +3556,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['보고', '질의응답', '안건 표결', '결과 수습'],
   },
   {
-    id: 'car_purchase', name: '자동차 구매 협상', icon: '🚗', gradient: 'from-red-100 to-orange-50', simType: 'roleplay',
+    id: 'car_purchase', category: 'family', name: '자동차 구매 협상', icon: '🚗', gradient: 'from-red-100 to-orange-50', simType: 'roleplay',
     description: '딜러·경쟁 딜러·영업 매니저와 가격·옵션·탁송 조건을 유리하게 협상합니다',
     roles: [
       { name: '담당 영업사원', icon: '🧑‍💼', focus: '견적 방어, 서비스·옵션 제공, 계약 서두르기' },
@@ -3564,7 +3576,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['견적 요청', '조건 비교', '가격 협상', '계약 체결'],
   },
   {
-    id: 'civil_servant_interview', name: '공직 면접', icon: '🏛️', gradient: 'from-teal-100 to-cyan-50', simType: 'roleplay',
+    id: 'civil_servant_interview', category: 'work', name: '공직 면접', icon: '🏛️', gradient: 'from-teal-100 to-cyan-50', simType: 'roleplay',
     description: '공무원·공공기관 면접에서 공직 가치관과 상황 대응력을 증명합니다',
     roles: [
       { name: '공직 가치 면접관', icon: '🎖️', focus: '공익 마인드, 청렴·책임성, 헌법 가치, 봉사정신' },
@@ -3584,7 +3596,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['공직 가치', '직무 역량', '상황 대응', '최종 판정'],
   },
   {
-    id: 'police_interrogation', name: '경찰 조사 대응', icon: '🚓', gradient: 'from-blue-100 to-slate-50', simType: 'roleplay',
+    id: 'police_interrogation', category: 'legal', name: '경찰 조사 대응', icon: '🚓', gradient: 'from-blue-100 to-slate-50', simType: 'roleplay',
     description: '피의자·참고인 조사에서 권리를 지키면서 진술을 풀어갑니다',
     roles: [
       { name: '수사관', icon: '🕵️', focus: '사실관계 확인, 모순 포착, 진술 유도, 수사 방향 형성' },
@@ -3604,7 +3616,7 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
     phases: ['조사 전 준비', '조사 진행', '변호인 의견', '조서 확인'],
   },
   {
-    id: 'freelance_quote', name: '프리랜서 견적 협상', icon: '💼', gradient: 'from-lime-100 to-emerald-50', simType: 'roleplay',
+    id: 'freelance_quote', category: 'business', name: '프리랜서 견적 협상', icon: '💼', gradient: 'from-lime-100 to-emerald-50', simType: 'roleplay',
     description: '클라이언트와 견적·범위·결제 조건을 공정하게 합의합니다',
     roles: [
       { name: '클라이언트', icon: '🧑‍💼', focus: '예산 압박, 일정 단축, 무리한 수정·추가 요구, 경쟁 견적 언급' },

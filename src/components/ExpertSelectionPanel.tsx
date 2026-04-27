@@ -8,7 +8,7 @@ import {
   DEBATE_SUB_MODE_LABELS, getMainMode, DebateSettings,
   THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
   GAME_CARDS, GameCard,
-  SimulationScenario, SIMULATION_SCENARIOS,
+  SimulationScenario, SIMULATION_SCENARIOS, SCENARIO_CATEGORIES,
   StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS,
   type PremiumDomainId,
   type AivsBattleDraft,
@@ -1290,7 +1290,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
 
         const renderCard = (scenario: SimulationScenario, i: number) => {
           const isSelected = selectedScenario?.id === scenario.id || step2Scenario?.id === scenario.id;
-          const simTypeLabel = scenario.simType === 'roleplay' ? '역할극' : '자문';
+          const cat = SCENARIO_CATEGORIES[scenario.category];
           return (
             <button key={scenario.id}
               onClick={() => handleSelectScenario(scenario)}
@@ -1313,12 +1313,14 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                 scenario.gradient
               )} />
 
-              {/* 우상단 simType 뱃지 */}
+              {/* 우상단 카테고리 뱃지 */}
               <span
-                aria-label={simTypeLabel}
-                className="absolute top-2 right-2 z-[1] text-[8.5px] font-semibold px-1.5 py-0.5 rounded bg-white/70 backdrop-blur-sm text-slate-500 border border-slate-200/70"
+                aria-label={cat.fullLabel}
+                title={cat.fullLabel}
+                className="absolute top-2 right-2 z-[1] inline-flex items-center gap-1 text-[8.5px] font-semibold px-1.5 py-0.5 rounded bg-white/75 backdrop-blur-sm text-slate-600 border border-slate-200/70"
               >
-                {simTypeLabel}
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
               </span>
 
               <div className="relative flex items-center gap-3 px-4 py-4">
@@ -1431,8 +1433,9 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <h3 id="sim-step1-title" className="text-[16px] font-bold text-slate-800">{selectedScenario.name}</h3>
-                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/70 text-slate-500 border border-slate-200/70">
-                      {selectedScenario.simType === 'roleplay' ? '역할극' : '자문'}
+                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/70 text-slate-600 border border-slate-200/70">
+                      <span>{SCENARIO_CATEGORIES[selectedScenario.category].icon}</span>
+                      <span>{SCENARIO_CATEGORIES[selectedScenario.category].fullLabel}</span>
                     </span>
                   </div>
                   <p className="text-[12px] text-slate-700/80 mt-0.5 leading-snug">
