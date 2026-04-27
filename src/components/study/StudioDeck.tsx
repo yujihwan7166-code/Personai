@@ -1497,42 +1497,31 @@ function SummarySection({
     ? '이미지/스캔본 PDF 라 텍스트가 인식되지 않았어요. 페이지별 정리를 만들 수 없어요.'
     : '페이지 구분자가 없는 자료(URL·복사 텍스트 등)에서는 사용할 수 없어요.';
 
-  // 비전 모드 사용 가능 조건: PDF 원본이 IndexedDB 에 있고 페이지 수가 잡혀 있음
-  const visionPdf = enabledSources.find((s) => s.kind === 'pdf' && s.blobRef && s.pageCount);
-  const visionAvailable = !!visionPdf;
+  // 첫 진입 — chooser 제거. OCR/Vision 은 노트북 진입 시 useStudyAutoOcr 가
+  // 이미 처리하므로 source.content 가 풍부한 상태. 노트정리 누르면 즉시 페이지별
+  // 요약을 만든다 (사용자 요구).
+  // - hasPageMarkers (즉, [p.N] 마커 있음) → 자동 fetchPagesIndex → mode 'pages'
+  // - 마커 없으면 (URL/복사 텍스트) 폴백으로 'whole' 모드
+  useEffect(() => {
+    if (mode !== null) return;
+    if (pagesIndexLoading) return;
+    if (blockIfSourceUnready()) return; // 빈/placeholder 소스면 가드 (toast)
+    if (hasPageMarkers) {
+      void fetchPagesIndex();
+    } else {
+      setMode('whole');
+      if (!hasWhole) onRegenerateWhole();
+    }
+    // intentionally narrow deps — 재진입 시 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
-  // 첫 진입 — PDF 면 즉시 비전 모드로 시작 (chooser 생략)
   if (mode === null) {
+    // 자동 fetch 중 — shimmer
     return (
-      <>
-        <PageNotesEmptyChooser
-          pageCount={aggregatePageCount}
-          fallbackOnly={!visionAvailable && pagesUnavailable}
-          fallbackReason={pagesUnavailableReason}
-          visionAvailable={visionAvailable}
-          onStartVision={() => {
-            void fetchVisionIndex();
-          }}
-          onStartText={() => {
-            if (!hasPageMarkers) {
-              showPageUnavailableToast();
-              if (blockIfSourceUnready()) return;
-              setMode('whole');
-              if (!hasWhole) onRegenerateWhole();
-              return;
-            }
-            void fetchPagesIndex();
-          }}
-          onWhole={() => {
-            if (blockIfSourceUnready()) return;
-            setMode('whole');
-            if (!hasWhole) onRegenerateWhole();
-          }}
-        />
-        {(pagesIndexLoading && visionProgress) && visionPdf && (
-          <VisionProgressOverlay pageCount={visionPdf.pageCount ?? 0} progress={visionProgress} />
-        )}
-      </>
+      <div className="px-4 py-3">
+        <PagesIndexShimmer />
+      </div>
     );
   }
 

@@ -7,8 +7,7 @@ import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Image from '@tiptap/extension-image';
-import TextStyle from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
+import { TextStyle, Color, FontSize } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
@@ -19,7 +18,6 @@ import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import { Markdown } from 'tiptap-markdown';
-import { FontSize } from './editor/FontSize';
 import { WikiEditorToolbar } from './WikiEditorToolbar';
 import {
   Bold, Italic, Strikethrough, Code, Link as LinkIcon, Heading1, Heading2, Heading3,

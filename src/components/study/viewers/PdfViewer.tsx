@@ -6,13 +6,9 @@
  *  - activePage prop 변경 시 해당 페이지로 스크롤 + 1초 강조
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Minus, Plus, Maximize2, Search, Download, X, LayoutGrid, MessageSquarePlus, ScanLine, Pause, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, Maximize2, Search, Download, X, LayoutGrid, MessageSquarePlus } from 'lucide-react';
 import { getBlob } from '@/lib/studyBlobStore';
-import { OcrQueue } from '@/lib/studyOcrQueue';
 import { getCompletedPages, getAllForBlob, type OcrRecord } from '@/lib/studyOcrStore';
-import { VisionQueue } from '@/lib/studyVisionQueue';
-// getAllVisionForBlob 은 buildMergedContent 가 내부에서 사용 — 직접 import 불필요
-import { buildMergedContent } from '@/lib/studyContentMerge';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -21,13 +17,14 @@ interface Props {
   onActivePageChange?: (page: number) => void;
   /** 선택 텍스트에 대한 "질문하기" 등 액션 콜백. 없으면 선택 액션 UI 숨김. */
   onAskAboutSelection?: (text: string) => void;
-  /** 스캔본 페이지 번호들. 있으면 OCR 배너 노출. */
+  /** 스캔본 페이지 번호들. textLayer 그리기 트리거용 (OCR 결과 IDB 에서 읽음). */
   scanPages?: number[];
-  /** 사용자가 이전에 OCR 자동 시작에 동의했는지. */
+  /** @deprecated useStudyAutoOcr 가 큐 소유. PdfViewer 는 IDB 에서 결과만 읽음.
+   *  prop 자체는 다음 PR 에서 제거. */
   ocrEnabled?: boolean;
-  /** OCR 시작 동의 시 상위에 저장 요청. */
+  /** @deprecated 같이 제거 예정 */
   onOcrEnable?: (enabled: boolean) => void;
-  /** OCR 결과가 추가될 때마다 source.content 갱신용 — 전체 OCR 텍스트 모아서 호출. */
+  /** @deprecated 같이 제거 예정 — content 갱신은 useStudyAutoOcr 가 책임 */
   onOcrContentUpdate?: (ocrText: string) => void;
 }
 
@@ -66,7 +63,7 @@ export function warmupPdfJs() {
 
 export function PdfViewer({
   blobRef, activePage, onActivePageChange, onAskAboutSelection,
-  scanPages, ocrEnabled, onOcrEnable, onOcrContentUpdate,
+  scanPages,
 }: Props) {
   const [doc, setDoc] = useState<PdfDoc | null>(null);
   const [numPages, setNumPages] = useState(0);
@@ -80,19 +77,9 @@ export function PdfViewer({
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [showThumbs, setShowThumbs] = useState(false);
   const [selAction, setSelAction] = useState<{ x: number; y: number; text: string } | null>(null);
-  const [ocrDone, setOcrDone] = useState(0);
-  const [ocrTotal, setOcrTotal] = useState(0);
-  const [ocrPaused, setOcrPaused] = useState(false);
-  const [ocrDismissed, setOcrDismissed] = useState(false);
-  const [ocrRunning, setOcrRunning] = useState(false);
+  // OCR 결과 페이지 (textLayer 그리기 용도) — 큐 소유는 useStudyAutoOcr.
+  // 이 ref 는 IDB 캐시에서 polling 으로 채워짐.
   const [ocrPagesReady, setOcrPagesReady] = useState<Set<number>>(new Set());
-  const ocrQueueRef = useRef<OcrQueue | null>(null);
-  // Vision LLM 큐 (Phase 2) — Tesseract 결과가 빈약한 페이지(그림 위주) 보강용
-  const visionQueueRef = useRef<VisionQueue | null>(null);
-  const fileBlobRef = useRef<Blob | null>(null);
-  const [visionDone, setVisionDone] = useState(0);
-  const [visionTotal, setVisionTotal] = useState(0);
-  const [visionRunning, setVisionRunning] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -109,7 +96,7 @@ export function PdfViewer({
       try {
         const blob = await getBlob(blobRef);
         if (!blob) throw new Error('파일을 찾을 수 없습니다.');
-        fileBlobRef.current = blob; // Vision 큐에서 페이지 렌더용
+        // (Vision 큐는 useStudyAutoOcr 가 소유 — PdfViewer 는 blob 보존 불필요)
         currentUrl = URL.createObjectURL(blob);
         setDownloadUrl(currentUrl);
         const pdfjs = await loadPdfJs();
@@ -333,122 +320,47 @@ export function PdfViewer({
     return () => document.removeEventListener('selectionchange', onSelChange);
   }, []);
 
-  // OCR + Vision 결과를 페이지별로 병합 — 공유 util 사용.
-  // [중요] startVisionQueueIfNeeded 가 deps 로 참조하므로 반드시 먼저 선언한다 (TDZ 방지).
-  // 주의: PdfViewer 는 nativeText 를 prop 으로 받지 않으므로 native 텍스트가 빠질 수 있음.
-  // 실제 content 갱신은 useStudyAutoOcr 훅(StudyNotebookView 에서 호출)이 책임지고 native 포함.
-  // 여기는 PdfViewer 자체 fallback (StudyNotebookView 외부에서 단독 사용 시).
-  const rebuildCombinedContent = useCallback(async () => {
-    if (!onOcrContentUpdate || !blobRef) return;
-    const combined = await buildMergedContent(blobRef);
-    if (combined) onOcrContentUpdate(combined);
-  }, [blobRef, onOcrContentUpdate]);
-
-  // Vision 큐 시동: OCR 결과가 빈약한 페이지(< 200자) 들을 vision LLM 으로 보강.
-  // OCR 큐 onFinish 콜백에서 호출됨.
-  const startVisionQueueIfNeeded = useCallback(async () => {
-    if (!doc || !blobRef) return;
-    if (visionQueueRef.current) return; // 이미 실행 중
-    const file = fileBlobRef.current;
-    if (!file) return;
-
-    // OCR 결과가 빈약한 페이지 선정
-    const ocrRecs = await getAllForBlob(blobRef);
-    const SPARSE_THRESHOLD = 200;
-    const sparsePages = ocrRecs
-      .filter((r) => (r.text?.length ?? 0) < SPARSE_THRESHOLD)
-      .map((r) => r.page);
-
-    if (sparsePages.length === 0) return;
-
-    setVisionRunning(true);
-    setVisionTotal(sparsePages.length);
-    setVisionDone(0);
-
-    const q = new VisionQueue(
-      { blobRef, doc, file, pages: sparsePages, batchSize: 4, maxWidth: 1024, quality: 0.72 },
-      {
-        onProgress: (done) => setVisionDone(done),
-        onPageDone: () => { void rebuildCombinedContent(); },
-        onError: (e) => console.warn('[vision]', e),
-        onFinish: () => setVisionRunning(false),
-      },
-    );
-    visionQueueRef.current = q;
-    void q.start();
-  }, [doc, blobRef, rebuildCombinedContent]);
-
-  // OCR 큐 생명주기 — doc 준비 + scanPages 존재 + 사용자 동의(ocrEnabled) 시 자동 시작
+  // OCR 결과 페이지 폴링 — useStudyAutoOcr 가 큐를 소유하고 IDB 에 결과 쌓는다.
+  // PdfViewer 는 IDB 만 읽어서 textLayer 그리기 (드래그/검색용).
+  // 1초 간격 폴링: 큐가 짧게 끝날 수도 있고 길게 갈 수도 있어 충분.
   useEffect(() => {
-    if (!doc || !blobRef) return;
-    const pages = scanPages ?? [];
-    if (pages.length === 0) return;
+    if (!blobRef) return;
+    let cancelled = false;
+    let lastSize = 0;
 
-    // 이미 캐시된 페이지 집합 불러옴
-    (async () => {
-      const completed = await getCompletedPages(blobRef);
-      setOcrPagesReady(completed);
-      // 완료된 OCR + Vision 있으면 content 먼저 업데이트
-      if (completed.size > 0) {
-        await rebuildCombinedContent();
-      }
-    })();
-
-    if (!ocrEnabled) return;   // 사용자 동의 전이면 큐 시작하지 않음
-    if (ocrQueueRef.current) return;
-
-    setOcrRunning(true);
-    setOcrTotal(pages.length);
-
-    const q = new OcrQueue(
-      { blobRef, doc, pages, renderScale: 1.8, concurrency: 2 },
-      {
-        onProgress: (done) => setOcrDone(done),
-        onPageDone: (page) => {
-          setOcrPagesReady((prev) => {
-            if (prev.has(page)) return prev;
-            const next = new Set(prev);
-            next.add(page);
-            return next;
-          });
-          // 해당 페이지가 현재 렌더돼 있다면 textLayer 다시 그리게 renderedRef 에서 제거
-          const wrapper = pageRefs.current.get(page);
-          if (wrapper) {
-            renderedRef.current.delete(page);
-            // 가시 영역이면 다음 scroll/observer tick 에 자연 재렌더
-            setTimeout(() => scrollRef.current?.dispatchEvent(new Event('scroll')), 0);
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const completed = await getCompletedPages(blobRef);
+        if (cancelled) return;
+        if (completed.size !== lastSize) {
+          setOcrPagesReady(completed);
+          // 새로 완료된 페이지의 textLayer 강제 재렌더
+          for (const page of completed) {
+            if (renderedRef.current.has(page)) renderedRef.current.delete(page);
           }
-          // content 갱신 (OCR+Vision 합본 재집계)
-          void rebuildCombinedContent();
-        },
-        onFinish: () => {
-          setOcrRunning(false);
-          // OCR 끝나면 Vision 큐 자동 시동 — 결과가 빈약한 페이지(< 200자) 만 vision 으로 보강
-          void startVisionQueueIfNeeded();
-        },
-        onError: (e) => console.warn('[ocr]', e),
-      },
-    );
-    ocrQueueRef.current = q;
-    void q.start();
+          setTimeout(() => scrollRef.current?.dispatchEvent(new Event('scroll')), 0);
+          lastSize = completed.size;
+        }
+      } catch { /* IDB 조회 실패 — 다음 폴링 시도 */ }
+    };
+
+    void poll(); // 즉시 한 번
+    const totalScan = (scanPages ?? []).length;
+    // OCR 대상이 있으면 폴링 (1s 간격, 모두 완료되면 자동 정지)
+    const interval = totalScan > 0 ? setInterval(() => {
+      void poll().then(() => {
+        if (lastSize >= totalScan) {
+          clearInterval(interval);
+        }
+      });
+    }, 1000) : null;
 
     return () => {
-      q.cancel();
-      ocrQueueRef.current = null;
-      // Vision 큐도 같이 정리
-      visionQueueRef.current?.cancel();
-      visionQueueRef.current = null;
+      cancelled = true;
+      if (interval) clearInterval(interval);
     };
-    // onOcrContentUpdate 는 일부러 deps 제외 — 매 렌더마다 재시작 방지
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, blobRef, ocrEnabled, scanPages]);
-
-  const toggleOcrPause = () => {
-    const q = ocrQueueRef.current;
-    if (!q) return;
-    if (q.status === 'paused') { q.resume(); setOcrPaused(false); }
-    else { q.pause(); setOcrPaused(true); }
-  };
+  }, [blobRef, scanPages]);
 
   // currentPage 기준 ±2 외 페이지 canvas 메모리 해제 — 대용량 PDF 에서 RAM 폭증 방지
   useEffect(() => {
@@ -640,24 +552,8 @@ export function PdfViewer({
         )}
 
         <div className="ml-auto flex items-center gap-1">
-          {/* OCR 진행률 배지 */}
-          {ocrEnabled && ocrTotal > 0 && (
-            <div className="flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10.5px]">
-              <ScanLine className={cn('h-3 w-3', ocrRunning ? 'text-indigo-500 animate-pulse' : 'text-emerald-500')} />
-              <span className="tabular-nums font-semibold text-slate-700 dark:text-slate-200">
-                OCR {ocrDone}/{ocrTotal}
-              </span>
-              {ocrRunning && (
-                <button
-                  onClick={toggleOcrPause}
-                  className="h-4 w-4 flex items-center justify-center rounded-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-                  title={ocrPaused ? '재개' : '일시정지'}
-                >
-                  {ocrPaused ? <Play className="h-2.5 w-2.5" /> : <Pause className="h-2.5 w-2.5" />}
-                </button>
-              )}
-            </div>
-          )}
+          {/* OCR 진행률 배지·제안 배너 제거됨 — useStudyAutoOcr 가 노트북 진입 시
+              PdfProcessingScreen 으로 진행률을 별도 표시. */}
           {downloadUrl && (
             <a
               href={downloadUrl}
@@ -670,33 +566,6 @@ export function PdfViewer({
           )}
         </div>
       </div>
-
-      {/* 스캔본 OCR 제안 배너 */}
-      {(scanPages?.length ?? 0) > 0 && !ocrEnabled && !ocrDismissed && (
-        <div className="shrink-0 border-b border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/30 px-4 py-2 flex items-center gap-3">
-          <ScanLine className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold text-amber-900 dark:text-amber-200 leading-tight">
-              스캔본 {scanPages!.length}페이지 감지 — 글자 인식(OCR)을 돌릴까요?
-            </p>
-            <p className="text-[10.5px] text-amber-700 dark:text-amber-300/80 leading-tight mt-0.5">
-              백그라운드에서 진행되며, 완료된 페이지부터 선택·검색이 가능해집니다. 결과는 자동으로 저장돼요.
-            </p>
-          </div>
-          <button
-            onClick={() => { onOcrEnable?.(true); }}
-            className="shrink-0 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-[11.5px] font-semibold px-3 py-1"
-          >
-            시작
-          </button>
-          <button
-            onClick={() => setOcrDismissed(true)}
-            className="shrink-0 text-[11px] text-amber-700 dark:text-amber-300 hover:underline"
-          >
-            나중에
-          </button>
-        </div>
-      )}
 
       {/* 본문: (썸네일) + 페이지 스트림 */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
