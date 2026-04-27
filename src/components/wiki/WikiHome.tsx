@@ -114,21 +114,56 @@ export function WikiHome({
     // 일반 문서 = 메인 문서 아닌 페이지 (대문 'index' 도 메인성이라 제외)
     const regulars = pages.filter((p) => !isMainDoc(p) && p.type !== 'index');
 
-    // 일반 문서 → 부모 메인 문서들 (= 본문에서 [[일반]] 으로 가리키는 메인 문서들)
-    const regularToMains = new Map<string, WikiPage[]>();
+    // 메인 문서의 *직접 부모* 매핑 (sub-main → 그 sub 를 가리키는 메인들)
+    const mainToParents = new Map<string, WikiPage[]>();
     for (const main of mocs) {
       for (const t of extractWikiLinks(main.body)) {
         const target = byTitle.get(t.toLowerCase());
-        if (!target) continue;
-        if (isMainDoc(target)) continue; // 다른 메인이면 sub-main 으로 처리됨
-        if (target.type === 'index') continue;
-        if (!regularToMains.has(target.id)) regularToMains.set(target.id, []);
-        const list = regularToMains.get(target.id)!;
+        if (!target || !isMainDoc(target) || target.id === main.id) continue;
+        if (!mainToParents.has(target.id)) mainToParents.set(target.id, []);
+        const list = mainToParents.get(target.id)!;
         if (!list.some((m) => m.id === main.id)) list.push(main);
       }
     }
+    // 메인 → root 메인 (BFS — sub-main 은 그 부모까지 계속 거슬러)
+    function rootsOf(mainId: string): WikiPage[] {
+      const seen = new Set<string>([mainId]);
+      const out = new Set<WikiPage>();
+      const queue: string[] = [mainId];
+      while (queue.length) {
+        const cur = queue.shift()!;
+        const parents = mainToParents.get(cur) ?? [];
+        if (parents.length === 0) {
+          // root 발견
+          const m = mocs.find((mm) => mm.id === cur);
+          if (m) out.add(m);
+        } else {
+          for (const p of parents) {
+            if (!seen.has(p.id)) { seen.add(p.id); queue.push(p.id); }
+          }
+        }
+      }
+      return [...out];
+    }
 
-    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToMains };
+    // 일반 문서 → 직접 부모 메인 → 그 메인의 root 메인까지 transitive 매핑
+    const regularToRoots = new Map<string, WikiPage[]>();
+    for (const main of mocs) {
+      const rootsForThisMain = rootsOf(main.id);
+      for (const t of extractWikiLinks(main.body)) {
+        const target = byTitle.get(t.toLowerCase());
+        if (!target) continue;
+        if (isMainDoc(target)) continue; // 다른 메인은 따로 처리
+        if (target.type === 'index') continue;
+        if (!regularToRoots.has(target.id)) regularToRoots.set(target.id, []);
+        const list = regularToRoots.get(target.id)!;
+        for (const root of rootsForThisMain) {
+          if (!list.some((m) => m.id === root.id)) list.push(root);
+        }
+      }
+    }
+
+    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -225,12 +260,9 @@ export function WikiHome({
           </h2>
           <span className="text-[11px] text-muted-foreground/80">— 주제별 묶음</span>
           <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
-          {stats.mocs.length > 0 && (
+          {stats.rootMocs.length > 0 && (
             <span className="text-[11px] font-mono font-bold text-muted-foreground">
               <span className="text-foreground/85">{stats.rootMocs.length}</span> 메인
-              {stats.subMocIds.size > 0 && (
-                <span className="ml-1 text-muted-foreground/70">+ {stats.subMocIds.size} 하위</span>
-              )}
             </span>
           )}
         </div>
@@ -266,28 +298,16 @@ export function WikiHome({
                 새 메인 문서
               </button>
             </div>
-
-            {/* 서브 문서 — 작은 리스트 (있을 때만) */}
-            {stats.subMocIds.size > 0 && (
-              <SubDocList
-                pages={pages}
-                rootMocs={stats.rootMocs}
-                subMocIds={stats.subMocIds}
-                rootMocChildren={stats.rootMocChildren}
-                favSet={favSet}
-                onSelect={onSelect}
-              />
-            )}
           </>
         )}
       </section>
 
-      {/* 📄 일반 문서 — 메인 아닌 모든 페이지 리스트 (메인 문서별 카테고리 필터) */}
+      {/* 📄 일반 문서 — root 메인 카테고리 필터 (transitive) */}
       {stats.regulars.length > 0 && (
         <RegularDocsSection
           pages={stats.regulars}
-          mainDocs={stats.mocs}
-          regularToMains={stats.regularToMains}
+          rootMocs={stats.rootMocs}
+          regularToRoots={stats.regularToRoots}
           onSelect={onSelect}
         />
       )}
@@ -431,52 +451,50 @@ function Section({
 type MainFilter = 'all' | 'orphan' | string; // string = main page id
 
 function RegularDocsSection({
-  pages, mainDocs, regularToMains, onSelect,
+  pages, rootMocs, regularToRoots, onSelect,
 }: {
   pages: WikiPage[];
-  mainDocs: WikiPage[];
-  regularToMains: Map<string, WikiPage[]>;
+  rootMocs: WikiPage[];
+  regularToRoots: Map<string, WikiPage[]>;
   onSelect: (id: string) => void;
 }) {
   const [filter, setFilter] = useState<MainFilter>('all');
   const [expanded, setExpanded] = useState(false);
 
-  // 사용 중인 메인 문서만 (자식 일반 문서가 1개 이상인 것) 칩으로 노출
-  const mainsWithChildren = useMemo(() => {
+  // root 메인만 칩으로 노출 (자식 일반 문서가 1개 이상)
+  const rootsWithChildren = useMemo(() => {
     const out: Array<{ main: WikiPage; count: number }> = [];
-    for (const m of mainDocs) {
+    for (const m of rootMocs) {
       let n = 0;
       for (const p of pages) {
-        if (regularToMains.get(p.id)?.some((parent) => parent.id === m.id)) n++;
+        if (regularToRoots.get(p.id)?.some((parent) => parent.id === m.id)) n++;
       }
       if (n > 0) out.push({ main: m, count: n });
     }
-    // count desc, then title
     return out.sort((a, b) => b.count - a.count || a.main.title.localeCompare(b.main.title));
-  }, [mainDocs, pages, regularToMains]);
+  }, [rootMocs, pages, regularToRoots]);
 
   const orphanCount = useMemo(() =>
-    pages.filter((p) => !regularToMains.has(p.id) || regularToMains.get(p.id)!.length === 0).length,
-    [pages, regularToMains]);
+    pages.filter((p) => !regularToRoots.has(p.id) || regularToRoots.get(p.id)!.length === 0).length,
+    [pages, regularToRoots]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return pages;
     if (filter === 'orphan') {
-      return pages.filter((p) => !regularToMains.has(p.id) || regularToMains.get(p.id)!.length === 0);
+      return pages.filter((p) => !regularToRoots.has(p.id) || regularToRoots.get(p.id)!.length === 0);
     }
-    return pages.filter((p) => regularToMains.get(p.id)?.some((m) => m.id === filter));
-  }, [pages, filter, regularToMains]);
+    return pages.filter((p) => regularToRoots.get(p.id)?.some((m) => m.id === filter));
+  }, [pages, filter, regularToRoots]);
 
   const COLLAPSED = 12;
   const visible = expanded ? filtered : filtered.slice(0, COLLAPSED);
   const hidden = filtered.length - visible.length;
 
-  // 활성 메인 문서 라벨 (헤더 표시용)
   const activeLabel = useMemo(() => {
     if (filter === 'all') return null;
     if (filter === 'orphan') return '독립';
-    return mainDocs.find((m) => m.id === filter)?.title ?? null;
-  }, [filter, mainDocs]);
+    return rootMocs.find((m) => m.id === filter)?.title ?? null;
+  }, [filter, rootMocs]);
 
   return (
     <section className="mb-6">
@@ -500,8 +518,8 @@ function RegularDocsSection({
         </span>
       </div>
 
-      {/* 카테고리 칩 — 메인 문서별 + 독립 */}
-      {(mainsWithChildren.length > 0 || orphanCount > 0) && (
+      {/* 카테고리 칩 — root 메인만 + 독립 */}
+      {(rootsWithChildren.length > 0 || orphanCount > 0) && (
         <div className="flex flex-wrap items-center gap-1 mb-2">
           <button
             type="button"
@@ -515,7 +533,7 @@ function RegularDocsSection({
           >
             전체 <span className="font-mono opacity-70">{pages.length}</span>
           </button>
-          {mainsWithChildren.map(({ main, count }) => {
+          {rootsWithChildren.map(({ main, count }) => {
             const active = filter === main.id;
             return (
               <button
@@ -528,7 +546,7 @@ function RegularDocsSection({
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                 )}
-                title={`${main.title} 의 자식 일반 문서`}
+                title={`${main.title} 우산 아래 모든 일반 문서 (sub 포함 transitive)`}
               >
                 <BookOpen className="w-2.5 h-2.5 shrink-0" />
                 <span className="truncate">{main.title}</span>
@@ -565,7 +583,7 @@ function RegularDocsSection({
             {visible.map((p) => {
               const m = WIKI_TYPE_META[p.type];
               const sMeta = WIKI_STATUS_META[p.status];
-              const parents = regularToMains.get(p.id) ?? [];
+              const parents = regularToRoots.get(p.id) ?? [];
               return (
                 <li key={p.id}>
                   <button
@@ -618,70 +636,6 @@ function RegularDocsSection({
         )}
       </div>
     </section>
-  );
-}
-
-/* ── 서브 문서 리스트 — 메인 카드 아래, 컴팩트 ── */
-function SubDocList({
-  pages, rootMocs, subMocIds, rootMocChildren, favSet, onSelect,
-}: {
-  pages: WikiPage[];
-  rootMocs: WikiPage[];
-  subMocIds: Set<string>;
-  rootMocChildren: Map<string, { mocs: WikiPage[]; pages: WikiPage[] }>;
-  favSet: Set<string>;
-  onSelect: (id: string) => void;
-}) {
-  // 서브 문서를 *어느 root 의 하위인지* 매핑
-  const subToParent = useMemo(() => {
-    const m = new Map<string, WikiPage[]>();
-    for (const root of rootMocs) {
-      const children = rootMocChildren.get(root.id);
-      if (!children) continue;
-      for (const sub of children.mocs) {
-        if (!m.has(sub.id)) m.set(sub.id, []);
-        m.get(sub.id)!.push(root);
-      }
-    }
-    return m;
-  }, [rootMocs, rootMocChildren]);
-
-  const subs = pages.filter((p) => subMocIds.has(p.id));
-  if (subs.length === 0) return null;
-
-  return (
-    <div className="mt-4 pt-3 border-t border-[hsl(var(--hairline))]">
-      <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/70 mb-2 inline-flex items-center gap-1.5">
-        🌿 서브 문서
-        <span className="font-bold text-foreground/85">{subs.length}</span>
-      </p>
-      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-0.5">
-        {subs.map((p) => {
-          const parents = subToParent.get(p.id) ?? [];
-          const isFav = favSet.has(p.id);
-          return (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(p.id)}
-                className="w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-left hover:bg-accent wiki-trans-color"
-              >
-                <span className="text-[10px] text-muted-foreground/60 leading-none shrink-0">▸</span>
-                <span className="text-[12.5px] font-semibold text-foreground/85 group-hover:text-primary truncate">
-                  {p.title}
-                </span>
-                {isFav && <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-500 shrink-0" />}
-                {parents.length > 0 && (
-                  <span className="ml-auto text-[10px] text-muted-foreground/70 truncate max-w-[120px]">
-                    in {parents.map((r) => r.title).join(', ')}
-                  </span>
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
   );
 }
 
