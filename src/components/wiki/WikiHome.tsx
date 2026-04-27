@@ -225,39 +225,43 @@ export function WikiHome({
             onMakeFromTag={onMakeMocFromTag}
           />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-            {/* root 먼저, sub 뒤 */}
-            {stats.rootMocs.map((p) => (
-              <MainDocCard
-                key={p.id}
-                page={p}
-                isRoot
-                isFav={favSet.has(p.id)}
-                childCount={(stats.rootMocChildren.get(p.id)?.mocs.length ?? 0)
-                          + (stats.rootMocChildren.get(p.id)?.pages.length ?? 0)}
+          <>
+            {/* root 만 큰 카드 그리드 */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              {stats.rootMocs.map((p) => (
+                <MainDocCard
+                  key={p.id}
+                  page={p}
+                  isRoot
+                  isFav={favSet.has(p.id)}
+                  childCount={(stats.rootMocChildren.get(p.id)?.mocs.length ?? 0)
+                            + (stats.rootMocChildren.get(p.id)?.pages.length ?? 0)}
+                  onSelect={onSelect}
+                />
+              ))}
+              {/* + 새 메인 문서 */}
+              <button
+                type="button"
+                onClick={() => (onCreateMainDoc ?? onCreate)()}
+                className="group flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[11px] font-medium px-3 py-3 min-h-[140px]"
+              >
+                <Plus className="w-4 h-4 group-hover:scale-110 wiki-trans-base" />
+                새 메인 문서
+              </button>
+            </div>
+
+            {/* 서브 문서 — 작은 리스트 (있을 때만) */}
+            {stats.subMocIds.size > 0 && (
+              <SubDocList
+                pages={pages}
+                rootMocs={stats.rootMocs}
+                subMocIds={stats.subMocIds}
+                rootMocChildren={stats.rootMocChildren}
+                favSet={favSet}
                 onSelect={onSelect}
               />
-            ))}
-            {stats.mocs.filter((m) => stats.subMocIds.has(m.id)).map((p) => (
-              <MainDocCard
-                key={p.id}
-                page={p}
-                isRoot={false}
-                isFav={favSet.has(p.id)}
-                childCount={countLinkedPages(p, pages)}
-                onSelect={onSelect}
-              />
-            ))}
-            {/* + 새 메인 문서 — 템플릿 픽커 X, 바로 type='moc' 생성·진입 */}
-            <button
-              type="button"
-              onClick={() => (onCreateMainDoc ?? onCreate)()}
-              className="group flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[11px] font-medium px-3 py-3 min-h-[120px]"
-            >
-              <Plus className="w-4 h-4 group-hover:scale-110 wiki-trans-base" />
-              새 메인 문서
-            </button>
-          </div>
+            )}
+          </>
         )}
       </section>
 
@@ -392,6 +396,70 @@ function Section({
       ) : (
         <ul className="space-y-0.5">{children}</ul>
       )}
+    </div>
+  );
+}
+
+/* ── 서브 문서 리스트 — 메인 카드 아래, 컴팩트 ── */
+function SubDocList({
+  pages, rootMocs, subMocIds, rootMocChildren, favSet, onSelect,
+}: {
+  pages: WikiPage[];
+  rootMocs: WikiPage[];
+  subMocIds: Set<string>;
+  rootMocChildren: Map<string, { mocs: WikiPage[]; pages: WikiPage[] }>;
+  favSet: Set<string>;
+  onSelect: (id: string) => void;
+}) {
+  // 서브 문서를 *어느 root 의 하위인지* 매핑
+  const subToParent = useMemo(() => {
+    const m = new Map<string, WikiPage[]>();
+    for (const root of rootMocs) {
+      const children = rootMocChildren.get(root.id);
+      if (!children) continue;
+      for (const sub of children.mocs) {
+        if (!m.has(sub.id)) m.set(sub.id, []);
+        m.get(sub.id)!.push(root);
+      }
+    }
+    return m;
+  }, [rootMocs, rootMocChildren]);
+
+  const subs = pages.filter((p) => subMocIds.has(p.id));
+  if (subs.length === 0) return null;
+
+  return (
+    <div className="mt-4 pt-3 border-t border-[hsl(var(--hairline))]">
+      <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/70 mb-2 inline-flex items-center gap-1.5">
+        🌿 서브 문서
+        <span className="font-bold text-foreground/85">{subs.length}</span>
+      </p>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-0.5">
+        {subs.map((p) => {
+          const parents = subToParent.get(p.id) ?? [];
+          const isFav = favSet.has(p.id);
+          return (
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(p.id)}
+                className="w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-left hover:bg-accent wiki-trans-color"
+              >
+                <span className="text-[10px] text-muted-foreground/60 leading-none shrink-0">▸</span>
+                <span className="text-[12.5px] font-semibold text-foreground/85 group-hover:text-primary truncate">
+                  {p.title}
+                </span>
+                {isFav && <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-500 shrink-0" />}
+                {parents.length > 0 && (
+                  <span className="ml-auto text-[10px] text-muted-foreground/70 truncate max-w-[120px]">
+                    in {parents.map((r) => r.title).join(', ')}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
