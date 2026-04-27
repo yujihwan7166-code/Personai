@@ -52,7 +52,7 @@ interface Props {
  *
  * 저장 형식: markdown (tiptap-markdown 변환). 기존 IDB body 와 100% 호환.
  */
-export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: Props) {
+export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPage, onUploadImage }: Props) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
