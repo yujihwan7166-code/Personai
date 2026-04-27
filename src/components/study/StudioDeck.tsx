@@ -15,7 +15,8 @@ import { DEFAULT_EXPERTS } from '@/types/expert';
 import { ExpertPickerModal } from './ExpertPickerModal';
 import { DebateLayout } from './DebateLayout';
 import { KeypointsLayout, MindmapLayout, GuideLayout, SummaryLayout } from './LensLayouts';
-import { PageNotesView, PageNotesEmptyChooser, VisionProgressOverlay, buildFallbackChunks } from './PageNotesView';
+// PageNotesEmptyChooser, VisionProgressOverlay 는 chooser 제거(2026-04-28)로 미사용 — 다음 PR 에서 PageNotesView 자체에서 export 도 제거 예정
+import { PageNotesView, buildFallbackChunks } from './PageNotesView';
 import { MindmapCanvas } from './MindmapCanvas';
 import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
@@ -1622,9 +1623,8 @@ function SummarySection({
         />
       ) : null}
 
-      {pagesIndexLoading && visionProgress && visionPdf && (
-        <VisionProgressOverlay pageCount={visionPdf.pageCount ?? 0} progress={visionProgress} />
-      )}
+      {/* VisionProgressOverlay 제거 — 비전 모드 chooser 가 사라져 visionProgress
+          를 채우는 진입점이 없음. PdfProcessingScreen 이 OCR+Vision 진행률을 별도 표시. */}
     </div>
   );
 }
