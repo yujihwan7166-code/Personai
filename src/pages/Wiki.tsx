@@ -536,6 +536,11 @@ const Wiki = () => {
             onDelete={() => handleDelete(activePage.id)}
             onToggleEdit={() => setEditing((v) => !v)}
             onOpenLink={handleOpenByTitleOrId}
+            onGoHome={() => {
+              setActiveId(null);
+              setView('page');
+              setEditing(false);
+            }}
             onOpenInGlobalGraph={(centerId) => {
               setGraphFocusId(centerId);
               setView('graph');

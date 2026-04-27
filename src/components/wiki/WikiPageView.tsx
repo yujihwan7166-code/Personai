@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, BookOpen } from 'lucide-react';
+import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, BookOpen, Home, ChevronDown, FileText, FileType, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
@@ -13,7 +13,6 @@ import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
 import { WikiBlockEditor } from './WikiBlockEditor';
 import { saveImage } from '@/lib/wikiImageStore';
 import { WikiHistoryPanel } from './WikiHistoryPanel';
-import { WikiLiveEditor } from './WikiLiveEditor';
 
 interface Props {
   page: WikiPage;
@@ -28,6 +27,8 @@ interface Props {
   onDelete: () => void;
   onToggleEdit: () => void;
   onOpenLink: (titleOrId: string) => void;
+  /** 헤더 🏠 홈 버튼 → 대문(WikiHome) 으로 이동 */
+  onGoHome?: () => void;
   /** 로컬 그래프 '전체 그래프에서 보기' — 부모가 view='graph' + focusId 처리 */
   onOpenInGlobalGraph?: (centerId: string) => void;
   /** 인포박스 태그 칩 클릭 시 — 부모가 사이드바 검색에 반영. */
@@ -59,7 +60,7 @@ function relativeTime(ts: number): string {
 export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
-  onChange, onRestore, onDelete, onToggleEdit, onOpenLink, onOpenInGlobalGraph, onCreateAndLink,
+  onChange, onRestore, onDelete, onToggleEdit, onOpenLink, onGoHome, onOpenInGlobalGraph, onCreateAndLink,
   onTagClick, visitedIds,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
@@ -259,6 +260,16 @@ export function WikiPageView({
                   </>
                 ) : (
                   <>
+                    {onGoHome && (
+                      <button
+                        onClick={onGoHome}
+                        className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+                        title="대문으로"
+                        aria-label="대문으로"
+                      >
+                        <Home className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <button
                       onClick={onToggleFavorite}
                       className={cn(
@@ -272,37 +283,13 @@ export function WikiPageView({
                     >
                       <Star className={cn('w-3.5 h-3.5', isFavorite && 'fill-current')} />
                     </button>
-                    <button onClick={onToggleEdit} className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="전체 편집 모드 (E) — 본문을 한 덩어리로 편집">
-                      <Pencil className="w-3.5 h-3.5" /> 전체 편집
+                    <button onClick={onToggleEdit} className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="편집 모드 진입 (E)">
+                      <Pencil className="w-3.5 h-3.5" /> 편집
                     </button>
-                    {!isMainDoc(page) ? (
-                      <button
-                        onClick={() => onChange({ ...page, isMain: true })}
-                        className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-primary hover:bg-primary/10 wiki-trans-color"
-                        title="이 페이지를 메인 문서로 — 다른 페이지 묶기 시작 (type 은 그대로)"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" /> 메인 문서로
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => onChange({
-                          ...page,
-                          isMain: false,
-                          // legacy type='moc' 라면 일반 type 으로 강등
-                          type: page.type === 'moc' ? 'concept' : page.type,
-                        })}
-                        className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-                        title="메인 문서 → 일반 문서로"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" /> 메인 해제
-                      </button>
-                    )}
                     <button onClick={() => setHistoryOpen(true)} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="버전 히스토리" aria-label="버전 히스토리">
                       <History className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={exportMd} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="Markdown 다운로드" aria-label="Markdown 다운로드">
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
+                    <DownloadMenu page={page} exportMd={exportMd} />
                     <button onClick={onDelete} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive wiki-trans-color" title="삭제" aria-label="삭제">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -353,12 +340,11 @@ export function WikiPageView({
                 onCreateAndLink={onCreateAndLink}
               />
             ) : (
-              <WikiLiveEditor
+              <WikiBody
                 body={page.body}
                 findByTitle={findByTitle}
                 visitedIds={visitedIds}
                 onOpenLink={onOpenLink}
-                onChange={(newBody) => onChange({ ...page, body: newBody })}
               />
             )}
           </section>
@@ -518,4 +504,175 @@ function MetaChips({
       />
     </div>
   );
+}
+
+/* ── 다운로드 양식 선택 dropdown — Markdown / HTML / PDF ── */
+function DownloadMenu({ page, exportMd }: { page: WikiPage; exportMd: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  function safeName(): string {
+    return page.title.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 120) || 'page';
+  }
+
+  function exportHtml() {
+    const styles = `<style>
+      body { max-width: 720px; margin: 2.5rem auto; padding: 0 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", system-ui, sans-serif; line-height: 1.78; color: #111; }
+      h1, h2, h3 { font-family: "Newsreader", "Noto Serif KR", Georgia, serif; }
+      h1 { font-size: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.4rem; }
+      h2 { font-size: 1.4rem; margin-top: 2rem; }
+      h3 { font-size: 1.15rem; }
+      p, li { font-size: 1rem; }
+      a { color: #2563eb; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      blockquote { border-left: 3px solid #d1d5db; margin: 1rem 0; padding: 0.4rem 0.8rem; color: #4b5563; }
+      code { background: #f3f4f6; padding: 0 0.3rem; border-radius: 3px; font-size: 0.92em; }
+      pre { background: #f9fafb; padding: 0.8rem; border-radius: 6px; overflow-x: auto; }
+      table { border-collapse: collapse; margin: 1rem 0; }
+      th, td { border: 1px solid #d1d5db; padding: 0.4rem 0.7rem; text-align: left; }
+      th { background: #f3f4f6; }
+      hr { border: 0; border-top: 1px solid #d1d5db; margin: 1.5rem 0; }
+      .meta { color: #6b7280; font-size: 0.85rem; margin-bottom: 1.5rem; padding-bottom: 0.8rem; border-bottom: 1px solid #e5e7eb; }
+    </style>`;
+    // 본문은 markdown raw — 사용자가 브라우저에서 보면 그대로. 마크다운 렌더는 별도로.
+    // 간단히 line-by-line 변환 (헤딩/리스트/문단)
+    const lines = page.body.split('\n');
+    const htmlLines: string[] = [];
+    let inList = false;
+    for (const ln of lines) {
+      if (/^#{1,3}\s/.test(ln)) {
+        if (inList) { htmlLines.push('</ul>'); inList = false; }
+        const m = /^(#{1,3})\s+(.*)$/.exec(ln)!;
+        htmlLines.push(`<h${m[1].length}>${escapeHtml(m[2])}</h${m[1].length}>`);
+      } else if (/^[-*]\s/.test(ln)) {
+        if (!inList) { htmlLines.push('<ul>'); inList = true; }
+        htmlLines.push(`<li>${escapeHtml(ln.replace(/^[-*]\s+/, ''))}</li>`);
+      } else if (ln.trim() === '') {
+        if (inList) { htmlLines.push('</ul>'); inList = false; }
+        htmlLines.push('');
+      } else {
+        if (inList) { htmlLines.push('</ul>'); inList = false; }
+        htmlLines.push(`<p>${escapeHtml(ln)}</p>`);
+      }
+    }
+    if (inList) htmlLines.push('</ul>');
+    const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(page.title)}</title>${styles}</head><body>
+      <div class="meta">${page.type} · ${page.status} · ${new Date(page.updatedAt).toISOString().slice(0,10)}${page.tags.length ? ' · ' + page.tags.map((t) => `#${t}`).join(' ') : ''}</div>
+      <h1>${escapeHtml(page.title)}</h1>
+      ${htmlLines.join('\n')}
+    </body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeName()}.html`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  function exportPdf() {
+    // 인쇄 미리보기 활용 — 신형 브라우저에서 *PDF 로 저장* 옵션 제공
+    // 별도 jspdf 의존성 없이 가장 안정
+    const win = window.open('', '_blank', 'width=900,height=1100');
+    if (!win) return;
+    const lines = page.body.split('\n');
+    const htmlLines: string[] = [];
+    let inList = false;
+    for (const ln of lines) {
+      if (/^#{1,3}\s/.test(ln)) {
+        if (inList) { htmlLines.push('</ul>'); inList = false; }
+        const m = /^(#{1,3})\s+(.*)$/.exec(ln)!;
+        htmlLines.push(`<h${m[1].length}>${escapeHtml(m[2])}</h${m[1].length}>`);
+      } else if (/^[-*]\s/.test(ln)) {
+        if (!inList) { htmlLines.push('<ul>'); inList = true; }
+        htmlLines.push(`<li>${escapeHtml(ln.replace(/^[-*]\s+/, ''))}</li>`);
+      } else if (ln.trim() === '') {
+        if (inList) { htmlLines.push('</ul>'); inList = false; }
+        htmlLines.push('');
+      } else {
+        if (inList) { htmlLines.push('</ul>'); inList = false; }
+        htmlLines.push(`<p>${escapeHtml(ln)}</p>`);
+      }
+    }
+    if (inList) htmlLines.push('</ul>');
+    win.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(page.title)}</title>
+      <style>
+        @page { size: A4; margin: 22mm; }
+        body { font-family: -apple-system, "Noto Sans KR", system-ui, sans-serif; line-height: 1.7; color: #111; }
+        h1, h2, h3 { font-family: "Noto Serif KR", Georgia, serif; }
+        h1 { font-size: 1.8rem; border-bottom: 1px solid #aaa; padding-bottom: 0.3rem; }
+        h2 { font-size: 1.3rem; margin-top: 1.5rem; }
+        h3 { font-size: 1.1rem; }
+        blockquote { border-left: 3px solid #999; margin: 0.8rem 0; padding: 0.3rem 0.8rem; color: #555; }
+        code { background: #f3f3f3; padding: 0 0.3rem; border-radius: 3px; }
+        .meta { color: #666; font-size: 0.85rem; margin-bottom: 1rem; }
+      </style>
+    </head><body>
+      <div class="meta">${page.type} · ${page.status} · ${new Date(page.updatedAt).toISOString().slice(0,10)}</div>
+      <h1>${escapeHtml(page.title)}</h1>
+      ${htmlLines.join('\n')}
+      <script>setTimeout(() => window.print(), 200);</script>
+    </body></html>`);
+    win.document.close();
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="h-8 px-2 inline-flex items-center gap-0.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+        title="다운로드 양식 선택"
+        aria-label="다운로드"
+      >
+        <Download className="w-3.5 h-3.5" />
+        <ChevronDown className="w-2.5 h-2.5" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 wiki-z-popover w-[180px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
+          <p className="px-3 py-1 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+            다운로드 양식
+          </p>
+          <DownloadOption icon={<FileText className="w-3.5 h-3.5" />} label="Markdown (.md)" onClick={() => { exportMd(); setOpen(false); }} hint="원본·옵시디언 호환" />
+          <DownloadOption icon={<FileCode className="w-3.5 h-3.5" />} label="HTML (.html)" onClick={() => { exportHtml(); setOpen(false); }} hint="브라우저로 보기" />
+          <DownloadOption icon={<FileType className="w-3.5 h-3.5" />} label="PDF (인쇄)" onClick={() => { exportPdf(); setOpen(false); }} hint="인쇄 → PDF 저장" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DownloadOption({
+  icon, label, onClick, hint,
+}: { icon: React.ReactNode; label: string; onClick: () => void; hint?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-foreground/85 hover:bg-accent hover:text-foreground wiki-trans-color"
+    >
+      <span className="text-muted-foreground shrink-0">{icon}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[12.5px]">{label}</span>
+        {hint && <span className="block text-[10px] text-muted-foreground/80">{hint}</span>}
+      </span>
+    </button>
+  );
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]!));
 }
