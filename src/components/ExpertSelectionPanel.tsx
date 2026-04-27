@@ -1271,35 +1271,8 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
 
   const availableExperts = experts.filter(e => !assignedExpertIds.has(e.id));
 
-  const popularCount = SIMULATION_SCENARIOS.filter(s => s.isPopular).length;
-  const totalCount = SIMULATION_SCENARIOS.length;
-
   return (
     <>
-
-      {/* Mini 가이드 스트립 — hero ↔ 카드 연결 */}
-      <div className="rounded-xl bg-gradient-to-r from-indigo-50/60 via-white to-violet-50/60 border border-slate-100 px-4 py-3 mb-4 flex items-center gap-3 sm:gap-5">
-        <ol className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 overflow-hidden">
-          {[
-            { n: 1, label: '시나리오 선택' },
-            { n: 2, label: '역할·정보 입력' },
-            { n: 3, label: '실시간 리허설' },
-          ].map((step, idx, arr) => (
-            <li key={step.n} className="flex items-center gap-2 min-w-0">
-              <span className="w-5 h-5 shrink-0 rounded-full bg-white text-indigo-600 text-[10px] font-bold border border-indigo-200 flex items-center justify-center">
-                {step.n}
-              </span>
-              <span className="text-[11.5px] text-slate-600 truncate hidden sm:inline">{step.label}</span>
-              {idx < arr.length - 1 && (
-                <span aria-hidden className="text-slate-300 text-[10px] hidden sm:inline">→</span>
-              )}
-            </li>
-          ))}
-        </ol>
-        <div className="text-[10.5px] text-slate-400 shrink-0 whitespace-nowrap">
-          🔥 {popularCount} <span className="text-slate-300 mx-0.5">·</span> 전체 {totalCount}
-        </div>
-      </div>
 
       {/* Scenario sections — 추천 / 전체 분리 */}
       {(() => {
