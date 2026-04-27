@@ -541,6 +541,29 @@ const Wiki = () => {
               setView('graph');
               setActiveId(null);
             }}
+            onCreateAndLink={async (title, type) => {
+              const { newWikiId } = await import('@/types/wiki');
+              const now = Date.now();
+              const next: WikiPage = {
+                id: newWikiId(),
+                title,
+                aliases: [],
+                type,
+                status: 'draft',
+                tags: [],
+                body: '',
+                refersTo: [],
+                cites: [],
+                inherits: [],
+                similarTo: [],
+                parentMocs: [],
+                createdAt: now,
+                updatedAt: now,
+              };
+              await upsertPage(next);
+              notify.success(`'${title}' 페이지 만들었어요`, { duration: 1800 });
+              return next;
+            }}
             onTagClick={(tag) => {
               setSidebarQuery(tag);
               setActiveId(null);

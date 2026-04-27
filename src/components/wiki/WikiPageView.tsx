@@ -34,6 +34,8 @@ interface Props {
   onTagClick?: (tag: string) => void;
   /** 방문(최근 본) 페이지 id Set — 위키링크 visited 색상 적용용. */
   visitedIds?: Set<string>;
+  /** 새 페이지 만들고 링크 — picker '새로 만들기' 탭에서 호출 */
+  onCreateAndLink?: (title: string, type: import('@/types/wiki').WikiPageType) => Promise<WikiPage> | WikiPage;
 }
 
 type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved';
@@ -57,7 +59,7 @@ function relativeTime(ts: number): string {
 export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
-  onChange, onRestore, onDelete, onToggleEdit, onOpenLink, onOpenInGlobalGraph,
+  onChange, onRestore, onDelete, onToggleEdit, onOpenLink, onOpenInGlobalGraph, onCreateAndLink,
   onTagClick, visitedIds,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
@@ -348,6 +350,7 @@ export function WikiPageView({
                   const id = await saveImage(file);
                   return `wiki-image:${id}`;
                 }}
+                onCreateAndLink={onCreateAndLink}
               />
             ) : (
               <WikiLiveEditor

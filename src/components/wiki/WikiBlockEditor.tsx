@@ -38,6 +38,8 @@ interface Props {
   onPickPage?: (insertTitle: (title: string) => void) => void;
   /** 이미지 업로드 — 본문 내 드롭/붙여넣기 시. base64 dataURL 또는 IDB blob ref 반환. */
   onUploadImage?: (file: File) => Promise<string>;
+  /** 새 페이지 만들고 링크 (picker 의 '새로 만들기' 탭) */
+  onCreateAndLink?: (title: string, type: import('@/types/wiki').WikiPageType) => Promise<WikiPage> | WikiPage;
 }
 
 /**
@@ -52,7 +54,7 @@ interface Props {
  *
  * 저장 형식: markdown (tiptap-markdown 변환). 기존 IDB body 와 100% 호환.
  */
-export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPage, onUploadImage }: Props) {
+export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPage, onUploadImage, onCreateAndLink }: Props) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -379,15 +381,19 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
           <ToolbarBtn
             active={editor.isActive('link')}
             onClick={() => {
-              const url = window.prompt('링크 URL:', editor.getAttributes('link').href ?? 'https://');
-              if (url === null) return;
-              if (url === '') {
-                editor.chain().focus().unsetLink().run();
+              // 선택 범위 캡처 후 picker 열기 (3 모드 — 검색/ID/새로 만들기)
+              const { from, to, empty } = editor.state.selection;
+              if (!empty) {
+                const text = editor.state.doc.textBetween(from, to, ' ');
+                setPickerSelText(text);
+                pickerSelRangeRef.current = { from, to };
               } else {
-                editor.chain().focus().setLink({ href: url }).run();
+                setPickerSelText('');
+                pickerSelRangeRef.current = null;
               }
+              setPickerOpen(true);
             }}
-            title="링크"
+            title="하이퍼링크 (Ctrl+K)"
           >
             <LinkIcon className="w-3.5 h-3.5" />
           </ToolbarBtn>
@@ -434,13 +440,14 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
         </div>
       )}
 
-      {/* 페이지 picker — Ctrl+K 또는 ID 기반 첨부 */}
+      {/* 페이지 picker — 3 모드 탭: 검색 / ID / 새로 만들기 */}
       <WikiPagePickerModal
         open={pickerOpen}
         pages={allPages}
         excludeId={currentId}
         initialQuery={pickerSelText}
         onPick={handlePickPage}
+        onCreateAndLink={onCreateAndLink}
         onClose={() => setPickerOpen(false)}
       />
     </div>
