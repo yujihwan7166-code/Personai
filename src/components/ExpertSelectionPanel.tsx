@@ -8,7 +8,7 @@ import {
   DEBATE_SUB_MODE_LABELS, getMainMode, DebateSettings,
   THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
   GAME_CARDS, GameCard,
-  SimulationScenario, SIMULATION_SCENARIOS, SCENARIO_CATEGORIES,
+  SimulationScenario, SIMULATION_SCENARIOS, SCENARIO_CATEGORIES, type ScenarioCategory,
   StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS,
   type PremiumDomainId,
   type AivsBattleDraft,
@@ -1228,7 +1228,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
   const [botPickerSearch, setBotPickerSearch] = useState('');
   const [simQuestion, setSimQuestion] = useState('');
   const [autoAssignRoles, setAutoAssignRoles] = useState(true);
-  const [simFilter, setSimFilter] = useState<'all' | 'roleplay' | 'consultation'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | ScenarioCategory>('all');
 
   const update = (patch: Partial<StakeholderSettings>) => onSettingsChange({ ...settings, ...patch });
 
@@ -1281,11 +1281,16 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
           .sort((a, b) => priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id));
         const rest = SIMULATION_SCENARIOS.filter(s => !s.isPopular)
           .sort((a, b) => priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id));
-        const filteredRest = simFilter === 'all' ? rest : rest.filter(s => s.simType === simFilter);
-        const restCounts = {
+        const filteredRest = categoryFilter === 'all' ? rest : rest.filter(s => s.category === categoryFilter);
+        const categoryKeys: ScenarioCategory[] = ['business', 'work', 'education', 'society', 'legal', 'family'];
+        const restCounts: Record<'all' | ScenarioCategory, number> = {
           all: rest.length,
-          roleplay: rest.filter(s => s.simType === 'roleplay').length,
-          consultation: rest.filter(s => s.simType === 'consultation').length,
+          business: rest.filter(s => s.category === 'business').length,
+          work: rest.filter(s => s.category === 'work').length,
+          education: rest.filter(s => s.category === 'education').length,
+          society: rest.filter(s => s.category === 'society').length,
+          legal: rest.filter(s => s.category === 'legal').length,
+          family: rest.filter(s => s.category === 'family').length,
         };
 
         const renderCard = (scenario: SimulationScenario, i: number) => {
@@ -1345,7 +1350,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
         };
 
         return (
-          <div className="space-y-5">
+          <div className="space-y-3">
             {/* 추천 섹션 */}
             {popular.length > 0 && (
               <section>
@@ -1359,40 +1364,37 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
               </section>
             )}
 
-            {/* Section separator */}
-            {popular.length > 0 && (
-              <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-slate-200/70 to-transparent" />
-            )}
-
             {/* 전체 섹션 */}
             <section>
-              <div className="flex items-center justify-between mb-2 px-0.5 gap-3">
+              <div className="flex items-center justify-between mb-2 px-0.5 gap-3 flex-wrap">
                 <h4 className="text-[11px] font-semibold text-slate-500 shrink-0">전체 시나리오</h4>
-                <div role="tablist" aria-label="시나리오 유형 필터" className="flex gap-1">
-                  {([
-                    { key: 'all', label: '전체', count: restCounts.all },
-                    { key: 'roleplay', label: '역할극', count: restCounts.roleplay },
-                    { key: 'consultation', label: '자문', count: restCounts.consultation },
-                  ] as const).map(chip => {
-                    const active = simFilter === chip.key;
-                    const disabled = chip.count === 0;
+                <div role="tablist" aria-label="카테고리 필터" className="flex gap-1 flex-wrap">
+                  {(['all', ...categoryKeys] as const).map(key => {
+                    const meta = key === 'all' ? null : SCENARIO_CATEGORIES[key];
+                    const label = key === 'all' ? '전체' : meta!.label;
+                    const icon = key === 'all' ? null : meta!.icon;
+                    const count = restCounts[key];
+                    const active = categoryFilter === key;
+                    const disabled = count === 0;
                     return (
                       <button
-                        key={chip.key}
+                        key={key}
                         role="tab"
                         aria-selected={active}
                         disabled={disabled}
-                        onClick={() => setSimFilter(chip.key)}
+                        onClick={() => setCategoryFilter(key)}
+                        title={key === 'all' ? '전체 시나리오' : SCENARIO_CATEGORIES[key].fullLabel}
                         className={cn(
-                          'text-[10.5px] font-medium px-2 py-0.5 rounded-md border transition-all',
+                          'text-[10.5px] font-medium px-2 py-0.5 rounded-md border transition-all inline-flex items-center gap-1',
                           active
                             ? 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
                             : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/40',
                           disabled && 'opacity-40 cursor-not-allowed hover:border-slate-200 hover:bg-white'
                         )}
                       >
-                        {chip.label}
-                        <span className={cn('ml-1 text-[9.5px]', active ? 'text-indigo-500' : 'text-slate-400')}>{chip.count}</span>
+                        {icon && <span aria-hidden>{icon}</span>}
+                        <span>{label}</span>
+                        <span className={cn('text-[9.5px]', active ? 'text-indigo-500' : 'text-slate-400')}>{count}</span>
                       </button>
                     );
                   })}
