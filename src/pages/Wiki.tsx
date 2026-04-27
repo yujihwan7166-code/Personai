@@ -106,6 +106,50 @@ const Wiki = () => {
     if (isMobile) setSidebarOpen(false);
   }, [pages, activeId, isMobile]);
 
+  /** 인기 태그로 목차(MOC) 페이지 자동 생성 — 그 태그를 가진 페이지들을 [[링크]] 로 묶음 */
+  const makeMocFromTag = useCallback(async (tag: string) => {
+    const targets = pages.filter((p) => p.tags.includes(tag));
+    if (targets.length === 0) {
+      notify.info(`#${tag} 태그를 가진 페이지가 없어요`, { duration: 2200 });
+      return;
+    }
+    const { newWikiId } = await import('@/types/wiki');
+    const now = Date.now();
+    const lines = [
+      `# ${tag} 목차`,
+      '',
+      `\`#${tag}\` 태그를 가진 ${targets.length}개 페이지를 묶어둔 길찾기 페이지.`,
+      '',
+      '## 페이지',
+      ...targets.map((p) => `- [[${p.title}]]`),
+      '',
+      '## 같이 보기',
+      '- ',
+      '',
+    ].join('\n');
+    const next: WikiPage = {
+      id: newWikiId(),
+      title: `${tag} 목차`,
+      aliases: [],
+      type: 'moc',
+      status: 'active',
+      tags: [tag, 'moc'],
+      body: lines,
+      refersTo: [],
+      cites: [],
+      inherits: [],
+      similarTo: [],
+      parentMocs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    await upsertPage(next);
+    setActiveId(next.id);
+    setEditing(false);
+    setView('page');
+    notify.success(`#${tag} 목차를 만들었어요 — ${targets.length}개 페이지`, { duration: 2200 });
+  }, [pages, upsertPage]);
+
   const handleTemplatePicked = useCallback(async (page: WikiPage) => {
     await upsertPage(page);
     setActiveId(page.id);
@@ -411,9 +455,12 @@ const Wiki = () => {
           pages.length === 0 ? (
             <WikiHome
               pages={pages}
+              favorites={favorites}
+              recent={recent}
               onSelect={(id) => setActiveId(id)}
               onCreate={openTemplatePicker}
               onCreateMissing={(title) => handleOpenByTitleOrId(title)}
+              onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
               onPickStarterPack={async (pack) => {
                 const built = pack.build();
                 for (const p of built) await upsertPage(p);
@@ -475,9 +522,12 @@ const Wiki = () => {
         ) : (
           <WikiHome
             pages={pages}
+            favorites={favorites}
+            recent={recent}
             onSelect={(id) => setActiveId(id)}
             onCreate={openTemplatePicker}
             onCreateMissing={(title) => handleOpenByTitleOrId(title)}
+            onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
             onPickStarterPack={async (pack) => {
               const built = pack.build();
               for (const p of built) await upsertPage(p);
