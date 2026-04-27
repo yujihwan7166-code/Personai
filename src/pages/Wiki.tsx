@@ -131,7 +131,8 @@ const Wiki = () => {
       id: newWikiId(),
       title: tag,
       aliases: [],
-      type: 'moc',
+      type: 'concept',
+      isMain: true,
       status: 'active',
       tags: [tag, 'main'],
       body: lines,
@@ -149,6 +150,34 @@ const Wiki = () => {
     setView('page');
     notify.success(`#${tag} 메인 문서를 만들었어요 — ${targets.length}개 페이지`, { duration: 2200 });
   }, [pages, upsertPage]);
+
+  /** '+ 새 메인 문서' — 템플릿 픽커 거치지 않고 바로 isMain=true 페이지 생성 + 편집 진입 */
+  const createMainDoc = useCallback(async () => {
+    const { newWikiId } = await import('@/types/wiki');
+    const now = Date.now();
+    const next: WikiPage = {
+      id: newWikiId(),
+      title: '새 메인 문서',
+      aliases: [],
+      type: 'concept',
+      isMain: true,
+      status: 'draft',
+      tags: ['main'],
+      body: '## 개요\n\n이 메인 문서가 다루는 범위.\n\n## 핵심 페이지\n\n- [[ ]]\n\n## 하위 주제\n\n- [[ ]]\n',
+      refersTo: [],
+      cites: [],
+      inherits: [],
+      similarTo: [],
+      parentMocs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    await upsertPage(next);
+    setActiveId(next.id);
+    setEditing(true);
+    setView('page');
+    if (isMobile) setSidebarOpen(false);
+  }, [upsertPage, isMobile]);
 
   const handleTemplatePicked = useCallback(async (page: WikiPage) => {
     await upsertPage(page);
@@ -460,6 +489,7 @@ const Wiki = () => {
               onCreate={openTemplatePicker}
               onCreateMissing={(title) => handleOpenByTitleOrId(title)}
               onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
+              onCreateMainDoc={() => { void createMainDoc(); }}
               onPickStarterPack={async (pack) => {
                 const built = pack.build();
                 for (const p of built) await upsertPage(p);
@@ -526,6 +556,7 @@ const Wiki = () => {
             onCreate={openTemplatePicker}
             onCreateMissing={(title) => handleOpenByTitleOrId(title)}
             onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
+            onCreateMainDoc={() => { void createMainDoc(); }}
             onPickStarterPack={async (pack) => {
               const built = pack.build();
               for (const p of built) await upsertPage(p);

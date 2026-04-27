@@ -34,6 +34,11 @@ export interface WikiPage {
   tags: string[];
   /** Markdown 본문. [[페이지명]] 위키링크 지원. */
   body: string;
+  /** *역할(role)* 플래그 — type 과 독립.
+   *  메인 문서는 "여러 페이지를 묶는 길찾기 허브" 역할.
+   *  type 은 (개념/출처/인물/...) 그대로 유지하면서 동시에 메인 문서일 수 있음.
+   *  legacy: type='moc' 인 페이지도 메인으로 인식 (isMainDoc 헬퍼 사용). */
+  isMain?: boolean;
   // ── 4 관계 (deep-research §관계 시각화 표 그대로) ──
   /** 일반 참조. 본문 [[link]] 파싱으로 자동 채워짐. */
   refersTo: string[];
@@ -43,11 +48,19 @@ export interface WikiPage {
   inherits: string[];
   /** 비교·유사 항목. */
   similarTo: string[];
-  /** 소속 MOC ids. */
+  /** 소속 메인 문서 ids. */
   parentMocs: string[];
   createdAt: number;
   updatedAt: number;
 }
+
+/** 메인 문서 여부 — 신규 isMain 또는 legacy type='moc'. */
+export function isMainDoc(p: { type: WikiPageType; isMain?: boolean }): boolean {
+  return !!p.isMain || p.type === 'moc';
+}
+
+/** 사용자 type 드롭다운에 노출할 type 들 (역할 'moc' 제외). */
+export const USER_FACING_TYPES: WikiPageType[] = ['concept', 'source', 'project', 'meeting', 'person', 'index'];
 
 export const WIKI_TYPE_META: Record<WikiPageType, { label: string; icon: string; tint: string; description: string }> = {
   concept: { label: '개념',     icon: '📄', tint: 'hsl(220 60% 50%)', description: '주제·용어·개념' },

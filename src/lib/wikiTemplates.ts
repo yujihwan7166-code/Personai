@@ -15,6 +15,8 @@ export interface WikiTemplate {
   defaultTitle: string;
   body: string;
   tags?: string[];
+  /** 이 템플릿으로 만든 페이지를 자동으로 *메인 문서* 역할로 표시. */
+  isMain?: boolean;
 }
 
 export const WIKI_TEMPLATES: WikiTemplate[] = [
@@ -54,9 +56,10 @@ export const WIKI_TEMPLATES: WikiTemplate[] = [
   {
     id: 'moc',
     label: '메인 문서 (주제 묶음)',
-    description: '여러 페이지를 묶는 길찾기 허브',
+    description: '여러 페이지를 묶는 길찾기 허브 — 어떤 type 든 메인 역할로',
     emoji: '📖',
-    type: 'moc',
+    type: 'concept',  // type 은 일반 (개념). 역할만 메인.
+    isMain: true,     // ← 메인 문서 역할
     defaultTitle: '새 메인 문서',
     body: `## 개요
 
@@ -207,6 +210,7 @@ export function makePageFromTemplate(t: WikiTemplate, titleOverride?: string): W
     status: 'draft',
     tags: t.tags ?? [],
     body: t.body,
+    isMain: t.isMain ?? false,
     refersTo: [],
     cites: [],
     inherits: [],

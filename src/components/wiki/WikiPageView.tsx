@@ -3,7 +3,7 @@ import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, Boo
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
-  WIKI_TYPE_META, WIKI_STATUS_META,
+  WIKI_TYPE_META, WIKI_STATUS_META, isMainDoc, USER_FACING_TYPES,
 } from '@/types/wiki';
 import { WikiBody } from './WikiBody';
 import { WikiToc } from './WikiToc';
@@ -272,21 +272,26 @@ export function WikiPageView({
                     <button onClick={onToggleEdit} className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="전체 편집 모드 (E) — 본문을 한 덩어리로 편집">
                       <Pencil className="w-3.5 h-3.5" /> 전체 편집
                     </button>
-                    {page.type !== 'moc' ? (
+                    {!isMainDoc(page) ? (
                       <button
-                        onClick={() => onChange({ ...page, type: 'moc' })}
+                        onClick={() => onChange({ ...page, isMain: true })}
                         className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-primary hover:bg-primary/10 wiki-trans-color"
-                        title="이 페이지를 메인 문서로 — 다른 페이지 묶기 시작"
+                        title="이 페이지를 메인 문서로 — 다른 페이지 묶기 시작 (type 은 그대로)"
                       >
                         <BookOpen className="w-3.5 h-3.5" /> 메인 문서로
                       </button>
                     ) : (
                       <button
-                        onClick={() => onChange({ ...page, type: 'concept' })}
+                        onClick={() => onChange({
+                          ...page,
+                          isMain: false,
+                          // legacy type='moc' 라면 일반 type 으로 강등
+                          type: page.type === 'moc' ? 'concept' : page.type,
+                        })}
                         className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
                         title="메인 문서 → 일반 문서로"
                       >
-                        <BookOpen className="w-3.5 h-3.5" /> 일반 문서로
+                        <BookOpen className="w-3.5 h-3.5" /> 메인 해제
                       </button>
                     )}
                     <button onClick={() => setHistoryOpen(true)} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="버전 히스토리" aria-label="버전 히스토리">
@@ -459,8 +464,13 @@ function MetaChips({
   if (!editing) {
     return (
       <div className="flex items-center gap-1.5 flex-wrap">
+        {isMainDoc(page) && (
+          <span className="text-[10.5px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-primary/15 text-primary inline-flex items-center gap-1">
+            📖 메인
+          </span>
+        )}
         <span className="text-[10.5px] px-2 py-0.5 rounded font-medium" style={{ backgroundColor: `${typeMeta.tint}1A`, color: typeMeta.tint }}>
-          {typeMeta.label}
+          {typeMeta.icon} {typeMeta.label}
         </span>
         <span className="text-[10.5px] px-2 py-0.5 rounded font-medium" style={{ backgroundColor: `${statusMeta.tint}1A`, color: statusMeta.tint }}>
           {statusMeta.label}
@@ -477,14 +487,29 @@ function MetaChips({
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       <select
-        value={draft.type}
+        value={USER_FACING_TYPES.includes(draft.type) ? draft.type : 'concept'}
         onChange={(e) => onChange({ ...draft, type: e.target.value as WikiPageType })}
         className="text-[11px] px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background"
       >
-        {Object.entries(WIKI_TYPE_META).map(([k, m]) => (
-          <option key={k} value={k}>{m.icon} {m.label}</option>
-        ))}
+        {USER_FACING_TYPES.map((k) => {
+          const m = WIKI_TYPE_META[k];
+          return <option key={k} value={k}>{m.icon} {m.label}</option>;
+        })}
       </select>
+      <label className="inline-flex items-center gap-1 text-[11px] px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background cursor-pointer hover:border-primary/40 wiki-trans-color">
+        <input
+          type="checkbox"
+          checked={!!draft.isMain || draft.type === 'moc'}
+          onChange={(e) => onChange({
+            ...draft,
+            isMain: e.target.checked,
+            // 토글 끄면 legacy 'moc' type 도 일반으로 정리
+            type: !e.target.checked && draft.type === 'moc' ? 'concept' : draft.type,
+          })}
+          className="accent-primary"
+        />
+        <span className="text-foreground/85">📖 메인 문서</span>
+      </label>
       <select
         value={draft.status}
         onChange={(e) => onChange({ ...draft, status: e.target.value as WikiPageStatus })}

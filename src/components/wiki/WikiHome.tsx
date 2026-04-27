@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Plus, Sparkles, ArrowRight, BookOpen, Star } from 'lucide-react';
-import { type WikiPage, WIKI_TYPE_META, extractWikiLinks } from '@/types/wiki';
+import { type WikiPage, WIKI_TYPE_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +16,8 @@ interface Props {
   onCreateMissing?: (title: string) => void;
   /** 인기 태그로 메인 문서 생성 (옵션) — 미사용 가능 */
   onMakeMocFromTag?: (tag: string) => void;
+  /** '+ 새 메인 문서' — 템플릿 픽커 거치지 않고 바로 type='moc' 페이지 만들고 진입 */
+  onCreateMainDoc?: () => void;
 }
 
 /** 30일 — 페이지 잠자는 임계 */
@@ -24,7 +26,7 @@ const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
 
 export function WikiHome({
   pages, favorites = [],
-  onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag,
+  onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag, onCreateMainDoc,
 }: Props) {
   const favSet = new Set(favorites);
   const stats = useMemo(() => {
@@ -37,7 +39,7 @@ export function WikiHome({
 
     const recent = pages.slice(0, 6); // pages 는 updatedAt desc 정렬됨
     const inbox = pages.filter((p) => p.status === 'draft').slice(0, 5);
-    const mocs = pages.filter((p) => p.type === 'moc');
+    const mocs = pages.filter((p) => isMainDoc(p));
 
     // 제목·alias → 페이지 맵 (대소문자 무시)
     const byTitle = new Map<string, WikiPage>();
@@ -45,19 +47,19 @@ export function WikiHome({
       byTitle.set(p.title.toLowerCase(), p);
       for (const a of p.aliases) byTitle.set(a.toLowerCase(), p);
     }
-    // 다른 MOC 가 참조하는 MOC = sub-MOC
+    // 다른 메인 문서가 참조하는 메인 = sub-main
     const subMocIds = new Set<string>();
     for (const m of mocs) {
       for (const t of extractWikiLinks(m.body)) {
         const target = byTitle.get(t.toLowerCase());
-        if (target && target.type === 'moc' && target.id !== m.id) {
+        if (target && isMainDoc(target) && target.id !== m.id) {
           subMocIds.add(target.id);
         }
       }
     }
-    // root-MOC = 다른 MOC 의 참조를 받지 않은 MOC (= 가장 큰 우산)
+    // root = 다른 메인이 참조 안 한 메인 (= 가장 큰 우산)
     const rootMocs = mocs.filter((m) => !subMocIds.has(m.id));
-    // 각 root-MOC 의 즉각 하위 (1-hop): 본문 [[링크]] 중 존재하는 페이지들
+    // 각 root 의 즉각 하위 (1-hop): 본문 [[링크]] 중 존재하는 페이지들
     const rootMocChildren = new Map<string, { mocs: WikiPage[]; pages: WikiPage[] }>();
     for (const m of rootMocs) {
       const childMocs: WikiPage[] = [];
@@ -67,7 +69,7 @@ export function WikiHome({
         const target = byTitle.get(t.toLowerCase());
         if (!target || target.id === m.id || seen.has(target.id)) continue;
         seen.add(target.id);
-        if (target.type === 'moc') childMocs.push(target);
+        if (isMainDoc(target)) childMocs.push(target);
         else childPages.push(target);
       }
       rootMocChildren.set(m.id, { mocs: childMocs, pages: childPages });
@@ -219,7 +221,7 @@ export function WikiHome({
         {stats.mocs.length === 0 ? (
           <EmptyMocCard
             topTags={stats.topTags}
-            onCreate={onCreate}
+            onCreate={onCreateMainDoc ?? onCreate}
             onMakeFromTag={onMakeMocFromTag}
           />
         ) : (
@@ -246,10 +248,10 @@ export function WikiHome({
                 onSelect={onSelect}
               />
             ))}
-            {/* + 새 메인 문서 */}
+            {/* + 새 메인 문서 — 템플릿 픽커 X, 바로 type='moc' 생성·진입 */}
             <button
               type="button"
-              onClick={onCreate}
+              onClick={() => (onCreateMainDoc ?? onCreate)()}
               className="group flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[11px] font-medium px-3 py-3 min-h-[120px]"
             >
               <Plus className="w-4 h-4 group-hover:scale-110 wiki-trans-base" />
