@@ -271,10 +271,11 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
     { id: 'quote', label: '인용문', keys: ['인용', 'quote'], icon: <Quote className="w-4 h-4" />, run: (e: typeof editor) => e?.chain().focus().toggleBlockquote().run() },
     { id: 'code', label: '코드 블록', keys: ['코드', 'code'], icon: <Code2 className="w-4 h-4" />, run: (e: typeof editor) => e?.chain().focus().toggleCodeBlock().run() },
     { id: 'hr', label: '구분선', keys: ['구분선', 'hr', '구분', 'divider'], icon: <Minus className="w-4 h-4" />, run: (e: typeof editor) => e?.chain().focus().setHorizontalRule().run() },
-    { id: 'wikilink', label: '🔗 페이지 링크', keys: ['링크', '페이지', 'link', 'wiki'], icon: <BookOpen className="w-4 h-4" />, run: (_e: typeof editor) => {
-      onPickPage?.((title) => {
-        editor?.chain().focus().insertContent(`[[${title}]]`).run();
-      });
+    { id: 'wikilink', label: '🔗 페이지 링크 (검색·ID·새로 만들기)', keys: ['링크', '페이지', '첨부', 'link', 'wiki'], icon: <BookOpen className="w-4 h-4" />, run: (_e: typeof editor) => {
+      // 새 picker 모달 (3 모드) 으로 — window.prompt 안 씀
+      setPickerSelText('');
+      pickerSelRangeRef.current = null;
+      setPickerOpen(true);
     } },
     { id: 'callout', label: '💡 콜아웃 (인용 박스)', keys: ['콜아웃', '박스', 'callout', '노트'], icon: <Lightbulb className="w-4 h-4" />, run: (e: typeof editor) => {
       e?.chain().focus().insertContent('> [!note]\n> 노트 내용을 입력하세요\n').run();
@@ -397,16 +398,24 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
           >
             <LinkIcon className="w-3.5 h-3.5" />
           </ToolbarBtn>
-          {onPickPage && (
-            <ToolbarBtn
-              onClick={() => onPickPage((title) => {
-                editor.chain().focus().insertContent(`[[${title}]]`).run();
-              })}
-              title="페이지 링크 (Ctrl+Shift+L)"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-            </ToolbarBtn>
-          )}
+          <ToolbarBtn
+            onClick={() => {
+              // 선택 텍스트 있으면 ID 링크, 없으면 [[제목]] 인라인
+              const { from, to, empty } = editor.state.selection;
+              if (!empty) {
+                const text = editor.state.doc.textBetween(from, to, ' ');
+                setPickerSelText(text);
+                pickerSelRangeRef.current = { from, to };
+              } else {
+                setPickerSelText('');
+                pickerSelRangeRef.current = null;
+              }
+              setPickerOpen(true);
+            }}
+            title="페이지 첨부 (검색·ID·새로 만들기)"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+          </ToolbarBtn>
         </div>
       </BubbleMenu>
 
