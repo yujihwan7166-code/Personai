@@ -39,21 +39,34 @@ export function PageNotesView({
   const sortedNotes = useMemo(() => [...notes].sort((a, b) => a.page - b.page), [notes]);
 
   // 챕터 자동 fetch — UI 는 숨겼지만 본문 로드 위해 모든 chunk 백그라운드 fetch.
-  // 한 번만 실행 (chunk id 집합 변경 감지).
+  // [중요] 동시 호출 폭주 방지 — 1.5초 stagger 로 순차 트리거.
+  // 한 번 fetch 한 chunk id 는 ref 에 기록해 재실행 시 스킵.
   const fetchedChunksRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!chunks || chunks.length === 0) return;
-    for (const chunk of chunks) {
-      if (fetchedChunksRef.current.has(chunk.id)) continue;
-      const needsFetch = chunk.pages.some((p) => {
-        const note = noteByPage.get(p);
-        return note && !note.body && note.kind !== 'image-only' && note.status !== 'error';
-      });
-      if (needsFetch) {
-        fetchedChunksRef.current.add(chunk.id);
-        onLoadChunkDetail(chunk);
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const fireNext = (idx: number) => {
+      if (cancelled || idx >= chunks.length) return;
+      const chunk = chunks[idx];
+      if (!fetchedChunksRef.current.has(chunk.id)) {
+        const needsFetch = chunk.pages.some((p) => {
+          const note = noteByPage.get(p);
+          return note && !note.body && note.kind !== 'image-only' && note.status !== 'error';
+        });
+        if (needsFetch) {
+          fetchedChunksRef.current.add(chunk.id);
+          onLoadChunkDetail(chunk);
+        }
       }
-    }
+      timeoutId = setTimeout(() => fireNext(idx + 1), 1500);
+    };
+    fireNext(0);
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [chunks, noteByPage, onLoadChunkDetail]);
 
   return (

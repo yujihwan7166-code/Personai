@@ -48,13 +48,19 @@ export function StudyNotebookView({
 
   // 노트북 진입 즉시 백그라운드 OCR + Vision 자동 시동.
   // PdfViewer 진입을 기다리지 않음 — 노트정리만 쓰는 흐름도 지원.
+  // [중요] stale closure 회피: 항상 최신 notebook 을 ref 로 보존하고,
+  // callback 내부에서 ref 의 현재값을 사용. 빠르게 연속 OCR page 완료가
+  // 와도 이전 update 가 덮이지 않음.
+  const notebookRef = useRef(notebook);
+  notebookRef.current = notebook;
   const handleAutoOcrUpdate = useCallback((sourceId: string, content: string) => {
+    const current = notebookRef.current;
     onChange({
-      ...notebook,
-      sources: notebook.sources.map((s) => s.id === sourceId ? { ...s, content } : s),
+      ...current,
+      sources: current.sources.map((s) => s.id === sourceId ? { ...s, content } : s),
       updatedAt: Date.now(),
     });
-  }, [notebook, onChange]);
+  }, [onChange]);
   const ocrProgress = useStudyAutoOcr(notebook, handleAutoOcrUpdate);
 
   useEffect(() => {
