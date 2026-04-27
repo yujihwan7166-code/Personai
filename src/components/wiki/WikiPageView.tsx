@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, BookOpen, Home, ChevronDown, FileText, FileType, FileCode } from 'lucide-react';
+import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, BookOpen, Home, ChevronDown, FileText, FileType, FileCode, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
   WIKI_TYPE_META, WIKI_STATUS_META, isMainDoc, USER_FACING_TYPES,
+  extractWikiLinks,
 } from '@/types/wiki';
 import { WikiBody } from './WikiBody';
 import { WikiToc } from './WikiToc';
@@ -217,6 +218,8 @@ export function WikiPageView({
         <article className="min-w-0">
           {/* 제목 + 액션 */}
           <header className="mb-4 pb-3 border-b border-[hsl(var(--hairline))]">
+            {/* 부모 메인 칩 — 일반 문서이고 비편집 모드일 때만 */}
+            {!editing && !isMainDoc(page) && <ParentMainsRow page={page} allPages={allPages} onOpen={onOpenLink} />}
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 {editing ? (
@@ -675,4 +678,63 @@ function DownloadOption({
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]!));
+}
+
+/* ── 부모 메인 칩 줄 — 일반 문서 뷰어 상단 ── */
+function ParentMainsRow({
+  page, allPages, onOpen,
+}: {
+  page: WikiPage;
+  allPages: WikiPage[];
+  onOpen: (titleOrId: string) => void;
+}) {
+  const parents = (() => {
+    const out: WikiPage[] = [];
+    const myTitle = page.title.toLowerCase();
+    const myAliases = page.aliases.map((a) => a.toLowerCase());
+    for (const m of allPages) {
+      if (!isMainDoc(m) || m.id === page.id) continue;
+      const links = extractWikiLinks(m.body);
+      const hit = links.some((t) => {
+        const tl = t.toLowerCase();
+        return tl === myTitle || myAliases.includes(tl) || tl === page.id;
+      });
+      if (hit) out.push(m);
+    }
+    return out;
+  })();
+
+  if (parents.length === 0) return null;
+
+  const SHOW = 3;
+  const visible = parents.slice(0, SHOW);
+  const overflow = parents.length - visible.length;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 mb-2 text-[11px]">
+      <span className="text-muted-foreground/70 inline-flex items-center gap-1">
+        <BookOpen className="w-3 h-3" /> in
+      </span>
+      {visible.map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          onClick={() => onOpen(m.id)}
+          className="group inline-flex items-center gap-0.5 pl-2 pr-1.5 h-6 rounded-md bg-primary/10 text-primary hover:bg-primary/20 wiki-trans-color font-semibold"
+          title={`${m.title} 메인 문서로 이동`}
+        >
+          <span className="truncate max-w-[180px]">{m.title}</span>
+          <ArrowRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 wiki-trans-color" />
+        </button>
+      ))}
+      {overflow > 0 && (
+        <span
+          className="text-[10.5px] text-muted-foreground/80"
+          title={parents.slice(SHOW).map((m) => m.title).join(', ')}
+        >
+          + 외 {overflow}
+        </span>
+      )}
+    </div>
+  );
 }
