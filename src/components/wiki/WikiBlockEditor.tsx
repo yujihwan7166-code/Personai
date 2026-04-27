@@ -7,7 +7,7 @@ import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Image from '@tiptap/extension-image';
-import { TextStyle, Color, FontSize } from '@tiptap/extension-text-style';
+import { TextStyleKit } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
@@ -81,9 +81,7 @@ export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: P
       TaskList,
       TaskItem.configure({ nested: true }),
       Image.configure({ HTMLAttributes: { class: 'wiki-image' } }),
-      TextStyle,
-      Color,
-      FontSize,
+      TextStyleKit.configure({ lineHeight: false, fontFamily: false }),
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Underline,
