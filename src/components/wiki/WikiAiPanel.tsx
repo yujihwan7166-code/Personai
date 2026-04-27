@@ -74,7 +74,7 @@ const EXAMPLES_PAGE = [
 const EXAMPLES_GLOBAL = [
   '내 위키 전체 흐름 한눈에 정리해줘',
   '오랫동안 안 본 페이지 알려줘',
-  '비슷한 주제로 묶어서 MOC 만들 후보',
+  '비슷한 주제로 묶어서 메인 문서 만들 후보',
 ];
 
 /** 실 AI 통합 전 임시 응답기. 추후 useWikiAiProvider 훅으로 교체. */

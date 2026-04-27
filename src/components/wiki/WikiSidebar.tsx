@@ -19,7 +19,7 @@ type Filter = 'all' | 'moc' | 'source' | 'draft';
 
 const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: 'all',    label: '전체' },
-  { id: 'moc',    label: '🗺 MOC' },
+  { id: 'moc',    label: '📖 메인' },
   { id: 'source', label: '📚 출처' },
   { id: 'draft',  label: '🚧 초안' },
 ];

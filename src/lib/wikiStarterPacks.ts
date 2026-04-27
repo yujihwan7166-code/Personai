@@ -1,6 +1,6 @@
 /**
  * 빈 위키 온보딩 — 첫 진입 사용자용 4 스타터 팩.
- * 각 팩은 (대문 MOC + 시드 페이지 3~5개) 묶음. 사용자가 1초 안에
+ * 각 팩은 (대문 + 메인 문서 + 시드 페이지 3~5개) 묶음. 사용자가 1초 안에
  * "내 위키구나" 체감하도록 *비어있지 않은 출발점* 을 제공.
  */
 
@@ -92,7 +92,7 @@ export const STARTER_PACKS: StarterPack[] = [
           title: '독서 메모',
           type: 'moc',
           tags: ['reading'],
-          body: `# 독서 메모 (MOC)
+          body: `# 독서 메모 (메인 문서)
 
 읽은 책을 모은 길찾기 허브.
 
@@ -148,7 +148,7 @@ URL·논문·강의 링크를 모음. 각 항목은 type='source' 페이지로.
           title: '연구 주제',
           type: 'moc',
           tags: ['topic'],
-          body: `# 연구 주제 (MOC)
+          body: `# 연구 주제 (메인 문서)
 
 - 핵심 질문:
 - 가설:
@@ -233,7 +233,7 @@ URL·논문·강의 링크를 모음. 각 항목은 type='source' 페이지로.
           title: '회의록',
           type: 'moc',
           tags: ['meeting'],
-          body: `# 회의록 (MOC)
+          body: `# 회의록 (메인 문서)
 
 각 회의는 type='meeting' 페이지. 액션 추출은 본문 체크리스트로.
 
@@ -245,7 +245,7 @@ URL·논문·강의 링크를 모음. 각 항목은 type='source' 페이지로.
           title: '프로젝트',
           type: 'moc',
           tags: ['project'],
-          body: `# 프로젝트 (MOC)
+          body: `# 프로젝트 (메인 문서)
 
 진행 중·보류·완료 분리.
 
@@ -261,7 +261,7 @@ URL·논문·강의 링크를 모음. 각 항목은 type='source' 페이지로.
           title: '사람들',
           type: 'moc',
           tags: ['person'],
-          body: `# 사람들 (MOC)
+          body: `# 사람들 (메인 문서)
 
 각 인물은 type='person' 페이지. 누가 무엇을 결정했는지 역추적.
 
@@ -300,7 +300,7 @@ URL·논문·강의 링크를 모음. 각 항목은 type='source' 페이지로.
           title: '영화·드라마',
           type: 'moc',
           tags: ['film'],
-          body: `# 영화·드라마 (MOC)
+          body: `# 영화·드라마 (메인 문서)
 
 본 작품·보고싶은 작품 분리.
 
@@ -316,7 +316,7 @@ URL·논문·강의 링크를 모음. 각 항목은 type='source' 페이지로.
           title: '게임',
           type: 'moc',
           tags: ['game'],
-          body: `# 게임 (MOC)
+          body: `# 게임 (메인 문서)
 
 플레이 중·완료·관심 분리.
 
@@ -332,7 +332,7 @@ URL·논문·강의 링크를 모음. 각 항목은 type='source' 페이지로.
           title: '여행',
           type: 'moc',
           tags: ['travel'],
-          body: `# 여행 (MOC)
+          body: `# 여행 (메인 문서)
 
 다녀온 곳·가고싶은 곳.
 

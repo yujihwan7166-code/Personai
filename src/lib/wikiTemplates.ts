@@ -53,16 +53,16 @@ export const WIKI_TEMPLATES: WikiTemplate[] = [
   },
   {
     id: 'moc',
-    label: 'MOC (주제 지도)',
+    label: '메인 문서 (주제 묶음)',
     description: '여러 페이지를 묶는 길찾기 허브',
-    emoji: '🗺️',
+    emoji: '📖',
     type: 'moc',
-    defaultTitle: '새 MOC',
+    defaultTitle: '새 메인 문서',
     body: `## 개요
 
-이 MOC 가 다루는 범위와 제외 범위를 한두 문장으로.
+이 메인 문서가 다루는 범위와 제외 범위를 한두 문장으로.
 
-## 핵심 문서
+## 핵심 페이지
 
 - [[ ]]
 
@@ -79,7 +79,7 @@ export const WIKI_TEMPLATES: WikiTemplate[] = [
 
 - [[ ]]
 `,
-    tags: ['moc'],
+    tags: ['main'],
   },
   {
     id: 'source',

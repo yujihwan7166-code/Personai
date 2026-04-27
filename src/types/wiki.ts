@@ -51,7 +51,7 @@ export interface WikiPage {
 
 export const WIKI_TYPE_META: Record<WikiPageType, { label: string; icon: string; tint: string; description: string }> = {
   concept: { label: '개념',     icon: '📄', tint: 'hsl(220 60% 50%)', description: '주제·용어·개념' },
-  moc:     { label: 'MOC',      icon: '🗺️', tint: 'hsl(45 85% 50%)',  description: '주제 지도 — 길찾기 허브' },
+  moc:     { label: '메인 문서', icon: '📖', tint: 'hsl(45 85% 50%)',  description: '여러 페이지를 묶는 길찾기 문서' },
   source:  { label: '출처',     icon: '📚', tint: 'hsl(150 55% 42%)', description: '책·논문·아티클' },
   project: { label: '프로젝트', icon: '🚀', tint: 'hsl(280 60% 55%)', description: '진행 중 프로젝트' },
   meeting: { label: '회의',     icon: '🗣️', tint: 'hsl(195 60% 45%)', description: '회의·결정 기록' },

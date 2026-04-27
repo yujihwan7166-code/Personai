@@ -106,7 +106,7 @@ const Wiki = () => {
     if (isMobile) setSidebarOpen(false);
   }, [pages, activeId, isMobile]);
 
-  /** 인기 태그로 목차(MOC) 페이지 자동 생성 — 그 태그를 가진 페이지들을 [[링크]] 로 묶음 */
+  /** 인기 태그로 메인 문서 자동 생성 — 그 태그를 가진 페이지들을 [[링크]] 로 묶음 */
   const makeMocFromTag = useCallback(async (tag: string) => {
     const targets = pages.filter((p) => p.tags.includes(tag));
     if (targets.length === 0) {
@@ -116,9 +116,9 @@ const Wiki = () => {
     const { newWikiId } = await import('@/types/wiki');
     const now = Date.now();
     const lines = [
-      `# ${tag} 목차`,
+      `# ${tag}`,
       '',
-      `\`#${tag}\` 태그를 가진 ${targets.length}개 페이지를 묶어둔 길찾기 페이지.`,
+      `\`#${tag}\` 태그를 가진 ${targets.length}개 페이지를 묶어둔 메인 문서.`,
       '',
       '## 페이지',
       ...targets.map((p) => `- [[${p.title}]]`),
@@ -129,11 +129,11 @@ const Wiki = () => {
     ].join('\n');
     const next: WikiPage = {
       id: newWikiId(),
-      title: `${tag} 목차`,
+      title: tag,
       aliases: [],
       type: 'moc',
       status: 'active',
-      tags: [tag, 'moc'],
+      tags: [tag, 'main'],
       body: lines,
       refersTo: [],
       cites: [],
@@ -147,7 +147,7 @@ const Wiki = () => {
     setActiveId(next.id);
     setEditing(false);
     setView('page');
-    notify.success(`#${tag} 목차를 만들었어요 — ${targets.length}개 페이지`, { duration: 2200 });
+    notify.success(`#${tag} 메인 문서를 만들었어요 — ${targets.length}개 페이지`, { duration: 2200 });
   }, [pages, upsertPage]);
 
   const handleTemplatePicked = useCallback(async (page: WikiPage) => {

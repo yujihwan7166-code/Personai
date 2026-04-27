@@ -14,7 +14,7 @@ interface Props {
   onPickStarterPack?: (pack: StarterPack) => void | Promise<void>;
   /** Wanted 링크 클릭 시 — 그 제목으로 새 draft 페이지 생성 + 진입 */
   onCreateMissing?: (title: string) => void;
-  /** 인기 태그로 목차 생성 (옵션) — 미사용 가능 */
+  /** 인기 태그로 메인 문서 생성 (옵션) — 미사용 가능 */
   onMakeMocFromTag?: (tag: string) => void;
 }
 
@@ -174,7 +174,7 @@ export function WikiHome({
             대문
           </h1>
           <p className="text-[12px] text-muted-foreground mt-2">
-            최근 · 초안 · 목차 · 연결 · 만들 · 잠자 — 한눈에.
+            메인 문서 · 최근 · 초안 · 연결 · 만들 · 잠자 — 한눈에.
           </p>
         </div>
         <p className="text-[11px] text-muted-foreground pb-1 font-mono inline-flex items-center gap-2">
@@ -194,7 +194,7 @@ export function WikiHome({
         </p>
       </header>
 
-      {/* 📚 목차 — featured. root-MOC = 큰 hero 카드, sub-MOC = 작은 카드 */}
+      {/* 📖 메인 문서 — featured. root = 큰 hero 카드, sub = 작은 카드 */}
       <section className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <BookOpen className="w-4 h-4 text-primary" />
@@ -202,7 +202,7 @@ export function WikiHome({
             className="text-[17px] font-bold text-foreground"
             style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
           >
-            목차
+            메인 문서
           </h2>
           <span className="text-[11px] text-muted-foreground/80">— 주제별 묶음</span>
           <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
@@ -241,11 +241,11 @@ export function WikiHome({
               ))}
             </div>
 
-            {/* sub-MOC 작은 칩 줄 (있을 때만) */}
+            {/* sub 작은 칩 줄 (있을 때만) */}
             {stats.mocs.some((m) => stats.subMocIds.has(m.id)) && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 <span className="inline-flex items-center text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 mr-1">
-                  하위 목차
+                  하위 문서
                 </span>
                 {stats.mocs.filter((m) => stats.subMocIds.has(m.id)).map((m) => (
                   <button
@@ -266,7 +266,7 @@ export function WikiHome({
               onClick={onCreate}
               className="group inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[11.5px] font-medium px-3 py-1.5"
             >
-              <Plus className="w-3 h-3 group-hover:scale-110 wiki-trans-base" /> 새 목차
+              <Plus className="w-3 h-3 group-hover:scale-110 wiki-trans-base" /> 새 메인 문서
             </button>
           </>
         )}
@@ -407,7 +407,7 @@ function Section({
   );
 }
 
-/* ── Root 목차 hero 카드 — 가장 큰 우산 + 하위 구조 미리보기 ── */
+/* ── Root 메인 문서 hero 카드 — 가장 큰 우산 + 하위 구조 미리보기 ── */
 function RootMocCard({
   page, isFav, childMocs, childPages, onSelect,
 }: {
@@ -432,7 +432,7 @@ function RootMocCard({
         <div className="flex items-center gap-2 mb-1.5">
           <span className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[9.5px] font-mono font-bold uppercase tracking-wider bg-primary/15 text-primary">
             <BookOpen className="w-2.5 h-2.5" />
-            ROOT
+            메인
           </span>
           {isFav && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />}
           <span className="ml-auto text-[10.5px] font-mono text-muted-foreground">
@@ -455,7 +455,7 @@ function RootMocCard({
         <div className="pl-6 pr-3 pb-3 space-y-0.5">
           {childMocs.length > 0 && (
             <p className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70 mb-1 mt-0.5">
-              하위 목차
+              하위 문서
             </p>
           )}
           {childMocs.slice(0, 4).map((m) => (
@@ -473,7 +473,7 @@ function RootMocCard({
             </button>
           ))}
           {childMocs.length > 4 && (
-            <p className="px-2 text-[10px] text-muted-foreground/70">+ 외 {childMocs.length - 4}개 하위 목차</p>
+            <p className="px-2 text-[10px] text-muted-foreground/70">+ 외 {childMocs.length - 4}개 하위 문서</p>
           )}
 
           {childPages.length > 0 && (
@@ -510,7 +510,7 @@ function RootMocCard({
   );
 }
 
-/* ── 목차 빈 상태 — 인기 태그로 자동 생성 CTA ── */
+/* ── 메인 문서 빈 상태 — 인기 태그로 자동 생성 CTA ── */
 function EmptyMocCard({
   topTags, onCreate, onMakeFromTag,
 }: {
@@ -526,10 +526,10 @@ function EmptyMocCard({
         className="text-[15px] font-bold text-foreground mb-1.5"
         style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
       >
-        아직 목차가 없어요
+        아직 메인 문서가 없어요
       </p>
       <p className="text-[11.5px] text-muted-foreground leading-relaxed mb-4 max-w-md mx-auto">
-        목차는 비슷한 페이지를 모아 <em className="not-italic font-semibold text-foreground/80">길찾기</em> 역할을 해요.<br />
+        메인 문서는 비슷한 페이지를 모아 <em className="not-italic font-semibold text-foreground/80">길찾기 허브</em> 역할을 해요.<br />
         50페이지 넘어가면 검색만으론 부족해서 — 진입점이 필요해져요.
       </p>
       {onMakeFromTag && topTags.length > 0 && (
@@ -544,7 +544,7 @@ function EmptyMocCard({
                 type="button"
                 onClick={() => onMakeFromTag(tag)}
                 className="group inline-flex items-center gap-1 px-2.5 h-7 rounded-md bg-primary/10 text-primary text-[11.5px] font-semibold hover:bg-primary hover:text-primary-foreground wiki-trans-base hover:shadow-sm"
-                title={`#${tag} 태그를 가진 ${n}개 페이지로 목차 자동 생성`}
+                title={`#${tag} 태그를 가진 ${n}개 페이지로 메인 문서 자동 생성`}
               >
                 <Plus className="w-2.5 h-2.5" />
                 <span>#{tag}</span>
@@ -559,7 +559,7 @@ function EmptyMocCard({
         onClick={onCreate}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
       >
-        <Plus className="w-3 h-3" /> 빈 목차 직접 만들기
+        <Plus className="w-3 h-3" /> 빈 메인 문서 직접 만들기
       </button>
     </div>
   );
