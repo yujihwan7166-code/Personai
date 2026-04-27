@@ -1235,6 +1235,18 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
   const assignedExpertIds = new Set(Object.values(settings.roleAssignments));
   const intensityLabel = settings.intensity <= 3 ? '건설적' : settings.intensity <= 6 ? '균형' : '날카로운';
 
+  // ESC 키로 모달 닫기 (Step1 → Step2 순서)
+  useEffect(() => {
+    if (!selectedScenario && !step2Scenario) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (step2Scenario) setStep2Scenario(null);
+      else if (selectedScenario) setSelectedScenario(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedScenario, step2Scenario]);
+
   const handleSelectScenario = (scenario: SimulationScenario) => {
     setSelectedScenario(scenario);
     update({ scenarioId: scenario.id, roleAssignments: {}, intensity: scenario.defaultIntensity, prepAnswers: {} });
@@ -1266,7 +1278,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
     <>
 
       {/* Mini 가이드 스트립 — hero ↔ 카드 연결 */}
-      <div className="rounded-xl bg-gradient-to-r from-indigo-50/60 via-white to-violet-50/60 border border-slate-100 px-4 py-3 mb-3 flex items-center gap-3 sm:gap-5">
+      <div className="rounded-xl bg-gradient-to-r from-indigo-50/60 via-white to-violet-50/60 border border-slate-100 px-4 py-3 mb-4 flex items-center gap-3 sm:gap-5">
         <ol className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 overflow-hidden">
           {[
             { n: 1, label: '시나리오 선택' },
@@ -1372,6 +1384,11 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
               </section>
             )}
 
+            {/* Section separator */}
+            {popular.length > 0 && (
+              <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-slate-200/70 to-transparent" />
+            )}
+
             {/* 전체 섹션 */}
             <section>
               <div className="flex items-center justify-between mb-2 px-0.5 gap-3">
@@ -1424,7 +1441,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
       {selectedScenario && selectedScenario.simType === 'roleplay' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedScenario(null)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div className="relative w-full max-w-[520px] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+          <div role="dialog" aria-modal="true" aria-labelledby="sim-step1-title" className="relative w-full max-w-[520px] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}>
 
             {/* Header — gradient top stripe + content */}
@@ -1432,7 +1449,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
             <div className={`shrink-0 px-5 py-4 bg-gradient-to-br ${selectedScenario.gradient} relative`}>
               <div className="absolute top-3 right-3 flex items-center gap-2">
                 <span className="text-[10px] font-bold text-slate-500/90 px-1.5 py-0.5 rounded bg-white/60 backdrop-blur-sm">1/2</span>
-                <button onClick={() => setSelectedScenario(null)} className="p-1 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-white/50 transition-colors">
+                <button onClick={() => setSelectedScenario(null)} aria-label="닫기" className="p-1 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-white/50 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1440,7 +1457,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                 <span className="text-[34px] leading-none">{selectedScenario.icon}</span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="text-[16px] font-bold text-slate-800">{selectedScenario.name}</h3>
+                    <h3 id="sim-step1-title" className="text-[16px] font-bold text-slate-800">{selectedScenario.name}</h3>
                     <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/70 text-slate-500 border border-slate-200/70">
                       {selectedScenario.simType === 'roleplay' ? '역할극' : '자문'}
                     </span>
@@ -1680,7 +1697,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
       {step2Scenario && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setStep2Scenario(null)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div className="relative w-full max-w-[520px] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-labelledby="sim-step2-title" className="relative w-full max-w-[520px] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Gradient top stripe — Step1 과 시각 연속성 */}
             <div className={`shrink-0 h-1.5 bg-gradient-to-r ${step2Scenario.gradient}`} />
             {/* 헤더 */}
@@ -1689,10 +1706,10 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                 {step2Scenario.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-[15px] font-bold text-slate-800 truncate">{step2Scenario.name}</h3>
+                <h3 id="sim-step2-title" className="text-[15px] font-bold text-slate-800 truncate">{step2Scenario.name}</h3>
                 <p className="text-[11px] text-slate-500"><span className="font-semibold text-slate-400">2/2</span> · 세부 사항</p>
               </div>
-              <button onClick={() => setStep2Scenario(null)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
+              <button onClick={() => setStep2Scenario(null)} aria-label="닫기" className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
                 <X className="w-4 h-4 text-slate-400" />
               </button>
             </div>
