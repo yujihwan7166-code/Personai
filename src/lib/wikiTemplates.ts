@@ -198,6 +198,213 @@ export const WIKI_TEMPLATES: WikiTemplate[] = [
 - [[ ]]
 `,
   },
+  {
+    id: 'reading',
+    label: '독서 노트',
+    description: '책 읽으며 정리 — 요약·인용·적용',
+    emoji: '📚',
+    type: 'source',
+    defaultTitle: '새 책',
+    body: `## 메타
+
+- **저자**:${' '}
+- **출판**:${' '}
+- **읽은 기간**:${' '}
+- **별점**: ⭐⭐⭐⭐⭐
+
+## 한 줄 요약
+
+>
+
+## 핵심 요점
+
+-
+
+## 인상 깊은 인용
+
+> "..."
+
+## 적용·아이디어
+
+-
+
+## 같이 보기
+
+- [[ ]]
+`,
+    tags: ['reading'],
+  },
+  {
+    id: 'movie',
+    label: '영화·드라마',
+    description: '본 작품 — 줄거리·인물·감상',
+    emoji: '🎬',
+    type: 'concept',
+    defaultTitle: '새 영화',
+    body: `## 메타
+
+- **감독/연출**:${' '}
+- **개봉**:${' '}
+- **장르**:${' '}
+- **별점**: ⭐⭐⭐⭐⭐
+
+## 줄거리 (스포 주의)
+
+-
+
+## 인물
+
+- [[ ]]
+
+## 감상
+
+-
+
+## 명장면·명대사
+
+-
+`,
+    tags: ['film'],
+  },
+  {
+    id: 'travel',
+    label: '여행 기록',
+    description: '장소·일정·맛집·인상',
+    emoji: '✈️',
+    type: 'project',
+    defaultTitle: '새 여행',
+    body: `## 메타
+
+- **장소**:${' '}
+- **기간**:${' '}
+- **동행**:${' '}
+
+## 일정
+
+- Day 1 —${' '}
+- Day 2 —${' '}
+
+## 맛집·카페
+
+-
+
+## 인상에 남은 것
+
+-
+
+## 다음에 또 가면
+
+-
+
+## 사진
+
+-
+`,
+    tags: ['travel'],
+  },
+  {
+    id: 'study',
+    label: '학습 노트',
+    description: '주제 공부 — 핵심·예시·질문',
+    emoji: '🎓',
+    type: 'concept',
+    defaultTitle: '새 학습',
+    body: `## 한 줄 정의
+
+>
+
+## 왜 중요한가
+
+-
+
+## 핵심 개념
+
+###${' '}
+-
+
+## 예시
+
+-
+
+## 헷갈리는 부분 / 질문
+
+-
+
+## 같이 보기
+
+- [[ ]]
+`,
+    tags: ['study'],
+  },
+  {
+    id: 'decision',
+    label: '결정 기록',
+    description: '의사결정 — 선택지·근거·결과',
+    emoji: '🤔',
+    type: 'meeting',
+    defaultTitle: '새 결정',
+    body: `## 결정 (한 줄)
+
+> ____ 을 ____ 하기로
+
+## 배경
+
+- 왜 결정이 필요했나?
+
+## 선택지
+
+- A: ${' '}
+- B: ${' '}
+- C: ${' '}
+
+## 결정 근거
+
+-
+
+## 결과 (시간 흐른 뒤 추가)
+
+-
+
+## 같이 보기
+
+- [[ ]]
+`,
+    tags: ['decision'],
+  },
+  {
+    id: 'recipe',
+    label: '레시피',
+    description: '요리 — 재료·만드는 법·팁',
+    emoji: '🍳',
+    type: 'concept',
+    defaultTitle: '새 레시피',
+    body: `## 메타
+
+- **분량**: 1인분
+- **소요 시간**: 약 30분
+- **난이도**: ⭐⭐
+
+## 재료
+
+- 주재료:${' '}
+- 양념:${' '}
+
+## 만드는 법
+
+1.${' '}
+2.${' '}
+3.${' '}
+
+## 팁
+
+-
+
+## 변형·응용
+
+-
+`,
+    tags: ['recipe', 'cooking'],
+  },
 ];
 
 export function makePageFromTemplate(t: WikiTemplate, titleOverride?: string): WikiPage {
