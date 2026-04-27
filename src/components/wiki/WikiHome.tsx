@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, Sparkles, ArrowRight, BookOpen, Star } from 'lucide-react';
-import { type WikiPage, WIKI_TYPE_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
+import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 import { cn } from '@/lib/utils';
 
@@ -111,7 +111,10 @@ export function WikiHome({
       .filter((p) => p.status === 'active' && p.updatedAt < cutoff)
       .slice(0, 5);
 
-    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, rootMocChildren, subMocIds, orphans, topTags, wanted, stale };
+    // 일반 문서 = 메인 문서 아닌 페이지 (대문 'index' 도 메인성이라 제외)
+    const regulars = pages.filter((p) => !isMainDoc(p) && p.type !== 'index');
+
+    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -265,6 +268,11 @@ export function WikiHome({
         )}
       </section>
 
+      {/* 📄 일반 문서 — 메인 아닌 모든 페이지 리스트 */}
+      {stats.regulars.length > 0 && (
+        <RegularDocsSection pages={stats.regulars} onSelect={onSelect} />
+      )}
+
       {/* 5 카드 그리드 — 최근/초안/연결/만들/잠자 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 최근 수정 */}
@@ -397,6 +405,150 @@ function Section({
         <ul className="space-y-0.5">{children}</ul>
       )}
     </div>
+  );
+}
+
+/* ── 일반 문서 섹션 — 메인 아닌 모든 페이지, 타입 필터 + 리스트 ── */
+function RegularDocsSection({
+  pages, onSelect,
+}: {
+  pages: WikiPage[];
+  onSelect: (id: string) => void;
+}) {
+  const [typeFilter, setTypeFilter] = useState<WikiPage['type'] | 'all'>('all');
+  const [expanded, setExpanded] = useState(false);
+
+  // 사용 중인 타입만 칩으로 노출 (use)
+  const usedTypes = useMemo(() => {
+    const s = new Set<WikiPage['type']>();
+    for (const p of pages) s.add(p.type);
+    return Array.from(s);
+  }, [pages]);
+
+  const filtered = useMemo(() => {
+    if (typeFilter === 'all') return pages;
+    return pages.filter((p) => p.type === typeFilter);
+  }, [pages, typeFilter]);
+
+  const COLLAPSED = 12;
+  const visible = expanded ? filtered : filtered.slice(0, COLLAPSED);
+  const hidden = filtered.length - visible.length;
+
+  return (
+    <section className="mb-6">
+      <div className="flex items-center gap-2 mb-2.5">
+        <span aria-hidden className="text-[14px]">📄</span>
+        <h2
+          className="text-[15px] font-bold text-foreground"
+          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+        >
+          일반 문서
+        </h2>
+        <span className="text-[10.5px] text-muted-foreground/80">— 메인이 아닌 페이지</span>
+        <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
+        <span className="text-[11px] font-mono font-bold text-muted-foreground">
+          <span className="text-foreground/85">{filtered.length}</span>
+          {typeFilter !== 'all' && pages.length !== filtered.length && (
+            <span className="text-muted-foreground/60"> / {pages.length}</span>
+          )}
+        </span>
+      </div>
+
+      {/* 타입 필터 칩 */}
+      {usedTypes.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1 mb-2">
+          <button
+            type="button"
+            onClick={() => setTypeFilter('all')}
+            className={cn(
+              'inline-flex items-center px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+              typeFilter === 'all'
+                ? 'bg-primary/10 text-primary font-semibold'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+          >
+            전체 {pages.length}
+          </button>
+          {usedTypes.map((t) => {
+            const m = WIKI_TYPE_META[t];
+            const count = pages.filter((p) => p.type === t).length;
+            const active = typeFilter === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTypeFilter(t)}
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+                  active
+                    ? 'bg-primary/10 text-primary font-semibold'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+              >
+                <span aria-hidden className="text-[12px] leading-none">{m.icon}</span>
+                {m.label}
+                <span className="text-[9.5px] font-mono opacity-70">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 리스트 — 2 col 그리드 */}
+      <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-2">
+        {filtered.length === 0 ? (
+          <p className="text-[11.5px] text-muted-foreground/70 py-3 text-center">
+            해당 타입의 일반 문서가 없어요
+          </p>
+        ) : (
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
+            {visible.map((p) => {
+              const m = WIKI_TYPE_META[p.type];
+              const sMeta = WIKI_STATUS_META[p.status];
+              return (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(p.id)}
+                    className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left hover:bg-accent wiki-trans-color"
+                  >
+                    <span className="text-[13px] leading-none shrink-0" aria-hidden>{m.icon}</span>
+                    <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{p.title}</span>
+                    {p.status !== 'stable' && (
+                      <span
+                        className="shrink-0 text-[8.5px] px-1 py-0.5 rounded font-medium uppercase tracking-wider"
+                        style={{ backgroundColor: `${sMeta.tint}22`, color: sMeta.tint }}
+                      >
+                        {sMeta.label}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {/* 더 보기 토글 */}
+        {hidden > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="w-full mt-1 px-2 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent rounded-md wiki-trans-color"
+          >
+            + {hidden}개 더 보기
+          </button>
+        )}
+        {expanded && filtered.length > COLLAPSED && (
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="w-full mt-1 px-2 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent rounded-md wiki-trans-color"
+          >
+            접기
+          </button>
+        )}
+      </div>
+    </section>
   );
 }
 
