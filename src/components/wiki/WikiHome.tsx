@@ -410,7 +410,21 @@ function countLinkedPages(page: WikiPage, allPages: WikiPage[]): number {
   return n;
 }
 
-/* ── 메인 문서 카드 (compact, 4-col 그리드용) ── */
+/* ── 본문 미리보기 — markdown 부호 제거 ── */
+function cleanPreview(body: string): string {
+  return body
+    .replace(/^---[\s\S]*?^---/m, '')          // frontmatter
+    .replace(/^\s*#+\s.*$/gm, '')              // 헤딩 줄 통째 제거
+    .replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g, '$2$1') // wikilink → 표시명만
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')      // 이미지
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')   // 일반 링크
+    .replace(/[*_`>~]/g, '')                   // markdown 부호
+    .replace(/^[\s\-•]+/gm, '')                // 리스트 표시
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* ── 메인 문서 카드 — 책 카드 톤 (좌띠/배지 X, 타이포 위주) ── */
 function MainDocCard({
   page, isRoot, isFav, childCount, onSelect,
 }: {
@@ -420,50 +434,56 @@ function MainDocCard({
   childCount: number;
   onSelect: (id: string) => void;
 }) {
-  const preview = page.body.replace(/^[#>\s\n]+/g, '').replace(/\n+/g, ' ').slice(0, 50);
+  const preview = cleanPreview(page.body).slice(0, 90);
   return (
     <button
       type="button"
       onClick={() => onSelect(page.id)}
       className={cn(
-        'group relative flex flex-col text-left rounded-xl border bg-card hover:shadow-md wiki-trans-base overflow-hidden min-h-[120px] pl-4 pr-3 py-3',
-        isRoot
-          ? 'border-[hsl(var(--hairline))] hover:border-primary/50'
-          : 'border-[hsl(var(--hairline))] hover:border-primary/40 bg-muted/20',
+        'group relative flex flex-col text-left rounded-lg border bg-card hover:bg-card hover:shadow-[0_4px_16px_-6px_hsl(var(--foreground)/0.12)] hover:border-primary/40 wiki-trans-base overflow-hidden min-h-[140px] px-4 pt-3.5 pb-3',
+        'border-[hsl(var(--hairline))]',
       )}
     >
-      <span
-        aria-hidden
-        className={cn(
-          'absolute left-0 top-0 bottom-0 w-[4px] wiki-trans-color',
-          isRoot ? 'bg-primary group-hover:bg-primary' : 'bg-primary/30 group-hover:bg-primary/60',
-        )}
-      />
-      <div className="flex items-center gap-1 mb-1">
+      {/* 상단 — 작은 인디케이터만 */}
+      <div className="flex items-center gap-1 mb-2.5">
         <span
           className={cn(
-            'inline-flex items-center gap-0.5 px-1 h-[15px] rounded text-[8.5px] font-mono font-bold uppercase tracking-wider',
-            isRoot ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground/80',
+            'text-[14px] leading-none',
+            isRoot ? 'opacity-90' : 'opacity-50',
           )}
+          aria-hidden
         >
-          {isRoot ? '메인' : '하위'}
+          📖
         </span>
-        {isFav && <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />}
-        <span className="ml-auto text-[9.5px] font-mono text-muted-foreground/80">
-          <span className="font-bold text-foreground/85">{childCount}</span>
-        </span>
+        {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />}
+        {!isRoot && (
+          <span className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+            하위
+          </span>
+        )}
       </div>
+
+      {/* 제목 — 책 톤 */}
       <h3
-        className="text-[14.5px] font-bold text-foreground leading-snug mb-1 line-clamp-2 group-hover:text-primary wiki-trans-color"
+        className="text-[15.5px] font-bold text-foreground leading-snug mb-1.5 line-clamp-2 group-hover:text-primary wiki-trans-color"
         style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
       >
         {page.title}
       </h3>
-      {preview && (
-        <p className="text-[10.5px] text-muted-foreground/85 line-clamp-2 leading-relaxed mt-auto">
-          {preview}
-        </p>
-      )}
+
+      {/* 미리보기 — markdown 부호 다 제거 */}
+      <p className="text-[11px] text-muted-foreground/80 line-clamp-2 leading-relaxed mb-auto">
+        {preview || <span className="italic opacity-60">아직 본문이 비어있어요</span>}
+      </p>
+
+      {/* 푸터 — 카운트 + 화살표 */}
+      <div className="mt-3 pt-2 border-t border-[hsl(var(--hairline))] flex items-center justify-between">
+        <span className="text-[10.5px] font-mono text-muted-foreground">
+          <span className="font-bold text-foreground/90">{childCount}</span>
+          <span className="text-muted-foreground/60"> pages</span>
+        </span>
+        <ArrowRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 wiki-trans-base" />
+      </div>
     </button>
   );
 }

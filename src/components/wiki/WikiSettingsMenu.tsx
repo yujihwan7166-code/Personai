@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Settings, Download, Upload, Trash2, HardDrive } from 'lucide-react';
 import { exportAllAsJson, importFromJson, type ImportMode } from '@/lib/wikiBackup';
 import { clearAllPages } from '@/lib/wikiStore';
@@ -11,19 +12,61 @@ interface Props {
   onOpenStorage: () => void;
 }
 
+interface MenuPos { left: number; top: number; }
+
 export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pos, setPos] = useState<MenuPos | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
+  /* 위치 계산 — 트리거 좌표 기준, 화면 안에 들어가도록 자동 클램프.
+     사이드바 footer 안이라 보통 *위로* 향해 펴짐. */
+  useLayoutEffect(() => {
+    if (!open) return;
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const menuW = 220, menuH = 200;
+    const margin = 8;
+    let left = rect.right - menuW;
+    if (left < margin) left = margin;
+    if (left + menuW > window.innerWidth - margin) left = window.innerWidth - menuW - margin;
+    // 위로 띄움 (트리거 위쪽 공간 우선 — 사이드바 footer 라 위가 더 넓음)
+    let top = rect.top - menuH - 4;
+    if (top < margin) {
+      // 위 공간 부족 → 아래로
+      top = rect.bottom + 4;
+    }
+    if (top + menuH > window.innerHeight - margin) {
+      top = window.innerHeight - menuH - margin;
+    }
+    setPos({ left, top });
+  }, [open]);
+
+  /* 외부 클릭 / Esc 로 닫기 */
   useEffect(() => {
     if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t)) return;
+      if (triggerRef.current?.contains(t)) return;
+      setOpen(false);
     };
-    window.addEventListener('mousedown', onClick);
-    return () => window.removeEventListener('mousedown', onClick);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const onScroll = () => setOpen(false);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
   }, [open]);
 
   const handleExport = async () => {
@@ -43,7 +86,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = ''; // 같은 파일 재선택 가능하게
+    e.target.value = '';
     if (!file) return;
     const choice = confirm(
       `'${file.name}' 가져오기\n\n[확인] = 병합 (기존 유지)\n[취소] = 덮어쓰기 (기존 전체 삭제 후 가져오기)`
@@ -81,8 +124,9 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
   };
 
   return (
-    <div className="relative" ref={rootRef}>
+    <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -93,8 +137,16 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
         <Settings className="h-3.5 w-3.5" />
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-1 wiki-z-popover min-w-[200px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
+      {open && pos && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed wiki-z-popover w-[220px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1 wiki-ai-panel-enter"
+          style={{ left: pos.left, top: pos.top }}
+          role="menu"
+        >
+          <p className="px-3 py-1.5 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+            ⚙ 위키 설정
+          </p>
           <MenuItem icon={<Download className="w-3.5 h-3.5" />} onClick={handleExport} label="전체 백업 (.json)" />
           <MenuItem icon={<Upload className="w-3.5 h-3.5" />} onClick={handlePickFile} label="백업 가져오기" />
           <MenuItem
@@ -109,7 +161,8 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
             label="전체 삭제"
             danger
           />
-        </div>
+        </div>,
+        document.body,
       )}
 
       <input
@@ -119,7 +172,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
         className="hidden"
         onChange={handleImport}
       />
-    </div>
+    </>
   );
 }
 
@@ -135,6 +188,7 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
+      role="menuitem"
       className={
         'w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-left transition-colors ' +
         (danger
