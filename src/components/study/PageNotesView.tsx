@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { RefreshCw, Image as ImageIcon, ExternalLink, Copy } from 'lucide-react';
+import { RefreshCw, Image as ImageIcon, ExternalLink, Copy, FileText } from 'lucide-react';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { cn } from '@/lib/utils';
 import type { PageNote, PageChunk, SummaryDensity } from '@/types/study';
