@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EditorContent, useEditor, BubbleMenu } from '@tiptap/react';
+import { EditorContent, useEditor } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
@@ -275,7 +276,6 @@ export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: P
       {/* 인라인 툴바 — 텍스트 선택 시 떠오름 */}
       <BubbleMenu
         editor={editor}
-        tippyOptions={{ duration: 120, placement: 'top' }}
         shouldShow={({ from, to }) => from !== to}
       >
         <div className="flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg">
