@@ -4907,26 +4907,53 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       const phaseColor = isConsult
                         ? 'text-indigo-600'
                         : (userTurnCount >= 10 ? 'text-red-600' : userTurnCount >= 6 ? 'text-amber-600' : 'text-slate-500');
+                      const phaseChipTone = isConsult
+                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                        : (userTurnCount >= 10 ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                          : userTurnCount >= 6 ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                          : 'bg-slate-50 text-slate-600 border border-slate-200');
+                      const phasesArr = scenario.phases && scenario.phases.length > 0 ? scenario.phases : null;
+                      const currentPhaseIdx = isConsult
+                        ? Math.min(simPhaseIndex, (phasesArr?.length || 1) - 1)
+                        : (userTurnCount >= 10 ? 2 : userTurnCount >= 6 ? 1 : 0);
+                      void phaseColor;
                       return (
-                        <div className="shrink-0 bg-slate-50 border-b border-slate-200 rounded-t-2xl">
-                          <div className="px-5 py-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="text-[16px]">{scenario.icon}</span>
-                              <span className="text-[14px] font-extrabold text-slate-800 truncate">{scenario.name}</span>
-                              <span className={cn('text-[10px] font-bold whitespace-nowrap', phaseColor)}>· {phaseLabel}</span>
+                        <div className="shrink-0 rounded-t-2xl border-b border-slate-200 bg-white relative overflow-hidden">
+                          {/* 톱 그라데이션 띠 — 시나리오 시그니처 */}
+                          <div className={cn('absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r', scenario.gradient)} />
+                          <div className="px-5 pt-4 pb-2 flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center text-[20px] shrink-0 ring-1 ring-white/60 bg-gradient-to-br', scenario.gradient)}>
+                                {scenario.icon}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[14px] font-extrabold text-slate-800 truncate">{scenario.name}</span>
+                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white text-slate-500 border border-slate-200">
+                                    {isConsult ? '자문' : '역할극'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                  {scenario.userRole && (
+                                    <span className="text-[10.5px] text-slate-500">당신은 <strong className="text-slate-700">{scenario.userRole}</strong></span>
+                                  )}
+                                  <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-md whitespace-nowrap', phaseChipTone)}>{phaseLabel}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0 max-w-[55%] overflow-x-auto scrollbar-thin pb-0.5">
                               {scenario.roles.map((r, ri) => {
                                 const isCurrent = isConsult ? ri === simPhaseIndex : ri === activeRoleIdx;
                                 const isDone = isConsult && ri < simPhaseIndex;
                                 return (
-                                  <span key={r.name} className={cn('text-[10px] font-medium flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all',
-                                    isCurrent ? 'bg-indigo-100 text-indigo-700 font-bold ring-1 ring-indigo-300' :
-                                    isDone ? 'text-slate-400' :
-                                    'text-slate-500'
+                                  <span key={r.name} className={cn('text-[10px] font-medium inline-flex items-center gap-1 px-2 py-1 rounded-md transition-all whitespace-nowrap shrink-0',
+                                    isCurrent ? cn('bg-gradient-to-br text-slate-800 ring-1 ring-indigo-200 shadow-sm font-bold', scenario.gradient) :
+                                    isDone ? 'bg-slate-50 text-slate-400 border border-slate-200 line-through' :
+                                    'bg-white text-slate-500 border border-dashed border-slate-200'
                                   )}>
-                                    <span>{r.icon}</span> {r.name}
-                                    {isCurrent && isDiscussing && <span className="text-[8px] animate-pulse">💬</span>}
+                                    {isCurrent && isDiscussing && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" aria-hidden />}
+                                    <span>{r.icon}</span>
+                                    <span className="hidden sm:inline">{r.name}</span>
                                     {isDone && <span className="text-[8px]">✓</span>}
                                   </span>
                                 );
@@ -4942,28 +4969,46 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                     if (ok) handleFollowUp('__SIM_END__');
                                   }}
                                   title="지금까지의 대화로 최종 판정 받기"
-                                  className="text-[10px] text-slate-500 hover:text-white font-semibold px-2.5 py-1 rounded-md border border-slate-200 hover:border-red-500 hover:bg-red-500 transition-all ml-2 inline-flex items-center gap-1"
+                                  className="text-[10px] text-slate-500 font-semibold px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:border-indigo-400 hover:text-white hover:bg-indigo-600 transition-all ml-1 inline-flex items-center gap-1 border-l-2 border-l-slate-100 shrink-0"
                                 >
                                   <span>🏁</span>
-                                  <span>여기서 마무리</span>
+                                  <span className="hidden sm:inline">마무리하기</span>
                                 </button>
                               )}
                             </div>
                           </div>
-                          {/* 진행률 바 */}
-                          <div className="px-5 pb-1.5">
+                          {/* 진행률 바 + phases tick */}
+                          <div className="px-5 pb-2.5">
                             <div className="flex items-center gap-2">
                               <span className="text-[9px] text-slate-400 font-medium shrink-0 tabular-nums">{userTurnCount}턴</span>
-                              <div className="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                              <div className="relative flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div
-                                  className={cn('h-full transition-all duration-500',
-                                    userTurnCount >= 10 ? 'bg-red-400' : userTurnCount >= 6 ? 'bg-amber-400' : 'bg-indigo-400'
+                                  className={cn('h-full transition-all duration-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.4)]',
+                                    userTurnCount >= 10 ? 'bg-rose-400' : userTurnCount >= 6 ? 'bg-amber-400' : 'bg-indigo-400'
                                   )}
                                   style={{ width: `${turnPct}%` }}
                                 />
                               </div>
                               <span className="text-[9px] text-slate-400 font-medium shrink-0 tabular-nums">~{totalTurnsEstimate}턴</span>
                             </div>
+                            {phasesArr && (
+                              <div className="mt-1.5 flex items-center gap-1">
+                                {phasesArr.map((p, pi) => {
+                                  const done = pi < currentPhaseIdx;
+                                  const active = pi === currentPhaseIdx;
+                                  return (
+                                    <div key={p} className="flex-1 flex items-center gap-1 min-w-0" title={p}>
+                                      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0',
+                                        done ? 'bg-indigo-300' : active ? 'bg-indigo-500' : 'bg-slate-200'
+                                      )} />
+                                      <span className={cn('text-[9.5px] truncate',
+                                        active ? 'text-indigo-600 font-semibold' : done ? 'text-slate-400' : 'text-slate-300'
+                                      )}>{p}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -4976,25 +5021,46 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           let result: any = {};
                           try { result = JSON.parse(msg.content); } catch {}
                           const vList = result.verdicts || [];
+                          const getVerdictTone = (verdict: string): string => {
+                            const v = (verdict || '').toLowerCase();
+                            const positive = ['투자', '합격', '도입', '지지', '승인', '채택', '통과', '추천', '동의', '계약'];
+                            const negative = ['거절', '불합격', '반대', '기각', '미도입', '비추천'];
+                            const neutral = ['보류', '조건부', '재검토', '재논의', '검토'];
+                            if (positive.some(w => verdict?.includes(w))) return 'text-emerald-700 bg-emerald-50/60 border-emerald-100';
+                            if (negative.some(w => verdict?.includes(w))) return 'text-rose-700 bg-rose-50/60 border-rose-100';
+                            if (neutral.some(w => verdict?.includes(w))) return 'text-amber-700 bg-amber-50/60 border-amber-100';
+                            void v;
+                            return 'text-slate-700 bg-slate-50 border-slate-200';
+                          };
                           return (
                             <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500 my-4">
-                              <div className="rounded-xl border border-slate-200 overflow-hidden shadow-md">
-                                <div className="bg-slate-800 px-5 py-3 flex items-center gap-2">
-                                  <span className="text-[16px]">{result.scenarioIcon}</span>
-                                  <span className="text-[14px] font-bold text-white">시뮬레이션 결과</span>
+                              <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+                                <div className={cn('h-1.5 bg-gradient-to-r', scenario.gradient)} />
+                                <div className={cn('px-5 py-3 flex items-center gap-2.5 bg-gradient-to-br', scenario.gradient)}>
+                                  <div className="w-9 h-9 rounded-xl bg-white/70 backdrop-blur-sm flex items-center justify-center text-[20px] ring-1 ring-white/60">
+                                    {result.scenarioIcon || scenario.icon}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[14px] font-extrabold text-slate-800">리허설 결과</div>
+                                    <div className="text-[10.5px] text-slate-700/70">{scenario.name}</div>
+                                  </div>
+                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/70 text-slate-600 border border-white/60">
+                                    {scenario.simType === 'roleplay' ? '역할극' : '자문'}
+                                  </span>
                                 </div>
-                                <div className="bg-white p-4 space-y-2">
+                                <div className="bg-white p-4 space-y-1.5">
                                   {vList.map((v: any, i: number) => (
-                                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50">
-                                      <span className="text-[12px] font-medium text-slate-700 flex items-center gap-1.5">
-                                        <span className="text-[14px]">{v.roleIcon}</span> {v.roleName}
+                                    <div key={i} className={cn('flex items-center justify-between px-3 py-2 rounded-lg border', getVerdictTone(v.verdict))}>
+                                      <span className="text-[12px] font-medium flex items-center gap-1.5 min-w-0">
+                                        <span className="text-[14px] shrink-0">{v.roleIcon}</span>
+                                        <span className="truncate">{v.roleName}</span>
                                       </span>
-                                      <span className="text-[12px] font-bold text-slate-800">{v.verdict}</span>
+                                      <span className="text-[12px] font-bold shrink-0 ml-2">{v.verdict}</span>
                                     </div>
                                   ))}
-                                  <div className="pt-2 border-t border-slate-200 text-center">
-                                    <span className="text-[10px] text-slate-400">{result.gaugeLabel}</span>
-                                    <div className="text-[16px] font-bold text-slate-800 mt-0.5">{result.overallVerdict}</div>
+                                  <div className="pt-3 mt-1 border-t border-slate-200 text-center">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{result.gaugeLabel}</span>
+                                    <div className="text-[20px] font-extrabold text-slate-800 mt-0.5">{result.overallVerdict}</div>
                                   </div>
                                 </div>
                               </div>
@@ -5003,15 +5069,17 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         }
                         if (msg.expertId === '__round__') {
                           return (
-                            <div key={msg.id} className="flex justify-center py-2">
-                              <span className="px-3 py-1 rounded-full bg-slate-100 text-[10px] text-slate-400 font-medium">{msg.content}</span>
+                            <div key={msg.id} className="flex items-center gap-2 py-3">
+                              <hr className="flex-1 border-t border-dashed border-slate-200" />
+                              <span className="px-3 py-1 rounded-full bg-slate-50 text-[10px] text-slate-500 font-medium border border-slate-200">{msg.content}</span>
+                              <hr className="flex-1 border-t border-dashed border-slate-200" />
                             </div>
                           );
                         }
                         if (msg.expertId === '__user__') {
                           return (
                             <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-2 duration-400 flex justify-end mt-4">
-                              <div className="max-w-[70%] bg-slate-100 rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] text-slate-700 leading-relaxed">
+                              <div className="max-w-[85%] sm:max-w-[70%] bg-indigo-50/70 border border-indigo-100 rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] text-slate-800 leading-relaxed">
                                 <ReactMarkdownInline content={msg.content} />
                               </div>
                             </div>
@@ -5028,28 +5096,37 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         const roleName = msg.simRoleName || Object.entries(stakeholderSettings.roleAssignments).find(([_, eid]) => eid === expert.id)?.[0];
                         const roleIcon = msg.simRoleIcon || scenario.roles.find(r => r.name === roleName)?.icon;
                         const roleIdx = roleName ? scenario.roles.findIndex(r => r.name === roleName) : -1;
-                        const roleStyles = [
-                          { iconBg: 'bg-blue-100', bubble: 'bg-blue-100/50 border-blue-200' },
-                          { iconBg: 'bg-amber-100', bubble: 'bg-amber-100/50 border-amber-200' },
-                          { iconBg: 'bg-emerald-100', bubble: 'bg-emerald-100/50 border-emerald-200' },
-                          { iconBg: 'bg-violet-100', bubble: 'bg-violet-100/50 border-violet-200' },
-                        ];
-                        const style = roleIdx >= 0 ? roleStyles[roleIdx % roleStyles.length] : { iconBg: 'bg-slate-100', bubble: 'bg-slate-50 border-slate-100' };
+                        const roleAccent = ['border-l-indigo-300', 'border-l-amber-300', 'border-l-emerald-300', 'border-l-violet-300'];
+                        const accent = roleIdx >= 0 ? roleAccent[roleIdx % roleAccent.length] : 'border-l-slate-200';
+                        const focusKeyword = roleName ? scenario.roles.find(r => r.name === roleName)?.focus.split(',')[0]?.trim() : '';
                         const prevMsg = idx > 0 ? messages[idx - 1] : null;
                         const isContinuation = prevMsg && prevMsg.simRoleName === msg.simRoleName && msg.simRoleName && prevMsg.expertId !== '__user__' && prevMsg.expertId !== '__round__';
                         return (
-                          <div key={msg.id} className={cn('animate-in fade-in slide-in-from-bottom-2 duration-400 flex items-start gap-2.5 max-w-[80%]', isContinuation ? 'mt-1' : 'mt-4')}>
+                          <div key={msg.id} className={cn('animate-in fade-in slide-in-from-bottom-2 duration-400 flex items-start gap-2.5 max-w-[90%] sm:max-w-[80%]', isContinuation ? 'mt-1' : 'mt-4')}>
                             {isContinuation ? (
                               <div className="w-9 shrink-0" />
                             ) : (
-                              <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-[16px] shrink-0 mt-0.5', style.iconBg)}>
+                              <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-[16px] shrink-0 mt-0.5 ring-1 ring-white/60 bg-gradient-to-br', scenario.gradient)}>
                                 {roleIcon || '🤖'}
                               </div>
                             )}
                             <div className="min-w-0 flex-1">
-                              {!isContinuation && <span className="text-[11px] font-bold text-slate-600">{roleName || expert.nameKo}</span>}
-                              <div className={cn('px-3.5 py-2.5 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 leading-relaxed', style.bubble, !isContinuation && 'mt-1')}>
-                                {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : (msg.isStreaming ? <span className="text-slate-400">...</span> : '')}
+                              {!isContinuation && (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[11px] font-bold text-slate-700">{roleName || expert.nameKo}</span>
+                                  {focusKeyword && <span className="text-[10px] text-slate-400">· {focusKeyword}</span>}
+                                </div>
+                              )}
+                              <div className={cn('px-3.5 py-2.5 rounded-2xl rounded-tl-md border border-slate-200 bg-slate-50/80 border-l-2 text-[13px] text-slate-700 leading-relaxed', accent, !isContinuation && 'mt-1')}>
+                                {msg.content ? (
+                                  <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} />
+                                ) : msg.isStreaming ? (
+                                  <span className="inline-flex items-center gap-1" aria-label="작성 중">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse [animation-delay:120ms]" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse [animation-delay:240ms]" />
+                                  </span>
+                                ) : ''}
                               </div>
                             </div>
                           </div>
@@ -5061,13 +5138,20 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               ) : (
                 // scenario 못 찾았을 때 fallback — simRoleName 기반으로 렌더링
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-6">
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[calc(100vh-200px)] flex flex-col">
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[calc(100vh-200px)] flex flex-col overflow-hidden">
+                    {/* 미니 헤더 */}
+                    <div className="shrink-0 px-5 py-2.5 bg-slate-50/70 border-b border-slate-200 text-[11.5px] text-slate-500 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" aria-hidden />
+                      <span>리허설 진행 중</span>
+                    </div>
                     <div className="flex-1 p-5 space-y-2.5">
                       {messages.map((msg, idx) => {
                         if (msg.expertId === '__sim_briefing__' || msg.expertId === '__round__') {
                           if (msg.expertId === '__round__') return (
-                            <div key={msg.id} className="flex justify-center py-2">
-                              <span className="px-3 py-1 rounded-full bg-slate-100 text-[10px] text-slate-400 font-medium">{msg.content}</span>
+                            <div key={msg.id} className="flex items-center gap-2 py-3">
+                              <hr className="flex-1 border-t border-dashed border-slate-200" />
+                              <span className="px-3 py-1 rounded-full bg-slate-50 text-[10px] text-slate-500 font-medium border border-slate-200">{msg.content}</span>
+                              <hr className="flex-1 border-t border-dashed border-slate-200" />
                             </div>
                           );
                           return null;
@@ -5078,16 +5162,16 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           const vList = result.verdicts || [];
                           return (
                             <div key={msg.id} className="my-4">
-                              <div className="rounded-xl border border-slate-200 overflow-hidden shadow-md">
-                                <div className="bg-slate-800 px-5 py-3"><span className="text-[14px] font-bold text-white">📋 시뮬레이션 결과</span></div>
-                                <div className="bg-white p-4 space-y-2">
+                              <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+                                <div className="bg-slate-800 px-5 py-3 flex items-center gap-2"><span className="text-[14px] font-bold text-white">📋 리허설 결과</span></div>
+                                <div className="bg-white p-4 space-y-1.5">
                                   {vList.map((v: any, i: number) => (
-                                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50">
+                                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
                                       <span className="text-[12px] font-medium text-slate-700">{v.roleIcon} {v.roleName}</span>
                                       <span className="text-[12px] font-bold text-slate-800">{v.verdict}</span>
                                     </div>
                                   ))}
-                                  {result.overallVerdict && <div className="pt-2 border-t text-center"><div className="text-[16px] font-bold">{result.overallVerdict}</div></div>}
+                                  {result.overallVerdict && <div className="pt-3 mt-1 border-t border-slate-200 text-center"><div className="text-[20px] font-extrabold text-slate-800">{result.overallVerdict}</div></div>}
                                 </div>
                               </div>
                             </div>
@@ -5096,7 +5180,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         if (msg.expertId === '__user__') {
                           return (
                             <div key={msg.id} className="flex justify-end mt-4">
-                              <div className="max-w-[70%] bg-slate-100 rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] text-slate-700 leading-relaxed">
+                              <div className="max-w-[85%] sm:max-w-[70%] bg-indigo-50/70 border border-indigo-100 rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] text-slate-800 leading-relaxed">
                                 <ReactMarkdownInline content={msg.content} />
                               </div>
                             </div>
@@ -5112,24 +5196,29 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         const rName = msg.simRoleName;
                         const rIcon = msg.simRoleIcon;
                         const roleIdx = rName ? Math.abs([...rName].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)) % 4 : -1;
-                        const roleStyles = [
-                          { iconBg: 'bg-blue-100', bubble: 'bg-blue-100/50 border-blue-200' },
-                          { iconBg: 'bg-amber-100', bubble: 'bg-amber-100/50 border-amber-200' },
-                          { iconBg: 'bg-emerald-100', bubble: 'bg-emerald-100/50 border-emerald-200' },
-                          { iconBg: 'bg-violet-100', bubble: 'bg-violet-100/50 border-violet-200' },
-                        ];
-                        const style = roleIdx >= 0 ? roleStyles[roleIdx] : { iconBg: 'bg-slate-100', bubble: 'bg-slate-50 border-slate-200' };
+                        const roleAccent = ['border-l-indigo-300', 'border-l-amber-300', 'border-l-emerald-300', 'border-l-violet-300'];
+                        const roleAvatarBg = ['bg-indigo-50', 'bg-amber-50', 'bg-emerald-50', 'bg-violet-50'];
+                        const accent = roleIdx >= 0 ? roleAccent[roleIdx] : 'border-l-slate-200';
+                        const avatarBg = roleIdx >= 0 ? roleAvatarBg[roleIdx] : 'bg-slate-100';
                         const prevMsg = idx > 0 ? messages[idx - 1] : null;
                         const isContinuation = prevMsg && prevMsg.simRoleName === msg.simRoleName && msg.simRoleName && prevMsg.expertId !== '__user__';
                         return (
-                          <div key={msg.id} className={cn('flex items-start gap-2.5 max-w-[80%]', isContinuation ? 'mt-1' : 'mt-4')}>
+                          <div key={msg.id} className={cn('flex items-start gap-2.5 max-w-[90%] sm:max-w-[80%]', isContinuation ? 'mt-1' : 'mt-4')}>
                             {isContinuation ? <div className="w-9 shrink-0" /> : (
-                              <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-[16px] shrink-0 mt-0.5', style.iconBg)}>{rIcon || '🤖'}</div>
+                              <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-[16px] shrink-0 mt-0.5 ring-1 ring-white/60', avatarBg)}>{rIcon || '🤖'}</div>
                             )}
                             <div className="min-w-0 flex-1">
-                              {!isContinuation && <span className="text-[11px] font-bold text-slate-600">{rName || expert.nameKo}</span>}
-                              <div className={cn('px-3.5 py-2.5 rounded-2xl rounded-tl-md border text-[13px] text-slate-700 leading-relaxed', style.bubble, !isContinuation && 'mt-1')}>
-                                {msg.content ? <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} /> : ''}
+                              {!isContinuation && <span className="text-[11px] font-bold text-slate-700">{rName || expert.nameKo}</span>}
+                              <div className={cn('px-3.5 py-2.5 rounded-2xl rounded-tl-md border border-slate-200 bg-slate-50/80 border-l-2 text-[13px] text-slate-700 leading-relaxed', accent, !isContinuation && 'mt-1')}>
+                                {msg.content ? (
+                                  <LazyMarkdown content={msg.content} fallback={<span>{msg.content}</span>} />
+                                ) : msg.isStreaming ? (
+                                  <span className="inline-flex items-center gap-1" aria-label="작성 중">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse [animation-delay:120ms]" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse [animation-delay:240ms]" />
+                                  </span>
+                                ) : ''}
                               </div>
                             </div>
                           </div>

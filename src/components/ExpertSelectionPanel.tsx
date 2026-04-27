@@ -1314,7 +1314,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
               className={cn(
                 'relative text-left rounded-xl bg-white border transition-all duration-300 group overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300',
                 'hover:border-indigo-300 hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5',
-                isSelected ? 'border-indigo-300 ring-2 ring-indigo-200 ring-offset-1' : 'border-slate-200'
+                isSelected ? 'border-indigo-300 ring-1 ring-indigo-300/60 ring-offset-1' : 'border-slate-200'
               )}>
               {/* resting 시 옅게, hover/selected 시 진하게 */}
               <div className={cn(

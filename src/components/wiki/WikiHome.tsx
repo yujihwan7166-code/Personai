@@ -142,35 +142,49 @@ export function WikiHome({
 
   const totalQueue = stats.inbox.length + stats.wanted.length + stats.orphans.length + stats.stale.length;
 
+  const tabAccent: Record<QueueTab, { tint: string; bg: string; text: string; ring: string }> = {
+    inbox:  { tint: 'rgb(245 158 11)',  bg: 'bg-amber-50 dark:bg-amber-950/30',     text: 'text-amber-700 dark:text-amber-300',     ring: 'ring-amber-500/40'   },
+    wanted: { tint: 'rgb(244 63 94)',   bg: 'bg-rose-50 dark:bg-rose-950/30',       text: 'text-rose-700 dark:text-rose-300',       ring: 'ring-rose-500/40'    },
+    orphan: { tint: 'rgb(16 185 129)',  bg: 'bg-emerald-50 dark:bg-emerald-950/30', text: 'text-emerald-700 dark:text-emerald-300', ring: 'ring-emerald-500/40' },
+    stale:  { tint: 'rgb(99 102 241)',  bg: 'bg-indigo-50 dark:bg-indigo-950/30',   text: 'text-indigo-700 dark:text-indigo-300',   ring: 'ring-indigo-500/40'  },
+  };
+
   return (
-    <div className="max-w-4xl mx-auto px-6 sm:px-8 py-7">
-      {/* 헤더 — 한 줄로 통합 */}
-      <header className="mb-6 flex items-end justify-between gap-3">
+    <div className="max-w-4xl mx-auto px-6 sm:px-8 py-8">
+      {/* 헤더 — serif 대문 + mono 메타 */}
+      <header className="mb-9 flex items-end justify-between gap-3 pb-4 border-b-2 border-[hsl(var(--wiki-hairline-strong))]">
         <div>
-          <p className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-1">
+          <p className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-muted-foreground mb-1.5">
             MY WIKI · HOME
           </p>
-          <h1 className="text-2xl font-bold text-foreground">대문</h1>
+          <h1
+            className="text-[34px] leading-none font-bold text-foreground"
+            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.01em' }}
+          >
+            대문
+          </h1>
         </div>
-        <p className="text-[11px] text-muted-foreground pb-1">
-          <span className="font-semibold text-foreground/90">{pages.length}</span> 페이지
-          {' · '}
-          <span>활동 {stats.recentEdits}건</span>
+        <p className="text-[11px] text-muted-foreground pb-1 font-mono inline-flex items-center gap-2">
+          <span><span className="font-bold text-foreground">{pages.length}</span><span className="text-muted-foreground/70"> pages</span></span>
+          <span className="text-muted-foreground/40">·</span>
+          <span><span className="font-bold text-foreground/85">{stats.recentEdits}</span><span className="text-muted-foreground/70"> active</span></span>
           {totalQueue > 0 && (
             <>
-              {' · '}
-              <span className="text-primary">정리 큐 {totalQueue}</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="text-primary font-bold">{totalQueue}</span>
+                <span className="text-primary/70">queue</span>
+              </span>
             </>
           )}
         </p>
       </header>
 
-      {/* 1. 자주 보는 곳 — 즐겨찾기 + 최근 통합 (있을 때만) */}
+      {/* 1. 자주 보는 곳 */}
       {quickIds.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground mb-2">
-            🌟 자주 보는 곳
-          </h2>
+        <section className="mb-9">
+          <SectionHeader symbol="✦" label="자주 보는 곳" />
           <div className="flex flex-wrap gap-1.5">
             {quickIds.map((id) => {
               const p = pageById.get(id)!;
@@ -181,15 +195,24 @@ export function WikiHome({
                   key={id}
                   type="button"
                   onClick={() => onSelect(id)}
-                  className="group inline-flex items-center gap-1.5 px-2.5 h-7 rounded-md border border-[hsl(var(--hairline))] bg-card hover:border-primary/40 hover:bg-primary/5 wiki-trans-color text-left"
+                  className={cn(
+                    'group inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md border bg-card wiki-trans-base text-left',
+                    isFav
+                      ? 'border-amber-300/60 bg-amber-50/40 dark:border-amber-700/40 dark:bg-amber-950/20 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                      : 'border-[hsl(var(--hairline))] hover:border-primary/50 hover:bg-primary/5',
+                    'hover:shadow-sm',
+                  )}
                 >
                   {isFav ? (
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />
                   ) : (
                     <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
                   )}
                   <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
-                  <span className="text-[12px] truncate max-w-[180px] text-foreground/85 group-hover:text-foreground">
+                  <span className={cn(
+                    'text-[12px] truncate max-w-[180px] group-hover:text-foreground',
+                    isFav ? 'text-amber-900 dark:text-amber-100 font-semibold' : 'text-foreground/85',
+                  )}>
                     {p.title}
                   </span>
                 </button>
@@ -199,17 +222,16 @@ export function WikiHome({
         </section>
       )}
 
-      {/* 2. 목차 (MOC) — 메인 영역 */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground inline-flex items-center gap-1.5">
-            <BookOpen className="w-3 h-3" />
-            목차 — 주제별 묶음
-          </h2>
-          {stats.mocs.length > 0 && (
-            <span className="text-[10.5px] text-muted-foreground">{stats.mocs.length}개</span>
+      {/* 2. 목차 — 메인 */}
+      <section className="mb-9">
+        <SectionHeader
+          symbol="◆"
+          label="목차"
+          sub="주제별 묶음"
+          right={stats.mocs.length > 0 && (
+            <span className="text-[10.5px] font-mono text-muted-foreground/80">{stats.mocs.length}</span>
           )}
-        </div>
+        />
 
         {stats.mocs.length === 0 ? (
           <EmptyMocCard
@@ -225,53 +247,58 @@ export function WikiHome({
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 wiki-trans-color text-[12px] font-medium px-4 py-3"
+              className="group flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[12px] font-medium px-4 py-3 min-h-[88px]"
             >
-              <Plus className="w-3.5 h-3.5" /> 새 목차
+              <Plus className="w-3.5 h-3.5 group-hover:scale-110 wiki-trans-base" /> 새 목차
             </button>
           </div>
         )}
       </section>
 
-      {/* 3. 정리 큐 — 4종 통합 탭 카드 */}
-      <section className="mb-6">
-        <h2 className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground mb-2.5 inline-flex items-center gap-1.5">
-          🛠 정리 큐
-          {totalQueue > 0 && (
-            <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary/15 text-primary text-[10px] font-mono font-bold">
+      {/* 3. 정리 큐 — 색 차별 탭 */}
+      <section className="mb-9">
+        <SectionHeader
+          symbol="▮"
+          label="정리 큐"
+          right={totalQueue > 0 && (
+            <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-primary/15 text-primary text-[10.5px] font-mono font-bold">
               {totalQueue}
             </span>
           )}
-        </h2>
-        <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card overflow-hidden">
+        />
+        <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card overflow-hidden shadow-sm">
           {/* 탭 헤더 */}
           <div className="grid grid-cols-4 border-b border-[hsl(var(--hairline))]">
-            <QueueTab
+            <QueueTabBtn
               active={tab === 'inbox'}
               icon={<FileText className="w-3 h-3" />}
               label="초안"
               count={stats.inbox.length}
+              accent={tabAccent.inbox}
               onClick={() => setTab('inbox')}
             />
-            <QueueTab
+            <QueueTabBtn
               active={tab === 'wanted'}
               icon={<Link2 className="w-3 h-3" />}
               label="만들"
               count={stats.wanted.length}
+              accent={tabAccent.wanted}
               onClick={() => setTab('wanted')}
             />
-            <QueueTab
+            <QueueTabBtn
               active={tab === 'orphan'}
               icon={<Sprout className="w-3 h-3" />}
               label="연결"
               count={stats.orphans.length}
+              accent={tabAccent.orphan}
               onClick={() => setTab('orphan')}
             />
-            <QueueTab
+            <QueueTabBtn
               active={tab === 'stale'}
               icon={<Moon className="w-3 h-3" />}
               label="잠자"
               count={stats.stale.length}
+              accent={tabAccent.stale}
               onClick={() => setTab('stale')}
             />
           </div>
@@ -344,15 +371,32 @@ export function WikiHome({
   );
 }
 
-/* ── 목차 카드 ── */
+/* ── 섹션 헤더 — 가로 hairline + ornament symbol ── */
+function SectionHeader({
+  symbol, label, sub, right,
+}: {
+  symbol: string; label: string; sub?: string; right?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-3 flex items-center gap-2">
+      <span aria-hidden className="text-[12px] text-primary/70 font-bold leading-none">{symbol}</span>
+      <h2 className="text-[11px] font-mono uppercase tracking-[0.18em] text-foreground/70 font-bold inline-flex items-baseline gap-1.5">
+        {label}
+        {sub && <span className="text-muted-foreground/70 font-normal tracking-normal normal-case text-[10.5px]">— {sub}</span>}
+      </h2>
+      <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
+      {right}
+    </div>
+  );
+}
+
+/* ── 목차 카드 — 좌측 4px primary 띠 + 호버 그림자 ── */
 function MocCard({
   page, pages, isFav, onSelect,
 }: {
   page: WikiPage; pages: WikiPage[]; isFav: boolean; onSelect: (id: string) => void;
 }) {
-  // 본문 첫 줄 (헤딩/quote 제거)
   const preview = page.body.replace(/^[#>\s\n]+/g, '').replace(/\n+/g, ' ').slice(0, 80);
-  // 본문에서 [[링크]] 카운트 — 이 목차가 묶고 있는 페이지 수
   const links = useMemo(() => extractWikiLinks(page.body), [page.body]);
   const titleSet = useMemo(() => {
     const s = new Set<string>();
@@ -368,19 +412,26 @@ function MocCard({
     <button
       type="button"
       onClick={() => onSelect(page.id)}
-      className="group flex flex-col gap-1.5 text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/40 hover:bg-primary/5 wiki-trans-color px-4 py-3"
+      className="group relative flex flex-col gap-1.5 text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/50 hover:shadow-md wiki-trans-base pl-5 pr-4 py-3.5 overflow-hidden"
     >
+      {/* 좌측 컬러 띠 */}
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary/70 group-hover:bg-primary wiki-trans-color" />
       <div className="flex items-center gap-1.5">
         <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
-        <span className="text-[13.5px] font-bold text-foreground truncate flex-1">{page.title}</span>
-        {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />}
+        <span
+          className="text-[14.5px] font-bold text-foreground truncate flex-1"
+          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
+        >
+          {page.title}
+        </span>
+        {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />}
       </div>
       {preview && (
-        <p className="text-[11.5px] text-muted-foreground line-clamp-2 leading-relaxed">{preview}</p>
+        <p className="text-[11.5px] text-muted-foreground/90 line-clamp-2 leading-relaxed">{preview}</p>
       )}
-      <p className="text-[10.5px] text-muted-foreground/80 inline-flex items-center gap-1">
+      <p className="text-[10.5px] text-muted-foreground/80 inline-flex items-center gap-1 font-mono">
         <Link2 className="w-2.5 h-2.5" />
-        {linkedCount > 0 ? `${linkedCount}개 페이지 묶음` : '아직 페이지 안 묶임'}
+        {linkedCount > 0 ? <><span className="font-bold text-foreground/85">{linkedCount}</span> pages</> : '아직 페이지 안 묶임'}
       </p>
     </button>
   );
@@ -395,29 +446,40 @@ function EmptyMocCard({
   onMakeFromTag?: (tag: string) => void;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-card px-5 py-5 text-center">
-      <BookOpen className="w-6 h-6 text-muted-foreground/60 mx-auto mb-2" />
-      <p className="text-[13px] font-bold text-foreground mb-1">아직 목차가 없어요</p>
-      <p className="text-[11.5px] text-muted-foreground leading-relaxed mb-3 max-w-md mx-auto">
-        목차는 비슷한 페이지를 모아 *길찾기* 역할을 해요.<br />
+    <div className="relative rounded-xl border-2 border-dashed border-[hsl(var(--wiki-hairline-strong))] bg-gradient-to-b from-card to-muted/20 px-6 py-6 text-center">
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary/30 rounded-l-xl" />
+      <BookOpen className="w-7 h-7 text-primary/60 mx-auto mb-2.5" strokeWidth={1.5} />
+      <p
+        className="text-[15px] font-bold text-foreground mb-1.5"
+        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+      >
+        아직 목차가 없어요
+      </p>
+      <p className="text-[11.5px] text-muted-foreground leading-relaxed mb-4 max-w-md mx-auto">
+        목차는 비슷한 페이지를 모아 <em className="not-italic font-semibold text-foreground/80">길찾기</em> 역할을 해요.<br />
         50페이지 넘어가면 검색만으론 부족해서 — 진입점이 필요해져요.
       </p>
       {onMakeFromTag && topTags.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-1.5 mb-3">
-          {topTags.slice(0, 4).map(([tag, n]) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => onMakeFromTag(tag)}
-              className="inline-flex items-center gap-1 px-2.5 h-6 rounded-md bg-primary/10 text-primary text-[11px] font-medium hover:bg-primary/15 wiki-trans-color"
-              title={`#${tag} 태그를 가진 ${n}개 페이지로 목차 자동 생성`}
-            >
-              <Plus className="w-2.5 h-2.5" />
-              <span>#{tag}</span>
-              <span className="text-[10px] text-primary/70">{n}</span>
-            </button>
-          ))}
-        </div>
+        <>
+          <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 mb-1.5">
+            태그로 자동 만들기
+          </p>
+          <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+            {topTags.slice(0, 4).map(([tag, n]) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => onMakeFromTag(tag)}
+                className="group inline-flex items-center gap-1 px-2.5 h-7 rounded-md bg-primary/10 text-primary text-[11.5px] font-semibold hover:bg-primary hover:text-primary-foreground wiki-trans-base hover:shadow-sm"
+                title={`#${tag} 태그를 가진 ${n}개 페이지로 목차 자동 생성`}
+              >
+                <Plus className="w-2.5 h-2.5" />
+                <span>#{tag}</span>
+                <span className="text-[10px] font-mono opacity-70 group-hover:opacity-90">{n}</span>
+              </button>
+            ))}
+          </div>
+        </>
       )}
       <button
         type="button"
@@ -430,21 +492,24 @@ function EmptyMocCard({
   );
 }
 
-/* ── 정리 큐 탭 ── */
-function QueueTab({
-  active, icon, label, count, onClick,
+/* ── 정리 큐 탭 — 색 액센트 + 활성 시 좌하단 색 막대 ── */
+interface TabAccent { tint: string; bg: string; text: string; ring: string; }
+
+function QueueTabBtn({
+  active, icon, label, count, accent, onClick,
 }: {
-  active: boolean; icon: React.ReactNode; label: string; count: number; onClick: () => void;
+  active: boolean; icon: React.ReactNode; label: string; count: number; accent: TabAccent; onClick: () => void;
 }) {
   const dim = count === 0;
   return (
     <button
       type="button"
       onClick={onClick}
+      style={active ? { '--tab-tint': accent.tint } as React.CSSProperties : undefined}
       className={cn(
-        'relative inline-flex items-center justify-center gap-1.5 px-2 py-2 text-[11.5px] wiki-trans-color',
+        'relative inline-flex items-center justify-center gap-1.5 px-2 py-2.5 text-[12px] wiki-trans-base',
         active
-          ? 'bg-primary/10 text-primary font-semibold'
+          ? cn(accent.bg, accent.text, 'font-bold')
           : dim
             ? 'text-muted-foreground/50 hover:bg-accent/40 hover:text-muted-foreground'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -452,13 +517,22 @@ function QueueTab({
     >
       {icon}
       <span>{label}</span>
-      <span className={cn(
-        'inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[9.5px] font-mono font-bold',
-        active ? 'bg-primary text-primary-foreground' : dim ? 'bg-muted text-muted-foreground/70' : 'bg-accent text-foreground/70',
-      )}>
+      <span
+        className={cn(
+          'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-mono font-bold wiki-trans-color',
+          active ? 'text-white' : dim ? 'bg-muted text-muted-foreground/70' : 'bg-accent text-foreground/70',
+        )}
+        style={active ? { backgroundColor: accent.tint } : undefined}
+      >
         {count}
       </span>
-      {active && <span className="absolute bottom-0 left-2 right-2 h-px bg-primary" aria-hidden />}
+      {active && (
+        <span
+          className="absolute bottom-0 left-2 right-2 h-[2px]"
+          style={{ backgroundColor: accent.tint }}
+          aria-hidden
+        />
+      )}
     </button>
   );
 }
