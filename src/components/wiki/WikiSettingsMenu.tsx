@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, Download, Upload, Trash2, HardDrive } from 'lucide-react';
+import { Settings, Download, Upload, Trash2, HardDrive, Sparkles } from 'lucide-react';
 import { exportAllAsJson, importFromJson, type ImportMode } from '@/lib/wikiBackup';
-import { clearAllPages } from '@/lib/wikiStore';
+import { clearAllPages, upsertPage } from '@/lib/wikiStore';
+import { buildSkyrimDemo } from '@/lib/wikiSkyrimDemo';
 import { notify } from '@/lib/notify';
 
 interface Props {
@@ -109,6 +110,24 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
     }
   };
 
+  const handleLoadSkyrim = async () => {
+    setBusy(true);
+    try {
+      const pages = buildSkyrimDemo();
+      for (const p of pages) await upsertPage(p);
+      notify.success(`🎮 스카이림 데모 — ${pages.length}개 페이지 추가됨`, {
+        description: '스카이림 메인 문서에서 시작 — 등장인물·마법·퀘스트·홀드·종족',
+        duration: 3500,
+      });
+      onMutated();
+    } catch (e) {
+      notify.error('데모 로드 실패', { description: (e as Error).message });
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  };
+
   const handleClearAll = async () => {
     if (!confirm('정말 모든 위키 페이지를 삭제할까요? 되돌릴 수 없어요.')) return;
     if (!confirm('한 번 더 확인 — 모든 페이지가 사라집니다.')) return;
@@ -153,6 +172,15 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
             icon={<HardDrive className="w-3.5 h-3.5" />}
             onClick={() => { setOpen(false); onOpenStorage(); }}
             label="저장소 사용량"
+          />
+          <div className="my-1 border-t border-[hsl(var(--hairline))]" />
+          <p className="px-3 pt-1 pb-0.5 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+            데모
+          </p>
+          <MenuItem
+            icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
+            onClick={handleLoadSkyrim}
+            label="🎮 스카이림 데모 추가"
           />
           <div className="my-1 border-t border-[hsl(var(--hairline))]" />
           <MenuItem
