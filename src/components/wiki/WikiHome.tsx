@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Plus, Sparkles, ArrowRight } from 'lucide-react';
+import { Plus, Sparkles, ArrowRight, BookOpen, Star, Link2 } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, extractWikiLinks } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 
@@ -22,9 +22,10 @@ const STALE_DAYS = 30;
 const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
 
 export function WikiHome({
-  pages,
-  onSelect, onCreate, onPickStarterPack, onCreateMissing,
+  pages, favorites = [],
+  onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag,
 }: Props) {
+  const favSet = new Set(favorites);
   const stats = useMemo(() => {
     const byStatus = { draft: 0, active: 0, stable: 0, archived: 0 };
     for (const p of pages) byStatus[p.status]++;
@@ -35,7 +36,7 @@ export function WikiHome({
 
     const recent = pages.slice(0, 6); // pages 는 updatedAt desc 정렬됨
     const inbox = pages.filter((p) => p.status === 'draft').slice(0, 5);
-    const mocs = pages.filter((p) => p.type === 'moc').slice(0, 5);
+    const mocs = pages.filter((p) => p.type === 'moc');
 
     // 연결 안 된 페이지 = refersTo 도 cites 도 비어있고, 아무도 참조하지 않는 페이지
     const referencedIds = new Set<string>();
@@ -158,7 +159,46 @@ export function WikiHome({
         </p>
       </header>
 
-      {/* 6 카드 그리드 */}
+      {/* 📚 목차 — featured (전폭, 큰 카드 그리드) */}
+      <section className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <BookOpen className="w-4 h-4 text-primary" />
+          <h2
+            className="text-[17px] font-bold text-foreground"
+            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+          >
+            목차
+          </h2>
+          <span className="text-[11px] text-muted-foreground/80">— 주제별 묶음</span>
+          <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
+          {stats.mocs.length > 0 && (
+            <span className="text-[11px] font-mono font-bold text-muted-foreground">{stats.mocs.length}</span>
+          )}
+        </div>
+
+        {stats.mocs.length === 0 ? (
+          <EmptyMocCard
+            topTags={stats.topTags}
+            onCreate={onCreate}
+            onMakeFromTag={onMakeMocFromTag}
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {stats.mocs.map((p) => (
+              <MocCard key={p.id} page={p} pages={pages} isFav={favSet.has(p.id)} onSelect={onSelect} />
+            ))}
+            <button
+              type="button"
+              onClick={onCreate}
+              className="group flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[12px] font-medium px-4 py-3 min-h-[100px]"
+            >
+              <Plus className="w-3.5 h-3.5 group-hover:scale-110 wiki-trans-base" /> 새 목차
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* 5 카드 그리드 — 최근/초안/연결/만들/잠자 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 최근 수정 */}
         <Section title="🕒 최근 수정" empty="아직 페이지가 없어요">
@@ -174,14 +214,7 @@ export function WikiHome({
           ))}
         </Section>
 
-        {/* 목차 (MOC → 목차) */}
-        <Section title="📚 목차 — 주제별 묶음" empty="아직 목차가 없어요">
-          {stats.mocs.map((p) => (
-            <PageRow key={p.id} page={p} onSelect={onSelect} />
-          ))}
-        </Section>
-
-        {/* 연결 안 된 페이지 (고아 → 연결) */}
+        {/* 연결 안 된 페이지 */}
         <Section
           title="🌱 연결 — 안 된 페이지"
           empty="모든 페이지가 연결됐어요 ✓"
@@ -213,7 +246,7 @@ export function WikiHome({
           ))}
         </Section>
 
-        {/* 잠자 (부패 → 잠자) */}
+        {/* 잠자 (Stale) */}
         <Section
           title="🌙 잠자 — 30일+ 미수정"
           empty="모든 페이지가 신선해요 ✓"
@@ -296,6 +329,107 @@ function Section({
       ) : (
         <ul className="space-y-0.5">{children}</ul>
       )}
+    </div>
+  );
+}
+
+/* ── 목차 큰 카드 — 좌측 4px primary 띠 ── */
+function MocCard({
+  page, pages, isFav, onSelect,
+}: {
+  page: WikiPage; pages: WikiPage[]; isFav: boolean; onSelect: (id: string) => void;
+}) {
+  const preview = page.body.replace(/^[#>\s\n]+/g, '').replace(/\n+/g, ' ').slice(0, 80);
+  const links = useMemo(() => extractWikiLinks(page.body), [page.body]);
+  const titleSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const p of pages) {
+      s.add(p.title.toLowerCase());
+      for (const a of p.aliases) s.add(a.toLowerCase());
+    }
+    return s;
+  }, [pages]);
+  const linkedCount = links.filter((l) => titleSet.has(l.toLowerCase())).length;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(page.id)}
+      className="group relative flex flex-col gap-1.5 text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/50 hover:shadow-md wiki-trans-base pl-5 pr-4 py-3.5 overflow-hidden min-h-[100px]"
+    >
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary/70 group-hover:bg-primary wiki-trans-color" />
+      <div className="flex items-center gap-1.5">
+        <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
+        <span
+          className="text-[14.5px] font-bold text-foreground truncate flex-1"
+          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
+        >
+          {page.title}
+        </span>
+        {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />}
+      </div>
+      {preview && (
+        <p className="text-[11.5px] text-muted-foreground/90 line-clamp-2 leading-relaxed">{preview}</p>
+      )}
+      <p className="text-[10.5px] text-muted-foreground/80 inline-flex items-center gap-1 font-mono mt-auto">
+        <Link2 className="w-2.5 h-2.5" />
+        {linkedCount > 0 ? <><span className="font-bold text-foreground/85">{linkedCount}</span> pages</> : '아직 페이지 안 묶임'}
+      </p>
+    </button>
+  );
+}
+
+/* ── 목차 빈 상태 — 인기 태그로 자동 생성 CTA ── */
+function EmptyMocCard({
+  topTags, onCreate, onMakeFromTag,
+}: {
+  topTags: Array<[string, number]>;
+  onCreate: () => void;
+  onMakeFromTag?: (tag: string) => void;
+}) {
+  return (
+    <div className="relative rounded-xl border-2 border-dashed border-[hsl(var(--wiki-hairline-strong))] bg-gradient-to-b from-card to-muted/20 px-6 py-6 text-center">
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary/30 rounded-l-xl" />
+      <BookOpen className="w-7 h-7 text-primary/60 mx-auto mb-2.5" strokeWidth={1.5} />
+      <p
+        className="text-[15px] font-bold text-foreground mb-1.5"
+        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+      >
+        아직 목차가 없어요
+      </p>
+      <p className="text-[11.5px] text-muted-foreground leading-relaxed mb-4 max-w-md mx-auto">
+        목차는 비슷한 페이지를 모아 <em className="not-italic font-semibold text-foreground/80">길찾기</em> 역할을 해요.<br />
+        50페이지 넘어가면 검색만으론 부족해서 — 진입점이 필요해져요.
+      </p>
+      {onMakeFromTag && topTags.length > 0 && (
+        <>
+          <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 mb-1.5">
+            태그로 자동 만들기
+          </p>
+          <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+            {topTags.slice(0, 4).map(([tag, n]) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => onMakeFromTag(tag)}
+                className="group inline-flex items-center gap-1 px-2.5 h-7 rounded-md bg-primary/10 text-primary text-[11.5px] font-semibold hover:bg-primary hover:text-primary-foreground wiki-trans-base hover:shadow-sm"
+                title={`#${tag} 태그를 가진 ${n}개 페이지로 목차 자동 생성`}
+              >
+                <Plus className="w-2.5 h-2.5" />
+                <span>#{tag}</span>
+                <span className="text-[10px] font-mono opacity-70 group-hover:opacity-90">{n}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={onCreate}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+      >
+        <Plus className="w-3 h-3" /> 빈 목차 직접 만들기
+      </button>
     </div>
   );
 }
