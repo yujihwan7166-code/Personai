@@ -7,7 +7,20 @@ import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Image from '@tiptap/extension-image';
+import TextStyle from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Underline from '@tiptap/extension-underline';
+import Superscript from '@tiptap/extension-superscript';
+import Subscript from '@tiptap/extension-subscript';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
 import { Markdown } from 'tiptap-markdown';
+import { FontSize } from './editor/FontSize';
+import { WikiEditorToolbar } from './WikiEditorToolbar';
 import {
   Bold, Italic, Strikethrough, Code, Link as LinkIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code2, Minus, ImagePlus, CheckSquare, BookOpen, Lightbulb,
@@ -68,6 +81,18 @@ export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: P
       TaskList,
       TaskItem.configure({ nested: true }),
       Image.configure({ HTMLAttributes: { class: 'wiki-image' } }),
+      TextStyle,
+      Color,
+      FontSize,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Underline,
+      Superscript,
+      Subscript,
+      Table.configure({ resizable: true, HTMLAttributes: { class: 'wiki-table' } }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Markdown.configure({
         html: false,
         tightLists: true,
@@ -273,6 +298,24 @@ export function WikiBlockEditor({ body, onChange, onPickPage, onUploadImage }: P
 
   return (
     <div className="relative">
+      {/* 상단 고정 툴바 (네이버 블로그 톤) */}
+      <WikiEditorToolbar
+        editor={editor}
+        onPickPage={onPickPage ? () => onPickPage((title) => editor.chain().focus().insertContent(`[[${title}]]`).run()) : undefined}
+        onPickImage={onUploadImage ? () => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            const src = await onUploadImage(file);
+            editor.chain().focus().setImage({ src }).run();
+          };
+          input.click();
+        } : undefined}
+      />
+
       {/* 인라인 툴바 — 텍스트 선택 시 떠오름 */}
       <BubbleMenu
         editor={editor}
