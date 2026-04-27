@@ -10,6 +10,9 @@ import { WikiToc } from './WikiToc';
 import { WikiInfobox } from './WikiInfobox';
 import { WikiLocalGraph } from './WikiLocalGraph';
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
+import { WikiMainDocForm } from './WikiMainDocForm';
+import { parseMainDocBody, serializeMainDocBody, canEditAsForm, type MainDocForm } from '@/lib/wikiMainDocBody';
+import { WikiBlockEditor } from './WikiBlockEditor';
 import { saveImage } from '@/lib/wikiImageStore';
 import { WikiHistoryPanel } from './WikiHistoryPanel';
 import { WikiLiveEditor } from './WikiLiveEditor';
@@ -62,6 +65,11 @@ export function WikiPageView({
   const [draft, setDraft] = useState<WikiPage>(page);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [historyOpen, setHistoryOpen] = useState(false);
+  // 메인 문서 편집 모드: 'form' (구조 폼) | 'markdown' (직접 마크다운)
+  // 본문이 폼으로 안전 변환 가능하면 form, 아니면 markdown 디폴트
+  const [editorMode, setEditorMode] = useState<'form' | 'markdown'>(() =>
+    isMainDoc(page) && canEditAsForm(page.body) ? 'form' : 'markdown'
+  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimerRef = useRef<number | null>(null);
   const onChangeRef = useRef(onChange);
@@ -335,43 +343,62 @@ export function WikiPageView({
           <section className={cn('min-h-[200px]', editing ? '' : 'wiki-prose')}>
             {editing ? (
               <>
-                <div className="mb-2 flex items-center gap-2 text-[10.5px] text-muted-foreground">
-                  <button
-                    type="button"
-                    onClick={onPickImage}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-[hsl(var(--hairline))] hover:bg-accent transition-colors text-foreground/80"
-                    title="이미지 추가"
-                  >
-                    <ImagePlus className="w-3 h-3" />
-                    이미지
-                  </button>
-                  <span>드래그·드롭 또는 붙여넣기 (Ctrl/Cmd+V) 도 OK</span>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={onFileChosen}
-                />
-                <textarea
-                  ref={textareaRef}
-                  value={draft.body}
-                  onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-                  onDrop={onDrop}
-                  onPaste={onPaste}
-                  placeholder="마크다운 본문… [[다른 페이지]] · 이미지 드롭/붙여넣기 OK"
-                  className="w-full min-h-[420px] bg-background border border-[hsl(var(--hairline))] rounded-lg p-4 text-[13.5px] leading-7 font-mono outline-none focus:border-primary/40 transition-colors resize-y"
-                  autoFocus
-                />
-                <WikiLinkAutocomplete
-                  pages={allPages}
+                {/* 메인 문서 — 폼 모드 / 블록 에디터 모드 토글 */}
+                {isMainDoc(draft) && (
+                  <div className="mb-3 flex items-center gap-1 p-0.5 rounded-md bg-muted/40 w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode('form')}
+                      className={cn(
+                        'h-6 px-2.5 rounded text-[11px] wiki-trans-color',
+                        editorMode === 'form'
+                          ? 'bg-background text-foreground shadow-sm font-semibold'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                      title="섹션별 폼 — 핵심 페이지·하위 주제 등 칸 채우기"
+                    >
+                      📋 간편 모드
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode('markdown')}
+                      className={cn(
+                        'h-6 px-2.5 rounded text-[11px] wiki-trans-color',
+                        editorMode === 'markdown'
+                          ? 'bg-background text-foreground shadow-sm font-semibold'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                      title="자유 편집 (블록 에디터)"
+                    >
+                      ✍ 자유 편집
+                    </button>
+                  </div>
+                )}
+                {/* 간편 모드 (메인 문서 전용) */}
+                {isMainDoc(draft) && editorMode === 'form' ? (
+                  <WikiMainDocForm
+                    form={parseMainDocBody(draft.body)}
+                    onChange={(form: MainDocForm) => setDraft({ ...draft, body: serializeMainDocBody(form) })}
+                    allPages={allPages}
+                    currentId={draft.id}
+                  />
+                ) : (
+                <WikiBlockEditor
+                  body={draft.body}
+                  onChange={(md) => setDraft({ ...draft, body: md })}
+                  allPages={allPages}
                   currentId={page.id}
-                  textareaRef={textareaRef}
-                  value={draft.body}
-                  onChange={(v) => setDraft({ ...draft, body: v })}
+                  onPickPage={(insert) => {
+                    // 간단한 prompt 기반 페이지 picker (부모 모달은 후속). 우선 직접 입력.
+                    const pageTitle = window.prompt('페이지 제목:');
+                    if (pageTitle?.trim()) insert(pageTitle.trim());
+                  }}
+                  onUploadImage={async (file) => {
+                    const id = await saveImage(file);
+                    return `wiki-image:${id}`;
+                  }}
                 />
+                )}
               </>
             ) : (
               <WikiLiveEditor
