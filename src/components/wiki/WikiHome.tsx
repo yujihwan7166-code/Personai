@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Plus, Sparkles, ArrowRight, Star, FileText, Link2, Sprout, Moon, BookOpen, Play, Shuffle, RotateCw, TrendingUp } from 'lucide-react';
-import { type WikiPage, WIKI_TYPE_META, extractWikiLinks } from '@/types/wiki';
+import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, extractWikiLinks } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 import { cn } from '@/lib/utils';
 
