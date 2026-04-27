@@ -1350,7 +1350,7 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
         };
 
         return (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {/* 추천 섹션 */}
             {popular.length > 0 && (
               <section>
@@ -1362,6 +1362,11 @@ function SimulationModePanel({ experts, settings, onSettingsChange, onSubmit, is
                   {popular.map(renderCard)}
                 </div>
               </section>
+            )}
+
+            {/* Section separator */}
+            {popular.length > 0 && (
+              <div aria-hidden className="h-px bg-gradient-to-r from-transparent via-slate-200/70 to-transparent" />
             )}
 
             {/* 전체 섹션 */}
