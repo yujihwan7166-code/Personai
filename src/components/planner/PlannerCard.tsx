@@ -6,7 +6,7 @@
  *
  * Phase 1 = 최소 시각. Phase 2 에서 hover/색·간격 정교화.
  */
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface InboxCardProps {
@@ -15,6 +15,8 @@ interface InboxCardProps {
   done: boolean;
   onToggle: () => void;
   onClick?: () => void;
+  /** hover 시 우측에 삭제 X 아이콘 노출. */
+  onDelete?: () => void;
 }
 
 interface BlockCardProps {
@@ -33,7 +35,7 @@ type PlannerCardProps = InboxCardProps | BlockCardProps;
 
 export const PlannerCard = (props: PlannerCardProps) => {
   if (props.variant === 'inbox') {
-    const { title, done, onToggle, onClick } = props;
+    const { title, done, onToggle, onClick, onDelete } = props;
     return (
       <div
         role="button"
@@ -76,6 +78,24 @@ export const PlannerCard = (props: PlannerCardProps) => {
         >
           {title}
         </span>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            aria-label="삭제"
+            title="삭제"
+            className={cn(
+              'flex h-5 w-5 items-center justify-center rounded shrink-0',
+              'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
+              'text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-all',
+            )}
+          >
+            <X className="h-3 w-3" strokeWidth={2.5} />
+          </button>
+        )}
       </div>
     );
   }

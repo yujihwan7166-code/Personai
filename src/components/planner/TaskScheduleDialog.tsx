@@ -22,7 +22,9 @@ import {
 } from '@/components/ui/dialog';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
+import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
+import type { PlannerTask } from '@/types/planner';
 
 type Mode =
   | { kind: 'schedule'; taskId: string; initialTitle: string; initialStart?: string; initialEnd?: string }
@@ -91,13 +93,15 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     if (trimmed.length === 0) return;
 
     if (mode.kind === 'schedule') {
-      // 제목과 시간 모두 업데이트.
       taskStore.update(mode.taskId, { title: trimmed, startAt: startIso, endAt: endIso });
+      notify.success('시간 배정됐어요');
     } else {
       if (isEvent) {
         eventStore.add({ title: trimmed, startAt: startIso, endAt: endIso, source: 'user' });
+        notify.success('일정 추가됐어요');
       } else {
         taskStore.add({ title: trimmed, startAt: startIso, endAt: endIso });
+        notify.success('할 일 추가됐어요');
       }
     }
     onClose();
@@ -106,13 +110,28 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const handleUnschedule = () => {
     if (mode.kind === 'schedule') {
       taskStore.unschedule(mode.taskId);
+      notify.info('인박스로 옮겼어요', { duration: 1500 });
       onClose();
     }
   };
 
   const handleDelete = () => {
     if (mode.kind === 'schedule') {
+      // 복원용 스냅샷.
+      const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'goalId'> = {
+        title: title.trim() || mode.initialTitle,
+        done: false,
+        startAt: mode.initialStart,
+        endAt: mode.initialEnd,
+      };
       taskStore.remove(mode.taskId);
+      notify.success('삭제됐어요', {
+        duration: 5000,
+        action: {
+          label: '되돌리기',
+          onClick: () => taskStore.add(snapshot),
+        },
+      });
       onClose();
     }
   };

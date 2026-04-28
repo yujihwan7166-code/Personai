@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
+import { notify } from '@/lib/notify';
 import { PlannerSection } from './PlannerSection';
 
 const HOUR_PX = 56;          // 1시간 높이 (= 30분 × 2 row)
@@ -181,7 +182,9 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                   }}
                   onDoubleClick={() => {
                     if (item.kind === 'task') {
+                      const wasDone = item.data.done;
                       taskStore.toggleDone(item.data.id);
+                      notify.success(wasDone ? '완료 취소' : '완료!', { duration: 1200 });
                     }
                   }}
                 >

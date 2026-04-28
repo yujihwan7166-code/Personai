@@ -1,16 +1,20 @@
 /**
  * 통합 플래너 — /planner 라우트.
  *
- * Phase 4: 시간 격자 인터랙션 + 시간 배정 모달.
+ * UX 패턴 (다른 캘린더 앱 표준):
+ * - 시간 이동: ←/→ 버튼 + 키보드 좌/우
+ * - 오늘로: 'T' 키 + 버튼
+ * - 현재 기간 라벨: 헤더에 명확히 표시
  *
  * 단축키:
  * - n: 인박스 빠른 추가 포커스 (Day/Week 뷰)
  * - d/w/m/y: 뷰 전환
- * - Esc: 입력 blur
+ * - ← / →: 이전 / 다음
+ * - t: 오늘로
  */
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Inbox } from '@/components/planner/Inbox';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { WeekStrip } from '@/components/planner/WeekStrip';
@@ -19,10 +23,14 @@ import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
+import { cn } from '@/lib/utils';
 
 type DialogMode =
   | { kind: 'schedule'; taskId: string; initialTitle: string; initialStart?: string; initialEnd?: string }
   | { kind: 'create'; presetStartIso: string };
+
+const isSameDay = (a: Date, b: Date): boolean =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 const Planner = () => {
   const navigate = useNavigate();
@@ -51,7 +59,6 @@ const Planner = () => {
 
   const handleItemClick = useCallback(
     (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => {
-      // v1: task 만 편집. event 는 클릭 무시 (Phase 5 에서 별도 모달).
       if (item.kind === 'task') {
         setDialogMode({
           kind: 'schedule',
@@ -65,6 +72,57 @@ const Planner = () => {
     [],
   );
 
+  // 시간 이동 핸들러 — view 에 따라 ±1 day/week/month/year.
+  const shiftAnchor = useCallback((direction: -1 | 1) => {
+    setAnchorIso((prev) => {
+      const d = new Date(prev);
+      if (view === 'day') d.setDate(d.getDate() + direction);
+      else if (view === 'week') d.setDate(d.getDate() + 7 * direction);
+      else if (view === 'month') d.setMonth(d.getMonth() + direction);
+      else if (view === 'year') d.setFullYear(d.getFullYear() + direction);
+      return d.toISOString();
+    });
+  }, [view]);
+
+  const goPrev = useCallback(() => shiftAnchor(-1), [shiftAnchor]);
+  const goNext = useCallback(() => shiftAnchor(1), [shiftAnchor]);
+  const goToday = useCallback(() => setAnchorIso(new Date().toISOString()), []);
+
+  // anchor 가 오늘과 같은 기간인지 (Today 버튼 dim 판정).
+  const anchorIsToday = useMemo(() => {
+    const a = new Date(anchorIso);
+    const today = new Date();
+    if (view === 'day') return isSameDay(a, today);
+    if (view === 'week') {
+      const start = new Date(a);
+      start.setDate(a.getDate() - a.getDay());
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      return today >= start && today < end;
+    }
+    if (view === 'month') return a.getFullYear() === today.getFullYear() && a.getMonth() === today.getMonth();
+    return a.getFullYear() === today.getFullYear();
+  }, [anchorIso, view]);
+
+  // 현재 기간 라벨 (헤더 강조 텍스트).
+  const periodLabel = useMemo(() => {
+    const d = new Date(anchorIso);
+    if (view === 'day') {
+      return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+    }
+    if (view === 'week') {
+      const start = new Date(d);
+      start.setDate(d.getDate() - d.getDay());
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const startFmt = start.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+      const endFmt = end.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+      return `${startFmt} ~ ${endFmt}`;
+    }
+    if (view === 'month') return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
+    return `${d.getFullYear()}년`;
+  }, [anchorIso, view]);
+
   // 키보드 단축키.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -72,7 +130,6 @@ const Planner = () => {
       const isTyping =
         target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
       if (isTyping) return;
-      // 모달 열려 있으면 단축키 비활성.
       if (dialogMode) return;
 
       switch (e.key.toLowerCase()) {
@@ -86,11 +143,14 @@ const Planner = () => {
         case 'w': e.preventDefault(); setView('week'); break;
         case 'm': e.preventDefault(); setView('month'); break;
         case 'y': e.preventDefault(); setView('year'); break;
+        case 't': e.preventDefault(); goToday(); break;
+        case 'arrowleft':  e.preventDefault(); goPrev(); break;
+        case 'arrowright': e.preventDefault(); goNext(); break;
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [view, dialogMode]);
+  }, [view, dialogMode, goPrev, goNext, goToday]);
 
   const isFullscreen = view === 'month' || view === 'year';
 
@@ -110,9 +170,49 @@ const Planner = () => {
             </button>
             <h1 className="text-[22px] sm:text-[26px] font-semibold tracking-tight leading-none">통합 플래너</h1>
             <ViewToggle value={view} onChange={setView} />
+            {/* 시간 네비게이션 */}
+            <div className="inline-flex items-center gap-0.5 ml-1">
+              <button
+                type="button"
+                onClick={goPrev}
+                aria-label="이전"
+                title="이전 (←)"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent text-foreground transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={goToday}
+                disabled={anchorIsToday}
+                aria-label="오늘로"
+                title="오늘로 (T)"
+                className={cn(
+                  'h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors',
+                  anchorIsToday
+                    ? 'bg-card text-muted-foreground/60 cursor-default'
+                    : 'bg-card text-foreground hover:bg-accent',
+                )}
+              >
+                오늘
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label="다음"
+                title="다음 (→)"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent text-foreground transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            {/* 현재 기간 라벨 */}
+            <span className="text-[14px] text-foreground font-medium tabular-nums">
+              {periodLabel}
+            </span>
           </div>
           <p className="hidden md:block text-[11px] text-muted-foreground font-mono uppercase tracking-[0.16em] font-medium">
-            {view === 'day' || view === 'week' ? 'n · 빠른추가  ·  ' : ''}d/w/m/y · 뷰
+            {view === 'day' || view === 'week' ? 'n  ·  ' : ''}← → t  ·  d/w/m/y
           </p>
         </header>
 
