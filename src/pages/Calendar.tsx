@@ -593,9 +593,9 @@ function ModalShell({
 }: { onClose: () => void; eyebrow: string; title?: string; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-plnk-DEFAULT/30" />
+      <div className="absolute inset-0 bg-plnk-DEFAULT/15 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[520px] max-h-[85vh] bg-pln-card border border-pln-rule overflow-hidden flex flex-col animate-in fade-in duration-150"
+        className="relative w-full max-w-[520px] max-h-[85vh] bg-pln-card rounded-lg border border-pln-line shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="shrink-0 px-7 pt-6 pb-4 border-b border-pln-line flex items-start gap-3">

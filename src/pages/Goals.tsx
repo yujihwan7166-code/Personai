@@ -76,7 +76,7 @@ const Goals = () => {
         {activeGoals.length === 0 ? (
           <EmptyState onCreate={() => setCreateOpen(true)} />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-pln-line border border-pln-line">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeGoals.map((g) => (
               <GoalCard key={g.id} goal={g} onClick={() => setDetailFor(g)} />
             ))}
@@ -139,10 +139,10 @@ function GoalCard({ goal, onClick }: { goal: Goal; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="text-left bg-pln-card hover:bg-pln-base/40 transition-colors p-6 group relative"
+      className="text-left bg-pln-card rounded-lg border border-pln-line hover:border-plnk-faint hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all p-6 group relative overflow-hidden"
     >
       {/* 좌측 카테고리 컬러 dot */}
-      <div className="absolute left-0 top-6 w-1 h-12" style={{ backgroundColor: meta.color }} />
+      <div className="absolute left-0 top-6 w-1 h-12 rounded-r" style={{ backgroundColor: meta.color }} />
 
       <div className="flex items-baseline justify-between mb-1">
         <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-plnk-muted">
@@ -553,9 +553,9 @@ function ModalShell({
 }: { onClose: () => void; eyebrow: string; title?: string; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-plnk-DEFAULT/30" />
+      <div className="absolute inset-0 bg-plnk-DEFAULT/15 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[520px] max-h-[85vh] bg-pln-card border border-pln-rule overflow-hidden flex flex-col animate-in fade-in duration-150"
+        className="relative w-full max-w-[520px] max-h-[85vh] bg-pln-card rounded-lg border border-pln-line shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="shrink-0 px-7 pt-6 pb-4 border-b border-pln-line flex items-start gap-3">
