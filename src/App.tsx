@@ -14,11 +14,6 @@ const Mockup = lazy(() => import("./pages/Mockup"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Wiki = lazy(() => import("./pages/Wiki"));
-const Goals = lazy(() => import("./pages/Goals"));
-const Habits = lazy(() => import("./pages/Habits"));
-const Tasks = lazy(() => import("./pages/Tasks"));
-const Calendar = lazy(() => import("./pages/Calendar"));
-const Planner = lazy(() => import("./pages/Planner"));
 
 function RouteFallback() {
   return <div className="min-h-screen bg-background" aria-hidden="true" />;
@@ -39,11 +34,6 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/wiki" element={<Wiki />} />
-              <Route path="/goals" element={<Goals />} />
-              <Route path="/habits" element={<Habits />} />
-              <Route path="/tasks" element={<Tasks />} />
-              <Route path="/calendar" element={<Calendar />} />
-              <Route path="/planner" element={<Planner />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

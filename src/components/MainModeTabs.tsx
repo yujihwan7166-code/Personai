@@ -209,7 +209,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'habit',    label: '습관·루틴 트래커', desc: '매일 반복·꾸준함을 시각화', emoji: '🌱', tint: 'hsl(170 60% 45%)', axis: '행동' },
   // ── 성장 (깊이·자기관리) ──────────────
   { id: 'wiki',     label: '마이위키',     desc: '나만의 지식 베이스',        emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '성장' },
-  { id: 'goals',    label: '목표·OKR',     desc: '분기·연간 목표 추적',        emoji: '🎯', tint: 'hsl(38 92% 50%)',  axis: '성장' },
+  { id: 'pomodoro', label: '포모도로',     desc: '25분 집중 타이머',          emoji: '🍅', tint: 'hsl(0 75% 55%)',   axis: '성장' },
   { id: 'briefing', label: '데일리 브리핑', desc: 'AI 가 요약해주는 오늘',     emoji: '☕', tint: 'hsl(25 85% 55%)',  axis: '성장' },
   { id: 'journal',  label: '일기',         desc: '하루 기록 · 감정',          emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '성장' },
 ];
@@ -1566,22 +1566,10 @@ export function MainModeTabs({
                           key={item.id}
                           type="button"
                           onClick={() => {
-                            // 마이위키 + 목표 구현. 다른 도구는 아직 no-op.
+                            // 마이위키만 v1 구현 — 다른 도구는 아직 no-op.
                             if (item.id === 'wiki') {
                               setOpen(false);
                               navigate('/wiki');
-                            } else if (item.id === 'goals') {
-                              setOpen(false);
-                              navigate('/goals');
-                            } else if (item.id === 'habit') {
-                              setOpen(false);
-                              navigate('/habits');
-                            } else if (item.id === 'todo') {
-                              setOpen(false);
-                              navigate('/tasks');
-                            } else if (item.id === 'calendar') {
-                              setOpen(false);
-                              navigate('/calendar');
                             }
                           }}
                           role="menuitem"

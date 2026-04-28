@@ -69,28 +69,6 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // ── Planner — Linear/Vercel 톤 (2026-04) ──
-        // 차가운 grayscale · 보라청 액센트 · sharp 살짝 라운드
-        pln: {
-          base:    "#FAFAFA",  // 페이지 배경 (Vercel·Linear 결)
-          card:    "#FFFFFF",  // 카드
-          sunken:  "#F4F4F5",  // 가라앉은 영역 (table header 등)
-          line:    "#EAEAEC",  // 가는 보더
-          rule:    "#D4D4D8",  // 진한 보더 (input under)
-        },
-        plnk: {  // foreground
-          DEFAULT: "#0A0A0A",  // 거의 검정 (Linear)
-          dim:     "#262626",
-          muted:   "#737373",
-          faint:   "#A1A1AA",
-        },
-        plac: {  // accent — Linear purple-blue
-          DEFAULT: "#5E6AD2",
-          hover:   "#4F58B8",  // hover 살짝 짙게
-          subtle:  "#EEF1FE",  // subtle bg (selected row 등)
-          warn:    "#DC2626",  // red 600
-          ok:      "#10B981",  // emerald 500 (성공·완료)
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
