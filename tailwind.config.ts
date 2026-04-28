@@ -69,6 +69,24 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // ── Planner — 모노크롬 + 1 액센트 (2026-04) ──
+        // 시스템 이모지 X · 그림자 X · 라운드 최소 · typography 중심
+        pln: {
+          base:    "#F8F7F4",  // 페이지 배경 (따뜻한 회백)
+          card:    "#FFFFFF",  // 카드
+          line:    "#E5E1D8",  // 1px hairline
+          rule:    "#CFC9BB",  // 진한 라인 (구분선)
+        },
+        plnk: {  // ink
+          DEFAULT: "#111111",
+          dim:     "#3D3A35",  // 강조 본문
+          muted:   "#6B6863",  // 부제
+          faint:   "#A8A39B",  // 마이크로
+        },
+        plac: {  // accent
+          DEFAULT: "#1F3A8A",  // 잉크 청 — 메인 액센트
+          warn:    "#9A2E1A",  // 마감·삭제 (낡은 잉크 빨강)
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

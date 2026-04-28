@@ -1,18 +1,15 @@
 /**
- * ✅ Tasks — 할 일 페이지 (Phase 1.3)
- *
- * 그룹: 오늘 / 이번 주 / 미정 / 완료(7일).
- * 가상 habit todo 가 오늘 그룹 최상단.
- * 빠른 추가 바 + 목표 필터 + Undo 토스트 + 단축키.
+ * Tasks — 할 일 (markdown / mono 톤)
+ * 시스템 emoji X · 체크박스는 텍스트 같은 [ ] 정사각.
  */
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, X, Trash2, Check, Edit3 } from 'lucide-react';
+import { ArrowLeft, Plus, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import {
-  useTasks, addTask, updateTask, removeTask, toggleTaskDone, getTask,
+  useTasks, addTask, updateTask, removeTask, toggleTaskDone,
   useGoals,
   useTodayTaskRows,
   toggleHabitDay,
@@ -20,31 +17,25 @@ import {
   type Task, type Priority, type ID, type VirtualHabitTask,
 } from '@/lib/planner';
 
-// ──────────────────────────────────────────
-// 그룹화 헬퍼
-// ──────────────────────────────────────────
 const DAY = 24 * 3600 * 1000;
 const WEEK_AHEAD = 7 * DAY;
 
 function relevantTime(t: Task): number | null {
   return t.scheduledAt ?? t.dueAt ?? null;
 }
-
 function groupOf(t: Task): 'today' | 'thisweek' | 'unscheduled' | 'completed' {
   const today = todayKey();
-  if (t.done) {
-    if (t.doneAt && Date.now() - t.doneAt < 7 * DAY) return 'completed';
-    return 'completed';
-  }
+  if (t.done) return 'completed';
   const when = relevantTime(t);
   if (when == null) return 'unscheduled';
   if (dayKeyOf(when) === today) return 'today';
   if (when - Date.now() <= WEEK_AHEAD && when - Date.now() >= 0) return 'thisweek';
-  if (when < Date.now()) return 'today'; // 지난 미완료 → 오늘로
+  if (when < Date.now()) return 'today';
   return 'unscheduled';
 }
 
-// ──────────────────────────────────────────
+const PRIO_ORDER: Record<Priority, number> = { high: 0, med: 1, low: 2 };
+
 const Tasks = () => {
   const navigate = useNavigate();
   const allTasks = useTasks();
@@ -54,23 +45,18 @@ const Tasks = () => {
   const [editFor, setEditFor] = useState<Task | null>(null);
   const quickRef = useRef<HTMLInputElement>(null);
 
-  // 가상 habit todo (오늘 그룹 최상단)
   const virtualHabits = todayRows.filter(
     (r): r is VirtualHabitTask => r.kind === 'virtual_habit_task',
   );
 
-  // 실 task 들 — 필터 적용
   const filtered = useMemo(() => {
     if (filterGoalId === 'all') return allTasks;
     return allTasks.filter((t) => t.goalId === filterGoalId);
   }, [allTasks, filterGoalId]);
 
-  // 그룹화
   const grouped = useMemo(() => {
     const g = { today: [] as Task[], thisweek: [] as Task[], unscheduled: [] as Task[], completed: [] as Task[] };
     for (const t of filtered) g[groupOf(t)].push(t);
-    // 오늘: 마감 오늘이 위, 그 다음 우선순위
-    const PRIO_ORDER: Record<Priority, number> = { high: 0, med: 1, low: 2 };
     g.today.sort((a, b) => {
       const ad = a.dueAt && dayKeyOf(a.dueAt) === todayKey() ? 0 : 1;
       const bd = b.dueAt && dayKeyOf(b.dueAt) === todayKey() ? 0 : 1;
@@ -85,7 +71,6 @@ const Tasks = () => {
 
   const activeCount = grouped.today.length + grouped.thisweek.length + grouped.unscheduled.length;
 
-  // 단축키
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (editFor) return;
@@ -101,47 +86,54 @@ const Tasks = () => {
   }, [editFor]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-10 bg-white/85 backdrop-blur-sm border-b border-slate-100">
-        <div className="max-w-[920px] mx-auto px-5 py-3 flex items-center gap-3">
+    <div className="min-h-screen bg-pln-base">
+      <header className="border-b border-pln-line bg-pln-base">
+        <div className="max-w-[820px] mx-auto px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate('/')}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
+            className="text-plnk-muted hover:text-plnk-DEFAULT"
             aria-label="뒤로"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[16px] font-bold text-slate-800 leading-tight">✅ 할 일</h1>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              활성 {activeCount}{grouped.completed.length > 0 ? ` · 완료 ${grouped.completed.length}` : ''}
-            </p>
-          </div>
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-500 border border-slate-200">
-            n 키로 추가
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted">할 일</span>
+          <div className="flex-1" />
+          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-plnk-muted border border-pln-line">
+            n
           </kbd>
         </div>
       </header>
 
-      {/* 본문 */}
-      <main className="max-w-[920px] mx-auto px-5 py-4 space-y-4">
-        <QuickAddBar inputRef={quickRef} goals={goals} defaultGoalId={filterGoalId === 'all' ? undefined : filterGoalId} />
+      <main className="max-w-[820px] mx-auto px-6 py-10 space-y-7">
+        <div>
+          <h1 className="font-display text-[40px] sm:text-[44px] font-semibold text-plnk-DEFAULT leading-[1.1] tracking-[-0.02em]">
+            오늘 할 일
+          </h1>
+          <p className="mt-3 text-[14px] text-plnk-muted">
+            {activeCount === 0 && grouped.completed.length === 0
+              ? '비어 있음.'
+              : `진행 ${activeCount} · 완료 ${grouped.completed.length}`}
+          </p>
+        </div>
 
-        {/* 목표 필터 칩 */}
+        <QuickAddBar
+          inputRef={quickRef}
+          goals={goals}
+          defaultGoalId={filterGoalId === 'all' ? undefined : filterGoalId}
+        />
+
         {goals.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap text-[11.5px]">
             <button
               onClick={() => setFilterGoalId('all')}
               className={cn(
-                'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border',
+                'pb-0.5 transition-colors',
                 filterGoalId === 'all'
-                  ? 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
-                  : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200',
+                  ? 'text-plnk-DEFAULT border-b border-plnk-DEFAULT'
+                  : 'text-plnk-muted hover:text-plnk-DEFAULT',
               )}
             >
-              전체
-              <span className="text-[9.5px] text-slate-400">{allTasks.filter(t => !t.done).length}</span>
+              전체 <span className="font-mono tabular-nums text-plnk-faint">{allTasks.filter((t) => !t.done).length}</span>
             </button>
             {goals.map((g) => {
               const count = allTasks.filter((t) => t.goalId === g.id && !t.done).length;
@@ -151,38 +143,32 @@ const Tasks = () => {
                   key={g.id}
                   onClick={() => setFilterGoalId(g.id)}
                   className={cn(
-                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border max-w-[180px]',
+                    'pb-0.5 transition-colors max-w-[220px] truncate',
                     active
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
-                      : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200',
+                      ? 'text-plnk-DEFAULT border-b border-plnk-DEFAULT'
+                      : 'text-plnk-muted hover:text-plnk-DEFAULT',
                   )}
+                  title={g.title}
                 >
-                  <span>{g.emoji || '🎯'}</span>
-                  <span className="truncate">{g.title}</span>
-                  <span className="text-[9.5px] text-slate-400 shrink-0">{count}</span>
+                  {g.title} <span className="font-mono tabular-nums text-plnk-faint">{count}</span>
                 </button>
               );
             })}
           </div>
         )}
 
-        {/* 그룹별 리스트 */}
         {activeCount === 0 && grouped.completed.length === 0 ? (
           <EmptyState onCreate={() => quickRef.current?.focus()} />
         ) : (
-          <>
-            {/* 오늘 — 가상 habit + 실 task */}
+          <div className="space-y-7">
             {(virtualHabits.length > 0 || grouped.today.length > 0) && (
               <Section title="오늘" count={virtualHabits.length + grouped.today.length}>
-                {virtualHabits.map((vh) => (
-                  <VirtualHabitRow key={vh.id} row={vh} />
-                ))}
+                {virtualHabits.map((vh) => <VirtualHabitRow key={vh.id} row={vh} />)}
                 {grouped.today.map((t) => (
                   <TaskRow key={t.id} task={t} onEdit={() => setEditFor(t)} highlightDueToday />
                 ))}
               </Section>
             )}
-
             {grouped.thisweek.length > 0 && (
               <Section title="이번 주" count={grouped.thisweek.length}>
                 {grouped.thisweek.map((t) => (
@@ -190,32 +176,23 @@ const Tasks = () => {
                 ))}
               </Section>
             )}
-
             {grouped.unscheduled.length > 0 && (
               <Section title="미정" count={grouped.unscheduled.length}>
-                {grouped.unscheduled.map((t) => (
-                  <TaskRow key={t.id} task={t} onEdit={() => setEditFor(t)} />
-                ))}
+                {grouped.unscheduled.map((t) => <TaskRow key={t.id} task={t} onEdit={() => setEditFor(t)} />)}
               </Section>
             )}
-
             {grouped.completed.length > 0 && (
-              <Section title="완료 (지난 7일)" count={grouped.completed.length} muted>
+              <Section title="지난 7일 완료" count={grouped.completed.length} muted>
                 {grouped.completed.slice(0, 20).map((t) => (
                   <TaskRow key={t.id} task={t} onEdit={() => setEditFor(t)} />
                 ))}
               </Section>
             )}
-          </>
+          </div>
         )}
       </main>
 
-      {editFor && (
-        <TaskEditModal
-          task={editFor}
-          onClose={() => setEditFor(null)}
-        />
-      )}
+      {editFor && <TaskEditModal task={editFor} onClose={() => setEditFor(null)} />}
     </div>
   );
 };
@@ -223,35 +200,31 @@ const Tasks = () => {
 export default Tasks;
 
 // ──────────────────────────────────────────
-// EmptyState
-// ──────────────────────────────────────────
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="text-center py-16">
-      <div className="text-5xl mb-4">✅</div>
-      <h2 className="text-[18px] font-bold text-slate-800 mb-2">오늘 할 일을 적어볼까요</h2>
-      <p className="text-[13px] text-slate-500 mb-6 max-w-md mx-auto">
-        제목만 적어도 OK. 시간·우선순위·목표 연결은 나중에 추가해도 됩니다.
+    <div className="border-t border-b border-pln-line py-20 text-center">
+      <p className="font-display text-[22px] text-plnk-DEFAULT mb-2 tracking-tight">
+        오늘은 무얼 할까요.
+      </p>
+      <p className="text-[13px] text-plnk-muted mb-8 max-w-md mx-auto">
+        제목만 적어도 됩니다. 시간·우선순위·연결은 나중에 천천히.
       </p>
       <button
         onClick={onCreate}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 shadow-[0_4px_14px_rgba(99,102,241,0.25)]"
+        className="text-[13px] font-medium text-plac-DEFAULT border-b border-plac-DEFAULT pb-0.5 hover:opacity-70"
       >
-        <Plus className="w-4 h-4" />
-        새 할 일
+        시작하기 →
       </button>
     </div>
   );
 }
 
 // ──────────────────────────────────────────
-// QuickAddBar
-// ──────────────────────────────────────────
 function QuickAddBar({
   inputRef, goals, defaultGoalId,
 }: {
   inputRef: React.RefObject<HTMLInputElement>;
-  goals: { id: ID; title: string; emoji?: string }[];
+  goals: { id: ID; title: string }[];
   defaultGoalId?: ID;
 }) {
   const [title, setTitle] = useState('');
@@ -269,31 +242,24 @@ function QuickAddBar({
     if (whenChip === 'today') scheduledAt = now;
     else if (whenChip === 'tomorrow') scheduledAt = now + DAY;
     else if (whenChip === 'week') scheduledAt = now + 3 * DAY;
-    addTask({
-      title: title.trim(),
-      scheduledAt,
-      priority,
-      goalId,
-      source: 'manual',
-    });
+    addTask({ title: title.trim(), scheduledAt, priority, goalId, source: 'manual' });
     setTitle('');
     notify.saved();
   };
 
   return (
     <div className={cn(
-      'rounded-xl bg-white border transition-all',
-      expanded ? 'border-indigo-200 shadow-sm' : 'border-slate-200',
+      'border-y transition-colors',
+      expanded ? 'border-plnk-DEFAULT bg-pln-card' : 'border-pln-line',
     )}>
-      <div className="flex items-center gap-2 px-3 py-2">
-        <Plus className="w-4 h-4 text-slate-400 shrink-0" />
+      <div className="flex items-center gap-3 py-3">
+        <span className="font-mono text-plnk-muted text-[14px]">{title.trim() ? '[ ]' : '+'}</span>
         <input
           ref={inputRef}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onFocus={() => setExpanded(true)}
           onBlur={(e) => {
-            // 포커스가 옵션 영역으로 가지 않으면 접음
             const next = e.relatedTarget as HTMLElement | null;
             if (!next || !next.closest('[data-quickadd]')) {
               if (!title.trim()) setExpanded(false);
@@ -307,89 +273,44 @@ function QuickAddBar({
               (e.target as HTMLInputElement).blur();
             }
           }}
-          placeholder="새 할 일... (Enter 로 추가)"
-          className="flex-1 bg-transparent text-[13px] text-slate-800 placeholder:text-slate-300 outline-none"
+          placeholder="새 할 일... (Enter)"
+          className="flex-1 bg-transparent text-[14px] text-plnk-DEFAULT placeholder:text-plnk-faint outline-none"
         />
         {title.trim() && (
-          <button
-            onClick={submit}
-            className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700"
-          >
+          <button onClick={submit} className="text-[12px] font-medium text-plac-DEFAULT border-b border-plac-DEFAULT pb-0.5">
             추가
           </button>
         )}
       </div>
       {expanded && (
-        <div data-quickadd className="px-3 pb-3 pt-1 flex flex-wrap items-center gap-3 text-[11px] border-t border-slate-100">
-          {/* 시간 */}
-          <div className="flex items-center gap-1">
-            <span className="text-slate-400">언제</span>
+        <div data-quickadd className="flex flex-wrap items-center gap-x-5 gap-y-2 py-3 border-t border-pln-line text-[11.5px]">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-plnk-muted text-[10px] uppercase tracking-wider">언제</span>
             {([
               { k: 'today', label: '오늘' },
               { k: 'tomorrow', label: '내일' },
               { k: 'week', label: '이번 주' },
               { k: 'none', label: '미정' },
             ] as const).map((c) => (
-              <button
-                key={c.k}
-                onClick={() => setWhenChip(c.k)}
-                className={cn(
-                  'px-2 py-0.5 rounded-md text-[11px] font-medium border',
-                  whenChip === c.k
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
-                    : 'bg-white text-slate-500 border-slate-200',
-                )}
-              >
-                {c.label}
-              </button>
+              <InlineBtn key={c.k} active={whenChip === c.k} onClick={() => setWhenChip(c.k)}>{c.label}</InlineBtn>
             ))}
           </div>
-          {/* 우선순위 */}
-          <div className="flex items-center gap-1">
-            <span className="text-slate-400">우선</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-plnk-muted text-[10px] uppercase tracking-wider">우선</span>
             {(['low', 'med', 'high'] as Priority[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPriority(p)}
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border',
-                  priority === p
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
-                    : 'bg-white text-slate-500 border-slate-200',
-                )}
-              >
-                <PrioDot p={p} />
+              <InlineBtn key={p} active={priority === p} onClick={() => setPriority(p)}>
                 {p === 'low' ? '낮' : p === 'med' ? '보통' : '높'}
-              </button>
+              </InlineBtn>
             ))}
           </div>
-          {/* 목표 */}
           {goals.length > 0 && (
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-slate-400">목표</span>
-              <button
-                onClick={() => setGoalId(undefined)}
-                className={cn(
-                  'px-2 py-0.5 rounded-md text-[11px] font-medium border',
-                  !goalId ? 'bg-slate-50 text-slate-700 border-slate-300' : 'bg-white text-slate-400 border-slate-200',
-                )}
-              >
-                없음
-              </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-plnk-muted text-[10px] uppercase tracking-wider">연결</span>
+              <InlineBtn active={!goalId} onClick={() => setGoalId(undefined)}>없음</InlineBtn>
               {goals.slice(0, 5).map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => setGoalId(g.id)}
-                  className={cn(
-                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border max-w-[140px]',
-                    goalId === g.id
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
-                      : 'bg-white text-slate-500 border-slate-200',
-                  )}
-                >
-                  <span>{g.emoji || '🎯'}</span>
-                  <span className="truncate">{g.title}</span>
-                </button>
+                <InlineBtn key={g.id} active={goalId === g.id} onClick={() => setGoalId(g.id)}>
+                  <span className="truncate max-w-[120px]">{g.title}</span>
+                </InlineBtn>
               ))}
             </div>
           )}
@@ -399,67 +320,61 @@ function QuickAddBar({
   );
 }
 
-function PrioDot({ p }: { p: Priority }) {
-  const tone =
-    p === 'high' ? 'bg-rose-500' :
-    p === 'med' ? 'bg-amber-400' :
-    'bg-slate-300';
-  return <span className={cn('inline-block w-1.5 h-1.5 rounded-full', tone)} />;
+function InlineBtn({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'pb-0.5 transition-colors',
+        active ? 'text-plnk-DEFAULT border-b border-plnk-DEFAULT' : 'text-plnk-muted hover:text-plnk-DEFAULT',
+      )}
+    >
+      {children}
+    </button>
+  );
 }
 
-// ──────────────────────────────────────────
-// Section
 // ──────────────────────────────────────────
 function Section({ title, count, muted, children }: { title: string; count: number; muted?: boolean; children: React.ReactNode }) {
   return (
     <section>
       <h2 className={cn(
-        'text-[11px] font-bold mb-1.5 px-0.5',
-        muted ? 'text-slate-400' : 'text-slate-600',
+        'text-[10px] font-mono uppercase tracking-[0.2em] mb-3 pb-2 border-b border-pln-line flex items-baseline justify-between',
+        muted ? 'text-plnk-faint' : 'text-plnk-muted',
       )}>
-        {title} <span className="text-slate-400 font-normal">· {count}</span>
+        <span>{title}</span>
+        <span className="tabular-nums">{count}</span>
       </h2>
-      <div className="space-y-1">{children}</div>
+      <div>{children}</div>
     </section>
   );
 }
 
 // ──────────────────────────────────────────
-// VirtualHabitRow — 오늘 해야 할 습관 가상 todo
-// ──────────────────────────────────────────
 function VirtualHabitRow({ row }: { row: VirtualHabitTask }) {
-  const handleToggle = () => {
-    toggleHabitDay(row.habitId, row.dayKey);
-  };
   return (
-    <div className="relative flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white border border-slate-200 overflow-hidden">
-      <span className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" aria-hidden />
+    <div className="flex items-center gap-3 py-2 border-b border-pln-line group">
       <button
-        onClick={handleToggle}
+        onClick={() => toggleHabitDay(row.habitId, row.dayKey)}
         className={cn(
-          'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
-          row.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 hover:border-emerald-400',
+          'w-4 h-4 border flex items-center justify-center shrink-0 transition-colors',
+          row.done ? 'bg-plac-DEFAULT border-plac-DEFAULT' : 'border-pln-rule hover:border-plnk-DEFAULT',
         )}
         aria-label="완료"
       >
-        {row.done && <Check className="w-3 h-3 text-white" />}
+        {row.done && <span className="block w-1.5 h-1.5 bg-pln-card" />}
       </button>
-      <span className="text-[14px]">{row.emoji || '🌱'}</span>
-      <span className={cn(
-        'text-[12.5px] flex-1 truncate',
-        row.done ? 'text-slate-400 line-through' : 'text-slate-700',
-      )}>
+      {row.emoji && <span className="text-[13px]">{row.emoji}</span>}
+      <span className={cn('text-[13.5px] flex-1 truncate', row.done ? 'text-plnk-faint line-through' : 'text-plnk-DEFAULT')}>
         {row.title}
       </span>
-      <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold shrink-0">
-        🌱 습관
-      </span>
+      <span className="text-[10px] font-mono uppercase tracking-wider text-plnk-faint">습관</span>
     </div>
   );
 }
 
-// ──────────────────────────────────────────
-// TaskRow
 // ──────────────────────────────────────────
 function TaskRow({
   task, onEdit, highlightDueToday, showWhen,
@@ -483,12 +398,11 @@ function TaskRow({
     e.stopPropagation();
     const snapshot = task;
     removeTask(task.id);
-    notify.info(`"${snapshot.title}" 삭제됨`, {
+    notify.info(`삭제됨`, {
       duration: 5000,
       action: {
         label: '되돌리기',
         onClick: () => {
-          // 새 id 부여 (원본 id 복원은 부담) — 사용자 입장에선 같은 항목 복귀
           addTask({
             title: snapshot.title,
             notes: snapshot.notes,
@@ -508,67 +422,57 @@ function TaskRow({
   return (
     <div
       onClick={onEdit}
-      className={cn(
-        'flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white border transition-all cursor-pointer group',
-        task.done ? 'border-slate-100' : 'border-slate-200 hover:border-indigo-200',
-      )}
+      className="flex items-center gap-3 py-2 border-b border-pln-line cursor-pointer group hover:bg-pln-card/60 transition-colors px-1 -mx-1"
     >
       <button
         onClick={handleToggle}
         className={cn(
-          'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
-          task.done
-            ? 'bg-indigo-500 border-indigo-500'
-            : 'border-slate-300 hover:border-indigo-400',
+          'w-4 h-4 border flex items-center justify-center shrink-0 transition-colors',
+          task.done ? 'bg-plac-DEFAULT border-plac-DEFAULT' : 'border-pln-rule hover:border-plnk-DEFAULT',
         )}
         aria-label="완료 토글"
       >
-        {task.done && <Check className="w-3 h-3 text-white" />}
+        {task.done && <span className="block w-1.5 h-1.5 bg-pln-card" />}
       </button>
-      <PrioDot p={task.priority} />
+
+      {task.priority === 'high' && !task.done && (
+        <span className="font-mono text-[10px] text-plac-warn shrink-0">!</span>
+      )}
+
       <div className="min-w-0 flex-1">
         <div className={cn(
-          'text-[12.5px] truncate',
-          task.done ? 'text-slate-400 line-through' : 'text-slate-800 font-medium',
+          'text-[13.5px] truncate',
+          task.done ? 'text-plnk-faint line-through' : 'text-plnk-DEFAULT',
         )}>
           {task.title}
         </div>
-        {task.notes && (
-          <div className="text-[10.5px] text-slate-400 truncate mt-0.5">{task.notes}</div>
-        )}
+        {task.notes && <div className="text-[11px] text-plnk-muted truncate mt-0.5">{task.notes}</div>}
       </div>
-      {/* 마감 오늘 강조 */}
+
       {isDueToday && !task.done && (
-        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 shrink-0">
-          오늘 마감
-        </span>
+        <span className="text-[10px] font-mono uppercase tracking-wider text-plac-warn shrink-0">마감</span>
       )}
-      {/* showWhen */}
       {showWhen && (task.scheduledAt || task.dueAt) && !task.done && (
-        <span className="text-[10px] text-slate-400 shrink-0 tabular-nums">
+        <span className="text-[10.5px] font-mono tabular-nums text-plnk-muted shrink-0">
           {formatKst((task.scheduledAt ?? task.dueAt)!).slice(5)}
         </span>
       )}
-      {/* 목표 칩 */}
       {goal && !task.done && (
-        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-50 text-slate-500 max-w-[120px] shrink-0">
-          <span>{goal.emoji || '🎯'}</span>
-          <span className="truncate">{goal.title}</span>
+        <span className="text-[10.5px] text-plnk-muted truncate max-w-[140px] shrink-0">
+          {goal.title}
         </span>
       )}
       <button
         onClick={handleDelete}
-        className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-opacity shrink-0"
-        aria-label="삭제"
+        className="opacity-0 group-hover:opacity-100 text-plnk-faint hover:text-plac-warn shrink-0 transition-opacity"
+        aria-label="지우기"
       >
-        <Trash2 className="w-3 h-3" />
+        <Trash2 className="w-3 h-3" strokeWidth={1.5} />
       </button>
     </div>
   );
 }
 
-// ──────────────────────────────────────────
-// TaskEditModal
 // ──────────────────────────────────────────
 function TaskEditModal({ task, onClose }: { task: Task; onClose: () => void }) {
   const goals = useGoals().filter((g) => g.status === 'active');
@@ -587,7 +491,6 @@ function TaskEditModal({ task, onClose }: { task: Task; onClose: () => void }) {
     if (!title.trim()) return;
     const parseLocal = (s: string): number | undefined => {
       if (!s) return undefined;
-      // datetime-local (KST 표시값) → UTC ms
       const d = new Date(s + 'Z');
       return d.getTime() - 9 * 3600 * 1000;
     };
@@ -603,148 +506,147 @@ function TaskEditModal({ task, onClose }: { task: Task; onClose: () => void }) {
   };
 
   const handleDelete = () => {
-    if (!window.confirm(`"${task.title}" 삭제할까요?`)) return;
+    if (!window.confirm(`"${task.title}" 지울까요?`)) return;
     removeTask(task.id);
     onClose();
   };
 
   return (
-    <ModalShell onClose={onClose} title="할 일 편집">
-      <div className="space-y-4">
+    <ModalShell onClose={onClose} eyebrow="편집">
+      <Field label="제목">
+        <input
+          autoFocus
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full bg-transparent border-b border-pln-rule pb-2 text-[18px] font-display text-plnk-DEFAULT outline-none focus:border-plac-DEFAULT"
+        />
+      </Field>
+      <Field label="메모">
+        <input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="한 줄 메모"
+          className="w-full bg-transparent border-b border-pln-rule pb-2 text-[13.5px] text-plnk-DEFAULT placeholder:text-plnk-faint outline-none focus:border-plac-DEFAULT"
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-6 mb-6">
         <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">제목</label>
+          <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted block mb-2">예정</label>
           <input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200"
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+            className="w-full bg-transparent border-b border-pln-rule pb-1 text-[12.5px] outline-none focus:border-plac-DEFAULT"
           />
         </div>
         <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">메모</label>
+          <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted block mb-2">마감</label>
           <input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="한 줄 메모 (선택)"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[12px] outline-none focus:border-indigo-300"
+            type="datetime-local"
+            value={dueAt}
+            onChange={(e) => setDueAt(e.target.value)}
+            className="w-full bg-transparent border-b border-pln-rule pb-1 text-[12.5px] outline-none focus:border-plac-DEFAULT"
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 block mb-1.5">예정</label>
-            <input
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11.5px] outline-none focus:border-indigo-300"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 block mb-1.5">마감</label>
-            <input
-              type="datetime-local"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11.5px] outline-none focus:border-indigo-300"
-            />
-          </div>
+      </div>
+      <Field label="우선순위">
+        <div className="flex gap-px bg-pln-line border border-pln-line">
+          {(['low', 'med', 'high'] as Priority[]).map((p) => (
+            <SegBtn key={p} active={priority === p} onClick={() => setPriority(p)}>
+              {p === 'low' ? '낮음' : p === 'med' ? '보통' : '높음'}
+            </SegBtn>
+          ))}
         </div>
-        <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">우선순위</label>
-          <div className="flex gap-1.5">
-            {(['low', 'med', 'high'] as Priority[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPriority(p)}
-                className={cn(
-                  'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-medium border',
-                  priority === p
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
-                    : 'bg-white text-slate-600 border-slate-200',
-                )}
-              >
-                <PrioDot p={p} />
-                {p === 'low' ? '낮음' : p === 'med' ? '보통' : '높음'}
-              </button>
+      </Field>
+      {goals.length > 0 && (
+        <Field label="목표 연결">
+          <div className="flex flex-wrap gap-1.5">
+            <ChipBtn active={!goalId} onClick={() => setGoalId(undefined)}>없음</ChipBtn>
+            {goals.map((g) => (
+              <ChipBtn key={g.id} active={goalId === g.id} onClick={() => setGoalId(g.id)}>
+                <span className="truncate max-w-[140px]">{g.title}</span>
+              </ChipBtn>
             ))}
           </div>
-        </div>
-        {goals.length > 0 && (
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 block mb-1.5">목표 연결</label>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setGoalId(undefined)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-[11px] font-medium border',
-                  !goalId ? 'bg-slate-50 text-slate-700 border-slate-300' : 'bg-white text-slate-400 border-slate-200',
-                )}
-              >
-                연결 안 함
-              </button>
-              {goals.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => setGoalId(g.id)}
-                  className={cn(
-                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border max-w-[160px]',
-                    goalId === g.id
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
-                      : 'bg-white text-slate-600 border-slate-200',
-                  )}
-                >
-                  <span>{g.emoji || '🎯'}</span>
-                  <span className="truncate">{g.title}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        </Field>
+      )}
 
       <ModalFooter>
-        <button
-          onClick={handleDelete}
-          className="text-[12px] text-rose-500 hover:text-rose-700 font-medium inline-flex items-center gap-1"
-        >
-          <Trash2 className="w-3 h-3" />
-          삭제
+        <button onClick={handleDelete} className="text-[12px] text-plac-warn hover:opacity-70 inline-flex items-center gap-1">
+          <Trash2 className="w-3 h-3" strokeWidth={1.5} /> 지우기
         </button>
-        <button
-          onClick={save}
-          disabled={!title.trim()}
-          className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(99,102,241,0.25)]"
-        >
-          저장
-        </button>
+        <FooterPrimary onClick={save} disabled={!title.trim()}>저장</FooterPrimary>
       </ModalFooter>
     </ModalShell>
   );
 }
 
 // ──────────────────────────────────────────
-// 공용 모달 셸
+// 공용
 // ──────────────────────────────────────────
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6">
+      <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted block mb-2">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function SegBtn({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex-1 px-3 py-2 text-[12px] font-medium transition-colors',
+        active ? 'bg-plnk-DEFAULT text-pln-card' : 'bg-pln-card text-plnk-muted hover:text-plnk-DEFAULT',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ChipBtn({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1 px-3 py-1 text-[11.5px] border transition-colors',
+        active
+          ? 'bg-plnk-DEFAULT text-pln-card border-plnk-DEFAULT'
+          : 'bg-pln-card text-plnk-muted border-pln-rule hover:text-plnk-DEFAULT',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function ModalShell({
-  onClose, title, children,
-}: { onClose: () => void; title: string; children: React.ReactNode }) {
+  onClose, eyebrow, title, children,
+}: { onClose: () => void; eyebrow: string; title?: string; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-plnk-DEFAULT/30" />
       <div
-        className="relative w-full max-w-[520px] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-[520px] max-h-[85vh] bg-pln-card border border-pln-rule overflow-hidden flex flex-col animate-in fade-in duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="shrink-0 px-5 py-4 border-b border-slate-100 flex items-center gap-3">
-          <h3 className="text-[15px] font-bold text-slate-800 flex-1">{title}</h3>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center"
-          >
-            <X className="w-4 h-4 text-slate-400" />
+        <div className="shrink-0 px-7 pt-6 pb-4 border-b border-pln-line flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted mb-1">{eyebrow}</p>
+            {title && <h3 className="font-display text-[20px] font-semibold text-plnk-DEFAULT tracking-tight leading-snug">{title}</h3>}
+          </div>
+          <button onClick={onClose} className="text-plnk-muted hover:text-plnk-DEFAULT">
+            <X className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-7 py-6">{children}</div>
       </div>
     </div>
   );
@@ -752,8 +654,22 @@ function ModalShell({
 
 function ModalFooter({ children }: { children: React.ReactNode }) {
   return (
-    <div className="shrink-0 px-5 py-3 border-t border-slate-100 bg-slate-50/70 backdrop-blur-sm flex items-center justify-between gap-3 -mx-5 -mb-4 mt-5">
+    <div className="shrink-0 px-7 py-4 border-t border-pln-line bg-pln-base flex items-center justify-between gap-4 -mx-7 -mb-6 mt-8">
       {children}
     </div>
+  );
+}
+
+function FooterPrimary({
+  children, onClick, disabled,
+}: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="text-[13px] font-medium text-plac-DEFAULT border-b border-plac-DEFAULT pb-0.5 hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+    >
+      {children} →
+    </button>
   );
 }

@@ -1,9 +1,6 @@
 /**
- * 📅 Calendar — 캘린더 페이지 (Phase 1.4)
- *
- * 월/주 뷰 + manual + task 가상 + habit 가상 합성.
- * 색상 3종: manual(컬러) / task(앰버) / habit(연두).
- * 빈 셀 클릭 → 선택 날짜 모달 (manual 추가·편집·삭제 + task/habit 보기).
+ * Calendar — 외곽 그리드 / 컬러 strip / 모노크롬
+ * 시스템 emoji X · 일정은 짧은 컬러 strip + 텍스트.
  */
 
 import { useState, useMemo } from 'react';
@@ -13,53 +10,36 @@ import { cn } from '@/lib/utils';
 import {
   addEvent, updateEvent, removeEvent,
   buildCalendarForDay,
-  todayKey, dayKeyOf,
-  formatKst,
+  todayKey, formatKst,
   type CalendarRow, type ManualEvent, type DayKey,
 } from '@/lib/planner';
-import { useTasks } from '@/lib/planner';
-import { useHabits } from '@/lib/planner';
-import { useEvents } from '@/lib/planner';
+import { useTasks, useHabits, useEvents } from '@/lib/planner';
 
 const KST_OFFSET = 9 * 3600 * 1000;
-
-// ──────────────────────────────────────────
-// 날짜 헬퍼 (페이지 로컬)
-// ──────────────────────────────────────────
-function focusDayToKey(focused: Date): DayKey {
-  const kst = new Date(focused.getTime() + KST_OFFSET);
-  return kst.toISOString().slice(0, 10);
-}
 
 function dayKeyToDate(d: DayKey): Date {
   const [y, m, day] = d.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, day));
 }
-
 function startOfMonth(d: Date): Date {
   const kst = new Date(d.getTime() + KST_OFFSET);
   return new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), 1));
 }
-
 function shiftMonth(d: Date, delta: number): Date {
   const kst = new Date(d.getTime() + KST_OFFSET);
   return new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth() + delta, kst.getUTCDate()));
 }
-
 function shiftWeek(d: Date, delta: number): Date {
   return new Date(d.getTime() + delta * 7 * 24 * 3600 * 1000);
 }
-
 function isSameMonth(a: Date, b: Date): boolean {
   const ak = new Date(a.getTime() + KST_OFFSET);
   const bk = new Date(b.getTime() + KST_OFFSET);
   return ak.getUTCFullYear() === bk.getUTCFullYear() && ak.getUTCMonth() === bk.getUTCMonth();
 }
-
-// 월뷰 6주 그리드 — 일요일 시작
 function monthGridDays(focused: Date): DayKey[] {
   const first = startOfMonth(focused);
-  const firstWeekday = first.getUTCDay(); // 0=일
+  const firstWeekday = first.getUTCDay();
   const start = new Date(first.getTime() - firstWeekday * 24 * 3600 * 1000);
   const out: DayKey[] = [];
   for (let i = 0; i < 42; i++) {
@@ -68,8 +48,6 @@ function monthGridDays(focused: Date): DayKey[] {
   }
   return out;
 }
-
-// 주뷰 7일
 function weekDays(focused: Date): DayKey[] {
   const kst = new Date(focused.getTime() + KST_OFFSET);
   const wd = kst.getUTCDay();
@@ -82,74 +60,40 @@ function weekDays(focused: Date): DayKey[] {
   return out;
 }
 
-const WEEK_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 
-// ──────────────────────────────────────────
 const Calendar = () => {
   const navigate = useNavigate();
   const [focused, setFocused] = useState(new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
   const [selectedDay, setSelectedDay] = useState<DayKey | null>(null);
 
-  // store 구독 — selector 가 변경될 때 자동 리렌더
-  useTasks();
-  useHabits();
-  useEvents();
+  useTasks(); useHabits(); useEvents();
 
   const today = todayKey();
   const focusedKst = new Date(focused.getTime() + KST_OFFSET);
-  const monthLabel = `${focusedKst.getUTCFullYear()}년 ${focusedKst.getUTCMonth() + 1}월`;
+  const yearLabel = focusedKst.getUTCFullYear();
+  const monthLabel = focusedKst.getUTCMonth() + 1;
 
   const days = view === 'month' ? monthGridDays(focused) : weekDays(focused);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-10 bg-white/85 backdrop-blur-sm border-b border-slate-100">
-        <div className="max-w-[920px] mx-auto px-5 py-3 flex items-center gap-3">
-          <button
-            onClick={() => navigate('/')}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
-            aria-label="뒤로"
-          >
-            <ArrowLeft className="w-4 h-4" />
+    <div className="min-h-screen bg-pln-base">
+      <header className="border-b border-pln-line bg-pln-base">
+        <div className="max-w-[1100px] mx-auto px-6 py-4 flex items-center gap-4">
+          <button onClick={() => navigate('/')} className="text-plnk-muted hover:text-plnk-DEFAULT" aria-label="뒤로">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
           </button>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setFocused(view === 'month' ? shiftMonth(focused, -1) : shiftWeek(focused, -1))}
-              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
-              aria-label="이전"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <h1 className="text-[15px] font-bold text-slate-800 min-w-[110px] text-center">{monthLabel}</h1>
-            <button
-              onClick={() => setFocused(view === 'month' ? shiftMonth(focused, 1) : shiftWeek(focused, 1))}
-              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
-              aria-label="다음"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setFocused(new Date())}
-              className="ml-1 px-2 py-1 rounded-md text-[11px] font-medium text-slate-500 hover:bg-slate-100"
-            >
-              오늘
-            </button>
-          </div>
-
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted">캘린더</span>
           <div className="flex-1" />
-
-          {/* 뷰 토글 */}
-          <div className="flex gap-0.5 p-0.5 rounded-lg bg-slate-100">
+          <div className="flex gap-px bg-pln-line border border-pln-line">
             {(['month', 'week'] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={cn(
-                  'px-2.5 py-1 rounded text-[11px] font-medium transition-all',
-                  view === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500',
+                  'px-3 py-1 text-[11px] font-medium transition-colors',
+                  view === v ? 'bg-plnk-DEFAULT text-pln-card' : 'bg-pln-card text-plnk-muted hover:text-plnk-DEFAULT',
                 )}
               >
                 {v === 'month' ? '월' : '주'}
@@ -159,26 +103,45 @@ const Calendar = () => {
         </div>
       </header>
 
-      {/* 본문 */}
-      <main className="max-w-[920px] mx-auto px-5 py-4">
+      <main className="max-w-[1100px] mx-auto px-6 py-10">
+        {/* 거대한 월/년 표기 */}
+        <div className="flex items-end justify-between mb-8">
+          <div className="flex items-baseline gap-3">
+            <span className="font-display text-[64px] sm:text-[88px] font-semibold text-plnk-DEFAULT leading-none tabular-nums tracking-[-0.04em]">
+              {String(monthLabel).padStart(2, '0')}
+            </span>
+            <span className="font-display text-[20px] text-plnk-muted tabular-nums">{yearLabel}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFocused(view === 'month' ? shiftMonth(focused, -1) : shiftWeek(focused, -1))}
+              className="text-plnk-muted hover:text-plnk-DEFAULT" aria-label="이전"
+            >
+              <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+            </button>
+            <button
+              onClick={() => setFocused(new Date())}
+              className="text-[11.5px] text-plnk-muted hover:text-plnk-DEFAULT border-b border-plnk-muted hover:border-plnk-DEFAULT pb-0.5"
+            >
+              오늘
+            </button>
+            <button
+              onClick={() => setFocused(view === 'month' ? shiftMonth(focused, 1) : shiftWeek(focused, 1))}
+              className="text-plnk-muted hover:text-plnk-DEFAULT" aria-label="다음"
+            >
+              <ChevronRight className="w-5 h-5" strokeWidth={1.5} />
+            </button>
+          </div>
+        </div>
+
         {view === 'month' ? (
-          <MonthGrid
-            days={days}
-            focused={focused}
-            today={today}
-            onSelectDay={setSelectedDay}
-          />
+          <MonthGrid days={days} focused={focused} today={today} onSelectDay={setSelectedDay} />
         ) : (
           <WeekGrid days={days} today={today} onSelectDay={setSelectedDay} />
         )}
       </main>
 
-      {selectedDay && (
-        <DayModal
-          day={selectedDay}
-          onClose={() => setSelectedDay(null)}
-        />
-      )}
+      {selectedDay && <DayModal day={selectedDay} onClose={() => setSelectedDay(null)} />}
     </div>
   );
 };
@@ -186,33 +149,24 @@ const Calendar = () => {
 export default Calendar;
 
 // ──────────────────────────────────────────
-// 월뷰 그리드
-// ──────────────────────────────────────────
 function MonthGrid({
   days, focused, today, onSelectDay,
-}: {
-  days: DayKey[];
-  focused: Date;
-  today: DayKey;
-  onSelectDay: (d: DayKey) => void;
-}) {
+}: { days: DayKey[]; focused: Date; today: DayKey; onSelectDay: (d: DayKey) => void }) {
   return (
-    <div className="rounded-xl bg-white border border-slate-200 overflow-hidden">
-      {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 bg-slate-50/60 border-b border-slate-200">
-        {WEEK_LABELS.map((l, i) => (
+    <div className="border border-pln-rule">
+      <div className="grid grid-cols-7 border-b border-pln-rule">
+        {WEEK.map((l, i) => (
           <div
             key={i}
             className={cn(
-              'py-2 text-center text-[10.5px] font-bold',
-              i === 0 ? 'text-rose-500' : i === 6 ? 'text-sky-500' : 'text-slate-500',
+              'py-2 text-center text-[10px] font-mono uppercase tracking-[0.2em] border-r border-pln-line last:border-r-0',
+              i === 0 ? 'text-plac-warn' : i === 6 ? 'text-plnk-DEFAULT' : 'text-plnk-muted',
             )}
           >
             {l}
           </div>
         ))}
       </div>
-      {/* 6주 */}
       <div className="grid grid-cols-7">
         {days.map((d, i) => (
           <DayCell
@@ -221,6 +175,8 @@ function MonthGrid({
             isToday={d === today}
             inCurrentMonth={isSameMonth(dayKeyToDate(d), focused)}
             weekday={i % 7}
+            isLastInRow={i % 7 === 6}
+            isLastRow={i >= 35}
             onClick={() => onSelectDay(d)}
           />
         ))}
@@ -230,12 +186,14 @@ function MonthGrid({
 }
 
 function DayCell({
-  day, isToday, inCurrentMonth, weekday, onClick,
+  day, isToday, inCurrentMonth, weekday, isLastInRow, isLastRow, onClick,
 }: {
   day: DayKey;
   isToday: boolean;
   inCurrentMonth: boolean;
   weekday: number;
+  isLastInRow: boolean;
+  isLastRow: boolean;
   onClick: () => void;
 }) {
   const rows = useMemo(() => buildCalendarForDay(day), [day]);
@@ -245,70 +203,67 @@ function DayCell({
     <button
       onClick={onClick}
       className={cn(
-        'relative min-h-[96px] p-1.5 text-left border-r border-b border-slate-100 last:border-r-0 transition-colors',
-        'hover:bg-indigo-50/30',
-        !inCurrentMonth && 'bg-slate-50/40',
+        'relative min-h-[110px] p-2 text-left transition-colors hover:bg-pln-card',
+        !isLastInRow && 'border-r border-pln-line',
+        !isLastRow && 'border-b border-pln-line',
+        !inCurrentMonth && 'bg-pln-base',
       )}
     >
       <div className={cn(
-        'inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold tabular-nums mb-1',
-        isToday && 'bg-indigo-500 text-white',
-        !isToday && inCurrentMonth && (weekday === 0 ? 'text-rose-500' : weekday === 6 ? 'text-sky-500' : 'text-slate-700'),
-        !isToday && !inCurrentMonth && 'text-slate-300',
+        'text-[12px] font-mono tabular-nums mb-2 inline-flex items-center justify-center',
+        isToday && 'w-6 h-6 bg-plnk-DEFAULT text-pln-card font-bold',
+        !isToday && inCurrentMonth && (
+          weekday === 0 ? 'text-plac-warn' :
+          weekday === 6 ? 'text-plnk-DEFAULT' :
+          'text-plnk-DEFAULT'
+        ),
+        !isToday && !inCurrentMonth && 'text-plnk-faint',
       )}>
         {dayNum}
       </div>
-      <div className="space-y-0.5">
-        {rows.slice(0, 3).map((r, i) => <CellRow key={i} row={r} />)}
+      <div className="space-y-1">
+        {rows.slice(0, 3).map((r, i) => <CellStrip key={i} row={r} />)}
         {rows.length > 3 && (
-          <div className="text-[9px] text-slate-400 px-1">+{rows.length - 3}건</div>
+          <div className="text-[9.5px] font-mono text-plnk-muted">+{rows.length - 3}</div>
         )}
       </div>
     </button>
   );
 }
 
-function CellRow({ row }: { row: CalendarRow }) {
+function CellStrip({ row }: { row: CalendarRow }) {
   if (row.kind === 'virtual_task') {
     return (
-      <div
-        className={cn(
-          'truncate text-[9.5px] px-1 py-0.5 rounded font-medium',
-          row.isDue ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700',
-          row.done && 'line-through opacity-60',
-        )}
-      >
-        {row.isDue ? '📌 ' : ''}{row.title}
+      <div className="flex items-center gap-1.5">
+        <span className={cn('block w-1 h-3 shrink-0', row.isDue ? 'bg-plac-warn' : 'bg-plnk-DEFAULT')} />
+        <span className={cn('text-[10.5px] truncate', row.done ? 'text-plnk-faint line-through' : 'text-plnk-dim')}>
+          {row.title}
+        </span>
       </div>
     );
   }
   if (row.kind === 'virtual_habit') {
     return (
-      <div className={cn(
-        'truncate text-[9.5px] px-1 py-0.5 rounded font-medium bg-emerald-50 text-emerald-700',
-        row.done && 'opacity-60',
-      )}>
-        {row.emoji || '🌱'} {row.title}
+      <div className="flex items-center gap-1.5">
+        <span className="block w-1 h-3 shrink-0 bg-plac-DEFAULT" />
+        <span className={cn('text-[10.5px] truncate', row.done ? 'text-plnk-faint line-through' : 'text-plnk-dim')}>
+          {row.emoji && <span className="mr-0.5">{row.emoji}</span>}{row.title}
+        </span>
       </div>
     );
   }
-  // ManualEvent
   return (
-    <div
-      className="truncate text-[9.5px] px-1 py-0.5 rounded font-medium text-white"
-      style={{ backgroundColor: row.color || 'hsl(220 70% 55%)' }}
-    >
-      {row.title}
+    <div className="flex items-center gap-1.5">
+      <span className="block w-1 h-3 shrink-0" style={{ backgroundColor: row.color || '#1F3A8A' }} />
+      <span className="text-[10.5px] truncate text-plnk-dim">{row.title}</span>
     </div>
   );
 }
 
 // ──────────────────────────────────────────
-// 주뷰 — 7 컬럼 가로
-// ──────────────────────────────────────────
 function WeekGrid({ days, today, onSelectDay }: { days: DayKey[]; today: DayKey; onSelectDay: (d: DayKey) => void }) {
   return (
-    <div className="grid grid-cols-7 gap-2">
+    <div className="grid grid-cols-7 gap-px bg-pln-rule border border-pln-rule">
       {days.map((d, i) => (
         <WeekColumn key={d} day={d} weekday={i} isToday={d === today} onClick={() => onSelectDay(d)} />
       ))}
@@ -324,142 +279,124 @@ function WeekColumn({ day, weekday, isToday, onClick }: { day: DayKey; weekday: 
     <button
       onClick={onClick}
       className={cn(
-        'min-h-[280px] rounded-xl bg-white border p-2 text-left transition-all',
-        isToday ? 'border-indigo-300 ring-1 ring-indigo-200' : 'border-slate-200 hover:border-indigo-200',
+        'min-h-[320px] bg-pln-card p-3 text-left transition-colors hover:bg-pln-base/40',
+        isToday && 'bg-pln-base',
       )}
     >
-      <div className={cn(
-        'flex items-baseline justify-between mb-2 pb-1.5 border-b',
-        isToday ? 'border-indigo-200' : 'border-slate-100',
-      )}>
+      <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-pln-line">
         <span className={cn(
-          'text-[10.5px] font-bold',
-          weekday === 0 ? 'text-rose-500' : weekday === 6 ? 'text-sky-500' : 'text-slate-500',
+          'text-[10px] font-mono uppercase tracking-[0.2em]',
+          weekday === 0 ? 'text-plac-warn' : weekday === 6 ? 'text-plnk-DEFAULT' : 'text-plnk-muted',
         )}>
-          {WEEK_LABELS[weekday]}
+          {WEEK[weekday]}
         </span>
         <span className={cn(
-          'inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold tabular-nums',
-          isToday && 'bg-indigo-500 text-white',
+          'font-display text-[18px] font-semibold tabular-nums',
+          isToday ? 'text-plnk-DEFAULT' : 'text-plnk-DEFAULT',
         )}>
           {dayNum}
         </span>
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {rows.length === 0 ? (
-          <p className="text-[10px] text-slate-300 py-2">비어 있음</p>
+          <p className="text-[10.5px] text-plnk-faint">—</p>
         ) : (
-          rows.map((r, i) => <WeekRow key={i} row={r} />)
+          rows.map((r, i) => <WeekStrip key={i} row={r} />)
         )}
       </div>
     </button>
   );
 }
 
-function WeekRow({ row }: { row: CalendarRow }) {
+function WeekStrip({ row }: { row: CalendarRow }) {
   const time = row.kind === 'virtual_task'
-    ? formatKst(row.start, { withTime: true }).slice(11)
+    ? formatKst(row.start, { withTime: true }).slice(11, 16)
     : row.kind === 'virtual_habit' && row.start
-      ? formatKst(row.start, { withTime: true }).slice(11)
+      ? formatKst(row.start, { withTime: true }).slice(11, 16)
       : row.kind === 'manual' && !row.allDay
-        ? formatKst(row.start, { withTime: true }).slice(11)
+        ? formatKst(row.start, { withTime: true }).slice(11, 16)
         : '';
 
   if (row.kind === 'virtual_task') {
     return (
-      <div className={cn(
-        'text-[10px] px-1.5 py-1 rounded truncate font-medium border-l-2',
-        row.isDue ? 'bg-rose-50/60 text-rose-700 border-rose-400' : 'bg-amber-50/60 text-amber-700 border-amber-400',
-        row.done && 'line-through opacity-60',
-      )}>
-        {time && <span className="text-[9px] mr-1 opacity-70">{time}</span>}
-        {row.title}
+      <div className="flex items-baseline gap-1.5">
+        <span className={cn('block w-0.5 h-3 shrink-0', row.isDue ? 'bg-plac-warn' : 'bg-plnk-DEFAULT')} />
+        {time && <span className="font-mono tabular-nums text-[9.5px] text-plnk-muted shrink-0">{time}</span>}
+        <span className={cn('text-[11px] truncate', row.done ? 'text-plnk-faint line-through' : 'text-plnk-dim')}>
+          {row.title}
+        </span>
       </div>
     );
   }
   if (row.kind === 'virtual_habit') {
     return (
-      <div className={cn(
-        'text-[10px] px-1.5 py-1 rounded truncate font-medium border-l-2 border-emerald-400 bg-emerald-50/60 text-emerald-700',
-        row.done && 'opacity-60',
-      )}>
-        {time && <span className="text-[9px] mr-1 opacity-70">{time}</span>}
-        {row.emoji || '🌱'} {row.title}
+      <div className="flex items-baseline gap-1.5">
+        <span className="block w-0.5 h-3 shrink-0 bg-plac-DEFAULT" />
+        {time && <span className="font-mono tabular-nums text-[9.5px] text-plnk-muted shrink-0">{time}</span>}
+        <span className={cn('text-[11px] truncate', row.done ? 'text-plnk-faint line-through' : 'text-plnk-dim')}>
+          {row.emoji && <span className="mr-0.5">{row.emoji}</span>}{row.title}
+        </span>
       </div>
     );
   }
   return (
-    <div className="text-[10px] px-1.5 py-1 rounded truncate font-medium text-white" style={{ backgroundColor: row.color || 'hsl(220 70% 55%)' }}>
-      {time && <span className="text-[9px] mr-1 opacity-80">{time}</span>}
-      {row.title}
+    <div className="flex items-baseline gap-1.5">
+      <span className="block w-0.5 h-3 shrink-0" style={{ backgroundColor: row.color || '#1F3A8A' }} />
+      {time && <span className="font-mono tabular-nums text-[9.5px] text-plnk-muted shrink-0">{time}</span>}
+      <span className="text-[11px] truncate text-plnk-dim">{row.title}</span>
     </div>
   );
 }
 
 // ──────────────────────────────────────────
-// DayModal — 선택 날짜 풀 항목 + manual 추가
-// ──────────────────────────────────────────
 function DayModal({ day, onClose }: { day: DayKey; onClose: () => void }) {
   const navigate = useNavigate();
   const events = useEvents();
-  // tasks/habits 도 구독해서 갱신 보장
-  useTasks();
-  useHabits();
+  useTasks(); useHabits();
   const rows = useMemo(() => buildCalendarForDay(day), [day, events]);
 
   const [editing, setEditing] = useState<ManualEvent | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const dateLabel = (() => {
-    const dt = dayKeyToDate(day);
-    const wd = dt.getUTCDay();
-    return `${day} (${WEEK_LABELS[wd]})`;
-  })();
+  const dt = dayKeyToDate(day);
+  const wd = WEEK[dt.getUTCDay()];
 
   return (
-    <ModalShell onClose={onClose} title={dateLabel}>
-      <div className="space-y-2">
+    <ModalShell onClose={onClose} eyebrow={wd + '요일'} title={day}>
+      <div>
         {rows.length === 0 ? (
-          <p className="text-[12px] text-slate-400 italic py-4 text-center">이 날 일정이 없어요</p>
+          <p className="text-[12.5px] text-plnk-faint italic py-4 text-center border-y border-pln-line">
+            이 날 일정이 없어요
+          </p>
         ) : (
-          rows.map((r, i) => (
-            <DayModalRow
-              key={i}
-              row={r}
-              onEditEvent={(e) => setEditing(e)}
-              onJumpTask={() => { navigate('/tasks'); onClose(); }}
-              onJumpHabit={() => { navigate('/habits'); onClose(); }}
-            />
-          ))
+          <div className="border-y border-pln-line">
+            {rows.map((r, i) => (
+              <DayRow
+                key={i}
+                row={r}
+                onEditEvent={(e) => setEditing(e)}
+                onJumpTask={() => { navigate('/tasks'); onClose(); }}
+                onJumpHabit={() => { navigate('/habits'); onClose(); }}
+              />
+            ))}
+          </div>
         )}
 
         <button
           onClick={() => setCreating(true)}
-          className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-slate-300 text-[12px] font-medium text-slate-500 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all"
+          className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-plac-DEFAULT border-b border-plac-DEFAULT pb-0.5 hover:opacity-70"
         >
-          <Plus className="w-3.5 h-3.5" />
-          일정 추가
+          <Plus className="w-3.5 h-3.5" strokeWidth={1.75} /> 일정 추가
         </button>
       </div>
 
-      {creating && (
-        <EventEditor
-          day={day}
-          onClose={() => setCreating(false)}
-        />
-      )}
-      {editing && (
-        <EventEditor
-          day={day}
-          event={editing}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {creating && <EventEditor day={day} onClose={() => setCreating(false)} />}
+      {editing && <EventEditor day={day} event={editing} onClose={() => setEditing(null)} />}
     </ModalShell>
   );
 }
 
-function DayModalRow({
+function DayRow({
   row, onEditEvent, onJumpTask, onJumpHabit,
 }: {
   row: CalendarRow;
@@ -471,19 +408,17 @@ function DayModalRow({
     return (
       <button
         onClick={onJumpTask}
-        className={cn(
-          'w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg border-l-4 hover:bg-slate-50 transition-colors',
-          row.isDue ? 'border-rose-400 bg-rose-50/40' : 'border-amber-400 bg-amber-50/40',
-        )}
+        className="w-full text-left flex items-center gap-3 py-3 border-b border-pln-line hover:bg-pln-base/40"
       >
-        <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', row.isDue ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')}>
+        <span className={cn('block w-1 self-stretch shrink-0', row.isDue ? 'bg-plac-warn' : 'bg-plnk-DEFAULT')} />
+        <span className="text-[10px] font-mono uppercase tracking-wider text-plnk-muted shrink-0">
           {row.isDue ? '마감' : '예정'}
         </span>
-        <span className={cn('flex-1 text-[12px] font-medium', row.done ? 'text-slate-400 line-through' : 'text-slate-700')}>
+        <span className={cn('flex-1 text-[13px]', row.done ? 'text-plnk-faint line-through' : 'text-plnk-DEFAULT')}>
           {row.title}
         </span>
-        <span className="text-[10px] text-slate-400 tabular-nums">
-          {formatKst(row.start, { withTime: true }).slice(11)}
+        <span className="text-[10.5px] font-mono tabular-nums text-plnk-muted">
+          {formatKst(row.start, { withTime: true }).slice(11, 16)}
         </span>
       </button>
     );
@@ -492,36 +427,34 @@ function DayModalRow({
     return (
       <button
         onClick={onJumpHabit}
-        className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg border-l-4 border-emerald-400 bg-emerald-50/40 hover:bg-emerald-50/60 transition-colors"
+        className="w-full text-left flex items-center gap-3 py-3 border-b border-pln-line hover:bg-pln-base/40"
       >
-        <span className="text-[14px]">{row.emoji || '🌱'}</span>
-        <span className={cn('flex-1 text-[12px] font-medium', row.done ? 'text-slate-400 line-through' : 'text-slate-700')}>
-          {row.title}
+        <span className="block w-1 self-stretch shrink-0 bg-plac-DEFAULT" />
+        <span className="text-[10px] font-mono uppercase tracking-wider text-plnk-muted shrink-0">습관</span>
+        <span className={cn('flex-1 text-[13px]', row.done ? 'text-plnk-faint line-through' : 'text-plnk-DEFAULT')}>
+          {row.emoji && <span className="mr-1">{row.emoji}</span>}{row.title}
         </span>
         {row.start && (
-          <span className="text-[10px] text-slate-400 tabular-nums">
-            {formatKst(row.start, { withTime: true }).slice(11)}
+          <span className="text-[10.5px] font-mono tabular-nums text-plnk-muted">
+            {formatKst(row.start, { withTime: true }).slice(11, 16)}
           </span>
         )}
       </button>
     );
   }
-  // ManualEvent
   return (
     <button
       onClick={() => onEditEvent(row)}
-      className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
-      style={{ borderLeft: `4px solid ${row.color || 'hsl(220 70% 55%)'}` }}
+      className="w-full text-left flex items-center gap-3 py-3 border-b border-pln-line hover:bg-pln-base/40"
     >
-      <div className="flex-1 min-w-0">
-        <div className="text-[12px] font-medium text-slate-800 truncate">{row.title}</div>
-      </div>
+      <span className="block w-1 self-stretch shrink-0" style={{ backgroundColor: row.color || '#1F3A8A' }} />
+      <span className="flex-1 text-[13px] text-plnk-DEFAULT truncate">{row.title}</span>
       {row.allDay ? (
-        <span className="text-[10px] text-slate-400">종일</span>
+        <span className="text-[10px] font-mono uppercase tracking-wider text-plnk-muted">종일</span>
       ) : (
-        <span className="text-[10px] text-slate-400 tabular-nums">
-          {formatKst(row.start, { withTime: true }).slice(11)}
-          {row.end && ` ~ ${formatKst(row.end, { withTime: true }).slice(11)}`}
+        <span className="text-[10.5px] font-mono tabular-nums text-plnk-muted">
+          {formatKst(row.start, { withTime: true }).slice(11, 16)}
+          {row.end && ` ~ ${formatKst(row.end, { withTime: true }).slice(11, 16)}`}
         </span>
       )}
     </button>
@@ -529,178 +462,152 @@ function DayModalRow({
 }
 
 // ──────────────────────────────────────────
-// EventEditor — manual 추가/편집
-// ──────────────────────────────────────────
 function EventEditor({
   day, event, onClose,
-}: {
-  day: DayKey;
-  event?: ManualEvent;
-  onClose: () => void;
-}) {
+}: { day: DayKey; event?: ManualEvent; onClose: () => void }) {
   const isNew = !event;
   const [title, setTitle] = useState(event?.title ?? '');
   const [allDay, setAllDay] = useState(event?.allDay ?? false);
   const [startTime, setStartTime] = useState(() => {
-    if (event && !event.allDay) {
-      return formatKst(event.start, { withTime: true }).slice(11, 16);
-    }
+    if (event && !event.allDay) return formatKst(event.start, { withTime: true }).slice(11, 16);
     return '09:00';
   });
   const [endTime, setEndTime] = useState(() => {
     if (event?.end) return formatKst(event.end, { withTime: true }).slice(11, 16);
     return '10:00';
   });
-  const [color, setColor] = useState(event?.color ?? 'hsl(220 70% 55%)');
+  const [color, setColor] = useState(event?.color ?? '#1F3A8A');
 
-  const colorChoices = [
-    'hsl(220 70% 55%)',  // 파랑
-    'hsl(0 75% 55%)',    // 빨강
-    'hsl(38 92% 50%)',   // 앰버
-    'hsl(155 65% 45%)',  // 그린
-    'hsl(262 70% 55%)',  // 보라
-    'hsl(335 75% 60%)',  // 핑크
-  ];
+  const colorChoices = ['#1F3A8A', '#9A2E1A', '#A06F1F', '#3F6B3A', '#5B3F8A', '#1F1A14'];
 
   const save = () => {
     if (!title.trim()) return;
     const parseTime = (t: string): number => {
       const [h, m] = t.split(':').map(Number);
       const [y, mo, d] = day.split('-').map(Number);
-      // KST → UTC ms
       return Date.UTC(y, mo - 1, d, h - 9, m);
     };
     const start = allDay ? parseTime('00:00') : parseTime(startTime);
     const end = allDay ? undefined : parseTime(endTime);
-
-    if (isNew) {
-      addEvent({ title: title.trim(), start, end, allDay, color });
-    } else if (event) {
-      updateEvent(event.id, { title: title.trim(), start, end, allDay, color });
-    }
+    if (isNew) addEvent({ title: title.trim(), start, end, allDay, color });
+    else if (event) updateEvent(event.id, { title: title.trim(), start, end, allDay, color });
     onClose();
   };
 
   const handleDelete = () => {
     if (!event) return;
-    if (!window.confirm(`"${event.title}" 일정을 삭제할까요?`)) return;
+    if (!window.confirm(`"${event.title}" 지울까요?`)) return;
     removeEvent(event.id);
     onClose();
   };
 
   return (
-    <ModalShell onClose={onClose} title={isNew ? '새 일정' : '일정 편집'}>
-      <div className="space-y-4">
-        <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">제목</label>
-          <input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && title.trim()) save(); }}
-            placeholder="일정 제목"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200"
-          />
-        </div>
+    <ModalShell onClose={onClose} eyebrow={isNew ? '새 일정' : '편집'}>
+      <Field label="제목">
+        <input
+          autoFocus
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && title.trim()) save(); }}
+          placeholder="일정"
+          className="w-full bg-transparent border-b border-pln-rule pb-2 text-[18px] font-display text-plnk-DEFAULT placeholder:text-plnk-faint outline-none focus:border-plac-DEFAULT"
+        />
+      </Field>
 
-        <label className="flex items-center gap-2 text-[12px] text-slate-700 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={allDay}
-            onChange={(e) => setAllDay(e.target.checked)}
-            className="accent-indigo-500"
-          />
-          종일
-        </label>
+      <label className="flex items-center gap-2 text-[12.5px] text-plnk-DEFAULT cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          checked={allDay}
+          onChange={(e) => setAllDay(e.target.checked)}
+          className="accent-plac-DEFAULT"
+        />
+        종일
+      </label>
 
-        {!allDay && (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1.5">시작</label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] tabular-nums outline-none focus:border-indigo-300"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1.5">종료</label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] tabular-nums outline-none focus:border-indigo-300"
-              />
-            </div>
+      {!allDay && (
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div>
+            <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted block mb-2">시작</label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full bg-transparent border-b border-pln-rule pb-1 text-[14px] tabular-nums outline-none focus:border-plac-DEFAULT"
+            />
           </div>
-        )}
-
-        <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">색상</label>
-          <div className="flex gap-1.5">
-            {colorChoices.map((c) => (
-              <button
-                key={c}
-                onClick={() => setColor(c)}
-                className={cn(
-                  'w-7 h-7 rounded-full border-2 transition-all',
-                  color === c ? 'border-slate-800 scale-110' : 'border-white',
-                )}
-                style={{ backgroundColor: c }}
-                aria-label="색상"
-              />
-            ))}
+          <div>
+            <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted block mb-2">종료</label>
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full bg-transparent border-b border-pln-rule pb-1 text-[14px] tabular-nums outline-none focus:border-plac-DEFAULT"
+            />
           </div>
         </div>
-      </div>
+      )}
+
+      <Field label="색">
+        <div className="flex gap-2">
+          {colorChoices.map((c) => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              className={cn(
+                'w-6 h-6 transition-transform',
+                color === c && 'ring-2 ring-offset-2 ring-plnk-DEFAULT scale-110',
+              )}
+              style={{ backgroundColor: c }}
+              aria-label="색"
+            />
+          ))}
+        </div>
+      </Field>
 
       <ModalFooter>
-        {!isNew && (
-          <button
-            onClick={handleDelete}
-            className="text-[12px] text-rose-500 hover:text-rose-700 font-medium inline-flex items-center gap-1"
-          >
-            <Trash2 className="w-3 h-3" />
-            삭제
+        {!isNew ? (
+          <button onClick={handleDelete} className="text-[12px] text-plac-warn hover:opacity-70 inline-flex items-center gap-1">
+            <Trash2 className="w-3 h-3" strokeWidth={1.5} /> 지우기
           </button>
-        )}
-        {isNew && <span />}
-        <button
-          onClick={save}
-          disabled={!title.trim()}
-          className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(99,102,241,0.25)]"
-        >
-          {isNew ? '추가' : '저장'}
-        </button>
+        ) : <span />}
+        <FooterPrimary onClick={save} disabled={!title.trim()}>{isNew ? '추가' : '저장'}</FooterPrimary>
       </ModalFooter>
     </ModalShell>
   );
 }
 
 // ──────────────────────────────────────────
-// 공용 모달 셸
+// 공용
 // ──────────────────────────────────────────
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6">
+      <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted block mb-2">{label}</label>
+      {children}
+    </div>
+  );
+}
+
 function ModalShell({
-  onClose, title, children,
-}: { onClose: () => void; title: string; children: React.ReactNode }) {
+  onClose, eyebrow, title, children,
+}: { onClose: () => void; eyebrow: string; title?: string; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-plnk-DEFAULT/30" />
       <div
-        className="relative w-full max-w-[520px] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-[520px] max-h-[85vh] bg-pln-card border border-pln-rule overflow-hidden flex flex-col animate-in fade-in duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="shrink-0 px-5 py-4 border-b border-slate-100 flex items-center gap-3">
-          <h3 className="text-[15px] font-bold text-slate-800 flex-1">{title}</h3>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center"
-          >
-            <X className="w-4 h-4 text-slate-400" />
+        <div className="shrink-0 px-7 pt-6 pb-4 border-b border-pln-line flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted mb-1">{eyebrow}</p>
+            {title && <h3 className="font-display text-[20px] font-semibold text-plnk-DEFAULT tracking-tight leading-snug tabular-nums">{title}</h3>}
+          </div>
+          <button onClick={onClose} className="text-plnk-muted hover:text-plnk-DEFAULT">
+            <X className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-7 py-6">{children}</div>
       </div>
     </div>
   );
@@ -708,8 +615,22 @@ function ModalShell({
 
 function ModalFooter({ children }: { children: React.ReactNode }) {
   return (
-    <div className="shrink-0 px-5 py-3 border-t border-slate-100 bg-slate-50/70 backdrop-blur-sm flex items-center justify-between gap-3 -mx-5 -mb-4 mt-5">
+    <div className="shrink-0 px-7 py-4 border-t border-pln-line bg-pln-base flex items-center justify-between gap-4 -mx-7 -mb-6 mt-8">
       {children}
     </div>
+  );
+}
+
+function FooterPrimary({
+  children, onClick, disabled,
+}: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="text-[13px] font-medium text-plac-DEFAULT border-b border-plac-DEFAULT pb-0.5 hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+    >
+      {children} →
+    </button>
   );
 }

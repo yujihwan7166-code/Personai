@@ -1,18 +1,15 @@
 /**
- * 🌱 Habits — 습관·루틴 페이지 (Phase 1.2)
- *
- * 리스트 행: emoji + 제목 + 30일 잔디 + 현재 streak.
- * 행 클릭 → 365일 잔디 + 편집 + 삭제 모달.
- * 마일스톤 토스트: 30/100/365일 도달 시 한 줄 축하.
+ * Habits — 잔디가 시각 중심 (행 위주)
+ * 시스템 emoji X · 사용자 입력 emoji 만 작게.
  */
 
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, X, Trash2, Archive, ArchiveRestore } from 'lucide-react';
+import { ArrowLeft, Plus, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import {
-  useHabits, addHabit, updateHabit, toggleHabitDay,
+  useHabits, addHabit, toggleHabitDay,
   archiveHabit, unarchiveHabit, removeHabit,
   useGoals,
   useHabitStreak,
@@ -33,69 +30,64 @@ const Habits = () => {
   const visible = showArchived ? archived : active;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-10 bg-white/85 backdrop-blur-sm border-b border-slate-100">
-        <div className="max-w-[920px] mx-auto px-5 py-3 flex items-center gap-3">
+    <div className="min-h-screen bg-pln-base">
+      <header className="border-b border-pln-line bg-pln-base">
+        <div className="max-w-[960px] mx-auto px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate('/')}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+            className="text-plnk-muted hover:text-plnk-DEFAULT"
             aria-label="뒤로"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[16px] font-bold text-slate-800 leading-tight">🌱 습관·루틴</h1>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              매일 작은 반복으로 큰 변화 · 활성 {active.length}{archived.length > 0 ? ` · 보관 ${archived.length}` : ''}
-            </p>
-          </div>
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted">습관</span>
+          <div className="flex-1" />
+          {archived.length > 0 && (
+            <button
+              onClick={() => setShowArchived((v) => !v)}
+              className="text-[11px] text-plnk-muted hover:text-plnk-DEFAULT"
+            >
+              {showArchived ? '활성 보기' : `보관함 ${archived.length}`}
+            </button>
+          )}
           <button
             onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[12px] font-bold hover:bg-emerald-700 transition-all shadow-[0_4px_14px_rgba(16,185,129,0.25)]"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-plac-DEFAULT border-b border-plac-DEFAULT hover:opacity-70"
           >
-            <Plus className="w-3.5 h-3.5" />
-            새 습관
+            <Plus className="w-3.5 h-3.5" strokeWidth={1.75} /> 새 습관
           </button>
         </div>
       </header>
 
-      {/* 본문 */}
-      <main className="max-w-[920px] mx-auto px-5 py-6">
+      <main className="max-w-[960px] mx-auto px-6 py-10">
+        <div className="mb-10">
+          <h1 className="font-display text-[40px] sm:text-[44px] font-semibold text-plnk-DEFAULT leading-[1.1] tracking-[-0.02em]">
+            매일 작은 반복
+          </h1>
+          <p className="mt-3 text-[14px] text-plnk-muted">
+            {active.length === 0
+              ? '하루 한 가지부터.'
+              : `${active.length}가지 진행 중`}
+          </p>
+        </div>
+
         {active.length === 0 && !showArchived ? (
           <EmptyState onCreate={() => setCreateOpen(true)} />
         ) : (
-          <>
-            {archived.length > 0 && (
-              <div className="flex items-center justify-end mb-2">
-                <button
-                  onClick={() => setShowArchived((v) => !v)}
-                  className="text-[11px] text-slate-500 hover:text-indigo-600 inline-flex items-center gap-1"
-                >
-                  {showArchived ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
-                  {showArchived ? '활성 보기' : `보관 ${archived.length}개 보기`}
-                </button>
-              </div>
-            )}
-            <div className="space-y-1.5">
-              {visible.map((h) => (
-                <HabitRow key={h.id} habit={h} onClick={() => setDetailFor(h)} />
-              ))}
-            </div>
+          <div className="border-y border-pln-line">
+            {visible.map((h) => (
+              <HabitRow key={h.id} habit={h} onClick={() => setDetailFor(h)} />
+            ))}
             {visible.length === 0 && showArchived && (
-              <p className="text-center text-[12px] text-slate-400 py-12">보관된 습관이 없어요</p>
+              <p className="text-center text-[12px] text-plnk-faint py-12">보관된 습관이 없어요</p>
             )}
-          </>
+          </div>
         )}
       </main>
 
-      {/* 모달 */}
       {createOpen && <HabitCreateModal onClose={() => setCreateOpen(false)} />}
       {detailFor && (
-        <HabitDetailModal
-          habit={detailFor}
-          onClose={() => setDetailFor(null)}
-        />
+        <HabitDetailModal habit={detailFor} onClose={() => setDetailFor(null)} />
       )}
     </div>
   );
@@ -104,48 +96,25 @@ const Habits = () => {
 export default Habits;
 
 // ──────────────────────────────────────────
-// EmptyState
-// ──────────────────────────────────────────
 function EmptyState({ onCreate }: { onCreate: () => void }) {
-  const suggestions = [
-    { emoji: '📖', label: '독서' },
-    { emoji: '💪', label: '운동' },
-    { emoji: '🧘', label: '명상' },
-    { emoji: '💧', label: '물 마시기' },
-    { emoji: '✏️', label: '일기' },
-  ];
   return (
-    <div className="text-center py-16">
-      <div className="text-5xl mb-4">🌱</div>
-      <h2 className="text-[18px] font-bold text-slate-800 mb-2">매일 작은 반복을 시작해볼까요</h2>
-      <p className="text-[13px] text-slate-500 mb-6 max-w-md mx-auto leading-relaxed">
-        하루 한 가지만 꾸준히. 30일 후엔 잔디가 가득 차 있어요.
+    <div className="border-t border-b border-pln-line py-20 text-center">
+      <p className="font-display text-[22px] text-plnk-DEFAULT mb-2 tracking-tight">
+        반복할 한 가지를 정해요.
       </p>
-      <div className="flex flex-wrap justify-center gap-2 mb-6">
-        {suggestions.map((s, i) => (
-          <button
-            key={i}
-            onClick={onCreate}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-[11.5px] font-medium text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/30 transition-all"
-          >
-            <span>{s.emoji}</span>
-            <span>{s.label}</span>
-          </button>
-        ))}
-      </div>
+      <p className="text-[13px] text-plnk-muted mb-8 max-w-md mx-auto">
+        30일 후 누적된 잔디가 곧 변화의 흔적이에요.
+      </p>
       <button
         onClick={onCreate}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-[13px] font-bold hover:bg-emerald-700 transition-all"
+        className="text-[13px] font-medium text-plac-DEFAULT border-b border-plac-DEFAULT pb-0.5 hover:opacity-70"
       >
-        <Plus className="w-4 h-4" />
-        습관 만들기
+        시작하기 →
       </button>
     </div>
   );
 }
 
-// ──────────────────────────────────────────
-// HabitRow — 메인 리스트
 // ──────────────────────────────────────────
 function HabitRow({ habit, onClick }: { habit: Habit; onClick: () => void }) {
   const streak = useHabitStreak(habit.id);
@@ -153,13 +122,11 @@ function HabitRow({ habit, onClick }: { habit: Habit; onClick: () => void }) {
   const isCadenceToday = matchesCadence(habit.cadence, today);
   const doneToday = !!habit.history[today];
 
-  // 30일 잔디
   const cells = useMemo(() => {
-    const arr: { day: string; done: boolean; isCadence: boolean }[] = [];
+    const arr: { done: boolean; isCadence: boolean }[] = [];
     for (let i = 29; i >= 0; i--) {
       const d = dayKeyBefore(i);
       arr.push({
-        day: d,
         done: !!habit.history[d],
         isCadence: matchesCadence(habit.cadence, d),
       });
@@ -171,75 +138,72 @@ function HabitRow({ habit, onClick }: { habit: Habit; onClick: () => void }) {
     e.stopPropagation();
     const wasDone = doneToday;
     toggleHabitDay(habit.id, today);
-    // 마일스톤 토스트 — 도달 시 한 번만
     if (!wasDone) {
-      // 토글 후 streak 다시 계산 (store 갱신 후 idempotent 함수 호출)
       const nextHabit = { ...habit, history: { ...habit.history, [today]: true as const } };
       const newStreak = computeCurrentStreak(nextHabit);
-      if (newStreak === 30) notify.success(`🔥 30일 연속! "${habit.title}"`);
-      else if (newStreak === 100) notify.success(`💯 100일 달성! "${habit.title}"`);
-      else if (newStreak === 365) notify.success(`🏆 1년 완주! "${habit.title}"`);
+      if (newStreak === 30) notify.success(`30일 연속`);
+      else if (newStreak === 100) notify.success(`100일 달성`);
+      else if (newStreak === 365) notify.success(`1년 완주`);
     }
   };
 
   return (
     <button
       onClick={onClick}
-      className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-sm transition-all group"
+      className="w-full text-left flex items-center gap-5 py-4 px-1 border-b border-pln-line hover:bg-pln-card/60 transition-colors"
     >
-      {/* 오늘 체크 박스 */}
+      {/* 오늘 체크 */}
       <span
         onClick={handleToggle}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            (e.target as HTMLElement).click();
-          }
-        }}
-        title={isCadenceToday ? (doneToday ? '오늘 완료됨' : '오늘 체크') : '오늘은 cadence 비대상'}
+        title={isCadenceToday ? (doneToday ? '완료' : '체크') : '오늘은 비대상'}
         className={cn(
-          'w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-[16px] transition-all',
+          'w-5 h-5 border flex items-center justify-center shrink-0 transition-colors',
           !isCadenceToday && 'opacity-30',
-          doneToday
-            ? 'bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)]'
-            : 'bg-slate-50 hover:bg-emerald-50 border border-slate-200',
+          doneToday ? 'bg-plac-DEFAULT border-plac-DEFAULT' : 'border-pln-rule hover:border-plnk-DEFAULT',
         )}
       >
-        {habit.emoji || (doneToday ? '✓' : '')}
+        {doneToday && <span className="block w-2 h-2 bg-pln-card" />}
       </span>
 
       <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-bold text-slate-800 truncate">{habit.title}</div>
-        <div className="text-[10px] text-slate-400 mt-0.5">
+        <div className="flex items-center gap-2">
+          {habit.emoji && <span className="text-[14px]">{habit.emoji}</span>}
+          <span className="font-display text-[15px] font-medium text-plnk-DEFAULT truncate">
+            {habit.title}
+          </span>
+        </div>
+        <div className="text-[10.5px] font-mono text-plnk-muted mt-1 uppercase tracking-wider">
           {cadenceLabel(habit.cadence)}
           {habit.scheduleAt && (
-            <> · {String(habit.scheduleAt.hour).padStart(2, '0')}:{String(habit.scheduleAt.min).padStart(2, '0')}</>
+            <> · <span className="tabular-nums normal-case tracking-normal">
+              {String(habit.scheduleAt.hour).padStart(2, '0')}:{String(habit.scheduleAt.min).padStart(2, '0')}
+            </span></>
           )}
         </div>
       </div>
 
-      {/* 30일 잔디 */}
-      <div className="flex gap-[2px] shrink-0" aria-label="최근 30일">
+      {/* 30일 잔디 — 시각 중심 */}
+      <div className="flex gap-[2px] shrink-0">
         {cells.map((c, i) => (
           <span
             key={i}
-            title={`${c.day} ${c.done ? '✓' : c.isCadence ? '·' : '–'}`}
             className={cn(
-              'w-1.5 h-5 rounded-sm',
-              c.done ? 'bg-emerald-400' : c.isCadence ? 'bg-slate-200' : 'bg-slate-100',
+              'w-1.5 h-7',
+              c.done ? 'bg-plac-DEFAULT' : c.isCadence ? 'bg-pln-line' : 'bg-pln-base',
             )}
           />
         ))}
       </div>
 
-      {/* streak */}
-      <div className="shrink-0 text-right">
-        <div className="text-[16px] font-extrabold text-slate-800 tabular-nums leading-none">
+      <div className="shrink-0 text-right min-w-[70px]">
+        <div className="font-display text-[28px] font-semibold text-plnk-DEFAULT tabular-nums leading-none">
           {streak.current}
         </div>
-        <div className="text-[9px] text-slate-400 mt-0.5">일 연속</div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-plnk-muted mt-1">
+          연속
+        </div>
       </div>
     </button>
   );
@@ -252,12 +216,10 @@ function cadenceLabel(c: HabitCadence): string {
 }
 
 // ──────────────────────────────────────────
-// HabitCreateModal
-// ──────────────────────────────────────────
 function HabitCreateModal({ onClose }: { onClose: () => void }) {
   const goals = useGoals().filter((g) => g.status === 'active');
   const [title, setTitle] = useState('');
-  const [emoji, setEmoji] = useState('🌱');
+  const [emoji, setEmoji] = useState('');
   const [cadenceKind, setCadenceKind] = useState<'daily' | 'weekly'>('daily');
   const [weeklyDays, setWeeklyDays] = useState<number[]>([1, 3, 5]);
   const [hasTime, setHasTime] = useState(false);
@@ -271,192 +233,138 @@ function HabitCreateModal({ onClose }: { onClose: () => void }) {
       cadenceKind === 'daily' ? { kind: 'daily' } : { kind: 'weekly', days: weeklyDays };
     addHabit({
       title: title.trim(),
-      emoji,
+      emoji: emoji.trim() || undefined,
       cadence,
       scheduleAt: hasTime ? { hour, min } : undefined,
       goalId,
     });
-    notify.success('습관 추가됨');
     onClose();
   };
 
   return (
-    <ModalShell onClose={onClose} title="새 습관">
-      <div className="space-y-4">
-        {/* emoji + 제목 */}
-        <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">제목</label>
-          <div className="flex gap-2">
-            <input
-              value={emoji}
-              onChange={(e) => setEmoji(e.target.value.slice(0, 2))}
-              className="w-12 text-center rounded-lg border border-slate-200 px-2 py-2 text-[18px] outline-none focus:border-indigo-300"
-              aria-label="이모지"
-            />
-            <input
-              autoFocus
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && title.trim()) submit(); }}
-              placeholder="예: 매일 30분 독서"
-              className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[13px] outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200"
-            />
-          </div>
+    <ModalShell onClose={onClose} eyebrow="새 습관">
+      <Field label="제목">
+        <div className="flex gap-3 items-baseline border-b border-pln-rule pb-2">
+          <input
+            value={emoji}
+            onChange={(e) => setEmoji(e.target.value.slice(0, 2))}
+            placeholder=""
+            className="w-8 text-center bg-transparent text-[18px] outline-none placeholder:text-plnk-faint"
+            aria-label="이모지(선택)"
+          />
+          <input
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && title.trim()) submit(); }}
+            placeholder="매일 30분 독서"
+            className="flex-1 bg-transparent text-[18px] font-display text-plnk-DEFAULT placeholder:text-plnk-faint outline-none"
+          />
         </div>
+      </Field>
 
-        {/* cadence */}
-        <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">반복</label>
-          <div className="flex gap-1.5 mb-2">
-            <button
-              onClick={() => setCadenceKind('daily')}
-              className={cn(
-                'flex-1 px-3 py-2 rounded-lg text-[12px] font-medium border transition-all',
-                cadenceKind === 'daily'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                  : 'bg-white text-slate-600 border-slate-200',
-              )}
-            >
-              매일
-            </button>
-            <button
-              onClick={() => setCadenceKind('weekly')}
-              className={cn(
-                'flex-1 px-3 py-2 rounded-lg text-[12px] font-medium border transition-all',
-                cadenceKind === 'weekly'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                  : 'bg-white text-slate-600 border-slate-200',
-              )}
-            >
-              요일 지정
-            </button>
-          </div>
-          {cadenceKind === 'weekly' && (
-            <div className="flex gap-1">
-              {['일', '월', '화', '수', '목', '금', '토'].map((label, i) => {
-                const active = weeklyDays.includes(i);
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setWeeklyDays((arr) =>
-                      active ? arr.filter((x) => x !== i) : [...arr, i].sort()
-                    )}
-                    className={cn(
-                      'flex-1 py-1.5 rounded text-[11px] font-medium border transition-all',
-                      active
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                        : 'bg-white text-slate-500 border-slate-200',
-                    )}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+      <Field label="반복">
+        <div className="flex gap-px bg-pln-line border border-pln-line mb-3">
+          <SegBtn active={cadenceKind === 'daily'} onClick={() => setCadenceKind('daily')}>매일</SegBtn>
+          <SegBtn active={cadenceKind === 'weekly'} onClick={() => setCadenceKind('weekly')}>요일 지정</SegBtn>
         </div>
-
-        {/* 시간 */}
-        <div>
-          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 mb-1.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={hasTime}
-              onChange={(e) => setHasTime(e.target.checked)}
-              className="accent-emerald-500"
-            />
-            시간 지정 (캘린더 자동 표시)
-          </label>
-          {hasTime && (
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                max={23}
-                value={hour}
-                onChange={(e) => setHour(Math.max(0, Math.min(23, parseInt(e.target.value || '0', 10))))}
-                className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-[12px] tabular-nums text-center outline-none focus:border-emerald-300"
-              />
-              <span className="text-slate-400">:</span>
-              <input
-                type="number"
-                min={0}
-                max={59}
-                step={5}
-                value={min}
-                onChange={(e) => setMin(Math.max(0, Math.min(59, parseInt(e.target.value || '0', 10))))}
-                className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-[12px] tabular-nums text-center outline-none focus:border-emerald-300"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* 목표 연결 */}
-        {goals.length > 0 && (
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 block mb-1.5">목표 연결 (선택)</label>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setGoalId(undefined)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-[11px] font-medium border',
-                  !goalId ? 'bg-slate-50 text-slate-700 border-slate-300' : 'bg-white text-slate-400 border-slate-200',
-                )}
-              >
-                연결 안 함
-              </button>
-              {goals.map((g) => (
+        {cadenceKind === 'weekly' && (
+          <div className="flex gap-px bg-pln-line border border-pln-line">
+            {['일', '월', '화', '수', '목', '금', '토'].map((label, i) => {
+              const active = weeklyDays.includes(i);
+              return (
                 <button
-                  key={g.id}
-                  onClick={() => setGoalId(g.id)}
+                  key={i}
+                  onClick={() => setWeeklyDays((arr) =>
+                    active ? arr.filter((x) => x !== i) : [...arr, i].sort(),
+                  )}
                   className={cn(
-                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border',
-                    goalId === g.id
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-200'
-                      : 'bg-white text-slate-600 border-slate-200',
+                    'flex-1 py-2 text-[11.5px] font-medium transition-colors',
+                    active
+                      ? 'bg-plnk-DEFAULT text-pln-card'
+                      : 'bg-pln-card text-plnk-muted hover:text-plnk-DEFAULT',
                   )}
                 >
-                  <span>{g.emoji || '🎯'}</span>
-                  <span className="truncate max-w-[140px]">{g.title}</span>
+                  {label}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
         )}
-      </div>
+      </Field>
+
+      <Field label="시간">
+        <label className="flex items-center gap-2 text-[12.5px] text-plnk-DEFAULT cursor-pointer mb-3">
+          <input
+            type="checkbox"
+            checked={hasTime}
+            onChange={(e) => setHasTime(e.target.checked)}
+            className="accent-plac-DEFAULT"
+          />
+          시간 지정 (캘린더에 자동 표시)
+        </label>
+        {hasTime && (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              max={23}
+              value={hour}
+              onChange={(e) => setHour(Math.max(0, Math.min(23, parseInt(e.target.value || '0', 10))))}
+              className="w-14 bg-transparent border-b border-pln-rule pb-1 text-[14px] tabular-nums text-center outline-none focus:border-plac-DEFAULT"
+            />
+            <span className="text-plnk-muted">:</span>
+            <input
+              type="number"
+              min={0}
+              max={59}
+              step={5}
+              value={min}
+              onChange={(e) => setMin(Math.max(0, Math.min(59, parseInt(e.target.value || '0', 10))))}
+              className="w-14 bg-transparent border-b border-pln-rule pb-1 text-[14px] tabular-nums text-center outline-none focus:border-plac-DEFAULT"
+            />
+          </div>
+        )}
+      </Field>
+
+      {goals.length > 0 && (
+        <Field label="목표 연결">
+          <div className="flex flex-wrap gap-1.5">
+            <ChipBtn active={!goalId} onClick={() => setGoalId(undefined)}>없음</ChipBtn>
+            {goals.map((g) => (
+              <ChipBtn key={g.id} active={goalId === g.id} onClick={() => setGoalId(g.id)}>
+                <span className="truncate max-w-[140px]">{g.title}</span>
+              </ChipBtn>
+            ))}
+          </div>
+        </Field>
+      )}
 
       <ModalFooter>
-        <button onClick={onClose} className="text-[12px] text-slate-400 hover:text-slate-600 font-medium">
-          취소
-        </button>
-        <button
+        <FooterCancel onClick={onClose}>취소</FooterCancel>
+        <FooterPrimary
           onClick={submit}
           disabled={!title.trim() || (cadenceKind === 'weekly' && weeklyDays.length === 0)}
-          className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-[13px] font-bold hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(16,185,129,0.25)]"
         >
           만들기
-        </button>
+        </FooterPrimary>
       </ModalFooter>
     </ModalShell>
   );
 }
 
 // ──────────────────────────────────────────
-// HabitDetailModal — 365일 잔디 + 편집
-// ──────────────────────────────────────────
 function HabitDetailModal({ habit, onClose }: { habit: Habit; onClose: () => void }) {
   const streak = useHabitStreak(habit.id);
   const goals = useGoals();
   const linkedGoal = habit.goalId ? goals.find((g) => g.id === habit.goalId) : null;
 
-  // 365일 잔디 (53주 × 7일)
   const grid = useMemo(() => {
-    const out: { day: string; done: boolean; isCadence: boolean }[][] = [];
-    let week: { day: string; done: boolean; isCadence: boolean }[] = [];
+    const out: { done: boolean; isCadence: boolean }[][] = [];
+    let week: { done: boolean; isCadence: boolean }[] = [];
     for (let i = 364; i >= 0; i--) {
       const d = dayKeyBefore(i);
       week.push({
-        day: d,
         done: !!habit.history[d],
         isCadence: matchesCadence(habit.cadence, d),
       });
@@ -472,120 +380,148 @@ function HabitDetailModal({ habit, onClose }: { habit: Habit; onClose: () => voi
   const totalDone = Object.keys(habit.history).length;
 
   const handleDelete = () => {
-    if (!window.confirm(`"${habit.title}" 습관을 삭제할까요? 기록도 함께 사라집니다.`)) return;
+    if (!window.confirm(`"${habit.title}" 지울까요? 기록도 함께 사라집니다.`)) return;
     removeHabit(habit.id);
-    onClose();
-  };
-
-  const handleToggleArchive = () => {
-    if (habit.archivedAt) unarchiveHabit(habit.id);
-    else archiveHabit(habit.id);
     onClose();
   };
 
   return (
     <ModalShell
       onClose={onClose}
-      title={`${habit.emoji || '🌱'} ${habit.title}`}
-      subtitle={`${cadenceLabel(habit.cadence)}${habit.scheduleAt ? ` · ${String(habit.scheduleAt.hour).padStart(2, '0')}:${String(habit.scheduleAt.min).padStart(2, '0')}` : ''}${linkedGoal ? ` · 🎯 ${linkedGoal.title}` : ''}`}
+      eyebrow={cadenceLabel(habit.cadence) + (habit.scheduleAt ? ` · ${String(habit.scheduleAt.hour).padStart(2, '0')}:${String(habit.scheduleAt.min).padStart(2, '0')}` : '')}
+      title={habit.title}
     >
-      <div className="space-y-5">
-        {/* 통계 */}
-        <div className="grid grid-cols-3 gap-2">
-          <Stat label="현재 streak" value={streak.current} suffix="일" tone="emerald" />
-          <Stat label="30일 율" value={Math.round(streak.rate30d * 100)} suffix="%" />
-          <Stat label="총 완료" value={totalDone} suffix="일" />
-        </div>
+      <div className="grid grid-cols-3 gap-px bg-pln-line border border-pln-line mb-7">
+        <Stat label="연속" value={streak.current} suffix="일" />
+        <Stat label="30일 율" value={Math.round(streak.rate30d * 100)} suffix="%" />
+        <Stat label="총 완료" value={totalDone} suffix="일" />
+      </div>
 
-        {/* 365일 잔디 */}
-        <div>
-          <h4 className="text-[11.5px] font-bold text-slate-700 mb-2">최근 1년</h4>
-          <div className="flex gap-[2px] overflow-x-auto py-1">
-            {grid.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-[2px]">
-                {week.map((c, di) => (
-                  <span
-                    key={di}
-                    title={`${c.day} ${c.done ? '✓' : c.isCadence ? '·' : '–'}`}
-                    className={cn(
-                      'w-2 h-2 rounded-sm',
-                      c.done ? 'bg-emerald-400' : c.isCadence ? 'bg-slate-200' : 'bg-slate-100',
-                    )}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-2 text-[9.5px] text-slate-400">
-            <span>적음</span>
-            <span className="w-2 h-2 rounded-sm bg-slate-200" />
-            <span className="w-2 h-2 rounded-sm bg-emerald-200" />
-            <span className="w-2 h-2 rounded-sm bg-emerald-400" />
-            <span>많음</span>
-          </div>
+      <div className="mb-2">
+        <h4 className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted mb-3">최근 1년</h4>
+        <div className="flex gap-[2px] overflow-x-auto pb-2">
+          {grid.map((week, wi) => (
+            <div key={wi} className="flex flex-col gap-[2px]">
+              {week.map((c, di) => (
+                <span
+                  key={di}
+                  className={cn(
+                    'w-2 h-2',
+                    c.done ? 'bg-plac-DEFAULT' : c.isCadence ? 'bg-pln-line' : 'bg-pln-base',
+                  )}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
+
+      {linkedGoal && (
+        <p className="text-[11.5px] text-plnk-muted">연결된 목표 · {linkedGoal.title}</p>
+      )}
 
       <ModalFooter>
         <button
           onClick={handleDelete}
-          className="text-[12px] text-rose-500 hover:text-rose-700 font-medium inline-flex items-center gap-1"
+          className="text-[12px] text-plac-warn hover:opacity-70 inline-flex items-center gap-1"
         >
-          <Trash2 className="w-3 h-3" />
-          삭제
+          <Trash2 className="w-3 h-3" strokeWidth={1.5} />
+          지우기
         </button>
         <button
-          onClick={handleToggleArchive}
-          className="px-3 py-1.5 rounded-lg text-[12px] font-medium border border-slate-200 text-slate-500 hover:bg-slate-50 inline-flex items-center gap-1"
+          onClick={() => {
+            if (habit.archivedAt) unarchiveHabit(habit.id);
+            else archiveHabit(habit.id);
+            onClose();
+          }}
+          className="text-[12px] text-plnk-muted hover:text-plnk-DEFAULT"
         >
-          {habit.archivedAt ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
-          {habit.archivedAt ? '복원' : '보관'}
+          {habit.archivedAt ? '복원' : '보관함으로'}
         </button>
       </ModalFooter>
     </ModalShell>
   );
 }
 
-function Stat({ label, value, suffix, tone }: { label: string; value: number; suffix: string; tone?: 'emerald' }) {
+function Stat({ label, value, suffix }: { label: string; value: number; suffix: string }) {
   return (
-    <div className={cn(
-      'rounded-xl border px-3 py-2.5',
-      tone === 'emerald' ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-50/60 border-slate-200',
-    )}>
-      <div className="text-[9px] text-slate-500 mb-0.5">{label}</div>
-      <div className="text-[18px] font-extrabold text-slate-800 tabular-nums leading-none">
-        {value}<span className="text-[11px] font-medium text-slate-400 ml-0.5">{suffix}</span>
+    <div className="bg-pln-card px-4 py-3">
+      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-plnk-muted">{label}</div>
+      <div className="font-display text-[24px] font-semibold text-plnk-DEFAULT tabular-nums leading-tight mt-1">
+        {value}<span className="text-[12px] text-plnk-muted ml-0.5">{suffix}</span>
       </div>
     </div>
   );
 }
 
 // ──────────────────────────────────────────
-// 공용 모달 셸 (Goals 와 동일 패턴)
+// 공용 (Goals 와 동일 — 페이지마다 재정의해도 OK, 일관성 위해 동일)
 // ──────────────────────────────────────────
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6">
+      <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted block mb-2">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function SegBtn({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex-1 px-3 py-2 text-[12px] font-medium transition-colors',
+        active ? 'bg-plnk-DEFAULT text-pln-card' : 'bg-pln-card text-plnk-muted hover:text-plnk-DEFAULT',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ChipBtn({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1 px-3 py-1 text-[11.5px] border transition-colors',
+        active
+          ? 'bg-plnk-DEFAULT text-pln-card border-plnk-DEFAULT'
+          : 'bg-pln-card text-plnk-muted border-pln-rule hover:text-plnk-DEFAULT',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function ModalShell({
-  onClose, title, subtitle, children,
-}: { onClose: () => void; title: string; subtitle?: string; children: React.ReactNode }) {
+  onClose, eyebrow, title, children,
+}: { onClose: () => void; eyebrow: string; title?: string; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-plnk-DEFAULT/30" />
       <div
-        className="relative w-full max-w-[520px] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-[520px] max-h-[85vh] bg-pln-card border border-pln-rule overflow-hidden flex flex-col animate-in fade-in duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="shrink-0 px-5 py-4 border-b border-slate-100 flex items-start gap-3">
+        <div className="shrink-0 px-7 pt-6 pb-4 border-b border-pln-line flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-[15px] font-bold text-slate-800 truncate">{title}</h3>
-            {subtitle && <p className="text-[11px] text-slate-500 mt-0.5 truncate">{subtitle}</p>}
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-plnk-muted mb-1">{eyebrow}</p>
+            {title && <h3 className="font-display text-[20px] font-semibold text-plnk-DEFAULT tracking-tight leading-snug">{title}</h3>}
           </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
-          >
-            <X className="w-4 h-4 text-slate-400" />
+          <button onClick={onClose} className="text-plnk-muted hover:text-plnk-DEFAULT">
+            <X className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-7 py-6">{children}</div>
       </div>
     </div>
   );
@@ -593,8 +529,30 @@ function ModalShell({
 
 function ModalFooter({ children }: { children: React.ReactNode }) {
   return (
-    <div className="shrink-0 px-5 py-3 border-t border-slate-100 bg-slate-50/70 backdrop-blur-sm flex items-center justify-between gap-3 -mx-5 -mb-4 mt-5">
+    <div className="shrink-0 px-7 py-4 border-t border-pln-line bg-pln-base flex items-center justify-between gap-4 -mx-7 -mb-6 mt-8">
       {children}
     </div>
+  );
+}
+
+function FooterCancel({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="text-[12.5px] text-plnk-muted hover:text-plnk-DEFAULT">
+      {children}
+    </button>
+  );
+}
+
+function FooterPrimary({
+  children, onClick, disabled,
+}: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="text-[13px] font-medium text-plac-DEFAULT border-b border-plac-DEFAULT pb-0.5 hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+    >
+      {children} →
+    </button>
   );
 }
