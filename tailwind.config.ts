@@ -69,31 +69,6 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // ── 빈티지 노트북·페이퍼 톤 (planner 전용, 2026-04) ──
-        paper: {
-          cream: "#FBF7F0",      // 페이지 배경
-          page:  "#FFFCF5",      // 카드 (살짝 더 밝음)
-          ruled: "#E8DFCC",      // 가는 ruled line · 보더
-          rule2: "#D9CDB1",      // 진한 ruled / divider
-        },
-        ink: {
-          DEFAULT: "#1F1A14",    // 본문 (검정 X, 잉크 갈색기)
-          light:   "#4A4239",    // 부제
-          muted:   "#8A8273",    // 마이크로 라벨
-          faint:   "#B8AE9A",    // 흐릿한 placeholder
-        },
-        stamp: {
-          red:  "#A03A2A",       // 빨강 도장 (완료·마감)
-          blue: "#1E4A6F",       // 만년필 청 (강조 1순위)
-          gold: "#C9A227",       // 머스타드 (목표·황금)
-          sage: "#6B7F5C",       // 차분한 그린 (습관)
-        },
-      },
-      boxShadow: {
-        // 빈티지 페이퍼 — 한 방향 부드러운 그림자
-        paper: "2px 3px 0 #E0D6BC",
-        "paper-sm": "1px 2px 0 #E8DFCC",
-        "paper-lg": "3px 5px 0 #D9CDB1",
       },
       borderRadius: {
         lg: "var(--radius)",
