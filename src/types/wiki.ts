@@ -115,5 +115,11 @@ export function extractWikiLinks(body: string): string[] {
     const target = m[1].trim();
     if (target) out.add(target);
   }
+  // ID 기반 마크다운 링크 — [표시](##wiki:w_id) 또는 [표시](##wiki:title)
+  const idLinkRe = /\]\(##wiki:([^)]+?)\)/g;
+  while ((m = idLinkRe.exec(body)) !== null) {
+    const target = decodeURIComponent(m[1]).trim();
+    if (target) out.add(target);
+  }
   return Array.from(out);
 }
