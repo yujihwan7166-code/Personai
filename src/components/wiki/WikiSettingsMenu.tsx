@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { Settings, Download, Upload, Trash2, HardDrive, Sparkles } from 'lucide-react';
 import { exportAllAsJson, importFromJson, type ImportMode } from '@/lib/wikiBackup';
 import { clearAllPages, upsertPage } from '@/lib/wikiStore';
-import { buildSkyrimDemo } from '@/lib/wikiSkyrimDemo';
+import { buildSkyrimDemo, buildRelationshipDemo, buildCookingDemo, buildReadingDemo } from '@/lib/wikiSkyrimDemo';
+import type { WikiPage } from '@/types/wiki';
 import { notify } from '@/lib/notify';
 
 interface Props {
@@ -110,15 +111,12 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
     }
   };
 
-  const handleLoadSkyrim = async () => {
+  async function loadDemo(label: string, builder: () => WikiPage[], description: string) {
     setBusy(true);
     try {
-      const pages = buildSkyrimDemo();
+      const pages = builder();
       for (const p of pages) await upsertPage(p);
-      notify.success(`🎮 스카이림 데모 — ${pages.length}개 페이지 추가됨`, {
-        description: '스카이림 메인 문서에서 시작 — 등장인물·마법·퀘스트·홀드·종족',
-        duration: 3500,
-      });
+      notify.success(`${label} — ${pages.length}개 페이지 추가됨`, { description, duration: 3500 });
       onMutated();
     } catch (e) {
       notify.error('데모 로드 실패', { description: (e as Error).message });
@@ -126,7 +124,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
       setBusy(false);
       setOpen(false);
     }
-  };
+  }
 
   const handleClearAll = async () => {
     if (!confirm('정말 모든 위키 페이지를 삭제할까요? 되돌릴 수 없어요.')) return;
@@ -179,8 +177,23 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
           </p>
           <MenuItem
             icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-            onClick={handleLoadSkyrim}
-            label="🎮 스카이림 데모 추가"
+            onClick={() => loadDemo('🎮 스카이림 데모', buildSkyrimDemo, '게임 위키 — 등장인물·마법·홀드')}
+            label="🎮 스카이림"
+          />
+          <MenuItem
+            icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
+            onClick={() => loadDemo('👥 인맥 데모', buildRelationshipDemo, '사람 위키 — 가족·친구·직장')}
+            label="👥 인맥"
+          />
+          <MenuItem
+            icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
+            onClick={() => loadDemo('🍳 요리 데모', buildCookingDemo, '레시피 위키 — 한식·양식')}
+            label="🍳 요리"
+          />
+          <MenuItem
+            icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
+            onClick={() => loadDemo('📚 독서 데모', buildReadingDemo, '책 위키 — 소설·자기계발')}
+            label="📚 독서"
           />
           <div className="my-1 border-t border-[hsl(var(--hairline))]" />
           <MenuItem
