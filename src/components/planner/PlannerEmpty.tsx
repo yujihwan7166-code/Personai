@@ -17,15 +17,16 @@ interface PlannerEmptyProps {
 export const PlannerEmpty = ({ title, hint, icon, className }: PlannerEmptyProps) => (
   <div
     className={cn(
-      'flex flex-col items-center justify-center py-10 px-4 text-center',
+      'flex flex-col items-center justify-center py-10 px-4 text-center mt-2',
+      'rounded-lg border border-dashed border-[hsl(var(--hairline))]',
       'text-muted-foreground/80',
       className,
     )}
   >
-    {icon && <div className="mb-2 opacity-60">{icon}</div>}
-    <p className="text-[13px] leading-tight">{title}</p>
+    {icon && <div className="mb-2.5 text-muted-foreground/40">{icon}</div>}
+    <p className="text-[12.5px] leading-tight text-foreground/70 font-medium">{title}</p>
     {hint && (
-      <p className="mt-1 text-[11px] text-muted-foreground/60 leading-tight">
+      <p className="mt-1.5 text-[11px] text-muted-foreground/60 leading-snug max-w-[200px]">
         {hint}
       </p>
     )}

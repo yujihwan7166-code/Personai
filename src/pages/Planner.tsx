@@ -41,9 +41,9 @@ const Planner = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-6 py-6 max-w-[1400px] w-full mx-auto">
-        <header className="mb-4 flex items-baseline justify-between">
-          <div className="flex items-center gap-3">
+      <main className="flex-1 px-6 py-7 max-w-[1400px] w-full mx-auto">
+        <header className="mb-6 flex items-end justify-between gap-3 pb-4 border-b-2 border-[hsl(var(--hairline))]">
+          <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -53,20 +53,23 @@ const Planner = () => {
               <ChevronLeft className="h-3 w-3" />
               <span>메인</span>
             </button>
-            <h1 className="text-2xl font-semibold tracking-tight">통합 플래너</h1>
+            <h1 className="text-[26px] font-semibold tracking-tight leading-none">통합 플래너</h1>
+            <span className="text-[11px] text-muted-foreground/70 font-mono uppercase tracking-[0.16em]">
+              오늘
+            </span>
           </div>
           <p className="text-[11px] text-muted-foreground/70 font-mono uppercase tracking-[0.16em]">
             n · 빠른추가
           </p>
         </header>
-        <div className="grid grid-cols-[280px_1fr_280px] gap-4 h-[calc(100vh-180px)]">
-          <div className="rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 min-h-0">
+        <div className="grid grid-cols-[300px_1fr_280px] gap-4 h-[calc(100vh-180px)]">
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
             <Inbox inputRef={inboxInputRef} />
           </div>
-          <div className="rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 min-h-0">
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
             <TodayTimeline />
           </div>
-          <div className="rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 min-h-0">
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
             <WeekStrip />
           </div>
         </div>

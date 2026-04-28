@@ -40,12 +40,12 @@ export const TodayTimeline = ({ dateIso }: TodayTimelineProps) => {
     <PlannerSection label="오늘" count={dateLabel} className="h-full">
       {items.length === 0 ? (
         <PlannerEmpty
-          icon={<CalendarIcon className="h-5 w-5" />}
+          icon={<CalendarIcon className="h-6 w-6" />}
           title="오늘은 비어 있어요"
           hint="좌측 인박스에서 할 일을 골라 시간을 배정해보세요"
         />
       ) : (
-        <div className="space-y-1.5 px-1">
+        <div className="space-y-2">
           {items.map((item) => {
             const id = item.data.id;
             const title = item.data.title;

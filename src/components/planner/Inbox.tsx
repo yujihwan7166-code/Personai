@@ -29,7 +29,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
       count={tasks.length > 0 ? tasks.length : undefined}
       className="h-full"
     >
-      <div className="space-y-1">
+      <div className="flex flex-col gap-2">
         <PlannerInput
           inputRef={inputRef ?? fallbackRef}
           placeholder="+ 할 일 추가  (Enter)"
@@ -37,12 +37,12 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
         />
         {tasks.length === 0 ? (
           <PlannerEmpty
-            icon={<InboxIcon className="h-5 w-5" />}
+            icon={<InboxIcon className="h-6 w-6" />}
             title="인박스가 비어 있어요"
             hint="떠오르는 할 일을 빠르게 적어두세요"
           />
         ) : (
-          <div className="space-y-px mt-1">
+          <div className="space-y-px">
             {tasks.map((t) => (
               <PlannerCard
                 key={t.id}

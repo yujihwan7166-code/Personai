@@ -37,8 +37,8 @@ export const PlannerCard = (props: PlannerCardProps) => {
     return (
       <div
         className={cn(
-          'group flex items-center gap-2 px-2 py-1.5 rounded-md',
-          'hover:bg-[hsl(var(--accent))] cursor-pointer transition-colors',
+          'group flex items-center gap-2.5 px-2 py-1.5 rounded-md',
+          'hover:bg-accent cursor-pointer transition-colors',
         )}
         onClick={onClick}
       >
@@ -49,18 +49,18 @@ export const PlannerCard = (props: PlannerCardProps) => {
             onToggle();
           }}
           className={cn(
-            'flex h-4 w-4 items-center justify-center rounded-sm border transition-colors shrink-0',
+            'flex h-[14px] w-[14px] items-center justify-center rounded-[3px] border transition-all shrink-0',
             done
               ? 'bg-foreground border-foreground text-background'
-              : 'border-[hsl(var(--hairline))] hover:border-foreground/40',
+              : 'border-[hsl(var(--hairline))] hover:border-foreground/50 hover:scale-110',
           )}
           aria-label={done ? '완료 취소' : '완료'}
         >
-          {done && <Check className="h-3 w-3" strokeWidth={3} />}
+          {done && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
         </button>
         <span
           className={cn(
-            'text-[13px] leading-tight truncate',
+            'text-[13px] leading-tight truncate flex-1',
             done && 'line-through text-muted-foreground/60',
           )}
         >
@@ -72,26 +72,30 @@ export const PlannerCard = (props: PlannerCardProps) => {
 
   // variant === 'block'
   const { title, startLabel, kind, done, color, onClick } = props;
+  const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
   return (
     <div
       onClick={onClick}
       className={cn(
-        'flex items-start gap-2 px-2 py-1.5 rounded-md cursor-pointer',
-        'border border-[hsl(var(--hairline))] bg-[hsl(var(--card))]',
-        'hover:bg-[hsl(var(--accent))] transition-colors',
+        'group flex items-stretch gap-2.5 pr-2.5 py-2 rounded-lg cursor-pointer overflow-hidden',
+        'border border-[hsl(var(--hairline))] bg-card',
+        'hover:border-foreground/20 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)] transition-all',
         done && 'opacity-50',
       )}
     >
       <span
-        className="mt-0.5 inline-block w-1 self-stretch rounded-full shrink-0"
-        style={{ backgroundColor: color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground))') }}
+        className="w-[3px] self-stretch shrink-0"
+        style={{ backgroundColor: stripeColor }}
         aria-hidden
       />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground">{startLabel}</span>
-        </div>
-        <p className={cn('text-[12.5px] leading-tight mt-0.5 truncate', done && 'line-through')}>
+      <div className="min-w-0 flex-1 py-px">
+        <span className="block text-[10px] font-mono tabular-nums text-muted-foreground tracking-wide">
+          {startLabel}
+        </span>
+        <p className={cn(
+          'text-[12.5px] leading-snug mt-0.5 truncate text-foreground/90 font-medium',
+          done && 'line-through',
+        )}>
           {title}
         </p>
       </div>

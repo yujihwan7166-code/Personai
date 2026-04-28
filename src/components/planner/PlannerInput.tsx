@@ -38,11 +38,11 @@ export const PlannerInput = ({ placeholder = '+ 빠른 추가', onSubmit, inputR
       onKeyDown={handleKey}
       placeholder={placeholder}
       className={cn(
-        'w-full px-2.5 py-1.5 text-[13px] leading-tight',
-        'bg-transparent border border-transparent rounded-md',
+        'w-full px-2.5 py-2 text-[13px] leading-tight',
+        'bg-transparent border border-dashed border-[hsl(var(--hairline))] rounded-md',
         'placeholder:text-muted-foreground/60',
-        'hover:border-[hsl(var(--hairline))] focus:border-[hsl(var(--hairline))]',
-        'focus:bg-[hsl(var(--card))] focus:outline-none',
+        'hover:border-solid hover:border-foreground/20 hover:bg-accent/40',
+        'focus:border-solid focus:border-foreground/40 focus:bg-accent/40 focus:outline-none',
         'transition-colors',
         className,
       )}
