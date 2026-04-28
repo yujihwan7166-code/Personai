@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, BookOpen, Home, ChevronDown, FileText, FileType, FileCode, ArrowRight } from 'lucide-react';
+import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, Home, ChevronDown, FileText, FileType, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
@@ -680,7 +680,7 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]!));
 }
 
-/* ── 부모 메인 칩 줄 — 일반 문서 뷰어 상단 ── */
+/* ── 부모 메인 줄 — 나무위키 톤: "상위 문서: 페이지A, 페이지B" ── */
 function ParentMainsRow({
   page, allPages, onOpen,
 }: {
@@ -706,35 +706,25 @@ function ParentMainsRow({
 
   if (parents.length === 0) return null;
 
-  const SHOW = 3;
-  const visible = parents.slice(0, SHOW);
-  const overflow = parents.length - visible.length;
-
   return (
-    <div className="flex flex-wrap items-center gap-1 mb-2 text-[11px]">
-      <span className="text-muted-foreground/70 inline-flex items-center gap-1">
-        <BookOpen className="w-3 h-3" /> in
-      </span>
-      {visible.map((m) => (
-        <button
-          key={m.id}
-          type="button"
-          onClick={() => onOpen(m.id)}
-          className="group inline-flex items-center gap-0.5 pl-2 pr-1.5 h-6 rounded-md bg-primary/10 text-primary hover:bg-primary/20 wiki-trans-color font-semibold"
-          title={`${m.title} 메인 문서로 이동`}
-        >
-          <span className="truncate max-w-[180px]">{m.title}</span>
-          <ArrowRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 wiki-trans-color" />
-        </button>
-      ))}
-      {overflow > 0 && (
-        <span
-          className="text-[10.5px] text-muted-foreground/80"
-          title={parents.slice(SHOW).map((m) => m.title).join(', ')}
-        >
-          + 외 {overflow}
+    <div
+      className="mb-2.5 text-[12.5px] leading-relaxed text-muted-foreground"
+      style={{ fontFamily: 'var(--wiki-font-meta)' }}
+    >
+      <span className="text-muted-foreground/80">상위 문서: </span>
+      {parents.map((m, i) => (
+        <span key={m.id}>
+          <button
+            type="button"
+            onClick={() => onOpen(m.id)}
+            className="text-blue-700 dark:text-blue-300 hover:underline underline-offset-2 wiki-trans-color"
+            title={`${m.title} 메인 문서로 이동`}
+          >
+            {m.title}
+          </button>
+          {i < parents.length - 1 && <span className="text-muted-foreground/70">, </span>}
         </span>
-      )}
+      ))}
     </div>
   );
 }
