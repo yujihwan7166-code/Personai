@@ -1,14 +1,15 @@
 /**
- * 마이위키 첫 방문 시 시드 — 4 메인 (나·인맥·프로젝트·주식) + 하위 페이지들 자동 생성.
- * 시드 플래그(localStorage)로 한 번만 실행, 사용자가 지우면 재생성 X.
+ * 마이위키 — 자동 시드 비활성화.
  *
- * 본문 [[wikilink]] 는 시드 시점에 refersTo 로 자동 채움.
- * 각 하위 페이지의 parentMocs 는 도메인 파일에서 이미 부착됨.
+ * 첫 진입 시 빈 위키 + WikiHome 의 스타터 팩 화면을 보이도록 자동 시드는
+ * 비웠다. 사용자가 4 스타터 팩 (학습자/연구자/직장인/취미) 또는 빈 페이지로
+ * 시작 중 선택한다.
+ *
+ * 시드 플래그(SEED_KEY)는 그대로 유지 — 기존 사용자에 영향 없음.
+ * 함수 시그니처도 그대로 두어 useWikiPages 의 호출 코드 변경 X.
  */
 
 import type { WikiPage } from '@/types/wiki';
-import { upsertPage } from '@/lib/wikiStore';
-import { buildAllSeedPages } from '@/lib/wikiSeedData';
 
 const SEED_KEY = 'wiki_seeded_v1';
 
@@ -22,27 +23,8 @@ export function markWikiSeeded(): void {
   window.localStorage.setItem(SEED_KEY, '1');
 }
 
+/** 자동 시드 페이지를 만들지 않는다. 빈 위키로 두어 스타터 팩 UI 가 동작. */
 export async function seedWiki(): Promise<WikiPage[]> {
-  const pages = buildAllSeedPages();
-
-  // 제목·별칭 → id 인덱스 (refersTo 자동 채움용)
-  const titleToId = new Map<string, string>();
-  for (const p of pages) {
-    titleToId.set(p.title, p.id);
-    for (const a of p.aliases) titleToId.set(a, p.id);
-  }
-
-  const seeded: WikiPage[] = pages.map((p) => {
-    const matches = p.body.matchAll(/\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g);
-    const refs = new Set<string>();
-    for (const m of matches) {
-      const id = titleToId.get(m[1].trim());
-      if (id && id !== p.id) refs.add(id);
-    }
-    return { ...p, refersTo: Array.from(refs) };
-  });
-
-  for (const p of seeded) await upsertPage(p);
   markWikiSeeded();
-  return seeded;
+  return [];
 }
