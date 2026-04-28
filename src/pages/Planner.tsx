@@ -1,43 +1,66 @@
 /**
  * 통합 플래너 — /planner 라우트.
  *
- * Phase 1: 3 컬럼 골격 (Inbox / TodayTimeline / WeekStrip).
- * 데이터 store 연결 OK. 디자인 디테일·인터랙션은 Phase 2-4.
+ * Phase 3: Day/Week/Month/Year 4 뷰 토글 + 풀화면 모드 (Month/Year).
  *
  * 단축키:
- * - n: 인박스 빠른 추가 포커스
- * - t: 오늘로 (현재는 no-op, Phase 4 에서 시간표 스크롤)
+ * - n: 인박스 빠른 추가 포커스 (Day/Week 뷰에서만)
+ * - d/w/m/y: 뷰 전환
  * - Esc: 입력 blur (PlannerInput 내부 처리)
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Inbox } from '@/components/planner/Inbox';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { WeekStrip } from '@/components/planner/WeekStrip';
+import { WeekView } from '@/components/planner/WeekView';
+import { MonthView } from '@/components/planner/MonthView';
+import { YearView } from '@/components/planner/YearView';
+import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 
 const Planner = () => {
   const navigate = useNavigate();
   const inboxInputRef = useRef<HTMLInputElement>(null);
+  const [view, setView] = useState<PlannerView>('day');
+  const [anchorIso, setAnchorIso] = useState(() => new Date().toISOString());
+
+  const handleDayClick = useCallback((dayIso: string) => {
+    setAnchorIso(dayIso);
+    setView('day');
+  }, []);
+
+  const handleMonthClick = useCallback((monthIso: string) => {
+    setAnchorIso(monthIso);
+    setView('month');
+  }, []);
 
   // 키보드 단축키.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // 입력 중이면 단축키 비활성.
       const target = e.target as HTMLElement | null;
       const isTyping =
         target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
       if (isTyping) return;
 
-      if (e.key === 'n') {
-        e.preventDefault();
-        inboxInputRef.current?.focus();
+      switch (e.key.toLowerCase()) {
+        case 'n':
+          if (view === 'day' || view === 'week') {
+            e.preventDefault();
+            inboxInputRef.current?.focus();
+          }
+          break;
+        case 'd': e.preventDefault(); setView('day'); break;
+        case 'w': e.preventDefault(); setView('week'); break;
+        case 'm': e.preventDefault(); setView('month'); break;
+        case 'y': e.preventDefault(); setView('year'); break;
       }
-      // 't' 는 Phase 4 에서 시간표 스크롤 to now.
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [view]);
+
+  const isFullscreen = view === 'month' || view === 'year';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -54,25 +77,42 @@ const Planner = () => {
               <span>메인</span>
             </button>
             <h1 className="text-[26px] font-semibold tracking-tight leading-none">통합 플래너</h1>
-            <span className="text-[11px] text-muted-foreground/70 font-mono uppercase tracking-[0.16em]">
-              오늘
-            </span>
+            <ViewToggle value={view} onChange={setView} />
           </div>
           <p className="text-[11px] text-muted-foreground/70 font-mono uppercase tracking-[0.16em]">
-            n · 빠른추가
+            {view === 'day' || view === 'week' ? 'n · 빠른추가  ·  ' : ''}d/w/m/y · 뷰
           </p>
         </header>
-        <div className="grid grid-cols-[300px_1fr_280px] gap-4 h-[calc(100vh-180px)]">
-          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
-            <Inbox inputRef={inboxInputRef} />
+
+        {isFullscreen ? (
+          // 풀화면 모드 (Month / Year)
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 h-[calc(100vh-180px)]">
+            {view === 'month' && (
+              <MonthView anchorIso={anchorIso} onDayClick={handleDayClick} />
+            )}
+            {view === 'year' && (
+              <YearView
+                anchorIso={anchorIso}
+                onMonthClick={handleMonthClick}
+                onDayClick={handleDayClick}
+              />
+            )}
           </div>
-          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
-            <TodayTimeline />
+        ) : (
+          // 3 컬럼 (Day / Week)
+          <div className="grid grid-cols-[300px_1fr_280px] gap-4 h-[calc(100vh-180px)]">
+            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
+              <Inbox inputRef={inboxInputRef} />
+            </div>
+            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
+              {view === 'day' && <TodayTimeline dateIso={anchorIso} />}
+              {view === 'week' && <WeekView anchorIso={anchorIso} />}
+            </div>
+            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
+              <WeekStrip anchorIso={anchorIso} onDayClick={handleDayClick} />
+            </div>
           </div>
-          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
-            <WeekStrip />
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );
