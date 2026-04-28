@@ -1573,6 +1573,9 @@ export function MainModeTabs({
                             } else if (item.id === 'goals') {
                               setOpen(false);
                               navigate('/goals');
+                            } else if (item.id === 'habit') {
+                              setOpen(false);
+                              navigate('/habits');
                             }
                           }}
                           role="menuitem"
