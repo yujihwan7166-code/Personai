@@ -16,6 +16,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Wiki = lazy(() => import("./pages/Wiki"));
 const Goals = lazy(() => import("./pages/Goals"));
 const Habits = lazy(() => import("./pages/Habits"));
+const Tasks = lazy(() => import("./pages/Tasks"));
 
 function RouteFallback() {
   return <div className="min-h-screen bg-background" aria-hidden="true" />;
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/wiki" element={<Wiki />} />
               <Route path="/goals" element={<Goals />} />
               <Route path="/habits" element={<Habits />} />
+              <Route path="/tasks" element={<Tasks />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

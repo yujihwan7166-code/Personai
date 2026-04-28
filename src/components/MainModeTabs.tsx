@@ -1576,6 +1576,9 @@ export function MainModeTabs({
                             } else if (item.id === 'habit') {
                               setOpen(false);
                               navigate('/habits');
+                            } else if (item.id === 'todo') {
+                              setOpen(false);
+                              navigate('/tasks');
                             }
                           }}
                           role="menuitem"
