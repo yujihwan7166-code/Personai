@@ -1579,6 +1579,9 @@ export function MainModeTabs({
                             } else if (item.id === 'todo') {
                               setOpen(false);
                               navigate('/tasks');
+                            } else if (item.id === 'calendar') {
+                              setOpen(false);
+                              navigate('/calendar');
                             }
                           }}
                           role="menuitem"
