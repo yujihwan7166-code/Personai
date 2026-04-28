@@ -31,6 +31,9 @@ import type { MainMode, DebateSubMode } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
 import { loadBookmarks, BOOKMARKS_CHANGED_EVENT, type BookmarkSlot } from '@/lib/bookmarkStore';
+import { useUpcomingEvent } from '@/hooks/planner/useUpcomingEvent';
+import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
+import { taskStore } from '@/services/planner/taskStore';
 
 interface MainModeTabsProps {
   modes: MainMode[];
@@ -524,14 +527,9 @@ export function MainModeTabs({
     window.addEventListener(BOOKMARKS_CHANGED_EVENT, handler);
     return () => window.removeEventListener(BOOKMARKS_CHANGED_EVENT, handler);
   }, []);
-  /** 오늘 할 일 — v1 샘플. 클릭 시 삭제. v2 에서 노트 todo 동기화. */
-  const [todayTodos, setTodayTodos] = useState<Array<{ id: string; label: string; done: boolean }>>([
-    { id: 't1', label: '보고서 마무리', done: false },
-    { id: 't2', label: '영어 학습 30분', done: false },
-    { id: 't3', label: '운동 20분', done: true },
-    { id: 't4', label: '책 30페이지 읽기', done: false },
-    { id: 't5', label: '주간 회고 작성', done: false },
-  ]);
+  /** 통합 플래너 데이터 — 다음 일정 + 오늘 미완료 할일. */
+  const upcomingEvent = useUpcomingEvent();
+  const todayTasks = useTodayTasks();
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const disabled = isDiscussing || transitionPhase !== 0;
@@ -1046,70 +1044,103 @@ export function MainModeTabs({
                       })()}
                     </div>
                   </div>
-                  {/* 다음 일정 + 오늘 할 일 — v1 샘플 데이터, v2 에서 실제 캘린더/노트 동기화 */}
+                  {/* 다음 일정 + 오늘 할 일 — 통합 플래너 실시간 데이터 (Phase 5) */}
                   <div className="pt-2 border-t border-[hsl(var(--hairline))] space-y-2.5">
                     {/* 다음 일정 — 한 줄 컴팩트 */}
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[hsl(var(--accent))]/40 transition-colors"
-                    >
-                      <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground shrink-0">
-                        🔔
-                      </span>
-                      <span className="text-[10px] font-mono font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none shrink-0">
-                        14:00
-                      </span>
-                      <span className="text-[11.5px] font-medium text-foreground/90 truncate leading-none flex-1 text-left">
-                        팀 미팅
-                      </span>
-                      <span className="text-[9.5px] text-muted-foreground leading-none shrink-0">
-                        30분 후
-                      </span>
-                    </button>
+                    {upcomingEvent ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpen(false);
+                          navigate('/planner');
+                        }}
+                        className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[hsl(var(--accent))]/40 transition-colors"
+                      >
+                        <span className="text-[10px] shrink-0" aria-hidden>🔔</span>
+                        <span className="text-[10px] font-mono font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none shrink-0">
+                          {new Date(upcomingEvent.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        </span>
+                        <span className="text-[11.5px] font-medium text-foreground truncate leading-none flex-1 text-left">
+                          {upcomingEvent.title}
+                        </span>
+                        <span className="text-[9.5px] text-muted-foreground leading-none shrink-0 font-medium">
+                          {(() => {
+                            const diff = Math.round((new Date(upcomingEvent.startAt).getTime() - Date.now()) / 60_000);
+                            if (diff < 60) return `${diff}분 후`;
+                            if (diff < 60 * 24) return `${Math.round(diff / 60)}시간 후`;
+                            return `${Math.round(diff / 60 / 24)}일 후`;
+                          })()}
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpen(false);
+                          navigate('/planner');
+                        }}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[hsl(var(--accent))]/40 transition-colors text-left"
+                      >
+                        <span className="text-[10px] shrink-0" aria-hidden>🔔</span>
+                        <span className="text-[11px] text-muted-foreground leading-tight flex-1">
+                          다음 일정 없음
+                        </span>
+                        <span className="text-[9.5px] text-muted-foreground/80 leading-none shrink-0">
+                          + 추가
+                        </span>
+                      </button>
+                    )}
 
                     {/* 오늘 할 일 */}
                     <div>
                       <div className="mb-1 flex items-center justify-between pl-0.5 pr-2">
-                        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold">
                           ✓ 오늘 할 일
+                          {todayTasks.length > 0 && (
+                            <span className="ml-1.5 text-muted-foreground/80 tabular-nums">
+                              {todayTasks.length}
+                            </span>
+                          )}
                         </span>
                         <button
                           type="button"
-                          className="text-[9.5px] text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
+                          onClick={() => {
+                            setOpen(false);
+                            navigate('/planner');
+                          }}
+                          className="text-[9.5px] text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 transition-colors font-medium"
                         >
                           + 추가
                         </button>
                       </div>
-                      <div className="space-y-0.5 max-h-[72px] overflow-y-auto pr-0.5">
-                        {todayTodos.map((todo) => (
-                          <button
-                            key={todo.id}
-                            type="button"
-                            onClick={() => setTodayTodos((prev) => prev.filter((t) => t.id !== todo.id))}
-                            className="w-full flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--accent))]/40 cursor-pointer transition-colors text-left"
-                            aria-label={`${todo.label} 완료 (삭제)`}
-                          >
-                            <span
-                              className={cn(
-                                'h-3 w-3 rounded border shrink-0 transition-colors',
-                                todo.done
-                                  ? 'bg-foreground/80 border-foreground/80'
-                                  : 'border-[hsl(var(--hairline))]',
-                              )}
-                              aria-hidden
-                            />
-                            <span className={cn(
-                              'text-[11px] leading-tight flex-1 truncate transition-colors',
-                              todo.done ? 'text-muted-foreground/60 line-through' : 'text-foreground/85',
-                            )}>
-                              {todo.label}
-                            </span>
-                          </button>
-                        ))}
-                        {todayTodos.length === 0 && (
-                          <p className="text-[10.5px] text-muted-foreground/70 text-center py-3">
-                            모두 완료! 🎉
+                      <div className="space-y-0.5 max-h-[96px] overflow-y-auto pr-0.5">
+                        {todayTasks.length === 0 ? (
+                          <p className="text-[10.5px] text-muted-foreground text-center py-3">
+                            오늘 할 일이 없어요
                           </p>
+                        ) : (
+                          todayTasks.slice(0, 5).map((task) => (
+                            <button
+                              key={task.id}
+                              type="button"
+                              onClick={() => taskStore.toggleDone(task.id)}
+                              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--accent))]/40 cursor-pointer transition-colors text-left"
+                              aria-label={`${task.title} 완료`}
+                            >
+                              <span
+                                className="h-3 w-3 rounded border border-[hsl(var(--hairline))] shrink-0 transition-colors"
+                                aria-hidden
+                              />
+                              {task.startAt && (
+                                <span className="text-[9.5px] font-mono tabular-nums text-muted-foreground shrink-0 font-semibold">
+                                  {new Date(task.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                </span>
+                              )}
+                              <span className="text-[11px] leading-tight flex-1 truncate text-foreground">
+                                {task.title}
+                              </span>
+                            </button>
+                          ))
                         )}
                       </div>
                     </div>
