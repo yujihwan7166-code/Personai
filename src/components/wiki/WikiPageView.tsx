@@ -218,8 +218,8 @@ export function WikiPageView({
         <article className="min-w-0">
           {/* 제목 + 액션 */}
           <header className="mb-4 pb-3 border-b border-[hsl(var(--hairline))]">
-            {/* 부모 메인 칩 — 일반 문서이고 비편집 모드일 때만 */}
-            {!editing && !isMainDoc(page) && <ParentMainsRow page={page} allPages={allPages} onOpen={onOpenLink} />}
+            {/* 상위 문서 줄 — 비편집 모드만. 일반 문서·sub-main 모두 표시 (root main 은 부모 0이라 자동 숨김) */}
+            {!editing && <ParentMainsRow page={page} allPages={allPages} onOpen={onOpenLink} />}
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 {editing ? (
