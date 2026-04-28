@@ -1,10 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, Download, Upload, Trash2, HardDrive, Sparkles } from 'lucide-react';
+import { Settings, Download, Upload, Trash2, HardDrive } from 'lucide-react';
 import { exportAllAsJson, importFromJson, type ImportMode } from '@/lib/wikiBackup';
-import { clearAllPages, upsertPage } from '@/lib/wikiStore';
-import { buildSkyrimDemo, buildRelationshipDemo, buildCookingDemo, buildReadingDemo } from '@/lib/wikiSkyrimDemo';
-import type { WikiPage } from '@/types/wiki';
+import { clearAllPages } from '@/lib/wikiStore';
 import { notify } from '@/lib/notify';
 
 interface Props {
@@ -111,21 +109,6 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
     }
   };
 
-  async function loadDemo(label: string, builder: () => WikiPage[], description: string) {
-    setBusy(true);
-    try {
-      const pages = builder();
-      for (const p of pages) await upsertPage(p);
-      notify.success(`${label} — ${pages.length}개 페이지 추가됨`, { description, duration: 3500 });
-      onMutated();
-    } catch (e) {
-      notify.error('데모 로드 실패', { description: (e as Error).message });
-    } finally {
-      setBusy(false);
-      setOpen(false);
-    }
-  }
-
   const handleClearAll = async () => {
     if (!confirm('정말 모든 위키 페이지를 삭제할까요? 되돌릴 수 없어요.')) return;
     if (!confirm('한 번 더 확인 — 모든 페이지가 사라집니다.')) return;
@@ -170,30 +153,6 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
             icon={<HardDrive className="w-3.5 h-3.5" />}
             onClick={() => { setOpen(false); onOpenStorage(); }}
             label="저장소 사용량"
-          />
-          <div className="my-1 border-t border-[hsl(var(--hairline))]" />
-          <p className="px-3 pt-1 pb-0.5 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
-            데모
-          </p>
-          <MenuItem
-            icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-            onClick={() => loadDemo('🎮 스카이림 데모', buildSkyrimDemo, '게임 위키 — 등장인물·마법·홀드')}
-            label="🎮 스카이림"
-          />
-          <MenuItem
-            icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-            onClick={() => loadDemo('👥 인맥 데모', buildRelationshipDemo, '사람 위키 — 가족·친구·직장')}
-            label="👥 인맥"
-          />
-          <MenuItem
-            icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-            onClick={() => loadDemo('🍳 요리 데모', buildCookingDemo, '레시피 위키 — 한식·양식')}
-            label="🍳 요리"
-          />
-          <MenuItem
-            icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-            onClick={() => loadDemo('📚 독서 데모', buildReadingDemo, '책 위키 — 소설·자기계발')}
-            label="📚 독서"
           />
           <div className="my-1 border-t border-[hsl(var(--hairline))]" />
           <MenuItem
