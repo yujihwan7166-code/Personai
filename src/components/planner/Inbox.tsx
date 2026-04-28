@@ -16,7 +16,7 @@ import { PlannerEmpty } from './PlannerEmpty';
 interface InboxProps {
   /** 단축키 'n' 으로 포커스. */
   inputRef?: React.RefObject<HTMLInputElement>;
-  onTaskClick?: (taskId: string) => void;
+  onTaskClick?: (task: { id: string; title: string }) => void;
 }
 
 export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
@@ -50,7 +50,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
                 title={t.title}
                 done={t.done}
                 onToggle={() => taskStore.toggleDone(t.id)}
-                onClick={() => onTaskClick?.(t.id)}
+                onClick={() => onTaskClick?.({ id: t.id, title: t.title })}
               />
             ))}
           </div>
