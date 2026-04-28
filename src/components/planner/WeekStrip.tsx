@@ -1,0 +1,74 @@
+/**
+ * 주간 스트립 — 우측 컬럼. 7일 미니 + (Phase 5) 습관 잔디 자리.
+ *
+ * Phase 1: 가로 7일 + 오늘 강조. 카운트는 Phase 3 에서 추가.
+ */
+import { useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import { PlannerSection } from './PlannerSection';
+
+interface WeekStripProps {
+  /** 기준 날짜 (오늘 포함 7일을 보여줌, 오늘이 가운데). */
+  anchorIso?: string;
+  onDayClick?: (dayIso: string) => void;
+}
+
+const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+export const WeekStrip = ({ anchorIso, onDayClick }: WeekStripProps) => {
+  const today = useMemo(() => new Date(anchorIso ?? new Date().toISOString()), [anchorIso]);
+
+  const days = useMemo(() => {
+    const arr: Array<{ iso: string; date: number; dow: number; isToday: boolean }> = [];
+    const base = new Date(today);
+    base.setHours(0, 0, 0, 0);
+    // 오늘 포함 -3 ~ +3 (7일).
+    for (let offset = -3; offset <= 3; offset++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + offset);
+      arr.push({
+        iso: d.toISOString(),
+        date: d.getDate(),
+        dow: d.getDay(),
+        isToday: offset === 0,
+      });
+    }
+    return arr;
+  }, [today]);
+
+  return (
+    <PlannerSection label="이번 주" className="h-auto">
+      <div className="grid grid-cols-7 gap-1 px-1">
+        {days.map((d) => (
+          <button
+            key={d.iso}
+            type="button"
+            onClick={() => onDayClick?.(d.iso)}
+            className={cn(
+              'flex flex-col items-center justify-center py-1.5 rounded-md',
+              'text-center transition-colors',
+              d.isToday
+                ? 'bg-[hsl(var(--accent))] ring-1 ring-[hsl(var(--hairline))]'
+                : 'hover:bg-[hsl(var(--accent))]',
+            )}
+          >
+            <span className={cn(
+              'text-[9px] font-mono uppercase tracking-[0.08em]',
+              d.dow === 0 && 'text-rose-500/70',
+              d.dow === 6 && 'text-blue-500/70',
+              d.dow !== 0 && d.dow !== 6 && 'text-muted-foreground/60',
+            )}>
+              {DAYS_KO[d.dow]}
+            </span>
+            <span className={cn(
+              'text-[13px] font-medium tabular-nums mt-0.5',
+              d.isToday ? 'text-foreground' : 'text-muted-foreground',
+            )}>
+              {d.date}
+            </span>
+          </button>
+        ))}
+      </div>
+    </PlannerSection>
+  );
+};

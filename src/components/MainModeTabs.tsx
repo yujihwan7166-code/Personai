@@ -1566,10 +1566,13 @@ export function MainModeTabs({
                           key={item.id}
                           type="button"
                           onClick={() => {
-                            // 마이위키만 v1 구현 — 다른 도구는 아직 no-op.
+                            // 마이위키 + 통합 플래너 v1 구현 — 다른 도구는 아직 no-op.
                             if (item.id === 'wiki') {
                               setOpen(false);
                               navigate('/wiki');
+                            } else if (item.id === 'planner') {
+                              setOpen(false);
+                              navigate('/planner');
                             }
                           }}
                           role="menuitem"
