@@ -90,7 +90,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
 
   return (
     <PlannerSection label="년" count={`${year}`} className="h-full">
-      <div className="grid grid-cols-4 gap-4 p-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 p-1">
         {months.map((mo) => (
           <button
             key={mo.index}

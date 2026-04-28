@@ -44,6 +44,7 @@ export const WeekStrip = ({ anchorIso, onDayClick }: WeekStripProps) => {
             key={d.iso}
             type="button"
             onClick={() => onDayClick?.(d.iso)}
+            aria-label={`${DAYS_KO[d.dow]}요일 ${d.date}일${d.isToday ? ' (오늘)' : ''}`}
             className={cn(
               'flex flex-col items-center justify-center py-2 rounded-md',
               'text-center transition-colors',

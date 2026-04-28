@@ -96,9 +96,9 @@ const Planner = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-6 py-7 max-w-[1400px] w-full mx-auto">
-        <header className="mb-6 flex items-end justify-between gap-3 pb-4 border-b-2 border-[hsl(var(--hairline))]">
-          <div className="flex items-center gap-4">
+      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-7 max-w-[1400px] w-full mx-auto">
+        <header className="mb-5 sm:mb-6 flex flex-wrap items-end justify-between gap-3 pb-3 sm:pb-4 border-b-2 border-[hsl(var(--hairline))]">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -108,16 +108,16 @@ const Planner = () => {
               <ChevronLeft className="h-3 w-3" />
               <span>메인</span>
             </button>
-            <h1 className="text-[26px] font-semibold tracking-tight leading-none">통합 플래너</h1>
+            <h1 className="text-[22px] sm:text-[26px] font-semibold tracking-tight leading-none">통합 플래너</h1>
             <ViewToggle value={view} onChange={setView} />
           </div>
-          <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-[0.16em] font-medium">
+          <p className="hidden md:block text-[11px] text-muted-foreground font-mono uppercase tracking-[0.16em] font-medium">
             {view === 'day' || view === 'week' ? 'n · 빠른추가  ·  ' : ''}d/w/m/y · 뷰
           </p>
         </header>
 
         {isFullscreen ? (
-          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 h-[calc(100vh-180px)]">
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)]">
             {view === 'month' && (
               <MonthView anchorIso={anchorIso} onDayClick={handleDayClick} />
             )}
@@ -130,11 +130,11 @@ const Planner = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-[300px_1fr_280px] gap-4 h-[calc(100vh-180px)]">
-            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr_280px] gap-3 sm:gap-4 h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)]">
+            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0 max-h-[40vh] md:max-h-none">
               <Inbox inputRef={inboxInputRef} onTaskClick={handleInboxClick} />
             </div>
-            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
+            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0">
               {view === 'day' && (
                 <TodayTimeline
                   dateIso={anchorIso}
@@ -144,7 +144,7 @@ const Planner = () => {
               )}
               {view === 'week' && <WeekView anchorIso={anchorIso} />}
             </div>
-            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
+            <div className="hidden lg:block rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
               <WeekStrip anchorIso={anchorIso} onDayClick={handleDayClick} />
             </div>
           </div>

@@ -87,12 +87,13 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     if (!date || !time) return;
     const startIso = buildIso(date, time);
     const endIso = addMinutes(startIso, duration);
+    const trimmed = title.trim();
+    if (trimmed.length === 0) return;
 
     if (mode.kind === 'schedule') {
-      taskStore.schedule(mode.taskId, startIso, endIso);
+      // 제목과 시간 모두 업데이트.
+      taskStore.update(mode.taskId, { title: trimmed, startAt: startIso, endAt: endIso });
     } else {
-      const trimmed = title.trim();
-      if (trimmed.length === 0) return;
       if (isEvent) {
         eventStore.add({ title: trimmed, startAt: startIso, endAt: endIso, source: 'user' });
       } else {
@@ -126,29 +127,23 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         </DialogHeader>
 
         <div className="flex flex-col gap-4 mt-2">
-          {/* 제목 */}
-          {mode.kind === 'create' ? (
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
-                제목
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSubmit();
-                }}
-                autoFocus
-                placeholder="할 일 또는 일정 제목"
-                className="w-full px-3 py-2 text-[14px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/40 focus:outline-none transition-colors"
-              />
-            </div>
-          ) : (
-            <div className="text-[14px] font-medium text-foreground/90 px-3 py-2 rounded-md bg-accent/50">
-              {title}
-            </div>
-          )}
+          {/* 제목 — schedule/create 모두 편집 가능 */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+              제목
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSubmit();
+              }}
+              autoFocus={mode.kind === 'create'}
+              placeholder="할 일 또는 일정 제목"
+              className="w-full px-3 py-2 text-[14px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground"
+            />
+          </div>
 
           {/* 종류 (create 모드만) */}
           {mode.kind === 'create' && (

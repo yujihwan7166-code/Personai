@@ -36,11 +36,21 @@ export const PlannerCard = (props: PlannerCardProps) => {
     const { title, done, onToggle, onClick } = props;
     return (
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={`${title}${done ? ' (완료됨)' : ''} — 클릭해서 시간 배정`}
         className={cn(
           'group flex items-center gap-2.5 px-2 py-1.5 rounded-md',
           'hover:bg-accent cursor-pointer transition-colors',
+          'focus:outline-none focus:bg-accent',
         )}
         onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick?.();
+          }
+        }}
       >
         <button
           type="button"
@@ -75,11 +85,21 @@ export const PlannerCard = (props: PlannerCardProps) => {
   const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`${kind === 'event' ? '일정' : '할 일'} ${startLabel} ${title}${done ? ' (완료됨)' : ''}`}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       className={cn(
         'group flex items-stretch gap-2.5 pr-2.5 py-2 rounded-lg cursor-pointer overflow-hidden',
         'border border-[hsl(var(--hairline))] bg-card',
         'hover:border-foreground/20 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)] transition-all',
+        'focus:outline-none focus:border-foreground/40',
         done && 'opacity-50',
       )}
     >
