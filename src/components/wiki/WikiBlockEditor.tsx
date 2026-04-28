@@ -24,6 +24,8 @@ import type { WikiPage as WikiPageT } from '@/types/wiki';
 import {
   Bold, Italic, Strikethrough, Code, Link as LinkIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code2, Minus, ImagePlus, CheckSquare, BookOpen, Lightbulb,
+  Table as TableIcon, Trash2, Plus,
+  ArrowUpToLine, ArrowDownToLine, ArrowLeftToLine, ArrowRightToLine,
 } from 'lucide-react';
 import type { WikiPage } from '@/types/wiki';
 import { cn } from '@/lib/utils';
@@ -113,15 +115,26 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
       },
       handlePaste: (view, event) => {
         const items = event.clipboardData?.items;
-        if (!items) return false;
-        for (const item of Array.from(items)) {
-          if (item.type.startsWith('image/')) {
+        if (items) {
+          for (const item of Array.from(items)) {
+            if (item.type.startsWith('image/')) {
+              event.preventDefault();
+              const file = item.getAsFile();
+              if (!file || !onUploadImage) return true;
+              void onUploadImage(file).then((src) => {
+                editorRef.current?.chain().focus().setImage({ src }).run();
+              });
+              return true;
+            }
+          }
+        }
+        // CSV/TSV 자동 표 변환 — 2줄 이상 + (탭 또는 쉼표) 구분
+        const text = event.clipboardData?.getData('text/plain');
+        if (text && !view.state.selection.$from.node().type.name.startsWith('table')) {
+          const html = csvToTableHtml(text);
+          if (html) {
             event.preventDefault();
-            const file = item.getAsFile();
-            if (!file || !onUploadImage) return true;
-            void onUploadImage(file).then((src) => {
-              editorRef.current?.chain().focus().setImage({ src }).run();
-            });
+            editorRef.current?.chain().focus().insertContent(html).run();
             return true;
           }
         }
@@ -177,6 +190,9 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSelText, setPickerSelText] = useState('');
   const pickerSelRangeRef = useRef<{ from: number; to: number } | null>(null);
+
+  /* 표 사이즈 picker 상태 (슬래시 /표) */
+  const [tableSizeOpen, setTableSizeOpen] = useState(false);
 
   /* Ctrl+K — 페이지 picker (선택 범위 있으면 그 텍스트가 ID 링크로) */
   useEffect(() => {
@@ -291,6 +307,9 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
         editor?.chain().focus().setImage({ src }).run();
       };
       input.click();
+    } },
+    { id: 'table', label: '📊 표', keys: ['표', '테이블', 'table'], icon: <TableIcon className="w-4 h-4" />, run: (_e: typeof editor) => {
+      setTableSizeOpen(true);
     } },
   ], [editor, onPickPage, onUploadImage]);
 
@@ -449,6 +468,18 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
         </div>
       )}
 
+      {/* 표 액션 BubbleMenu — 표 안 커서일 때만 */}
+      <TableActionMenu editor={editor} />
+
+      {/* 표 사이즈 picker — 슬래시 /표 클릭 시 */}
+      <TableSizePicker
+        open={tableSizeOpen}
+        onClose={() => setTableSizeOpen(false)}
+        onPick={(rows, cols) => {
+          editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+        }}
+      />
+
       {/* 페이지 picker — 3 모드 탭: 검색 / ID / 새로 만들기 */}
       <WikiPagePickerModal
         open={pickerOpen}
@@ -480,5 +511,206 @@ function ToolbarBtn({
     >
       {children}
     </button>
+  );
+}
+
+/* ── CSV/TSV → HTML 표 변환 (붙여넣기 자동 인식) ── */
+function csvToTableHtml(text: string): string | null {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return null;
+  // 구분자 결정 — 탭이 우선, 그 다음 쉼표
+  const sep = lines[0].includes('\t') ? '\t' : (lines[0].includes(',') ? ',' : null);
+  if (!sep) return null;
+  const cells = lines.map((l) => l.split(sep).map((c) => c.trim()));
+  const cols = Math.max(...cells.map((c) => c.length));
+  if (cols < 2) return null;
+  // 모든 행이 같은 열 수가 아니면 신뢰도 낮음 — 변환 안 함
+  if (cells.some((c) => c.length !== cols)) return null;
+  const esc = (s: string) =>
+    s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  const rows = cells
+    .map((row, i) => {
+      const tag = i === 0 ? 'th' : 'td';
+      const cs = row.map((c) => `<${tag}>${esc(c) || '&nbsp;'}</${tag}>`).join('');
+      return `<tr>${cs}</tr>`;
+    })
+    .join('');
+  return `<table>${rows}</table>`;
+}
+
+/* ── 표 액션 BubbleMenu — 표 안 커서일 때만 ── */
+function TableActionMenu({ editor }: { editor: NonNullable<ReturnType<typeof useEditor>> }) {
+  return (
+    <BubbleMenu
+      editor={editor}
+      pluginKey="tableMenu"
+      shouldShow={({ editor: ed, from, to }) => ed.isActive('table') && from === to}
+    >
+      <div className="flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg">
+        <ActionBtn
+          onClick={() => editor.chain().focus().addRowBefore().run()}
+          title="위에 행 추가"
+        >
+          <ArrowUpToLine className="w-3 h-3" />
+          <Plus className="w-2.5 h-2.5" />
+        </ActionBtn>
+        <ActionBtn
+          onClick={() => editor.chain().focus().addRowAfter().run()}
+          title="아래에 행 추가"
+        >
+          <ArrowDownToLine className="w-3 h-3" />
+          <Plus className="w-2.5 h-2.5" />
+        </ActionBtn>
+        <ActionBtn
+          onClick={() => editor.chain().focus().deleteRow().run()}
+          title="행 삭제"
+          danger
+        >
+          <Trash2 className="w-3 h-3" />
+          <span className="text-[9px] ml-0.5">행</span>
+        </ActionBtn>
+        <Sep />
+        <ActionBtn
+          onClick={() => editor.chain().focus().addColumnBefore().run()}
+          title="왼쪽에 열 추가"
+        >
+          <ArrowLeftToLine className="w-3 h-3" />
+          <Plus className="w-2.5 h-2.5" />
+        </ActionBtn>
+        <ActionBtn
+          onClick={() => editor.chain().focus().addColumnAfter().run()}
+          title="오른쪽에 열 추가"
+        >
+          <ArrowRightToLine className="w-3 h-3" />
+          <Plus className="w-2.5 h-2.5" />
+        </ActionBtn>
+        <ActionBtn
+          onClick={() => editor.chain().focus().deleteColumn().run()}
+          title="열 삭제"
+          danger
+        >
+          <Trash2 className="w-3 h-3" />
+          <span className="text-[9px] ml-0.5">열</span>
+        </ActionBtn>
+        <Sep />
+        <ActionBtn
+          onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+          title="헤더 행 토글"
+        >
+          <span className="text-[10px] font-bold">H행</span>
+        </ActionBtn>
+        <ActionBtn
+          onClick={() => editor.chain().focus().toggleHeaderColumn().run()}
+          title="헤더 열 토글"
+        >
+          <span className="text-[10px] font-bold">H열</span>
+        </ActionBtn>
+        <Sep />
+        <ActionBtn
+          onClick={() => {
+            if (window.confirm('이 표를 삭제할까요?')) {
+              editor.chain().focus().deleteTable().run();
+            }
+          }}
+          title="표 삭제"
+          danger
+        >
+          <Trash2 className="w-3 h-3" />
+          <span className="text-[9px] ml-0.5">표</span>
+        </ActionBtn>
+      </div>
+    </BubbleMenu>
+  );
+}
+
+function ActionBtn({
+  onClick, title, children, danger,
+}: {
+  onClick: () => void; title: string; children: React.ReactNode; danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={cn(
+        'h-7 px-1.5 inline-flex items-center justify-center rounded wiki-trans-color',
+        danger
+          ? 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Sep() {
+  return <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />;
+}
+
+/* ── 표 사이즈 picker — 슬래시 /표 클릭 시 ── */
+function TableSizePicker({
+  open, onClose, onPick,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onPick: (rows: number, cols: number) => void;
+}) {
+  const [hover, setHover] = useState<{ r: number; c: number } | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+
+  const MAX_R = 8, MAX_C = 8;
+
+  return (
+    <div
+      className="fixed inset-0 wiki-z-modal-backdrop bg-black/30 backdrop-blur-sm flex items-start justify-center pt-[20vh] px-4"
+      onClick={onClose}
+      role="dialog"
+      aria-label="표 사이즈 선택"
+    >
+      <div
+        className="rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl p-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/80 mb-1.5 text-center">
+          {hover ? `${hover.r} 행 × ${hover.c} 열` : '마우스로 사이즈 선택'}
+        </p>
+        <div
+          className="grid grid-cols-8 gap-0.5"
+          onMouseLeave={() => setHover(null)}
+        >
+          {Array.from({ length: MAX_R * MAX_C }).map((_, i) => {
+            const r = Math.floor(i / MAX_C) + 1;
+            const c = (i % MAX_C) + 1;
+            const active = hover && r <= hover.r && c <= hover.c;
+            return (
+              <button
+                key={i}
+                type="button"
+                onMouseEnter={() => setHover({ r, c })}
+                onClick={() => { onPick(r, c); onClose(); }}
+                className={cn(
+                  'w-5 h-5 rounded-sm border wiki-trans-color',
+                  active
+                    ? 'bg-primary/20 border-primary'
+                    : 'bg-background border-[hsl(var(--hairline))] hover:border-primary/40',
+                )}
+                aria-label={`${r}행 ${c}열`}
+              />
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[10px] text-muted-foreground/70 text-center">
+          첫 행이 자동 헤더 · Esc 로 취소
+        </p>
+      </div>
+    </div>
   );
 }

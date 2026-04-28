@@ -223,6 +223,9 @@
   border-collapse: collapse;
   font-size: 0.92em;
   width: 100%;
+  display: block;
+  overflow-x: auto; /* 모바일 가로 스크롤 */
+  max-width: 100%;
 }
 
 .wiki-prose th,
@@ -231,12 +234,44 @@
   padding: 0.45rem 0.7rem;
   text-align: left;
   vertical-align: top;
+  min-width: 64px;
 }
 
 .wiki-prose th {
   background: hsl(var(--accent) / 0.6);
   font-weight: 600;
   font-size: 0.88em;
+}
+
+/* 줄무늬 (zebra) — data-zebra 속성 토글 */
+.wiki-prose table[data-zebra="true"] tbody tr:nth-child(2n) td {
+  background: hsl(var(--muted) / 0.3);
+}
+
+/* 편집 모드 — 셀 호버 / 활성 시각화 */
+.wiki-block-editor table .selectedCell {
+  background: hsl(var(--primary) / 0.08);
+  position: relative;
+}
+.wiki-block-editor td:hover,
+.wiki-block-editor th:hover {
+  background: hsl(var(--accent) / 0.4);
+}
+.wiki-block-editor table {
+  position: relative;
+}
+/* 컬럼 리사이즈 핸들 */
+.wiki-block-editor .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background: hsl(var(--primary) / 0.4);
+  pointer-events: none;
+}
+.wiki-block-editor.resize-cursor {
+  cursor: col-resize;
 }
 
 .wiki-prose hr {
