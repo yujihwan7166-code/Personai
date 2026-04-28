@@ -36,10 +36,10 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
           onClick={() => onChange(opt.id)}
           title={`${opt.label} (${opt.key})`}
           className={cn(
-            'px-2.5 h-6 rounded text-[11.5px] font-medium tabular-nums transition-colors',
+            'px-2.5 h-6 rounded text-[12px] font-semibold tabular-nums transition-colors',
             active
               ? 'bg-card text-foreground shadow-sm ring-1 ring-[hsl(var(--hairline))]'
-              : 'text-muted-foreground hover:text-foreground',
+              : 'text-foreground/70 hover:text-foreground',
           )}
         >
           {opt.label}

@@ -23,10 +23,10 @@ export const PlannerEmpty = ({ title, hint, icon, className }: PlannerEmptyProps
       className,
     )}
   >
-    {icon && <div className="mb-2.5 text-muted-foreground/40">{icon}</div>}
-    <p className="text-[12.5px] leading-tight text-foreground/70 font-medium">{title}</p>
+    {icon && <div className="mb-2.5 text-muted-foreground">{icon}</div>}
+    <p className="text-[13px] leading-tight text-foreground font-medium">{title}</p>
     {hint && (
-      <p className="mt-1.5 text-[11px] text-muted-foreground/60 leading-snug max-w-[200px]">
+      <p className="mt-1.5 text-[11.5px] text-muted-foreground leading-snug max-w-[220px]">
         {hint}
       </p>
     )}

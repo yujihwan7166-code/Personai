@@ -108,10 +108,10 @@ export const MonthView = ({ anchorIso, onDayClick }: MonthViewProps) => {
             <div
               key={d}
               className={cn(
-                'text-[10px] font-mono uppercase tracking-[0.1em] font-semibold text-center pb-1.5',
-                i === 0 && 'text-rose-500/80',
-                i === 6 && 'text-blue-500/80',
-                i !== 0 && i !== 6 && 'text-muted-foreground/70',
+                'text-[11px] font-mono uppercase tracking-[0.1em] font-semibold text-center pb-1.5',
+                i === 0 && 'text-rose-500',
+                i === 6 && 'text-blue-500',
+                i !== 0 && i !== 6 && 'text-muted-foreground',
               )}
             >
               {d}
@@ -139,18 +139,18 @@ export const MonthView = ({ anchorIso, onDayClick }: MonthViewProps) => {
                     <div className="flex items-baseline justify-between mb-1">
                       <span
                         className={cn(
-                          'inline-flex items-center justify-center text-[11.5px] font-semibold tabular-nums',
+                          'inline-flex items-center justify-center text-[12px] font-semibold tabular-nums',
                           cell.isToday && 'h-5 min-w-[20px] px-1 rounded-full bg-foreground text-background',
-                          !cell.isToday && cell.isOtherMonth && 'text-muted-foreground/40',
-                          !cell.isToday && !cell.isOtherMonth && cell.dow === 0 && 'text-rose-500/80',
-                          !cell.isToday && !cell.isOtherMonth && cell.dow === 6 && 'text-blue-500/80',
-                          !cell.isToday && !cell.isOtherMonth && cell.dow !== 0 && cell.dow !== 6 && 'text-foreground/80',
+                          !cell.isToday && cell.isOtherMonth && 'text-muted-foreground/60',
+                          !cell.isToday && !cell.isOtherMonth && cell.dow === 0 && 'text-rose-500',
+                          !cell.isToday && !cell.isOtherMonth && cell.dow === 6 && 'text-blue-500',
+                          !cell.isToday && !cell.isOtherMonth && cell.dow !== 0 && cell.dow !== 6 && 'text-foreground',
                         )}
                       >
                         {cell.date}
                       </span>
                       {dayItems.length > 3 && (
-                        <span className="text-[9px] text-muted-foreground/60 tabular-nums">
+                        <span className="text-[10px] text-muted-foreground tabular-nums font-medium">
                           +{dayItems.length - 3}
                         </span>
                       )}
@@ -165,8 +165,8 @@ export const MonthView = ({ anchorIso, onDayClick }: MonthViewProps) => {
                           <div
                             key={item.data.id}
                             className={cn(
-                              'flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10px] truncate',
-                              'bg-accent/60',
+                              'flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10.5px] truncate',
+                              'bg-accent/70',
                             )}
                           >
                             <span
@@ -175,8 +175,8 @@ export const MonthView = ({ anchorIso, onDayClick }: MonthViewProps) => {
                               aria-hidden
                             />
                             <span className={cn(
-                              'truncate text-foreground/80',
-                              item.kind === 'task' && item.data.done && 'line-through text-muted-foreground/50',
+                              'truncate text-foreground font-medium',
+                              item.kind === 'task' && item.data.done && 'line-through text-muted-foreground',
                             )}>
                               {item.data.title}
                             </span>

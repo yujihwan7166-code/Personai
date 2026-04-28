@@ -101,7 +101,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
               >
                 {/* 시간 라벨 */}
                 <div className="w-12 shrink-0 pr-2 text-right">
-                  <span className="text-[10px] font-mono tabular-nums text-muted-foreground/60 leading-none">
+                  <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground leading-none font-semibold">
                     {String(hour).padStart(2, '0')}:00
                   </span>
                 </div>
@@ -192,11 +192,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1 py-1.5 pr-1">
-                      <span className="block text-[10px] font-mono tabular-nums text-muted-foreground tracking-wide leading-none">
+                      <span className="block text-[10.5px] font-mono tabular-nums text-muted-foreground tracking-wide leading-none font-semibold">
                         {formatHm(startAt)}
                       </span>
                       <p className={cn(
-                        'text-[12.5px] leading-snug mt-1 text-foreground/90 font-medium',
+                        'text-[13px] leading-snug mt-1 text-foreground font-medium',
                         height < 40 ? 'truncate' : 'line-clamp-2',
                         done && 'line-through',
                       )}>

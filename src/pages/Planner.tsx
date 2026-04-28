@@ -111,7 +111,7 @@ const Planner = () => {
             <h1 className="text-[26px] font-semibold tracking-tight leading-none">통합 플래너</h1>
             <ViewToggle value={view} onChange={setView} />
           </div>
-          <p className="text-[11px] text-muted-foreground/70 font-mono uppercase tracking-[0.16em]">
+          <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-[0.16em] font-medium">
             {view === 'day' || view === 'week' ? 'n · 빠른추가  ·  ' : ''}d/w/m/y · 뷰
           </p>
         </header>

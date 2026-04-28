@@ -86,24 +86,24 @@ export const WeekView = ({ anchorIso }: WeekViewProps) => {
                 d.isToday ? 'border-foreground' : 'border-[hsl(var(--hairline))]',
               )}>
                 <span className={cn(
-                  'text-[10px] font-mono uppercase tracking-[0.1em] font-semibold',
-                  !d.isToday && d.dow === 0 && 'text-rose-500/80',
-                  !d.isToday && d.dow === 6 && 'text-blue-500/80',
-                  !d.isToday && d.dow !== 0 && d.dow !== 6 && 'text-muted-foreground/70',
+                  'text-[10.5px] font-mono uppercase tracking-[0.1em] font-semibold',
+                  !d.isToday && d.dow === 0 && 'text-rose-500',
+                  !d.isToday && d.dow === 6 && 'text-blue-500',
+                  !d.isToday && d.dow !== 0 && d.dow !== 6 && 'text-muted-foreground',
                   d.isToday && 'text-foreground',
                 )}>
                   {DAYS_KO[d.dow]}
                 </span>
                 <span className={cn(
-                  'text-[14px] font-semibold tabular-nums leading-none',
-                  d.isToday ? 'text-foreground' : 'text-foreground/70',
+                  'text-[15px] font-semibold tabular-nums leading-none',
+                  d.isToday ? 'text-foreground' : 'text-foreground',
                 )}>
                   {d.date}
                 </span>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
                 {dayItems.length === 0 ? (
-                  <div className="text-[10.5px] text-muted-foreground/40 text-center py-4">—</div>
+                  <div className="text-[11px] text-muted-foreground text-center py-4">—</div>
                 ) : (
                   dayItems.map((item) => (
                     <PlannerCard

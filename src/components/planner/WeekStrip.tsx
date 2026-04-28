@@ -53,17 +53,17 @@ export const WeekStrip = ({ anchorIso, onDayClick }: WeekStripProps) => {
             )}
           >
             <span className={cn(
-              'text-[9px] font-mono uppercase tracking-[0.1em] font-semibold',
-              d.isToday && 'text-background/70',
-              !d.isToday && d.dow === 0 && 'text-rose-500/80',
-              !d.isToday && d.dow === 6 && 'text-blue-500/80',
-              !d.isToday && d.dow !== 0 && d.dow !== 6 && 'text-muted-foreground/70',
+              'text-[10px] font-mono uppercase tracking-[0.1em] font-semibold',
+              d.isToday && 'text-background',
+              !d.isToday && d.dow === 0 && 'text-rose-500',
+              !d.isToday && d.dow === 6 && 'text-blue-500',
+              !d.isToday && d.dow !== 0 && d.dow !== 6 && 'text-muted-foreground',
             )}>
               {DAYS_KO[d.dow]}
             </span>
             <span className={cn(
               'text-[14px] font-semibold tabular-nums mt-0.5 leading-none',
-              d.isToday ? 'text-background' : 'text-foreground/80',
+              d.isToday ? 'text-background' : 'text-foreground',
             )}>
               {d.date}
             </span>

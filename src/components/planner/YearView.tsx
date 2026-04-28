@@ -106,8 +106,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
           >
             <header className="flex items-baseline justify-between mb-2">
               <span className={cn(
-                'text-[13px] font-semibold tracking-tight',
-                mo.isCurrentMonth ? 'text-foreground' : 'text-foreground/80',
+                'text-[14px] font-semibold tracking-tight text-foreground',
               )}>
                 {mo.label}
               </span>
@@ -117,10 +116,10 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                 <span
                   key={d}
                   className={cn(
-                    'text-[8px] font-mono uppercase',
-                    i === 0 && 'text-rose-500/60',
-                    i === 6 && 'text-blue-500/60',
-                    i !== 0 && i !== 6 && 'text-muted-foreground/50',
+                    'text-[9px] font-mono uppercase font-semibold',
+                    i === 0 && 'text-rose-500',
+                    i === 6 && 'text-blue-500',
+                    i !== 0 && i !== 6 && 'text-muted-foreground',
                   )}
                 >
                   {d}
@@ -140,10 +139,10 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                       if (cell.iso) onDayClick?.(cell.iso);
                     }}
                     className={cn(
-                      'relative aspect-square flex items-center justify-center text-[9.5px] tabular-nums rounded',
+                      'relative aspect-square flex items-center justify-center text-[10px] tabular-nums rounded font-medium',
                       'cursor-pointer hover:bg-accent transition-colors',
                       cell.isToday && 'bg-foreground text-background font-semibold',
-                      !cell.isToday && 'text-foreground/70',
+                      !cell.isToday && 'text-foreground',
                     )}
                   >
                     {cell.date}

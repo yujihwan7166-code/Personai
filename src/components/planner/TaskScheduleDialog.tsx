@@ -129,7 +129,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           {/* 제목 */}
           {mode.kind === 'create' ? (
             <div className="flex flex-col gap-1">
-              <label className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
                 제목
               </label>
               <input
@@ -183,7 +183,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           {/* 날짜 + 시간 */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
                 날짜
               </label>
               <input
@@ -194,7 +194,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
                 시작
               </label>
               <input

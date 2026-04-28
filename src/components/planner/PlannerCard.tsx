@@ -60,8 +60,8 @@ export const PlannerCard = (props: PlannerCardProps) => {
         </button>
         <span
           className={cn(
-            'text-[13px] leading-tight truncate flex-1',
-            done && 'line-through text-muted-foreground/60',
+            'text-[13.5px] leading-tight truncate flex-1 text-foreground',
+            done && 'line-through text-muted-foreground',
           )}
         >
           {title}
@@ -89,11 +89,11 @@ export const PlannerCard = (props: PlannerCardProps) => {
         aria-hidden
       />
       <div className="min-w-0 flex-1 py-px">
-        <span className="block text-[10px] font-mono tabular-nums text-muted-foreground tracking-wide">
+        <span className="block text-[10.5px] font-mono tabular-nums text-muted-foreground tracking-wide font-semibold">
           {startLabel}
         </span>
         <p className={cn(
-          'text-[12.5px] leading-snug mt-0.5 truncate text-foreground/90 font-medium',
+          'text-[13px] leading-snug mt-0.5 truncate text-foreground font-medium',
           done && 'line-through',
         )}>
           {title}
