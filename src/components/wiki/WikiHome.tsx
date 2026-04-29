@@ -336,7 +336,7 @@ export function WikiHome({
         )}
       </section>
 
-      {/* 📄 일반 문서 — root 메인 카테고리 필터 + 링크됨/고아 분리 */}
+      {/* 📄 일반 문서 — root 메인 카테고리 필터 + 링크됨/미연결 분리 */}
       {stats.regulars.length > 0 && (
         <RegularDocsSection
           pages={stats.regulars}
@@ -483,7 +483,7 @@ function Section({
   );
 }
 
-/* ── 일반 문서 섹션 — 메인 문서 카테고리 + 링크됨 + 고아 ── */
+/* ── 일반 문서 섹션 — 메인 문서 카테고리 + 링크됨 + 미연결 ── */
 type MainFilter = 'all' | 'orphan' | 'linked' | string; // string = main page id
 
 function RegularDocsSection({
@@ -499,7 +499,7 @@ function RegularDocsSection({
   const [filter, setFilter] = useState<MainFilter>('all');
   const [expanded, setExpanded] = useState(false);
 
-  // 헬퍼 — MOC 자식 / 링크됨 / 고아
+  // 헬퍼 — MOC 자식 / 링크됨 / 미연결
   const isMocChild = (p: WikiPage) => (regularToRoots.get(p.id)?.length ?? 0) > 0;
   const linkerIdsOf = (p: WikiPage): string[] => {
     const s = backlinks.get(p.id);
@@ -525,7 +525,7 @@ function RegularDocsSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pages, regularToRoots, backlinks]);
 
-  // 고아 = MOC 자식 아님 + 어떤 페이지로부터도 링크 받지 않음 (진짜 독립)
+  // 미연결 = MOC 자식 아님 + 어떤 페이지로부터도 링크 받지 않음 (진짜 독립)
   const orphanCount = useMemo(() =>
     pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length === 0).length,
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -546,7 +546,7 @@ function RegularDocsSection({
   const activeLabel = useMemo(() => {
     if (filter === 'all') return null;
     if (filter === 'linked') return '링크됨';
-    if (filter === 'orphan') return '고아';
+    if (filter === 'orphan') return '미연결';
     return rootMocs.find((m) => m.id === filter)?.title ?? null;
   }, [filter, rootMocs]);
 
@@ -572,7 +572,7 @@ function RegularDocsSection({
         </span>
       </div>
 
-      {/* 카테고리 칩 — root 메인 + 링크됨 + 고아 */}
+      {/* 카테고리 칩 — root 메인 + 링크됨 + 미연결 */}
       {(rootsWithChildren.length > 0 || linkedCount > 0 || orphanCount > 0) && (
         <div className="flex flex-wrap items-center gap-1 mb-2">
           <button
@@ -633,9 +633,9 @@ function RegularDocsSection({
                   ? 'bg-primary/10 text-primary font-semibold'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
-              title="어떤 페이지로부터도 링크되지 않는 진짜 고아 페이지 (정리 우선순위)"
+              title="어떤 페이지로부터도 링크되지 않는 미연결 페이지 (정리 우선순위)"
             >
-              🌱 고아 <span className="font-mono opacity-70">{orphanCount}</span>
+              🌱 미연결 <span className="font-mono opacity-70">{orphanCount}</span>
             </button>
           )}
         </div>
@@ -667,7 +667,7 @@ function RegularDocsSection({
                   >
                     <span className="text-[13px] leading-none shrink-0" aria-hidden>{m.icon}</span>
                     <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{p.title}</span>
-                    {/* 라벨 — MOC 자식 / 링크됨 / 고아 (in 'all' 필터일 때만 노출) */}
+                    {/* 라벨 — MOC 자식 / 링크됨 / 미연결 (in 'all' 필터일 때만 노출) */}
                     {filter === 'all' && parents.length > 0 && (
                       <span className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[100px]" title={parents.map((m) => m.title).join(', ')}>
                         in {parents.map((m) => m.title).join(', ')}
@@ -682,7 +682,7 @@ function RegularDocsSection({
                       </span>
                     )}
                     {filter === 'all' && parents.length === 0 && linkers.length === 0 && (
-                      <span className="shrink-0 text-[10px] text-amber-600/80" title="어떤 페이지로부터도 링크되지 않음">🌱 고아</span>
+                      <span className="shrink-0 text-[10px] text-amber-600/80" title="어떤 페이지로부터도 링크되지 않음">🌱 미연결</span>
                     )}
                     {/* 'linked' 필터에서만: 어디서 링크되는지 노출 */}
                     {filter === 'linked' && linkers.length > 0 && (
