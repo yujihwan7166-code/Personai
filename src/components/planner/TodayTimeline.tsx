@@ -1,20 +1,36 @@
 /**
  * 오늘의 시간표 — 메인 컬럼.
  *
- * Phase 4: 24시간 30분 단위 격자 + 절대 좌표 시간 블록 + 현재 시각 빨간선.
- * 빈 시간 슬롯 클릭 → 새 항목 추가 모달 (onSlotClick).
- * 시간 블록 클릭 → 시간 배정 변경 모달 (onItemClick, task 만).
+ * 24시간 30분 단위 격자 + 절대 좌표 시간 블록 + 현재 시각 빨간선.
+ * 빈 슬롯 클릭 → 새 항목 추가 모달.
+ * 시간 블록 클릭 → 시간 배정 변경 모달.
+ * 시간 블록 우클릭 → ContextMenu (편집/완료/인박스로/삭제).
+ * 시간 블록 hover → Tooltip (제목·시간 범위·길이).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Inbox as InboxIcon, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
+import { eventStore } from '@/services/planner/eventStore';
 import { notify } from '@/lib/notify';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PlannerSection } from './PlannerSection';
+import type { PlannerEvent, PlannerTask } from '@/types/planner';
 
-const HOUR_PX = 56;          // 1시간 높이 (= 30분 × 2 row)
-const SLOT_PX = HOUR_PX / 2; // 30분 슬롯 높이
-const START_HOUR = 0;        // 자정부터 (스크롤 위치 시 8시로 자동 이동)
+const HOUR_PX = 56;
+const START_HOUR = 0;
 const TOTAL_HOURS = 24;
 
 interface TodayTimelineProps {
@@ -25,6 +41,14 @@ interface TodayTimelineProps {
 
 const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+const formatDuration = (startIso: string, endIso: string): string => {
+  const mins = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
+  if (mins < 60) return `${mins}분`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+};
 
 const computeTopPx = (iso: string, dateIso: string): number => {
   const t = new Date(iso);
@@ -47,13 +71,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
 
-  // 현재 시각 1분마다 갱신.
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  // 첫 렌더 시 8시로 스크롤.
   useEffect(() => {
     if (didInitialScroll.current) return;
     if (scrollRef.current) {
@@ -87,6 +109,33 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
     onSlotClick(d.toISOString());
   };
 
+  const handleDeleteTask = (task: PlannerTask) => {
+    const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'goalId'> = {
+      title: task.title, done: task.done, startAt: task.startAt, endAt: task.endAt, goalId: task.goalId,
+    };
+    taskStore.remove(task.id);
+    notify.success('삭제됐어요', {
+      duration: 5000,
+      action: { label: '되돌리기', onClick: () => taskStore.add(snapshot) },
+    });
+  };
+
+  const handleDeleteEvent = (event: PlannerEvent) => {
+    const snapshot: Omit<PlannerEvent, 'id' | 'createdAt'> = {
+      title: event.title, startAt: event.startAt, endAt: event.endAt, color: event.color, source: event.source,
+    };
+    eventStore.remove(event.id);
+    notify.success('삭제됐어요', {
+      duration: 5000,
+      action: { label: '되돌리기', onClick: () => eventStore.add(snapshot) },
+    });
+  };
+
+  const handleUnschedule = (task: PlannerTask) => {
+    taskStore.unschedule(task.id);
+    notify.info('인박스로 옮겼어요', { duration: 1500 });
+  };
+
   return (
     <PlannerSection label="오늘" count={dateLabel} className="h-full">
       <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
@@ -100,13 +149,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                 className="absolute left-0 right-0 flex"
                 style={{ top: i * HOUR_PX, height: HOUR_PX }}
               >
-                {/* 시간 라벨 */}
                 <div className="w-12 shrink-0 pr-2 text-right">
                   <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground leading-none font-semibold">
                     {String(hour).padStart(2, '0')}:00
                   </span>
                 </div>
-                {/* 슬롯 (00분 / 30분) */}
                 <div className="flex-1 relative">
                   <button
                     type="button"
@@ -137,7 +184,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
             </div>
           )}
 
-          {/* 시간 블록 (절대 좌표) */}
+          {/* 시간 블록 */}
           <div className="absolute left-12 right-0 top-0 bottom-0 pointer-events-none">
             {items.map((item) => {
               const startAt = item.data.startAt;
@@ -150,9 +197,10 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                   ? item.data.color ?? 'hsl(220 70% 55%)'
                   : 'hsl(var(--muted-foreground) / 0.6)';
               const done = item.kind === 'task' ? item.data.done : false;
-              return (
+              const kindLabel = item.kind === 'event' ? '일정' : '할 일';
+
+              const blockEl = (
                 <div
-                  key={item.data.id}
                   className={cn(
                     'absolute left-1 right-2 pointer-events-auto',
                     'rounded-lg border border-[hsl(var(--hairline))] bg-card overflow-hidden',
@@ -161,24 +209,13 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                   )}
                   style={{ top, height }}
                   onClick={() => {
-                    if (item.kind === 'task') {
-                      // 빠른 done 토글 vs 시간 변경 모달 — Shift 키로 분기. 기본은 토글.
-                      onItemClick?.({
-                        kind: 'task',
-                        id: item.data.id,
-                        title: item.data.title,
-                        startAt,
-                        endAt,
-                      });
-                    } else {
-                      onItemClick?.({
-                        kind: 'event',
-                        id: item.data.id,
-                        title: item.data.title,
-                        startAt,
-                        endAt,
-                      });
-                    }
+                    onItemClick?.({
+                      kind: item.kind,
+                      id: item.data.id,
+                      title: item.data.title,
+                      startAt,
+                      endAt,
+                    });
                   }}
                   onDoubleClick={() => {
                     if (item.kind === 'task') {
@@ -208,6 +245,66 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                     </div>
                   </div>
                 </div>
+              );
+
+              return (
+                <ContextMenu key={item.data.id}>
+                  <ContextMenuTrigger asChild>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>{blockEl}</TooltipTrigger>
+                      <TooltipContent side="right" align="start" className="max-w-xs">
+                        <div className="flex flex-col gap-1 py-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground font-semibold">
+                              {kindLabel}
+                            </span>
+                            <span className="text-[12.5px] font-medium text-foreground">{item.data.title}</span>
+                          </div>
+                          <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground">
+                            {formatHm(startAt)} ~ {formatHm(endAt)}  ·  {formatDuration(startAt, endAt)}
+                          </span>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-44">
+                    <ContextMenuItem
+                      onSelect={() => onItemClick?.({
+                        kind: item.kind, id: item.data.id, title: item.data.title, startAt, endAt,
+                      })}
+                    >
+                      <Pencil className="mr-2 h-3.5 w-3.5" />
+                      편집
+                    </ContextMenuItem>
+                    {item.kind === 'task' && (
+                      <>
+                        <ContextMenuItem onSelect={() => {
+                          const wasDone = item.data.done;
+                          taskStore.toggleDone(item.data.id);
+                          notify.success(wasDone ? '완료 취소' : '완료!', { duration: 1200 });
+                        }}>
+                          <Check className="mr-2 h-3.5 w-3.5" />
+                          {item.data.done ? '완료 취소' : '완료'}
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => handleUnschedule(item.data)}>
+                          <InboxIcon className="mr-2 h-3.5 w-3.5" />
+                          인박스로
+                        </ContextMenuItem>
+                      </>
+                    )}
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      onSelect={() => {
+                        if (item.kind === 'task') handleDeleteTask(item.data);
+                        else handleDeleteEvent(item.data);
+                      }}
+                      className="text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
+                    >
+                      <Trash2 className="mr-2 h-3.5 w-3.5" />
+                      삭제
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
           </div>

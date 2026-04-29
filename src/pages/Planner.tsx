@@ -23,7 +23,11 @@ import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
+import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
+import { taskStore } from '@/services/planner/taskStore';
 import { cn } from '@/lib/utils';
+
+const taskStoreSnapshot = () => taskStore.list();
 
 type DialogMode =
   | { kind: 'schedule'; taskId: string; initialTitle: string; initialStart?: string; initialEnd?: string }
@@ -38,6 +42,7 @@ const Planner = () => {
   const [view, setView] = useState<PlannerView>('day');
   const [anchorIso, setAnchorIso] = useState(() => new Date().toISOString());
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const handleDayClick = useCallback((dayIso: string) => {
     setAnchorIso(dayIso);
@@ -87,6 +92,56 @@ const Planner = () => {
   const goPrev = useCallback(() => shiftAnchor(-1), [shiftAnchor]);
   const goNext = useCallback(() => shiftAnchor(1), [shiftAnchor]);
   const goToday = useCallback(() => setAnchorIso(new Date().toISOString()), []);
+
+  // 명령 팔레트 액션 라우터.
+  const handleCommandAction = useCallback((action: CommandAction) => {
+    switch (action.kind) {
+      case 'view':
+        setView(action.view);
+        break;
+      case 'today':
+        setAnchorIso(new Date().toISOString());
+        setView('day');
+        break;
+      case 'shift': {
+        const d = new Date();
+        d.setDate(d.getDate() + action.days);
+        setAnchorIso(d.toISOString());
+        setView('day');
+        break;
+      }
+      case 'newTask':
+        setView('day');
+        // 다음 frame 에 input 포커스 (palette 닫힘 후).
+        setTimeout(() => inboxInputRef.current?.focus(), 50);
+        break;
+      case 'newAtNow': {
+        const now = new Date();
+        // 30분 단위로 반올림.
+        const minutes = Math.floor(now.getMinutes() / 30) * 30;
+        now.setMinutes(minutes, 0, 0);
+        setDialogMode({ kind: 'create', presetStartIso: now.toISOString() });
+        break;
+      }
+      case 'jumpToTask': {
+        if (action.startAt) {
+          setAnchorIso(action.startAt);
+          setView('day');
+        } else {
+          // 인박스 → 시간 배정 모달.
+          const task = taskStoreSnapshot().find((t) => t.id === action.id);
+          if (task) {
+            setDialogMode({ kind: 'schedule', taskId: task.id, initialTitle: task.title });
+          }
+        }
+        break;
+      }
+      case 'jumpToEvent':
+        setAnchorIso(action.startAt);
+        setView('day');
+        break;
+    }
+  }, []);
 
   // anchor 가 오늘과 같은 기간인지 (Today 버튼 dim 판정).
   const anchorIsToday = useMemo(() => {
@@ -212,7 +267,7 @@ const Planner = () => {
             </span>
           </div>
           <p className="hidden md:block text-[11px] text-muted-foreground font-mono uppercase tracking-[0.16em] font-medium">
-            {view === 'day' || view === 'week' ? 'n  ·  ' : ''}← → t  ·  d/w/m/y
+            {view === 'day' || view === 'week' ? 'n  ·  ' : ''}← → t  ·  d/w/m/y  ·  ⌘K
           </p>
         </header>
 
@@ -254,6 +309,11 @@ const Planner = () => {
         open={dialogMode !== null}
         mode={dialogMode}
         onClose={() => setDialogMode(null)}
+      />
+      <PlannerCommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        onAction={handleCommandAction}
       />
     </div>
   );

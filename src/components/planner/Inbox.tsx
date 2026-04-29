@@ -1,24 +1,37 @@
 /**
  * 인박스 — 좌측 컬럼. 시간 미배정 할일 리스트 + 빠른 추가.
  *
- * Phase 1: 빠른 추가 + 리스트 + 체크 토글 + 클릭 시 시간 배정 (popover 는 Phase 4).
- * UX 패턴 추가: hover 삭제(X), 빈 상태 CTA, 토스트 피드백 + Undo.
+ * UX:
+ * - 빠른 추가 (Enter)
+ * - 카드 클릭 = 시간 배정 모달
+ * - 카드 우클릭 = ContextMenu (배정/완료/삭제)
+ * - hover 삭제 X
+ * - 빈 상태 CTA
+ * - 상단에 오버듀(지난 미완료) 섹션
  */
 import { useRef } from 'react';
-import { Inbox as InboxIcon } from 'lucide-react';
+import { Inbox as InboxIcon, Clock, Check, Trash2 } from 'lucide-react';
 import { useInbox } from '@/hooks/planner/useInbox';
 import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { PlannerSection } from './PlannerSection';
 import { PlannerInput } from './PlannerInput';
 import { PlannerCard } from './PlannerCard';
 import { PlannerEmpty } from './PlannerEmpty';
+import { Overdue } from './Overdue';
 import type { PlannerTask } from '@/types/planner';
 
 interface InboxProps {
   /** 단축키 'n' 으로 포커스. */
   inputRef?: React.RefObject<HTMLInputElement>;
-  onTaskClick?: (task: { id: string; title: string }) => void;
+  onTaskClick?: (task: { id: string; title: string; startAt?: string; endAt?: string }) => void;
 }
 
 export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
@@ -32,7 +45,6 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
   };
 
   const handleDelete = (task: PlannerTask) => {
-    // 삭제 직전 스냅샷 보관 → Undo 시 복원.
     const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'goalId'> = {
       title: task.title,
       done: task.done,
@@ -43,10 +55,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
     taskStore.remove(task.id);
     notify.success('삭제됐어요', {
       duration: 5000,
-      action: {
-        label: '되돌리기',
-        onClick: () => taskStore.add(snapshot),
-      },
+      action: { label: '되돌리기', onClick: () => taskStore.add(snapshot) },
     });
   };
 
@@ -57,6 +66,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
       className="h-full"
     >
       <div className="flex flex-col gap-2">
+        <Overdue onTaskClick={onTaskClick} />
         <PlannerInput
           inputRef={inputRef ?? fallbackRef}
           placeholder="+ 할 일 추가  (Enter)"
@@ -72,15 +82,38 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
         ) : (
           <div className="space-y-px">
             {tasks.map((t) => (
-              <PlannerCard
-                key={t.id}
-                variant="inbox"
-                title={t.title}
-                done={t.done}
-                onToggle={() => taskStore.toggleDone(t.id)}
-                onClick={() => onTaskClick?.({ id: t.id, title: t.title })}
-                onDelete={() => handleDelete(t)}
-              />
+              <ContextMenu key={t.id}>
+                <ContextMenuTrigger asChild>
+                  <div>
+                    <PlannerCard
+                      variant="inbox"
+                      title={t.title}
+                      done={t.done}
+                      onToggle={() => taskStore.toggleDone(t.id)}
+                      onClick={() => onTaskClick?.({ id: t.id, title: t.title })}
+                      onDelete={() => handleDelete(t)}
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-44">
+                  <ContextMenuItem onSelect={() => onTaskClick?.({ id: t.id, title: t.title })}>
+                    <Clock className="mr-2 h-3.5 w-3.5" />
+                    시간 배정
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => taskStore.toggleDone(t.id)}>
+                    <Check className="mr-2 h-3.5 w-3.5" />
+                    {t.done ? '완료 취소' : '완료'}
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem
+                    onSelect={() => handleDelete(t)}
+                    className="text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    삭제
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
           </div>
         )}
