@@ -18,6 +18,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Inbox } from '@/components/planner/Inbox';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { WeekStrip } from '@/components/planner/WeekStrip';
+import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
 import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
@@ -54,6 +55,17 @@ const Planner = () => {
   const [anchorIso, setAnchorIso] = useState(() => new Date().toISOString());
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const todayTasks = useTodayTasks();
+
+  // Things3 Today Badge — 페이지 타이틀에 미완료 카운트 노출.
+  useEffect(() => {
+    const original = document.title;
+    const count = todayTasks.length;
+    document.title = count > 0 ? `(${count}) 통합 플래너` : '통합 플래너';
+    return () => {
+      document.title = original;
+    };
+  }, [todayTasks.length]);
 
   const handleDayClick = useCallback((dayIso: string) => {
     setAnchorIso(dayIso);

@@ -61,6 +61,10 @@ export interface PlannerTask {
   note?: string;
   /** 인박스 상단 고정. */
   pinned?: boolean;
+  /** 취소됨 (Things3 Cancel 패턴) — 완료 X, 취소 X 두 상태 분리. */
+  canceled?: boolean;
+  /** Someday(보류) — 인박스 기본 보기에서 hide, 별도 'Someday' 탭에서만 표시. */
+  someday?: boolean;
   createdAt: string;
 }
 

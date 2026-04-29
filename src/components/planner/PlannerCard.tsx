@@ -9,7 +9,7 @@
  * - 핀 = 인박스 상단 고정 토글
  * - 노트 점(FileText) = note 있음 표시
  */
-import { Check, X, Flag, Pin, FileText } from 'lucide-react';
+import { Check, X, Flag, Pin, FileText, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Priority } from '@/types/planner';
 import { PRIORITY_COLORS } from '@/types/planner';
@@ -27,6 +27,8 @@ interface InboxCardProps {
   priority?: Priority;
   pinned?: boolean;
   hasNote?: boolean;
+  /** 취소됨 (Things3 Cancel) — done 과 시각 구분. */
+  canceled?: boolean;
 }
 
 interface BlockCardProps {
@@ -41,23 +43,26 @@ interface BlockCardProps {
   onClick?: () => void;
   priority?: Priority;
   hasNote?: boolean;
+  canceled?: boolean;
 }
 
 type PlannerCardProps = InboxCardProps | BlockCardProps;
 
 export const PlannerCard = (props: PlannerCardProps) => {
   if (props.variant === 'inbox') {
-    const { title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote } = props;
+    const { title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, canceled } = props;
     const showFlag = (priority ?? 0) > 0;
+    const dim = done || canceled;
     return (
       <div
         role="button"
         tabIndex={0}
-        aria-label={`${title}${done ? ' (완료됨)' : ''}${pinned ? ' (고정됨)' : ''} — 클릭해서 시간 배정`}
+        aria-label={`${title}${done ? ' (완료됨)' : ''}${canceled ? ' (취소됨)' : ''}${pinned ? ' (고정됨)' : ''} — 클릭해서 시간 배정`}
         className={cn(
           'group flex items-center gap-2.5 px-2 py-1.5 rounded-md',
           'hover:bg-accent cursor-pointer transition-colors',
           'focus:outline-none focus:bg-accent',
+          canceled && 'opacity-60',
         )}
         onClick={onClick}
         onKeyDown={(e) => {
@@ -67,22 +72,31 @@ export const PlannerCard = (props: PlannerCardProps) => {
           }
         }}
       >
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}
-          className={cn(
-            'flex h-[14px] w-[14px] items-center justify-center rounded-[3px] border transition-all shrink-0',
-            done
-              ? 'bg-foreground border-foreground text-background'
-              : 'border-[hsl(var(--hairline))] hover:border-foreground/50 hover:scale-110',
-          )}
-          aria-label={done ? '완료 취소' : '완료'}
-        >
-          {done && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
-        </button>
+        {canceled ? (
+          <span
+            className="flex h-[14px] w-[14px] items-center justify-center rounded-[3px] shrink-0 text-muted-foreground"
+            aria-label="취소됨"
+          >
+            <Ban className="h-3 w-3" strokeWidth={2.5} />
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            className={cn(
+              'flex h-[14px] w-[14px] items-center justify-center rounded-[3px] border transition-all shrink-0',
+              done
+                ? 'bg-foreground border-foreground text-background'
+                : 'border-[hsl(var(--hairline))] hover:border-foreground/50 hover:scale-110',
+            )}
+            aria-label={done ? '완료 취소' : '완료'}
+          >
+            {done && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
+          </button>
+        )}
         {showFlag && (
           <Flag
             className="h-3 w-3 shrink-0"
@@ -93,7 +107,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
         <span
           className={cn(
             'text-[13.5px] leading-tight truncate flex-1 text-foreground',
-            done && 'line-through text-muted-foreground',
+            dim && 'line-through text-muted-foreground',
           )}
         >
           {title}
@@ -143,14 +157,15 @@ export const PlannerCard = (props: PlannerCardProps) => {
   }
 
   // variant === 'block'
-  const { title, startLabel, kind, done, color, onClick, priority, hasNote } = props;
+  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled } = props;
   const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
   const showFlag = (priority ?? 0) > 0;
+  const dim = done || canceled;
   return (
     <div
       role="button"
       tabIndex={0}
-      aria-label={`${kind === 'event' ? '일정' : '할 일'} ${startLabel} ${title}${done ? ' (완료됨)' : ''}`}
+      aria-label={`${kind === 'event' ? '일정' : '할 일'} ${startLabel} ${title}${done ? ' (완료됨)' : ''}${canceled ? ' (취소됨)' : ''}`}
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -163,7 +178,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
         'border border-[hsl(var(--hairline))] bg-card',
         'hover:border-foreground/20 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)] transition-all',
         'focus:outline-none focus:border-foreground/40',
-        done && 'opacity-50',
+        dim && 'opacity-50',
       )}
     >
       <span
@@ -189,7 +204,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
         </div>
         <p className={cn(
           'text-[13px] leading-snug mt-0.5 truncate text-foreground font-medium',
-          done && 'line-through',
+          dim && 'line-through',
         )}>
           {title}
         </p>

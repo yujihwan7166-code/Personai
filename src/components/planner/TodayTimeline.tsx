@@ -8,7 +8,7 @@
  * 시간 블록 hover → Tooltip (제목·시간 범위·길이).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag } from 'lucide-react';
+import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
@@ -144,6 +144,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
     taskStore.update(task.id, { priority: p === 0 ? undefined : p });
   };
 
+  const handleToggleCanceled = (task: PlannerTask) => {
+    taskStore.toggleCanceled(task.id);
+    notify.success(task.canceled ? '취소 되돌림' : '취소됐어요', { duration: 1200 });
+  };
+
   return (
     <PlannerSection label="오늘" count={dateLabel} className="h-full">
       <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
@@ -205,10 +210,12 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                   ? item.data.color ?? 'hsl(220 70% 55%)'
                   : 'hsl(var(--muted-foreground) / 0.6)';
               const done = item.kind === 'task' ? item.data.done : false;
+              const canceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
               const kindLabel = item.kind === 'event' ? '일정' : '할 일';
               const taskPriority = item.kind === 'task' ? (item.data.priority ?? 0) : 0;
               const showFlag = taskPriority > 0;
               const hasNote = item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0);
+              const dim = done || canceled;
 
               const blockEl = (
                 <div
@@ -216,7 +223,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                     'absolute left-1 right-2 pointer-events-auto',
                     'rounded-lg border border-[hsl(var(--hairline))] bg-card overflow-hidden',
                     'hover:border-foreground/30 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.15)] transition-all cursor-pointer z-10',
-                    done && 'opacity-50',
+                    dim && 'opacity-50',
                   )}
                   style={{ top, height }}
                   onClick={() => {
@@ -258,7 +265,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                       <p className={cn(
                         'text-[13px] leading-snug mt-1 text-foreground font-medium',
                         height < 40 ? 'truncate' : 'line-clamp-2',
-                        done && 'line-through',
+                        dim && 'line-through',
                       )}>
                         {item.data.title}
                       </p>
@@ -310,6 +317,10 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                         }}>
                           <Check className="mr-2 h-3.5 w-3.5" />
                           {item.data.done ? '완료 취소' : '완료'}
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => handleToggleCanceled(item.data)}>
+                          <Ban className="mr-2 h-3.5 w-3.5" />
+                          {item.data.canceled ? '취소 되돌림' : '취소'}
                         </ContextMenuItem>
                         <ContextMenuSub>
                           <ContextMenuSubTrigger>

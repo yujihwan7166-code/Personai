@@ -96,6 +96,24 @@ export const taskStore = {
     safeWrite(all);
   },
 
+  /** 취소 토글 — Things3 Cancel 패턴. done 과 별개 상태. */
+  toggleCanceled(id: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    all[idx] = { ...all[idx], canceled: !all[idx].canceled };
+    safeWrite(all);
+  },
+
+  /** Someday(보류) 토글 — 인박스에서 분리. */
+  toggleSomeday(id: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    all[idx] = { ...all[idx], someday: !all[idx].someday };
+    safeWrite(all);
+  },
+
   /** 시간 배정 (인박스 → 시간표). startAt/endAt 만 갱신. */
   schedule(id: string, startAt: string, endAt: string): void {
     this.update(id, { startAt, endAt });

@@ -14,6 +14,8 @@ const compute = (): PlannerTask[] => {
   const all = taskStore.list();
   const filtered = all.filter((t) => {
     if (t.done) return false;
+    if (t.canceled) return false; // Things3 Cancel — 카운트 X
+    if (t.someday) return false;   // 보류 항목 — 오늘 카운트 X
     if (!t.startAt) return true; // 인박스 (시간 미배정)
     return t.startAt.slice(0, 10) === today; // 오늘 시간배정
   });
