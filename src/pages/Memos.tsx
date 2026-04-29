@@ -865,8 +865,8 @@ function MemoEditor({
           'text-[16px] leading-[1.72] text-foreground placeholder:text-muted-foreground',
           // focus 시 outline·border·ring 모두 제거
           'border-0 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 shadow-none focus:shadow-none',
-          // 첫 줄 = 제목 — 19px semibold
-          '[&::first-line]:text-[19px] [&::first-line]:font-semibold [&::first-line]:leading-[1.45]',
+          // 첫 줄 = 제목 — 24px semibold, leading 1.6 (본문과 1.5× 위계 + 숨통)
+          '[&::first-line]:text-[24px] [&::first-line]:font-semibold [&::first-line]:leading-[1.6]',
         )}
         style={{ fontFamily: 'var(--wiki-font-body, system-ui)' }}
       />
