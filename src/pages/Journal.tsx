@@ -25,6 +25,7 @@ import { JournalCard } from '@/components/journal/JournalCard';
 import { JournalEditor } from '@/components/journal/JournalEditor';
 import { JournalEmpty } from '@/components/journal/JournalEmpty';
 import { TodayCard } from '@/components/journal/TodayCard';
+import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
 
@@ -187,12 +188,23 @@ const Journal = () => {
           <JournalEmpty onAdd={() => setEditorMode({ kind: 'create' })} />
         ) : (
           <div className="flex flex-col gap-6">
-            {/* Today 카드 — 검색 중이 아닐 때만 노출 */}
+            {/* Today 카드 + On This Day — 검색 중이 아닐 때만 노출 */}
             {query.trim().length === 0 && (
-              <TodayCard
-                todayEntries={todayEntries}
-                onAdd={() => setEditorMode({ kind: 'create' })}
-              />
+              <>
+                <TodayCard
+                  todayEntries={todayEntries}
+                  onAdd={() => setEditorMode({ kind: 'create' })}
+                />
+                <OnThisDayCard
+                  allEntries={allEntries}
+                  onClickEntry={(entry) => setEditorMode({
+                    kind: 'edit',
+                    id: entry.id,
+                    initialBody: entry.body,
+                    initialMood: entry.mood,
+                  })}
+                />
+              </>
             )}
 
             {!hasResults && query.trim().length > 0 && (
