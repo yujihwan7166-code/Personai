@@ -13,6 +13,7 @@ import { Check, X, Flag, Pin, FileText, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Priority } from '@/types/planner';
 import { PRIORITY_COLORS } from '@/types/planner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface InboxCardProps {
   variant: 'inbox';
@@ -27,6 +28,8 @@ interface InboxCardProps {
   priority?: Priority;
   pinned?: boolean;
   hasNote?: boolean;
+  /** 노트 본문 — 있으면 hover 시 Tooltip 으로 미리보기 (TickTick 패턴). */
+  note?: string;
   /** 취소됨 (Things3 Cancel) — done 과 시각 구분. */
   canceled?: boolean;
 }
@@ -50,9 +53,11 @@ type PlannerCardProps = InboxCardProps | BlockCardProps;
 
 export const PlannerCard = (props: PlannerCardProps) => {
   if (props.variant === 'inbox') {
-    const { title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, canceled } = props;
+    const { title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled } = props;
     const showFlag = (priority ?? 0) > 0;
     const dim = done || canceled;
+    const noteText = note?.trim() ?? '';
+    const showNoteTooltip = hasNote && noteText.length > 0;
     return (
       <div
         role="button"
@@ -113,7 +118,22 @@ export const PlannerCard = (props: PlannerCardProps) => {
           {title}
         </span>
         {hasNote && (
-          <FileText className="h-3 w-3 text-muted-foreground/70 shrink-0" aria-label="노트 있음" />
+          showNoteTooltip ? (
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <span className="shrink-0" tabIndex={-1}>
+                  <FileText className="h-3 w-3 text-muted-foreground/70" aria-label="노트 있음" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="left" align="center" className="max-w-xs">
+                <p className="text-[11.5px] leading-snug whitespace-pre-wrap line-clamp-6">
+                  {noteText}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <FileText className="h-3 w-3 text-muted-foreground/70 shrink-0" aria-label="노트 있음" />
+          )
         )}
         {onTogglePin && (
           <button

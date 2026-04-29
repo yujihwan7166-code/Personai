@@ -162,6 +162,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
                       priority={t.priority}
                       pinned={t.pinned}
                       hasNote={Boolean(t.note && t.note.length > 0)}
+                      note={t.note}
                       canceled={t.canceled}
                     />
                   </div>
