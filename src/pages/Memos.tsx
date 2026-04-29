@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, Inbox, Archive, ArrowRight,
   ExternalLink, Tag,
@@ -25,8 +25,30 @@ import { newWikiId, type WikiPage, type WikiPageType, USER_FACING_TYPES, WIKI_TY
 
 const Memos = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const memos = useMemos();
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(searchParams.get('id'));
+
+  // URL ?id= 변경 시 동기화 (위키 출처 칩에서 진입 등)
+  useEffect(() => {
+    const idFromUrl = searchParams.get('id');
+    if (idFromUrl && idFromUrl !== activeId) setActiveId(idFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // activeId 변경 시 URL 반영 (히스토리 깨끗하게)
+  useEffect(() => {
+    if (activeId) {
+      if (searchParams.get('id') !== activeId) {
+        setSearchParams({ id: activeId }, { replace: true });
+      }
+    } else if (searchParams.has('id')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('id');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
   const [scope, setScope] = useState<MemoFilter['scope']>('inbox');
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | undefined>(undefined);
@@ -82,10 +104,25 @@ const Memos = () => {
     if (activeId === id) setActiveId(null);
   }, [memos, activeId]);
 
+  // 모바일 — 좁은 화면에서 사이드 ↔ 본문 토글 (활성 메모 있으면 본문)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  const showSidebar = !isMobile || !activeMemo;
+  const showBody = !isMobile || !!activeMemo;
+
   return (
     <div className="min-h-screen flex bg-background">
       {/* 좌 사이드 */}
-      <aside className="w-[300px] shrink-0 border-r border-[hsl(var(--hairline))] bg-card flex flex-col">
+      <aside className={cn(
+        'shrink-0 border-r border-[hsl(var(--hairline))] bg-card flex flex-col',
+        isMobile ? 'w-full' : 'w-[300px]',
+        !showSidebar && 'hidden',
+      )}>
         {/* 상단 — 뒤로 + 제목 + 새 메모 */}
         <div className="shrink-0 px-3 py-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
           <button
@@ -180,7 +217,7 @@ const Memos = () => {
       </aside>
 
       {/* 본문 영역 */}
-      <main className="flex-1 min-w-0 flex flex-col bg-background">
+      <main className={cn('flex-1 min-w-0 flex flex-col bg-background', !showBody && 'hidden')}>
         {activeMemo ? (
           <MemoEditor
             memo={activeMemo}
@@ -189,6 +226,7 @@ const Memos = () => {
             onArchive={() => activeMemo.archivedAt ? unarchiveMemo(activeMemo.id) : archiveMemo(activeMemo.id)}
             onSendToWiki={() => setExporting(activeMemo)}
             onTagClick={(tag) => { setActiveTag(tag); setScope('inbox'); }}
+            onBackToList={isMobile ? () => setActiveId(null) : undefined}
           />
         ) : (
           <EmptyState onNew={handleNewMemo} />
@@ -231,6 +269,11 @@ function MemoRow({ memo, active, onClick }: { memo: Memo; active: boolean; onCli
   const title = memoTitle(memo);
   const preview = memoPreview(memo);
   const tags = extractMemoTags(memo);
+  // 라이프사이클 시각 — 오래 묵을수록 흐려짐 (인박스 zero 신호)
+  const ageDays = (Date.now() - memo.updatedAt) / (24 * 3600 * 1000);
+  const stale = !memo.archivedAt && !memo.pinned && ageDays > 7
+    ? (ageDays > 30 ? 'opacity-50' : ageDays > 14 ? 'opacity-65' : 'opacity-80')
+    : '';
   return (
     <li>
       <button
@@ -239,6 +282,7 @@ function MemoRow({ memo, active, onClick }: { memo: Memo; active: boolean; onCli
           'w-full text-left px-3 py-2.5 border-b border-[hsl(var(--hairline))]/60 transition-colors',
           active ? 'bg-primary/8' : 'hover:bg-accent/40',
           memo.archivedAt && 'opacity-60',
+          stale,
         )}
       >
         <div className="flex items-start gap-1.5">
@@ -277,7 +321,7 @@ function MemoRow({ memo, active, onClick }: { memo: Memo; active: boolean; onCli
 
 // ──────────────────────────────────────────
 function MemoEditor({
-  memo, onDelete, onPin, onArchive, onSendToWiki, onTagClick,
+  memo, onDelete, onPin, onArchive, onSendToWiki, onTagClick, onBackToList,
 }: {
   memo: Memo;
   onDelete: () => void;
@@ -285,6 +329,7 @@ function MemoEditor({
   onArchive: () => void;
   onSendToWiki: () => void;
   onTagClick: (tag: string) => void;
+  onBackToList?: () => void;  // 모바일 — 목록으로 돌아가기
 }) {
   const navigate = useNavigate();
   const [draft, setDraft] = useState(memo.body);
@@ -313,6 +358,16 @@ function MemoEditor({
     <>
       {/* 상단 액션바 */}
       <div className="shrink-0 px-6 py-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
+        {onBackToList && (
+          <button
+            onClick={onBackToList}
+            className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label="목록"
+            title="목록으로"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </button>
+        )}
         <button
           onClick={onPin}
           className={cn(

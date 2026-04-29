@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, Home, ChevronDown, FileText, FileType, FileCode } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, Home, ChevronDown, FileText, FileType, FileCode, Pencil as PencilIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMemos } from '@/lib/memoStore';
 import {
   type WikiPage, type WikiPageType, type WikiPageStatus,
   WIKI_TYPE_META, WIKI_STATUS_META, isMainDoc, USER_FACING_TYPES,
@@ -239,24 +241,27 @@ export function WikiPageView({
                   </h1>
                 )}
                 {!editing && (
-                  <p
-                    className="text-[12px] mt-1.5"
-                    style={{ fontFamily: 'var(--wiki-font-meta)', color: 'hsl(var(--muted-foreground))' }}
-                  >
-                    {(() => {
-                      // Bear 풍 메타: N글자 · 약 N분 · 마지막 수정 · 별칭
-                      const charCount = page.body.replace(/\s+/g, '').length;
-                      const readMin = Math.max(1, Math.round(charCount / 500));
-                      return (
-                        <>
-                          {charCount.toLocaleString()}글자 · 약 {readMin}분 · 마지막 수정 · {relativeTime(page.updatedAt)}
-                        </>
-                      );
-                    })()}
-                    {page.aliases.length > 0 && (
-                      <span className="ml-2 opacity-70">· 별칭: {page.aliases.join(' · ')}</span>
-                    )}
-                  </p>
+                  <>
+                    <p
+                      className="text-[12px] mt-1.5"
+                      style={{ fontFamily: 'var(--wiki-font-meta)', color: 'hsl(var(--muted-foreground))' }}
+                    >
+                      {(() => {
+                        // Bear 풍 메타: N글자 · 약 N분 · 마지막 수정 · 별칭
+                        const charCount = page.body.replace(/\s+/g, '').length;
+                        const readMin = Math.max(1, Math.round(charCount / 500));
+                        return (
+                          <>
+                            {charCount.toLocaleString()}글자 · 약 {readMin}분 · 마지막 수정 · {relativeTime(page.updatedAt)}
+                          </>
+                        );
+                      })()}
+                      {page.aliases.length > 0 && (
+                        <span className="ml-2 opacity-70">· 별칭: {page.aliases.join(' · ')}</span>
+                      )}
+                    </p>
+                    <MemoSourceChip pageId={page.id} />
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -735,5 +740,24 @@ function ParentMainsRow({
         </span>
       ))}
     </div>
+  );
+}
+
+// ── 메모 출처 칩 — 이 페이지가 메모에서 시작됐다면 표시 + 메모로 이동 ──
+function MemoSourceChip({ pageId }: { pageId: string }) {
+  const navigate = useNavigate();
+  const memos = useMemos();
+  const sourceMemo = memos.find((m) => m.wikiPageId === pageId);
+  if (!sourceMemo) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(`/memos?id=${sourceMemo.id}`)}
+      className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] font-medium hover:bg-amber-500/15 wiki-trans-color"
+      title="원본 메모 열기"
+    >
+      <PencilIcon className="w-3 h-3" strokeWidth={1.75} />
+      메모에서 시작됨
+    </button>
   );
 }
