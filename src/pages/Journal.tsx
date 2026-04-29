@@ -70,7 +70,7 @@ const Journal = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-7 max-w-2xl w-full mx-auto">
+      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8 max-w-3xl w-full mx-auto">
         <header className="mb-5 sm:mb-6 flex flex-wrap items-end justify-between gap-3 pb-3 sm:pb-4 border-b-2 border-[hsl(var(--hairline))]">
           <div className="flex items-center gap-3 sm:gap-4">
             <button
@@ -97,13 +97,20 @@ const Journal = () => {
         {entries.length === 0 ? (
           <JournalEmpty onAdd={() => setEditorMode({ kind: 'create' })} />
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-8">
             {grouped.map((group) => (
-              <section key={group.key} className="flex flex-col gap-2">
-                <h2 className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-1 px-1">
-                  {group.label}
-                </h2>
-                <div className="flex flex-col gap-2.5">
+              <section key={group.key} className="flex flex-col gap-3">
+                {/* Bear 패턴 — eyebrow 보다 강조된 월 헤더 */}
+                <div className="flex items-baseline gap-3 mb-1 px-1">
+                  <h2 className="text-[16px] font-semibold tracking-tight text-foreground/80">
+                    {group.label}
+                  </h2>
+                  <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+                  <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground/70">
+                    {group.items.length}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3.5">
                   {group.items.map((entry) => (
                     <JournalCard
                       key={entry.id}
