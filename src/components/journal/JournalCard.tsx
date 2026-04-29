@@ -8,8 +8,9 @@
  * - 좌측 mood 색띠 (Reflectly)
  * - 페이지 모서리 부드러운 그림자
  */
-import { Pencil, X } from 'lucide-react';
+import { Pencil, X, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { stripMarkdown } from '@/lib/journalMarkdown';
 import type { JournalEntry, Mood } from '@/types/journal';
 import { MOOD_EMOJI, MOOD_LABELS } from '@/types/journal';
 
@@ -117,7 +118,7 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
             </span>
           </div>
 
-          {/* 본문 — serif + drop cap + 줄친 노트 배경 (Penzu/Bear/Stoic) */}
+          {/* 본문 — markdown 이면 strip 후 plain 미리보기 (line-clamp), plain 은 그대로 */}
           <p
             className={cn(
               'font-serif text-[15.5px] text-foreground whitespace-pre-wrap line-clamp-7',
@@ -136,8 +137,19 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
               )`,
             }}
           >
-            {entry.body}
+            {entry.bodyFormat === 'markdown' ? stripMarkdown(entry.body) : entry.body}
           </p>
+
+          {/* 풍부 편집 표시 — 작은 배지 */}
+          {entry.bodyFormat === 'markdown' && (
+            <span
+              className="mt-2 inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70"
+              title="풍부한 편집으로 작성"
+            >
+              <Wand2 className="h-2.5 w-2.5" />
+              풍부
+            </span>
+          )}
 
           {/* 태그 칩 (있을 때만) */}
           {entry.tags && entry.tags.length > 0 && (

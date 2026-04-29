@@ -33,7 +33,14 @@ import type { JournalEntry, Mood } from '@/types/journal';
 
 type EditorMode =
   | { kind: 'create' }
-  | { kind: 'edit'; id: string; initialBody: string; initialMood?: Mood; initialTags?: string[] };
+  | {
+      kind: 'edit';
+      id: string;
+      initialBody: string;
+      initialMood?: Mood;
+      initialTags?: string[];
+      initialFormat?: 'plain' | 'markdown';
+    };
 
 const monthLabel = (date: Date): string =>
   date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
@@ -215,6 +222,7 @@ const Journal = () => {
                     initialBody: entry.body,
                     initialMood: entry.mood,
                     initialTags: entry.tags,
+                    initialFormat: entry.bodyFormat,
                   })}
                 />
                 {/* 태그 필터 칩 (자주 쓴 5개) */}
@@ -288,6 +296,7 @@ const Journal = () => {
                         initialBody: entry.body,
                         initialMood: entry.mood,
                         initialTags: entry.tags,
+                        initialFormat: entry.bodyFormat,
                       })}
                       onDelete={() => handleDelete(entry)}
                     />

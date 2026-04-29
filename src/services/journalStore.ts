@@ -5,7 +5,7 @@
  * - vanilla module (React 외부에서도 호출 가능)
  * - 변경 시 JOURNAL_CHANGED 커스텀 이벤트 broadcast → 훅 자동 re-render
  */
-import { JournalEntry, Mood, JOURNAL_CHANGED } from '@/types/journal';
+import { JournalEntry, Mood, BodyFormat, JournalImage, JOURNAL_CHANGED } from '@/types/journal';
 
 const STORAGE_KEY = 'journal.entries.v1';
 
@@ -56,7 +56,14 @@ export const journalStore = {
     return list.length > 0 ? list[0] : null;
   },
 
-  add(input: { body: string; mood?: Mood; date?: string; tags?: string[] }): JournalEntry {
+  add(input: {
+    body: string;
+    mood?: Mood;
+    date?: string;
+    tags?: string[];
+    bodyFormat?: BodyFormat;
+    images?: JournalImage[];
+  }): JournalEntry {
     const now = new Date().toISOString();
     const entry: JournalEntry = {
       id: newId(),
@@ -64,6 +71,8 @@ export const journalStore = {
       body: input.body,
       mood: input.mood,
       tags: input.tags,
+      bodyFormat: input.bodyFormat,
+      images: input.images,
       createdAt: now,
       updatedAt: now,
     };

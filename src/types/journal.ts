@@ -27,19 +27,34 @@ export const MOOD_LABELS: Record<Mood, string> = {
   5: '아주 좋음',
 };
 
+/** 본문 형식 — v2 에서 도입. */
+export type BodyFormat = 'plain' | 'markdown';
+
 /** 일기 한 항목. */
 export interface JournalEntry {
   id: string;
   /** 'YYYY-MM-DD' — 그 날의 일기. 같은 date 여러 개 가능. */
   date: string;
-  /** 자유 텍스트 (whitespace-pre-wrap 으로 줄바꿈 보존). v2 에서 markdown 옵션. */
+  /** 본문. plain = whitespace-pre-wrap, markdown = TipTap 호환 마크다운. */
   body: string;
+  /** 본문 형식. 미지정 = 'plain' (기본·호환성). */
+  bodyFormat?: BodyFormat;
   /** 1-5 또는 미선택. */
   mood?: Mood;
-  /** v2 활용 — 미리 둠. */
   tags?: string[];
+  /** v2 사진 첨부 — base64 또는 URL. */
+  images?: JournalImage[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface JournalImage {
+  id: string;
+  /** Base64 data URL 또는 외부 URL. */
+  src: string;
+  /** 압축된 크기 (bytes). */
+  size?: number;
+  createdAt: string;
 }
 
 /** Store 변경 broadcast 이벤트 이름 (planner 패턴 동일). */

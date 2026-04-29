@@ -12,6 +12,7 @@
  * - placeholder = AI 가이드 정적 질문 3종 랜덤
  */
 import { useEffect, useMemo, useState } from 'react';
+import { Type, Wand2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,14 +22,23 @@ import {
 } from '@/components/ui/dialog';
 import { journalStore } from '@/services/journalStore';
 import { notify } from '@/lib/notify';
+import { cn } from '@/lib/utils';
 import { MoodPicker } from './MoodPicker';
 import { TagInput } from './TagInput';
+import { WikiBlockEditor } from '@/components/wiki/WikiBlockEditor';
 import { extractTagsFromBody, mergeTags, getTopTags } from '@/lib/journalTags';
-import type { Mood, JournalEntry } from '@/types/journal';
+import type { Mood, JournalEntry, BodyFormat } from '@/types/journal';
 
 type Mode =
   | { kind: 'create' }
-  | { kind: 'edit'; id: string; initialBody: string; initialMood?: Mood; initialTags?: string[] };
+  | {
+      kind: 'edit';
+      id: string;
+      initialBody: string;
+      initialMood?: Mood;
+      initialTags?: string[];
+      initialFormat?: BodyFormat;
+    };
 
 interface JournalEditorProps {
   open: boolean;
@@ -46,23 +56,24 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
   const [body, setBody] = useState('');
   const [mood, setMood] = useState<Mood | undefined>(undefined);
   const [manualTags, setManualTags] = useState<string[]>([]);
+  const [format, setFormat] = useState<BodyFormat>('plain');
 
-  // 자주 쓴 태그 (자동완성 제안용).
   const suggestions = useMemo(() => {
     return getTopTags(journalStore.list(), 8).map((t) => t.tag);
   }, [open]);
 
-  // 모드 변경 / open 시 폼 초기화.
   useEffect(() => {
     if (!mode) return;
     if (mode.kind === 'edit') {
       setBody(mode.initialBody);
       setMood(mode.initialMood);
       setManualTags(mode.initialTags ?? []);
+      setFormat(mode.initialFormat ?? 'plain');
     } else {
       setBody('');
       setMood(undefined);
       setManualTags([]);
+      setFormat('plain');
     }
   }, [mode, open]);
 
@@ -100,11 +111,23 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
     const finalTags = mergeTags(bodyTags, manualTags);
     const tagsToSave = finalTags.length > 0 ? finalTags : undefined;
 
+    const formatToSave = format === 'plain' ? undefined : format;
+
     if (mode.kind === 'edit') {
-      journalStore.update(mode.id, { body: trimmed, mood, tags: tagsToSave });
+      journalStore.update(mode.id, {
+        body: trimmed,
+        mood,
+        tags: tagsToSave,
+        bodyFormat: formatToSave,
+      });
       notify.success('수정됐어요', { duration: 1500 });
     } else {
-      journalStore.add({ body: trimmed, mood, tags: tagsToSave });
+      journalStore.add({
+        body: trimmed,
+        mood,
+        tags: tagsToSave,
+        bodyFormat: formatToSave,
+      });
       notify.success('일기 저장됐어요', { duration: 1500 });
     }
     onClose();
@@ -119,10 +142,56 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md" onKeyDown={handleKeyDownGlobal}>
+      <DialogContent
+        className={cn(
+          'transition-all',
+          format === 'plain' ? 'max-w-md' : 'max-w-2xl',
+        )}
+        onKeyDown={handleKeyDownGlobal}
+      >
         <DialogHeader>
-          <DialogTitle className="text-[15px] font-semibold">
-            {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
+          <DialogTitle className="flex items-center justify-between gap-3 pr-8">
+            <span className="text-[15px] font-semibold">
+              {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
+            </span>
+            {/* 형식 토글 (Linear 패턴) */}
+            <div
+              role="tablist"
+              className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-accent/40 border border-[hsl(var(--hairline))]"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={format === 'plain'}
+                onClick={() => setFormat('plain')}
+                title="간편 텍스트"
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 h-6 rounded text-[10.5px] font-semibold transition-colors',
+                  format === 'plain'
+                    ? 'bg-card text-foreground shadow-sm ring-1 ring-[hsl(var(--hairline))]'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Type className="h-3 w-3" />
+                간편
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={format === 'markdown'}
+                onClick={() => setFormat('markdown')}
+                title="풍부한 편집 (마크다운/리스트/헤딩)"
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 h-6 rounded text-[10.5px] font-semibold transition-colors',
+                  format === 'markdown'
+                    ? 'bg-card text-foreground shadow-sm ring-1 ring-[hsl(var(--hairline))]'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Wand2 className="h-3 w-3" />
+                풍부
+              </button>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
@@ -131,26 +200,35 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
             {dateLabel}
           </span>
 
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={placeholder}
-            autoFocus
-            rows={7}
-            className="w-full px-4 py-3 font-serif text-[15px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap"
-            style={{
-              lineHeight: '1.875rem',
-              // 줄친 노트 배경 (textarea도 동일 톤)
-              backgroundImage: `repeating-linear-gradient(
-                to bottom,
-                transparent 0,
-                transparent calc(1.875rem - 1px),
-                hsl(var(--hairline) / 0.5) calc(1.875rem - 1px),
-                hsl(var(--hairline) / 0.5) 1.875rem
-              )`,
-              backgroundPositionY: '0.75rem',
-            }}
-          />
+          {format === 'plain' ? (
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder={placeholder}
+              autoFocus
+              rows={7}
+              className="w-full px-4 py-3 font-serif text-[15px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap"
+              style={{
+                lineHeight: '1.875rem',
+                backgroundImage: `repeating-linear-gradient(
+                  to bottom,
+                  transparent 0,
+                  transparent calc(1.875rem - 1px),
+                  hsl(var(--hairline) / 0.5) calc(1.875rem - 1px),
+                  hsl(var(--hairline) / 0.5) 1.875rem
+                )`,
+                backgroundPositionY: '0.75rem',
+              }}
+            />
+          ) : (
+            <div className="rounded-md border border-[hsl(var(--hairline))] bg-card overflow-hidden min-h-[280px] max-h-[60vh] overflow-y-auto">
+              <WikiBlockEditor
+                body={body}
+                onChange={setBody}
+                allPages={[]}
+              />
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3">
             <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
@@ -165,7 +243,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
             </span>
             <TagInput value={manualTags} onChange={setManualTags} suggestions={suggestions} />
           </div>
-        </div>
+          </div>
 
         <DialogFooter className="flex-row sm:justify-end mt-2 gap-1.5">
           <button
