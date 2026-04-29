@@ -27,6 +27,7 @@ import { JournalEmpty } from '@/components/journal/JournalEmpty';
 import { TodayCard } from '@/components/journal/TodayCard';
 import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
+import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
@@ -326,6 +327,7 @@ const Journal = () => {
                 날짜 필터 해제
               </button>
             )}
+            <JournalSummaryPanel entries={allEntries} />
           </aside>
           </div>
         )}
