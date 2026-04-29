@@ -11,10 +11,14 @@
  */
 import { Command } from 'cmdk';
 import { useEffect, useState, ReactNode } from 'react';
-import { CalendarDays, Plus, Clock, Search, ArrowRight } from 'lucide-react';
+import { CalendarDays, Plus, Clock, Search, ArrowRight, Flag } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
+import type { Priority } from '@/types/planner';
+import { PRIORITY_COLORS } from '@/types/planner';
 import type { PlannerView } from './ViewToggle';
+
+const RESULT_LIMIT = 20;
 
 export type CommandAction =
   | { kind: 'view'; view: PlannerView }
@@ -63,9 +67,9 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
     onOpenChange(false);
   };
 
-  // 검색용 데이터 — 매번 list() 호출 (LocalStorage 빠름).
-  const allTasks = taskStore.list();
-  const allEvents = eventStore.list();
+  // 검색용 데이터 — 완료·취소 제외 + 결과 limit (Linear/Cron 패턴, 노이즈 감소).
+  const allTasks = taskStore.list().filter((t) => !t.done && !t.canceled).slice(0, RESULT_LIMIT);
+  const allEvents = eventStore.list().slice(0, RESULT_LIMIT);
   const hasQuery = query.trim().length > 0;
 
   return (
@@ -122,17 +126,24 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
               heading={`할 일 (${allTasks.length})`}
               className="px-2 pt-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:font-semibold"
             >
-              {allTasks.map((t) => (
-                <Item
-                  key={t.id}
-                  label={t.title}
-                  meta={t.startAt
-                    ? new Date(t.startAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) +
-                      ' ' + new Date(t.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
-                    : '인박스'}
-                  onSelect={() => run({ kind: 'jumpToTask', id: t.id, startAt: t.startAt })}
-                />
-              ))}
+              {allTasks.map((t) => {
+                const p = (t.priority ?? 0) as Priority;
+                const flag = p > 0 ? (
+                  <Flag className="h-3 w-3" style={{ color: PRIORITY_COLORS[p], fill: PRIORITY_COLORS[p] }} />
+                ) : undefined;
+                return (
+                  <Item
+                    key={t.id}
+                    icon={flag}
+                    label={t.title}
+                    meta={t.startAt
+                      ? new Date(t.startAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) +
+                        ' ' + new Date(t.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+                      : '인박스'}
+                    onSelect={() => run({ kind: 'jumpToTask', id: t.id, startAt: t.startAt })}
+                  />
+                );
+              })}
             </Command.Group>
           )}
 
