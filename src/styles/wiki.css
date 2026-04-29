@@ -114,23 +114,24 @@
 .wiki-status-stable   { background: hsl(var(--wiki-status-stable)   / 0.10); color: hsl(var(--wiki-status-stable)); }
 .wiki-status-archived { background: hsl(var(--wiki-status-archived) / 0.20); color: hsl(var(--wiki-status-archived)); }
 
-/* ── 페이지 본문 — 위키 톤 (헤딩 + 본문 모두 serif) ── */
+/* ── 페이지 본문 — Bear 톤 (큰 타이포 · 보더 없는 헤딩 · 넓은 호흡) ── */
 .wiki-prose {
   color: hsl(var(--foreground));
   font-family: var(--wiki-font-body);
-  font-size: 15px;
-  line-height: 1.78;
+  font-size: 16px;
+  line-height: 1.72;
+  letter-spacing: -0.003em;
 }
 
-/* 모바일 — 좁은 화면에서 한 글자 더 크게 + 줄간격 살짝 ↓ (가독성 ↑, 스크롤 ↓) */
+/* 모바일 — 좁은 화면에서 한 글자 더 크게 */
 @media (max-width: 640px) {
   .wiki-prose {
-    font-size: 16px;
-    line-height: 1.7;
+    font-size: 16.5px;
+    line-height: 1.68;
   }
-  .wiki-prose h1 { font-size: 1.5rem; }
-  .wiki-prose h2 { font-size: 1.22rem; }
-  .wiki-prose h3 { font-size: 1.08rem; }
+  .wiki-prose h1 { font-size: 1.7rem; }
+  .wiki-prose h2 { font-size: 1.32rem; }
+  .wiki-prose h3 { font-size: 1.12rem; }
 }
 
 .wiki-prose h1,
@@ -139,35 +140,37 @@
 .wiki-prose h4 {
   font-family: var(--wiki-font-heading);
   color: hsl(var(--foreground));
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 750;
+  letter-spacing: -0.022em;
   scroll-margin-top: 1.5rem;
 }
 
+/* Bear: H1 보더 없음, 굵은 타이포만으로 위계 — 깔끔 */
 .wiki-prose h1 {
-  font-size: 1.7rem;
-  margin-top: 1.6rem;
-  margin-bottom: 0.7rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid hsl(var(--hairline));
+  font-size: 2rem;
+  margin-top: 1.8rem;
+  margin-bottom: 0.85rem;
+  line-height: 1.18;
 }
 
+/* Bear: H2 도 보더 없이, 본문보다 단단한 굵기로 분리 */
 .wiki-prose h2 {
-  font-size: 1.3rem;
-  margin-top: 1.6rem;
-  margin-bottom: 0.6rem;
-  padding-bottom: 0.3rem;
-  border-bottom: 1px solid hsl(var(--hairline));
+  font-size: 1.5rem;
+  margin-top: 1.9rem;
+  margin-bottom: 0.7rem;
+  line-height: 1.25;
 }
 
 .wiki-prose h3 {
-  font-size: 1.1rem;
-  margin-top: 1.2rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  margin-top: 1.4rem;
+  margin-bottom: 0.55rem;
+  line-height: 1.32;
+  letter-spacing: -0.018em;
 }
 
 .wiki-prose p {
-  margin: 0.6rem 0;
+  margin: 0.85rem 0;
 }
 
 .wiki-prose ul,
@@ -184,12 +187,12 @@
 }
 
 .wiki-prose blockquote {
-  margin: 0.8rem 0;
-  padding: 0.6rem 1rem;
-  border-left: 3px solid hsl(var(--primary) / 0.4);
-  background: hsl(var(--accent) / 0.4);
-  color: hsl(var(--foreground) / 0.85);
-  font-style: italic;
+  margin: 1rem 0;
+  padding: 0.5rem 1.1rem;
+  border-left: 2px solid hsl(var(--primary) / 0.55);
+  background: transparent;
+  color: hsl(var(--foreground) / 0.78);
+  font-style: normal;
 }
 
 .wiki-prose code {

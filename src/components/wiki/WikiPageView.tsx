@@ -243,7 +243,16 @@ export function WikiPageView({
                     className="text-[12px] mt-1.5"
                     style={{ fontFamily: 'var(--wiki-font-meta)', color: 'hsl(var(--muted-foreground))' }}
                   >
-                    마지막 수정 · {relativeTime(page.updatedAt)}
+                    {(() => {
+                      // Bear 풍 메타: N글자 · 약 N분 · 마지막 수정 · 별칭
+                      const charCount = page.body.replace(/\s+/g, '').length;
+                      const readMin = Math.max(1, Math.round(charCount / 500));
+                      return (
+                        <>
+                          {charCount.toLocaleString()}글자 · 약 {readMin}분 · 마지막 수정 · {relativeTime(page.updatedAt)}
+                        </>
+                      );
+                    })()}
                     {page.aliases.length > 0 && (
                       <span className="ml-2 opacity-70">· 별칭: {page.aliases.join(' · ')}</span>
                     )}
