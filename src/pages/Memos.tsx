@@ -283,11 +283,11 @@ const Memos = () => {
                 </div>
               )}
 
-              {/* 미분류 메모 — 헤더·분리선 없이 폴더 바로 아래 */}
+              {/* 미분류 메모 — 헤더·분리선 없이 폴더 바로 아래 (작은 점으로 "폴더 밖" 표시) */}
               {unfiledMemos.length > 0 ? (
                 <ul className="px-2 pb-1">
                   {unfiledMemos.map((m) => (
-                    <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} />
+                    <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} loose />
                   ))}
                 </ul>
               ) : (
@@ -448,24 +448,40 @@ function FolderGroup({
         </div>
       </div>
 
-      {/* 펼친 상태 — 안 메모 인라인 (들여쓰기) */}
+      {/* 펼친 상태 — ㄴ 트리 커넥터로 자식 메모 표시 */}
       {expanded && (
-        <div className="ml-[18px] border-l border-[hsl(var(--hairline))] pl-1">
-          {memos.length === 0 ? (
-            <p className="h-8 flex items-center px-3 text-[12px] text-muted-foreground italic">비어있음</p>
-          ) : (
-            <ul>
-              {memos.map((m) => (
-                <MemoRow
-                  key={m.id}
-                  memo={m}
-                  active={activeId === m.id}
-                  onClick={() => onSelectMemo(m.id)}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
+        memos.length === 0 ? (
+          <p className="ml-8 h-8 flex items-center px-3 text-[12px] text-muted-foreground italic">비어있음</p>
+        ) : (
+          <ul>
+            {memos.map((m, i) => {
+              const isLast = i === memos.length - 1;
+              return (
+                <li key={m.id} className="relative pl-8">
+                  {/* 세로 가이드 — chevron 중앙 (x=19) 정렬, 마지막은 가로 스텁까지만 */}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'absolute left-[19px] top-0 w-px bg-[hsl(var(--hairline))]',
+                      isLast ? 'h-4' : 'h-full',
+                    )}
+                  />
+                  {/* 가로 스텁 — 행 세로 중앙 (h-8 → top 16px) */}
+                  <span
+                    aria-hidden
+                    className="absolute left-[19px] top-4 w-[13px] h-px bg-[hsl(var(--hairline))]"
+                  />
+                  <MemoRow
+                    memo={m}
+                    active={activeId === m.id}
+                    onClick={() => onSelectMemo(m.id)}
+                    bare
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        )
       )}
     </div>
   );
@@ -548,38 +564,47 @@ function FolderOption({ label, active, onClick }: { label: string; active: boole
 }
 
 // ──────────────────────────────────────────
-function MemoRow({ memo, active, onClick }: { memo: Memo; active: boolean; onClick: () => void }) {
+function MemoRow({ memo, active, onClick, loose = false, bare = false }: {
+  memo: Memo; active: boolean; onClick: () => void;
+  loose?: boolean;     // 미분류 — 작은 muted 점 prefix (폴더 밖 표식)
+  bare?: boolean;      // li 래퍼 없이 (FolderGroup 트리 안에서 li 직접 제공)
+}) {
   const title = memoTitle(memo);
-  return (
-    <li>
-      <button
-        onClick={onClick}
-        className={cn(
-          'w-full text-left h-8 px-3 rounded-md flex items-center gap-2 transition-colors',
-          active
-            ? 'bg-primary/12 text-primary'
-            : 'text-foreground hover:bg-accent',
-        )}
-      >
-        {memo.pinned && (
-          <Pin className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
-        )}
-        <span className={cn(
-          'text-[13px] truncate flex-1',
-          active && 'font-medium',
-          !memo.body.trim() && 'text-muted-foreground italic',
-        )}>
-          {title}
-        </span>
-        {memo.wikiPageId && (
-          <ExternalLink className="w-3 h-3 text-primary/70 shrink-0" strokeWidth={1.75} />
-        )}
-        <span className="text-[11px] tabular-nums text-muted-foreground/80 shrink-0">
-          {memoTimeLabel(memo.updatedAt)}
-        </span>
-      </button>
-    </li>
+  const button = (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full text-left h-8 px-3 rounded-md flex items-center gap-2 transition-colors',
+        active
+          ? 'bg-primary/12 text-primary'
+          : 'text-foreground hover:bg-accent',
+      )}
+    >
+      {loose && !memo.pinned && (
+        <span
+          aria-hidden
+          className="w-1 h-1 rounded-full bg-muted-foreground/45 shrink-0"
+        />
+      )}
+      {memo.pinned && (
+        <Pin className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
+      )}
+      <span className={cn(
+        'text-[13px] truncate flex-1',
+        active && 'font-medium',
+        !memo.body.trim() && 'text-muted-foreground italic',
+      )}>
+        {title}
+      </span>
+      {memo.wikiPageId && (
+        <ExternalLink className="w-3 h-3 text-primary/70 shrink-0" strokeWidth={1.75} />
+      )}
+      <span className="text-[11px] tabular-nums text-muted-foreground/80 shrink-0">
+        {memoTimeLabel(memo.updatedAt)}
+      </span>
+    </button>
   );
+  return bare ? button : <li>{button}</li>;
 }
 
 // ──────────────────────────────────────────
