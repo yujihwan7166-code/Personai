@@ -240,7 +240,16 @@ const Memos = () => {
               ) : (
                 <ul className="px-2 py-1">
                   {filteredMemos.map((m) => (
-                    <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} loose />
+                    <MemoRow
+                      key={m.id}
+                      memo={m}
+                      active={activeId === m.id}
+                      onClick={() => setActiveId(m.id)}
+                      loose
+                      onPin={() => togglePin(m.id)}
+                      onMoveFolder={() => setMovingMemo(m)}
+                      onDelete={() => handleDelete(m.id)}
+                    />
                   ))}
                 </ul>
               )}
@@ -270,6 +279,9 @@ const Memos = () => {
                         if (!window.confirm(`"${f.name}" 폴더를 지울까요? 안에 있는 메모는 위쪽 메모 목록으로 이동합니다.`)) return;
                         removeFolder(f.id);
                       }}
+                      onMemoPin={(m) => togglePin(m.id)}
+                      onMemoMove={(m) => setMovingMemo(m)}
+                      onMemoDelete={(m) => handleDelete(m.id)}
                     />
                   ))}
                   {creatingFolder && (
@@ -291,7 +303,16 @@ const Memos = () => {
               {unfiledMemos.length > 0 ? (
                 <ul className="px-2 pb-1">
                   {unfiledMemos.map((m) => (
-                    <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} loose />
+                    <MemoRow
+                      key={m.id}
+                      memo={m}
+                      active={activeId === m.id}
+                      onClick={() => setActiveId(m.id)}
+                      loose
+                      onPin={() => togglePin(m.id)}
+                      onMoveFolder={() => setMovingMemo(m)}
+                      onDelete={() => handleDelete(m.id)}
+                    />
                   ))}
                 </ul>
               ) : (
@@ -372,6 +393,7 @@ export default Memos;
 function FolderGroup({
   folder, memos, expanded, renaming, activeId,
   onToggle, onSelectMemo, onAddMemo, onStartRename, onFinishRename, onDelete,
+  onMemoPin, onMemoMove, onMemoDelete,
 }: {
   folder: MemoFolder;
   memos: Memo[];
@@ -384,6 +406,9 @@ function FolderGroup({
   onStartRename: () => void;
   onFinishRename: (name: string) => void;
   onDelete: () => void;
+  onMemoPin: (m: Memo) => void;
+  onMemoMove: (m: Memo) => void;
+  onMemoDelete: (m: Memo) => void;
 }) {
   const [draft, setDraft] = useState(folder.name);
   useEffect(() => { setDraft(folder.name); }, [folder.name, renaming]);
@@ -480,6 +505,9 @@ function FolderGroup({
                     active={activeId === m.id}
                     onClick={() => onSelectMemo(m.id)}
                     bare
+                    onPin={() => onMemoPin(m)}
+                    onMoveFolder={() => onMemoMove(m)}
+                    onDelete={() => onMemoDelete(m)}
                   />
                 </li>
               );
@@ -566,65 +594,119 @@ function FolderOption({ label, active, onClick }: { label: string; active: boole
 }
 
 // ──────────────────────────────────────────
-function MemoRow({ memo, active, onClick, loose = false, bare = false }: {
+function MemoRow({
+  memo, active, onClick, loose = false, bare = false,
+  onPin, onMoveFolder, onDelete,
+}: {
   memo: Memo; active: boolean; onClick: () => void;
   loose?: boolean;     // 최상위 미분류 — 폴더와 같은 크기(h-9 14px) + 작은 muted 점 prefix
   bare?: boolean;      // li 래퍼 없이 (FolderGroup 트리 안에서 li 직접 제공)
+  onPin?: () => void;
+  onMoveFolder?: () => void;
+  onDelete?: () => void;
 }) {
   const title = memoTitle(memo);
-  const button = (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full text-left rounded-md flex items-center gap-2 transition-colors',
-        loose ? 'h-9 px-3' : 'h-8 px-3',
-        active
-          ? 'bg-primary/12 text-primary'
-          : 'text-foreground hover:bg-accent',
+  const hasActions = !!(onPin || onMoveFolder || onDelete);
+  const inner = (
+    <>
+      <button
+        onClick={onClick}
+        className={cn(
+          'w-full text-left rounded-md flex items-center gap-2 transition-colors',
+          loose ? 'h-9 px-3' : 'h-8 px-3',
+          hasActions && 'pr-9', // ⋯ 자리 확보
+          active
+            ? 'bg-primary/12 text-primary'
+            : 'text-foreground hover:bg-accent',
+        )}
+      >
+        {loose && !memo.pinned && (
+          <span
+            aria-hidden
+            className="w-1 h-1 rounded-full bg-muted-foreground/45 shrink-0"
+          />
+        )}
+        {memo.pinned && (
+          <Pin
+            className={cn(
+              'text-amber-500 shrink-0',
+              loose ? 'w-3.5 h-3.5' : 'w-3 h-3',
+            )}
+            fill="currentColor"
+            strokeWidth={1.5}
+          />
+        )}
+        <span className={cn(
+          'truncate flex-1',
+          loose ? 'text-[14px]' : 'text-[13px]',
+          active && 'font-medium',
+          !memo.body.trim() && 'text-muted-foreground italic',
+        )}>
+          {title}
+        </span>
+        {memo.wikiPageId && (
+          <ExternalLink
+            className={cn(
+              'text-primary/70 shrink-0',
+              loose ? 'w-3.5 h-3.5' : 'w-3 h-3',
+            )}
+            strokeWidth={1.75}
+          />
+        )}
+        <span className={cn(
+          'tabular-nums text-muted-foreground/80 shrink-0',
+          loose ? 'text-[12px]' : 'text-[11px]',
+          hasActions && 'group-hover:invisible',
+        )}>
+          {memoTimeLabel(memo.updatedAt)}
+        </span>
+      </button>
+      {hasActions && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-background hover:text-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+              aria-label="더 보기"
+            >
+              <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            {onPin && (
+              <DropdownMenuItem onClick={onPin}>
+                <Pin
+                  className="w-3.5 h-3.5 mr-2"
+                  fill={memo.pinned ? 'currentColor' : 'none'}
+                  strokeWidth={1.75}
+                />
+                {memo.pinned ? '고정 해제' : '맨 위에 고정'}
+              </DropdownMenuItem>
+            )}
+            {onMoveFolder && (
+              <DropdownMenuItem onClick={onMoveFolder}>
+                <Folder className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                폴더로 이동…
+              </DropdownMenuItem>
+            )}
+            {(onPin || onMoveFolder) && onDelete && <DropdownMenuSeparator />}
+            {onDelete && (
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                삭제
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
-    >
-      {loose && !memo.pinned && (
-        <span
-          aria-hidden
-          className="w-1 h-1 rounded-full bg-muted-foreground/45 shrink-0"
-        />
-      )}
-      {memo.pinned && (
-        <Pin
-          className={cn(
-            'text-amber-500 shrink-0',
-            loose ? 'w-3.5 h-3.5' : 'w-3 h-3',
-          )}
-          fill="currentColor"
-          strokeWidth={1.5}
-        />
-      )}
-      <span className={cn(
-        'truncate flex-1',
-        loose ? 'text-[14px]' : 'text-[13px]',
-        active && 'font-medium',
-        !memo.body.trim() && 'text-muted-foreground italic',
-      )}>
-        {title}
-      </span>
-      {memo.wikiPageId && (
-        <ExternalLink
-          className={cn(
-            'text-primary/70 shrink-0',
-            loose ? 'w-3.5 h-3.5' : 'w-3 h-3',
-          )}
-          strokeWidth={1.75}
-        />
-      )}
-      <span className={cn(
-        'tabular-nums text-muted-foreground/80 shrink-0',
-        loose ? 'text-[12px]' : 'text-[11px]',
-      )}>
-        {memoTimeLabel(memo.updatedAt)}
-      </span>
-    </button>
+    </>
   );
-  return bare ? button : <li>{button}</li>;
+  return bare
+    ? <div className="relative group">{inner}</div>
+    : <li className="relative group">{inner}</li>;
 }
 
 // ──────────────────────────────────────────
@@ -643,17 +725,23 @@ function MemoEditor({
   const currentFolder = memo.folderId ? folders.find((f) => f.id === memo.folderId) : null;
   const navigate = useNavigate();
   const [draft, setDraft] = useState(memo.body);
+  const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
   const debounceRef = useRef<number | null>(null);
 
   // memo 변경 시 (다른 메모 선택) draft 동기화
-  useEffect(() => { setDraft(memo.body); }, [memo.id]);
+  useEffect(() => {
+    setDraft(memo.body);
+    setSaveState('saved');
+  }, [memo.id]);
 
   // 자동 저장 — 400ms debounce
   useEffect(() => {
     if (draft === memo.body) return;
+    setSaveState('saving');
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       updateMemo(memo.id, { body: draft });
+      setSaveState('saved');
     }, 400);
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
@@ -667,7 +755,7 @@ function MemoEditor({
   return (
     <>
       {/* 상단 액션바 — 위키로 보내기(메인) + ⋯ (핀·폴더·삭제) */}
-      <div className="shrink-0 px-6 py-3 border-b border-[hsl(var(--hairline))] flex items-center gap-1.5">
+      <div className="shrink-0 px-6 py-3 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
         {onBackToList && (
           <button
             onClick={onBackToList}
@@ -678,6 +766,29 @@ function MemoEditor({
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
         )}
+        {/* 자동 저장 상태 — 좌상단 빈 공간 채움 */}
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 h-7 px-2 text-[11.5px] tabular-nums select-none',
+            saveState === 'saving' ? 'text-amber-600' : 'text-muted-foreground',
+          )}
+          title={saveState === 'saving' ? '저장 중' : '자동 저장됨'}
+        >
+          <span
+            aria-hidden
+            className={cn(
+              'w-1.5 h-1.5 rounded-full',
+              saveState === 'saving'
+                ? 'bg-amber-500 animate-pulse'
+                : 'bg-emerald-500/70',
+            )}
+          />
+          {saveState === 'saving' ? '저장 중…' : '저장됨'}
+        </span>
+        <span className="text-border">·</span>
+        <span className="text-[11.5px] text-muted-foreground tabular-nums select-none">
+          {memoTimeLabel(memo.updatedAt)} 수정
+        </span>
         {/* 핀이 켜진 메모는 작은 인디케이터만 (토글은 ⋯ 메뉴에서) */}
         {memo.pinned && (
           <span className="inline-flex items-center gap-1 px-2 h-7 rounded-md bg-amber-500/10 text-amber-600 text-[11px] font-medium">
@@ -756,8 +867,6 @@ function MemoEditor({
       {/* 하단 메타 */}
       <div className="shrink-0 px-6 sm:px-10 py-2.5 border-t border-[hsl(var(--hairline))] flex items-center gap-3 text-[12px] text-muted-foreground">
         <span className="tabular-nums">{charCount.toLocaleString()}자</span>
-        <span className="text-border">·</span>
-        <span className="tabular-nums">{memoTimeLabel(memo.updatedAt)} 수정</span>
         {tags.length > 0 && (
           <>
             <span className="text-border">·</span>
