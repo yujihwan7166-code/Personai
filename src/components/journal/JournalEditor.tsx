@@ -77,7 +77,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
       setBody('');
       setMood(undefined);
       setManualTags([]);
-      setFormat('plain');
+      setFormat('markdown'); // 기본 = 풍부 (사용자 요청)
       setImages([]);
     }
   }, [mode, open]);
@@ -153,16 +153,22 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         className={cn(
-          'transition-all',
-          format === 'plain' ? 'max-w-md' : 'max-w-2xl',
+          'transition-all max-w-3xl md:max-w-4xl',
+          // 모달 자체 높이 제한 + 내부 스크롤 (헤더/푸터는 고정, 본문만 스크롤)
+          'max-h-[90vh] flex flex-col p-0 gap-0',
         )}
         onKeyDown={handleKeyDownGlobal}
       >
-        <DialogHeader>
+        <DialogHeader className="px-6 pt-5 pb-3 border-b border-[hsl(var(--hairline))] shrink-0">
           <DialogTitle className="flex items-center justify-between gap-3 pr-8">
-            <span className="text-[15px] font-semibold">
-              {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
-            </span>
+            <div className="flex items-baseline gap-3">
+              <span className="text-[15px] font-semibold">
+                {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
+              </span>
+              <span className="text-[11.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                {dateLabel}
+              </span>
+            </div>
             {/* 형식 토글 (Linear 패턴) */}
             <div
               role="tablist"
@@ -204,64 +210,58 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 mt-2">
-          <span className="text-[11.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-            {dateLabel}
-          </span>
-
-          {format === 'plain' ? (
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder={placeholder}
-              autoFocus
-              rows={7}
-              className="w-full px-4 py-3 font-serif text-[15px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap"
-              style={{
-                lineHeight: '1.875rem',
-                backgroundImage: `repeating-linear-gradient(
-                  to bottom,
-                  transparent 0,
-                  transparent calc(1.875rem - 1px),
-                  hsl(var(--hairline) / 0.32) calc(1.875rem - 1px),
-                  hsl(var(--hairline) / 0.32) 1.875rem
-                )`,
-                backgroundPositionY: '0.75rem',
-              }}
-            />
-          ) : (
-            <div className="rounded-md border border-[hsl(var(--hairline))] bg-card overflow-hidden min-h-[280px] max-h-[60vh] overflow-y-auto">
-              <WikiBlockEditor
-                body={body}
-                onChange={setBody}
-                allPages={[]}
-              />
+        {/* 본문 + 메타 — 2 컬럼 (가로로 길게, 세로 압축) */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-4 md:gap-5">
+            {/* 좌측: 본문 */}
+            <div className="min-w-0 flex flex-col">
+              {format === 'plain' ? (
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder={placeholder}
+                  autoFocus
+                  rows={10}
+                  className="w-full h-full min-h-[260px] px-4 py-3 font-serif text-[15px] leading-relaxed rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap"
+                />
+              ) : (
+                <div className="rounded-md border border-[hsl(var(--hairline))] bg-card overflow-hidden min-h-[320px]">
+                  <WikiBlockEditor
+                    body={body}
+                    onChange={setBody}
+                    allPages={[]}
+                  />
+                </div>
+              )}
             </div>
-          )}
 
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
-              기분
-            </span>
-            <MoodPicker value={mood} onChange={setMood} />
-          </div>
+            {/* 우측: 메타 (기분 / 태그 / 사진) */}
+            <aside className="flex flex-col gap-4 md:border-l md:border-[hsl(var(--hairline))] md:pl-5">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                  기분
+                </span>
+                <MoodPicker value={mood} onChange={setMood} />
+              </div>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
-              태그
-            </span>
-            <TagInput value={manualTags} onChange={setManualTags} suggestions={suggestions} />
-          </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                  태그
+                </span>
+                <TagInput value={manualTags} onChange={setManualTags} suggestions={suggestions} />
+              </div>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
-              사진
-            </span>
-            <JournalImagePicker value={images} onChange={setImages} />
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                  사진
+                </span>
+                <JournalImagePicker value={images} onChange={setImages} />
+              </div>
+            </aside>
           </div>
-          </div>
+        </div>
 
-        <DialogFooter className="flex-row sm:justify-end mt-2 gap-1.5">
+        <DialogFooter className="flex-row sm:justify-end gap-1.5 px-6 py-3 border-t border-[hsl(var(--hairline))] shrink-0">
           <button
             type="button"
             onClick={onClose}
