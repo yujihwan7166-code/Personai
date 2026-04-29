@@ -29,8 +29,19 @@ import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
 
+import type { Priority } from '@/types/planner';
+
 type DialogMode =
-  | { kind: 'schedule'; taskId: string; initialTitle: string; initialStart?: string; initialEnd?: string }
+  | {
+      kind: 'schedule';
+      taskId: string;
+      initialTitle: string;
+      initialStart?: string;
+      initialEnd?: string;
+      initialPriority?: Priority;
+      initialNote?: string;
+      initialPinned?: boolean;
+    }
   | { kind: 'create'; presetStartIso: string };
 
 const isSameDay = (a: Date, b: Date): boolean =>
@@ -55,7 +66,15 @@ const Planner = () => {
   }, []);
 
   const handleInboxClick = useCallback((task: { id: string; title: string }) => {
-    setDialogMode({ kind: 'schedule', taskId: task.id, initialTitle: task.title });
+    const full = taskStore.list().find((t) => t.id === task.id);
+    setDialogMode({
+      kind: 'schedule',
+      taskId: task.id,
+      initialTitle: task.title,
+      initialPriority: full?.priority,
+      initialNote: full?.note,
+      initialPinned: full?.pinned,
+    });
   }, []);
 
   const handleSlotClick = useCallback((slotIso: string) => {
@@ -65,12 +84,16 @@ const Planner = () => {
   const handleItemClick = useCallback(
     (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => {
       if (item.kind === 'task') {
+        const full = taskStore.list().find((t) => t.id === item.id);
         setDialogMode({
           kind: 'schedule',
           taskId: item.id,
           initialTitle: item.title,
           initialStart: item.startAt,
           initialEnd: item.endAt,
+          initialPriority: full?.priority,
+          initialNote: full?.note,
+          initialPinned: full?.pinned,
         });
       }
     },
@@ -287,7 +310,10 @@ const Planner = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr_280px] gap-3 sm:gap-4 h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)]">
             <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0 max-h-[40vh] md:max-h-none">
-              <Inbox inputRef={inboxInputRef} onTaskClick={handleInboxClick} />
+              <Inbox
+                inputRef={inboxInputRef}
+                onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+              />
             </div>
             <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0">
               {view === 'day' && (

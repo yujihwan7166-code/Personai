@@ -87,6 +87,15 @@ export const taskStore = {
     safeWrite(all);
   },
 
+  /** 핀 토글 — 인박스 상단 고정. */
+  togglePinned(id: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    all[idx] = { ...all[idx], pinned: !all[idx].pinned };
+    safeWrite(all);
+  },
+
   /** 시간 배정 (인박스 → 시간표). startAt/endAt 만 갱신. */
   schedule(id: string, startAt: string, endAt: string): void {
     this.update(id, { startAt, endAt });

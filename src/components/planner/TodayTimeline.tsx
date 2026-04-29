@@ -8,7 +8,7 @@
  * 시간 블록 hover → Tooltip (제목·시간 범위·길이).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Inbox as InboxIcon, Trash2, Pencil } from 'lucide-react';
+import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
@@ -19,6 +19,9 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import {
@@ -27,7 +30,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { PlannerSection } from './PlannerSection';
-import type { PlannerEvent, PlannerTask } from '@/types/planner';
+import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
+import { PRIORITY_COLORS, PRIORITY_LABELS } from '@/types/planner';
 
 const HOUR_PX = 56;
 const START_HOUR = 0;
@@ -136,6 +140,10 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
     notify.info('인박스로 옮겼어요', { duration: 1500 });
   };
 
+  const handleSetPriority = (task: PlannerTask, p: Priority) => {
+    taskStore.update(task.id, { priority: p === 0 ? undefined : p });
+  };
+
   return (
     <PlannerSection label="오늘" count={dateLabel} className="h-full">
       <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
@@ -198,6 +206,9 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                   : 'hsl(var(--muted-foreground) / 0.6)';
               const done = item.kind === 'task' ? item.data.done : false;
               const kindLabel = item.kind === 'event' ? '일정' : '할 일';
+              const taskPriority = item.kind === 'task' ? (item.data.priority ?? 0) : 0;
+              const showFlag = taskPriority > 0;
+              const hasNote = item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0);
 
               const blockEl = (
                 <div
@@ -232,9 +243,18 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1 py-1.5 pr-1">
-                      <span className="block text-[10.5px] font-mono tabular-nums text-muted-foreground tracking-wide leading-none font-semibold">
-                        {formatHm(startAt)}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground tracking-wide leading-none font-semibold">
+                          {formatHm(startAt)}
+                        </span>
+                        {showFlag && (
+                          <Flag
+                            className="h-2.5 w-2.5"
+                            style={{ color: PRIORITY_COLORS[taskPriority as Priority], fill: PRIORITY_COLORS[taskPriority as Priority] }}
+                            aria-hidden
+                          />
+                        )}
+                      </div>
                       <p className={cn(
                         'text-[13px] leading-snug mt-1 text-foreground font-medium',
                         height < 40 ? 'truncate' : 'line-clamp-2',
@@ -242,6 +262,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                       )}>
                         {item.data.title}
                       </p>
+                      {hasNote && height >= 60 && (
+                        <p className="text-[10.5px] text-muted-foreground mt-0.5 truncate">
+                          {item.kind === 'task' ? item.data.note : ''}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -286,6 +311,37 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                           <Check className="mr-2 h-3.5 w-3.5" />
                           {item.data.done ? '완료 취소' : '완료'}
                         </ContextMenuItem>
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Flag
+                              className="mr-2 h-3.5 w-3.5"
+                              style={
+                                (item.data.priority ?? 0) > 0
+                                  ? { color: PRIORITY_COLORS[item.data.priority as Priority], fill: PRIORITY_COLORS[item.data.priority as Priority] }
+                                  : undefined
+                              }
+                            />
+                            우선순위
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-32">
+                            {([3, 2, 1, 0] as Priority[]).map((p) => (
+                              <ContextMenuItem
+                                key={p}
+                                onSelect={() => handleSetPriority(item.data, p)}
+                                className={item.data.priority === p || (p === 0 && !item.data.priority) ? 'bg-accent' : ''}
+                              >
+                                {p > 0 && (
+                                  <Flag
+                                    className="mr-2 h-3.5 w-3.5"
+                                    style={{ color: PRIORITY_COLORS[p], fill: PRIORITY_COLORS[p] }}
+                                  />
+                                )}
+                                {p === 0 && <span className="mr-2 inline-block w-3.5" aria-hidden />}
+                                {PRIORITY_LABELS[p]}
+                              </ContextMenuItem>
+                            ))}
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
                         <ContextMenuItem onSelect={() => handleUnschedule(item.data)}>
                           <InboxIcon className="mr-2 h-3.5 w-3.5" />
                           인박스로

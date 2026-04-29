@@ -12,7 +12,7 @@
  * - 인박스로 (시간 해제) 옵션 — schedule 모드에서만
  */
 import { useEffect, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Flag, FileText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,10 +24,20 @@ import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
-import type { PlannerTask } from '@/types/planner';
+import type { PlannerTask, Priority } from '@/types/planner';
+import { PRIORITY_COLORS, PRIORITY_LABELS } from '@/types/planner';
 
 type Mode =
-  | { kind: 'schedule'; taskId: string; initialTitle: string; initialStart?: string; initialEnd?: string }
+  | {
+      kind: 'schedule';
+      taskId: string;
+      initialTitle: string;
+      initialStart?: string;
+      initialEnd?: string;
+      initialPriority?: Priority;
+      initialNote?: string;
+      initialPinned?: boolean;
+    }
   | { kind: 'create'; presetStartIso: string };
 
 interface TaskScheduleDialogProps {
@@ -62,6 +72,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const [time, setTime] = useState('');
   const [duration, setDuration] = useState<number>(60);
   const [isEvent, setIsEvent] = useState(false);
+  const [priority, setPriority] = useState<Priority>(0);
+  const [note, setNote] = useState('');
+  const [noteOpen, setNoteOpen] = useState(false);
 
   // 모드 변경 시 폼 초기화.
   useEffect(() => {
@@ -74,12 +87,18 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setTime(toTimeInput(start));
       setDuration(minutesBetween(start, end) || 60);
       setIsEvent(false);
+      setPriority(mode.initialPriority ?? 0);
+      setNote(mode.initialNote ?? '');
+      setNoteOpen(Boolean(mode.initialNote && mode.initialNote.length > 0));
     } else {
       setTitle('');
       setDate(toDateInput(mode.presetStartIso));
       setTime(toTimeInput(mode.presetStartIso));
       setDuration(60);
       setIsEvent(false);
+      setPriority(0);
+      setNote('');
+      setNoteOpen(false);
     }
   }, [mode, open]);
 
@@ -91,16 +110,29 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     const endIso = addMinutes(startIso, duration);
     const trimmed = title.trim();
     if (trimmed.length === 0) return;
+    const noteTrim = note.trim();
 
     if (mode.kind === 'schedule') {
-      taskStore.update(mode.taskId, { title: trimmed, startAt: startIso, endAt: endIso });
+      taskStore.update(mode.taskId, {
+        title: trimmed,
+        startAt: startIso,
+        endAt: endIso,
+        priority: priority === 0 ? undefined : priority,
+        note: noteTrim.length > 0 ? noteTrim : undefined,
+      });
       notify.success('시간 배정됐어요');
     } else {
       if (isEvent) {
         eventStore.add({ title: trimmed, startAt: startIso, endAt: endIso, source: 'user' });
         notify.success('일정 추가됐어요');
       } else {
-        taskStore.add({ title: trimmed, startAt: startIso, endAt: endIso });
+        taskStore.add({
+          title: trimmed,
+          startAt: startIso,
+          endAt: endIso,
+          priority: priority === 0 ? undefined : priority,
+          note: noteTrim.length > 0 ? noteTrim : undefined,
+        });
         notify.success('할 일 추가됐어요');
       }
     }
@@ -223,7 +255,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
           {/* 길이 chip */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+            <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
               길이
             </label>
             <div className="flex gap-1.5">
@@ -244,6 +276,70 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               ))}
             </div>
           </div>
+
+          {/* 우선순위 chip — 할 일 모드에서만 (일정은 priority 없음) */}
+          {!isEvent && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                우선순위
+              </label>
+              <div className="flex gap-1.5">
+                {([0, 1, 2, 3] as Priority[]).map((p) => {
+                  const active = priority === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPriority(p)}
+                      className={cn(
+                        'flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[12px] rounded-md transition-colors border',
+                        active
+                          ? 'bg-foreground text-background font-medium border-foreground'
+                          : 'border-[hsl(var(--hairline))] hover:bg-accent text-foreground',
+                      )}
+                    >
+                      {p > 0 && (
+                        <Flag
+                          className="h-3 w-3"
+                          style={{ color: active ? undefined : PRIORITY_COLORS[p], fill: active ? 'currentColor' : PRIORITY_COLORS[p] }}
+                        />
+                      )}
+                      <span>{PRIORITY_LABELS[p]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 노트 (collapsible) — 할 일 모드만 */}
+          {!isEvent && (
+            <div className="flex flex-col gap-1.5">
+              {!noteOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setNoteOpen(true)}
+                  className="self-start inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>+ 노트 추가</span>
+                </button>
+              ) : (
+                <>
+                  <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                    노트
+                  </label>
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="자세한 설명·메모 (선택)"
+                    rows={3}
+                    className="w-full px-3 py-2 text-[13px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground resize-none"
+                  />
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex-row sm:justify-between mt-2 gap-2">
