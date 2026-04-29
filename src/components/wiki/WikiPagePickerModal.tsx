@@ -28,6 +28,7 @@ export function WikiPagePickerModal({
 }: Props) {
   const [mode, setMode] = useState<Mode>('search');
   const [query, setQuery] = useState(initialQuery);
+  const [typeFilter, setTypeFilter] = useState<WikiPageType | 'all'>('all');
   const [activeIdx, setActiveIdx] = useState(0);
   const [idInput, setIdInput] = useState('');
   const [newTitle, setNewTitle] = useState('');
@@ -39,6 +40,7 @@ export function WikiPagePickerModal({
     if (!open) return;
     setMode('search');
     setQuery(initialQuery);
+    setTypeFilter('all');
     setActiveIdx(0);
     setIdInput('');
     setNewTitle(initialQuery);  // 선택 텍스트가 새 페이지 제목 후보
@@ -51,23 +53,32 @@ export function WikiPagePickerModal({
     return () => window.clearTimeout(t);
   }, [open, initialQuery]);
 
-  /* 검색 후보 */
+  /* 전체 페이지 (excludeId 제외, 최근 수정 desc) — 둘러보기 fallback 용 */
+  const allPages = useMemo(() => {
+    const list = pages.filter((p) => p.id !== excludeId);
+    list.sort((a, b) => b.updatedAt - a.updatedAt);
+    return list;
+  }, [pages, excludeId]);
+
+  /* type 필터 적용 */
+  const typeFiltered = useMemo(() => {
+    if (typeFilter === 'all') return allPages;
+    return allPages.filter((p) => p.type === typeFilter);
+  }, [allPages, typeFilter]);
+
+  /* 검색 후보 — 쿼리 없으면 전체, 있으면 title·alias 부분일치 */
   const candidates = useMemo(() => {
     if (mode !== 'search') return [];
     const q = query.trim().toLowerCase();
-    const filtered = pages.filter((p) => p.id !== excludeId);
-    if (!q) return filtered.slice(0, 12);
-    const out: WikiPage[] = [];
-    for (const p of filtered) {
-      const titleHit = p.title.toLowerCase().includes(q);
-      const aliasHit = p.aliases.some((a) => a.toLowerCase().includes(q));
-      if (titleHit || aliasHit) {
-        out.push(p);
-        if (out.length >= 20) break;
-      }
-    }
-    return out;
-  }, [query, pages, excludeId, mode]);
+    if (!q) return typeFiltered;
+    return typeFiltered.filter((p) =>
+      p.title.toLowerCase().includes(q) ||
+      p.aliases.some((a) => a.toLowerCase().includes(q)),
+    );
+  }, [query, typeFiltered, mode]);
+
+  /* 쿼리는 있지만 매치 0 → 전체 둘러보기 fallback 표시 */
+  const showFallback = mode === 'search' && query.trim().length > 0 && candidates.length === 0 && typeFiltered.length > 0;
 
   /* ID 매칭 */
   const idMatch = useMemo(() => {
@@ -152,17 +163,66 @@ export function WikiPagePickerModal({
                   else if (e.key === 'Enter') { e.preventDefault(); if (candidates[activeIdx]) onPick(candidates[activeIdx]); }
                   else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
                 }}
-                placeholder="페이지 제목·별칭 검색…"
+                placeholder="페이지 제목·별칭 검색… (비워두면 전체)"
                 className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
               />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => { setQuery(''); inputRef.current?.focus(); }}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="검색어 지우기"
+                  title="검색어 지우기"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
               <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">↑↓ Enter Esc</span>
             </div>
+
+            {/* Type 필터 칩 row */}
+            <div className="flex items-center gap-1 px-3 py-2 border-b border-[hsl(var(--hairline))] overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setTypeFilter('all')}
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] shrink-0 wiki-trans-color',
+                  typeFilter === 'all'
+                    ? 'bg-primary/10 text-primary font-semibold'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+              >
+                전체
+                <span className="text-[10px] tabular-nums opacity-70">{allPages.length}</span>
+              </button>
+              {USER_FACING_TYPES.map((t) => {
+                const m = WIKI_TYPE_META[t];
+                const count = allPages.filter((p) => p.type === t).length;
+                if (count === 0) return null;
+                const active = typeFilter === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTypeFilter(t)}
+                    className={cn(
+                      'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] shrink-0 wiki-trans-color',
+                      active
+                        ? 'bg-primary/10 text-primary font-semibold'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                  >
+                    <span className="text-[12px] leading-none" aria-hidden>{m.icon}</span>
+                    {m.label}
+                    <span className="text-[10px] tabular-nums opacity-70">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="max-h-[50vh] overflow-y-auto py-1">
-              {candidates.length === 0 ? (
-                <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">
-                  일치하는 페이지가 없어요. 위 탭에서 *새 페이지 만들기* 로 생성할 수 있어요.
-                </p>
-              ) : candidates.map((p, i) => {
+              {/* 1) 정상 결과 */}
+              {candidates.length > 0 && candidates.map((p, i) => {
                 const meta = WIKI_TYPE_META[p.type];
                 const active = i === activeIdx;
                 return (
@@ -182,6 +242,42 @@ export function WikiPagePickerModal({
                   </button>
                 );
               })}
+
+              {/* 2) 일치 없음 + fallback (전체 둘러보기) */}
+              {showFallback && (
+                <>
+                  <p className="px-4 py-3 text-center text-[11.5px] text-muted-foreground">
+                    "<span className="text-foreground/80">{query.trim()}</span>" 와 일치하는 페이지 없음 — 아래에서 골라보세요
+                  </p>
+                  <div className="px-3 py-1 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 border-t border-[hsl(var(--hairline))]">
+                    {typeFilter === 'all' ? '전체 페이지' : `${WIKI_TYPE_META[typeFilter].label} 페이지`}
+                  </div>
+                  {typeFiltered.map((p) => {
+                    const meta = WIKI_TYPE_META[p.type];
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => onPick(p)}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-foreground/85 hover:bg-accent wiki-trans-color"
+                      >
+                        <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
+                        <span className="flex-1 min-w-0 truncate text-[12.5px]">{p.title}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground/60 shrink-0">{p.id.slice(0, 8)}</span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* 3) 전체가 0개 (페이지 자체가 없음) */}
+              {candidates.length === 0 && !showFallback && (
+                <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">
+                  {typeFilter === 'all'
+                    ? '페이지가 아직 없어요. 위 탭에서 *새 페이지 만들기* 로 시작하세요.'
+                    : `${WIKI_TYPE_META[typeFilter].label} 타입 페이지가 없어요. 다른 타입 칩을 눌러보세요.`}
+                </p>
+              )}
             </div>
           </>
         )}
