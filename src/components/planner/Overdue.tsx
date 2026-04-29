@@ -9,12 +9,13 @@
  * - 삭제 (X 아이콘 hover): 삭제 + Undo 토스트
  */
 import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronRight, X, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, RotateCcw, Flag } from 'lucide-react';
 import { useOverdue } from '@/hooks/planner/useOverdue';
 import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
-import type { PlannerTask } from '@/types/planner';
+import type { PlannerTask, Priority } from '@/types/planner';
+import { PRIORITY_COLORS } from '@/types/planner';
 
 const formatPastTime = (iso: string): string => {
   const d = new Date(iso);
@@ -72,30 +73,58 @@ export const Overdue = ({ onTaskClick }: OverdueProps) => {
     });
   };
 
+  /** 전부 오늘로 — Sunsama 핵심 액션. 각 항목의 시:분 유지하며 오늘 같은 시각으로 reschedule. */
+  const handleMoveAllToToday = () => {
+    if (items.length === 0) return;
+    const today = new Date();
+    items.forEach((task) => {
+      if (!task.startAt || !task.endAt) return;
+      const original = new Date(task.startAt);
+      const newStart = new Date(today);
+      newStart.setHours(original.getHours(), original.getMinutes(), 0, 0);
+      const durationMs = new Date(task.endAt).getTime() - new Date(task.startAt).getTime();
+      const newEnd = new Date(newStart.getTime() + durationMs);
+      taskStore.schedule(task.id, newStart.toISOString(), newEnd.toISOString());
+    });
+    notify.success(`${items.length}개 항목 오늘로 옮겼어요`, { duration: 2200 });
+  };
+
   return (
     <div className="mb-2">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className={cn(
-          'w-full flex items-center gap-1.5 px-1 py-1 rounded',
-          'hover:bg-accent/50 transition-colors',
-          'text-left',
-        )}
-        aria-expanded={expanded}
-      >
-        {expanded ? (
-          <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
-        )}
-        <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-rose-500/90 font-semibold">
-          지난 미완료
-        </span>
-        <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground">
-          {items.length}
-        </span>
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className={cn(
+            'flex-1 flex items-center gap-1.5 px-1 py-1 rounded',
+            'hover:bg-accent/50 transition-colors',
+            'text-left',
+          )}
+          aria-expanded={expanded}
+        >
+          {expanded ? (
+            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+          ) : (
+            <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+          )}
+          <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-rose-500/90 font-semibold">
+            지난 미완료
+          </span>
+          <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground">
+            {items.length}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={handleMoveAllToToday}
+          title="전부 오늘로"
+          aria-label="전부 오늘로"
+          className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-mono tabular-nums text-muted-foreground hover:text-foreground hover:bg-accent transition-colors font-semibold"
+        >
+          <RotateCcw className="h-3 w-3" />
+          전부
+        </button>
+      </div>
       {expanded && (
         <div className="space-y-px mt-1">
           {visibleItems.map((task) => (
@@ -123,6 +152,16 @@ export const Overdue = ({ onTaskClick }: OverdueProps) => {
               <span className="text-[9.5px] font-mono tabular-nums text-rose-500/80 shrink-0 font-semibold">
                 {task.startAt ? formatPastTime(task.startAt) : ''}
               </span>
+              {(task.priority ?? 0) > 0 && (
+                <Flag
+                  className="h-2.5 w-2.5 shrink-0"
+                  style={{
+                    color: PRIORITY_COLORS[task.priority as Priority],
+                    fill: PRIORITY_COLORS[task.priority as Priority],
+                  }}
+                  aria-hidden
+                />
+              )}
               <span className="text-[12.5px] leading-tight truncate flex-1 text-foreground/90">
                 {task.title}
               </span>
