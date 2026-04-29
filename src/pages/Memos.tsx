@@ -528,20 +528,18 @@ function MoveToFolderModal({ memo, folders, onClose }: { memo: Memo; folders: Me
           </button>
         </div>
         <div className="max-h-[50vh] overflow-y-auto py-1">
-          <FolderOption
-            label="📥 미분류"
-            active={!memo.folderId}
-            onClick={() => handleMove(null)}
-          />
-          {folders.length > 0 && <div className="my-1 mx-3 border-t border-[hsl(var(--hairline))]" />}
-          {folders.map((f) => (
-            <FolderOption
-              key={f.id}
-              label={`${f.emoji ?? '📁'} ${f.name}`}
-              active={memo.folderId === f.id}
-              onClick={() => handleMove(f.id)}
-            />
-          ))}
+          {folders.length === 0 ? (
+            <p className="px-5 py-4 text-[13px] text-muted-foreground">폴더가 없어요. 사이드바에서 만들어주세요.</p>
+          ) : (
+            folders.map((f) => (
+              <FolderOption
+                key={f.id}
+                label={`${f.emoji ?? '📁'} ${f.name}`}
+                active={memo.folderId === f.id}
+                onClick={() => handleMove(f.id)}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>
