@@ -223,8 +223,8 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
                   to bottom,
                   transparent 0,
                   transparent calc(1.875rem - 1px),
-                  hsl(var(--hairline) / 0.5) calc(1.875rem - 1px),
-                  hsl(var(--hairline) / 0.5) 1.875rem
+                  hsl(var(--hairline) / 0.32) calc(1.875rem - 1px),
+                  hsl(var(--hairline) / 0.32) 1.875rem
                 )`,
                 backgroundPositionY: '0.75rem',
               }}

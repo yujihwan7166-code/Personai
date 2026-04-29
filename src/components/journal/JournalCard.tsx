@@ -118,22 +118,20 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
             </span>
           </div>
 
-          {/* 본문 — markdown 이면 strip 후 plain 미리보기 (line-clamp), plain 은 그대로 */}
+          {/* 본문 — serif + 첫 줄 들여쓰기 + 줄친 노트 배경 (Penzu 패턴, drop cap 제거) */}
           <p
             className={cn(
               'font-serif text-[15.5px] text-foreground whitespace-pre-wrap line-clamp-7',
-              'first-letter:text-[2.4em] first-letter:font-semibold first-letter:float-left',
-              'first-letter:mr-2 first-letter:mt-1 first-letter:leading-[0.85]',
-              'first-letter:text-foreground',
             )}
             style={{
               lineHeight: '1.875rem',
+              textIndent: '1.4em',
               backgroundImage: `repeating-linear-gradient(
                 to bottom,
                 transparent 0,
                 transparent calc(1.875rem - 1px),
-                hsl(var(--hairline) / 0.5) calc(1.875rem - 1px),
-                hsl(var(--hairline) / 0.5) 1.875rem
+                hsl(var(--hairline) / 0.32) calc(1.875rem - 1px),
+                hsl(var(--hairline) / 0.32) 1.875rem
               )`,
             }}
           >
