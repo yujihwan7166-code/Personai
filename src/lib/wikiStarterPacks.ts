@@ -62,9 +62,7 @@ const minchulPack: StarterPack = {
         aliases: ['Me', '나'],
         type: 'index',
         tags: ['atlas', 'profile'],
-        body: `# 김민철
-
-> 1995년생 · 서울 · 백엔드 엔지니어 · "느리더라도 멈추지 않는다"
+        body: `> 1995년생 · 서울 · 백엔드 엔지니어 · "느리더라도 멈추지 않는다"
 
 스무 살 무렵부터 코드와 한 번에 빠졌고, 지금은 프로덕트와 사람을 잇는 일에 더 끌린다. 머릿속을 정돈해주는 도구를 좋아하고, 매주 토요일 한강을 뛴다.
 
@@ -115,9 +113,7 @@ const minchulPack: StarterPack = {
         title: '💼 회사',
         type: 'moc',
         tags: ['work'],
-        body: `# 💼 회사
-
-> 현 직장 — 결제 플랫폼 시니어 백엔드. 이직 후 1년.
+        body: `> 현 직장 — 결제 플랫폼 시니어 백엔드. 이직 후 1년.
 
 ## 한눈에
 
@@ -182,9 +178,7 @@ const minchulPack: StarterPack = {
         type: 'person',
         status: 'stable',
         tags: ['colleague', 'example'],
-        body: `# 최팀장 (직속 상사)
-
-> 📌 **예시 페이지** — 본인 직속 상사로 자유롭게 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 직속 상사로 자유롭게 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -224,9 +218,7 @@ const minchulPack: StarterPack = {
         title: '🚀 사이드 프로젝트',
         type: 'moc',
         tags: ['side', 'project'],
-        body: `# 🚀 사이드 프로젝트
-
-> 회사 밖에서 굴리는 것들. 동시에 너무 많이 벌이지 않으려 \`진행 중\` 1~2개로 제한.
+        body: `> 회사 밖에서 굴리는 것들. 동시에 너무 많이 벌이지 않으려 \`진행 중\` 1~2개로 제한.
 
 ## 한눈에
 
@@ -268,9 +260,7 @@ const minchulPack: StarterPack = {
         type: 'project',
         status: 'active',
         tags: ['side', 'example'],
-        body: `# 개인 위키 v2
-
-> 📌 **예시 페이지** — 본인의 사이드 프로젝트로 자유롭게 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인의 사이드 프로젝트로 자유롭게 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -320,9 +310,7 @@ const minchulPack: StarterPack = {
         type: 'project',
         status: 'active',
         tags: ['side', 'example'],
-        body: `# 홈서버 NAS 구축
-
-> 📌 **예시 페이지** — 본인의 사이드 프로젝트로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인의 사이드 프로젝트로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -367,9 +355,7 @@ const minchulPack: StarterPack = {
         title: '📈 주식·자산',
         type: 'moc',
         tags: ['investing'],
-        body: `# 📈 주식·자산
-
-> "원칙 없는 투자는 도박, 원칙 있는 투자는 직업이다."
+        body: `> "원칙 없는 투자는 도박, 원칙 있는 투자는 직업이다."
 
 작년부터 본격 시작. 1년치 데이터로 [[투자 원칙]] 검증 중.
 
@@ -418,9 +404,7 @@ const minchulPack: StarterPack = {
         type: 'concept',
         status: 'stable',
         tags: ['investing', 'example'],
-        body: `# 투자 원칙
-
-> 📌 **예시 페이지** — 본인 원칙으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 원칙으로 교체하세요.
 
 > "원칙은 매일 약해진다. 매일 다시 적는다."
 
@@ -462,9 +446,7 @@ const minchulPack: StarterPack = {
         type: 'concept',
         status: 'active',
         tags: ['investing', 'example'],
-        body: `# 예시 종목 — 국내 앵커 1
-
-> 📌 **예시 페이지** — 모든 수치 가상. 본인 보유 종목으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 모든 수치 가상. 본인 보유 종목으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -502,9 +484,7 @@ const minchulPack: StarterPack = {
         title: '👥 인맥',
         type: 'moc',
         tags: ['relationships'],
-        body: `# 👥 인맥
-
-> "사람이 가장 큰 자산." — [[👤 김민철]]
+        body: `> "사람이 가장 큰 자산." — [[👤 김민철]]
 
 일·일상에서 직접 영향을 받는 사람들. 잊지 않으려 적어둔다.
 
@@ -553,9 +533,7 @@ const minchulPack: StarterPack = {
         type: 'person',
         status: 'stable',
         tags: ['family', 'example'],
-        body: `# 김아빠
-
-> 📌 **예시 페이지** — 본인 가족으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 가족으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -591,9 +569,7 @@ const minchulPack: StarterPack = {
         type: 'person',
         status: 'stable',
         tags: ['friend', 'example'],
-        body: `# 정민호 (러닝 메이트)
-
-> 📌 **예시 페이지** — 본인 친구로 자유롭게 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 친구로 자유롭게 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -633,9 +609,7 @@ const minchulPack: StarterPack = {
         type: 'person',
         status: 'stable',
         tags: ['mentor', 'example'],
-        body: `# 유선배 (옛 직장 멘토)
-
-> 📌 **예시 페이지** — 본인 멘토로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 멘토로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -674,9 +648,7 @@ const minchulPack: StarterPack = {
         title: '🏃 러닝',
         type: 'moc',
         tags: ['running', 'health'],
-        body: `# 🏃 러닝
-
-> 5년 차. [[정민호 (러닝 메이트)]] 와 매주 토요일 한강. 평일 짧게 3회.
+        body: `> 5년 차. [[정민호 (러닝 메이트)]] 와 매주 토요일 한강. 평일 짧게 3회.
 
 ## 한눈에
 
@@ -726,9 +698,7 @@ const minchulPack: StarterPack = {
         type: 'project',
         status: 'active',
         tags: ['running', 'race', 'example'],
-        body: `# 봄 풀 마라톤
-
-> 📌 **예시 페이지** — 본인 대회로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 대회로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -776,9 +746,7 @@ const minchulPack: StarterPack = {
         title: '📓 학습·읽기',
         type: 'moc',
         tags: ['learning', 'reading'],
-        body: `# 📓 학습·읽기
-
-> 회사·사이드에 필요한 학습 + 일반 독서. 한 곳에 모아 *언제 무엇을 읽었나* 추적.
+        body: `> 회사·사이드에 필요한 학습 + 일반 독서. 한 곳에 모아 *언제 무엇을 읽었나* 추적.
 
 ## 분류
 
@@ -832,9 +800,7 @@ const minchulPack: StarterPack = {
         type: 'source',
         status: 'active',
         tags: ['book', 'tech', 'example'],
-        body: `# 예시 책 — 시스템 디자인 기초
-
-> 📌 **예시 페이지** — 본인이 읽은 책으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 읽은 책으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -890,9 +856,7 @@ const jisuPack: StarterPack = {
         aliases: ['Me', '나'],
         type: 'index',
         tags: ['atlas', 'profile'],
-        body: `# 박지수
-
-> 1996년생 · 서울 · 심리학 박사 과정 (3년 차) · "오래 보면 다른 게 보인다"
+        body: `> 1996년생 · 서울 · 심리학 박사 과정 (3년 차) · "오래 보면 다른 게 보인다"
 
 학부에서 인지심리, 석사에서 사회심리. 박사로 와서는 두 결을 잇는 의사결정 연구. 카페에서 논문 읽고, 집에서 소설 읽는다.
 
@@ -935,9 +899,7 @@ const jisuPack: StarterPack = {
         title: '🔬 논문 주제',
         type: 'moc',
         tags: ['research', 'topic'],
-        body: `# 🔬 논문 주제
-
-> 박사 학위 주제. 한 위키에 한 주제.
+        body: `> 박사 학위 주제. 한 위키에 한 주제.
 
 ## 핵심 질문
 
@@ -987,9 +949,7 @@ const jisuPack: StarterPack = {
         title: '📚 문헌 노트',
         type: 'moc',
         tags: ['literature'],
-        body: `# 📚 문헌 노트
-
-> 각 논문/책은 \`type='source'\` 페이지로. 여기는 길찾기.
+        body: `> 각 논문/책은 \`type='source'\` 페이지로. 여기는 길찾기.
 
 ## 양식 (한 문헌)
 
@@ -1033,9 +993,7 @@ const jisuPack: StarterPack = {
         type: 'source',
         status: 'active',
         tags: ['literature', 'core', 'example'],
-        body: `# 예시 논문 — 메타분석
-
-> 📌 **예시 페이지** — 본인이 읽은 논문으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 읽은 논문으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1077,9 +1035,7 @@ const jisuPack: StarterPack = {
         type: 'source',
         status: 'active',
         tags: ['literature', 'experiment', 'example'],
-        body: `# 예시 논문 — 실험 연구
-
-> 📌 **예시 페이지** — 본인이 읽은 실험 논문으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 읽은 실험 논문으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1120,9 +1076,7 @@ const jisuPack: StarterPack = {
         title: '🧪 실험 노트',
         type: 'moc',
         tags: ['experiment'],
-        body: `# 🧪 실험 노트
-
-> 진행 중인 실험. 데이터 위치·이슈·다음 마일스톤.
+        body: `> 진행 중인 실험. 데이터 위치·이슈·다음 마일스톤.
 
 ## 진행 중
 
@@ -1167,9 +1121,7 @@ const jisuPack: StarterPack = {
         type: 'project',
         status: 'active',
         tags: ['experiment', 'pilot', 'example'],
-        body: `# 파일럿 실험 1 — 첫 24명
-
-> 📌 **예시 페이지** — 본인 실험으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 실험으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1215,9 +1167,7 @@ const jisuPack: StarterPack = {
         title: '🎤 학회·발표',
         type: 'moc',
         tags: ['publication', 'conference'],
-        body: `# 🎤 학회·발표
-
-> 학회 발표·포스터·저널 투고 트래커. 산출물이 사라지지 않도록.
+        body: `> 학회 발표·포스터·저널 투고 트래커. 산출물이 사라지지 않도록.
 
 ## 양식
 
@@ -1262,9 +1212,7 @@ const jisuPack: StarterPack = {
         type: 'project',
         status: 'active',
         tags: ['conference', 'poster', 'example'],
-        body: `# 봄 학회 포스터
-
-> 📌 **예시 페이지** — 본인 발표로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 발표로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1310,9 +1258,7 @@ const jisuPack: StarterPack = {
         title: '☕ 카페 탐방',
         type: 'moc',
         tags: ['cafe', 'hobby'],
-        body: `# ☕ 카페 탐방
-
-> 작업·휴식·만남 모두 카페. 좋았던 곳을 잊지 않기.
+        body: `> 작업·휴식·만남 모두 카페. 좋았던 곳을 잊지 않기.
 
 ## 즐겨 찾는 곳
 
@@ -1351,9 +1297,7 @@ const jisuPack: StarterPack = {
         type: 'concept',
         status: 'stable',
         tags: ['cafe', 'work-friendly', 'example'],
-        body: `# 작업용 카페 — 책상 1번
-
-> 📌 **예시 페이지** — 본인이 자주 가는 카페로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 자주 가는 카페로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1397,9 +1341,7 @@ const jisuPack: StarterPack = {
         type: 'concept',
         status: 'stable',
         tags: ['cafe', 'cozy', 'example'],
-        body: `# 자주 가는 카페 — 동네
-
-> 📌 **예시 페이지** — 본인 동네 카페로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 동네 카페로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1436,9 +1378,7 @@ const jisuPack: StarterPack = {
         title: '📔 독서 일기',
         type: 'moc',
         tags: ['reading', 'leisure'],
-        body: `# 📔 독서 일기
-
-> 학문 외 *즐거움* 을 위한 가벼운 독서. 소설·에세이·시.
+        body: `> 학문 외 *즐거움* 을 위한 가벼운 독서. 소설·에세이·시.
 
 ## 진행 중
 
@@ -1488,9 +1428,7 @@ const jisuPack: StarterPack = {
         type: 'source',
         status: 'stable',
         tags: ['novel', 'example'],
-        body: `# 예시 소설 — 가을의 골목
-
-> 📌 **예시 페이지** — 본인이 읽은 책으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 읽은 책으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1528,9 +1466,7 @@ const jisuPack: StarterPack = {
         type: 'source',
         status: 'stable',
         tags: ['essay', 'example'],
-        body: `# 예시 에세이 — 작은 일기들
-
-> 📌 **예시 페이지** — 본인이 읽은 에세이로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 읽은 에세이로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1578,9 +1514,7 @@ const seoyeonPack: StarterPack = {
         aliases: ['Me', '나'],
         type: 'index',
         tags: ['atlas', 'profile'],
-        body: `# 이서연
-
-> 1987년생 · 서울 · IT 회사 마케터 (12년 차) · 두 살 아이 엄마
+        body: `> 1987년생 · 서울 · IT 회사 마케터 (12년 차) · 두 살 아이 엄마
 
 대행사·인하우스 모두 거쳐 지금은 SaaS 기업 마케팅 매니저. 출산 후 일하는 결이 많이 달라졌다. 일에 진지하지만, 일이 *전부* 였던 시절은 지났다.
 
@@ -1624,9 +1558,7 @@ const seoyeonPack: StarterPack = {
         title: '💼 캠페인',
         type: 'moc',
         tags: ['work', 'marketing'],
-        body: `# 💼 캠페인
-
-> 분기당 큰 캠페인 1개 + 작은 항상형 2-3개. 각 캠페인은 별도 페이지.
+        body: `> 분기당 큰 캠페인 1개 + 작은 항상형 2-3개. 각 캠페인은 별도 페이지.
 
 ## 진행 중
 
@@ -1673,9 +1605,7 @@ const seoyeonPack: StarterPack = {
         type: 'project',
         status: 'active',
         tags: ['campaign', 'example'],
-        body: `# 봄 신기능 런칭 캠페인
-
-> 📌 **예시 페이지** — 본인 캠페인으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 캠페인으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1726,9 +1656,7 @@ const seoyeonPack: StarterPack = {
         type: 'project',
         status: 'draft',
         tags: ['campaign', 'example'],
-        body: `# 여름 리텐션 캠페인
-
-> 📌 **예시 페이지** — 본인 캠페인으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 캠페인으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1774,9 +1702,7 @@ const seoyeonPack: StarterPack = {
         title: '👨‍👩‍👧 가족',
         type: 'moc',
         tags: ['family'],
-        body: `# 👨‍👩‍👧 가족
-
-> 함께 사는 두 사람 + 양가 부모. 일·기념일·작은 약속을 잊지 않으려.
+        body: `> 함께 사는 두 사람 + 양가 부모. 일·기념일·작은 약속을 잊지 않으려.
 
 ## 함께 사는 가족
 
@@ -1829,9 +1755,7 @@ const seoyeonPack: StarterPack = {
         type: 'person',
         status: 'stable',
         tags: ['family', 'example'],
-        body: `# 남편 (가상)
-
-> 📌 **예시 페이지** — 본인 가족 구성원으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 가족 구성원으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1867,9 +1791,7 @@ const seoyeonPack: StarterPack = {
         type: 'person',
         status: 'active',
         tags: ['family', 'example'],
-        body: `# 딸 (3세)
-
-> 📌 **예시 페이지** — 본인 가족 구성원으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 가족 구성원으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -1906,9 +1828,7 @@ const seoyeonPack: StarterPack = {
         title: '👥 동료',
         type: 'moc',
         tags: ['colleague', 'work'],
-        body: `# 👥 동료
-
-> 팀 내 + 자주 협업 외부. 1:1 / 평가 / 협업 이력 한 곳.
+        body: `> 팀 내 + 자주 협업 외부. 1:1 / 평가 / 협업 이력 한 곳.
 
 ## 우리 팀
 
@@ -1958,9 +1878,7 @@ const seoyeonPack: StarterPack = {
         type: 'person',
         status: 'stable',
         tags: ['colleague', 'example'],
-        body: `# 팀장 (직속)
-
-> 📌 **예시 페이지** — 본인 직속 상사로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 직속 상사로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2002,9 +1920,7 @@ const seoyeonPack: StarterPack = {
         title: '🍷 와인',
         type: 'moc',
         tags: ['wine', 'hobby'],
-        body: `# 🍷 와인
-
-> 주 1잔 자기만의 시간. 비싼 와인은 잘 모르고, *기억나는 와인* 만 모음.
+        body: `> 주 1잔 자기만의 시간. 비싼 와인은 잘 모르고, *기억나는 와인* 만 모음.
 
 ## 좋아한 와인 (이번 해)
 
@@ -2043,9 +1959,7 @@ const seoyeonPack: StarterPack = {
         type: 'source',
         status: 'stable',
         tags: ['wine', 'example'],
-        body: `# 예시 와인 — 봄밤의 한 병
-
-> 📌 **예시 페이지** — 본인이 마신 와인으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 마신 와인으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2080,9 +1994,7 @@ const seoyeonPack: StarterPack = {
         type: 'source',
         status: 'stable',
         tags: ['wine', 'example'],
-        body: `# 평일 가벼운 한 잔
-
-> 📌 **예시 페이지** — 본인이 마신 와인으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 마신 와인으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2115,9 +2027,7 @@ const seoyeonPack: StarterPack = {
         title: '🍳 요리',
         type: 'moc',
         tags: ['cooking'],
-        body: `# 🍳 요리
-
-> 평일 저녁 30분 안에. 주말 한 번은 천천히.
+        body: `> 평일 저녁 30분 안에. 주말 한 번은 천천히.
 
 ## 자주 만드는 메뉴
 
@@ -2170,9 +2080,7 @@ const seoyeonPack: StarterPack = {
         type: 'source',
         status: 'stable',
         tags: ['recipe', 'weekday', 'example'],
-        body: `# 평일 30분 한 그릇
-
-> 📌 **예시 페이지** — 본인 레시피로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 레시피로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2221,9 +2129,7 @@ const seoyeonPack: StarterPack = {
         title: '📓 자기 계발',
         type: 'moc',
         tags: ['learning'],
-        body: `# 📓 자기 계발
-
-> 워킹맘으로 가능한 짬짬이 학습. 출퇴근 30분·점심 10분이 자산.
+        body: `> 워킹맘으로 가능한 짬짬이 학습. 출퇴근 30분·점심 10분이 자산.
 
 ## 분류
 
@@ -2268,9 +2174,7 @@ const seoyeonPack: StarterPack = {
         type: 'source',
         status: 'stable',
         tags: ['book', 'marketing', 'example'],
-        body: `# 예시 책 — 브랜드 빌딩 한 권
-
-> 📌 **예시 페이지** — 본인이 읽은 책으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인이 읽은 책으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2321,9 +2225,7 @@ const junhoPack: StarterPack = {
         aliases: ['Me', '나'],
         type: 'index',
         tags: ['atlas', 'profile'],
-        body: `# 최준호
-
-> 1982년생 · 경기도 · 프리랜서 UX 디자이너 (자영업 8년 차) · 초등학생 아빠
+        body: `> 1982년생 · 경기도 · 프리랜서 UX 디자이너 (자영업 8년 차) · 초등학생 아빠
 
 대기업·스타트업을 거쳐 8년 전 독립. 작업 절반은 클라이언트, 절반은 사이드 — 사진과 등산. 산을 자주 가는 게 디자인 일에 가장 큰 도움.
 
@@ -2367,9 +2269,7 @@ const junhoPack: StarterPack = {
         title: '💎 포트폴리오',
         type: 'moc',
         tags: ['work', 'design'],
-        body: `# 💎 포트폴리오
-
-> 클라이언트 작업 + 사이드 사례. 영업·연봉협상·다음 의뢰의 자산.
+        body: `> 클라이언트 작업 + 사이드 사례. 영업·연봉협상·다음 의뢰의 자산.
 
 ## 진행 중
 
@@ -2418,9 +2318,7 @@ const junhoPack: StarterPack = {
         type: 'project',
         status: 'active',
         tags: ['client', 'example'],
-        body: `# 클라이언트 A — 핀테크 앱
-
-> 📌 **예시 페이지** — 본인 클라이언트 작업으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 클라이언트 작업으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2463,9 +2361,7 @@ const junhoPack: StarterPack = {
         type: 'project',
         status: 'draft',
         tags: ['client', 'example'],
-        body: `# 클라이언트 B — 이커머스
-
-> 📌 **예시 페이지** — 본인 클라이언트로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 클라이언트로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2501,9 +2397,7 @@ const junhoPack: StarterPack = {
         title: '💰 자영업 (세무)',
         type: 'moc',
         tags: ['business', 'tax'],
-        body: `# 💰 자영업 (세무)
-
-> 프리랜서 = 1인 자영업. 기록 안 하면 세금이 나를 잡는다.
+        body: `> 프리랜서 = 1인 자영업. 기록 안 하면 세금이 나를 잡는다.
 
 ## 주요 일정
 
@@ -2555,9 +2449,7 @@ const junhoPack: StarterPack = {
         title: '🥾 등산',
         type: 'moc',
         tags: ['hiking'],
-        body: `# 🥾 등산
-
-> 월 2회. 사람이 적은 산이 좋다. 몸보다 *머리* 가 먼저 가벼워진다.
+        body: `> 월 2회. 사람이 적은 산이 좋다. 몸보다 *머리* 가 먼저 가벼워진다.
 
 ## 즐겨 찾는 산
 
@@ -2605,9 +2497,7 @@ const junhoPack: StarterPack = {
         type: 'project',
         status: 'stable',
         tags: ['hike', 'autumn', 'example'],
-        body: `# 가을의 산행 — 동쪽 능선
-
-> 📌 **예시 페이지** — 본인 산행으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 산행으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2647,9 +2537,7 @@ const junhoPack: StarterPack = {
         type: 'project',
         status: 'stable',
         tags: ['hike', 'winter', 'example'],
-        body: `# 겨울의 산행 — 눈 덮인 능선
-
-> 📌 **예시 페이지** — 본인 산행으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 산행으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2688,9 +2576,7 @@ const junhoPack: StarterPack = {
         title: '📸 사진',
         type: 'moc',
         tags: ['photography'],
-        body: `# 📸 사진
-
-> 산에서 찍은 풍경 위주. 인스타에 올리는 게 목적이 아니라 *기억의 책갈피*.
+        body: `> 산에서 찍은 풍경 위주. 인스타에 올리는 게 목적이 아니라 *기억의 책갈피*.
 
 ## 컬렉션
 
@@ -2738,9 +2624,7 @@ const junhoPack: StarterPack = {
         type: 'project',
         status: 'stable',
         tags: ['photo', 'street', 'example'],
-        body: `# 봄 컬렉션 — 동네 골목 시리즈
-
-> 📌 **예시 페이지** — 본인 컬렉션으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 컬렉션으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2782,9 +2666,7 @@ const junhoPack: StarterPack = {
         title: '👨‍👧 가족',
         type: 'moc',
         tags: ['family'],
-        body: `# 👨‍👧 가족
-
-> 아내 + 9살 아들. 프리랜서라 시간이 *자유로워 보이지만* 의식적으로 챙겨야 한다.
+        body: `> 아내 + 9살 아들. 프리랜서라 시간이 *자유로워 보이지만* 의식적으로 챙겨야 한다.
 
 ## 함께 사는 가족
 
@@ -2835,9 +2717,7 @@ const junhoPack: StarterPack = {
         type: 'person',
         status: 'stable',
         tags: ['family', 'example'],
-        body: `# 아내 (가상)
-
-> 📌 **예시 페이지** — 본인 가족 구성원으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 가족 구성원으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2873,9 +2753,7 @@ const junhoPack: StarterPack = {
         type: 'person',
         status: 'active',
         tags: ['family', 'example'],
-        body: `# 아들 (9세)
-
-> 📌 **예시 페이지** — 본인 가족 구성원으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 가족 구성원으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
@@ -2912,9 +2790,7 @@ const junhoPack: StarterPack = {
         title: '🎨 영감 노트',
         type: 'moc',
         tags: ['inspiration'],
-        body: `# 🎨 영감 노트
-
-> 디자이너의 영감 수집. 이미지·전시·작품·문장 — 머릿속이 마를 때 꺼내기 위해.
+        body: `> 디자이너의 영감 수집. 이미지·전시·작품·문장 — 머릿속이 마를 때 꺼내기 위해.
 
 ## 분류
 
@@ -2960,9 +2836,7 @@ const junhoPack: StarterPack = {
         type: 'source',
         status: 'stable',
         tags: ['inspiration', 'art', 'example'],
-        body: `# 예시 영감 — 어느 미술관의 한 작품
-
-> 📌 **예시 페이지** — 본인 영감으로 교체하세요.
+        body: `> 📌 **예시 페이지** — 본인 영감으로 교체하세요.
 
 | 항목 | 내용 |
 |---|---|
