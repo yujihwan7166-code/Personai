@@ -854,13 +854,20 @@ function MemoEditor({
         </DropdownMenu>
       </div>
 
-      {/* 본문 textarea */}
+      {/* 본문 textarea — 첫 줄(제목) ::first-line 으로 살짝 크게 */}
       <textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         autoFocus
         placeholder="첫 줄이 제목이에요. 여러 줄 쓰면 본문..."
-        className="flex-1 w-full px-6 sm:px-10 py-6 bg-transparent text-[16px] leading-[1.72] text-foreground placeholder:text-muted-foreground outline-none resize-none"
+        className={cn(
+          'flex-1 w-full px-6 sm:px-10 py-6 bg-transparent resize-none',
+          'text-[16px] leading-[1.72] text-foreground placeholder:text-muted-foreground',
+          // focus 시 outline·border·ring 모두 제거
+          'border-0 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 shadow-none focus:shadow-none',
+          // 첫 줄 = 제목 — 19px semibold
+          '[&::first-line]:text-[19px] [&::first-line]:font-semibold [&::first-line]:leading-[1.45]',
+        )}
         style={{ fontFamily: 'var(--wiki-font-body, system-ui)' }}
       />
 
