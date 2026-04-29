@@ -8,7 +8,7 @@
  * 시간 블록 hover → Tooltip (제목·시간 범위·길이).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban } from 'lucide-react';
+import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
@@ -46,6 +46,7 @@ interface TodayTimelineProps {
 const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+/** 시간 블록 길이 — Tooltip + 카드 내부 둘 다 사용. 짧은 표기. */
 const formatDuration = (startIso: string, endIso: string): string => {
   const mins = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
   if (mins < 60) return `${mins}분`;
@@ -106,6 +107,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
     return computeTopPx(now.toISOString(), baseDateIso);
   }, [now, baseDateIso, isToday]);
 
+  const scrollToNow = () => {
+    if (!scrollRef.current || nowTopPx === null) return;
+    scrollRef.current.scrollTo({ top: Math.max(0, nowTopPx - 80), behavior: 'smooth' });
+  };
+
   const handleSlotClick = (hour: number, halfHour: 0 | 30) => {
     if (!onSlotClick) return;
     const d = new Date(baseDateIso);
@@ -149,8 +155,21 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
     notify.success(task.canceled ? '취소 되돌림' : '취소됐어요', { duration: 1200 });
   };
 
+  const NowButton = isToday ? (
+    <button
+      type="button"
+      onClick={scrollToNow}
+      title="현재 시각으로 스크롤"
+      aria-label="현재 시각으로 스크롤"
+      className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-mono tabular-nums text-rose-500 hover:bg-rose-500/10 transition-colors font-semibold"
+    >
+      <Locate className="h-3 w-3" />
+      지금
+    </button>
+  ) : null;
+
   return (
-    <PlannerSection label="오늘" count={dateLabel} className="h-full">
+    <PlannerSection label="오늘" count={dateLabel} action={NowButton} className="h-full">
       <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
         <div className="relative" style={{ height: TOTAL_HOURS * HOUR_PX }}>
           {/* 시간 격자 */}
@@ -254,6 +273,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                         <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground tracking-wide leading-none font-semibold">
                           {formatHm(startAt)}
                         </span>
+                        {height >= 60 && (
+                          <span className="text-[9.5px] font-mono tabular-nums text-muted-foreground/70 leading-none">
+                            · {formatDuration(startAt, endAt)}
+                          </span>
+                        )}
                         {showFlag && (
                           <Flag
                             className="h-2.5 w-2.5"
