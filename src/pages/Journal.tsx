@@ -16,7 +16,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Search, Flame, X } from 'lucide-react';
+import { ChevronLeft, Plus, Search, Flame, X, Hash } from 'lucide-react';
 import { useJournal, useTodayJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
@@ -26,12 +26,13 @@ import { JournalEditor } from '@/components/journal/JournalEditor';
 import { JournalEmpty } from '@/components/journal/JournalEmpty';
 import { TodayCard } from '@/components/journal/TodayCard';
 import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
+import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
 
 type EditorMode =
   | { kind: 'create' }
-  | { kind: 'edit'; id: string; initialBody: string; initialMood?: Mood };
+  | { kind: 'edit'; id: string; initialBody: string; initialMood?: Mood; initialTags?: string[] };
 
 const monthLabel = (date: Date): string =>
   date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
@@ -45,14 +46,21 @@ const Journal = () => {
   const streak = useJournalStreak(allEntries);
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null);
   const [query, setQuery] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // 검색 필터 — 본문 + (가능하면) 월 라벨에서 매칭.
+  // 자주 쓴 태그 5개.
+  const topTags = useMemo(() => getTopTags(allEntries, 5), [allEntries]);
+
+  // 검색 + 태그 필터 동시 적용.
   const filteredEntries = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (q.length === 0) return allEntries;
-    return allEntries.filter((e) => e.body.toLowerCase().includes(q));
-  }, [allEntries, query]);
+    return allEntries.filter((e) => {
+      if (q.length > 0 && !e.body.toLowerCase().includes(q)) return false;
+      if (activeTag && !(e.tags ?? []).includes(activeTag)) return false;
+      return true;
+    });
+  }, [allEntries, query, activeTag]);
 
   // 월 그룹핑 (필터 후).
   const grouped = useMemo(() => {
@@ -202,8 +210,44 @@ const Journal = () => {
                     id: entry.id,
                     initialBody: entry.body,
                     initialMood: entry.mood,
+                    initialTags: entry.tags,
                   })}
                 />
+                {/* 태그 필터 칩 (자주 쓴 5개) */}
+                {topTags.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 px-1">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold mr-1">
+                      태그
+                    </span>
+                    {topTags.map((t) => (
+                      <button
+                        key={t.tag}
+                        type="button"
+                        onClick={() => setActiveTag(activeTag === t.tag ? null : t.tag)}
+                        className={cn(
+                          'inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11.5px] font-medium transition-colors',
+                          activeTag === t.tag
+                            ? 'bg-foreground text-background'
+                            : 'bg-accent text-foreground hover:bg-accent/80',
+                        )}
+                      >
+                        <Hash className="h-2.5 w-2.5 opacity-70" />
+                        {t.tag}
+                        <span className="opacity-60 tabular-nums ml-0.5">{t.count}</span>
+                      </button>
+                    ))}
+                    {activeTag && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTag(null)}
+                        className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                        초기화
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -239,6 +283,7 @@ const Journal = () => {
                         id: entry.id,
                         initialBody: entry.body,
                         initialMood: entry.mood,
+                        initialTags: entry.tags,
                       })}
                       onDelete={() => handleDelete(entry)}
                     />

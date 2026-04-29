@@ -22,11 +22,13 @@ import {
 import { journalStore } from '@/services/journalStore';
 import { notify } from '@/lib/notify';
 import { MoodPicker } from './MoodPicker';
+import { TagInput } from './TagInput';
+import { extractTagsFromBody, mergeTags, getTopTags } from '@/lib/journalTags';
 import type { Mood, JournalEntry } from '@/types/journal';
 
 type Mode =
   | { kind: 'create' }
-  | { kind: 'edit'; id: string; initialBody: string; initialMood?: Mood };
+  | { kind: 'edit'; id: string; initialBody: string; initialMood?: Mood; initialTags?: string[] };
 
 interface JournalEditorProps {
   open: boolean;
@@ -43,6 +45,12 @@ const PROMPTS = [
 export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
   const [body, setBody] = useState('');
   const [mood, setMood] = useState<Mood | undefined>(undefined);
+  const [manualTags, setManualTags] = useState<string[]>([]);
+
+  // 자주 쓴 태그 (자동완성 제안용).
+  const suggestions = useMemo(() => {
+    return getTopTags(journalStore.list(), 8).map((t) => t.tag);
+  }, [open]);
 
   // 모드 변경 / open 시 폼 초기화.
   useEffect(() => {
@@ -50,9 +58,11 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
     if (mode.kind === 'edit') {
       setBody(mode.initialBody);
       setMood(mode.initialMood);
+      setManualTags(mode.initialTags ?? []);
     } else {
       setBody('');
       setMood(undefined);
+      setManualTags([]);
     }
   }, [mode, open]);
 
@@ -85,11 +95,16 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
       notify.warning('한 줄이라도 적어주세요', { duration: 1500 });
       return;
     }
+    // 본문 #태그 자동 추출 + 수동 태그 합치기
+    const bodyTags = extractTagsFromBody(trimmed);
+    const finalTags = mergeTags(bodyTags, manualTags);
+    const tagsToSave = finalTags.length > 0 ? finalTags : undefined;
+
     if (mode.kind === 'edit') {
-      journalStore.update(mode.id, { body: trimmed, mood });
+      journalStore.update(mode.id, { body: trimmed, mood, tags: tagsToSave });
       notify.success('수정됐어요', { duration: 1500 });
     } else {
-      journalStore.add({ body: trimmed, mood });
+      journalStore.add({ body: trimmed, mood, tags: tagsToSave });
       notify.success('일기 저장됐어요', { duration: 1500 });
     }
     onClose();
@@ -142,6 +157,13 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
               기분
             </span>
             <MoodPicker value={mood} onChange={setMood} />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+              태그
+            </span>
+            <TagInput value={manualTags} onChange={setManualTags} suggestions={suggestions} />
           </div>
         </div>
 

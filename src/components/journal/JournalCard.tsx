@@ -121,14 +121,12 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
           <p
             className={cn(
               'font-serif text-[15.5px] text-foreground whitespace-pre-wrap line-clamp-7',
-              // drop cap (첫 글자) — 책 챕터 시작 느낌
               'first-letter:text-[2.4em] first-letter:font-semibold first-letter:float-left',
               'first-letter:mr-2 first-letter:mt-1 first-letter:leading-[0.85]',
               'first-letter:text-foreground',
             )}
             style={{
               lineHeight: '1.875rem',
-              // 줄친 노트 배경 — line-height 정확히 매칭 (Penzu 패턴)
               backgroundImage: `repeating-linear-gradient(
                 to bottom,
                 transparent 0,
@@ -140,6 +138,21 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
           >
             {entry.body}
           </p>
+
+          {/* 태그 칩 (있을 때만) */}
+          {entry.tags && entry.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1">
+              {entry.tags.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-0.5 px-2 h-5 rounded text-[10.5px] font-medium bg-accent/60 text-muted-foreground"
+                >
+                  <span className="text-muted-foreground/70">#</span>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </article>
