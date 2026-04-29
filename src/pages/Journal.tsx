@@ -26,6 +26,7 @@ import { JournalEditor } from '@/components/journal/JournalEditor';
 import { JournalEmpty } from '@/components/journal/JournalEmpty';
 import { TodayCard } from '@/components/journal/TodayCard';
 import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
+import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
@@ -47,20 +48,22 @@ const Journal = () => {
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null);
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeDate, setActiveDate] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // 자주 쓴 태그 5개.
   const topTags = useMemo(() => getTopTags(allEntries, 5), [allEntries]);
 
-  // 검색 + 태그 필터 동시 적용.
+  // 검색 + 태그 + 날짜 필터 동시 적용.
   const filteredEntries = useMemo(() => {
     const q = query.trim().toLowerCase();
     return allEntries.filter((e) => {
       if (q.length > 0 && !e.body.toLowerCase().includes(q)) return false;
       if (activeTag && !(e.tags ?? []).includes(activeTag)) return false;
+      if (activeDate && e.date !== activeDate) return false;
       return true;
     });
-  }, [allEntries, query, activeTag]);
+  }, [allEntries, query, activeTag, activeDate]);
 
   // 월 그룹핑 (필터 후).
   const grouped = useMemo(() => {
@@ -122,7 +125,7 @@ const Journal = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8 max-w-3xl w-full mx-auto">
+      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8 max-w-5xl w-full mx-auto">
         <header className="mb-5 sm:mb-6 flex flex-wrap items-end justify-between gap-3 pb-3 sm:pb-4 border-b-2 border-[hsl(var(--hairline))]">
           <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
             <button
@@ -195,7 +198,8 @@ const Journal = () => {
         {isEmpty ? (
           <JournalEmpty onAdd={() => setEditorMode({ kind: 'create' })} />
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6">
+          <div className="flex flex-col gap-6 min-w-0">
             {/* Today 카드 + On This Day — 검색 중이 아닐 때만 노출 */}
             {query.trim().length === 0 && (
               <>
@@ -291,6 +295,25 @@ const Journal = () => {
                 </div>
               </section>
             ))}
+          </div>
+          {/* 우측 사이드 — lg 이상에서만 노출 */}
+          <aside className="hidden lg:flex flex-col gap-4 sticky top-8 self-start">
+            <JournalCalendarMini
+              entries={allEntries}
+              selectedDate={activeDate}
+              onDayClick={(d) => setActiveDate(activeDate === d ? null : d)}
+            />
+            {activeDate && (
+              <button
+                type="button"
+                onClick={() => setActiveDate(null)}
+                className="inline-flex items-center justify-center gap-1 px-2 h-7 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <X className="h-3 w-3" />
+                날짜 필터 해제
+              </button>
+            )}
+          </aside>
           </div>
         )}
       </main>
