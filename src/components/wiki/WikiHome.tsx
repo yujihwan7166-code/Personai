@@ -59,11 +59,10 @@ export function WikiHome({
     }
     // root = 다른 메인이 참조 안 한 메인 (= 가장 큰 우산)
     const rootMocs = mocs.filter((m) => !subMocIds.has(m.id));
-    // 카드 그리드용 — 'index' 타입(대문/자기소개)은 자기 카드 X,
-    // 그 인덱스가 참조하는 sub-mocs 가 카드로 떠야 자연. 인덱스만 root 인 경우
-    // 인덱스 제외 + 모든 moc 노출, 아니면 기존 rootMocs 유지.
-    const onlyIndexRoot = rootMocs.length > 0 && rootMocs.every((m) => m.type === 'index');
-    const mainCards = (onlyIndexRoot ? mocs.filter((m) => m.type !== 'index') : rootMocs).slice(0, 8);
+    // 카드 그리드용 — 모든 메인(index 제외)을 평등하게 노출.
+    // 인물 위키처럼 메인끼리 서로 cross-ref 해서 root 가 비거나, index 만 root
+    // 인 경우에도 메인 6-8개가 한눈에 보이도록.
+    const mainCards = mocs.filter((m) => m.type !== 'index').slice(0, 8);
     // 각 root 의 즉각 하위 (1-hop): 본문 [[링크]] 중 존재하는 페이지들
     const rootMocChildren = new Map<string, { mocs: WikiPage[]; pages: WikiPage[] }>();
     for (const m of rootMocs) {
@@ -168,7 +167,10 @@ export function WikiHome({
       }
     }
 
-    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots };
+    // 위키 정체성 표시용 — 'index' 페이지가 있으면 그 title 을 헤더에 활용
+    const indexPage = pages.find((p) => p.type === 'index');
+
+    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots, indexPage };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -230,7 +232,7 @@ export function WikiHome({
             className="text-[34px] leading-none font-bold text-foreground"
             style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.01em' }}
           >
-            대문
+            {stats.indexPage ? stats.indexPage.title : '대문'}
           </h1>
           <p className="text-[12px] text-muted-foreground mt-2">
             메인 문서 · 최근 · 초안 · 연결 · 만들 · 잠자 — 한눈에.
