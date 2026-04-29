@@ -121,8 +121,20 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
             onChange={(e) => setBody(e.target.value)}
             placeholder={placeholder}
             autoFocus
-            rows={6}
-            className="w-full px-3 py-2.5 text-[14px] leading-relaxed rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap"
+            rows={7}
+            className="w-full px-4 py-3 font-serif text-[15px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap"
+            style={{
+              lineHeight: '1.875rem',
+              // 줄친 노트 배경 (textarea도 동일 톤)
+              backgroundImage: `repeating-linear-gradient(
+                to bottom,
+                transparent 0,
+                transparent calc(1.875rem - 1px),
+                hsl(var(--hairline) / 0.5) calc(1.875rem - 1px),
+                hsl(var(--hairline) / 0.5) 1.875rem
+              )`,
+              backgroundPositionY: '0.75rem',
+            }}
           />
 
           <div className="flex items-center justify-between gap-3">

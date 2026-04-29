@@ -236,7 +236,7 @@ const Memos = () => {
               ) : (
                 <ul className="px-2 py-1">
                   {filteredMemos.map((m) => (
-                    <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} />
+                    <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} loose />
                   ))}
                 </ul>
               )}
@@ -566,7 +566,7 @@ function FolderOption({ label, active, onClick }: { label: string; active: boole
 // ──────────────────────────────────────────
 function MemoRow({ memo, active, onClick, loose = false, bare = false }: {
   memo: Memo; active: boolean; onClick: () => void;
-  loose?: boolean;     // 미분류 — 작은 muted 점 prefix (폴더 밖 표식)
+  loose?: boolean;     // 최상위 미분류 — 폴더와 같은 크기(h-9 14px) + 작은 muted 점 prefix
   bare?: boolean;      // li 래퍼 없이 (FolderGroup 트리 안에서 li 직접 제공)
 }) {
   const title = memoTitle(memo);
@@ -574,7 +574,8 @@ function MemoRow({ memo, active, onClick, loose = false, bare = false }: {
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left h-8 px-3 rounded-md flex items-center gap-2 transition-colors',
+        'w-full text-left rounded-md flex items-center gap-2 transition-colors',
+        loose ? 'h-9 px-3' : 'h-8 px-3',
         active
           ? 'bg-primary/12 text-primary'
           : 'text-foreground hover:bg-accent',
@@ -587,19 +588,36 @@ function MemoRow({ memo, active, onClick, loose = false, bare = false }: {
         />
       )}
       {memo.pinned && (
-        <Pin className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
+        <Pin
+          className={cn(
+            'text-amber-500 shrink-0',
+            loose ? 'w-3.5 h-3.5' : 'w-3 h-3',
+          )}
+          fill="currentColor"
+          strokeWidth={1.5}
+        />
       )}
       <span className={cn(
-        'text-[13px] truncate flex-1',
+        'truncate flex-1',
+        loose ? 'text-[14px]' : 'text-[13px]',
         active && 'font-medium',
         !memo.body.trim() && 'text-muted-foreground italic',
       )}>
         {title}
       </span>
       {memo.wikiPageId && (
-        <ExternalLink className="w-3 h-3 text-primary/70 shrink-0" strokeWidth={1.75} />
+        <ExternalLink
+          className={cn(
+            'text-primary/70 shrink-0',
+            loose ? 'w-3.5 h-3.5' : 'w-3 h-3',
+          )}
+          strokeWidth={1.75}
+        />
       )}
-      <span className="text-[11px] tabular-nums text-muted-foreground/80 shrink-0">
+      <span className={cn(
+        'tabular-nums text-muted-foreground/80 shrink-0',
+        loose ? 'text-[12px]' : 'text-[11px]',
+      )}>
         {memoTimeLabel(memo.updatedAt)}
       </span>
     </button>

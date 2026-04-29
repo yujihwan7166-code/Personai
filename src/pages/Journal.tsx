@@ -82,7 +82,12 @@ const Journal = () => {
               <ChevronLeft className="h-3 w-3" />
               <span>메인</span>
             </button>
-            <h1 className="text-[22px] sm:text-[26px] font-semibold tracking-tight leading-none">일기</h1>
+            <h1
+              className="text-[24px] sm:text-[30px] font-semibold tracking-tight leading-none"
+              style={{ fontFamily: 'var(--font-display, ui-serif, Georgia, serif)' }}
+            >
+              일기
+            </h1>
           </div>
           <button
             type="button"
@@ -100,14 +105,17 @@ const Journal = () => {
           <div className="flex flex-col gap-8">
             {grouped.map((group) => (
               <section key={group.key} className="flex flex-col gap-3">
-                {/* Bear 패턴 — eyebrow 보다 강조된 월 헤더 */}
+                {/* 책 챕터 헤더 — Bear + Stoic 패턴 */}
                 <div className="flex items-baseline gap-3 mb-1 px-1">
-                  <h2 className="text-[16px] font-semibold tracking-tight text-foreground/80">
+                  <h2
+                    className="text-[18px] font-semibold tracking-tight text-foreground/85"
+                    style={{ fontFamily: 'var(--font-display, ui-serif, Georgia, serif)' }}
+                  >
                     {group.label}
                   </h2>
                   <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
                   <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground/70">
-                    {group.items.length}
+                    {group.items.length} 페이지
                   </span>
                 </div>
                 <div className="flex flex-col gap-3.5">
