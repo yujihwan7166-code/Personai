@@ -178,11 +178,20 @@ const Memos = () => {
           </button>
           <h1 className="text-[15px] font-semibold text-foreground tracking-tight flex-1">메모</h1>
           <button
+            onClick={() => setCreatingFolder(true)}
+            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            title="새 폴더"
+          >
+            <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
+            폴더
+          </button>
+          <button
             onClick={() => handleNewMemo()}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors"
+            title="새 메모"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-            새 메모
+            메모
           </button>
         </div>
 
@@ -290,37 +299,28 @@ const Memos = () => {
                 )
               )}
 
-              {/* 새 폴더 + 태그 — 하단 작은 도구막대 */}
-              <div className="border-t border-[hsl(var(--hairline))] mt-2">
-                <button
-                  onClick={() => setCreatingFolder(true)}
-                  className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                >
-                  <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  새 폴더
-                </button>
-                {tags.length > 0 && (
-                  <div className="px-3.5 py-2.5 border-t border-[hsl(var(--hairline))]">
-                    <div className="flex flex-wrap gap-1.5">
-                      {tags.slice(0, 12).map(([tag, n]) => (
-                        <button
-                          key={tag}
-                          onClick={() => { setActiveTag(activeTag === tag ? undefined : tag); }}
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] transition-colors',
-                            activeTag === tag
-                              ? 'bg-primary/15 text-primary font-medium'
-                              : 'bg-accent/60 text-muted-foreground hover:bg-accent hover:text-foreground',
-                          )}
-                        >
-                          <span>#{tag}</span>
-                          <span className="text-[10.5px] tabular-nums opacity-70">{n}</span>
-                        </button>
-                      ))}
-                    </div>
+              {/* 태그 — 하단 칩 */}
+              {tags.length > 0 && (
+                <div className="px-3.5 py-3 mt-2 border-t border-[hsl(var(--hairline))]">
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.slice(0, 12).map(([tag, n]) => (
+                      <button
+                        key={tag}
+                        onClick={() => { setActiveTag(activeTag === tag ? undefined : tag); }}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] transition-colors',
+                          activeTag === tag
+                            ? 'bg-primary/15 text-primary font-medium'
+                            : 'bg-accent/60 text-muted-foreground hover:bg-accent hover:text-foreground',
+                        )}
+                      >
+                        <span>#{tag}</span>
+                        <span className="text-[10.5px] tabular-nums opacity-70">{n}</span>
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>
