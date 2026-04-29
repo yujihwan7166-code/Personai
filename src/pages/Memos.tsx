@@ -169,22 +169,22 @@ const Memos = () => {
       {/* 좌 사이드 */}
       <aside className={cn(
         'shrink-0 border-r border-[hsl(var(--hairline))] bg-card flex flex-col',
-        isMobile ? 'w-full' : 'w-[300px]',
+        isMobile ? 'w-full' : 'w-[320px]',
         !showSidebar && 'hidden',
       )}>
         {/* 상단 — 뒤로 + 제목 + 새 메모 */}
-        <div className="shrink-0 px-3 py-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
+        <div className="shrink-0 px-3.5 py-3 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
           <button
             onClick={() => navigate('/')}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             aria-label="뒤로"
           >
-            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
-          <h1 className="text-[13px] font-bold text-foreground tracking-tight flex-1">✏️ 메모</h1>
+          <h1 className="text-[15px] font-semibold text-foreground tracking-tight flex-1">메모</h1>
           <button
             onClick={() => handleNewMemo()}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11.5px] font-medium text-primary hover:bg-primary/10 transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             새 메모
@@ -192,18 +192,18 @@ const Memos = () => {
         </div>
 
         {/* 검색 */}
-        <div className="shrink-0 px-3 py-2 border-b border-[hsl(var(--hairline))]">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-accent/40">
-            <Search className="w-3 h-3 text-muted-foreground" strokeWidth={1.75} />
+        <div className="shrink-0 px-3.5 py-2.5 border-b border-[hsl(var(--hairline))]">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/50">
+            <Search className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="검색..."
-              className="flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/70 outline-none"
+              className="flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
             />
             {query && (
               <button onClick={() => setQuery('')} className="text-muted-foreground hover:text-foreground">
-                <X className="w-3 h-3" strokeWidth={1.5} />
+                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
               </button>
             )}
           </div>
@@ -231,7 +231,7 @@ const Memos = () => {
                 )}
               </SectionHeader>
               {filteredMemos.length === 0 ? (
-                <p className="px-4 py-6 text-center text-[11.5px] text-muted-foreground">결과 없음</p>
+                <p className="px-4 py-8 text-center text-[13px] text-muted-foreground">결과 없음</p>
               ) : (
                 <ul>
                   {filteredMemos.map((m) => (
@@ -260,11 +260,11 @@ const Memos = () => {
                   <span>폴더</span>
                   <button
                     onClick={() => setCreatingFolder(true)}
-                    className="ml-auto text-muted-foreground hover:text-primary transition-colors"
+                    className="ml-auto w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                     title="새 폴더"
                     aria-label="새 폴더"
                   >
-                    <FolderPlus className="w-3 h-3" strokeWidth={1.75} />
+                    <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
                   </button>
                 </SectionHeader>
                 <div className="px-2 pb-1 space-y-0.5">
@@ -303,7 +303,7 @@ const Memos = () => {
                     />
                   )}
                   {folders.length === 0 && !creatingFolder && (
-                    <p className="text-[10.5px] text-muted-foreground/70 px-2 py-1">+ 버튼으로 폴더 만들기</p>
+                    <p className="text-[12px] text-muted-foreground px-2.5 py-1.5">+ 버튼으로 폴더 만들기</p>
                   )}
                 </div>
               </div>
@@ -312,10 +312,10 @@ const Memos = () => {
               <div>
                 <SectionHeader>
                   <span>미분류</span>
-                  <span className="ml-auto text-[10px] font-mono text-muted-foreground/70">{unfiledMemos.length}</span>
+                  <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">{unfiledMemos.length}</span>
                 </SectionHeader>
                 {unfiledMemos.length === 0 ? (
-                  <p className="px-4 py-3 text-center text-[10.5px] text-muted-foreground/70">
+                  <p className="px-4 py-4 text-center text-[12px] text-muted-foreground">
                     {memos.length === 0 ? '비어있음 — 새 메모를' : '전부 폴더에 있어요'}
                   </p>
                 ) : (
@@ -329,22 +329,22 @@ const Memos = () => {
 
               {/* 태그 칩 */}
               {tags.length > 0 && (
-                <div className="px-3 py-2 border-t border-[hsl(var(--hairline))]">
-                  <p className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80 mb-1.5">태그</p>
-                  <div className="flex flex-wrap gap-1">
+                <div className="px-3.5 pt-3 pb-4 mt-2 border-t border-[hsl(var(--hairline))]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">태그</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {tags.slice(0, 12).map(([tag, n]) => (
                       <button
                         key={tag}
                         onClick={() => { setActiveTag(activeTag === tag ? undefined : tag); }}
                         className={cn(
-                          'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10.5px] transition-colors',
+                          'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] transition-colors',
                           activeTag === tag
                             ? 'bg-primary/15 text-primary font-medium'
-                            : 'bg-accent/50 text-muted-foreground hover:bg-accent hover:text-foreground',
+                            : 'bg-accent/60 text-muted-foreground hover:bg-accent hover:text-foreground',
                         )}
                       >
-                        #{tag}
-                        <span className="text-[9px] opacity-60">{n}</span>
+                        <span>#{tag}</span>
+                        <span className="text-[10.5px] tabular-nums opacity-70">{n}</span>
                       </button>
                     ))}
                   </div>
@@ -395,10 +395,8 @@ export default Memos;
 // ──────────────────────────────────────────
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-3 pt-3 pb-1.5 flex items-center gap-1.5">
-      <p className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80">
-        {children}
-      </p>
+    <div className="px-3.5 pt-4 pb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      {children}
     </div>
   );
 }
@@ -426,8 +424,8 @@ function FolderGroup({
 
   if (renaming) {
     return (
-      <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-accent/40">
-        <span className="text-[11px]">{folder.emoji ?? '📁'}</span>
+      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/60">
+        <span className="text-[14px]">{folder.emoji ?? '📁'}</span>
         <input
           autoFocus
           value={draft}
@@ -437,7 +435,7 @@ function FolderGroup({
             if (e.key === 'Escape') onFinishRename(folder.name);
           }}
           onBlur={() => onFinishRename(draft)}
-          className="flex-1 bg-transparent text-[12px] text-foreground outline-none"
+          className="flex-1 bg-transparent text-[13px] text-foreground outline-none"
         />
       </div>
     );
@@ -446,53 +444,55 @@ function FolderGroup({
   return (
     <div>
       <div
-        className="group flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer text-foreground/85 hover:bg-accent transition-colors"
+        className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-md cursor-pointer text-foreground hover:bg-accent transition-colors"
         onClick={onToggle}
         onDoubleClick={onStartRename}
       >
         <ChevronRight
           className={cn(
-            'w-3 h-3 text-muted-foreground transition-transform shrink-0',
+            'w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0',
             expanded && 'rotate-90',
           )}
           strokeWidth={2}
         />
-        <span className="text-[11px]">{folder.emoji ?? '📁'}</span>
-        <span className="flex-1 text-[12px] truncate">{folder.name}</span>
-        <span className="text-[10px] font-mono text-muted-foreground/80">{memos.length}</span>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onAddMemo(); }}
-          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
-          title="이 폴더에 새 메모"
-        >
-          <Plus className="w-3 h-3" strokeWidth={2} />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onStartRename(); }}
-          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
-          title="이름 바꾸기"
-        >
-          <MoreHorizontal className="w-3 h-3" strokeWidth={1.75} />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-          title="삭제"
-        >
-          <X className="w-3 h-3" strokeWidth={1.75} />
-        </button>
+        <span className="text-[14px] leading-none">{folder.emoji ?? '📁'}</span>
+        <span className="flex-1 text-[13px] font-medium truncate">{folder.name}</span>
+        <span className="text-[11px] tabular-nums text-muted-foreground group-hover:hidden">{memos.length}</span>
+        <div className="hidden group-hover:flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onAddMemo(); }}
+            className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+            title="이 폴더에 새 메모"
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onStartRename(); }}
+            className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:bg-background hover:text-foreground transition-colors"
+            title="이름 바꾸기"
+          >
+            <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+            title="삭제"
+          >
+            <X className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </button>
+        </div>
       </div>
 
       {/* 펼친 상태 — 안 메모 인라인 (들여쓰기) */}
       {expanded && (
-        <div className="ml-3 border-l border-[hsl(var(--hairline))]/70 pl-1 my-0.5">
+        <div className="ml-[14px] border-l border-[hsl(var(--hairline))] pl-2 my-1">
           {memos.length === 0 ? (
-            <p className="px-2 py-1.5 text-[10.5px] text-muted-foreground/70 italic">비어있음</p>
+            <p className="px-2 py-2 text-[12px] text-muted-foreground italic">비어있음</p>
           ) : (
-            <ul>
+            <ul className="space-y-0.5">
               {memos.map((m) => (
                 <MemoRow
                   key={m.id}
@@ -513,8 +513,8 @@ function FolderGroup({
 function NewFolderInput({ onSubmit, onCancel }: { onSubmit: (name: string) => void; onCancel: () => void }) {
   const [name, setName] = useState('');
   return (
-    <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-accent/40">
-      <span className="text-[11px]">📁</span>
+    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/60">
+      <span className="text-[14px] leading-none">📁</span>
       <input
         autoFocus
         value={name}
@@ -525,7 +525,7 @@ function NewFolderInput({ onSubmit, onCancel }: { onSubmit: (name: string) => vo
         }}
         onBlur={() => name.trim() ? onSubmit(name) : onCancel()}
         placeholder="폴더 이름"
-        className="flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/60 outline-none"
+        className="flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
       />
     </div>
   );
@@ -545,14 +545,14 @@ function MoveToFolderModal({ memo, folders, onClose }: { memo: Memo; folders: Me
         onClick={(e) => e.stopPropagation()}
       >
         <div className="shrink-0 px-5 py-3.5 border-b border-[hsl(var(--hairline))] flex items-center justify-between">
-          <h3 className="text-[13.5px] font-bold text-foreground">폴더 이동</h3>
+          <h3 className="text-[14px] font-semibold text-foreground">폴더 이동</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="닫기">
             <X className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
         <div className="max-h-[50vh] overflow-y-auto py-1">
           <FolderOption
-            label="📥 미분류 (인박스)"
+            label="📥 미분류"
             active={!memo.folderId}
             onClick={() => handleMove(null)}
           />
@@ -576,12 +576,12 @@ function FolderOption({ label, active, onClick }: { label: string; active: boole
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-center gap-2 px-5 py-2 text-[12.5px] text-left hover:bg-accent transition-colors',
+        'w-full flex items-center gap-2 px-5 py-2.5 text-[13px] text-left hover:bg-accent transition-colors',
         active && 'bg-primary/10 text-primary font-medium',
       )}
     >
       <span className="flex-1">{label}</span>
-      {active && <CheckIcon className="w-3.5 h-3.5" strokeWidth={2} />}
+      {active && <CheckIcon className="w-4 h-4" strokeWidth={2} />}
     </button>
   );
 }
@@ -591,34 +591,30 @@ function MemoRow({ memo, active, onClick, compact = false }: { memo: Memo; activ
   const title = memoTitle(memo);
   const preview = memoPreview(memo);
   const tags = extractMemoTags(memo);
-  // 라이프사이클 시각 — 오래 묵을수록 흐려짐 (인박스 zero 신호)
-  const ageDays = (Date.now() - memo.updatedAt) / (24 * 3600 * 1000);
-  const stale = !memo.pinned && ageDays > 7
-    ? (ageDays > 30 ? 'opacity-50' : ageDays > 14 ? 'opacity-65' : 'opacity-80')
-    : '';
 
-  // compact = 폴더 안 들여쓰기 버전 — 한 줄, 작게
+  // compact = 폴더 안 들여쓰기 버전 — 한 줄
   if (compact) {
     return (
       <li>
         <button
           onClick={onClick}
           className={cn(
-            'w-full text-left px-2 py-1 rounded transition-colors flex items-center gap-1.5',
-            active ? 'bg-primary/12 text-primary' : 'hover:bg-accent/60',
-            stale && !active,
+            'w-full text-left px-2 py-1.5 rounded-md transition-colors flex items-center gap-1.5',
+            active
+              ? 'bg-primary/15 text-primary'
+              : 'text-foreground hover:bg-accent',
           )}
         >
-          {memo.pinned && <Pin className="w-2.5 h-2.5 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />}
+          {memo.pinned && <Pin className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />}
           <span className={cn(
-            'text-[11.5px] truncate flex-1',
-            active ? 'font-medium' : 'text-foreground/85',
+            'text-[12.5px] truncate flex-1',
+            active && 'font-medium',
             !memo.body.trim() && 'text-muted-foreground italic',
           )}>
             {title}
           </span>
           {memo.wikiPageId && (
-            <ExternalLink className="w-2.5 h-2.5 text-primary/60 shrink-0" strokeWidth={1.75} />
+            <ExternalLink className="w-3 h-3 text-primary/70 shrink-0" strokeWidth={1.75} />
           )}
         </button>
       </li>
@@ -630,30 +626,30 @@ function MemoRow({ memo, active, onClick, compact = false }: { memo: Memo; activ
       <button
         onClick={onClick}
         className={cn(
-          'w-full text-left px-3 py-2.5 border-b border-[hsl(var(--hairline))]/60 transition-colors',
-          active ? 'bg-primary/8' : 'hover:bg-accent/40',
-          stale,
+          'w-full text-left px-3.5 py-2.5 border-b border-[hsl(var(--hairline))]/60 transition-colors',
+          active ? 'bg-primary/10' : 'hover:bg-accent',
         )}
       >
-        <div className="flex items-start gap-1.5">
-          {memo.pinned && <Pin className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" fill="currentColor" strokeWidth={1.5} />}
+        <div className="flex items-center gap-1.5">
+          {memo.pinned && <Pin className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />}
           <span className={cn(
-            'text-[12.5px] font-medium text-foreground line-clamp-1 flex-1',
+            'text-[13.5px] font-medium line-clamp-1 flex-1',
+            active ? 'text-primary' : 'text-foreground',
             !memo.body.trim() && 'text-muted-foreground italic',
           )}>
             {title}
           </span>
         </div>
         {preview && (
-          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+          <p className="text-[12px] text-muted-foreground line-clamp-1 mt-1 leading-relaxed">
             {preview}
           </p>
         )}
-        <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground/80">
-          <span>{memoTimeLabel(memo.updatedAt)}</span>
+        <div className="flex items-center gap-2 mt-1.5 text-[11px] text-muted-foreground">
+          <span className="tabular-nums">{memoTimeLabel(memo.updatedAt)}</span>
           {memo.wikiPageId && (
-            <span className="inline-flex items-center gap-0.5 text-primary/70">
-              <ExternalLink className="w-2.5 h-2.5" strokeWidth={1.75} />
+            <span className="inline-flex items-center gap-0.5 text-primary/80">
+              <ExternalLink className="w-3 h-3" strokeWidth={1.75} />
               위키
             </span>
           )}
@@ -709,21 +705,21 @@ function MemoEditor({
   return (
     <>
       {/* 상단 액션바 */}
-      <div className="shrink-0 px-6 py-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
+      <div className="shrink-0 px-6 py-3 border-b border-[hsl(var(--hairline))] flex items-center gap-1.5">
         {onBackToList && (
           <button
             onClick={onBackToList}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             aria-label="목록"
             title="목록으로"
           >
-            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
         )}
         <button
           onClick={onPin}
           className={cn(
-            'w-7 h-7 rounded-md flex items-center justify-center transition-colors',
+            'w-8 h-8 rounded-md flex items-center justify-center transition-colors',
             memo.pinned
               ? 'text-amber-500 hover:bg-amber-500/10'
               : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -731,11 +727,11 @@ function MemoEditor({
           aria-label={memo.pinned ? '핀 해제' : '핀 고정'}
           title={memo.pinned ? '핀 해제' : '핀 고정'}
         >
-          <Pin className="w-3.5 h-3.5" fill={memo.pinned ? 'currentColor' : 'none'} strokeWidth={1.75} />
+          <Pin className="w-4 h-4" fill={memo.pinned ? 'currentColor' : 'none'} strokeWidth={1.75} />
         </button>
         <button
           onClick={onMoveFolder}
-          className="inline-flex items-center gap-1 px-1.5 h-7 rounded-md text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
           title="폴더 이동"
         >
           <Folder className="w-3.5 h-3.5" strokeWidth={1.75} />
@@ -745,7 +741,7 @@ function MemoEditor({
         {memo.wikiPageId ? (
           <button
             onClick={() => navigate('/wiki')}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-medium text-primary hover:bg-primary/10 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
             위키 페이지 열기
@@ -754,7 +750,7 @@ function MemoEditor({
           <button
             onClick={onSendToWiki}
             disabled={!draft.trim()}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11.5px] font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.75} />
             위키로 보내기
@@ -762,11 +758,11 @@ function MemoEditor({
         )}
         <button
           onClick={onDelete}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
           aria-label="삭제"
           title="삭제 (5초 안 되돌리기)"
         >
-          <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+          <Trash2 className="w-4 h-4" strokeWidth={1.75} />
         </button>
       </div>
 
@@ -776,20 +772,20 @@ function MemoEditor({
         onChange={(e) => setDraft(e.target.value)}
         autoFocus
         placeholder="첫 줄이 제목이에요. 여러 줄 쓰면 본문..."
-        className="flex-1 w-full px-6 sm:px-10 py-6 bg-transparent text-[16px] leading-[1.72] text-foreground placeholder:text-muted-foreground/50 outline-none resize-none"
+        className="flex-1 w-full px-6 sm:px-10 py-6 bg-transparent text-[16px] leading-[1.72] text-foreground placeholder:text-muted-foreground outline-none resize-none"
         style={{ fontFamily: 'var(--wiki-font-body, system-ui)' }}
       />
 
       {/* 하단 메타 */}
-      <div className="shrink-0 px-6 sm:px-10 py-2 border-t border-[hsl(var(--hairline))] flex items-center gap-3 text-[10.5px] text-muted-foreground">
-        <span>{charCount.toLocaleString()}자</span>
-        <span className="opacity-50">·</span>
-        <span>{memoTimeLabel(memo.updatedAt)} 수정</span>
+      <div className="shrink-0 px-6 sm:px-10 py-2.5 border-t border-[hsl(var(--hairline))] flex items-center gap-3 text-[12px] text-muted-foreground">
+        <span className="tabular-nums">{charCount.toLocaleString()}자</span>
+        <span className="text-border">·</span>
+        <span className="tabular-nums">{memoTimeLabel(memo.updatedAt)} 수정</span>
         {tags.length > 0 && (
           <>
-            <span className="opacity-50">·</span>
-            <span className="flex items-center gap-1 flex-wrap">
-              <Tag className="w-3 h-3" strokeWidth={1.75} />
+            <span className="text-border">·</span>
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <Tag className="w-3.5 h-3.5" strokeWidth={1.75} />
               {tags.map((t) => (
                 <button
                   key={t}
@@ -812,16 +808,16 @@ function EmptyState({ onNew }: { onNew: () => void }) {
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center">
-        <div className="text-5xl mb-4">✏️</div>
-        <p className="text-[15px] text-foreground mb-1">지금 머리에 떠오른 한 가지를 적어보세요.</p>
-        <p className="text-[12px] text-muted-foreground mb-6">
+        <div className="text-5xl mb-5">✏️</div>
+        <p className="text-[16px] font-medium text-foreground mb-2">지금 머리에 떠오른 한 가지를 적어보세요.</p>
+        <p className="text-[13px] text-muted-foreground mb-7">
           여기 적은 메모는 나중에 한 클릭으로 위키로 보낼 수 있어요.
         </p>
         <button
           onClick={onNew}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-primary text-primary-foreground text-[12.5px] font-medium hover:opacity-90"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:opacity-90"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-4 h-4" />
           새 메모 시작
         </button>
       </div>
@@ -883,8 +879,8 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
       >
         <div className="shrink-0 px-5 py-4 border-b border-[hsl(var(--hairline))] flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground mb-1">위키로 보내기</p>
-            <h3 className="text-[15px] font-bold text-foreground truncate">{title}</h3>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">위키로 보내기</p>
+            <h3 className="text-[16px] font-semibold text-foreground truncate">{title}</h3>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="닫기">
             <X className="w-4 h-4" strokeWidth={1.5} />
@@ -893,8 +889,8 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
 
         <div className="px-5 py-4 space-y-4">
           <div>
-            <label className="text-[11px] font-bold text-foreground/85 block mb-2">어떤 type 으로?</label>
-            <div className="grid grid-cols-2 gap-1.5">
+            <label className="text-[12px] font-semibold text-foreground block mb-2.5">어떤 type 으로?</label>
+            <div className="grid grid-cols-2 gap-2">
               {USER_FACING_TYPES.filter((t) => t !== 'index').map((t) => {
                 const meta = WIKI_TYPE_META[t];
                 const active = wikiType === t;
@@ -903,10 +899,10 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
                     key={t}
                     onClick={() => setWikiType(t)}
                     className={cn(
-                      'inline-flex items-center gap-1.5 px-2.5 py-2 rounded-md border text-[12px] transition-colors',
+                      'inline-flex items-center gap-2 px-3 py-2.5 rounded-md border text-[13px] transition-colors',
                       active
                         ? 'bg-primary/10 text-primary border-primary/40'
-                        : 'bg-card text-foreground/80 border-[hsl(var(--hairline))] hover:bg-accent',
+                        : 'bg-card text-foreground border-[hsl(var(--hairline))] hover:bg-accent',
                     )}
                   >
                     <span>{meta.icon}</span>
@@ -920,11 +916,11 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
         </div>
 
         <div className="shrink-0 px-5 py-3 border-t border-[hsl(var(--hairline))] bg-accent/20 flex items-center justify-between gap-3">
-          <button onClick={onClose} className="text-[12px] text-muted-foreground hover:text-foreground">취소</button>
+          <button onClick={onClose} className="text-[13px] text-muted-foreground hover:text-foreground">취소</button>
           <button
             onClick={submit}
             disabled={busy || !memo.body.trim()}
-            className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-md bg-primary text-primary-foreground text-[12.5px] font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.75} />
             보내기
