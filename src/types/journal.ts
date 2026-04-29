@@ -27,6 +27,15 @@ export const MOOD_LABELS: Record<Mood, string> = {
   5: '아주 좋음',
 };
 
+/** mood 별 컬러 점 — JournalCard 좌측 날짜 컬럼에 작은 dot 으로 노출. */
+export const MOOD_TINT: Record<Mood, string> = {
+  1: 'bg-sky-500',
+  2: 'bg-slate-400',
+  3: 'bg-zinc-400',
+  4: 'bg-emerald-500',
+  5: 'bg-amber-500',
+};
+
 /** 본문 형식 — v2 에서 도입. */
 export type BodyFormat = 'plain' | 'markdown';
 
