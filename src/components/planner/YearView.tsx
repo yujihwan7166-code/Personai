@@ -7,6 +7,7 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PlannerSection } from './PlannerSection';
 
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
@@ -31,14 +32,28 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
 
   const items = usePlannerRange(start, end);
 
-  // 이벤트/할일 있는 날짜 set ('YYYY-MM-DD').
-  const busyDays = useMemo(() => {
-    const set = new Set<string>();
+  // 이벤트/할일 카운트 (날짜별, '강도' 표현). Apple Cal 패턴: 1-2 = 옅음 / 3+ = 진함.
+  const busyCounts = useMemo(() => {
+    const map = new Map<string, number>();
     items.forEach((item) => {
       const startAt = item.data.startAt;
-      if (startAt) set.add(startAt.slice(0, 10));
+      if (!startAt) return;
+      const key = startAt.slice(0, 10);
+      map.set(key, (map.get(key) ?? 0) + 1);
     });
-    return set;
+    return map;
+  }, [items]);
+
+  // 월별 카운트 (12개월 라벨 옆 표시).
+  const monthCounts = useMemo(() => {
+    const arr: number[] = Array.from({ length: 12 }, () => 0);
+    items.forEach((item) => {
+      const startAt = item.data.startAt;
+      if (!startAt) return;
+      const m = new Date(startAt).getMonth();
+      arr[m] += 1;
+    });
+    return arr;
   }, [items]);
 
   const today = useMemo(() => {
@@ -59,12 +74,12 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
         iso: string;
         date: number | null;
         isToday: boolean;
-        isBusy: boolean;
+        busyCount: number;
       }> = [];
       for (let i = 0; i < totalCells; i++) {
         const dayNum = i - startOffset + 1;
         if (dayNum < 1 || dayNum > totalDays) {
-          cells.push({ iso: '', date: null, isToday: false, isBusy: false });
+          cells.push({ iso: '', date: null, isToday: false, busyCount: 0 });
         } else {
           const d = new Date(year, m, dayNum);
           d.setHours(0, 0, 0, 0);
@@ -73,7 +88,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             iso: d.toISOString(),
             date: dayNum,
             isToday: d.getTime() === today.getTime(),
-            isBusy: busyDays.has(dayKey),
+            busyCount: busyCounts.get(dayKey) ?? 0,
           });
         }
       }
@@ -86,7 +101,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
         isCurrentMonth: m === today.getMonth() && year === today.getFullYear(),
       };
     });
-  }, [year, today, busyDays]);
+  }, [year, today, busyCounts]);
 
   return (
     <PlannerSection label="년" count={`${year}`} className="h-full">
@@ -105,11 +120,14 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             )}
           >
             <header className="flex items-baseline justify-between mb-2">
-              <span className={cn(
-                'text-[14px] font-semibold tracking-tight text-foreground',
-              )}>
+              <span className="text-[14px] font-semibold tracking-tight text-foreground">
                 {mo.label}
               </span>
+              {monthCounts[mo.index] > 0 && (
+                <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground font-medium">
+                  {monthCounts[mo.index]}
+                </span>
+              )}
             </header>
             <div className="grid grid-cols-7 gap-px text-center mb-1">
               {DAYS_KO.map((d, i) => (
@@ -131,9 +149,8 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                 if (cell.date === null) {
                   return <span key={i} className="aspect-square" aria-hidden />;
                 }
-                return (
+                const cellEl = (
                   <span
-                    key={i}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (cell.iso) onDayClick?.(cell.iso);
@@ -146,14 +163,36 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                     )}
                   >
                     {cell.date}
-                    {cell.isBusy && !cell.isToday && (
+                    {cell.busyCount > 0 && !cell.isToday && (
                       <span
-                        className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[3px] w-[3px] rounded-full bg-foreground/60"
+                        className={cn(
+                          'absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full',
+                          // 강도 차등: 1-2 = 작고 옅음 / 3+ = 크고 진함
+                          cell.busyCount >= 3
+                            ? 'h-[4px] w-[4px] bg-foreground'
+                            : 'h-[3px] w-[3px] bg-foreground/60',
+                        )}
                         aria-hidden
                       />
                     )}
                   </span>
                 );
+
+                // busy 셀에만 Tooltip wrap (a11y + 정보 밀도).
+                if (cell.busyCount > 0) {
+                  const dateLabel = new Date(cell.iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+                  return (
+                    <Tooltip key={i} delayDuration={300}>
+                      <TooltipTrigger asChild>{cellEl}</TooltipTrigger>
+                      <TooltipContent side="top" align="center">
+                        <span className="text-[11.5px]">
+                          {dateLabel} · {cell.busyCount}개
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return <span key={i}>{cellEl}</span>;
               })}
             </div>
           </button>
