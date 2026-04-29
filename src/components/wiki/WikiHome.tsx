@@ -261,9 +261,6 @@ export function WikiHome({
           >
             {stats.indexPage ? stats.indexPage.title : '대문'}
           </h1>
-          <p className="text-[12px] text-muted-foreground mt-2">
-            메인 문서 · 최근 · 초안 · 연결 · 만들 · 잠자 — 한눈에.
-          </p>
         </div>
         <p className="text-[11px] text-muted-foreground pb-1 font-mono inline-flex items-center gap-2">
           <span><span className="font-bold text-foreground">{pages.length}</span><span className="text-muted-foreground/70"> pages</span></span>
@@ -779,24 +776,17 @@ function MainDocCard({
         'border-[hsl(var(--hairline))]',
       )}
     >
-      {/* 상단 — 작은 인디케이터만 */}
-      <div className="flex items-center gap-1 mb-2.5">
-        <span
-          className={cn(
-            'text-[14px] leading-none',
-            isRoot ? 'opacity-90' : 'opacity-50',
+      {/* 상단 — 즐겨찾기·하위 표시 있을 때만 (디폴트 📖 제거 → 제목이 주인공) */}
+      {(isFav || !isRoot) && (
+        <div className="flex items-center gap-1.5 mb-2">
+          {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />}
+          {!isRoot && (
+            <span className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+              하위
+            </span>
           )}
-          aria-hidden
-        >
-          📖
-        </span>
-        {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />}
-        {!isRoot && (
-          <span className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
-            하위
-          </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 제목 — 책 톤 */}
       <h3
