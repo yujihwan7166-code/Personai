@@ -1597,7 +1597,7 @@ export function MainModeTabs({
                           key={item.id}
                           type="button"
                           onClick={() => {
-                            // 마이위키 + 통합 플래너 + 메모 v1 구현 — 다른 도구는 아직 no-op.
+                            // v1 라우팅 = wiki / planner / memo / journal. 다른 도구는 아직 no-op.
                             if (item.id === 'wiki') {
                               setOpen(false);
                               navigate('/wiki');
@@ -1607,6 +1607,9 @@ export function MainModeTabs({
                             } else if (item.id === 'memo') {
                               setOpen(false);
                               navigate('/memos');
+                            } else if (item.id === 'journal') {
+                              setOpen(false);
+                              navigate('/journal');
                             }
                           }}
                           role="menuitem"

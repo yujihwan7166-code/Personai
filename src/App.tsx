@@ -16,6 +16,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Wiki = lazy(() => import("./pages/Wiki"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Memos = lazy(() => import("./pages/Memos"));
+const Journal = lazy(() => import("./pages/Journal"));
 
 function RouteFallback() {
   return <div className="min-h-screen bg-background" aria-hidden="true" />;
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/wiki" element={<Wiki />} />
               <Route path="/planner" element={<Planner />} />
               <Route path="/memos" element={<Memos />} />
+              <Route path="/journal" element={<Journal />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
