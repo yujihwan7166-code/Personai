@@ -301,9 +301,6 @@ const Planner = () => {
               {periodLabel}
             </span>
           </div>
-          <p className="hidden md:block text-[11px] text-muted-foreground font-mono uppercase tracking-[0.16em] font-medium">
-            {view === 'day' || view === 'week' ? 'n  ·  ' : ''}← → t  ·  d/w/m/y  ·  ⌘K
-          </p>
         </header>
 
         {isFullscreen ? (
