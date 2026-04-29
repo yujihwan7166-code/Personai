@@ -167,10 +167,37 @@ export function WikiHome({
       }
     }
 
+    // ── 역링크 (backlinks) — 어떤 페이지가 누구한테 링크되는지 ──
+    // body 위키링크 + refersTo/cites/inherits/similarTo 4종 모두 합산
+    const byId = new Map(pages.map((p) => [p.id, p]));
+    const backlinks = new Map<string, Set<string>>(); // targetId → linker pageIds
+
+    function addBacklink(targetId: string, linkerId: string) {
+      if (targetId === linkerId) return; // self-reference 무시
+      if (!backlinks.has(targetId)) backlinks.set(targetId, new Set());
+      backlinks.get(targetId)!.add(linkerId);
+    }
+
+    for (const p of pages) {
+      // 1) 본문 [[위키링크]] / ##wiki:id 링크
+      for (const link of extractWikiLinks(p.body)) {
+        let target: WikiPage | undefined;
+        if (byId.has(link)) target = byId.get(link);
+        else target = byTitle.get(link.toLowerCase());
+        if (target) addBacklink(target.id, p.id);
+      }
+      // 2) 명시적 4종 관계 (id 배열)
+      for (const arr of [p.refersTo, p.cites, p.inherits, p.similarTo]) {
+        for (const id of arr) {
+          if (byId.has(id)) addBacklink(id, p.id);
+        }
+      }
+    }
+
     // 위키 정체성 표시용 — 'index' 페이지가 있으면 그 title 을 헤더에 활용
     const indexPage = pages.find((p) => p.type === 'index');
 
-    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots, indexPage };
+    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots, backlinks, byId, indexPage };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -309,12 +336,14 @@ export function WikiHome({
         )}
       </section>
 
-      {/* 📄 일반 문서 — root 메인 카테고리 필터 (transitive) */}
+      {/* 📄 일반 문서 — root 메인 카테고리 필터 + 링크됨/고아 분리 */}
       {stats.regulars.length > 0 && (
         <RegularDocsSection
           pages={stats.regulars}
           rootMocs={stats.rootMocs}
           regularToRoots={stats.regularToRoots}
+          backlinks={stats.backlinks}
+          byId={stats.byId}
           onSelect={onSelect}
         />
       )}
@@ -454,19 +483,28 @@ function Section({
   );
 }
 
-/* ── 일반 문서 섹션 — 메인 문서별 카테고리 필터 + 리스트 ── */
-type MainFilter = 'all' | 'orphan' | string; // string = main page id
+/* ── 일반 문서 섹션 — 메인 문서 카테고리 + 링크됨 + 고아 ── */
+type MainFilter = 'all' | 'orphan' | 'linked' | string; // string = main page id
 
 function RegularDocsSection({
-  pages, rootMocs, regularToRoots, onSelect,
+  pages, rootMocs, regularToRoots, backlinks, byId, onSelect,
 }: {
   pages: WikiPage[];
   rootMocs: WikiPage[];
   regularToRoots: Map<string, WikiPage[]>;
+  backlinks: Map<string, Set<string>>;
+  byId: Map<string, WikiPage>;
   onSelect: (id: string) => void;
 }) {
   const [filter, setFilter] = useState<MainFilter>('all');
   const [expanded, setExpanded] = useState(false);
+
+  // 헬퍼 — MOC 자식 / 링크됨 / 고아
+  const isMocChild = (p: WikiPage) => (regularToRoots.get(p.id)?.length ?? 0) > 0;
+  const linkerIdsOf = (p: WikiPage): string[] => {
+    const s = backlinks.get(p.id);
+    return s ? [...s] : [];
+  };
 
   // root 메인만 칩으로 노출 (자식 일반 문서가 1개 이상)
   const rootsWithChildren = useMemo(() => {
@@ -481,17 +519,25 @@ function RegularDocsSection({
     return out.sort((a, b) => b.count - a.count || a.main.title.localeCompare(b.main.title));
   }, [rootMocs, pages, regularToRoots]);
 
+  // 링크됨 = MOC 자식 아님 + 다른 페이지로부터 링크 받음
+  const linkedCount = useMemo(() =>
+    pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length > 0).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pages, regularToRoots, backlinks]);
+
+  // 고아 = MOC 자식 아님 + 어떤 페이지로부터도 링크 받지 않음 (진짜 독립)
   const orphanCount = useMemo(() =>
-    pages.filter((p) => !regularToRoots.has(p.id) || regularToRoots.get(p.id)!.length === 0).length,
-    [pages, regularToRoots]);
+    pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length === 0).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pages, regularToRoots, backlinks]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return pages;
-    if (filter === 'orphan') {
-      return pages.filter((p) => !regularToRoots.has(p.id) || regularToRoots.get(p.id)!.length === 0);
-    }
+    if (filter === 'linked') return pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length > 0);
+    if (filter === 'orphan') return pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length === 0);
     return pages.filter((p) => regularToRoots.get(p.id)?.some((m) => m.id === filter));
-  }, [pages, filter, regularToRoots]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages, filter, regularToRoots, backlinks]);
 
   const COLLAPSED = 12;
   const visible = expanded ? filtered : filtered.slice(0, COLLAPSED);
@@ -499,7 +545,8 @@ function RegularDocsSection({
 
   const activeLabel = useMemo(() => {
     if (filter === 'all') return null;
-    if (filter === 'orphan') return '독립';
+    if (filter === 'linked') return '링크됨';
+    if (filter === 'orphan') return '고아';
     return rootMocs.find((m) => m.id === filter)?.title ?? null;
   }, [filter, rootMocs]);
 
@@ -525,8 +572,8 @@ function RegularDocsSection({
         </span>
       </div>
 
-      {/* 카테고리 칩 — root 메인만 + 독립 */}
-      {(rootsWithChildren.length > 0 || orphanCount > 0) && (
+      {/* 카테고리 칩 — root 메인 + 링크됨 + 고아 */}
+      {(rootsWithChildren.length > 0 || linkedCount > 0 || orphanCount > 0) && (
         <div className="flex flex-wrap items-center gap-1 mb-2">
           <button
             type="button"
@@ -561,6 +608,21 @@ function RegularDocsSection({
               </button>
             );
           })}
+          {linkedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilter('linked')}
+              className={cn(
+                'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+                filter === 'linked'
+                  ? 'bg-primary/10 text-primary font-semibold'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+              title="메인 문서 자식은 아니지만 다른 페이지에서 링크되는 일반 문서"
+            >
+              🔗 링크됨 <span className="font-mono opacity-70">{linkedCount}</span>
+            </button>
+          )}
           {orphanCount > 0 && (
             <button
               type="button"
@@ -571,9 +633,9 @@ function RegularDocsSection({
                   ? 'bg-primary/10 text-primary font-semibold'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
-              title="어느 메인 문서도 가리키지 않는 독립 일반 문서"
+              title="어떤 페이지로부터도 링크되지 않는 진짜 고아 페이지 (정리 우선순위)"
             >
-              🪐 독립 <span className="font-mono opacity-70">{orphanCount}</span>
+              🌱 고아 <span className="font-mono opacity-70">{orphanCount}</span>
             </button>
           )}
         </div>
@@ -591,6 +653,11 @@ function RegularDocsSection({
               const m = WIKI_TYPE_META[p.type];
               const sMeta = WIKI_STATUS_META[p.status];
               const parents = regularToRoots.get(p.id) ?? [];
+              const linkers = (() => {
+                const s = backlinks.get(p.id);
+                if (!s) return [] as WikiPage[];
+                return [...s].map((id) => byId.get(id)).filter(Boolean) as WikiPage[];
+              })();
               return (
                 <li key={p.id}>
                   <button
@@ -600,13 +667,31 @@ function RegularDocsSection({
                   >
                     <span className="text-[13px] leading-none shrink-0" aria-hidden>{m.icon}</span>
                     <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{p.title}</span>
-                    {parents.length > 0 && filter === 'all' && (
+                    {/* 라벨 — MOC 자식 / 링크됨 / 고아 (in 'all' 필터일 때만 노출) */}
+                    {filter === 'all' && parents.length > 0 && (
                       <span className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[100px]" title={parents.map((m) => m.title).join(', ')}>
                         in {parents.map((m) => m.title).join(', ')}
                       </span>
                     )}
-                    {parents.length === 0 && filter === 'all' && (
-                      <span className="shrink-0 text-[10px] text-muted-foreground/50">독립</span>
+                    {filter === 'all' && parents.length === 0 && linkers.length > 0 && (
+                      <span
+                        className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[120px]"
+                        title={`다음 페이지에서 링크: ${linkers.map((l) => l.title).join(', ')}`}
+                      >
+                        🔗 {linkers.length === 1 ? linkers[0].title : `${linkers.length}개에서`}
+                      </span>
+                    )}
+                    {filter === 'all' && parents.length === 0 && linkers.length === 0 && (
+                      <span className="shrink-0 text-[10px] text-amber-600/80" title="어떤 페이지로부터도 링크되지 않음">🌱 고아</span>
+                    )}
+                    {/* 'linked' 필터에서만: 어디서 링크되는지 노출 */}
+                    {filter === 'linked' && linkers.length > 0 && (
+                      <span
+                        className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[140px]"
+                        title={linkers.map((l) => l.title).join(', ')}
+                      >
+                        ← {linkers.length === 1 ? linkers[0].title : `${linkers[0].title} 외 ${linkers.length - 1}`}
+                      </span>
                     )}
                     {p.status !== 'stable' && (
                       <span
