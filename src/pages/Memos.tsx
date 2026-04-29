@@ -8,17 +8,17 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Pin, Search, Trash2, X, Inbox, Archive, ArrowRight,
-  ExternalLink, Tag,
+  ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight,
+  ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, Inbox,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import {
   useMemos, addMemo, updateMemo, removeMemo, togglePin,
-  archiveMemo, unarchiveMemo,
-  memoTitle, memoPreview, extractMemoTags, memoCharCount, memoTimeLabel,
+  memoTitle, memoPreview, extractMemoTags, memoTimeLabel,
   selectMemos, tagFrequencies,
-  type Memo, type MemoFilter,
+  useFolders, addFolder, renameFolder, removeFolder, moveMemoToFolder, folderMemoCount, unfiledCount,
+  type Memo, type MemoFilter, type MemoFolder,
 } from '@/lib/memoStore';
 import { upsertPage } from '@/lib/wikiStore';
 import { newWikiId, type WikiPage, type WikiPageType, USER_FACING_TYPES, WIKI_TYPE_META } from '@/types/wiki';
@@ -27,6 +27,7 @@ const Memos = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const memos = useMemos();
+  const folders = useFolders();
   const [activeId, setActiveId] = useState<string | null>(searchParams.get('id'));
 
   // URL ?id= 변경 시 동기화 (위키 출처 칩에서 진입 등)
@@ -49,22 +50,29 @@ const Memos = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
-  const [scope, setScope] = useState<MemoFilter['scope']>('inbox');
+  // scope: 'folder' (미분류 = folderId undefined) 또는 검색·태그 시 'all'
+  // 디폴트 = 미분류
+  const [activeFolderId, setActiveFolderId] = useState<string | undefined>(undefined);
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | undefined>(undefined);
   const [exporting, setExporting] = useState<Memo | null>(null);
+  const [movingMemo, setMovingMemo] = useState<Memo | null>(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+
+  // 검색·태그 활성 시 → 모든 메모, 아니면 → 폴더(미분류 포함)
+  const scope: MemoFilter['scope'] = (query.trim() || activeTag) ? 'all' : 'folder';
 
   const filter: MemoFilter = useMemo(() => ({
     scope,
+    folderId: activeFolderId,
     query,
     tag: activeTag,
-  }), [scope, query, activeTag]);
+  }), [scope, activeFolderId, query, activeTag]);
 
   const visibleMemos = useMemo(() => selectMemos(memos, filter), [memos, filter]);
   const tags = useMemo(() => tagFrequencies(memos), [memos]);
-  const inboxCount = useMemo(() => memos.filter((m) => !m.archivedAt).length, [memos]);
-  const archivedCount = useMemo(() => memos.filter((m) => !!m.archivedAt).length, [memos]);
-  const pinnedCount = useMemo(() => memos.filter((m) => m.pinned && !m.archivedAt).length, [memos]);
+  const unfiled = useMemo(() => unfiledCount(memos), [memos]);
 
   const activeMemo = activeId ? memos.find((m) => m.id === activeId) ?? null : null;
 
@@ -80,11 +88,14 @@ const Memos = () => {
 
   const handleNewMemo = useCallback(() => {
     const m = addMemo({ body: '' });
+    // 활성 폴더 있으면 그 폴더로, 아니면 미분류
+    if (activeFolderId) {
+      moveMemoToFolder(m.id, activeFolderId);
+    }
     setActiveId(m.id);
-    setScope('inbox');
     setActiveTag(undefined);
     setQuery('');
-  }, []);
+  }, [activeFolderId]);
 
   const handleDelete = useCallback((id: string) => {
     const snapshot = memos.find((m) => m.id === id);
@@ -95,9 +106,9 @@ const Memos = () => {
       action: {
         label: '되돌리기',
         onClick: () => {
-          // 새 id 로 복원
+          // 새 id 로 복원 (폴더 위치 유지)
           const restored = addMemo({ body: snapshot.body, pinned: snapshot.pinned });
-          if (snapshot.archivedAt) archiveMemo(restored.id);
+          if (snapshot.folderId) moveMemoToFolder(restored.id, snapshot.folderId);
         },
       },
     });
@@ -160,15 +171,72 @@ const Memos = () => {
           </div>
         </div>
 
-        {/* 분류 */}
-        <div className="shrink-0 px-3 py-2 border-b border-[hsl(var(--hairline))] space-y-0.5">
-          <ScopeRow icon={<Inbox className="w-3.5 h-3.5" strokeWidth={1.75} />} label="인박스" count={inboxCount} active={scope === 'inbox' && !activeTag} onClick={() => { setScope('inbox'); setActiveTag(undefined); }} />
-          {pinnedCount > 0 && (
-            <ScopeRow icon={<Pin className="w-3.5 h-3.5" strokeWidth={1.75} />} label="핀" count={pinnedCount} active={scope === 'pinned' && !activeTag} onClick={() => { setScope('pinned'); setActiveTag(undefined); }} />
-          )}
-          {archivedCount > 0 && (
-            <ScopeRow icon={<Archive className="w-3.5 h-3.5" strokeWidth={1.75} />} label="보관함" count={archivedCount} active={scope === 'archived' && !activeTag} onClick={() => { setScope('archived'); setActiveTag(undefined); }} />
-          )}
+        {/* 폴더 섹션 (미분류 + 사용자 폴더) */}
+        <div className="shrink-0 px-3 py-2 border-b border-[hsl(var(--hairline))]">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80">폴더</p>
+            <button
+              onClick={() => setCreatingFolder(true)}
+              className="text-muted-foreground hover:text-primary transition-colors"
+              title="새 폴더"
+              aria-label="새 폴더"
+            >
+              <FolderPlus className="w-3 h-3" strokeWidth={1.75} />
+            </button>
+          </div>
+          <div className="space-y-0.5">
+            {/* 미분류 — 항상 노출 (메모가 0개여도 디폴트 진입점) */}
+            <button
+              onClick={() => { setActiveFolderId(undefined); setActiveTag(undefined); }}
+              className={cn(
+                'w-full flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer transition-colors',
+                !activeFolderId && !activeTag && !query.trim()
+                  ? 'bg-primary/15 text-primary font-medium'
+                  : 'text-foreground/85 hover:bg-accent',
+              )}
+            >
+              <Inbox className="w-3 h-3" strokeWidth={1.75} />
+              <span className="flex-1 text-left text-[12px]">미분류</span>
+              <span className={cn('text-[10px] font-mono', !activeFolderId && !activeTag && !query.trim() ? 'text-primary' : 'text-muted-foreground/80')}>{unfiled}</span>
+            </button>
+            {folders.map((f) => (
+              <FolderRow
+                key={f.id}
+                folder={f}
+                count={folderMemoCount(memos, f.id)}
+                active={activeFolderId === f.id && !activeTag && !query.trim()}
+                renaming={renamingFolderId === f.id}
+                onClick={() => { setActiveFolderId(f.id); setActiveTag(undefined); }}
+                onStartRename={() => setRenamingFolderId(f.id)}
+                onFinishRename={(name) => {
+                  if (name.trim()) renameFolder(f.id, name);
+                  setRenamingFolderId(null);
+                }}
+                onDelete={() => {
+                  if (!window.confirm(`"${f.name}" 폴더를 지울까요? 안에 있는 메모는 미분류(인박스)로 이동합니다.`)) return;
+                  removeFolder(f.id);
+                  if (activeFolderId === f.id) {
+                    setActiveFolderId(undefined);
+                  }
+                }}
+              />
+            ))}
+            {creatingFolder && (
+              <NewFolderInput
+                onSubmit={(name) => {
+                  if (name.trim()) {
+                    const f = addFolder(name);
+                    setActiveFolderId(f.id);
+                  }
+                  setCreatingFolder(false);
+                }}
+                onCancel={() => setCreatingFolder(false)}
+              />
+            )}
+            {folders.length === 0 && !creatingFolder && (
+              <p className="text-[10.5px] text-muted-foreground/70 px-2 py-1">+ 버튼으로 폴더 만들기</p>
+            )}
+          </div>
         </div>
 
         {/* 태그 칩 */}
@@ -179,7 +247,7 @@ const Memos = () => {
               {tags.slice(0, 12).map(([tag, n]) => (
                 <button
                   key={tag}
-                  onClick={() => { setActiveTag(activeTag === tag ? undefined : tag); setScope('inbox'); }}
+                  onClick={() => { setActiveTag(activeTag === tag ? undefined : tag); }}
                   className={cn(
                     'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10.5px] transition-colors',
                     activeTag === tag
@@ -199,7 +267,7 @@ const Memos = () => {
         <div className="flex-1 overflow-y-auto">
           {visibleMemos.length === 0 ? (
             <div className="px-4 py-8 text-center text-[11.5px] text-muted-foreground">
-              {query ? '검색 결과 없음' : scope === 'inbox' ? '비어있음 — 새 메모를' : scope === 'archived' ? '보관된 메모 없음' : '핀 고정된 메모 없음'}
+              {query ? '검색 결과 없음' : '비어있음 — 새 메모를'}
             </div>
           ) : (
             <ul className="py-1">
@@ -223,10 +291,11 @@ const Memos = () => {
             memo={activeMemo}
             onDelete={() => handleDelete(activeMemo.id)}
             onPin={() => togglePin(activeMemo.id)}
-            onArchive={() => activeMemo.archivedAt ? unarchiveMemo(activeMemo.id) : archiveMemo(activeMemo.id)}
             onSendToWiki={() => setExporting(activeMemo)}
-            onTagClick={(tag) => { setActiveTag(tag); setScope('inbox'); }}
+            onMoveFolder={() => setMovingMemo(activeMemo)}
+            onTagClick={(tag) => { setActiveTag(tag); }}
             onBackToList={isMobile ? () => setActiveId(null) : undefined}
+            folders={folders}
           />
         ) : (
           <EmptyState onNew={handleNewMemo} />
@@ -239,6 +308,13 @@ const Memos = () => {
           onClose={() => setExporting(null)}
         />
       )}
+      {movingMemo && (
+        <MoveToFolderModal
+          memo={movingMemo}
+          folders={folders}
+          onClose={() => setMovingMemo(null)}
+        />
+      )}
     </div>
   );
 };
@@ -246,20 +322,147 @@ const Memos = () => {
 export default Memos;
 
 // ──────────────────────────────────────────
-function ScopeRow({
-  icon, label, count, active, onClick,
-}: { icon: React.ReactNode; label: string; count: number; active: boolean; onClick: () => void }) {
+function FolderRow({
+  folder, count, active, renaming, onClick, onStartRename, onFinishRename, onDelete,
+}: {
+  folder: MemoFolder;
+  count: number;
+  active: boolean;
+  renaming: boolean;
+  onClick: () => void;
+  onStartRename: () => void;
+  onFinishRename: (name: string) => void;
+  onDelete: () => void;
+}) {
+  const [draft, setDraft] = useState(folder.name);
+  useEffect(() => { setDraft(folder.name); }, [folder.name, renaming]);
+
+  if (renaming) {
+    return (
+      <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-accent/40">
+        <span className="text-[11px]">{folder.emoji ?? '📁'}</span>
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onFinishRename(draft);
+            if (e.key === 'Escape') onFinishRename(folder.name);
+          }}
+          onBlur={() => onFinishRename(draft)}
+          className="flex-1 bg-transparent text-[12px] text-foreground outline-none"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer transition-colors',
+        active ? 'bg-primary/15 text-primary font-medium' : 'text-foreground/85 hover:bg-accent',
+      )}
+      onClick={onClick}
+      onDoubleClick={onStartRename}
+    >
+      <span className="text-[11px]">{folder.emoji ?? '📁'}</span>
+      <span className="flex-1 text-[12px] truncate">{folder.name}</span>
+      <span className={cn('text-[10px] font-mono', active ? 'text-primary' : 'text-muted-foreground/80')}>{count}</span>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onStartRename();
+        }}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+        title="이름 바꾸기"
+      >
+        <MoreHorizontal className="w-3 h-3" strokeWidth={1.75} />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+        title="삭제"
+      >
+        <X className="w-3 h-3" strokeWidth={1.75} />
+      </button>
+    </div>
+  );
+}
+
+function NewFolderInput({ onSubmit, onCancel }: { onSubmit: (name: string) => void; onCancel: () => void }) {
+  const [name, setName] = useState('');
+  return (
+    <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-accent/40">
+      <span className="text-[11px]">📁</span>
+      <input
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSubmit(name);
+          if (e.key === 'Escape') onCancel();
+        }}
+        onBlur={() => name.trim() ? onSubmit(name) : onCancel()}
+        placeholder="폴더 이름"
+        className="flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/60 outline-none"
+      />
+    </div>
+  );
+}
+
+function MoveToFolderModal({ memo, folders, onClose }: { memo: Memo; folders: MemoFolder[]; onClose: () => void }) {
+  const handleMove = (folderId: string | null) => {
+    moveMemoToFolder(memo.id, folderId);
+    notify.success(folderId ? `${folders.find((f) => f.id === folderId)?.name} 으로 이동` : '미분류로 이동', { duration: 1800 });
+    onClose();
+  };
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-foreground/15 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-[380px] bg-card rounded-lg border border-[hsl(var(--hairline))] shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shrink-0 px-5 py-3.5 border-b border-[hsl(var(--hairline))] flex items-center justify-between">
+          <h3 className="text-[13.5px] font-bold text-foreground">폴더 이동</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="닫기">
+            <X className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="max-h-[50vh] overflow-y-auto py-1">
+          <FolderOption
+            label="📥 미분류 (인박스)"
+            active={!memo.folderId}
+            onClick={() => handleMove(null)}
+          />
+          {folders.length > 0 && <div className="my-1 mx-3 border-t border-[hsl(var(--hairline))]" />}
+          {folders.map((f) => (
+            <FolderOption
+              key={f.id}
+              label={`${f.emoji ?? '📁'} ${f.name}`}
+              active={memo.folderId === f.id}
+              onClick={() => handleMove(f.id)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FolderOption({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-center gap-2 px-2 py-1 rounded-md text-[12px] transition-colors',
-        active ? 'bg-primary/15 text-primary font-medium' : 'text-foreground/85 hover:bg-accent',
+        'w-full flex items-center gap-2 px-5 py-2 text-[12.5px] text-left hover:bg-accent transition-colors',
+        active && 'bg-primary/10 text-primary font-medium',
       )}
     >
-      <span className={cn(active ? 'text-primary' : 'text-muted-foreground')}>{icon}</span>
-      <span className="flex-1 text-left">{label}</span>
-      <span className={cn('text-[10.5px] font-mono', active ? 'text-primary' : 'text-muted-foreground/80')}>{count}</span>
+      <span className="flex-1">{label}</span>
+      {active && <CheckIcon className="w-3.5 h-3.5" strokeWidth={2} />}
     </button>
   );
 }
@@ -271,7 +474,7 @@ function MemoRow({ memo, active, onClick }: { memo: Memo; active: boolean; onCli
   const tags = extractMemoTags(memo);
   // 라이프사이클 시각 — 오래 묵을수록 흐려짐 (인박스 zero 신호)
   const ageDays = (Date.now() - memo.updatedAt) / (24 * 3600 * 1000);
-  const stale = !memo.archivedAt && !memo.pinned && ageDays > 7
+  const stale = !memo.pinned && ageDays > 7
     ? (ageDays > 30 ? 'opacity-50' : ageDays > 14 ? 'opacity-65' : 'opacity-80')
     : '';
   return (
@@ -281,7 +484,6 @@ function MemoRow({ memo, active, onClick }: { memo: Memo; active: boolean; onCli
         className={cn(
           'w-full text-left px-3 py-2.5 border-b border-[hsl(var(--hairline))]/60 transition-colors',
           active ? 'bg-primary/8' : 'hover:bg-accent/40',
-          memo.archivedAt && 'opacity-60',
           stale,
         )}
       >
@@ -321,16 +523,18 @@ function MemoRow({ memo, active, onClick }: { memo: Memo; active: boolean; onCli
 
 // ──────────────────────────────────────────
 function MemoEditor({
-  memo, onDelete, onPin, onArchive, onSendToWiki, onTagClick, onBackToList,
+  memo, onDelete, onPin, onSendToWiki, onMoveFolder, onTagClick, onBackToList, folders,
 }: {
   memo: Memo;
   onDelete: () => void;
   onPin: () => void;
-  onArchive: () => void;
   onSendToWiki: () => void;
+  onMoveFolder: () => void;
   onTagClick: (tag: string) => void;
   onBackToList?: () => void;  // 모바일 — 목록으로 돌아가기
+  folders: MemoFolder[];
 }) {
+  const currentFolder = memo.folderId ? folders.find((f) => f.id === memo.folderId) : null;
   const navigate = useNavigate();
   const [draft, setDraft] = useState(memo.body);
   const debounceRef = useRef<number | null>(null);
@@ -382,12 +586,12 @@ function MemoEditor({
           <Pin className="w-3.5 h-3.5" fill={memo.pinned ? 'currentColor' : 'none'} strokeWidth={1.75} />
         </button>
         <button
-          onClick={onArchive}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          aria-label={memo.archivedAt ? '복원' : '보관'}
-          title={memo.archivedAt ? '복원' : '보관함으로'}
+          onClick={onMoveFolder}
+          className="inline-flex items-center gap-1 px-1.5 h-7 rounded-md text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          title="폴더 이동"
         >
-          <Archive className="w-3.5 h-3.5" strokeWidth={1.75} />
+          <Folder className="w-3.5 h-3.5" strokeWidth={1.75} />
+          <span className="hidden sm:inline">{currentFolder ? `${currentFolder.emoji ?? '📁'} ${currentFolder.name}` : '미분류'}</span>
         </button>
         <div className="flex-1" />
         {memo.wikiPageId ? (
@@ -481,7 +685,6 @@ function EmptyState({ onNew }: { onNew: () => void }) {
 function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void }) {
   const navigate = useNavigate();
   const [wikiType, setWikiType] = useState<WikiPageType>('concept');
-  const [archiveAfter, setArchiveAfter] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const title = memoTitle(memo);
@@ -511,7 +714,6 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
       };
       await upsertPage(page);
       updateMemo(memo.id, { wikiPageId: page.id });
-      if (archiveAfter) archiveMemo(memo.id);
       notify.success('위키 페이지로 보냈어요', {
         duration: 3500,
         action: { label: '위키 열기', onClick: () => navigate('/wiki') },
@@ -567,15 +769,6 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-[12.5px] text-foreground cursor-pointer">
-            <input
-              type="checkbox"
-              checked={archiveAfter}
-              onChange={(e) => setArchiveAfter(e.target.checked)}
-              className="accent-primary"
-            />
-            메모를 보관함으로 (인박스 비우기)
-          </label>
         </div>
 
         <div className="shrink-0 px-5 py-3 border-t border-[hsl(var(--hairline))] bg-accent/20 flex items-center justify-between gap-3">

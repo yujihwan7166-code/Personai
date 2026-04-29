@@ -11,6 +11,7 @@ export interface Memo {
   id: string;
   body: string;                 // 마크다운, 첫 줄 = 제목
   pinned: boolean;
+  folderId?: string;            // optional — 없으면 미분류 (인박스)
   archivedAt?: number;          // 보관함
   wikiPageId?: string;          // 위키로 보낸 후 그 페이지 id
   createdAt: number;
@@ -18,7 +19,16 @@ export interface Memo {
   version: 1;
 }
 
+export interface MemoFolder {
+  id: string;
+  name: string;
+  emoji?: string;               // 기본 📁
+  order: number;                // 정렬
+  createdAt: number;
+}
+
 const STORAGE_KEY = 'personai.memos.v1';
+const FOLDER_STORAGE_KEY = 'personai.memo-folders.v1';
 
 let cache: Memo[] | null = null;
 const listeners = new Set<() => void>();
@@ -68,6 +78,127 @@ if (typeof window !== 'undefined') {
 export function newMemoId(): string {
   return `m_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
+
+// ──────────────────────────────────────────
+// 폴더 store (별도 — 메모와 독립)
+// ──────────────────────────────────────────
+let folderCache: MemoFolder[] | null = null;
+const folderListeners = new Set<() => void>();
+
+function loadFolders(): MemoFolder[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(FOLDER_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as MemoFolder[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFolders(list: MemoFolder[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(FOLDER_STORAGE_KEY, JSON.stringify(list));
+  } catch { /* noop */ }
+}
+
+function ensureFolders(): MemoFolder[] {
+  if (folderCache === null) folderCache = loadFolders();
+  return folderCache;
+}
+
+function commitFolders(next: MemoFolder[]): void {
+  folderCache = next;
+  saveFolders(next);
+  folderListeners.forEach((l) => l());
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === FOLDER_STORAGE_KEY) {
+      folderCache = null;
+      folderListeners.forEach((l) => l());
+    }
+  });
+}
+
+export function newFolderId(): string {
+  return `f_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export function getFolders(): MemoFolder[] {
+  return ensureFolders();
+}
+
+export function addFolder(name: string, emoji = '📁'): MemoFolder {
+  const list = ensureFolders();
+  const f: MemoFolder = {
+    id: newFolderId(),
+    name: name.trim() || '새 폴더',
+    emoji,
+    order: list.length,
+    createdAt: Date.now(),
+  };
+  commitFolders([...list, f]);
+  return f;
+}
+
+export function renameFolder(id: string, name: string): void {
+  commitFolders(
+    ensureFolders().map((f) => (f.id === id ? { ...f, name: name.trim() || f.name } : f)),
+  );
+}
+
+export function removeFolder(id: string): void {
+  // 폴더 삭제 — 그 안 메모는 미분류로 cascade
+  commitFolders(ensureFolders().filter((f) => f.id !== id));
+  commit(
+    ensure().map((m) => {
+      if (m.folderId !== id) return m;
+      const { folderId, ...rest } = m;
+      void folderId;
+      return { ...rest, updatedAt: Date.now() } as Memo;
+    }),
+  );
+}
+
+export function moveMemoToFolder(memoId: string, folderId: string | null): void {
+  if (folderId === null) {
+    commit(
+      ensure().map((m) => {
+        if (m.id !== memoId) return m;
+        const { folderId: _, ...rest } = m;
+        void _;
+        return { ...rest, updatedAt: Date.now() } as Memo;
+      }),
+    );
+  } else {
+    updateMemo(memoId, { folderId });
+  }
+}
+
+export function subscribeFolders(listener: () => void): () => void {
+  folderListeners.add(listener);
+  return () => { folderListeners.delete(listener); };
+}
+
+export function useFolders(): MemoFolder[] {
+  return useSyncExternalStore(subscribeFolders, getFolders, getFolders);
+}
+
+/** 폴더별 메모 카운트. */
+export function folderMemoCount(memos: Memo[], folderId: string): number {
+  return memos.filter((m) => m.folderId === folderId).length;
+}
+
+/** 미분류(폴더 없는) 메모 카운트. */
+export function unfiledCount(memos: Memo[]): number {
+  return memos.filter((m) => !m.folderId).length;
+}
+
+/** 모든 활성 메모의 태그 빈도 — 폴더 구분 없이. */
 
 // ──────────────────────────────────────────
 // CRUD
@@ -194,21 +325,22 @@ export function memoTimeLabel(epoch: number): string {
 
 export interface MemoFilter {
   query?: string;             // 본문·태그 검색
-  scope: 'inbox' | 'archived' | 'pinned' | 'all';
-  tag?: string;               // 특정 태그만
+  /** 'folder' = 특정 폴더 (folderId 정의 시 그 폴더, undefined 시 미분류)
+   *  'all' = 모든 메모 (검색·태그 시 유용) */
+  scope: 'folder' | 'all';
+  tag?: string;
+  folderId?: string;
 }
 
-/** 필터·정렬 적용 — 핀 우선, 그 다음 시간 desc. */
+/** 필터·정렬 — 핀 우선, 그 다음 시간 desc. */
 export function selectMemos(memos: Memo[], filter: MemoFilter): Memo[] {
   let list = memos;
 
-  if (filter.scope === 'inbox') {
-    list = list.filter((m) => !m.archivedAt);
-  } else if (filter.scope === 'archived') {
-    list = list.filter((m) => !!m.archivedAt);
-  } else if (filter.scope === 'pinned') {
-    list = list.filter((m) => m.pinned && !m.archivedAt);
+  if (filter.scope === 'folder') {
+    // folderId 정의 → 그 폴더 / undefined → 미분류
+    list = list.filter((m) => (m.folderId ?? null) === (filter.folderId ?? null));
   }
+  // 'all' 은 모두
 
   if (filter.tag) {
     const t = filter.tag.toLowerCase();
@@ -220,21 +352,16 @@ export function selectMemos(memos: Memo[], filter: MemoFilter): Memo[] {
     list = list.filter((m) => m.body.toLowerCase().includes(q));
   }
 
-  // 핀 우선 (인박스 모드일 때만 의미 있음 — 보관·핀 모드는 자체 필터로 충분)
-  if (filter.scope === 'inbox') {
-    return list.sort((a, b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      return b.updatedAt - a.updatedAt;
-    });
-  }
-  return [...list].sort((a, b) => b.updatedAt - a.updatedAt);
+  // 항상 핀 우선 + 시간 desc
+  return list.sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return b.updatedAt - a.updatedAt;
+  });
 }
 
-/** 모든 활성 메모의 태그 빈도 (사이드 칩용). */
 export function tagFrequencies(memos: Memo[]): Array<[string, number]> {
   const freq = new Map<string, number>();
   for (const m of memos) {
-    if (m.archivedAt) continue;
     for (const t of extractMemoTags(m)) {
       freq.set(t, (freq.get(t) ?? 0) + 1);
     }
