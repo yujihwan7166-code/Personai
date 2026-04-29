@@ -151,6 +151,32 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
             </span>
           )}
 
+          {/* 사진 그리드 (있을 때만) */}
+          {entry.images && entry.images.length > 0 && (
+            <div
+              className={cn(
+                'mt-3 grid gap-1.5',
+                entry.images.length === 1 && 'grid-cols-1',
+                entry.images.length === 2 && 'grid-cols-2',
+                entry.images.length >= 3 && 'grid-cols-3',
+              )}
+            >
+              {entry.images.slice(0, 3).map((img) => (
+                <div
+                  key={img.id}
+                  className="relative aspect-square rounded-md overflow-hidden bg-card border border-[hsl(var(--hairline))]"
+                >
+                  <img
+                    src={img.src}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* 태그 칩 (있을 때만) */}
           {entry.tags && entry.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">

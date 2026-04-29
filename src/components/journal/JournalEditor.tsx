@@ -25,9 +25,10 @@ import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { MoodPicker } from './MoodPicker';
 import { TagInput } from './TagInput';
+import { JournalImagePicker } from './JournalImagePicker';
 import { WikiBlockEditor } from '@/components/wiki/WikiBlockEditor';
 import { extractTagsFromBody, mergeTags, getTopTags } from '@/lib/journalTags';
-import type { Mood, JournalEntry, BodyFormat } from '@/types/journal';
+import type { Mood, JournalEntry, BodyFormat, JournalImage } from '@/types/journal';
 
 type Mode =
   | { kind: 'create' }
@@ -38,6 +39,7 @@ type Mode =
       initialMood?: Mood;
       initialTags?: string[];
       initialFormat?: BodyFormat;
+      initialImages?: JournalImage[];
     };
 
 interface JournalEditorProps {
@@ -57,6 +59,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
   const [mood, setMood] = useState<Mood | undefined>(undefined);
   const [manualTags, setManualTags] = useState<string[]>([]);
   const [format, setFormat] = useState<BodyFormat>('plain');
+  const [images, setImages] = useState<JournalImage[]>([]);
 
   const suggestions = useMemo(() => {
     return getTopTags(journalStore.list(), 8).map((t) => t.tag);
@@ -69,11 +72,13 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
       setMood(mode.initialMood);
       setManualTags(mode.initialTags ?? []);
       setFormat(mode.initialFormat ?? 'plain');
+      setImages(mode.initialImages ?? []);
     } else {
       setBody('');
       setMood(undefined);
       setManualTags([]);
       setFormat('plain');
+      setImages([]);
     }
   }, [mode, open]);
 
@@ -113,12 +118,15 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
 
     const formatToSave = format === 'plain' ? undefined : format;
 
+    const imagesToSave = images.length > 0 ? images : undefined;
+
     if (mode.kind === 'edit') {
       journalStore.update(mode.id, {
         body: trimmed,
         mood,
         tags: tagsToSave,
         bodyFormat: formatToSave,
+        images: imagesToSave,
       });
       notify.success('수정됐어요', { duration: 1500 });
     } else {
@@ -127,6 +135,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         mood,
         tags: tagsToSave,
         bodyFormat: formatToSave,
+        images: imagesToSave,
       });
       notify.success('일기 저장됐어요', { duration: 1500 });
     }
@@ -242,6 +251,13 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
               태그
             </span>
             <TagInput value={manualTags} onChange={setManualTags} suggestions={suggestions} />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+              사진
+            </span>
+            <JournalImagePicker value={images} onChange={setImages} />
           </div>
           </div>
 

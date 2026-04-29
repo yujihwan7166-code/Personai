@@ -31,6 +31,8 @@ import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
 
+import type { JournalImage } from '@/types/journal';
+
 type EditorMode =
   | { kind: 'create' }
   | {
@@ -40,6 +42,7 @@ type EditorMode =
       initialMood?: Mood;
       initialTags?: string[];
       initialFormat?: 'plain' | 'markdown';
+      initialImages?: JournalImage[];
     };
 
 const monthLabel = (date: Date): string =>
@@ -297,6 +300,7 @@ const Journal = () => {
                         initialMood: entry.mood,
                         initialTags: entry.tags,
                         initialFormat: entry.bodyFormat,
+                        initialImages: entry.images,
                       })}
                       onDelete={() => handleDelete(entry)}
                     />
