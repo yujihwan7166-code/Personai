@@ -149,12 +149,15 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
   const handleDelete = () => {
     if (mode.kind === 'schedule') {
-      // 복원용 스냅샷.
-      const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'goalId'> = {
+      // 복원용 스냅샷 — 모달 안 편집된 값(priority/note) 까지 복원.
+      const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'goalId' | 'priority' | 'note' | 'pinned'> = {
         title: title.trim() || mode.initialTitle,
         done: false,
         startAt: mode.initialStart,
         endAt: mode.initialEnd,
+        priority: priority === 0 ? undefined : priority,
+        note: note.trim().length > 0 ? note.trim() : undefined,
+        pinned: mode.initialPinned,
       };
       taskStore.remove(mode.taskId);
       notify.success('삭제됐어요', {
@@ -168,9 +171,17 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     }
   };
 
+  // Ctrl+Enter / Cmd+Enter 제출 단축키 (textarea·input 어디서나 동작).
+  const handleKeyDownGlobal = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" onKeyDown={handleKeyDownGlobal}>
         <DialogHeader>
           <DialogTitle className="text-[15px] font-semibold">
             {mode.kind === 'schedule' ? '시간 배정' : '새 항목'}
@@ -373,6 +384,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             <button
               type="button"
               onClick={handleSubmit}
+              title="Ctrl/Cmd + Enter"
               className="px-4 py-1.5 text-[12px] rounded-md bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
             >
               {mode.kind === 'schedule' ? '배정' : '추가'}
