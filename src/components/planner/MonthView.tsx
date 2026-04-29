@@ -14,9 +14,14 @@ interface MonthViewProps {
   /** 월의 기준 날짜 (이 날의 월 전체). */
   anchorIso?: string;
   onDayClick?: (dayIso: string) => void;
+  /** 항목 칩 클릭 → 편집 모달 (Cron / Apple Cal 패턴). */
+  onItemClick?: (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => void;
 }
 
-export const MonthView = ({ anchorIso, onDayClick }: MonthViewProps) => {
+const formatHm = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+export const MonthView = ({ anchorIso, onDayClick, onItemClick }: MonthViewProps) => {
   const { start, end, weeks, monthLabel } = useMemo(() => {
     const anchor = new Date(anchorIso ?? new Date().toISOString());
     const year = anchor.getFullYear();
@@ -161,12 +166,31 @@ export const MonthView = ({ anchorIso, onDayClick }: MonthViewProps) => {
                           item.kind === 'event'
                             ? item.data.color ?? 'hsl(220 70% 55%)'
                             : 'hsl(var(--muted-foreground) / 0.5)';
+                        const startAt = item.data.startAt;
+                        const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt!;
+                        const taskCanceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
+                        const taskDone = item.kind === 'task' ? item.data.done : false;
+                        const dim = taskDone || taskCanceled;
                         return (
-                          <div
+                          <button
                             key={item.data.id}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onItemClick && startAt) {
+                                onItemClick({
+                                  kind: item.kind,
+                                  id: item.data.id,
+                                  title: item.data.title,
+                                  startAt,
+                                  endAt,
+                                });
+                              }
+                            }}
                             className={cn(
-                              'flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10.5px] truncate',
-                              'bg-accent/70',
+                              'flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10.5px] truncate w-full text-left',
+                              'bg-accent/70 hover:bg-accent transition-colors',
+                              dim && 'opacity-60',
                             )}
                           >
                             <span
@@ -174,13 +198,18 @@ export const MonthView = ({ anchorIso, onDayClick }: MonthViewProps) => {
                               style={{ backgroundColor: stripeColor }}
                               aria-hidden
                             />
+                            {startAt && (
+                              <span className="font-mono tabular-nums text-muted-foreground shrink-0 text-[9.5px]">
+                                {formatHm(startAt)}
+                              </span>
+                            )}
                             <span className={cn(
                               'truncate text-foreground font-medium',
-                              item.kind === 'task' && item.data.done && 'line-through text-muted-foreground',
+                              dim && 'line-through text-muted-foreground',
                             )}>
                               {item.data.title}
                             </span>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
