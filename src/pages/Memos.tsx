@@ -65,11 +65,6 @@ const Memos = () => {
       return b.updatedAt - a.updatedAt;
     }), []);
 
-  // 최근 수정 5개 — 핀 상관 없이 그냥 시간 desc (최근 5는 빠른 접근용)
-  const recentMemos = useMemo(() =>
-    [...memos].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5),
-    [memos]);
-
   // 폴더별 메모 (핀 우선, 시간 desc)
   const memosOf = useCallback((folderId: string): Memo[] =>
     sortPinTime(memos.filter((m) => m.folderId === folderId)),
@@ -209,29 +204,26 @@ const Memos = () => {
           </div>
         </div>
 
-        {/* 한 흐름 스크롤 리스트 — 최근 → 폴더 → 미분류 → 태그 */}
+        {/* 한 흐름 스크롤 리스트 — 폴더들 → 미분류 메모들 (헤더 없음) */}
         <div className="flex-1 overflow-y-auto">
           {isFiltered ? (
             // ─── 검색·태그 활성 시 평면 결과 ───
-            <div>
-              <SectionHeader>
-                {activeTag ? (
-                  <>
-                    <span>#{activeTag}</span>
-                    <button
-                      onClick={() => setActiveTag(undefined)}
-                      className="ml-auto text-muted-foreground hover:text-foreground"
-                      title="태그 해제"
-                    >
-                      <X className="w-3 h-3" strokeWidth={1.5} />
-                    </button>
-                  </>
-                ) : (
-                  <span>검색 결과 · {filteredMemos.length}</span>
-                )}
-              </SectionHeader>
+            <>
+              {activeTag && (
+                <div className="px-3.5 pt-3 pb-2 flex items-center gap-2">
+                  <span className="text-[12px] font-medium text-primary">#{activeTag}</span>
+                  <span className="text-[11px] tabular-nums text-muted-foreground">{filteredMemos.length}</span>
+                  <button
+                    onClick={() => setActiveTag(undefined)}
+                    className="ml-auto w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground"
+                    title="태그 해제"
+                  >
+                    <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </button>
+                </div>
+              )}
               {filteredMemos.length === 0 ? (
-                <p className="px-4 py-8 text-center text-[13px] text-muted-foreground">결과 없음</p>
+                <p className="px-4 py-10 text-center text-[13px] text-muted-foreground">결과 없음</p>
               ) : (
                 <ul>
                   {filteredMemos.map((m) => (
@@ -239,35 +231,12 @@ const Memos = () => {
                   ))}
                 </ul>
               )}
-            </div>
+            </>
           ) : (
             <>
-              {/* 최근 5 — 핀 무관 시간 desc */}
-              {recentMemos.length > 0 && (
-                <div>
-                  <SectionHeader>최근</SectionHeader>
-                  <ul>
-                    {recentMemos.map((m) => (
-                      <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} />
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* 폴더 — 펼침형 */}
-              <div>
-                <SectionHeader>
-                  <span>폴더</span>
-                  <button
-                    onClick={() => setCreatingFolder(true)}
-                    className="ml-auto w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                    title="새 폴더"
-                    aria-label="새 폴더"
-                  >
-                    <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  </button>
-                </SectionHeader>
-                <div className="px-2 pb-1 space-y-0.5">
+              {/* 폴더들 — 헤더 없이 바로 */}
+              {(folders.length > 0 || creatingFolder) && (
+                <div className="px-2 pt-2 pb-1 space-y-0.5">
                   {folders.map((f) => (
                     <FolderGroup
                       key={f.id}
@@ -285,7 +254,7 @@ const Memos = () => {
                         setRenamingFolderId(null);
                       }}
                       onDelete={() => {
-                        if (!window.confirm(`"${f.name}" 폴더를 지울까요? 안에 있는 메모는 미분류로 이동합니다.`)) return;
+                        if (!window.confirm(`"${f.name}" 폴더를 지울까요? 안에 있는 메모는 위쪽 메모 목록으로 이동합니다.`)) return;
                         removeFolder(f.id);
                       }}
                     />
@@ -302,54 +271,61 @@ const Memos = () => {
                       onCancel={() => setCreatingFolder(false)}
                     />
                   )}
-                  {folders.length === 0 && !creatingFolder && (
-                    <p className="text-[12px] text-muted-foreground px-2.5 py-1.5">+ 버튼으로 폴더 만들기</p>
-                  )}
-                </div>
-              </div>
-
-              {/* 미분류 — 폴더 안 들어간 메모 */}
-              <div>
-                <SectionHeader>
-                  <span>미분류</span>
-                  <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">{unfiledMemos.length}</span>
-                </SectionHeader>
-                {unfiledMemos.length === 0 ? (
-                  <p className="px-4 py-4 text-center text-[12px] text-muted-foreground">
-                    {memos.length === 0 ? '비어있음 — 새 메모를' : '전부 폴더에 있어요'}
-                  </p>
-                ) : (
-                  <ul>
-                    {unfiledMemos.map((m) => (
-                      <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} />
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* 태그 칩 */}
-              {tags.length > 0 && (
-                <div className="px-3.5 pt-3 pb-4 mt-2 border-t border-[hsl(var(--hairline))]">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">태그</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tags.slice(0, 12).map(([tag, n]) => (
-                      <button
-                        key={tag}
-                        onClick={() => { setActiveTag(activeTag === tag ? undefined : tag); }}
-                        className={cn(
-                          'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] transition-colors',
-                          activeTag === tag
-                            ? 'bg-primary/15 text-primary font-medium'
-                            : 'bg-accent/60 text-muted-foreground hover:bg-accent hover:text-foreground',
-                        )}
-                      >
-                        <span>#{tag}</span>
-                        <span className="text-[10.5px] tabular-nums opacity-70">{n}</span>
-                      </button>
-                    ))}
-                  </div>
                 </div>
               )}
+
+              {/* 폴더와 메모 사이 분리선 — 둘 다 있을 때만 */}
+              {folders.length > 0 && unfiledMemos.length > 0 && (
+                <div className="mx-3.5 my-1 border-t border-[hsl(var(--hairline))]" />
+              )}
+
+              {/* 미분류 메모 — 헤더 없이 바로 */}
+              {unfiledMemos.length > 0 ? (
+                <ul>
+                  {unfiledMemos.map((m) => (
+                    <MemoRow key={m.id} memo={m} active={activeId === m.id} onClick={() => setActiveId(m.id)} />
+                  ))}
+                </ul>
+              ) : (
+                folders.length === 0 && !creatingFolder && (
+                  <div className="px-4 py-10 text-center">
+                    <p className="text-[13px] text-foreground mb-1">비어있음</p>
+                    <p className="text-[12px] text-muted-foreground">+ 버튼으로 새 메모를 시작</p>
+                  </div>
+                )
+              )}
+
+              {/* 새 폴더 + 태그 — 하단 작은 도구막대 */}
+              <div className="border-t border-[hsl(var(--hairline))] mt-2">
+                <button
+                  onClick={() => setCreatingFolder(true)}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  새 폴더
+                </button>
+                {tags.length > 0 && (
+                  <div className="px-3.5 py-2.5 border-t border-[hsl(var(--hairline))]">
+                    <div className="flex flex-wrap gap-1.5">
+                      {tags.slice(0, 12).map(([tag, n]) => (
+                        <button
+                          key={tag}
+                          onClick={() => { setActiveTag(activeTag === tag ? undefined : tag); }}
+                          className={cn(
+                            'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] transition-colors',
+                            activeTag === tag
+                              ? 'bg-primary/15 text-primary font-medium'
+                              : 'bg-accent/60 text-muted-foreground hover:bg-accent hover:text-foreground',
+                          )}
+                        >
+                          <span>#{tag}</span>
+                          <span className="text-[10.5px] tabular-nums opacity-70">{n}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -391,15 +367,6 @@ const Memos = () => {
 };
 
 export default Memos;
-
-// ──────────────────────────────────────────
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-3.5 pt-4 pb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-      {children}
-    </div>
-  );
-}
 
 // ──────────────────────────────────────────
 // 폴더 = 펼침형 그룹 — 헤더 클릭 시 안 메모 인라인 노출
