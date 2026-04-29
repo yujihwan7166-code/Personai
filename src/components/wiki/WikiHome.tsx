@@ -59,6 +59,11 @@ export function WikiHome({
     }
     // root = 다른 메인이 참조 안 한 메인 (= 가장 큰 우산)
     const rootMocs = mocs.filter((m) => !subMocIds.has(m.id));
+    // 카드 그리드용 — 'index' 타입(대문/자기소개)은 자기 카드 X,
+    // 그 인덱스가 참조하는 sub-mocs 가 카드로 떠야 자연. 인덱스만 root 인 경우
+    // 인덱스 제외 + 모든 moc 노출, 아니면 기존 rootMocs 유지.
+    const onlyIndexRoot = rootMocs.length > 0 && rootMocs.every((m) => m.type === 'index');
+    const mainCards = (onlyIndexRoot ? mocs.filter((m) => m.type !== 'index') : rootMocs).slice(0, 8);
     // 각 root 의 즉각 하위 (1-hop): 본문 [[링크]] 중 존재하는 페이지들
     const rootMocChildren = new Map<string, { mocs: WikiPage[]; pages: WikiPage[] }>();
     for (const m of rootMocs) {
@@ -163,7 +168,7 @@ export function WikiHome({
       }
     }
 
-    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots };
+    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -260,9 +265,9 @@ export function WikiHome({
           </h2>
           <span className="text-[11px] text-muted-foreground/80">— 주제별 묶음</span>
           <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
-          {stats.rootMocs.length > 0 && (
+          {stats.mainCards.length > 0 && (
             <span className="text-[11px] font-mono font-bold text-muted-foreground">
-              <span className="text-foreground/85">{stats.rootMocs.length}</span> 메인
+              <span className="text-foreground/85">{stats.mainCards.length}</span> 메인
             </span>
           )}
         </div>
@@ -275,9 +280,9 @@ export function WikiHome({
           />
         ) : (
           <>
-            {/* root 만 큰 카드 그리드 */}
+            {/* 메인 문서 카드 그리드 — index 만 root 인 경우 sub-mocs 노출 */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-              {stats.rootMocs.map((p) => (
+              {stats.mainCards.map((p) => (
                 <MainDocCard
                   key={p.id}
                   page={p}

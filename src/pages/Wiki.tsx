@@ -493,8 +493,8 @@ const Wiki = () => {
               onPickStarterPack={async (pack) => {
                 const built = pack.build();
                 for (const p of built) await upsertPage(p);
-                const home = built.find((p) => p.type === 'index') ?? built[0];
-                setActiveId(home.id);
+                // 시드 후 첫 페이지로 직진 X — 홈에 머물러 메인 문서 미리보기
+                setActiveId(null);
                 setEditing(false);
                 setView('page');
                 notify.success(`${pack.label} 스타터 팩 적용 — ${built.length}개 페이지`, { duration: 2200 });
