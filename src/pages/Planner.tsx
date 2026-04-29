@@ -332,7 +332,13 @@ const Planner = () => {
                   onSlotClick={handleSlotClick}
                 />
               )}
-              {view === 'week' && <WeekView anchorIso={anchorIso} />}
+              {view === 'week' && (
+                <WeekView
+                  anchorIso={anchorIso}
+                  onDayClick={handleDayClick}
+                  onItemClick={handleItemClick}
+                />
+              )}
             </div>
             <div className="hidden lg:block rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
               <WeekStrip anchorIso={anchorIso} onDayClick={handleDayClick} />
