@@ -422,10 +422,26 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         </div>
 
         <DialogFooter className="flex-row items-center sm:justify-between gap-1.5 px-6 py-3 border-t border-[hsl(var(--hairline))] shrink-0">
-          {/* 좌측 — 자동 저장 상태 (create 모드만) */}
-          <div className="flex-1 min-w-0">
+          {/* 좌측 — 글자수·읽기 시간 + 자동 저장 상태 */}
+          <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
+            {/* 글자수·읽기 시간 — 항상 표시 (한국어 친화: 공백 제외 글자, 250자/분 읽기 속도) */}
+            <span className="inline-flex items-center gap-2 text-[10.5px] text-muted-foreground tabular-nums">
+              <span>
+                {body.replace(/\s+/g, '').length.toLocaleString()}자
+              </span>
+              <span aria-hidden className="text-muted-foreground/40">·</span>
+              <span>
+                {(() => {
+                  const chars = body.replace(/\s+/g, '').length;
+                  const mins = chars > 0 ? Math.max(1, Math.round(chars / 250)) : 0;
+                  return mins > 0 ? `${mins}분 읽기` : '—';
+                })()}
+              </span>
+            </span>
+            {/* 자동 저장 상태 — create 모드 + draft 있을 때 */}
             {mode.kind === 'create' && draftSavedAt && (
               <div className="inline-flex items-center gap-2 text-[10.5px] text-muted-foreground">
+                <span aria-hidden className="text-muted-foreground/40">·</span>
                 <span className="inline-flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" aria-hidden />
                   자동 저장됨

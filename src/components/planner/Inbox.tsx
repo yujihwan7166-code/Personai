@@ -52,9 +52,25 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
   const fallbackRef = useRef<HTMLInputElement>(null);
   const focusInput = () => (inputRef ?? fallbackRef).current?.focus();
 
-  const handleAdd = (title: string) => {
-    taskStore.add({ title, someday: mode === 'someday' });
-    notify.success(mode === 'someday' ? '보류함에 추가됐어요' : '할 일 추가됐어요', { duration: 1500 });
+  const handleAdd = (title: string, parsed?: { startAt?: string; endAt?: string; recurrence?: PlannerTask['recurrence']; tags?: string[]; priority?: PlannerTask['priority'] }) => {
+    taskStore.add({
+      title,
+      someday: mode === 'someday',
+      startAt: parsed?.startAt,
+      endAt: parsed?.endAt,
+      recurrence: parsed?.recurrence,
+      tags: parsed?.tags,
+      priority: parsed?.priority,
+    });
+    const isScheduled = Boolean(parsed?.startAt);
+    notify.success(
+      isScheduled
+        ? '시간 배정해서 추가됐어요'
+        : mode === 'someday'
+          ? '보류함에 추가됐어요'
+          : '할 일 추가됐어요',
+      { duration: 1500 },
+    );
   };
 
   const handleDelete = (task: PlannerTask) => {

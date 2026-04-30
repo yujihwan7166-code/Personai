@@ -7,11 +7,52 @@
  * - 좌·우 사이 hairline 세로선으로 다이어리 페이지 느낌
  * - 짧은 일기에서도 좌 컬럼이 시각 앵커 → 카드가 비어 보이지 않음
  */
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Pencil, X, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { stripMarkdown } from '@/lib/journalMarkdown';
 import type { JournalEntry, Mood } from '@/types/journal';
 import { MOOD_EMOJI, MOOD_LABELS, MOOD_TINT, ACTIVITY_META } from '@/types/journal';
+
+/**
+ * 본문 미리보기 — 7줄 line-clamp + 잘렸을 때만 페이드 + "더" 시그널.
+ * line-clamp 가 적용됐는지 (즉 잘렸는지) clientHeight vs scrollHeight 로 감지.
+ */
+function BodyPreview({ text }: { text: string }) {
+  const ref = useRef<HTMLParagraphElement | null>(null);
+  const [truncated, setTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setTruncated(el.scrollHeight > el.clientHeight + 2);
+  }, [text]);
+
+  return (
+    <div className="relative">
+      <p
+        ref={ref}
+        className="font-serif text-[16px] leading-[1.85] text-foreground whitespace-pre-wrap line-clamp-7"
+        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+      >
+        {text}
+      </p>
+      {truncated && (
+        <>
+          {/* 그라디언트 페이드 — 본문 자연스럽게 사라짐 */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-b from-transparent to-card"
+          />
+          {/* "더" 시그널 — 우하단 작은 칩 */}
+          <span className="pointer-events-none absolute bottom-0 right-0 text-[10.5px] font-medium text-muted-foreground bg-card px-1.5 py-0.5 rounded">
+            … 더 보기
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface JournalCardProps {
   entry: JournalEntry;
@@ -111,12 +152,7 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
 
           {/* 본문 — Bear 패턴: 큰 serif + 여유 leading */}
           {hasBody ? (
-            <p
-              className="font-serif text-[16px] leading-[1.85] text-foreground whitespace-pre-wrap line-clamp-7"
-              style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-            >
-              {previewBody}
-            </p>
+            <BodyPreview text={previewBody} />
           ) : (
             <p
               className="font-serif text-[14.5px] italic text-muted-foreground/70"

@@ -33,6 +33,7 @@ import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
+import { ACTIVITY_META } from '@/types/journal';
 
 import type { JournalImage } from '@/types/journal';
 
@@ -62,22 +63,38 @@ const Journal = () => {
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null);
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeActivity, setActiveActivity] = useState<string | null>(null);
   const [activeDate, setActiveDate] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // 자주 쓴 태그 5개.
   const topTags = useMemo(() => getTopTags(allEntries, 5), [allEntries]);
 
-  // 검색 + 태그 + 날짜 필터 동시 적용.
+  // 자주 쓴 활동 5개 (사용된 것만).
+  const topActivities = useMemo(() => {
+    const counts = new Map<string, number>();
+    allEntries.forEach((e) => {
+      (e.activities ?? []).forEach((a) => {
+        counts.set(a, (counts.get(a) ?? 0) + 1);
+      });
+    });
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([key, count]) => ({ key, count }));
+  }, [allEntries]);
+
+  // 검색 + 태그 + 활동 + 날짜 필터 동시 적용.
   const filteredEntries = useMemo(() => {
     const q = query.trim().toLowerCase();
     return allEntries.filter((e) => {
       if (q.length > 0 && !e.body.toLowerCase().includes(q)) return false;
       if (activeTag && !(e.tags ?? []).includes(activeTag)) return false;
+      if (activeActivity && !(e.activities ?? []).includes(activeActivity)) return false;
       if (activeDate && e.date !== activeDate) return false;
       return true;
     });
-  }, [allEntries, query, activeTag, activeDate]);
+  }, [allEntries, query, activeTag, activeActivity, activeDate]);
 
   // 월 그룹핑 (필터 후).
   const grouped = useMemo(() => {
@@ -94,6 +111,26 @@ const Journal = () => {
       items,
     }));
   }, [filteredEntries]);
+
+  // Streak 마일스톤 축하 — 7 / 30 / 100 / 365 도달 시 하루 1회 토스트.
+  useEffect(() => {
+    const MILESTONES = [7, 30, 100, 365] as const;
+    if (streak <= 0) return;
+    const milestone = MILESTONES.find((m) => streak === m);
+    if (!milestone) return;
+    if (typeof window === 'undefined') return;
+    const key = `journal.streak.celebrated.${milestone}`;
+    if (window.localStorage.getItem(key)) return; // 이미 축하함
+    window.localStorage.setItem(key, String(Date.now()));
+    const labels: Record<number, { title: string; desc: string }> = {
+      7:   { title: '✨ 7일 연속!',   desc: '한 주 동안 매일 기록했어요. 좋은 습관이 자라고 있어요.' },
+      30:  { title: '🔥 30일 연속!',  desc: '한 달이 쌓였어요. 자기를 돌보는 진짜 습관이에요.' },
+      100: { title: '💯 100일 연속!', desc: '백 일의 기록 — 이건 정말 대단한 성취예요.' },
+      365: { title: '🏆 1년 연속!',   desc: '1년 동안 매일. 당신의 한 해가 통째로 기록됐어요.' },
+    };
+    const label = labels[milestone];
+    notify.success(label.title, { description: label.desc, duration: 6000 });
+  }, [streak]);
 
   // 키보드 단축키.
   useEffect(() => {
@@ -246,6 +283,46 @@ const Journal = () => {
                     initialImages: entry.images,
                   })}
                 />
+                {/* 활동 필터 칩 (자주 쓴 5개) */}
+                {topActivities.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 px-1">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold mr-1">
+                      활동
+                    </span>
+                    {topActivities.map((a) => {
+                      const meta = ACTIVITY_META[a.key];
+                      const active = activeActivity === a.key;
+                      return (
+                        <button
+                          key={a.key}
+                          type="button"
+                          onClick={() => setActiveActivity(active ? null : a.key)}
+                          className={cn(
+                            'inline-flex items-center gap-1 px-2 h-6 rounded text-[11.5px] font-medium transition-colors',
+                            active
+                              ? 'bg-foreground text-background'
+                              : 'bg-accent text-foreground hover:bg-accent/80',
+                          )}
+                        >
+                          <span aria-hidden>{meta?.emoji ?? '·'}</span>
+                          {meta?.label ?? a.key}
+                          <span className="opacity-60 tabular-nums ml-0.5">{a.count}</span>
+                        </button>
+                      );
+                    })}
+                    {activeActivity && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveActivity(null)}
+                        className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                        초기화
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* 태그 필터 칩 (자주 쓴 5개) */}
                 {topTags.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5 px-1">

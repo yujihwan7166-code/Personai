@@ -32,6 +32,7 @@ import {
 import { PlannerSection } from './PlannerSection';
 import { DroppableTimeSlot } from './dnd/DroppableTimeSlot';
 import { DraggableBlock } from './dnd/DraggableBlock';
+import { InlineQuickAdd } from './InlineQuickAdd';
 import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '@/types/planner';
 
@@ -42,6 +43,7 @@ const TOTAL_HOURS = 24;
 interface TodayTimelineProps {
   dateIso?: string;
   onItemClick?: (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => void;
+  /** 슬롯 클릭 시 외부 모달 (현재 사용 안함 — 인라인 추가가 기본). */
   onSlotClick?: (slotIso: string) => void;
 }
 
@@ -71,12 +73,14 @@ const computeHeightPx = (startIso: string, endIso: string): number => {
   return Math.max(20, (mins / 60) * HOUR_PX);
 };
 
-export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimelineProps) => {
+export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSlotClick }: TodayTimelineProps) => {
   const baseDateIso = dateIso ?? new Date().toISOString();
   const items = usePlannerToday(baseDateIso);
   const [now, setNow] = useState(new Date());
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
+  /** 인라인 빠른 추가 — 클릭한 슬롯 ISO. null = 닫힘. */
+  const [quickAddSlot, setQuickAddSlot] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
@@ -115,10 +119,9 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
   };
 
   const handleSlotClick = (hour: number, halfHour: 0 | 30) => {
-    if (!onSlotClick) return;
     const d = new Date(baseDateIso);
     d.setHours(hour, halfHour, 0, 0);
-    onSlotClick(d.toISOString());
+    setQuickAddSlot(d.toISOString());
   };
 
   const handleDeleteTask = (task: PlannerTask) => {
@@ -224,6 +227,23 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
             >
               <div className="relative h-px bg-rose-500">
                 <span className="absolute -left-1 -top-[3px] h-[7px] w-[7px] rounded-full bg-rose-500" aria-hidden />
+              </div>
+            </div>
+          )}
+
+          {/* 인라인 빠른 추가 — Apple Cal 패턴. 빈 슬롯 클릭 시 그 자리에 input. */}
+          {quickAddSlot && (
+            <div className="absolute left-12 right-0 top-0 bottom-0 pointer-events-none z-30">
+              <div className="relative h-full pointer-events-none">
+                <InlineQuickAdd
+                  startIso={quickAddSlot}
+                  style={{
+                    top: computeTopPx(quickAddSlot, baseDateIso),
+                    height: HOUR_PX / 2 - 2, // 30분 슬롯 높이
+                    pointerEvents: 'auto',
+                  }}
+                  onClose={() => setQuickAddSlot(null)}
+                />
               </div>
             </div>
           )}

@@ -114,6 +114,8 @@ export interface PlannerTask {
   /** 반복 규칙. 있으면 이 항목은 시리즈 마스터 — listScheduled 시 expand 됨.
    * 시간 미배정(인박스) Task 에는 의미 없음 — startAt 가 있어야 expand 가능. */
   recurrence?: RecurrenceRule;
+  /** 태그 (cross-cutting 분류). 자연어 입력에서 #tag 자동 추출 + 모달에서 명시 추가. */
+  tags?: string[];
   createdAt: string;
 }
 

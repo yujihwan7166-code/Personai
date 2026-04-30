@@ -5,11 +5,11 @@
  * v2: '🪄 AI 요약 생성' 버튼 — /api/chat 호출 + LocalStorage 캐시 (예정)
  */
 import { useMemo, useState } from 'react';
-import { Sparkles, Hash } from 'lucide-react';
+import { Sparkles, Hash, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { computeStats, type StatsPeriod } from '@/lib/journalStats';
 import type { JournalEntry, Mood } from '@/types/journal';
-import { MOOD_EMOJI } from '@/types/journal';
+import { MOOD_EMOJI, ACTIVITY_META } from '@/types/journal';
 
 interface JournalSummaryPanelProps {
   entries: JournalEntry[];
@@ -134,6 +134,75 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* 글쓰기 통계 — 글자수 */}
+          <div className="flex items-center justify-between rounded-md bg-accent/40 px-2.5 py-2">
+            <span className="inline-flex items-center gap-1 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+              <FileText className="h-3 w-3" />
+              글자
+            </span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-[15px] font-semibold tabular-nums text-foreground">
+                {stats.totalChars.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-muted-foreground tabular-nums">
+                평균 {stats.avgChars.toLocaleString()}자
+              </span>
+            </span>
+          </div>
+
+          {/* Top 활동 */}
+          {stats.topActivities.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                자주 한 활동
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {stats.topActivities.map((a) => {
+                  const meta = ACTIVITY_META[a.key];
+                  return (
+                    <span
+                      key={a.key}
+                      className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10.5px] font-medium bg-accent text-foreground"
+                      title={meta?.label ?? a.key}
+                    >
+                      <span aria-hidden>{meta?.emoji ?? '·'}</span>
+                      {meta?.label ?? a.key}
+                      <span className="opacity-60 tabular-nums ml-0.5">{a.count}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 활동 ↔ 기분 — 인사이트 (Daylio 핵심) */}
+          {stats.activityMood.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                좋았던 활동 (평균 기분 순)
+              </span>
+              <ul className="flex flex-col gap-0.5">
+                {stats.activityMood.slice(0, 3).map((a) => {
+                  const meta = ACTIVITY_META[a.key];
+                  const moodEmoji = MOOD_EMOJI[Math.round(a.avgMood) as Mood] ?? '😐';
+                  return (
+                    <li
+                      key={a.key}
+                      className="flex items-center gap-2 px-1.5 py-1 rounded text-[11px]"
+                    >
+                      <span className="text-[12px]" aria-hidden>{meta?.emoji ?? '·'}</span>
+                      <span className="flex-1 text-foreground/85 truncate">{meta?.label ?? a.key}</span>
+                      <span className="text-[12px]">{moodEmoji}</span>
+                      <span className="text-[10px] tabular-nums text-muted-foreground/80">
+                        {a.avgMood.toFixed(1)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
 

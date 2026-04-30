@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   KeyboardSensor,
   useSensor,
@@ -272,13 +273,52 @@ const Planner = () => {
     useSensor(KeyboardSensor),
   );
 
-  const handleDragStart = useCallback((_e: DragStartEvent) => {
-    /* 미사용 — 향후 DragOverlay 통합 시 활용. */
+  // 드래그 중 미리보기 상태 — DragOverlay 가 사용.
+  const [activeDrag, setActiveDrag] = useState<{ data: PlannerDragData; deltaY: number } | null>(null);
+
+  const handleDragStart = useCallback((e: DragStartEvent) => {
+    const data = e.active.data.current as PlannerDragData | undefined;
+    if (data) setActiveDrag({ data, deltaY: 0 });
   }, []);
 
-  const handleDragMove = useCallback((_e: DragMoveEvent) => {
-    /* 미사용 — resize 시각 피드백은 dnd-kit transform 이 담당. */
+  const handleDragMove = useCallback((e: DragMoveEvent) => {
+    setActiveDrag((prev) => (prev ? { ...prev, deltaY: e.delta.y } : prev));
   }, []);
+
+  // 드래그 중 시간 미리보기 — 블록 이동/리사이즈 둘 다.
+  const previewLabel = useMemo(() => {
+    if (!activeDrag) return null;
+    const { data, deltaY } = activeDrag;
+    const HOUR_PX = 56;
+    const fmtTime = (d: Date) =>
+      d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    if (data.kind === 'scheduled-task' || data.kind === 'scheduled-event') {
+      const item = data.kind === 'scheduled-task' ? data.task : data.event;
+      if (!item.startAt || !item.endAt) return null;
+      const oldStart = new Date(item.startAt);
+      const dur = new Date(item.endAt).getTime() - oldStart.getTime();
+      const deltaMin = Math.round((deltaY / HOUR_PX) * 60 / 15) * 15;
+      const newStart = new Date(oldStart.getTime() + deltaMin * 60_000);
+      const newEnd = new Date(newStart.getTime() + dur);
+      return `${fmtTime(newStart)} ~ ${fmtTime(newEnd)}`;
+    }
+    if (data.kind === 'resize-task' || data.kind === 'resize-event') {
+      const item = data.kind === 'resize-task' ? data.task : data.event;
+      if (!item.startAt || !item.endAt) return null;
+      const oldEnd = new Date(item.endAt);
+      const deltaMin = Math.round((deltaY / HOUR_PX) * 60 / 15) * 15;
+      const newEnd = new Date(oldEnd.getTime() + deltaMin * 60_000);
+      const start = new Date(item.startAt);
+      const totalMin = Math.max(15, Math.round((newEnd.getTime() - start.getTime()) / 60_000));
+      const durLabel = totalMin < 60 ? `${totalMin}분` : `${Math.floor(totalMin / 60)}시간${totalMin % 60 ? ` ${totalMin % 60}분` : ''}`;
+      return `${fmtTime(start)} ~ ${fmtTime(newEnd)}  (${durLabel})`;
+    }
+    if (data.kind === 'inbox-task') {
+      return `← ${data.task.title}`;
+    }
+    return null;
+  }, [activeDrag]);
 
   /** 가상 인스턴스 id 가 들어왔을 때 master + occurrenceIso 분해. 없으면 null. */
   const tryDetachInstance = useCallback(
@@ -308,6 +348,7 @@ const Planner = () => {
   const handleDragEnd = useCallback((e: DragEndEvent) => {
     const dragData = e.active.data.current as PlannerDragData | undefined;
     const dropData = e.over?.data.current as PlannerDropData | undefined;
+    setActiveDrag(null);
 
     if (!dragData) return;
 
@@ -346,16 +387,22 @@ const Planner = () => {
       return;
     }
 
-    // ─── 시간 블록 → 시간 슬롯: 시간 변경 (길이 유지) ───
+    // ─── 시간 블록 → 시간 슬롯: 시간 변경 (길이 유지, 15분 스냅) ───
+    // delta.y 기반 정밀 이동 — slot 의 30분 boundary 가 아니라 마우스 이동량으로 결정.
     if (
       (dragData.kind === 'scheduled-task' || dragData.kind === 'scheduled-event') &&
       dropData.kind === 'time-slot'
     ) {
       const item = dragData.kind === 'scheduled-task' ? dragData.task : dragData.event;
       if (!item.startAt || !item.endAt) return;
-      const dur = new Date(item.endAt).getTime() - new Date(item.startAt).getTime();
-      const newStart = dropData.startIso;
-      const newEnd = new Date(new Date(newStart).getTime() + dur).toISOString();
+      const HOUR_PX = 56;
+      const oldStart = new Date(item.startAt);
+      const oldEnd = new Date(item.endAt);
+      const dur = oldEnd.getTime() - oldStart.getTime();
+      const deltaMinutes = Math.round((e.delta.y / HOUR_PX) * 60 / 15) * 15; // 15분 스냅
+      const newStartDate = new Date(oldStart.getTime() + deltaMinutes * 60_000);
+      const newStart = newStartDate.toISOString();
+      const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
 
       if (dragData.kind === 'scheduled-task') {
         if (!tryDetachInstance(item.id, 'task', newStart, newEnd)) {
@@ -551,6 +598,14 @@ const Planner = () => {
         onAction={handleCommandAction}
       />
     </div>
+    {/* 드래그 시간 미리보기 — DragOverlay 로 마우스 옆 표시. */}
+    <DragOverlay dropAnimation={null}>
+      {previewLabel && (
+        <div className="pointer-events-none select-none rounded-md bg-foreground text-background px-2.5 py-1 text-[11.5px] font-mono tabular-nums shadow-lg whitespace-nowrap">
+          {previewLabel}
+        </div>
+      )}
+    </DragOverlay>
     </DndContext>
   );
 };
