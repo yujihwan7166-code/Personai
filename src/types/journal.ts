@@ -36,6 +36,31 @@ export const MOOD_TINT: Record<Mood, string> = {
   5: 'bg-amber-500',
 };
 
+/* ── 활동 (Activity) — Daylio 패턴 ── */
+
+/** 12종 디폴트 활동 — 사용자가 자주 추가할 만한 일상 카테고리. */
+export const DEFAULT_ACTIVITIES = [
+  { key: 'work',     label: '일',     emoji: '💼' },
+  { key: 'exercise', label: '운동',   emoji: '🏃' },
+  { key: 'family',   label: '가족',   emoji: '👨‍👩‍👧' },
+  { key: 'friends',  label: '친구',   emoji: '🤝' },
+  { key: 'walk',     label: '산책',   emoji: '🚶' },
+  { key: 'reading',  label: '독서',   emoji: '📖' },
+  { key: 'movie',    label: '영화',   emoji: '🎬' },
+  { key: 'cooking',  label: '요리',   emoji: '🍳' },
+  { key: 'travel',   label: '여행',   emoji: '✈️' },
+  { key: 'meditate', label: '명상',   emoji: '🧘' },
+  { key: 'sleep',    label: '잘 잠',  emoji: '😴' },
+  { key: 'study',    label: '공부',   emoji: '📚' },
+] as const;
+
+export type DefaultActivityKey = typeof DEFAULT_ACTIVITIES[number]['key'];
+
+/** 활동 메타 — key → 라벨/이모지 빠른 조회. */
+export const ACTIVITY_META: Record<string, { label: string; emoji: string }> = Object.fromEntries(
+  DEFAULT_ACTIVITIES.map((a) => [a.key, { label: a.label, emoji: a.emoji }]),
+);
+
 /** 본문 형식 — v2 에서 도입. */
 export type BodyFormat = 'plain' | 'markdown';
 
@@ -53,6 +78,8 @@ export interface JournalEntry {
   tags?: string[];
   /** v2 사진 첨부 — base64 또는 URL. */
   images?: JournalImage[];
+  /** v3 활동 키 배열 — DEFAULT_ACTIVITIES key 또는 사용자 정의 문자열. */
+  activities?: string[];
   createdAt: string;
   updatedAt: string;
 }

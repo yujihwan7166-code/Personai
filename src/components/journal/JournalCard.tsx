@@ -11,7 +11,7 @@ import { Pencil, X, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { stripMarkdown } from '@/lib/journalMarkdown';
 import type { JournalEntry, Mood } from '@/types/journal';
-import { MOOD_EMOJI, MOOD_LABELS, MOOD_TINT } from '@/types/journal';
+import { MOOD_EMOJI, MOOD_LABELS, MOOD_TINT, ACTIVITY_META } from '@/types/journal';
 
 interface JournalCardProps {
   entry: JournalEntry;
@@ -152,9 +152,28 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
             </div>
           )}
 
+          {/* 활동 칩 (있을 때만) — 이모지 우선 */}
+          {entry.activities && entry.activities.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1">
+              {entry.activities.map((key) => {
+                const meta = ACTIVITY_META[key];
+                return (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] font-medium bg-accent/60 text-foreground/80"
+                    title={meta?.label ?? key}
+                  >
+                    <span aria-hidden>{meta?.emoji ?? '·'}</span>
+                    {meta?.label ?? key}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           {/* 태그 칩 (있을 때만) */}
           {entry.tags && entry.tags.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1">
               {entry.tags.map((t) => (
                 <span
                   key={t}

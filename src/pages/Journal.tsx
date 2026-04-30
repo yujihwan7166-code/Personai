@@ -26,7 +26,9 @@ import { JournalEditor } from '@/components/journal/JournalEditor';
 import { JournalEmpty } from '@/components/journal/JournalEmpty';
 import { TodayCard } from '@/components/journal/TodayCard';
 import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
+import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
+import { JournalYearHeatmap } from '@/components/journal/JournalYearHeatmap';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
@@ -44,6 +46,7 @@ type EditorMode =
       initialTags?: string[];
       initialFormat?: 'plain' | 'markdown';
       initialImages?: JournalImage[];
+      initialActivities?: string[];
     };
 
 const monthLabel = (date: Date): string =>
@@ -209,7 +212,7 @@ const Journal = () => {
         {isEmpty ? (
           <JournalEmpty onAdd={() => setEditorMode({ kind: 'create' })} />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
           <div className="flex flex-col gap-6 min-w-0">
             {/* Today 카드 + On This Day — 검색 중이 아닐 때만 노출 */}
             {query.trim().length === 0 && (
@@ -227,6 +230,20 @@ const Journal = () => {
                     initialMood: entry.mood,
                     initialTags: entry.tags,
                     initialFormat: entry.bodyFormat,
+                    initialActivities: entry.activities,
+                  })}
+                />
+                <JournalRandomCard
+                  allEntries={allEntries}
+                  onClickEntry={(entry) => setEditorMode({
+                    kind: 'edit',
+                    id: entry.id,
+                    initialBody: entry.body,
+                    initialMood: entry.mood,
+                    initialTags: entry.tags,
+                    initialFormat: entry.bodyFormat,
+                    initialActivities: entry.activities,
+                    initialImages: entry.images,
                   })}
                 />
                 {/* 태그 필터 칩 (자주 쓴 5개) */}
@@ -302,6 +319,7 @@ const Journal = () => {
                         initialTags: entry.tags,
                         initialFormat: entry.bodyFormat,
                         initialImages: entry.images,
+                        initialActivities: entry.activities,
                       })}
                       onDelete={() => handleDelete(entry)}
                     />
@@ -311,7 +329,7 @@ const Journal = () => {
             ))}
           </div>
           {/* 우측 사이드 — lg 이상에서만 노출 */}
-          <aside className="hidden lg:flex flex-col gap-4 sticky top-8 self-start">
+          <aside className="hidden lg:flex flex-col gap-4 sticky top-8 self-start max-h-[calc(100vh-4rem)] overflow-y-auto">
             <JournalCalendarMini
               entries={allEntries}
               selectedDate={activeDate}
@@ -327,6 +345,11 @@ const Journal = () => {
                 날짜 필터 해제
               </button>
             )}
+            <JournalYearHeatmap
+              entries={allEntries}
+              selectedDate={activeDate}
+              onDayClick={(d) => setActiveDate(activeDate === d ? null : d)}
+            />
             <JournalSummaryPanel entries={allEntries} />
           </aside>
           </div>
