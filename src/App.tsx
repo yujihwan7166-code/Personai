@@ -17,6 +17,7 @@ const Wiki = lazy(() => import("./pages/Wiki"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Memos = lazy(() => import("./pages/Memos"));
 const Journal = lazy(() => import("./pages/Journal"));
+const Discover = lazy(() => import("./pages/Discover"));
 const PomodoroWidget = lazy(() =>
   import("./components/planner/PomodoroWidget").then((m) => ({ default: m.PomodoroWidget })),
 );
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/planner" element={<Planner />} />
               <Route path="/memos" element={<Memos />} />
               <Route path="/journal" element={<Journal />} />
+              <Route path="/discover" element={<Discover />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

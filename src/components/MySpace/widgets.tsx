@@ -14,6 +14,7 @@ import type {
   ExchangeWidget, CalendarWidget, ExpertShortcutWidget, WidgetItem,
 } from '@/lib/mySpaceStore';
 import { updateWidget, removeWidget } from '@/lib/mySpaceStore';
+import { SerendipityW } from './serendipity/Card';
 
 /** 공통 props — 읽기/쓰기 모두 store 경유. */
 interface WProps<T extends WidgetItem> {
@@ -390,5 +391,6 @@ export function WidgetRenderer({ widget, editable, onOpenExpert }: { widget: Wid
     case 'exchange':   return <ExchangeW widget={widget} editable={editable} />;
     case 'calendar':   return <CalendarW widget={widget} editable={editable} />;
     case 'expert':     return <ExpertShortcutW widget={widget} editable={editable} onOpen={onOpenExpert} />;
+    case 'serendipity': return <SerendipityW widget={widget} editable={editable} />;
   }
 }

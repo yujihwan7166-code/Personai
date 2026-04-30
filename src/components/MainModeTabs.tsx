@@ -213,8 +213,8 @@ export const HUB_TOOLS: HubTool[] = [
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'memo',       label: '메모',          desc: '짧은 생각 즉시',               emoji: '✏️', tint: 'hsl(45 80% 55%)',  axis: '기록' },
   { id: 'journal',    label: '일기',          desc: '하루 기록 · 감정',             emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
-  { id: 'meeting',    label: '녹음 노트',     desc: '회의·인터뷰 → 자동 정리·할일 추출', emoji: '🎙️', tint: 'hsl(265 65% 55%)', axis: '기록' },
-  { id: 'study-note', label: '학습노트',      desc: '책·강의 정리',                 emoji: '📚', tint: 'hsl(160 55% 45%)', axis: '기록' },
+  { id: 'meeting',     label: '녹음 노트',     desc: '회의·인터뷰 → 자동 정리·할일 추출',  emoji: '🎙️', tint: 'hsl(265 65% 55%)', axis: '기록' },
+  { id: 'serendipity', label: '우연의 발견',   desc: '매일 다른 글·명언·발견',              emoji: '🎲', tint: 'hsl(160 55% 45%)', axis: '기록' },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -1597,7 +1597,7 @@ export function MainModeTabs({
                           key={item.id}
                           type="button"
                           onClick={() => {
-                            // v1 라우팅 = wiki / planner / memo / journal / meeting (녹음 노트). 다른 도구는 아직 no-op.
+                            // v1 라우팅 = wiki / planner / memo / journal / meeting / serendipity. 다른 도구는 아직 no-op.
                             if (item.id === 'wiki') {
                               setOpen(false);
                               navigate('/wiki');
@@ -1614,6 +1614,9 @@ export function MainModeTabs({
                               // 녹음 노트 = 어시스턴트 voice-analysis 와 같은 데스티네이션
                               setOpen(false);
                               onSelectAssistantCard?.('voice-analysis');
+                            } else if (item.id === 'serendipity') {
+                              setOpen(false);
+                              navigate('/discover');
                             }
                           }}
                           role="menuitem"
