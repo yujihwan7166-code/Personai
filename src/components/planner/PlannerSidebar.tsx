@@ -335,12 +335,54 @@ const ListRow = ({
   list, count, active, onClick,
 }: { list: TaskList; count: number; active: boolean; onClick: () => void }) => {
   const colorTokens = TASK_LIST_COLORS[list.color];
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(list.name);
 
   // 좌측 list 트리 자체도 droppable — task 끌어 옮기면 listId 변경.
   const { setNodeRef, isOver } = useDroppable({
     id: `assign-list-${list.id}`,
     data: { kind: 'assign-list', listId: list.id },
   });
+
+  const finishRename = () => {
+    const trimmed = draftName.trim();
+    if (trimmed && trimmed !== list.name) {
+      taskListStore.update(list.id, { name: trimmed });
+    } else {
+      setDraftName(list.name);
+    }
+    setRenaming(false);
+  };
+
+  if (renaming) {
+    return (
+      <div className="flex items-center gap-2 h-7 px-1.5 rounded-md bg-accent/60">
+        {list.emoji ? (
+          <span className="text-[13px] leading-none shrink-0">{list.emoji}</span>
+        ) : (
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ backgroundColor: colorTokens.stripe }}
+            aria-hidden
+          />
+        )}
+        <input
+          autoFocus
+          value={draftName}
+          onChange={(e) => setDraftName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') finishRename();
+            else if (e.key === 'Escape') {
+              setDraftName(list.name);
+              setRenaming(false);
+            }
+          }}
+          onBlur={finishRename}
+          className="flex-1 bg-transparent text-[12.5px] outline-none text-foreground"
+        />
+      </div>
+    );
+  }
 
   return (
     <ContextMenu>
@@ -354,6 +396,10 @@ const ListRow = ({
             list.hidden && 'opacity-50',
           )}
           onClick={onClick}
+          onDoubleClick={() => {
+            setDraftName(list.name);
+            setRenaming(true);
+          }}
         >
           {list.emoji ? (
             <span className="text-[13px] leading-none shrink-0">{list.emoji}</span>
@@ -387,8 +433,8 @@ const ListRow = ({
       <ContextMenuContent className="w-44">
         <ContextMenuItem
           onSelect={() => {
-            const next = window.prompt('새 이름', list.name);
-            if (next && next.trim()) taskListStore.update(list.id, { name: next.trim() });
+            setDraftName(list.name);
+            setRenaming(true);
           }}
         >
           이름 바꾸기

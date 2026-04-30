@@ -474,6 +474,9 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     watermarkText, watermarkOpacity,
     pageNumPosition, pageNumWithTotal,
     pdfPassword,
+    imageTransform,
+    batchKind, batchTargetFormat,
+    csvSortDir, csvSortColumn, csvDedupe, csvHasHeader,
   ]);
 
   const handleDownload = useCallback(() => {
@@ -1082,6 +1085,180 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     </div>
                   </div>
                 )}
+                {files.length > 0 && selectedTask.id === 'image-rotate' && (
+                  <div>
+                    <div className="text-[12px] font-semibold text-foreground mb-2">변환</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 max-w-md">
+                      {([
+                        { v: 'rotate-90' as const, label: '↻ 90°' },
+                        { v: 'rotate-180' as const, label: '↻ 180°' },
+                        { v: 'rotate-270' as const, label: '↺ 90°' },
+                        { v: 'flip-h' as const, label: '⇋ 좌우' },
+                        { v: 'flip-v' as const, label: '⇕ 상하' },
+                      ]).map((c) => (
+                        <button
+                          key={c.v}
+                          type="button"
+                          onClick={() => setImageTransform(c.v)}
+                          className={cn(
+                            'px-2 py-2 rounded-md text-[12px] font-semibold border transition-all',
+                            imageTransform === c.v
+                              ? 'bg-foreground text-background border-foreground'
+                              : 'bg-card text-muted-foreground border-[hsl(var(--hairline))] hover:text-foreground',
+                          )}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'image-batch' && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">일괄 작업</div>
+                      <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                        {([
+                          { v: 'compress' as const, label: '🗜️ 압축' },
+                          { v: 'format' as const, label: '🖼️ 포맷' },
+                          { v: 'resize' as const, label: '📐 크기' },
+                        ]).map((c) => (
+                          <button
+                            key={c.v}
+                            type="button"
+                            onClick={() => setBatchKind(c.v)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all',
+                              batchKind === c.v
+                                ? 'bg-foreground text-background'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                            )}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {(batchKind === 'format' || batchKind === 'compress') && (
+                      <div>
+                        <div className="text-[11.5px] text-muted-foreground mb-1.5">출력 포맷</div>
+                        <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                          {(['jpeg', 'png', 'webp'] as const).map((fmt) => (
+                            <button
+                              key={fmt}
+                              type="button"
+                              onClick={() => setBatchTargetFormat(fmt)}
+                              className={cn(
+                                'px-3 py-1 rounded-md text-[11.5px] font-semibold transition-all',
+                                batchTargetFormat === fmt
+                                  ? 'bg-foreground text-background'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                              )}
+                            >
+                              {fmt.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {batchKind === 'compress' && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-[12px] font-semibold text-foreground">품질</div>
+                          <div className="text-[12px] tabular-nums text-muted-foreground">{Math.round(imageQuality * 100)}%</div>
+                        </div>
+                        <input
+                          type="range"
+                          min={30}
+                          max={95}
+                          step={5}
+                          value={Math.round(imageQuality * 100)}
+                          onChange={(e) => setImageQuality(parseInt(e.target.value, 10) / 100)}
+                          className="w-full accent-violet-600"
+                        />
+                      </div>
+                    )}
+                    {batchKind === 'resize' && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-[12px] font-semibold text-foreground">크기 (% 비율)</div>
+                          <div className="text-[12px] tabular-nums text-muted-foreground">{Math.round(resizeScale * 100)}%</div>
+                        </div>
+                        <input
+                          type="range"
+                          min={10}
+                          max={100}
+                          step={5}
+                          value={Math.round(resizeScale * 100)}
+                          onChange={(e) => setResizeScale(parseInt(e.target.value, 10) / 100)}
+                          className="w-full accent-violet-600"
+                        />
+                      </div>
+                    )}
+                    <div className="text-[10.5px] text-muted-foreground">
+                      {files.length}개 파일을 한 번에 처리해서 ZIP 으로 묶어드려요
+                    </div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'csv-clean' && (
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-[12px] text-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={csvHasHeader}
+                        onChange={(e) => setCsvHasHeader(e.target.checked)}
+                        className="accent-violet-600"
+                      />
+                      첫 행이 헤더 (정렬·중복 제외)
+                    </label>
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">정렬</div>
+                      <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                        {([
+                          { v: 'none' as const, label: '안 함' },
+                          { v: 'asc' as const, label: '오름차순 ↑' },
+                          { v: 'desc' as const, label: '내림차순 ↓' },
+                        ]).map((c) => (
+                          <button
+                            key={c.v}
+                            type="button"
+                            onClick={() => setCsvSortDir(c.v)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-md text-[11.5px] font-semibold transition-all',
+                              csvSortDir === c.v
+                                ? 'bg-foreground text-background'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                            )}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {csvSortDir !== 'none' && (
+                      <div>
+                        <div className="text-[12px] font-semibold text-foreground mb-2">정렬 컬럼 (0부터)</div>
+                        <input
+                          type="number"
+                          value={csvSortColumn}
+                          onChange={(e) => setCsvSortColumn(parseInt(e.target.value, 10) || 0)}
+                          min={0}
+                          className="w-24 h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                        />
+                      </div>
+                    )}
+                    <label className="flex items-center gap-2 text-[12px] text-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={csvDedupe}
+                        onChange={(e) => setCsvDedupe(e.target.checked)}
+                        className="accent-violet-600"
+                      />
+                      중복 행 제거 (전체 행 비교)
+                    </label>
+                    <div className="text-[10.5px] text-muted-foreground">빈 행은 자동으로 제거됩니다</div>
+                  </div>
+                )}
                 {files.length > 0 && selectedTask.id === 'image-resize' && (
                   <div className="space-y-3">
                     <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
@@ -1342,6 +1519,44 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         </div>
       </div>
     </ModeErrorBoundary>
+  );
+}
+
+function TaskCard({
+  task, isFavorite, onSelect, onToggleFavorite,
+}: {
+  task: ConvertTask;
+  isFavorite: boolean;
+  onSelect: () => void;
+  onToggleFavorite: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group relative text-left rounded-xl border border-[hsl(var(--hairline))] bg-card p-3.5 hover:border-violet-300 hover:bg-violet-50/30 dark:hover:bg-violet-500/10 hover:shadow-md hover:-translate-y-0.5 transition-all"
+    >
+      <div className="flex items-start justify-between mb-1.5">
+        <span className="text-[22px]">{task.icon}</span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            className={cn(
+              'p-0.5 rounded transition-opacity',
+              isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+            )}
+            title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+            aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+          >
+            <Star className={cn('w-3.5 h-3.5', isFavorite ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground')} />
+          </button>
+          <TierBadge tier={task.tier} />
+        </div>
+      </div>
+      <div className="text-[13px] font-bold text-foreground mb-0.5 leading-tight">{task.label}</div>
+      <div className="text-[10.5px] text-muted-foreground leading-snug">{task.description}</div>
+    </button>
   );
 }
 
