@@ -118,6 +118,10 @@ export interface PlannerTask {
   tags?: string[];
   /** 서브태스크 체크리스트 (TickTick/Things3 패턴). note 와 다른 차원 — 단계별 상태. */
   subtasks?: Subtask[];
+  /** Eisenhower Matrix — 긴급함 (priority 와 별개 축). */
+  urgent?: boolean;
+  /** Eisenhower Matrix — 중요함. */
+  important?: boolean;
   createdAt: string;
 }
 

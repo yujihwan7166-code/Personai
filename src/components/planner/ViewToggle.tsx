@@ -5,13 +5,14 @@
  */
 import { cn } from '@/lib/utils';
 
-export type PlannerView = 'day' | 'week' | 'month' | 'year';
+export type PlannerView = 'day' | 'week' | 'month' | 'year' | 'matrix';
 
 const OPTIONS: Array<{ id: PlannerView; label: string; key: string }> = [
-  { id: 'day',   label: '일',  key: 'D' },
-  { id: 'week',  label: '주',  key: 'W' },
-  { id: 'month', label: '월',  key: 'M' },
-  { id: 'year',  label: '년',  key: 'Y' },
+  { id: 'day',    label: '일',     key: 'D' },
+  { id: 'week',   label: '주',     key: 'W' },
+  { id: 'month',  label: '월',     key: 'M' },
+  { id: 'year',   label: '년',     key: 'Y' },
+  { id: 'matrix', label: '매트릭스', key: 'X' },
 ];
 
 interface ViewToggleProps {
