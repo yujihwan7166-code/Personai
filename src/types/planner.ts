@@ -122,8 +122,46 @@ export interface PlannerTask {
   urgent?: boolean;
   /** Eisenhower Matrix — 중요함. */
   important?: boolean;
+  /** 사용자 분류 (List/Project) — 메모 폴더와 별개. 미설정 = 인박스. */
+  listId?: string;
   createdAt: string;
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// TaskList — 사용자 분류함 (TickTick Lists / Things3 Areas).
+// 메모 폴더와 별개 store — 의미 도메인이 다르고 사용자가 같이 묶고 싶지 않음.
+// ──────────────────────────────────────────────────────────────────────────
+
+/** 8색 한정 팔레트 — 같은 색이 여러 list 에서 재사용 가능 (사용자 명시 선택). */
+export type TaskListColor =
+  | 'blue' | 'teal' | 'amber' | 'rose' | 'violet' | 'green' | 'orange' | 'cyan';
+
+export const TASK_LIST_COLORS: Record<TaskListColor, { stripe: string; chipBg: string; chipText: string }> = {
+  blue:   { stripe: 'hsl(220 70% 55%)', chipBg: 'hsl(220 70% 95%)', chipText: 'hsl(220 70% 35%)' },
+  teal:   { stripe: 'hsl(180 50% 45%)', chipBg: 'hsl(160 50% 92%)', chipText: 'hsl(160 50% 30%)' },
+  amber:  { stripe: 'hsl(40 80% 50%)',  chipBg: 'hsl(45 80% 92%)',  chipText: 'hsl(35 75% 35%)' },
+  rose:   { stripe: 'hsl(0 70% 55%)',   chipBg: 'hsl(0 60% 94%)',   chipText: 'hsl(0 60% 40%)' },
+  violet: { stripe: 'hsl(270 50% 55%)', chipBg: 'hsl(270 50% 94%)', chipText: 'hsl(270 45% 40%)' },
+  green:  { stripe: 'hsl(140 50% 45%)', chipBg: 'hsl(140 50% 92%)', chipText: 'hsl(140 50% 30%)' },
+  orange: { stripe: 'hsl(15 80% 55%)',  chipBg: 'hsl(15 70% 93%)',  chipText: 'hsl(15 70% 38%)' },
+  cyan:   { stripe: 'hsl(195 60% 50%)', chipBg: 'hsl(195 60% 92%)', chipText: 'hsl(195 60% 32%)' },
+};
+
+export interface TaskList {
+  id: string;
+  name: string;
+  /** 이모지 prefix — 시각적 식별. 미설정 시 색 dot 만. */
+  emoji?: string;
+  color: TaskListColor;
+  /** 사이드바 정렬 순서 (작은 값이 위). */
+  order: number;
+  /** 시간표/주뷰 에서 이 list 의 task 숨김 — 사용자가 명시적으로 토글. */
+  hidden?: boolean;
+  createdAt: string;
+}
+
+/** Store 변경 broadcast. */
+export const PLANNER_LIST_CHANGED = 'planner:list:changed';
 
 /** 서브태스크 — Task 내부 체크리스트 항목.
  * note (free-form 텍스트) 와 분리: 단계 진행 상태가 있는 작은 단위 액션. */

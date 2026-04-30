@@ -384,3 +384,92 @@ function detectImageMime(file: File): 'JPEG' | 'PNG' | 'WEBP' | 'OTHER' {
   if (ext === 'webp') return 'WEBP';
   return 'OTHER';
 }
+
+// ───── PDF 압축 ─────
+// 전략: pdfjs로 페이지를 이미지로 렌더 → JPEG 재인코딩 → 새 PDF 페이지로 박음.
+// 이미지 위주 PDF 에 효과 큼 (스캔본 등). 텍스트만 있는 PDF 는 효과 적거나 오히려 커질 수 있음.
+export type PdfCompressLevel = 'low' | 'medium' | 'high';
+const COMPRESS_QUALITY: Record<PdfCompressLevel, { quality: number; scale: number }> = {
+  low:    { quality: 0.85, scale: 1.5 },  // 약 — 화질 우선
+  medium: { quality: 0.7,  scale: 1.2 },  // 중
+  high:   { quality: 0.55, scale: 1.0 },  // 강 — 용량 우선
+};
+
+export async function compressPdf(
+  file: File,
+  level: PdfCompressLevel = 'medium',
+  onProgress?: (current: number, total: number) => void,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const pdfjs = await loadPdfJs();
+  const { PDFDocument } = await loadPdfLib();
+  const buf = await file.arrayBuffer();
+  const src = await pdfjs.getDocument({ data: buf.slice(0) }).promise;
+  const out = await PDFDocument.create();
+  const { quality, scale } = COMPRESS_QUALITY[level];
+
+  for (let i = 1; i <= src.numPages; i++) {
+    onProgress?.(i, src.numPages);
+    const page = await src.getPage(i);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas 2D context 실패');
+    // PDF 배경(흰색) 깔기 — JPEG 는 투명 처리 X
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport, canvas: canvas as unknown as HTMLCanvasElement & Record<string, unknown> }).promise;
+    // JPEG dataURL → bytes
+    const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
+    const jpegBytes = dataUrlToBytes(jpegDataUrl);
+    const embedded = await out.embedJpg(jpegBytes);
+    const w = page.getViewport({ scale: 1 }).width;
+    const h = page.getViewport({ scale: 1 }).height;
+    const newPage = out.addPage([w, h]);
+    newPage.drawImage(embedded, { x: 0, y: 0, width: w, height: h });
+    await yieldToMain();
+  }
+  const bytes = await out.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-compressed.pdf` };
+}
+
+function dataUrlToBytes(dataUrl: string): Uint8Array {
+  const comma = dataUrl.indexOf(',');
+  const base64 = dataUrl.slice(comma + 1);
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+// ───── PDF 회전 ─────
+// 모든 페이지 또는 페이지 범위 회전. degrees ∈ {90, 180, 270}.
+export async function rotatePdf(
+  file: File,
+  degrees: 90 | 180 | 270,
+  pageRangesStr?: string,  // 빈 문자열 = 전체
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const { PDFDocument, degrees: pdfDegrees } = await loadPdfLib();
+  const buf = await file.arrayBuffer();
+  const doc = await PDFDocument.load(buf);
+  const total = doc.getPageCount();
+  const targetIndices: Set<number> = pageRangesStr && pageRangesStr.trim().length > 0
+    ? new Set(parseRanges(pageRangesStr, total).flatMap(([from, to]) => {
+        const out: number[] = [];
+        for (let i = from; i <= to; i++) out.push(i);
+        return out;
+      }))
+    : new Set(Array.from({ length: total }, (_, i) => i));
+
+  const pages = doc.getPages();
+  for (let i = 0; i < pages.length; i++) {
+    if (!targetIndices.has(i)) continue;
+    const cur = pages[i].getRotation().angle;
+    pages[i].setRotation(pdfDegrees((cur + degrees) % 360));
+  }
+  const bytes = await doc.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-rotated.pdf` };
+}

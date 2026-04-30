@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X, Pencil, ArrowRight } from 'lucide-react';
 import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { notify } from '@/lib/notify';
+import { addMemo } from '@/lib/memoStore';
 
 import { cn } from '@/lib/utils';
 import { convertDocxToHtml, convertDocxToMarkdown, convertDocxToText } from '@/lib/fileConvert/converters/docx';
 import { convertHtmlFileToMd, convertMdFileToHtml } from '@/lib/fileConvert/converters/markup';
-import { convertImageFormat, isImageFormatSupported } from '@/lib/fileConvert/converters/image';
+import {
+  convertImageFormat, isImageFormatSupported,
+  convertHeicToJpg, compressImage, resizeImage,
+} from '@/lib/fileConvert/converters/image';
 import { ocrImageToText } from '@/lib/fileConvert/converters/ocr';
-import { imagesToPdf, mergePdfs, pdfToImages, pdfToText, splitPdf } from '@/lib/fileConvert/converters/pdf';
+import {
+  imagesToPdf, mergePdfs, pdfToImages, pdfToText, splitPdf,
+  compressPdf, rotatePdf, type PdfCompressLevel,
+} from '@/lib/fileConvert/converters/pdf';
 import { convertCsvToXlsx, convertXlsxToCsv, convertXlsxToJson } from '@/lib/fileConvert/converters/spreadsheet';
 import { detectFormat, extensionOf, formatLabel, type FileFormat } from '@/lib/fileConvert/detect';
 import { downloadBlob } from '@/lib/fileConvert/download';
@@ -32,6 +40,7 @@ interface ConversionResult {
 }
 
 export function FileConvertChat({ onBack }: FileConvertChatProps) {
+  const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>('pick-task');
   const [selectedTask, setSelectedTask] = useState<ConvertTask | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -44,6 +53,17 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [imageTarget, setImageTarget] = useState<'jpeg' | 'png' | 'webp'>('png');
   const [pdfImageFormat, setPdfImageFormat] = useState<'png' | 'jpeg'>('png');
   const [splitRanges, setSplitRanges] = useState<string>('1');
+  // 신규 옵션
+  const [pdfCompressLevel, setPdfCompressLevel] = useState<PdfCompressLevel>('medium');
+  const [pdfRotateDegrees, setPdfRotateDegrees] = useState<90 | 180 | 270>(90);
+  const [pdfRotateRanges, setPdfRotateRanges] = useState<string>('');
+  const [imageQuality, setImageQuality] = useState<number>(0.7);
+  const [resizeMode, setResizeMode] = useState<'pixels' | 'percent'>('percent');
+  const [resizeWidth, setResizeWidth] = useState<string>('1280');
+  const [resizeHeight, setResizeHeight] = useState<string>('720');
+  const [resizeScale, setResizeScale] = useState<number>(0.5);
+  // 결과 → 메모로 이미 보냈는지
+  const [memoExported, setMemoExported] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -84,6 +104,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     setResult(null);
     setErrorMessage('');
     setProgress(null);
+    setMemoExported(false);
   }, [result]);
 
   const handleFilesSelected = useCallback(async (picked: File[]) => {
@@ -128,6 +149,30 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
           converted = await convertImageFormat(files[0], imageTarget);
           break;
         }
+        case 'heic-to-jpg': {
+          setProgress('HEIC → JPG 변환 중...');
+          converted = await convertHeicToJpg(files[0]);
+          break;
+        }
+        case 'image-compress': {
+          setProgress(`이미지 압축 중 (품질 ${Math.round(imageQuality * 100)}%)...`);
+          converted = await compressImage(files[0], imageQuality);
+          break;
+        }
+        case 'image-resize': {
+          setProgress('이미지 리사이즈 중...');
+          if (resizeMode === 'percent') {
+            converted = await resizeImage(files[0], { scale: resizeScale, quality: 0.92 });
+          } else {
+            const w = parseInt(resizeWidth, 10);
+            const h = parseInt(resizeHeight, 10);
+            if (!Number.isFinite(w) || !Number.isFinite(h) || w < 1 || h < 1) {
+              throw new Error('가로·세로 픽셀을 1 이상 정수로 입력해주세요.');
+            }
+            converted = await resizeImage(files[0], { maxWidth: w, maxHeight: h, quality: 0.92 });
+          }
+          break;
+        }
         case 'image-to-pdf': {
           setProgress(`이미지 ${files.length}장을 PDF로 묶는 중...`);
           converted = await imagesToPdf(files);
@@ -162,7 +207,15 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
           break;
         }
         case 'pdf-compress': {
-          throw new Error('PDF 압축은 곧 추가될 예정이에요. 지금은 PDF 합치기·분할·이미지 추출을 이용해주세요.');
+          converted = await compressPdf(files[0], pdfCompressLevel, (p, total) => {
+            setProgress(`PDF 압축 중... ${p}/${total} (${pdfCompressLevel === 'high' ? '강' : pdfCompressLevel === 'medium' ? '중' : '약'})`);
+          });
+          break;
+        }
+        case 'pdf-rotate': {
+          setProgress(`PDF 회전 중 (${pdfRotateDegrees}°)...`);
+          converted = await rotatePdf(files[0], pdfRotateDegrees, pdfRotateRanges || undefined);
+          break;
         }
         // ───── 문서 ─────
         case 'docx-to-text': {
@@ -249,15 +302,27 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         originalSize: files[0].size,
         newSize: converted.blob.size,
       });
+      setMemoExported(false);
       setStage('done');
       setProgress(null);
+      // 변환 완료 토스트
+      const sizeDiff = files[0].size > 0
+        ? Math.round(((converted.blob.size - files[0].size) / files[0].size) * 100)
+        : 0;
+      const sizeNote = files[0].size > 0 && Math.abs(sizeDiff) >= 5
+        ? ` (${sizeDiff > 0 ? '+' : ''}${sizeDiff}%)`
+        : '';
+      notify.success(`${converted.suggestedName} 변환 완료${sizeNote}`, { duration: 3000 });
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
-      setErrorMessage((err as Error).message || '변환 중 문제가 생겼어요.');
+      const msg = (err as Error).message || '변환 중 문제가 생겼어요.';
+      setErrorMessage(msg);
       setStage('error');
       setProgress(null);
+      notify.error('변환 실패', { description: msg, duration: 5000 });
     }
-  }, [selectedTask, files, imageTarget]);
+     
+  }, [selectedTask, files, imageTarget, pdfImageFormat, splitRanges, pdfCompressLevel, pdfRotateDegrees, pdfRotateRanges, imageQuality, resizeMode, resizeWidth, resizeHeight, resizeScale]);
 
   const handleDownload = useCallback(() => {
     if (!result) return;
@@ -282,7 +347,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         )}
 
         {/* 헤더 */}
-        <div className="flex-shrink-0 flex items-center justify-between gap-3 px-5 md:px-8 py-4 border-b border-slate-200 bg-white/70 backdrop-blur-sm">
+        <div className="flex-shrink-0 flex items-center justify-between gap-3 px-5 md:px-8 py-4 border-b border-[hsl(var(--hairline))] bg-white/70 backdrop-blur-sm">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/15 via-blue-500/10 to-sky-500/10 border border-border/60 flex items-center justify-center shadow-sm shrink-0">
               <FileSymlink className="w-5 h-5 text-indigo-600/80" strokeWidth={1.8} />
@@ -294,13 +359,13 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {stage !== 'pick-task' && (
-              <button type="button" onClick={reset} className="inline-flex items-center gap-1 h-9 px-3 rounded-lg text-[12.5px] font-semibold text-slate-600 hover:bg-slate-100">
+              <button type="button" onClick={reset} className="inline-flex items-center gap-1 h-9 px-3 rounded-lg text-[12.5px] font-semibold text-muted-foreground hover:bg-accent">
                 <ArrowLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">처음으로</span>
               </button>
             )}
             {onBack && (
-              <button type="button" onClick={onBack} aria-label="닫기" className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={onBack} aria-label="닫기" className="p-2 rounded-lg text-muted-foreground/70 hover:text-muted-foreground hover:bg-accent"><X className="w-5 h-5" /></button>
             )}
           </div>
         </div>
@@ -317,31 +382,31 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={onDropZoneDrop}
-                  className="w-full flex flex-col items-center justify-center gap-2 py-10 px-6 rounded-2xl border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-violet-50/30 transition-colors"
+                  className="w-full flex flex-col items-center justify-center gap-2 py-10 px-6 rounded-2xl border-2 border-dashed border-[hsl(var(--hairline))] hover:border-violet-400 hover:bg-violet-50/30 transition-colors"
                 >
-                  <Upload className="w-8 h-8 text-slate-400" />
-                  <div className="text-[14px] font-semibold text-slate-700">파일을 여기 놓거나 클릭해서 선택하세요</div>
-                  <div className="text-[11.5px] text-slate-400">PDF · 이미지 · Word · Excel · CSV · Markdown 등</div>
+                  <Upload className="w-8 h-8 text-muted-foreground/70" />
+                  <div className="text-[14px] font-semibold text-foreground">파일을 여기 놓거나 클릭해서 선택하세요</div>
+                  <div className="text-[11.5px] text-muted-foreground/70">PDF · 이미지 · Word · Excel · CSV · Markdown 등</div>
                 </button>
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => { const picked = Array.from(e.target.files ?? []); void handleFilesSelected(picked); e.target.value = ''; }} />
 
                 {/* Quick Actions */}
                 <div>
-                  <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-slate-500 mb-2.5">자주 쓰는 도구</h2>
+                  <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">자주 쓰는 도구</h2>
                   <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
                     {quickActions.map((task) => (
                       <button
                         key={task.id}
                         type="button"
                         onClick={() => { setSelectedTask(task); setStage('upload'); }}
-                        className="group text-left rounded-xl border border-slate-200 bg-white p-3.5 hover:border-violet-300 hover:bg-violet-50/30 hover:shadow-md hover:-translate-y-0.5 transition-all"
+                        className="group text-left rounded-xl border border-[hsl(var(--hairline))] bg-white p-3.5 hover:border-violet-300 hover:bg-violet-50/30 hover:shadow-md hover:-translate-y-0.5 transition-all"
                       >
                         <div className="flex items-start justify-between mb-1.5">
                           <span className="text-[22px]">{task.icon}</span>
                           <TierBadge tier={task.tier} />
                         </div>
-                        <div className="text-[13px] font-bold text-slate-800 mb-0.5 leading-tight">{task.label}</div>
-                        <div className="text-[10.5px] text-slate-500 leading-snug">{task.description}</div>
+                        <div className="text-[13px] font-bold text-foreground mb-0.5 leading-tight">{task.label}</div>
+                        <div className="text-[10.5px] text-muted-foreground leading-snug">{task.description}</div>
                       </button>
                     ))}
                   </div>
@@ -349,25 +414,25 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
 
                 {/* 카테고리별 더 많은 도구 */}
                 <div className="space-y-4">
-                  <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-slate-500">더 많은 도구</h2>
+                  <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground">더 많은 도구</h2>
                   {categories.map((cat) => {
                     const tasks = getTasksByCategory(cat).filter((t) => !t.quickAction);
                     if (tasks.length === 0) return null;
                     return (
                       <div key={cat}>
-                        <h3 className="text-[12px] font-semibold text-slate-600 mb-2">{CATEGORY_LABELS[cat]}</h3>
+                        <h3 className="text-[12px] font-semibold text-muted-foreground mb-2">{CATEGORY_LABELS[cat]}</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                           {tasks.map((task) => (
                             <button
                               key={task.id}
                               type="button"
                               onClick={() => { setSelectedTask(task); setStage('upload'); }}
-                              className="flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left"
+                              className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[hsl(var(--hairline))] bg-white hover:border-[hsl(var(--hairline))] hover:bg-accent/40 text-left"
                             >
                               <span className="text-[18px] shrink-0">{task.icon}</span>
                               <div className="min-w-0 flex-1">
-                                <div className="text-[12.5px] font-semibold text-slate-800 truncate">{task.label}</div>
-                                <div className="text-[10.5px] text-slate-500 truncate">{task.description}</div>
+                                <div className="text-[12.5px] font-semibold text-foreground truncate">{task.label}</div>
+                                <div className="text-[10.5px] text-muted-foreground truncate">{task.description}</div>
                               </div>
                             </button>
                           ))}
@@ -383,11 +448,11 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
             {stage === 'upload' && selectedTask && (
               <div className="space-y-5">
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => setStage('pick-task')} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100">
+                  <button type="button" onClick={() => setStage('pick-task')} className="p-1.5 rounded-md text-muted-foreground hover:bg-accent">
                     <ArrowLeft className="w-4 h-4" />
                   </button>
                   <span className="text-[20px]">{selectedTask.icon}</span>
-                  <h2 className="text-[16px] font-bold text-slate-800">{selectedTask.label}</h2>
+                  <h2 className="text-[16px] font-bold text-foreground">{selectedTask.label}</h2>
                   <TierBadge tier={selectedTask.tier} />
                 </div>
 
@@ -399,11 +464,11 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                       onClick={() => fileInputRef.current?.click()}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={onDropZoneDrop}
-                      className="w-full flex flex-col items-center justify-center gap-2 py-12 px-6 rounded-2xl border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-violet-50/30 transition-colors"
+                      className="w-full flex flex-col items-center justify-center gap-2 py-12 px-6 rounded-2xl border-2 border-dashed border-[hsl(var(--hairline))] hover:border-violet-400 hover:bg-violet-50/30 transition-colors"
                     >
-                      <Upload className="w-8 h-8 text-slate-400" />
-                      <div className="text-[13px] font-semibold text-slate-700">{selectedTask.label}용 파일을 올려주세요</div>
-                      <div className="text-[11px] text-slate-400">지원: {selectedTask.accept.join(', ')}</div>
+                      <Upload className="w-8 h-8 text-muted-foreground/70" />
+                      <div className="text-[13px] font-semibold text-foreground">{selectedTask.label}용 파일을 올려주세요</div>
+                      <div className="text-[11px] text-muted-foreground/70">지원: {selectedTask.accept.join(', ')}</div>
                     </button>
                     <input ref={fileInputRef} type="file" multiple={selectedTask.multiFile} accept={selectedTask.accept.join(',')} className="hidden" onChange={(e) => { const picked = Array.from(e.target.files ?? []); void handleFilesSelected(picked); e.target.value = ''; }} />
                   </>
@@ -413,13 +478,13 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                 {files.length > 0 && (
                   <div className="space-y-2">
                     {files.map((f, i) => (
-                      <div key={`${f.name}-${i}`} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white">
+                      <div key={`${f.name}-${i}`} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(var(--hairline))] bg-white">
                         <span className="text-[20px]">📎</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-semibold text-slate-800 truncate">{f.name}</div>
-                          <div className="text-[11px] text-slate-500">{formatLabel(detectedFormats[i] ?? 'unknown')} · {formatBytes(f.size)}</div>
+                          <div className="text-[13px] font-semibold text-foreground truncate">{f.name}</div>
+                          <div className="text-[11px] text-muted-foreground">{formatLabel(detectedFormats[i] ?? 'unknown')} · {formatBytes(f.size)}</div>
                         </div>
-                        <button type="button" onClick={() => { setFiles((arr) => arr.filter((_, idx) => idx !== i)); setDetectedFormats((arr) => arr.filter((_, idx) => idx !== i)); }} aria-label="제거" className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50">
+                        <button type="button" onClick={() => { setFiles((arr) => arr.filter((_, idx) => idx !== i)); setDetectedFormats((arr) => arr.filter((_, idx) => idx !== i)); }} aria-label="제거" className="p-1.5 rounded-md text-muted-foreground/70 hover:text-rose-600 hover:bg-rose-50">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
@@ -430,14 +495,14 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                 {/* 태스크별 옵션 */}
                 {files.length > 0 && selectedTask.id === 'image-format' && (
                   <div>
-                    <div className="text-[12px] font-semibold text-slate-600 mb-2">출력 포맷</div>
-                    <div className="inline-flex gap-1 p-0.5 rounded-lg border border-slate-200 bg-slate-50">
+                    <div className="text-[12px] font-semibold text-muted-foreground mb-2">출력 포맷</div>
+                    <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
                       {(['jpeg', 'png', 'webp'] as const).map((fmt) => (
                         <button
                           key={fmt}
                           type="button"
                           onClick={() => setImageTarget(fmt)}
-                          className={cn('px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all', imageTarget === fmt ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-white')}
+                          className={cn('px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all', imageTarget === fmt ? 'bg-slate-900 text-white' : 'text-muted-foreground hover:text-slate-900 hover:bg-white')}
                         >
                           {fmt.toUpperCase()}
                         </button>
@@ -447,33 +512,180 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                 )}
                 {files.length > 0 && selectedTask.id === 'pdf-to-images' && (
                   <div>
-                    <div className="text-[12px] font-semibold text-slate-600 mb-2">이미지 포맷</div>
-                    <div className="inline-flex gap-1 p-0.5 rounded-lg border border-slate-200 bg-slate-50">
+                    <div className="text-[12px] font-semibold text-muted-foreground mb-2">이미지 포맷</div>
+                    <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
                       {(['png', 'jpeg'] as const).map((fmt) => (
                         <button
                           key={fmt}
                           type="button"
                           onClick={() => setPdfImageFormat(fmt)}
-                          className={cn('px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all', pdfImageFormat === fmt ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-white')}
+                          className={cn('px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all', pdfImageFormat === fmt ? 'bg-slate-900 text-white' : 'text-muted-foreground hover:text-slate-900 hover:bg-white')}
                         >
                           {fmt.toUpperCase()}
                         </button>
                       ))}
                     </div>
-                    <div className="text-[10.5px] text-slate-400 mt-1.5">페이지별 이미지를 ZIP으로 묶어드려요</div>
+                    <div className="text-[10.5px] text-muted-foreground/70 mt-1.5">페이지별 이미지를 ZIP으로 묶어드려요</div>
                   </div>
                 )}
                 {files.length > 0 && selectedTask.id === 'pdf-split' && (
                   <div>
-                    <div className="text-[12px] font-semibold text-slate-600 mb-2">페이지 범위</div>
+                    <div className="text-[12px] font-semibold text-foreground mb-2">페이지 범위</div>
                     <input
                       type="text"
                       value={splitRanges}
                       onChange={(e) => setSplitRanges(e.target.value)}
                       placeholder="예: 1-3, 5, 7-9"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
                     />
-                    <div className="text-[10.5px] text-slate-400 mt-1.5">쉼표로 구분, 하이픈으로 범위 표시 (예: 1-3,5,7-9)</div>
+                    <div className="text-[10.5px] text-muted-foreground mt-1.5">쉼표로 구분, 하이픈으로 범위 표시 (예: 1-3,5,7-9)</div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'pdf-compress' && (
+                  <div>
+                    <div className="text-[12px] font-semibold text-foreground mb-2">압축 강도</div>
+                    <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                      {([
+                        { v: 'low' as const, label: '약', desc: '화질 우선' },
+                        { v: 'medium' as const, label: '중', desc: '균형' },
+                        { v: 'high' as const, label: '강', desc: '용량 최소' },
+                      ]).map((c) => (
+                        <button
+                          key={c.v}
+                          type="button"
+                          onClick={() => setPdfCompressLevel(c.v)}
+                          className={cn(
+                            'px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all flex flex-col items-center min-w-[60px]',
+                            pdfCompressLevel === c.v
+                              ? 'bg-foreground text-background'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                          )}
+                        >
+                          <span>{c.label}</span>
+                          <span className="text-[9.5px] opacity-70 font-normal">{c.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="text-[10.5px] text-muted-foreground mt-1.5">
+                      이미지 위주 PDF에 효과 큼 · 텍스트 PDF 는 효과 작음
+                    </div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'pdf-rotate' && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">회전 각도</div>
+                      <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                        {([90, 180, 270] as const).map((deg) => (
+                          <button
+                            key={deg}
+                            type="button"
+                            onClick={() => setPdfRotateDegrees(deg)}
+                            className={cn(
+                              'px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all',
+                              pdfRotateDegrees === deg
+                                ? 'bg-foreground text-background'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                            )}
+                          >
+                            {deg}°
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">페이지 범위 (선택)</div>
+                      <input
+                        type="text"
+                        value={pdfRotateRanges}
+                        onChange={(e) => setPdfRotateRanges(e.target.value)}
+                        placeholder="비워두면 모든 페이지 (예: 1-3,5)"
+                        className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      />
+                    </div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'image-compress' && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[12px] font-semibold text-foreground">품질</div>
+                      <div className="text-[12px] tabular-nums text-muted-foreground">{Math.round(imageQuality * 100)}%</div>
+                    </div>
+                    <input
+                      type="range"
+                      min={30}
+                      max={95}
+                      step={5}
+                      value={Math.round(imageQuality * 100)}
+                      onChange={(e) => setImageQuality(parseInt(e.target.value, 10) / 100)}
+                      className="w-full accent-violet-600"
+                    />
+                    <div className="flex justify-between text-[10.5px] text-muted-foreground mt-1">
+                      <span>용량 작음</span>
+                      <span>화질 좋음</span>
+                    </div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'image-resize' && (
+                  <div className="space-y-3">
+                    <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                      {(['percent', 'pixels'] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setResizeMode(m)}
+                          className={cn(
+                            'px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all',
+                            resizeMode === m
+                              ? 'bg-foreground text-background'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                          )}
+                        >
+                          {m === 'percent' ? '비율 (%)' : '픽셀 (px)'}
+                        </button>
+                      ))}
+                    </div>
+                    {resizeMode === 'percent' ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-[12px] font-semibold text-foreground">크기</div>
+                          <div className="text-[12px] tabular-nums text-muted-foreground">{Math.round(resizeScale * 100)}%</div>
+                        </div>
+                        <input
+                          type="range"
+                          min={10}
+                          max={100}
+                          step={5}
+                          value={Math.round(resizeScale * 100)}
+                          onChange={(e) => setResizeScale(parseInt(e.target.value, 10) / 100)}
+                          className="w-full accent-violet-600"
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-[10.5px] text-muted-foreground mb-1">최대 가로 (px)</div>
+                          <input
+                            type="number"
+                            value={resizeWidth}
+                            onChange={(e) => setResizeWidth(e.target.value)}
+                            min={1}
+                            className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-[10.5px] text-muted-foreground mb-1">최대 세로 (px)</div>
+                          <input
+                            type="number"
+                            value={resizeHeight}
+                            onChange={(e) => setResizeHeight(e.target.value)}
+                            min={1}
+                            className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-[10.5px] text-muted-foreground">비율 유지하며 큰 쪽이 한도에 맞춰 줄어요</div>
                   </div>
                 )}
 
@@ -488,7 +700,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   </button>
                 )}
                 {files.length > 0 && selectedTask.estimatedTime && (
-                  <div className="text-[11px] text-slate-400 text-center">예상 소요: {selectedTask.estimatedTime}</div>
+                  <div className="text-[11px] text-muted-foreground/70 text-center">예상 소요: {selectedTask.estimatedTime}</div>
                 )}
               </div>
             )}
@@ -497,7 +709,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
             {stage === 'converting' && (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <RefreshCw className="w-10 h-10 text-violet-500 animate-spin" />
-                <div className="text-[14px] font-semibold text-slate-700">{progress ?? '변환 중...'}</div>
+                <div className="text-[14px] font-semibold text-foreground">{progress ?? '변환 중...'}</div>
               </div>
             )}
 
@@ -506,19 +718,19 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Check className="w-5 h-5 text-emerald-500" />
-                  <h2 className="text-[16px] font-bold text-slate-800">변환 완료</h2>
+                  <h2 className="text-[16px] font-bold text-foreground">변환 완료</h2>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+                <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-white p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-[22px]">{formatIcon(result.outputFormat)}</span>
                       <div className="min-w-0">
-                        <div className="text-[13.5px] font-semibold text-slate-800 truncate">{result.fileName}</div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[13.5px] font-semibold text-foreground truncate">{result.fileName}</div>
+                        <div className="text-[11px] text-muted-foreground">
                           {formatBytes(result.originalSize)} → {formatBytes(result.newSize)}
                           {result.originalSize > 0 && (
-                            <span className={cn('ml-1.5 font-semibold', result.newSize < result.originalSize ? 'text-emerald-600' : 'text-slate-400')}>
+                            <span className={cn('ml-1.5 font-semibold', result.newSize < result.originalSize ? 'text-emerald-600' : 'text-muted-foreground/70')}>
                               ({Math.round(((result.newSize - result.originalSize) / result.originalSize) * 100)}%)
                             </span>
                           )}
@@ -529,20 +741,52 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
 
                   {/* 프리뷰 */}
                   {result.previewText && (
-                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[12px] text-slate-700 whitespace-pre-wrap max-h-60 overflow-auto font-mono leading-relaxed">
+                    <div className="p-3 rounded-lg bg-accent/40 border border-[hsl(var(--hairline))] text-[12px] text-foreground whitespace-pre-wrap max-h-60 overflow-auto font-mono leading-relaxed">
                       {result.previewText}
-                      {result.previewText.length >= 500 && <div className="text-slate-400 mt-2">... (다운로드하면 전체 확인 가능)</div>}
+                      {result.previewText.length >= 500 && <div className="text-muted-foreground/70 mt-2">... (다운로드하면 전체 확인 가능)</div>}
                     </div>
                   )}
                   {result.previewUrl && (
-                    <img src={result.previewUrl} alt="변환 결과 미리보기" className="max-h-80 rounded-lg border border-slate-200 mx-auto" />
+                    <img src={result.previewUrl} alt="변환 결과 미리보기" className="max-h-80 rounded-lg border border-[hsl(var(--hairline))] mx-auto" />
                   )}
 
-                  <div className="flex gap-2">
-                    <button type="button" onClick={handleDownload} className="flex-1 h-10 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold inline-flex items-center justify-center gap-1.5">
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={handleDownload} className="flex-1 min-w-[140px] h-10 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold inline-flex items-center justify-center gap-1.5">
                       <Download className="w-4 h-4" /> 다운로드
                     </button>
-                    <button type="button" onClick={reset} className="h-10 px-4 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[13px] font-semibold">
+                    {/* 메모로 — 텍스트류 결과만 */}
+                    {result.previewText && ['txt', 'md', 'csv', 'json', 'html'].includes(result.outputFormat) && (
+                      memoExported ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate('/memos')}
+                          className="h-10 px-4 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-700 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border border-violet-200"
+                        >
+                          <Pencil className="w-4 h-4" />
+                          메모 열기
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const fullText = await result.blob.text();
+                            const memo = addMemo({
+                              body: `${result.fileName}\n\n${fullText}\n\n---\n출처: 파일 변환 (${selectedTask?.label ?? ''})`,
+                            });
+                            setMemoExported(true);
+                            notify.success('메모로 보냈어요', {
+                              duration: 3000,
+                              action: { label: '메모 열기', onClick: () => navigate(`/memos?id=${memo.id}`) },
+                            });
+                          }}
+                          className="h-10 px-4 rounded-lg bg-card hover:bg-accent border border-[hsl(var(--hairline))] text-foreground text-[13px] font-semibold inline-flex items-center justify-center gap-1.5"
+                        >
+                          <Pencil className="w-4 h-4" /> 메모로
+                        </button>
+                      )
+                    )}
+                    <button type="button" onClick={reset} className="h-10 px-4 rounded-lg bg-accent hover:bg-accent/80 text-foreground text-[13px] font-semibold">
                       다른 파일 변환
                     </button>
                   </div>

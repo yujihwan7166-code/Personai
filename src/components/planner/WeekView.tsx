@@ -6,7 +6,7 @@
  * - 빈 컬럼 영역 클릭 → 해당 일 Day 뷰 점프 (가벼운 새 항목 진입점)
  * - 카드 클릭 → 편집 모달 (Day 뷰와 일관성)
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { taskStore } from '@/services/planner/taskStore';
@@ -15,6 +15,8 @@ import { PlannerSection } from './PlannerSection';
 import { PlannerCard } from './PlannerCard';
 import { PlannerEmpty } from './PlannerEmpty';
 import { DroppableDayColumn } from './dnd/DroppableDayColumn';
+import { taskListStore } from '@/services/planner/taskListStore';
+import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
 
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -31,6 +33,16 @@ interface WeekViewProps {
 }
 
 export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) => {
+  const [lists, setLists] = useState(() => taskListStore.list());
+  useEffect(() => {
+    const refresh = () => setLists(taskListStore.list());
+    refresh();
+    if (typeof window === 'undefined') return;
+    window.addEventListener(PLANNER_LIST_CHANGED, refresh);
+    return () => window.removeEventListener(PLANNER_LIST_CHANGED, refresh);
+  }, []);
+  const hiddenListIds = useMemo(() => new Set(lists.filter((l) => l.hidden).map((l) => l.id)), [lists]);
+  const listColorMap = useMemo(() => new Map(lists.map((l) => [l.id, l.color])), [lists]);
   const { start, end, days, weekLabel } = useMemo(() => {
     const anchor = new Date(anchorIso ?? new Date().toISOString());
     anchor.setHours(0, 0, 0, 0);
@@ -130,9 +142,22 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
                     —
                   </button>
                 ) : (
-                  dayItems.map((item) => {
+                  dayItems
+                    .filter((item) => {
+                      if (item.kind !== 'task') return true;
+                      const lid = item.data.listId;
+                      return !lid || !hiddenListIds.has(lid);
+                    })
+                    .map((item) => {
                     const startAt = item.data.startAt!;
                     const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt;
+                    // task 의 list 색을 stripe 로 사용.
+                    const taskListColor = item.kind === 'task' && item.data.listId
+                      ? listColorMap.get(item.data.listId)
+                      : undefined;
+                    const blockColor = item.kind === 'event'
+                      ? item.data.color
+                      : taskListColor ? TASK_LIST_COLORS[taskListColor].stripe : undefined;
                     return (
                       <PlannerCard
                         key={item.data.id}
@@ -141,7 +166,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
                         title={item.data.title}
                         startLabel={formatHm(startAt)}
                         done={item.kind === 'task' ? item.data.done : false}
-                        color={item.kind === 'event' ? item.data.color : undefined}
+                        color={blockColor}
                         priority={item.kind === 'task' ? item.data.priority : undefined}
                         hasNote={item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0)}
                         canceled={item.kind === 'task' ? item.data.canceled : undefined}

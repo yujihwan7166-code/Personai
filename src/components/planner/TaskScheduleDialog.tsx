@@ -11,10 +11,12 @@
  * - 길이 = chip 4종 (30 / 60 / 90 / 120 분)
  * - 인박스로 (시간 해제) 옵션 — schedule 모드에서만
  */
-import { useEffect, useState } from 'react';
-import { Trash2, Flag, FileText, RotateCw, ChevronDown, ListChecks } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Trash2, Flag, FileText, RotateCw, ChevronDown, ListChecks, Folder } from 'lucide-react';
 import { SubtaskList } from './SubtaskList';
-import type { Subtask } from '@/types/planner';
+import { taskListStore } from '@/services/planner/taskListStore';
+import type { Subtask, TaskList } from '@/types/planner';
+import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
 import {
   Dialog,
   DialogContent,
@@ -117,6 +119,21 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   /** 서브태스크 — schedule 모드에서 master 의 subtasks 를 직접 편집 (자동 저장).
    * create 모드에선 생성 시 함께 저장. */
   const [subtasksDraft, setSubtasksDraft] = useState<Subtask[]>([]);
+  /** 선택된 list id. undefined = 인박스(미분류). */
+  const [listId, setListId] = useState<string | undefined>(undefined);
+  /** 사용자 lists — 모달 표시용. */
+  const [lists, setLists] = useState<TaskList[]>(() => taskListStore.list());
+  useEffect(() => {
+    const refresh = () => setLists(taskListStore.list());
+    refresh();
+    if (typeof window === 'undefined') return;
+    window.addEventListener(PLANNER_LIST_CHANGED, refresh);
+    return () => window.removeEventListener(PLANNER_LIST_CHANGED, refresh);
+  }, []);
+  const selectedList = useMemo(
+    () => (listId ? lists.find((l) => l.id === listId) : undefined),
+    [listId, lists],
+  );
 
   // 모드 변경 시 폼 초기화.
   useEffect(() => {
@@ -139,6 +156,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         setRecurrence(preset);
         setByday(bd);
         setSubtasksDraft(series.kind === 'task' ? (series.master.subtasks ?? []) : []);
+        setListId(series.kind === 'task' ? series.master.listId : undefined);
       } else {
         // 비-인스턴스 — task store 에서 직접 마스터 조회 (단발/시리즈 마스터 양쪽).
         const direct = taskStore.findMaster(mode.taskId);
@@ -146,6 +164,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         setRecurrence(preset);
         setByday(bd);
         setSubtasksDraft(direct?.subtasks ?? []);
+        setListId(direct?.listId);
       }
     } else {
       setTitle('');
@@ -159,6 +178,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setRecurrence('none');
       setByday([]);
       setSubtasksDraft([]);
+      setListId(undefined);
     }
   }, [mode, open]);
 
@@ -189,6 +209,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         note: noteTrim.length > 0 ? noteTrim : undefined,
         recurrence: newRecurrence,
         subtasks: subtasksDraft.length > 0 ? subtasksDraft : undefined,
+        listId,
       };
 
       if (series && series.kind === 'task') {
@@ -226,6 +247,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           note: noteTrim.length > 0 ? noteTrim : undefined,
           recurrence: newRecurrence,
           subtasks: subtasksDraft.length > 0 ? subtasksDraft : undefined,
+          listId,
         });
         notify.success(newRecurrence ? '반복 할 일 추가됐어요' : '할 일 추가됐어요');
       }
@@ -429,6 +451,58 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                         />
                       )}
                       <span>{PRIORITY_LABELS[p]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 분류 (List) — 할 일 모드만 */}
+          {!isEvent && lists.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
+                <Folder className="h-3 w-3" />
+                분류
+              </label>
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setListId(undefined)}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-3 py-1.5 text-[12px] rounded-md transition-colors',
+                    !listId
+                      ? 'bg-foreground text-background font-medium'
+                      : 'border border-[hsl(var(--hairline))] hover:bg-accent',
+                  )}
+                >
+                  📥 인박스
+                </button>
+                {lists.map((l) => {
+                  const active = listId === l.id;
+                  const c = TASK_LIST_COLORS[l.color];
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => setListId(l.id)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-md transition-colors',
+                        active
+                          ? 'bg-foreground text-background font-medium'
+                          : 'border border-[hsl(var(--hairline))] hover:bg-accent',
+                      )}
+                    >
+                      {l.emoji ? (
+                        <span aria-hidden>{l.emoji}</span>
+                      ) : (
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: c.stripe }}
+                          aria-hidden
+                        />
+                      )}
+                      <span>{l.name}</span>
                     </button>
                   );
                 })}

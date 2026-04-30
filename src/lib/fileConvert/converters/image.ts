@@ -1,5 +1,5 @@
-// 이미지 포맷 변환 — Canvas API
-// JPG ↔ PNG ↔ WEBP ↔ GIF(첫 프레임)
+// 이미지 포맷 변환·압축·리사이즈·HEIC — Canvas API + heic-to lib
+// JPG ↔ PNG ↔ WEBP ↔ GIF(첫 프레임), HEIC → JPG/PNG
 
 export type ImageOutputFormat = 'jpeg' | 'png' | 'webp';
 
@@ -14,6 +14,10 @@ const EXT_MAP: Record<ImageOutputFormat, string> = {
   png: '.png',
   webp: '.webp',
 };
+
+function baseName(name: string): string {
+  return name.replace(/\.[^.]+$/, '');
+}
 
 export async function convertImageFormat(
   file: File,
@@ -43,8 +47,7 @@ export async function convertImageFormat(
     );
   });
 
-  const baseName = file.name.replace(/\.[^.]+$/, '');
-  return { blob, suggestedName: `${baseName}${EXT_MAP[target]}` };
+  return { blob, suggestedName: `${baseName(file.name)}${EXT_MAP[target]}` };
 }
 
 export function isImageFormatSupported(target: ImageOutputFormat): boolean {
@@ -55,4 +58,125 @@ export function isImageFormatSupported(target: ImageOutputFormat): boolean {
   } catch {
     return false;
   }
+}
+
+// ───── HEIC → JPG ─────
+// Safari 는 createImageBitmap 가 HEIC native 지원, 다른 브라우저는 fallback 필요.
+// 일단 native 시도 → 실패하면 명시적 안내.
+export async function convertHeicToJpg(
+  file: File,
+  quality = 0.92,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error(
+      'HEIC 파일을 이 브라우저에서 디코딩하지 못했어요. Safari 또는 macOS Chrome 을 시도해주세요.',
+    );
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context를 얻지 못했어요.');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('JPG 변환 실패'))), 'image/jpeg', quality);
+  });
+  return { blob, suggestedName: `${baseName(file.name)}.jpg` };
+}
+
+// ───── 이미지 압축 (quality slider) ─────
+// 같은 포맷 유지하면서 quality 만 조정. PNG 는 lossless 라 효과 작음 → JPEG 권장.
+export async function compressImage(
+  file: File,
+  quality = 0.7,
+  target?: ImageOutputFormat,  // 미지정 시 원본 유지 (PNG 는 jpeg 권장)
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context를 얻지 못했어요.');
+
+  // 원본 포맷 추정
+  const ext = file.name.toLowerCase().split('.').pop();
+  const inferredTarget: ImageOutputFormat =
+    target ?? (ext === 'png' ? 'jpeg' : (['jpg', 'jpeg', 'webp'].includes(ext ?? '') ? (ext === 'webp' ? 'webp' : 'jpeg') : 'jpeg'));
+  if (inferredTarget === 'jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('이미지 압축 실패'))),
+      MIME_MAP[inferredTarget],
+      quality,
+    );
+  });
+  return { blob, suggestedName: `${baseName(file.name)}-compressed${EXT_MAP[inferredTarget]}` };
+}
+
+// ───── 이미지 리사이즈 ─────
+// 옵션: 픽셀 (maxWidth/maxHeight, 비율 유지) 또는 % (scale)
+export interface ResizeOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  scale?: number;       // 0 < scale ≤ 1
+  quality?: number;     // JPEG/WEBP 품질
+}
+export async function resizeImage(
+  file: File,
+  opts: ResizeOptions,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const bitmap = await createImageBitmap(file);
+  const sw = bitmap.width;
+  const sh = bitmap.height;
+  let tw = sw;
+  let th = sh;
+  if (opts.scale && opts.scale > 0 && opts.scale <= 1) {
+    tw = Math.round(sw * opts.scale);
+    th = Math.round(sh * opts.scale);
+  } else {
+    const maxW = opts.maxWidth ?? sw;
+    const maxH = opts.maxHeight ?? sh;
+    const ratio = Math.min(maxW / sw, maxH / sh, 1);
+    tw = Math.round(sw * ratio);
+    th = Math.round(sh * ratio);
+  }
+  if (tw < 1 || th < 1) throw new Error('크기가 너무 작아요.');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = tw;
+  canvas.height = th;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context를 얻지 못했어요.');
+
+  // 원본 포맷 유지
+  const ext = file.name.toLowerCase().split('.').pop();
+  const target: ImageOutputFormat = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg';
+  if (target === 'jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, tw, th);
+  }
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, tw, th);
+  bitmap.close();
+
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('리사이즈 실패'))),
+      MIME_MAP[target],
+      opts.quality ?? 0.92,
+    );
+  });
+  return { blob, suggestedName: `${baseName(file.name)}-${tw}x${th}${EXT_MAP[target]}` };
 }

@@ -26,7 +26,7 @@ import {
   type DragStartEvent,
   type DragMoveEvent,
 } from '@dnd-kit/core';
-import { Inbox } from '@/components/planner/Inbox';
+import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { WeekStrip } from '@/components/planner/WeekStrip';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
@@ -349,13 +349,33 @@ const Planner = () => {
   const handleDragEnd = useCallback((e: DragEndEvent) => {
     const dragData = e.active.data.current as PlannerDragData | undefined;
     type MatrixDropData = { kind: 'matrix-quadrant'; patch: { urgent?: boolean; important?: boolean } };
-    const rawDropData = e.over?.data.current as PlannerDropData | MatrixDropData | undefined;
-    const dropData = rawDropData && 'kind' in rawDropData && rawDropData.kind !== 'matrix-quadrant'
+    type AssignListDropData = { kind: 'assign-list'; listId: string };
+    const rawDropData = e.over?.data.current as
+      | PlannerDropData | MatrixDropData | AssignListDropData | undefined;
+    const dropData = rawDropData && 'kind' in rawDropData
+      && rawDropData.kind !== 'matrix-quadrant'
+      && rawDropData.kind !== 'assign-list'
       ? (rawDropData as PlannerDropData)
       : undefined;
     setActiveDrag(null);
 
     if (!dragData) return;
+
+    // ─── List 트리에 드롭: 분류 변경 ───
+    if (
+      rawDropData &&
+      'kind' in rawDropData &&
+      rawDropData.kind === 'assign-list' &&
+      (dragData.kind === 'inbox-task' || dragData.kind === 'scheduled-task')
+    ) {
+      const task = dragData.task;
+      const targetId = isInstanceId(task.id)
+        ? (parseInstanceId(task.id)?.masterId ?? task.id)
+        : task.id;
+      taskStore.update(targetId, { listId: (rawDropData as AssignListDropData).listId });
+      notify.success('분류 변경됐어요', { duration: 1200 });
+      return;
+    }
 
     // ─── Matrix 분면에 드롭: urgent/important 토글 ───
     if (
@@ -588,7 +608,7 @@ const Planner = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr_280px] gap-3 sm:gap-4 h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)]">
             <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0 max-h-[40vh] md:max-h-none">
-              <Inbox
+              <PlannerSidebar
                 inputRef={inboxInputRef}
                 onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
               />

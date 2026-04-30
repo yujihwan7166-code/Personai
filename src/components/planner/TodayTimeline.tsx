@@ -34,8 +34,9 @@ import { DroppableTimeSlot } from './dnd/DroppableTimeSlot';
 import { DraggableBlock } from './dnd/DraggableBlock';
 import { InlineQuickAdd } from './InlineQuickAdd';
 import { SubtaskProgress } from './SubtaskList';
+import { taskListStore } from '@/services/planner/taskListStore';
 import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
-import { PRIORITY_COLORS, PRIORITY_LABELS } from '@/types/planner';
+import { PRIORITY_COLORS, PRIORITY_LABELS, TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
 
 const HOUR_PX = 56;
 const START_HOUR = 0;
@@ -76,12 +77,33 @@ const computeHeightPx = (startIso: string, endIso: string): number => {
 
 export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSlotClick }: TodayTimelineProps) => {
   const baseDateIso = dateIso ?? new Date().toISOString();
-  const items = usePlannerToday(baseDateIso);
+  const itemsRaw = usePlannerToday(baseDateIso);
   const [now, setNow] = useState(new Date());
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
   /** 인라인 빠른 추가 — 클릭한 슬롯 ISO. null = 닫힘. */
   const [quickAddSlot, setQuickAddSlot] = useState<string | null>(null);
+  /** 사용자 lists — task 의 listId → list.color 매핑 + hidden 필터링. */
+  const [lists, setLists] = useState(() => taskListStore.list());
+  useEffect(() => {
+    const refresh = () => setLists(taskListStore.list());
+    refresh();
+    if (typeof window === 'undefined') return;
+    window.addEventListener(PLANNER_LIST_CHANGED, refresh);
+    return () => window.removeEventListener(PLANNER_LIST_CHANGED, refresh);
+  }, []);
+  const hiddenListIds = useMemo(() => new Set(lists.filter((l) => l.hidden).map((l) => l.id)), [lists]);
+  const listColorMap = useMemo(() => new Map(lists.map((l) => [l.id, l.color])), [lists]);
+
+  // hidden list 의 task 는 시간표에서 숨김.
+  const items = useMemo(
+    () => itemsRaw.filter((item) => {
+      if (item.kind !== 'task') return true;
+      const lid = item.data.listId;
+      return !lid || !hiddenListIds.has(lid);
+    }),
+    [itemsRaw, hiddenListIds],
+  );
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
@@ -257,10 +279,18 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
               if (!startAt) return null;
               const top = computeTopPx(startAt, baseDateIso);
               const height = computeHeightPx(startAt, endAt);
+              // stripe 색 우선순위: event.color → task.list.color → muted.
               const stripeColor =
                 item.kind === 'event'
                   ? item.data.color ?? 'hsl(220 70% 55%)'
-                  : 'hsl(var(--muted-foreground) / 0.6)';
+                  : (() => {
+                      const lid = item.data.listId;
+                      if (lid) {
+                        const c = listColorMap.get(lid);
+                        if (c) return TASK_LIST_COLORS[c].stripe;
+                      }
+                      return 'hsl(var(--muted-foreground) / 0.6)';
+                    })();
               const done = item.kind === 'task' ? item.data.done : false;
               const canceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
               const kindLabel = item.kind === 'event' ? '일정' : '할 일';
