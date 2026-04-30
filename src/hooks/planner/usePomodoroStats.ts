@@ -75,6 +75,11 @@ export const usePomodoroStats = (): PomodoroStats => {
     const activeDays = new Set<number>();
 
     for (const r of records) {
+      // 휴식 세션은 통계에서 제외 — 집중(work) 만 집계.
+      // phase 가 없는 옛 기록은 work 으로 간주 (backward compat).
+      const isWork = !r.phase || r.phase === 'work';
+      if (!isWork) continue;
+
       const ts = new Date(r.startedAt).getTime();
       const dayStart = startOfDay(new Date(r.startedAt));
       const daysAgo = Math.floor((today - dayStart) / DAY_MS);

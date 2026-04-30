@@ -22,6 +22,8 @@ export interface PomodoroSessionRecord {
   actualMin: number;
   /** 계획대로 끝났는지 (true) / 중단된 건지 (false). */
   completed: boolean;
+  /** 세션 단계 — 통계에서 work 만 집계. */
+  phase?: 'work' | 'short-break' | 'long-break';
   /** 연결된 task — 있으면. */
   taskId?: string;
   /** 가상 인스턴스 id (시리즈 추적). */

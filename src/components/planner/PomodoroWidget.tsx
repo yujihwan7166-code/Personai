@@ -14,7 +14,11 @@
 import { useEffect, useState } from 'react';
 import { Pause, Play, X, Check, Coffee } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { pomodoroStore, type PomodoroSession, PLANNER_POMODORO_CHANGED } from '@/services/planner/pomodoroStore';
+import {
+  pomodoroStore,
+  type PomodoroSession,
+  PLANNER_POMODORO_CHANGED,
+} from '@/services/planner/pomodoroStore';
 import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
 
@@ -62,40 +66,131 @@ export const PomodoroWidget = () => {
   const remaining = pomodoroStore.remainingMs(session, new Date(now));
   const progress = pomodoroStore.progress(session, new Date(now));
   const isPaused = !!session.pausedAt;
+  const phase = session.phase ?? 'work';
+  const isBreak = phase !== 'work';
+  const cfg = pomodoroStore.getConfig();
+  // chain 도트 — 현재 cycle 안 work 진행.
+  // setIndex 가 long break 직후면 cfg.setsBeforeLong 인데, 다음 work 는 1번째라 mod.
+  const setInCycle = session.setIndex ? ((session.setIndex - 1) % cfg.setsBeforeLong) + 1 : 0;
 
   const handleComplete = (s: PomodoroSession) => {
-    // 자동 완료.
-    if (s.autoComplete && s.taskInstanceId) {
-      taskStore.toggleDone(s.taskInstanceId);
-    } else if (s.autoComplete && s.taskId) {
-      taskStore.toggleDone(s.taskId);
+    const cfg = pomodoroStore.getConfig();
+    const phase = s.phase ?? 'work';
+
+    // work 세션 — task 자동 완료.
+    if (phase === 'work') {
+      if (s.autoComplete && s.taskInstanceId) {
+        taskStore.toggleDone(s.taskInstanceId);
+      } else if (s.autoComplete && s.taskId) {
+        taskStore.toggleDone(s.taskId);
+      }
     }
+
     // 브라우저 알림.
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
-        new Notification('🍅 포모도로 완료', {
-          body: s.taskTitle ?? `${s.durationMin}분 집중 끝!`,
+        const title =
+          phase === 'work' ? '🍅 집중 완료'
+          : phase === 'long-break' ? '☕ 긴 휴식 끝'
+          : '☕ 휴식 끝';
+        new Notification(title, {
+          body: s.taskTitle ?? `${s.durationMin}분 끝!`,
           tag: 'planner-pomodoro',
         });
       } catch {
         /* silent */
       }
     }
-    // 토스트.
-    notify.success('🍅 집중 완료!', {
-      duration: 5000,
-      description: s.taskTitle ?? `${s.durationMin}분 집중 끝났어요`,
-      action: {
-        label: '5분 휴식 시작',
-        onClick: () => pomodoroStore.start({ durationMin: 5, autoComplete: false }),
-      },
-    });
+
+    // ─── Chain 자동 진행 ───
+    if (phase === 'work') {
+      const next = pomodoroStore.nextPhaseAfterWork(s.setIndex ?? 1);
+      if (cfg.autoStartBreak) {
+        // 자동 휴식 시작.
+        pomodoroStore.start({
+          durationMin: next.durationMin,
+          autoComplete: false,
+          phase: next.phase,
+          setIndex: next.setIndex,
+        });
+        notify.success(
+          next.phase === 'long-break' ? '☕ 긴 휴식 시작' : '☕ 휴식 시작',
+          {
+            duration: 2000,
+            description: `${next.durationMin}분 — ${next.phase === 'long-break' ? '4세트 완료, 푹 쉬세요' : '잠깐 쉬어가요'}`,
+          },
+        );
+      } else {
+        // 수동 — toast CTA.
+        notify.success('🍅 집중 완료!', {
+          duration: 6000,
+          description: s.taskTitle ?? `${s.durationMin}분 집중 끝!`,
+          action: {
+            label: `${next.durationMin}분 ${next.phase === 'long-break' ? '긴 휴식' : '휴식'} 시작`,
+            onClick: () => pomodoroStore.start({
+              durationMin: next.durationMin,
+              autoComplete: false,
+              phase: next.phase,
+              setIndex: next.setIndex,
+            }),
+          },
+        });
+      }
+    } else {
+      // 휴식 끝 — autoStartNext 면 자동 work 재개.
+      if (cfg.autoStartNext) {
+        pomodoroStore.start({
+          durationMin: cfg.workMin,
+          autoComplete: false,
+          phase: 'work',
+          taskId: s.taskId,
+          taskInstanceId: s.taskInstanceId,
+          taskTitle: s.taskTitle,
+          setIndex: (s.setIndex ?? 0) + 1,
+        });
+        notify.success('🍅 다음 집중 시작', { duration: 1500 });
+      } else {
+        notify.success(
+          phase === 'long-break' ? '☕ 긴 휴식 끝' : '☕ 휴식 끝',
+          {
+            duration: 5000,
+            action: {
+              label: `${cfg.workMin}분 집중 시작`,
+              onClick: () => pomodoroStore.start({
+                durationMin: cfg.workMin,
+                autoComplete: false,
+                phase: 'work',
+                taskId: s.taskId,
+                taskInstanceId: s.taskInstanceId,
+                taskTitle: s.taskTitle,
+                setIndex: (s.setIndex ?? 0) + 1,
+              }),
+            },
+          },
+        );
+      }
+    }
   };
 
   // 진행률 ring (SVG circle).
   const radius = 22;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - progress);
+
+  // phase 색 — work=emerald (또는 임박 rose), short-break=cyan, long-break=violet.
+  const ringColor = isBreak
+    ? phase === 'long-break' ? 'hsl(270 50% 55%)' : 'hsl(195 60% 50%)'
+    : remaining < 60_000 ? 'hsl(0 75% 55%)' : 'hsl(140 50% 45%)';
+
+  const containerBorder = isPaused
+    ? 'border-amber-300 bg-amber-50/90'
+    : isBreak
+      ? phase === 'long-break'
+        ? 'border-violet-300 bg-violet-50/90'
+        : 'border-cyan-300 bg-cyan-50/90'
+      : remaining < 60_000
+        ? 'border-rose-300 bg-rose-50/90'
+        : 'border-[hsl(var(--hairline))]';
 
   return (
     <div
@@ -105,11 +200,7 @@ export const PomodoroWidget = () => {
         'fixed top-3 right-3 z-50 inline-flex items-center gap-2 px-2.5 py-1.5',
         'rounded-full shadow-lg border bg-card',
         'transition-all',
-        isPaused
-          ? 'border-amber-300 bg-amber-50/90'
-          : remaining < 60_000
-            ? 'border-rose-300 bg-rose-50/90'
-            : 'border-[hsl(var(--hairline))]',
+        containerBorder,
       )}
     >
       {/* 진행 링 + 시간 */}
@@ -128,7 +219,7 @@ export const PomodoroWidget = () => {
             cy="25"
             r={radius}
             fill="none"
-            stroke={remaining < 60_000 ? 'hsl(0 75% 55%)' : 'hsl(140 50% 45%)'}
+            stroke={ringColor}
             strokeWidth="3"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
@@ -140,11 +231,38 @@ export const PomodoroWidget = () => {
           {formatMmss(remaining)}
         </span>
       </div>
-      {session.taskTitle && (
-        <span className="text-[12px] font-medium text-foreground max-w-[180px] truncate">
-          {session.taskTitle}
-        </span>
-      )}
+      {/* phase 라벨 + chain 도트 + task 제목 */}
+      <div className="flex flex-col gap-0.5 max-w-[200px]">
+        {isBreak ? (
+          <span className="inline-flex items-center gap-1 text-[10.5px] font-mono uppercase tracking-wide font-semibold text-muted-foreground">
+            <Coffee className="h-3 w-3" />
+            {phase === 'long-break' ? '긴 휴식' : '휴식'}
+          </span>
+        ) : (
+          session.setIndex && session.setIndex > 0 && (
+            <span className="inline-flex items-center gap-0.5 text-[10px]">
+              {Array.from({ length: cfg.setsBeforeLong }, (_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full',
+                    i < setInCycle ? 'bg-emerald-500' : 'bg-muted-foreground/30',
+                  )}
+                  aria-hidden
+                />
+              ))}
+              <span className="ml-1 font-mono text-muted-foreground tabular-nums">
+                {setInCycle}/{cfg.setsBeforeLong}
+              </span>
+            </span>
+          )
+        )}
+        {session.taskTitle && (
+          <span className="text-[12px] font-medium text-foreground truncate">
+            {session.taskTitle}
+          </span>
+        )}
+      </div>
       <div className="flex items-center gap-0.5 ml-1">
         <button
           type="button"
@@ -183,7 +301,7 @@ export const QuickPomodoroButton = ({ className }: QuickPomodoroButtonProps) => 
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
       try { await Notification.requestPermission(); } catch { /* silent */ }
     }
-    pomodoroStore.start({ durationMin, autoComplete: false });
+    pomodoroStore.start({ durationMin, autoComplete: false, phase: 'work', setIndex: 1 });
     notify.success(`🍅 ${durationMin}분 집중 시작!`, { duration: 1200 });
     setOpen(false);
   };
@@ -248,7 +366,10 @@ export const StartPomodoroButton = ({
         /* silent */
       }
     }
-    pomodoroStore.start({ taskId, taskInstanceId, taskTitle, durationMin, autoComplete });
+    pomodoroStore.start({
+      taskId, taskInstanceId, taskTitle, durationMin, autoComplete,
+      phase: 'work', setIndex: 1,
+    });
     notify.success('🍅 집중 시작!', {
       duration: 1500,
       description: `${durationMin}분 동안 집중해보세요`,

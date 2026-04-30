@@ -18,6 +18,10 @@
 import { pomodoroSessionLog } from './pomodoroSessionLog';
 
 export const PLANNER_POMODORO_CHANGED = 'planner:pomodoro:changed';
+export const PLANNER_POMODORO_CONFIG_CHANGED = 'planner:pomodoro:config:changed';
+
+/** 세션 단계 — Classic Pomodoro chain. */
+export type PomodoroPhase = 'work' | 'short-break' | 'long-break';
 
 export interface PomodoroSession {
   id: string;
@@ -37,7 +41,57 @@ export interface PomodoroSession {
   pausedMs?: number;
   /** 일시정지 시작 시점. null 이면 현재 진행 중. */
   pausedAt?: string;
+  /** 세션 단계 — work / short-break / long-break. 기본 work. */
+  phase?: PomodoroPhase;
+  /** 현재 cycle 안 work 세션 번호 (1-based). long break 후 reset. */
+  setIndex?: number;
 }
+
+/** Chain 설정 (Classic Pomodoro 25/5/15 × 4). */
+export interface PomodoroChainConfig {
+  workMin: number;
+  shortBreakMin: number;
+  longBreakMin: number;
+  /** 몇 work 세션마다 long break. 기본 4. */
+  setsBeforeLong: number;
+  /** work 끝나면 자동으로 휴식 시작. */
+  autoStartBreak: boolean;
+  /** 휴식 끝나면 자동으로 다음 work 시작. */
+  autoStartNext: boolean;
+}
+
+const DEFAULT_CHAIN_CONFIG: PomodoroChainConfig = {
+  workMin: 25,
+  shortBreakMin: 5,
+  longBreakMin: 15,
+  setsBeforeLong: 4,
+  autoStartBreak: true,
+  autoStartNext: false,
+};
+
+const CONFIG_KEY = 'planner.pomodoro-config.v1';
+
+const readConfig = (): PomodoroChainConfig => {
+  if (typeof window === 'undefined') return DEFAULT_CHAIN_CONFIG;
+  try {
+    const raw = window.localStorage.getItem(CONFIG_KEY);
+    if (!raw) return DEFAULT_CHAIN_CONFIG;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_CHAIN_CONFIG, ...parsed };
+  } catch {
+    return DEFAULT_CHAIN_CONFIG;
+  }
+};
+
+const writeConfig = (config: PomodoroChainConfig): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    window.dispatchEvent(new CustomEvent(PLANNER_POMODORO_CONFIG_CHANGED));
+  } catch {
+    /* silent */
+  }
+};
 
 const STORAGE_KEY = 'planner.pomodoro.v1';
 
@@ -75,13 +129,16 @@ export const pomodoroStore = {
     return safeRead();
   },
 
-  /** 새 세션 시작. 기존 활성 세션이 있으면 덮어씀. */
+  /** 새 세션 시작. 기존 활성 세션이 있으면 덮어씀.
+   * phase 가 'work' 면 setIndex 자동 인크리먼트 (이전 세션이 work 였으면). */
   start(input: {
     taskId?: string;
     taskInstanceId?: string;
     taskTitle?: string;
     durationMin: number;
     autoComplete?: boolean;
+    phase?: PomodoroPhase;
+    setIndex?: number;
   }): PomodoroSession {
     const session: PomodoroSession = {
       id: newId(),
@@ -92,9 +149,34 @@ export const pomodoroStore = {
       durationMin: input.durationMin,
       autoComplete: input.autoComplete ?? false,
       pausedMs: 0,
+      phase: input.phase ?? 'work',
+      setIndex: input.setIndex,
     };
     safeWrite(session);
     return session;
+  },
+
+  /** Chain 설정 읽기. */
+  getConfig(): PomodoroChainConfig {
+    return readConfig();
+  },
+
+  /** Chain 설정 부분 업데이트. */
+  updateConfig(patch: Partial<PomodoroChainConfig>): void {
+    writeConfig({ ...readConfig(), ...patch });
+  },
+
+  /** 다음 phase 결정 — 현재 work 가 끝났을 때. */
+  nextPhaseAfterWork(currentSetIndex: number): { phase: PomodoroPhase; durationMin: number; setIndex: number } {
+    const cfg = readConfig();
+    const nextSet = currentSetIndex + 1;
+    // setsBeforeLong 마다 long break (4세션 후).
+    const isLong = nextSet % cfg.setsBeforeLong === 0;
+    return {
+      phase: isLong ? 'long-break' : 'short-break',
+      durationMin: isLong ? cfg.longBreakMin : cfg.shortBreakMin,
+      setIndex: nextSet,
+    };
   },
 
   /** 일시정지 토글. */
@@ -133,6 +215,7 @@ export const pomodoroStore = {
           plannedMin: s.durationMin,
           actualMin,
           completed,
+          phase: s.phase ?? 'work',
           taskId: s.taskId,
           taskInstanceId: s.taskInstanceId,
           taskTitle: s.taskTitle,
