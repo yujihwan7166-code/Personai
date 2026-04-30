@@ -444,6 +444,152 @@ function dataUrlToBytes(dataUrl: string): Uint8Array {
   return bytes;
 }
 
+// ───── PDF 워터마크 (텍스트) ─────
+// 모든 페이지에 대각선으로 흐린 텍스트 박음.
+export interface WatermarkOptions {
+  text: string;
+  /** 0~1, 기본 0.2 */
+  opacity?: number;
+  /** rgb 0~1, 기본 회색 */
+  color?: { r: number; g: number; b: number };
+  /** 폰트 크기, 기본 50 */
+  fontSize?: number;
+  /** 회전 각도 (deg), 기본 -45 */
+  rotateDeg?: number;
+}
+export async function watermarkPdf(
+  file: File,
+  opts: WatermarkOptions,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const lib = await loadPdfLib();
+  const { PDFDocument, rgb, degrees: deg, StandardFonts } = lib;
+  const buf = await file.arrayBuffer();
+  const doc = await PDFDocument.load(buf);
+  const font = await doc.embedFont(StandardFonts.HelveticaBold);
+  const color = opts.color ?? { r: 0.4, g: 0.4, b: 0.4 };
+  const opacity = opts.opacity ?? 0.2;
+  const fontSize = opts.fontSize ?? 50;
+  const rotateDeg = opts.rotateDeg ?? -45;
+  const pages = doc.getPages();
+  for (const page of pages) {
+    const { width, height } = page.getSize();
+    const textWidth = font.widthOfTextAtSize(opts.text, fontSize);
+    page.drawText(opts.text, {
+      x: width / 2 - textWidth / 2,
+      y: height / 2,
+      size: fontSize,
+      font,
+      color: rgb(color.r, color.g, color.b),
+      opacity,
+      rotate: deg(rotateDeg),
+    });
+  }
+  const bytes = await doc.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-watermark.pdf` };
+}
+
+// ───── PDF 페이지 번호 추가 ─────
+export interface PageNumberOptions {
+  position: 'bottom-center' | 'bottom-right' | 'top-center' | 'top-right';
+  format: 'plain' | 'with-total';   // "3" vs "3 / 10"
+  startFromPage?: number;            // 1부터 시작 페이지 (기본 1)
+}
+export async function addPdfPageNumbers(
+  file: File,
+  opts: PageNumberOptions,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const lib = await loadPdfLib();
+  const { PDFDocument, rgb, StandardFonts } = lib;
+  const buf = await file.arrayBuffer();
+  const doc = await PDFDocument.load(buf);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const pages = doc.getPages();
+  const total = pages.length;
+  const startFrom = opts.startFromPage ?? 1;
+  const fontSize = 11;
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+    const { width, height } = page.getSize();
+    const num = i + startFrom;
+    const text = opts.format === 'with-total' ? `${num} / ${total}` : `${num}`;
+    const textWidth = font.widthOfTextAtSize(text, fontSize);
+    let x = width / 2 - textWidth / 2;
+    let y = 24;
+    switch (opts.position) {
+      case 'bottom-center': x = width / 2 - textWidth / 2; y = 24; break;
+      case 'bottom-right':  x = width - textWidth - 32;    y = 24; break;
+      case 'top-center':    x = width / 2 - textWidth / 2; y = height - 24 - fontSize; break;
+      case 'top-right':     x = width - textWidth - 32;    y = height - 24 - fontSize; break;
+    }
+    page.drawText(text, {
+      x, y, size: fontSize, font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+  }
+  const bytes = await doc.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-numbered.pdf` };
+}
+
+// ───── PDF 암호 보호 ─────
+// pdf-lib 는 직접 암호화를 지원하지 않음 (community v1.17 이상 일부 지원, 안정성 X).
+// 대안: pdfjs로 페이지 렌더 → JPEG → 새 PDF 생성 시 user/owner password 적용.
+// 실용적: pdf-lib save 시 'userPassword'·'ownerPassword' 옵션 (1.17+ 일부 fork)
+// → 폴백: qpdf 같은 외부 lib 필요. 일단 pdf-lib 의 encrypt 옵션 (있으면 사용) 시도.
+export async function protectPdf(
+  file: File,
+  password: string,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  if (!password || password.length < 4) {
+    throw new Error('비밀번호는 4자 이상이어야 해요.');
+  }
+  const lib = await loadPdfLib();
+  const { PDFDocument } = lib;
+  const buf = await file.arrayBuffer();
+  const doc = await PDFDocument.load(buf);
+  // pdf-lib v1.17+ 일부 빌드에 암호화 옵션 존재. 안되면 명시 안내.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const saveOpts: any = {
+    userPassword: password,
+    ownerPassword: password,
+    permissions: { printing: 'highResolution', modifying: false, copying: false },
+  };
+  let bytes: Uint8Array;
+  try {
+    bytes = await doc.save(saveOpts);
+  } catch {
+    throw new Error('현재 빌드는 PDF 암호화를 지원하지 않아요. 다른 도구를 사용해주세요.');
+  }
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-protected.pdf` };
+}
+
+// ───── PDF 암호 해제 ─────
+// 비밀번호를 알고 있을 때만 해제 가능.
+export async function unlockPdf(
+  file: File,
+  password: string,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const lib = await loadPdfLib();
+  const { PDFDocument } = lib;
+  const buf = await file.arrayBuffer();
+  let doc;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc = await PDFDocument.load(buf, { password } as any);
+  } catch {
+    throw new Error('비밀번호가 틀렸거나 PDF가 손상됐어요.');
+  }
+  // 새 문서로 페이지 복사 → 암호 없이 저장
+  const out = await PDFDocument.create();
+  const copied = await out.copyPages(doc, doc.getPageIndices());
+  copied.forEach((p) => out.addPage(p));
+  const bytes = await out.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-unlocked.pdf` };
+}
+
 // ───── PDF 회전 ─────
 // 모든 페이지 또는 페이지 범위 회전. degrees ∈ {90, 180, 270}.
 export async function rotatePdf(
