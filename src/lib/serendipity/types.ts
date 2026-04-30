@@ -29,23 +29,18 @@ export interface SerendipityCard {
 }
 
 /**
- * 타입별 메타 — 라벨·이모지 + 좌측 색 라인용 Tailwind class.
- * 새 색 토큰 추가 없이 기존 Tailwind 컬러 팔레트만 사용.
+ * 타입별 메타 — 라벨·이모지만 보관. 시각 디자인은 카드 컴포넌트에서 type 분기로 처리.
+ * (이전 좌측 색 라인 패턴은 폐기 — type 마다 카드 분위기 자체가 다름)
  */
-export const CARD_TYPE_META: Record<CardType, {
-  label: string;
-  emoji: string;
-  /** 좌측 1.5px 라인 강조 색 — 카드 종류 식별용. */
-  accent: string; // tailwind class (border-l-* + text-*)
-}> = {
-  topic:    { label: '지식',    emoji: '📚', accent: 'border-l-sky-400 dark:border-l-sky-500' },
-  quote:    { label: '명언',    emoji: '“ ”', accent: 'border-l-amber-400 dark:border-l-amber-500' },
-  fact:     { label: '사실',    emoji: '💡', accent: 'border-l-emerald-400 dark:border-l-emerald-500' },
-  snippet:  { label: '단편',    emoji: '✦',  accent: 'border-l-violet-400 dark:border-l-violet-500' },
-  link:     { label: '발견',    emoji: '🌐', accent: 'border-l-cyan-400 dark:border-l-cyan-500' },
-  ritual:   { label: '의식',    emoji: '🌅', accent: 'border-l-orange-400 dark:border-l-orange-500' },
-  question: { label: '질문',    emoji: '?',  accent: 'border-l-fuchsia-400 dark:border-l-fuchsia-500' },
-  pairing:  { label: '페어링',  emoji: '🎁', accent: 'border-l-rose-400 dark:border-l-rose-500' },
+export const CARD_TYPE_META: Record<CardType, { label: string; emoji: string }> = {
+  topic:    { label: '지식',    emoji: '📚' },
+  quote:    { label: '명언',    emoji: '“ ”' },
+  fact:     { label: '사실',    emoji: '💡' },
+  snippet:  { label: '단편',    emoji: '✦' },
+  link:     { label: '발견',    emoji: '🌐' },
+  ritual:   { label: '의식',    emoji: '🌅' },
+  question: { label: '질문',    emoji: '?' },
+  pairing:  { label: '페어링',  emoji: '🎁' },
 };
 
 /**

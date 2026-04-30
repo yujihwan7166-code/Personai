@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Keyboard, RefreshCw, Heart, Save, Copy, EyeOff, ExternalLink,
+  ArrowLeft, Keyboard, RefreshCw, Heart,
   Quote, Lightbulb, Sparkles, Link2, Sunrise, HelpCircle, Coffee, BookOpen,
   Clock, X,
 } from 'lucide-react';
@@ -32,8 +32,10 @@ import { fetchAllExternalCards, refetchExternalCards } from '@/lib/serendipity/e
 import { SerendipityShortcutsModal } from '@/components/MySpace/serendipity/ShortcutsModal';
 import { SerendipityDetailModal } from '@/components/MySpace/serendipity/DetailModal';
 import { SerendipityCollectionView } from '@/components/MySpace/serendipity/CollectionView';
+import { DiscoverCardTile } from '@/components/MySpace/serendipity/DiscoverCardTile';
 import { toast } from '@/hooks/use-toast';
 
+// TagFilterModal 안에서 사용
 const TYPE_ICON: Record<CardType, typeof Quote> = {
   topic: BookOpen,
   quote: Quote,
@@ -284,7 +286,7 @@ export default function Discover() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {externalCards.map((card) => (
-                <CardTile
+                <DiscoverCardTile
                   key={card.id}
                   card={card}
                   variant="hero"
@@ -306,7 +308,7 @@ export default function Discover() {
           <SectionHeader emoji="📚" title="깊이 있는 지식" subtitle="2~3분이면 새로 알게 되는 것" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {topicCards.map((card) => (
-              <CardTile
+              <DiscoverCardTile
                 key={card.id}
                 card={card}
                 variant="default"
@@ -327,7 +329,7 @@ export default function Discover() {
           <SectionHeader emoji="✨" title="가벼운 영감" subtitle="명언·사실·단편·질문" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {lightCards.map((card) => (
-              <CardTile
+              <DiscoverCardTile
                 key={card.id}
                 card={card}
                 variant="compact"
@@ -348,7 +350,7 @@ export default function Discover() {
           <SectionHeader emoji="🎁" title="오늘 시도해볼 것" subtitle="작은 의식·페어링·외부 링크" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {discoveryCards.map((card) => (
-              <CardTile
+              <DiscoverCardTile
                 key={card.id}
                 card={card}
                 variant="default"
@@ -437,180 +439,6 @@ function SkeletonCard({ tall }: { tall?: boolean } = {}) {
       <div className="h-3 w-5/6 bg-[hsl(var(--muted))] rounded mb-1.5" />
       <div className="h-3 w-2/3 bg-[hsl(var(--muted))] rounded" />
     </div>
-  );
-}
-
-interface CardTileProps {
-  card: SerendipityCard;
-  liked: boolean;
-  variant: 'hero' | 'default' | 'compact';
-  onOpen: () => void;
-  onLike: () => void;
-  onSave: () => void;
-  onCopy: () => void;
-  onHide: () => void;
-  onTagClick: (tag: string) => void;
-}
-
-function CardTile({
-  card, liked, variant, onOpen, onLike, onSave, onCopy, onHide, onTagClick,
-}: CardTileProps) {
-  const TypeIcon = TYPE_ICON[card.type];
-  const meta = CARD_TYPE_META[card.type];
-  const readMin = estimateReadMinutes(card);
-
-  const lineClamp = variant === 'compact' ? 4 : variant === 'hero' ? 8 : 6;
-  const isHero = variant === 'hero';
-  const isCompact = variant === 'compact';
-
-  return (
-    <article
-      className={cn(
-        'group relative rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))]',
-        'border-l-[3px]', meta.accent,
-        'hover:border-[hsl(var(--border))] hover:shadow-sm',
-        'transition-all overflow-hidden flex flex-col',
-      )}
-    >
-      {/* 이미지 (hero + imageUrl) */}
-      {isHero && card.imageUrl && (
-        <div className="aspect-[16/9] w-full overflow-hidden bg-[hsl(var(--muted))]">
-          <img
-            src={card.imageUrl}
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={onOpen}
-        className="text-left flex-1 p-3.5 hover:bg-[hsl(var(--accent))]/30 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--focus-ring))]"
-        aria-label={card.title ?? card.body.slice(0, 40)}
-      >
-        <div className="flex items-center gap-1.5 mb-2">
-          <TypeIcon className="h-3 w-3 text-muted-foreground" />
-          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            {meta.label}
-          </span>
-          {card.origin === 'remote' && (
-            <span className="text-[9.5px] px-1 py-0 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
-              LIVE
-            </span>
-          )}
-          <div className="flex-1" />
-          {/* 읽기 시간 */}
-          <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground tabular-nums">
-            <Clock className="h-2.5 w-2.5" />
-            {readMin}분
-          </span>
-        </div>
-        {card.title && (
-          <h3 className={cn(
-            'font-semibold mb-1.5 leading-snug',
-            isHero ? 'text-[15px]' : isCompact ? 'text-[12px]' : 'text-[12.5px]',
-          )}>
-            {card.title}
-          </h3>
-        )}
-        <p
-          className={cn(
-            'leading-relaxed text-foreground/90',
-            isCompact ? 'text-[12px]' : isHero ? 'text-[12.5px]' : 'text-[11.5px]',
-          )}
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: lineClamp,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
-          {card.body}
-        </p>
-        {card.source && (
-          <p className="text-[10px] text-muted-foreground mt-2 truncate">
-            {card.source}
-          </p>
-        )}
-      </button>
-
-      {/* 하단 영역: 태그 + 액션 — 액션은 hover/focus 시만 노출 */}
-      <div className="px-3.5 pb-3 flex items-center gap-1 mt-auto">
-        {/* 태그 (좌측, 항상 노출) */}
-        <div className="flex flex-wrap gap-1 flex-1 min-w-0 mr-1">
-          {(card.tags ?? []).slice(0, 3).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onTagClick(t); }}
-              className="text-[9.5px] text-muted-foreground bg-[hsl(var(--muted))] hover:bg-[hsl(var(--accent))] hover:text-foreground px-1.5 py-0.5 rounded-full transition-colors"
-              aria-label={`태그 ${t} 로 모아보기`}
-              title={`#${t} 모아보기`}
-            >
-              #{t}
-            </button>
-          ))}
-        </div>
-
-        {/* 액션 (우측, hover/focus 시 노출) */}
-        <div
-          className={cn(
-            'flex items-center gap-0.5 shrink-0',
-            'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
-            // 좋아요는 활성 시 항상 노출 (피드백)
-            liked && 'opacity-100',
-            'transition-opacity',
-          )}
-        >
-          <TileBtn
-            icon={Heart}
-            label={liked ? '좋아요 해제' : '좋아요'}
-            onClick={onLike}
-            active={liked}
-            fill={liked}
-          />
-          <TileBtn icon={Copy} label="복사" onClick={onCopy} />
-          <TileBtn icon={Save} label="메모로 저장" onClick={onSave} />
-          <TileBtn icon={EyeOff} label="다시 안 보기" onClick={onHide} />
-          {card.url && (
-            <a
-              href={card.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--accent))] hover:text-foreground transition-colors"
-              onClick={(e) => e.stopPropagation()}
-              aria-label="외부 링크 열기"
-              title="외부 링크 열기"
-            >
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function TileBtn({
-  icon: Icon, label, onClick, active, fill,
-}: { icon: typeof Heart; label: string; onClick: () => void; active?: boolean; fill?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      aria-label={label}
-      title={label}
-      className={cn(
-        'h-6 w-6 rounded flex items-center justify-center transition-colors',
-        'text-muted-foreground hover:bg-[hsl(var(--accent))] hover:text-foreground',
-        active && 'text-rose-500',
-      )}
-    >
-      <Icon className={cn('h-3 w-3', fill && 'fill-current')} />
-    </button>
   );
 }
 
