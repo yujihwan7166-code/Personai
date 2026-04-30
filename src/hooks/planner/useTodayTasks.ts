@@ -10,22 +10,27 @@ import { taskStore } from '@/services/planner/taskStore';
 import { PlannerTask, PLANNER_TASK_CHANGED } from '@/types/planner';
 
 const compute = (): PlannerTask[] => {
-  const today = new Date().toISOString().slice(0, 10);
-  const all = taskStore.list();
-  const filtered = all.filter((t) => {
+  const todayIso = new Date().toISOString();
+  // 인박스 (시간 미배정) — 마스터들 중 startAt 없는 것만.
+  const inbox = taskStore.list().filter((t) => {
+    if (t.startAt) return false; // 시간 배정 항목은 listScheduled 가 처리
     if (t.done) return false;
-    if (t.canceled) return false; // Things3 Cancel — 카운트 X
-    if (t.someday) return false;   // 보류 항목 — 오늘 카운트 X
-    if (!t.startAt) return true; // 인박스 (시간 미배정)
-    return t.startAt.slice(0, 10) === today; // 오늘 시간배정
+    if (t.canceled) return false;
+    if (t.someday) return false;
+    return true;
+  });
+  // 오늘 시간배정 — 반복 인스턴스 expand 포함.
+  const scheduled = taskStore.listScheduled(todayIso).filter((t) => {
+    if (t.done) return false;
+    if (t.canceled) return false;
+    if (t.someday) return false;
+    return true;
   });
   // 정렬: 시간배정 우선 (오름차순), 인박스는 최신 생성순.
-  return filtered.sort((a, b) => {
-    if (a.startAt && b.startAt) return a.startAt.localeCompare(b.startAt);
-    if (a.startAt && !b.startAt) return -1;
-    if (!a.startAt && b.startAt) return 1;
-    return b.createdAt.localeCompare(a.createdAt);
-  });
+  return [
+    ...scheduled.sort((a, b) => (a.startAt ?? '').localeCompare(b.startAt ?? '')),
+    ...inbox.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+  ];
 };
 
 export const useTodayTasks = (): PlannerTask[] => {

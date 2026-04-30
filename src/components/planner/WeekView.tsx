@@ -14,6 +14,7 @@ import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
 import { PlannerSection } from './PlannerSection';
 import { PlannerCard } from './PlannerCard';
 import { PlannerEmpty } from './PlannerEmpty';
+import { DroppableDayColumn } from './dnd/DroppableDayColumn';
 
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -86,7 +87,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
           const dayKey = d.iso.slice(0, 10);
           const dayItems = itemsByDay.get(dayKey) ?? [];
           return (
-            <div key={d.iso} className="flex flex-col min-h-0 min-w-0">
+            <DroppableDayColumn key={d.iso} dayIso={d.iso} className="flex flex-col min-h-0 min-w-0 rounded-md">
               <button
                 type="button"
                 onClick={() => onDayClick?.(d.iso)}
@@ -144,6 +145,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
                         priority={item.kind === 'task' ? item.data.priority : undefined}
                         hasNote={item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0)}
                         canceled={item.kind === 'task' ? item.data.canceled : undefined}
+                        recurring={Boolean(item.data.recurrence)}
                         onClick={() => {
                           if (onItemClick) {
                             onItemClick({
@@ -163,7 +165,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
                   })
                 )}
               </div>
-            </div>
+            </DroppableDayColumn>
           );
         })}
       </div>

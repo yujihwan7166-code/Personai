@@ -8,6 +8,7 @@
  * 변경 broadcast: PLANNER_TASK_CHANGED.
  */
 import { PlannerTask, PLANNER_TASK_CHANGED } from '@/types/planner';
+import { expandRecurrence } from '@/lib/planner/recurrence';
 
 const STORAGE_KEY = 'planner.tasks.v1';
 
@@ -51,12 +52,67 @@ export const taskStore = {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
-  /** 특정 날짜에 시간 배정된 할일 (시작 시각 오름차순). */
+  /** 특정 날짜에 시간 배정된 할일 (시작 시각 오름차순).
+   * 반복 시리즈는 해당 날짜에 떨어지는 가상 인스턴스를 합성해 반환. */
   listScheduled(dateIso: string): PlannerTask[] {
     const dayPrefix = dateIso.slice(0, 10);
-    return safeRead()
-      .filter((t) => t.startAt && t.startAt.slice(0, 10) === dayPrefix)
-      .sort((a, b) => (a.startAt ?? '').localeCompare(b.startAt ?? ''));
+    const rangeStart = new Date(`${dayPrefix}T00:00:00`);
+    const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
+
+    const all = safeRead();
+    const result: PlannerTask[] = [];
+
+    for (const t of all) {
+      if (!t.startAt) continue; // 인박스 항목은 expand 대상 아님
+      if (t.recurrence) {
+        const instances = expandRecurrence(t, rangeStart, rangeEnd);
+        for (const inst of instances) {
+          result.push({
+            ...t,
+            id: inst.id,
+            startAt: inst.occurrenceStartIso,
+            endAt: inst.occurrenceEndIso,
+          });
+        }
+      } else if (t.startAt.slice(0, 10) === dayPrefix) {
+        result.push(t);
+      }
+    }
+
+    return result.sort((a, b) => (a.startAt ?? '').localeCompare(b.startAt ?? ''));
+  },
+
+  /** 특정 범위(rangeStart 포함, rangeEnd 제외)의 시간배정 task — 주/월 뷰용. */
+  listScheduledRange(rangeStart: Date, rangeEnd: Date): PlannerTask[] {
+    const all = safeRead();
+    const result: PlannerTask[] = [];
+
+    for (const t of all) {
+      if (!t.startAt) continue;
+      if (t.recurrence) {
+        const instances = expandRecurrence(t, rangeStart, rangeEnd);
+        for (const inst of instances) {
+          result.push({
+            ...t,
+            id: inst.id,
+            startAt: inst.occurrenceStartIso,
+            endAt: inst.occurrenceEndIso,
+          });
+        }
+      } else {
+        const ts = new Date(t.startAt).getTime();
+        if (ts >= rangeStart.getTime() && ts < rangeEnd.getTime()) {
+          result.push(t);
+        }
+      }
+    }
+
+    return result.sort((a, b) => (a.startAt ?? '').localeCompare(b.startAt ?? ''));
+  },
+
+  /** 마스터(저장된 원본) 만 반환 — 시리즈 편집 시 마스터 조회용. */
+  findMaster(id: string): PlannerTask | undefined {
+    return safeRead().find((t) => t.id === id);
   },
 
   add(input: Omit<PlannerTask, 'id' | 'createdAt' | 'done'> & { done?: boolean }): PlannerTask {

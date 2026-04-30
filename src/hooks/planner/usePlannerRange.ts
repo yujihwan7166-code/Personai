@@ -13,18 +13,12 @@ import {
 } from '@/types/planner';
 
 const compute = (startIso: string, endIso: string): PlannerTimelineItem[] => {
-  const start = new Date(startIso).getTime();
-  const end = new Date(endIso).getTime();
+  // 반복 시리즈 expand 포함 — 새 listByRange / listScheduledRange 사용.
+  const rangeStart = new Date(startIso);
+  const rangeEnd = new Date(endIso);
 
-  const events = eventStore.list().filter((e) => {
-    const t = new Date(e.startAt).getTime();
-    return t >= start && t < end;
-  });
-  const tasks = taskStore.list().filter((t) => {
-    if (!t.startAt) return false;
-    const ms = new Date(t.startAt).getTime();
-    return ms >= start && ms < end;
-  });
+  const events = eventStore.listByRange(rangeStart, rangeEnd);
+  const tasks = taskStore.listScheduledRange(rangeStart, rangeEnd);
 
   const merged: PlannerTimelineItem[] = [
     ...events.map((e) => ({ kind: 'event' as const, data: e })),

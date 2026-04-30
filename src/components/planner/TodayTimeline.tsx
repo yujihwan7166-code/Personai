@@ -8,7 +8,7 @@
  * 시간 블록 hover → Tooltip (제목·시간 범위·길이).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate } from 'lucide-react';
+import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
@@ -30,6 +30,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { PlannerSection } from './PlannerSection';
+import { DroppableTimeSlot } from './dnd/DroppableTimeSlot';
+import { DraggableBlock } from './dnd/DraggableBlock';
 import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '@/types/planner';
 
@@ -187,18 +189,28 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                   </span>
                 </div>
                 <div className="flex-1 relative">
-                  <button
-                    type="button"
-                    onClick={() => handleSlotClick(hour, 0)}
-                    className="absolute inset-x-0 top-0 h-1/2 border-t border-[hsl(var(--hairline))] hover:bg-accent/30 transition-colors"
-                    aria-label={`${hour}:00`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleSlotClick(hour, 30)}
-                    className="absolute inset-x-0 top-1/2 h-1/2 border-t border-dashed border-[hsl(var(--hairline))] hover:bg-accent/30 transition-colors"
-                    aria-label={`${hour}:30`}
-                  />
+                  {(() => {
+                    const slot0 = new Date(baseDateIso);
+                    slot0.setHours(hour, 0, 0, 0);
+                    const slot30 = new Date(baseDateIso);
+                    slot30.setHours(hour, 30, 0, 0);
+                    return (
+                      <>
+                        <DroppableTimeSlot
+                          startIso={slot0.toISOString()}
+                          onClick={() => handleSlotClick(hour, 0)}
+                          ariaLabel={`${hour}:00`}
+                          className="absolute inset-x-0 top-0 h-1/2 border-t border-[hsl(var(--hairline))]"
+                        />
+                        <DroppableTimeSlot
+                          startIso={slot30.toISOString()}
+                          onClick={() => handleSlotClick(hour, 30)}
+                          ariaLabel={`${hour}:30`}
+                          className="absolute inset-x-0 top-1/2 h-1/2 border-t border-dashed border-[hsl(var(--hairline))]"
+                        />
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -234,17 +246,23 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
               const taskPriority = item.kind === 'task' ? (item.data.priority ?? 0) : 0;
               const showFlag = taskPriority > 0;
               const hasNote = item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0);
+              const recurring = Boolean(item.data.recurrence);
               const dim = done || canceled;
 
               const blockEl = (
+                <DraggableBlock
+                  item={item.kind === 'task'
+                    ? { kind: 'task', data: item.data as PlannerTask }
+                    : { kind: 'event', data: item.data as PlannerEvent }}
+                  style={{ top, height }}
+                >
                 <div
                   className={cn(
-                    'absolute left-1 right-2 pointer-events-auto',
+                    'h-full w-full',
                     'rounded-lg border border-[hsl(var(--hairline))] bg-card overflow-hidden',
-                    'hover:border-foreground/30 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.15)] transition-all cursor-pointer z-10',
+                    'hover:border-foreground/30 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.15)] transition-all cursor-grab active:cursor-grabbing',
                     dim && 'opacity-50',
                   )}
-                  style={{ top, height }}
                   onClick={() => {
                     onItemClick?.({
                       kind: item.kind,
@@ -285,6 +303,13 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                             aria-hidden
                           />
                         )}
+                        {recurring && (
+                          <RotateCw
+                            className="h-2.5 w-2.5 text-muted-foreground/70"
+                            aria-label="반복"
+                            strokeWidth={2}
+                          />
+                        )}
                       </div>
                       <p className={cn(
                         'text-[13px] leading-snug mt-1 text-foreground font-medium',
@@ -301,6 +326,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick }: TodayTimeli
                     </div>
                   </div>
                 </div>
+                </DraggableBlock>
               );
 
               return (

@@ -9,7 +9,7 @@
  * - 핀 = 인박스 상단 고정 토글
  * - 노트 점(FileText) = note 있음 표시
  */
-import { Check, X, Flag, Pin, FileText, Ban } from 'lucide-react';
+import { Check, X, Flag, Pin, FileText, Ban, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Priority } from '@/types/planner';
 import { PRIORITY_COLORS } from '@/types/planner';
@@ -32,6 +32,8 @@ interface InboxCardProps {
   note?: string;
   /** 취소됨 (Things3 Cancel) — done 과 시각 구분. */
   canceled?: boolean;
+  /** 반복 일정/할일 — 🔁 아이콘 표시 (Apple Calendar 패턴). */
+  recurring?: boolean;
 }
 
 interface BlockCardProps {
@@ -47,13 +49,15 @@ interface BlockCardProps {
   priority?: Priority;
   hasNote?: boolean;
   canceled?: boolean;
+  /** 반복 일정/할일 — 🔁 아이콘 표시. */
+  recurring?: boolean;
 }
 
 type PlannerCardProps = InboxCardProps | BlockCardProps;
 
 export const PlannerCard = (props: PlannerCardProps) => {
   if (props.variant === 'inbox') {
-    const { title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled } = props;
+    const { title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled, recurring } = props;
     const showFlag = (priority ?? 0) > 0;
     const dim = done || canceled;
     const noteText = note?.trim() ?? '';
@@ -117,6 +121,13 @@ export const PlannerCard = (props: PlannerCardProps) => {
         >
           {title}
         </span>
+        {recurring && (
+          <RotateCw
+            className="h-3 w-3 shrink-0 text-muted-foreground/70"
+            aria-label="반복"
+            strokeWidth={2}
+          />
+        )}
         {hasNote && (
           showNoteTooltip ? (
             <Tooltip delayDuration={300}>
@@ -177,7 +188,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
   }
 
   // variant === 'block'
-  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled } = props;
+  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring } = props;
   const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
@@ -220,6 +231,9 @@ export const PlannerCard = (props: PlannerCardProps) => {
           )}
           {hasNote && (
             <FileText className="h-2.5 w-2.5 text-muted-foreground/70" aria-label="노트 있음" />
+          )}
+          {recurring && (
+            <RotateCw className="h-2.5 w-2.5 text-muted-foreground/70" aria-label="반복" strokeWidth={2} />
           )}
         </div>
         <p className={cn(

@@ -15,6 +15,16 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  type DragMoveEvent,
+} from '@dnd-kit/core';
 import { Inbox } from '@/components/planner/Inbox';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { WeekStrip } from '@/components/planner/WeekStrip';
@@ -26,6 +36,17 @@ import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
 import { taskStore } from '@/services/planner/taskStore';
+import { eventStore } from '@/services/planner/eventStore';
+import { notify } from '@/lib/notify';
+import { editThisOnly } from '@/lib/planner/seriesEdit';
+import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
+import {
+  DRAG_ACTIVATION_DISTANCE,
+  MIN_BLOCK_MINUTES,
+  transposeTimeToDate,
+  type PlannerDragData,
+  type PlannerDropData,
+} from '@/components/planner/dnd/plannerDndTypes';
 import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
@@ -244,7 +265,176 @@ const Planner = () => {
 
   const isFullscreen = view === 'month' || view === 'year';
 
+  // ────── DnD ──────
+  // 드래그 기준점 (5px) 으로 클릭과 분리.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragStart = useCallback((_e: DragStartEvent) => {
+    /* 미사용 — 향후 DragOverlay 통합 시 활용. */
+  }, []);
+
+  const handleDragMove = useCallback((_e: DragMoveEvent) => {
+    /* 미사용 — resize 시각 피드백은 dnd-kit transform 이 담당. */
+  }, []);
+
+  /** 가상 인스턴스 id 가 들어왔을 때 master + occurrenceIso 분해. 없으면 null. */
+  const tryDetachInstance = useCallback(
+    (
+      id: string,
+      kind: 'task' | 'event',
+      newStart: string,
+      newEnd: string,
+    ): boolean => {
+      if (!isInstanceId(id)) return false;
+      const parsed = parseInstanceId(id);
+      if (!parsed) return false;
+      if (kind === 'task') {
+        const master = taskStore.findMaster(parsed.masterId);
+        if (!master) return false;
+        editThisOnly(taskStore, master, parsed.occurrenceIso, { startAt: newStart, endAt: newEnd });
+      } else {
+        const master = eventStore.findMaster(parsed.masterId);
+        if (!master) return false;
+        editThisOnly(eventStore, master, parsed.occurrenceIso, { startAt: newStart, endAt: newEnd });
+      }
+      return true;
+    },
+    [],
+  );
+
+  const handleDragEnd = useCallback((e: DragEndEvent) => {
+    const dragData = e.active.data.current as PlannerDragData | undefined;
+    const dropData = e.over?.data.current as PlannerDropData | undefined;
+
+    if (!dragData) return;
+
+    // ─── resize: drop 영역 무관, delta 만 사용 ───
+    if (dragData.kind === 'resize-task' || dragData.kind === 'resize-event') {
+      const item = dragData.kind === 'resize-task' ? dragData.task : dragData.event;
+      if (!item.startAt || !item.endAt) return;
+      const HOUR_PX = 56;
+      const deltaMinutes = Math.round((e.delta.y / HOUR_PX) * 60 / 15) * 15; // 15분 스냅
+      const oldEnd = new Date(item.endAt);
+      const newEnd = new Date(oldEnd.getTime() + deltaMinutes * 60_000);
+      // 최소 길이 보장
+      const minEnd = new Date(new Date(item.startAt).getTime() + MIN_BLOCK_MINUTES * 60_000);
+      const finalEnd = newEnd.getTime() < minEnd.getTime() ? minEnd : newEnd;
+
+      if (dragData.kind === 'resize-task') {
+        if (!tryDetachInstance(item.id, 'task', item.startAt, finalEnd.toISOString())) {
+          taskStore.update(item.id, { endAt: finalEnd.toISOString() });
+        }
+      } else {
+        if (!tryDetachInstance(item.id, 'event', item.startAt, finalEnd.toISOString())) {
+          eventStore.update(item.id, { endAt: finalEnd.toISOString() });
+        }
+      }
+      return;
+    }
+
+    if (!dropData) return;
+
+    // ─── 인박스 → 시간 슬롯: 시간 배정 (기본 30분) ───
+    if (dragData.kind === 'inbox-task' && dropData.kind === 'time-slot') {
+      const start = dropData.startIso;
+      const end = new Date(new Date(start).getTime() + 30 * 60_000).toISOString();
+      taskStore.schedule(dragData.task.id, start, end);
+      notify.success('시간 배정됐어요', { duration: 1500 });
+      return;
+    }
+
+    // ─── 시간 블록 → 시간 슬롯: 시간 변경 (길이 유지) ───
+    if (
+      (dragData.kind === 'scheduled-task' || dragData.kind === 'scheduled-event') &&
+      dropData.kind === 'time-slot'
+    ) {
+      const item = dragData.kind === 'scheduled-task' ? dragData.task : dragData.event;
+      if (!item.startAt || !item.endAt) return;
+      const dur = new Date(item.endAt).getTime() - new Date(item.startAt).getTime();
+      const newStart = dropData.startIso;
+      const newEnd = new Date(new Date(newStart).getTime() + dur).toISOString();
+
+      if (dragData.kind === 'scheduled-task') {
+        if (!tryDetachInstance(item.id, 'task', newStart, newEnd)) {
+          taskStore.schedule(item.id, newStart, newEnd);
+        }
+      } else {
+        if (!tryDetachInstance(item.id, 'event', newStart, newEnd)) {
+          eventStore.update(item.id, { startAt: newStart, endAt: newEnd });
+        }
+      }
+      notify.success('이동됐어요', { duration: 1200 });
+      return;
+    }
+
+    // ─── 시간 블록 → 다른 day column: 시:분 유지, 날짜 교체 ───
+    if (
+      (dragData.kind === 'scheduled-task' || dragData.kind === 'scheduled-event') &&
+      dropData.kind === 'day-column'
+    ) {
+      const item = dragData.kind === 'scheduled-task' ? dragData.task : dragData.event;
+      if (!item.startAt || !item.endAt) return;
+      const oldStart = new Date(item.startAt);
+      const dur = new Date(item.endAt).getTime() - oldStart.getTime();
+      const targetDay = new Date(dropData.dayIso);
+      const newStart = transposeTimeToDate(oldStart, targetDay).toISOString();
+      const newEnd = new Date(new Date(newStart).getTime() + dur).toISOString();
+
+      if (dragData.kind === 'scheduled-task') {
+        if (!tryDetachInstance(item.id, 'task', newStart, newEnd)) {
+          taskStore.schedule(item.id, newStart, newEnd);
+        }
+      } else {
+        if (!tryDetachInstance(item.id, 'event', newStart, newEnd)) {
+          eventStore.update(item.id, { startAt: newStart, endAt: newEnd });
+        }
+      }
+      notify.success('이동됐어요', { duration: 1200 });
+      return;
+    }
+
+    // ─── 인박스 → 다른 day column: 그날 09:00 기본 배정 ───
+    if (dragData.kind === 'inbox-task' && dropData.kind === 'day-column') {
+      const targetDay = new Date(dropData.dayIso);
+      targetDay.setHours(9, 0, 0, 0);
+      const newStart = targetDay.toISOString();
+      const newEnd = new Date(targetDay.getTime() + 30 * 60_000).toISOString();
+      taskStore.schedule(dragData.task.id, newStart, newEnd);
+      notify.success('시간 배정됐어요', { duration: 1500 });
+      return;
+    }
+
+    // ─── 시간 블록 → 인박스: 시간 해제 (시리즈는 detach 후 단발 변환) ───
+    if (
+      (dragData.kind === 'scheduled-task' || dragData.kind === 'scheduled-event') &&
+      dropData.kind === 'inbox'
+    ) {
+      // 일정(Event) 은 인박스 개념 없음 — 무시.
+      if (dragData.kind === 'scheduled-event') return;
+      const task = dragData.task;
+      if (isInstanceId(task.id)) {
+        // 시리즈 인스턴스를 인박스로 → detach + unschedule.
+        const parsed = parseInstanceId(task.id);
+        if (!parsed) return;
+        const master = taskStore.findMaster(parsed.masterId);
+        if (!master) return;
+        // exdate 추가 + 인박스 항목으로 신규 (시간 없음).
+        editThisOnly(taskStore, master, parsed.occurrenceIso, {
+          startAt: undefined,
+          endAt: undefined,
+        });
+      } else {
+        taskStore.unschedule(task.id);
+      }
+      notify.info('인박스로 옮겼어요', { duration: 1500 });
+    }
+  }, [tryDetachInstance]);
+
   return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1 px-4 sm:px-6 py-6 sm:py-7 max-w-[1400px] w-full mx-auto">
         <header className="mb-5 sm:mb-6 flex flex-wrap items-end justify-between gap-3 pb-3 sm:pb-4 border-b-2 border-[hsl(var(--hairline))]">
@@ -361,6 +551,7 @@ const Planner = () => {
         onAction={handleCommandAction}
       />
     </div>
+    </DndContext>
   );
 };
 

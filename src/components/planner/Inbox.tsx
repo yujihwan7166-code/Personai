@@ -34,6 +34,8 @@ import { PlannerInput } from './PlannerInput';
 import { PlannerCard } from './PlannerCard';
 import { PlannerEmpty } from './PlannerEmpty';
 import { Overdue } from './Overdue';
+import { DraggableInboxCard } from './dnd/DraggableInboxCard';
+import { DroppableInbox } from './dnd/DroppableInbox';
 import type { PlannerTask, Priority } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '@/types/planner';
 
@@ -131,6 +133,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
       action={ModeToggle}
       className="h-full"
     >
+      <DroppableInbox>
       <div className="flex flex-col gap-2">
         {mode === 'anytime' && <Overdue onTaskClick={onTaskClick} />}
         <PlannerInput
@@ -151,20 +154,22 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
               <ContextMenu key={t.id}>
                 <ContextMenuTrigger asChild>
                   <div>
-                    <PlannerCard
-                      variant="inbox"
-                      title={t.title}
-                      done={t.done}
-                      onToggle={() => taskStore.toggleDone(t.id)}
-                      onClick={() => onTaskClick?.({ id: t.id, title: t.title })}
-                      onDelete={() => handleDelete(t)}
-                      onTogglePin={() => handleTogglePin(t)}
-                      priority={t.priority}
-                      pinned={t.pinned}
-                      hasNote={Boolean(t.note && t.note.length > 0)}
-                      note={t.note}
-                      canceled={t.canceled}
-                    />
+                    <DraggableInboxCard task={t}>
+                      <PlannerCard
+                        variant="inbox"
+                        title={t.title}
+                        done={t.done}
+                        onToggle={() => taskStore.toggleDone(t.id)}
+                        onClick={() => onTaskClick?.({ id: t.id, title: t.title })}
+                        onDelete={() => handleDelete(t)}
+                        onTogglePin={() => handleTogglePin(t)}
+                        priority={t.priority}
+                        pinned={t.pinned}
+                        hasNote={Boolean(t.note && t.note.length > 0)}
+                        note={t.note}
+                        canceled={t.canceled}
+                      />
+                    </DraggableInboxCard>
                   </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-48">
@@ -234,6 +239,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
           </div>
         )}
       </div>
+      </DroppableInbox>
     </PlannerSection>
   );
 };

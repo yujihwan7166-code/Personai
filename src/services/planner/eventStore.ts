@@ -8,6 +8,7 @@
  * 주의: 직접 호출보다는 훅(useEvents) 사용 권장.
  */
 import { PlannerEvent, PLANNER_EVENT_CHANGED } from '@/types/planner';
+import { expandRecurrence } from '@/lib/planner/recurrence';
 
 const STORAGE_KEY = 'planner.events.v1';
 
@@ -44,12 +45,67 @@ export const eventStore = {
     );
   },
 
-  /** 특정 날짜(YYYY-MM-DD)의 이벤트만 (시작 시각 오름차순). */
+  /** 특정 날짜(YYYY-MM-DD)의 이벤트만 (시작 시각 오름차순).
+   * 반복 시리즈는 해당 날짜에 떨어지는 가상 인스턴스를 합성해 반환. */
   listByDate(dateIso: string): PlannerEvent[] {
     const dayPrefix = dateIso.slice(0, 10);
-    return safeRead()
-      .filter((e) => e.startAt.slice(0, 10) === dayPrefix)
-      .sort((a, b) => a.startAt.localeCompare(b.startAt));
+    const rangeStart = new Date(`${dayPrefix}T00:00:00`);
+    const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
+
+    const all = safeRead();
+    const result: PlannerEvent[] = [];
+
+    for (const e of all) {
+      if (e.recurrence) {
+        // 시리즈 마스터 — 해당 날짜에 떨어지는 인스턴스만 합성
+        const instances = expandRecurrence(e, rangeStart, rangeEnd);
+        for (const inst of instances) {
+          result.push({
+            ...e,
+            id: inst.id,
+            startAt: inst.occurrenceStartIso,
+            endAt: inst.occurrenceEndIso,
+            // recurrence 는 보존 — UI 에서 🔁 표시 위해 필요. 마스터 id 는 parseInstanceId 로 복원.
+          });
+        }
+      } else if (e.startAt.slice(0, 10) === dayPrefix) {
+        result.push(e);
+      }
+    }
+
+    return result.sort((a, b) => a.startAt.localeCompare(b.startAt));
+  },
+
+  /** 특정 범위(rangeStart 포함, rangeEnd 제외)의 이벤트 — 주/월 뷰용. */
+  listByRange(rangeStart: Date, rangeEnd: Date): PlannerEvent[] {
+    const all = safeRead();
+    const result: PlannerEvent[] = [];
+
+    for (const e of all) {
+      if (e.recurrence) {
+        const instances = expandRecurrence(e, rangeStart, rangeEnd);
+        for (const inst of instances) {
+          result.push({
+            ...e,
+            id: inst.id,
+            startAt: inst.occurrenceStartIso,
+            endAt: inst.occurrenceEndIso,
+          });
+        }
+      } else {
+        const ts = new Date(e.startAt).getTime();
+        if (ts >= rangeStart.getTime() && ts < rangeEnd.getTime()) {
+          result.push(e);
+        }
+      }
+    }
+
+    return result.sort((a, b) => a.startAt.localeCompare(b.startAt));
+  },
+
+  /** 마스터(저장된 원본) 만 반환 — 시리즈 편집 시 마스터 조회용. */
+  findMaster(id: string): PlannerEvent | undefined {
+    return safeRead().find((e) => e.id === id);
   },
 
   /** 새 이벤트 추가. id/createdAt 자동 생성. */
