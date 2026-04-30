@@ -532,62 +532,28 @@ export async function addPdfPageNumbers(
   return { blob, suggestedName: `${baseName(file.name)}-numbered.pdf` };
 }
 
-// ───── PDF 암호 보호 ─────
-// pdf-lib 는 직접 암호화를 지원하지 않음 (community v1.17 이상 일부 지원, 안정성 X).
-// 대안: pdfjs로 페이지 렌더 → JPEG → 새 PDF 생성 시 user/owner password 적용.
-// 실용적: pdf-lib save 시 'userPassword'·'ownerPassword' 옵션 (1.17+ 일부 fork)
-// → 폴백: qpdf 같은 외부 lib 필요. 일단 pdf-lib 의 encrypt 옵션 (있으면 사용) 시도.
+// ───── PDF 암호 보호/해제 ─────
+// 주의: pdf-lib 코어는 PDF 표준 암호화(RC4/AES)를 지원하지 않음.
+// 외부 솔루션 필요 (qpdf-wasm ~5MB 등). 사용자에게 솔직히 안내하고
+// 다른 도구 (예: 무료 SmallPDF 의 암호 보호 페이지) 권장.
 export async function protectPdf(
-  file: File,
-  password: string,
+  _file: File,
+  _password: string,
 ): Promise<{ blob: Blob; suggestedName: string }> {
-  if (!password || password.length < 4) {
-    throw new Error('비밀번호는 4자 이상이어야 해요.');
-  }
-  const lib = await loadPdfLib();
-  const { PDFDocument } = lib;
-  const buf = await file.arrayBuffer();
-  const doc = await PDFDocument.load(buf);
-  // pdf-lib v1.17+ 일부 빌드에 암호화 옵션 존재. 안되면 명시 안내.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const saveOpts: any = {
-    userPassword: password,
-    ownerPassword: password,
-    permissions: { printing: 'highResolution', modifying: false, copying: false },
-  };
-  let bytes: Uint8Array;
-  try {
-    bytes = await doc.save(saveOpts);
-  } catch {
-    throw new Error('현재 빌드는 PDF 암호화를 지원하지 않아요. 다른 도구를 사용해주세요.');
-  }
-  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
-  return { blob, suggestedName: `${baseName(file.name)}-protected.pdf` };
+  throw new Error(
+    'PDF 암호 보호는 클라이언트에서 안전하게 구현이 어려워 곧 별도 도구로 분리해서 추가할 예정이에요. ' +
+    '지금은 SmallPDF·iLovePDF 의 암호 보호 페이지를 사용해주세요.',
+  );
 }
 
-// ───── PDF 암호 해제 ─────
-// 비밀번호를 알고 있을 때만 해제 가능.
 export async function unlockPdf(
-  file: File,
-  password: string,
+  _file: File,
+  _password: string,
 ): Promise<{ blob: Blob; suggestedName: string }> {
-  const lib = await loadPdfLib();
-  const { PDFDocument } = lib;
-  const buf = await file.arrayBuffer();
-  let doc;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    doc = await PDFDocument.load(buf, { password } as any);
-  } catch {
-    throw new Error('비밀번호가 틀렸거나 PDF가 손상됐어요.');
-  }
-  // 새 문서로 페이지 복사 → 암호 없이 저장
-  const out = await PDFDocument.create();
-  const copied = await out.copyPages(doc, doc.getPageIndices());
-  copied.forEach((p) => out.addPage(p));
-  const bytes = await out.save();
-  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
-  return { blob, suggestedName: `${baseName(file.name)}-unlocked.pdf` };
+  throw new Error(
+    'PDF 암호 해제는 클라이언트에서 안전하게 구현이 어려워 곧 별도 도구로 분리해서 추가할 예정이에요. ' +
+    '지금은 SmallPDF·iLovePDF 의 암호 해제 페이지를 사용해주세요.',
+  );
 }
 
 // ───── PDF 회전 ─────

@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   Inbox as InboxIcon, Plus, Trash2, Eye, EyeOff, Pin, Flag, Ban, Hourglass, ArrowUp,
-  Check, Clock, FolderPlus, MoreHorizontal, Clock4,
+  Check, Clock, FolderPlus, MoreHorizontal, Clock4, CheckSquare, X, Folder,
 } from 'lucide-react';
 import { useInbox, useInboxCounts } from '@/hooks/planner/useInbox';
 import { taskStore } from '@/services/planner/taskStore';
@@ -60,6 +60,35 @@ const RECOMMENDED_LISTS: Array<{ name: string; emoji: string; color: TaskListCol
 export const PlannerSidebar = ({ inputRef, onTaskClick }: PlannerSidebarProps) => {
   // 활성 선택 — Today 가 디폴트.
   const [selection, setSelection] = useState<Selection>({ kind: 'smart', id: 'today' });
+  // ── 다중 선택 (Bulk) 모드 ──
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const exitBulkMode = useCallback(() => {
+    setBulkMode(false);
+    setBulkSelected(new Set());
+  }, []);
+  const toggleBulkPick = useCallback((id: string) => {
+    setBulkSelected((prev) => {
+      const next = new Set(prev);
+      // 가상 인스턴스는 master id 기반으로 동기화 — 하나의 master 한 번 선택.
+      const targetId = isInstanceId(id) ? (parseInstanceId(id)?.masterId ?? id) : id;
+      if (next.has(targetId)) next.delete(targetId);
+      else next.add(targetId);
+      return next;
+    });
+  }, []);
+  // ESC 로 종료.
+  useEffect(() => {
+    if (!bulkMode) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        exitBulkMode();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [bulkMode, exitBulkMode]);
   // 사용자 lists 구독 — broadcast 이벤트 listen.
   const [lists, setLists] = useState<TaskList[]>(() => taskListStore.list());
   // 모든 active task — Smart List filter 적용 위해.
@@ -165,6 +194,47 @@ export const PlannerSidebar = ({ inputRef, onTaskClick }: PlannerSidebarProps) =
           return list ? `${list.emoji ?? '📋'} ${list.name}` : '분류';
         })();
 
+  // ── Bulk 일괄 액션 핸들러 ──
+  const handleBulkDelete = () => {
+    const ids = Array.from(bulkSelected);
+    if (ids.length === 0) return;
+    if (!window.confirm(`${ids.length}개 항목을 삭제할까요?`)) return;
+    ids.forEach((id) => taskStore.remove(id));
+    notify.success(`${ids.length}개 삭제됨`, { duration: 1500 });
+    exitBulkMode();
+  };
+
+  const handleBulkComplete = () => {
+    const ids = Array.from(bulkSelected);
+    if (ids.length === 0) return;
+    ids.forEach((id) => {
+      const t = taskStore.findMaster(id);
+      if (t && !t.done) taskStore.toggleDone(id);
+    });
+    notify.success(`${ids.length}개 완료`, { duration: 1500 });
+    exitBulkMode();
+  };
+
+  const handleBulkAssignList = (listId: string | undefined) => {
+    const ids = Array.from(bulkSelected);
+    if (ids.length === 0) return;
+    ids.forEach((id) => taskStore.update(id, { listId }));
+    notify.success(
+      listId
+        ? `${ids.length}개 분류 변경`
+        : `${ids.length}개 인박스로 이동`,
+      { duration: 1500 },
+    );
+    exitBulkMode();
+  };
+
+  const handleBulkSelectAll = () => {
+    const allIds = selectedTasks.map((t) =>
+      isInstanceId(t.id) ? (parseInstanceId(t.id)?.masterId ?? t.id) : t.id,
+    );
+    setBulkSelected(new Set(allIds));
+  };
+
   return (
     <DroppableInbox className="h-full flex flex-col">
       {/* ── Smart Lists 행 ── */}
@@ -232,6 +302,23 @@ export const PlannerSidebar = ({ inputRef, onTaskClick }: PlannerSidebarProps) =
           <span className="text-[10.5px] text-muted-foreground tabular-nums">
             {selectedTasks.length}
           </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (bulkMode) exitBulkMode();
+              else setBulkMode(true);
+            }}
+            className={cn(
+              'ml-auto inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-mono uppercase tracking-wide transition-colors',
+              bulkMode
+                ? 'bg-foreground text-background'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+            )}
+            title={bulkMode ? '선택 모드 끄기 (Esc)' : '다중 선택 모드'}
+          >
+            <CheckSquare className="h-3 w-3" />
+            {bulkMode ? '끄기' : '선택'}
+          </button>
         </div>
 
         <PlannerInput
@@ -268,17 +355,99 @@ export const PlannerSidebar = ({ inputRef, onTaskClick }: PlannerSidebarProps) =
               />
             )
           ) : (
-            selectedTasks.map((t) => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                onClick={() => onTaskClick?.({ id: t.id, title: t.title })}
-                onDelete={() => handleDelete(t)}
-              />
-            ))
+            selectedTasks.map((t) => {
+              const masterIdForBulk = isInstanceId(t.id) ? (parseInstanceId(t.id)?.masterId ?? t.id) : t.id;
+              const isPicked = bulkSelected.has(masterIdForBulk);
+              return (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  onClick={() => {
+                    if (bulkMode) toggleBulkPick(t.id);
+                    else onTaskClick?.({ id: t.id, title: t.title });
+                  }}
+                  onDelete={() => handleDelete(t)}
+                  bulkMode={bulkMode}
+                  bulkPicked={isPicked}
+                />
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* Bulk action 툴바 — 활성 시에만 sticky 하단 노출 */}
+      {bulkMode && (
+        <div className="shrink-0 border-t border-[hsl(var(--hairline))] mt-2 -mx-1 -mb-1 px-2 py-1.5 bg-card flex items-center gap-1 flex-wrap">
+          <span className="text-[11px] font-mono tabular-nums font-semibold text-foreground">
+            {bulkSelected.size}개 선택
+          </span>
+          <button
+            type="button"
+            onClick={handleBulkSelectAll}
+            disabled={selectedTasks.length === 0}
+            className="text-[10.5px] text-muted-foreground hover:text-foreground disabled:opacity-40 ml-1"
+          >
+            전체
+          </button>
+          <div className="ml-auto flex items-center gap-0.5">
+            {/* 분류 — dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={bulkSelected.size === 0}
+                  aria-label="분류 변경"
+                  title="분류 변경"
+                  className="w-7 h-7 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-40 transition-colors"
+                >
+                  <Folder className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={() => handleBulkAssignList(undefined)}>
+                  📥 인박스 (미분류)
+                </DropdownMenuItem>
+                {lists.length > 0 && <DropdownMenuSeparator />}
+                {lists.map((l) => (
+                  <DropdownMenuItem key={l.id} onClick={() => handleBulkAssignList(l.id)}>
+                    {l.emoji ?? '📋'} {l.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
+              type="button"
+              onClick={handleBulkComplete}
+              disabled={bulkSelected.size === 0}
+              aria-label="완료 처리"
+              title="완료 처리"
+              className="w-7 h-7 inline-flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors"
+            >
+              <Check className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={bulkSelected.size === 0}
+              aria-label="삭제"
+              title="삭제"
+              className="w-7 h-7 inline-flex items-center justify-center rounded text-rose-500 hover:bg-rose-500/10 disabled:opacity-40 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={exitBulkMode}
+              aria-label="선택 모드 끄기"
+              title="선택 모드 끄기 (Esc)"
+              className="w-7 h-7 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors ml-1"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </DroppableInbox>
   );
 };
@@ -552,8 +721,14 @@ const NewListInput = ({ onDone }: { onDone: () => void }) => {
 // Task row — 사이드바 안 작은 카드
 
 const TaskRow = ({
-  task, onClick, onDelete,
-}: { task: PlannerTask; onClick: () => void; onDelete: () => void }) => {
+  task, onClick, onDelete, bulkMode, bulkPicked,
+}: {
+  task: PlannerTask;
+  onClick: () => void;
+  onDelete: () => void;
+  bulkMode?: boolean;
+  bulkPicked?: boolean;
+}) => {
   // streak — 가상 인스턴스면 master 기준, 마스터면 자기 기준.
   const streakCurrent = (() => {
     if (!task.recurrence && !isInstanceId(task.id)) return undefined;
@@ -563,34 +738,58 @@ const TaskRow = ({
     if (!master?.recurrence) return undefined;
     return computeStreakStats(master).current;
   })();
+  // Bulk 모드면 카드를 picked 시각으로 감싸고 드래그 비활성화 (선택 액션 우선).
+  const innerCard = (
+    <PlannerCard
+      variant="inbox"
+      title={task.title}
+      done={task.done}
+      onToggle={() => taskStore.toggleDone(task.id)}
+      onClick={onClick}
+      onDelete={bulkMode ? undefined : onDelete}
+      onTogglePin={bulkMode ? undefined : () => taskStore.togglePinned(task.id)}
+      priority={task.priority}
+      pinned={task.pinned}
+      hasNote={Boolean(task.note && task.note.length > 0)}
+      note={task.note}
+      canceled={task.canceled}
+      recurring={Boolean(task.recurrence)}
+      subtasks={task.subtasks}
+      onToggleSubtask={(sid) => taskStore.toggleSubtask(task.id, sid)}
+      onAddSubtask={(text) => taskStore.addSubtask(task.id, text)}
+      onRemoveSubtask={(sid) => taskStore.removeSubtask(task.id, sid)}
+      onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(task.id, sid, text)}
+      tags={task.tags}
+      streakCurrent={streakCurrent}
+    />
+  );
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div>
-          <DraggableInboxCard task={task}>
-            <PlannerCard
-              variant="inbox"
-              title={task.title}
-              done={task.done}
-              onToggle={() => taskStore.toggleDone(task.id)}
-              onClick={onClick}
-              onDelete={onDelete}
-              onTogglePin={() => taskStore.togglePinned(task.id)}
-              priority={task.priority}
-              pinned={task.pinned}
-              hasNote={Boolean(task.note && task.note.length > 0)}
-              note={task.note}
-              canceled={task.canceled}
-              recurring={Boolean(task.recurrence)}
-              subtasks={task.subtasks}
-              onToggleSubtask={(sid) => taskStore.toggleSubtask(task.id, sid)}
-              onAddSubtask={(text) => taskStore.addSubtask(task.id, text)}
-              onRemoveSubtask={(sid) => taskStore.removeSubtask(task.id, sid)}
-              onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(task.id, sid, text)}
-              tags={task.tags}
-              streakCurrent={streakCurrent}
-            />
-          </DraggableInboxCard>
+        <div className={cn(
+          'rounded-md transition-all',
+          bulkMode && bulkPicked && 'bg-primary/10 ring-1 ring-primary/40',
+          bulkMode && !bulkPicked && 'opacity-90',
+        )}>
+          {bulkMode ? (
+            <div className="flex items-center gap-1.5 pl-1">
+              <span
+                className={cn(
+                  'flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border shrink-0 transition-all',
+                  bulkPicked
+                    ? 'bg-primary border-primary text-primary-foreground'
+                    : 'border-[hsl(var(--hairline))]',
+                )}
+                aria-hidden
+              >
+                {bulkPicked && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
+              </span>
+              <div className="flex-1 min-w-0">{innerCard}</div>
+            </div>
+          ) : (
+            <DraggableInboxCard task={task}>{innerCard}</DraggableInboxCard>
+          )}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
