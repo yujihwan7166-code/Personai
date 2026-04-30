@@ -115,6 +115,71 @@ export const taskStore = {
     return safeRead().find((t) => t.id === id);
   },
 
+  // ──────── Subtask 헬퍼 ────────
+  /** 서브태스크 추가 — 끝에 push. */
+  addSubtask(taskId: string, text: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === taskId);
+    if (idx === -1) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const subs = all[idx].subtasks ?? [];
+    const order = subs.length > 0 ? Math.max(...subs.map((s) => s.order)) + 1 : 0;
+    const newSub = {
+      id: `sub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+      text: trimmed,
+      done: false,
+      order,
+    };
+    all[idx] = { ...all[idx], subtasks: [...subs, newSub] };
+    safeWrite(all);
+  },
+
+  /** 서브태스크 done 토글. */
+  toggleSubtask(taskId: string, subtaskId: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === taskId);
+    if (idx === -1 || !all[idx].subtasks) return;
+    const subs = all[idx].subtasks!.map((s) =>
+      s.id === subtaskId ? { ...s, done: !s.done } : s,
+    );
+    all[idx] = { ...all[idx], subtasks: subs };
+    safeWrite(all);
+  },
+
+  /** 서브태스크 텍스트 수정. */
+  updateSubtaskText(taskId: string, subtaskId: string, text: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === taskId);
+    if (idx === -1 || !all[idx].subtasks) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const subs = all[idx].subtasks!.map((s) =>
+      s.id === subtaskId ? { ...s, text: trimmed } : s,
+    );
+    all[idx] = { ...all[idx], subtasks: subs };
+    safeWrite(all);
+  },
+
+  /** 서브태스크 삭제. */
+  removeSubtask(taskId: string, subtaskId: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === taskId);
+    if (idx === -1 || !all[idx].subtasks) return;
+    const subs = all[idx].subtasks!.filter((s) => s.id !== subtaskId);
+    all[idx] = { ...all[idx], subtasks: subs.length > 0 ? subs : undefined };
+    safeWrite(all);
+  },
+
+  /** 서브태스크 통째로 교체 — 모달의 일괄 저장용. */
+  setSubtasks(taskId: string, subtasks: NonNullable<PlannerTask['subtasks']>): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === taskId);
+    if (idx === -1) return;
+    all[idx] = { ...all[idx], subtasks: subtasks.length > 0 ? subtasks : undefined };
+    safeWrite(all);
+  },
+
   add(input: Omit<PlannerTask, 'id' | 'createdAt' | 'done'> & { done?: boolean }): PlannerTask {
     const next: PlannerTask = {
       ...input,

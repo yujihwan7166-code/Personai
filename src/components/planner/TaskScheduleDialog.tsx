@@ -12,7 +12,9 @@
  * - 인박스로 (시간 해제) 옵션 — schedule 모드에서만
  */
 import { useEffect, useState } from 'react';
-import { Trash2, Flag, FileText, RotateCw, ChevronDown } from 'lucide-react';
+import { Trash2, Flag, FileText, RotateCw, ChevronDown, ListChecks } from 'lucide-react';
+import { SubtaskList } from './SubtaskList';
+import type { Subtask } from '@/types/planner';
 import {
   Dialog,
   DialogContent,
@@ -112,6 +114,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const [noteOpen, setNoteOpen] = useState(false);
   const [recurrence, setRecurrence] = useState<RecurrencePreset>('none');
   const [byday, setByday] = useState<WeekdayCode[]>([]);
+  /** 서브태스크 — schedule 모드에서 master 의 subtasks 를 직접 편집 (자동 저장).
+   * create 모드에선 생성 시 함께 저장. */
+  const [subtasksDraft, setSubtasksDraft] = useState<Subtask[]>([]);
 
   // 모드 변경 시 폼 초기화.
   useEffect(() => {
@@ -133,12 +138,14 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         const { preset, byday: bd } = ruleToPreset(series.master.recurrence);
         setRecurrence(preset);
         setByday(bd);
+        setSubtasksDraft(series.kind === 'task' ? (series.master.subtasks ?? []) : []);
       } else {
         // 비-인스턴스 — task store 에서 직접 마스터 조회 (단발/시리즈 마스터 양쪽).
         const direct = taskStore.findMaster(mode.taskId);
         const { preset, byday: bd } = ruleToPreset(direct?.recurrence);
         setRecurrence(preset);
         setByday(bd);
+        setSubtasksDraft(direct?.subtasks ?? []);
       }
     } else {
       setTitle('');
@@ -151,6 +158,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setNoteOpen(false);
       setRecurrence('none');
       setByday([]);
+      setSubtasksDraft([]);
     }
   }, [mode, open]);
 
@@ -180,6 +188,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         priority: priority === 0 ? undefined : priority,
         note: noteTrim.length > 0 ? noteTrim : undefined,
         recurrence: newRecurrence,
+        subtasks: subtasksDraft.length > 0 ? subtasksDraft : undefined,
       };
 
       if (series && series.kind === 'task') {
@@ -216,6 +225,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           priority: priority === 0 ? undefined : priority,
           note: noteTrim.length > 0 ? noteTrim : undefined,
           recurrence: newRecurrence,
+          subtasks: subtasksDraft.length > 0 ? subtasksDraft : undefined,
         });
         notify.success(newRecurrence ? '반복 할 일 추가됐어요' : '할 일 추가됐어요');
       }
@@ -486,6 +496,49 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               </div>
             )}
           </div>
+
+          {/* 서브태스크 (체크리스트) — 할 일 모드만 */}
+          {!isEvent && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
+                <ListChecks className="h-3 w-3" />
+                체크리스트
+                {subtasksDraft.length > 0 && (
+                  <span className="text-muted-foreground font-mono normal-case tracking-normal">
+                    ({subtasksDraft.filter((s) => s.done).length}/{subtasksDraft.length})
+                  </span>
+                )}
+              </label>
+              <SubtaskList
+                subtasks={subtasksDraft}
+                onAdd={(text) => {
+                  setSubtasksDraft((prev) => [
+                    ...prev,
+                    {
+                      id: `sub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+                      text,
+                      done: false,
+                      order: prev.length > 0 ? Math.max(...prev.map((s) => s.order)) + 1 : 0,
+                    },
+                  ]);
+                }}
+                onToggle={(sid) => {
+                  setSubtasksDraft((prev) =>
+                    prev.map((s) => (s.id === sid ? { ...s, done: !s.done } : s)),
+                  );
+                }}
+                onRemove={(sid) => {
+                  setSubtasksDraft((prev) => prev.filter((s) => s.id !== sid));
+                }}
+                onUpdate={(sid, text) => {
+                  setSubtasksDraft((prev) =>
+                    prev.map((s) => (s.id === sid ? { ...s, text } : s)),
+                  );
+                }}
+                mode="modal"
+              />
+            </div>
+          )}
 
           {/* 노트 (collapsible) — 할 일 모드만 */}
           {!isEvent && (

@@ -33,6 +33,7 @@ import { PlannerSection } from './PlannerSection';
 import { DroppableTimeSlot } from './dnd/DroppableTimeSlot';
 import { DraggableBlock } from './dnd/DraggableBlock';
 import { InlineQuickAdd } from './InlineQuickAdd';
+import { SubtaskProgress } from './SubtaskList';
 import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '@/types/planner';
 
@@ -329,6 +330,9 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                             aria-label="반복"
                             strokeWidth={2}
                           />
+                        )}
+                        {item.kind === 'task' && item.data.subtasks && item.data.subtasks.length > 0 && (
+                          <SubtaskProgress subtasks={item.data.subtasks} compact />
                         )}
                       </div>
                       <p className={cn(

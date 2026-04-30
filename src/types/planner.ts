@@ -116,7 +116,19 @@ export interface PlannerTask {
   recurrence?: RecurrenceRule;
   /** 태그 (cross-cutting 분류). 자연어 입력에서 #tag 자동 추출 + 모달에서 명시 추가. */
   tags?: string[];
+  /** 서브태스크 체크리스트 (TickTick/Things3 패턴). note 와 다른 차원 — 단계별 상태. */
+  subtasks?: Subtask[];
   createdAt: string;
+}
+
+/** 서브태스크 — Task 내부 체크리스트 항목.
+ * note (free-form 텍스트) 와 분리: 단계 진행 상태가 있는 작은 단위 액션. */
+export interface Subtask {
+  id: string;
+  text: string;
+  done: boolean;
+  /** 정렬 순서 — 작은 값이 위. */
+  order: number;
 }
 
 /**

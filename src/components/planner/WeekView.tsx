@@ -146,6 +146,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
                         hasNote={item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0)}
                         canceled={item.kind === 'task' ? item.data.canceled : undefined}
                         recurring={Boolean(item.data.recurrence)}
+                        subtasks={item.kind === 'task' ? item.data.subtasks : undefined}
                         onClick={() => {
                           if (onItemClick) {
                             onItemClick({

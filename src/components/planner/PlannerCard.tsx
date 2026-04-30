@@ -9,11 +9,13 @@
  * - 핀 = 인박스 상단 고정 토글
  * - 노트 점(FileText) = note 있음 표시
  */
-import { Check, X, Flag, Pin, FileText, Ban, RotateCw } from 'lucide-react';
+import { Check, X, Flag, Pin, FileText, Ban, RotateCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { Priority } from '@/types/planner';
+import type { Priority, Subtask } from '@/types/planner';
 import { PRIORITY_COLORS } from '@/types/planner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { SubtaskList, SubtaskProgress } from './SubtaskList';
 
 interface InboxCardProps {
   variant: 'inbox';
@@ -34,6 +36,12 @@ interface InboxCardProps {
   canceled?: boolean;
   /** 반복 일정/할일 — 🔁 아이콘 표시 (Apple Calendar 패턴). */
   recurring?: boolean;
+  /** 서브태스크 — 있으면 진행률 + chevron 펼침 가능. */
+  subtasks?: Subtask[];
+  onToggleSubtask?: (subtaskId: string) => void;
+  onAddSubtask?: (text: string) => void;
+  onRemoveSubtask?: (subtaskId: string) => void;
+  onUpdateSubtask?: (subtaskId: string, text: string) => void;
 }
 
 interface BlockCardProps {
@@ -51,18 +59,26 @@ interface BlockCardProps {
   canceled?: boolean;
   /** 반복 일정/할일 — 🔁 아이콘 표시. */
   recurring?: boolean;
+  /** 서브태스크 — 있으면 진행률 표시. */
+  subtasks?: Subtask[];
 }
 
 type PlannerCardProps = InboxCardProps | BlockCardProps;
 
-export const PlannerCard = (props: PlannerCardProps) => {
-  if (props.variant === 'inbox') {
-    const { title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled, recurring } = props;
-    const showFlag = (priority ?? 0) > 0;
-    const dim = done || canceled;
-    const noteText = note?.trim() ?? '';
-    const showNoteTooltip = hasNote && noteText.length > 0;
-    return (
+/** Inbox variant — 별도 컴포넌트로 추출 (useState 가 hooks 규칙에 맞도록). */
+const InboxCardInner = (props: InboxCardProps) => {
+  const {
+    title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled, recurring,
+    subtasks, onToggleSubtask, onAddSubtask, onRemoveSubtask, onUpdateSubtask,
+  } = props;
+  const showFlag = (priority ?? 0) > 0;
+  const dim = done || canceled;
+  const noteText = note?.trim() ?? '';
+  const showNoteTooltip = hasNote && noteText.length > 0;
+  const hasSubtasks = subtasks && subtasks.length > 0;
+  const [expanded, setExpanded] = useState(false);
+  return (
+      <div className="rounded-md overflow-hidden">
       <div
         role="button"
         tabIndex={0}
@@ -121,6 +137,20 @@ export const PlannerCard = (props: PlannerCardProps) => {
         >
           {title}
         </span>
+        {hasSubtasks && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((v) => !v);
+            }}
+            aria-label={expanded ? '서브태스크 접기' : '서브태스크 펼치기'}
+            className="flex items-center gap-0.5 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            <SubtaskProgress subtasks={subtasks!} compact />
+          </button>
+        )}
         {recurring && (
           <RotateCw
             className="h-3 w-3 shrink-0 text-muted-foreground/70"
@@ -184,11 +214,31 @@ export const PlannerCard = (props: PlannerCardProps) => {
           </button>
         )}
       </div>
+
+      {/* 서브태스크 펼침 영역 */}
+      {hasSubtasks && expanded && (
+        <div className="ml-5 mt-1 mb-1 pl-2 border-l border-[hsl(var(--hairline))]" onClick={(e) => e.stopPropagation()}>
+          <SubtaskList
+            subtasks={subtasks!}
+            onToggle={(id) => onToggleSubtask?.(id)}
+            onAdd={(text) => onAddSubtask?.(text)}
+            onRemove={(id) => onRemoveSubtask?.(id)}
+            onUpdate={onUpdateSubtask ? (id, text) => onUpdateSubtask(id, text) : undefined}
+            mode="inline"
+          />
+        </div>
+      )}
+      </div>
     );
+};
+
+export const PlannerCard = (props: PlannerCardProps) => {
+  if (props.variant === 'inbox') {
+    return <InboxCardInner {...props} />;
   }
 
   // variant === 'block'
-  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring } = props;
+  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks } = props;
   const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
@@ -235,6 +285,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
           {recurring && (
             <RotateCw className="h-2.5 w-2.5 text-muted-foreground/70" aria-label="반복" strokeWidth={2} />
           )}
+          {subtasks && subtasks.length > 0 && <SubtaskProgress subtasks={subtasks} compact />}
         </div>
         <p className={cn(
           'text-[13px] leading-snug mt-0.5 truncate text-foreground font-medium',

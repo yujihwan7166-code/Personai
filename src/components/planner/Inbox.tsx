@@ -184,6 +184,12 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
                         hasNote={Boolean(t.note && t.note.length > 0)}
                         note={t.note}
                         canceled={t.canceled}
+                        recurring={Boolean(t.recurrence)}
+                        subtasks={t.subtasks}
+                        onToggleSubtask={(sid) => taskStore.toggleSubtask(t.id, sid)}
+                        onAddSubtask={(text) => taskStore.addSubtask(t.id, text)}
+                        onRemoveSubtask={(sid) => taskStore.removeSubtask(t.id, sid)}
+                        onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(t.id, sid, text)}
                       />
                     </DraggableInboxCard>
                   </div>
