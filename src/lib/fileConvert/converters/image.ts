@@ -238,3 +238,60 @@ export async function resizeImage(
   });
   return { blob, suggestedName: `${baseName(file.name)}-${tw}x${th}${EXT_MAP[target]}` };
 }
+
+// ───── 일괄 처리 — 다중 이미지 → ZIP ─────
+let jszipPromise: Promise<typeof import('jszip')> | null = null;
+function loadJsZip() {
+  if (!jszipPromise) jszipPromise = import('jszip');
+  return jszipPromise;
+}
+
+export type BatchImageTask =
+  | { kind: 'format'; target: ImageOutputFormat; quality?: number }
+  | { kind: 'compress'; quality: number; target?: ImageOutputFormat }
+  | { kind: 'resize'; opts: ResizeOptions }
+  | { kind: 'heic-to-jpg'; quality?: number }
+  | { kind: 'transform'; transform: ImageTransform };
+
+export async function batchImageProcess(
+  files: File[],
+  task: BatchImageTask,
+  onProgress?: (current: number, total: number, name: string) => void,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const { default: JSZip } = await loadJsZip();
+  const zip = new JSZip();
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    onProgress?.(i + 1, files.length, file.name);
+    let result: { blob: Blob; suggestedName: string };
+    try {
+      switch (task.kind) {
+        case 'format':
+          result = await convertImageFormat(file, task.target, task.quality);
+          break;
+        case 'compress':
+          result = await compressImage(file, task.quality, task.target);
+          break;
+        case 'resize':
+          result = await resizeImage(file, task.opts);
+          break;
+        case 'heic-to-jpg':
+          result = await convertHeicToJpg(file, task.quality);
+          break;
+        case 'transform':
+          result = await transformImage(file, task.transform);
+          break;
+      }
+      const buf = await result.blob.arrayBuffer();
+      zip.file(result.suggestedName, buf);
+    } catch (err) {
+      // 한 파일 실패해도 나머지 진행
+      console.warn(`Batch image: ${file.name} 실패`, err);
+    }
+  }
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  return {
+    blob,
+    suggestedName: `images-${task.kind}-${files.length}.zip`,
+  };
+}

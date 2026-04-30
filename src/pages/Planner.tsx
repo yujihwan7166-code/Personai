@@ -36,6 +36,7 @@ import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { MatrixView } from '@/components/planner/MatrixView';
 import { QuickPomodoroButton } from '@/components/planner/PomodoroWidget';
+import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
@@ -80,6 +81,7 @@ const Planner = () => {
   const [anchorIso, setAnchorIso] = useState(() => new Date().toISOString());
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -263,6 +265,7 @@ const Planner = () => {
         case 't': e.preventDefault(); goToday(); break;
         case 'arrowleft':  e.preventDefault(); goPrev(); break;
         case 'arrowright': e.preventDefault(); goNext(); break;
+        case '?': e.preventDefault(); setHelpOpen(true); break;
       }
     };
     window.addEventListener('keydown', handler);
@@ -585,9 +588,18 @@ const Planner = () => {
               {periodLabel}
             </span>
           </div>
-          {/* 우측 액션 — 자유 포모도로 */}
+          {/* 우측 액션 — 자유 포모도로 + 단축키 도움말 */}
           <div className="flex items-center gap-2 ml-auto">
             <QuickPomodoroButton />
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              aria-label="단축키 도움말"
+              title="단축키 (?)"
+              className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <span className="text-[12px] font-mono font-semibold">?</span>
+            </button>
           </div>
         </header>
 
@@ -653,6 +665,7 @@ const Planner = () => {
         onOpenChange={setPaletteOpen}
         onAction={handleCommandAction}
       />
+      <ShortcutHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
     {/* 드래그 시간 미리보기 — DragOverlay 로 마우스 옆 표시. */}
     <DragOverlay dropAnimation={null}>

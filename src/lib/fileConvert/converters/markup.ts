@@ -56,6 +56,53 @@ export async function convertHtmlFileToMd(file: File): Promise<{ blob: Blob; sug
   return { blob, suggestedName: `${base}.md` };
 }
 
+// ───── HTML → PDF ─────
+// 입력 HTML 파일을 그대로 렌더 → html2canvas → jsPDF a4 분할
+export async function convertHtmlFileToPdf(file: File): Promise<{ blob: Blob; suggestedName: string }> {
+  const text = await file.text();
+  // 임시 div 에 렌더 (외부 리소스 제한)
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:absolute;left:-99999px;top:0;width:780px;background:#ffffff;color:#1e293b;font-family:system-ui,-apple-system,Noto Sans KR,sans-serif;padding:48px;line-height:1.6;';
+  // body 내부만 추출 (외부 head 무시)
+  const parser = new DOMParser();
+  const docHtml = parser.parseFromString(text, 'text/html');
+  wrapper.innerHTML = docHtml.body.innerHTML;
+  document.body.appendChild(wrapper);
+  try {
+    const html2canvas = (await loadHtml2Canvas()).default;
+    const { jsPDF } = await loadJsPdf();
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      windowWidth: 780,
+      logging: false,
+    });
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+    heightLeft -= pageHeight;
+    while (heightLeft > 0) {
+      position -= pageHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pageHeight;
+    }
+    const arrayBuffer = pdf.output('arraybuffer');
+    const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+    const base = file.name.replace(/\.(html|htm)$/i, '');
+    return { blob, suggestedName: `${base}.pdf` };
+  } finally {
+    wrapper.remove();
+  }
+}
+
 // ───── Markdown → PDF ─────
 // 전략: Markdown → HTML → DOM 렌더 → html2canvas → jsPDF
 // 라이브러리: html2canvas, jspdf (이미 있음)

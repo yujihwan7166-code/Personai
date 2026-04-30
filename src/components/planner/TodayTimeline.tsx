@@ -43,6 +43,10 @@ import { PRIORITY_COLORS, PRIORITY_LABELS, TASK_LIST_COLORS, PLANNER_LIST_CHANGE
 const HOUR_PX = 56;
 const START_HOUR = 0;
 const TOTAL_HOURS = 24;
+/** 압축 모드 — 새벽 0~6시 + 늦은 22~24시 hide. localStorage 로 사용자 선호 저장. */
+const COMPACT_KEY = 'planner.timeline.compact.v1';
+const COMPACT_START = 7;
+const COMPACT_END = 23;
 
 interface TodayTimelineProps {
   dateIso?: string;
@@ -85,6 +89,15 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   const didInitialScroll = useRef(false);
   /** 인라인 빠른 추가 — 클릭한 슬롯 ISO. null = 닫힘. */
   const [quickAddSlot, setQuickAddSlot] = useState<string | null>(null);
+  /** 압축 모드 — 7~23시만 표시. */
+  const [compact, setCompact] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(COMPACT_KEY) === '1';
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(COMPACT_KEY, compact ? '1' : '0');
+  }, [compact]);
   /** 사용자 lists — task 의 listId → list.color 매핑 + hidden 필터링. */
   const [lists, setLists] = useState(() => taskListStore.list());
   useEffect(() => {
@@ -115,10 +128,12 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   useEffect(() => {
     if (didInitialScroll.current) return;
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = 8 * HOUR_PX - 16;
+      // 8시 위치 — compact 면 visibleStart 빼서 보정.
+      const target = (8 - visibleStart) * HOUR_PX - 16;
+      scrollRef.current.scrollTop = Math.max(0, target);
       didInitialScroll.current = true;
     }
-  }, []);
+  }, [visibleStart]);
 
   const isToday = useMemo(() => {
     const a = new Date(baseDateIso);
@@ -140,7 +155,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
 
   const scrollToNow = () => {
     if (!scrollRef.current || nowTopPx === null) return;
-    scrollRef.current.scrollTo({ top: Math.max(0, nowTopPx - 80), behavior: 'smooth' });
+    const adjusted = nowTopPx - visibleStart * HOUR_PX;
+    scrollRef.current.scrollTo({ top: Math.max(0, adjusted - 80), behavior: 'smooth' });
   };
 
   const handleSlotClick = (hour: number, halfHour: 0 | 30) => {
@@ -198,13 +214,35 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     </button>
   ) : null;
 
+  const CompactToggle = (
+    <button
+      type="button"
+      onClick={() => setCompact((v) => !v)}
+      title={compact ? '24시간 모두 보기' : '주요 시간만 (7~23시)'}
+      aria-label={compact ? '24시간 모두 보기' : '주요 시간만'}
+      className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-mono tabular-nums text-muted-foreground hover:text-foreground hover:bg-accent transition-colors font-semibold"
+    >
+      {compact ? '24h' : '7-23'}
+    </button>
+  );
+
+  // 표시할 시간 범위 (compact 면 7-23 만).
+  const visibleStart = compact ? COMPACT_START : START_HOUR;
+  const visibleEnd = compact ? COMPACT_END : START_HOUR + TOTAL_HOURS;
+  const visibleHours = visibleEnd - visibleStart;
+
   return (
-    <PlannerSection label="오늘" count={dateLabel} action={NowButton} className="h-full">
+    <PlannerSection label="오늘" count={dateLabel} action={
+      <span className="inline-flex items-center gap-2">
+        {CompactToggle}
+        {NowButton}
+      </span>
+    } className="h-full">
       <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
-        <div className="relative" style={{ height: TOTAL_HOURS * HOUR_PX }}>
+        <div className="relative" style={{ height: visibleHours * HOUR_PX }}>
           {/* 시간 격자 */}
-          {Array.from({ length: TOTAL_HOURS }, (_, i) => {
-            const hour = START_HOUR + i;
+          {Array.from({ length: visibleHours }, (_, i) => {
+            const hour = visibleStart + i;
             return (
               <div
                 key={hour}
@@ -245,16 +283,21 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
           })}
 
           {/* 현재 시각 빨간선 */}
-          {nowTopPx !== null && (
+          {nowTopPx !== null && (() => {
+            const adjusted = nowTopPx - visibleStart * HOUR_PX;
+            // compact 모드에서 visible 범위 밖이면 hide.
+            if (compact && (adjusted < 0 || adjusted > visibleHours * HOUR_PX)) return null;
+            return (
             <div
               className="absolute left-12 right-0 z-20 pointer-events-none"
-              style={{ top: nowTopPx }}
+              style={{ top: adjusted }}
             >
               <div className="relative h-px bg-rose-500">
                 <span className="absolute -left-1 -top-[3px] h-[7px] w-[7px] rounded-full bg-rose-500" aria-hidden />
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* 인라인 빠른 추가 — Apple Cal 패턴. 빈 슬롯 클릭 시 그 자리에 input. */}
           {quickAddSlot && (
@@ -263,8 +306,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                 <InlineQuickAdd
                   startIso={quickAddSlot}
                   style={{
-                    top: computeTopPx(quickAddSlot, baseDateIso),
-                    height: HOUR_PX / 2 - 2, // 30분 슬롯 높이
+                    top: computeTopPx(quickAddSlot, baseDateIso) - visibleStart * HOUR_PX,
+                    height: HOUR_PX / 2 - 2,
                     pointerEvents: 'auto',
                   }}
                   onClose={() => setQuickAddSlot(null)}
@@ -279,8 +322,14 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
               const startAt = item.data.startAt;
               const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt!;
               if (!startAt) return null;
-              const top = computeTopPx(startAt, baseDateIso);
+              const top = computeTopPx(startAt, baseDateIso) - visibleStart * HOUR_PX;
               const height = computeHeightPx(startAt, endAt);
+              // compact 모드에서 visible 범위 밖이면 skip.
+              if (compact) {
+                const startHour = new Date(startAt).getHours();
+                const endHour = new Date(endAt).getHours() + (new Date(endAt).getMinutes() > 0 ? 1 : 0);
+                if (endHour <= visibleStart || startHour >= visibleEnd) return null;
+              }
               // stripe 색 우선순위: event.color → task.list.color → muted.
               const stripeColor =
                 item.kind === 'event'

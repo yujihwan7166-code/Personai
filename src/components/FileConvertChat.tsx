@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X, Pencil, ArrowRight, Globe } from 'lucide-react';
+import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X, Pencil, ArrowRight, Globe, Search, Star } from 'lucide-react';
 import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { notify } from '@/lib/notify';
@@ -14,7 +14,10 @@ import { convertHtmlFileToMd, convertMdFileToHtml, convertMdFileToPdf } from '@/
 import {
   convertImageFormat, isImageFormatSupported,
   convertHeicToJpg, compressImage, resizeImage,
+  transformImage, batchImageProcess, type ImageTransform, type BatchImageTask,
 } from '@/lib/fileConvert/converters/image';
+import { convertHtmlFileToPdf } from '@/lib/fileConvert/converters/markup';
+import { cleanCsv } from '@/lib/fileConvert/converters/spreadsheet';
 import { ocrImageToText, ocrImageToTable, summarizePdf } from '@/lib/fileConvert/converters/ocr';
 import {
   imagesToPdf, mergePdfs, pdfToImages, pdfToText, splitPdf,
@@ -27,6 +30,7 @@ import { downloadBlob } from '@/lib/fileConvert/download';
 import { isMobile } from '@/lib/fileConvert/features';
 import { CATEGORY_LABELS, TASKS, getQuickActions, getTaskById, getTasksByCategory, getTasksForFile, type ConvertTask, type TaskCategory } from '@/lib/fileConvert/tasks';
 import { listHistory, addToHistory, formatHistoryTime, type ConvertHistoryItem } from '@/lib/fileConvert/history';
+import { getFavoriteIds, toggleFavorite } from '@/lib/fileConvert/favorites';
 
 // ───────── 메인 ─────────
 interface FileConvertChatProps { onBack?: () => void }
@@ -79,8 +83,22 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [wikiExported, setWikiExported] = useState(false);
   // 변환 이력
   const [history, setHistory] = useState<ConvertHistoryItem[]>(() => listHistory());
+  // 즐겨찾기
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => getFavoriteIds());
+  // 도구 검색
+  const [taskSearch, setTaskSearch] = useState('');
   // 파일명 inline 편집
   const [editingFileName, setEditingFileName] = useState(false);
+  // 신규 옵션 — 이미지 회전
+  const [imageTransform, setImageTransform] = useState<ImageTransform>('rotate-90');
+  // 신규 옵션 — 일괄 처리
+  const [batchKind, setBatchKind] = useState<'format' | 'compress' | 'resize'>('compress');
+  const [batchTargetFormat, setBatchTargetFormat] = useState<'jpeg' | 'png' | 'webp'>('jpeg');
+  // 신규 옵션 — CSV 정리
+  const [csvSortDir, setCsvSortDir] = useState<'asc' | 'desc' | 'none'>('none');
+  const [csvSortColumn, setCsvSortColumn] = useState<number>(0);
+  const [csvDedupe, setCsvDedupe] = useState<boolean>(false);
+  const [csvHasHeader, setCsvHasHeader] = useState<boolean>(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -274,6 +292,55 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         case 'image-table-ocr': {
           setProgress('AI가 표를 분석 중... (10~20초)');
           converted = await ocrImageToTable(files[0], controller.signal);
+          break;
+        }
+        case 'image-rotate': {
+          setProgress('이미지 변환 중...');
+          converted = await transformImage(files[0], imageTransform);
+          break;
+        }
+        case 'image-batch': {
+          if (files.length === 0) throw new Error('파일을 1개 이상 선택해주세요.');
+          let task: BatchImageTask;
+          switch (batchKind) {
+            case 'format':
+              task = { kind: 'format', target: batchTargetFormat };
+              break;
+            case 'compress':
+              task = { kind: 'compress', quality: imageQuality, target: batchTargetFormat };
+              break;
+            case 'resize':
+              task = resizeMode === 'percent'
+                ? { kind: 'resize', opts: { scale: resizeScale, quality: 0.92 } }
+                : {
+                    kind: 'resize',
+                    opts: {
+                      maxWidth: parseInt(resizeWidth, 10) || 1280,
+                      maxHeight: parseInt(resizeHeight, 10) || 720,
+                      quality: 0.92,
+                    },
+                  };
+              break;
+          }
+          converted = await batchImageProcess(files, task, (cur, total, name) => {
+            setProgress(`일괄 변환 중... ${cur}/${total} · ${name}`);
+          });
+          break;
+        }
+        case 'html-to-pdf': {
+          setProgress('HTML → PDF 변환 중...');
+          converted = await convertHtmlFileToPdf(files[0]);
+          break;
+        }
+        case 'csv-clean': {
+          setProgress('CSV 정리 중...');
+          converted = await cleanCsv(files[0], {
+            hasHeader: csvHasHeader,
+            sortDir: csvSortDir,
+            sortColumn: csvSortColumn,
+            dedupe: csvDedupe,
+            removeEmpty: true,
+          });
           break;
         }
         // ───── 문서 ─────
@@ -547,8 +614,61 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   </>
                 )}
 
-                {/* 최근 변환 — 있을 때만 */}
-                {history.length > 0 && (
+                {/* 도구 검색바 — 28+ 카탈로그 발견성 */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={taskSearch}
+                    onChange={(e) => setTaskSearch(e.target.value)}
+                    placeholder="도구 검색 (예: 압축, PDF, 회전)"
+                    className="w-full h-10 pl-10 pr-9 rounded-xl border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                  />
+                  {taskSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setTaskSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label="검색 지우기"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* 즐겨찾기 — 있을 때만 (검색 중엔 숨김) */}
+                {favoriteIds.length > 0 && taskSearch.trim().length === 0 && (
+                  <div>
+                    <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5 flex items-center gap-2">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                      즐겨찾기
+                    </h2>
+                    <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
+                      {favoriteIds.map((id) => {
+                        const task = TASKS.find((t) => t.id === id);
+                        if (!task) return null;
+                        return (
+                          <button
+                            key={task.id}
+                            type="button"
+                            onClick={() => { setSelectedTask(task); setStage('upload'); }}
+                            className="group text-left rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/30 dark:bg-amber-500/5 p-3.5 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:shadow-md hover:-translate-y-0.5 transition-all"
+                          >
+                            <div className="flex items-start justify-between mb-1.5">
+                              <span className="text-[22px]">{task.icon}</span>
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                            </div>
+                            <div className="text-[13px] font-bold text-foreground mb-0.5 leading-tight">{task.label}</div>
+                            <div className="text-[10.5px] text-muted-foreground leading-snug">{task.description}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 최근 변환 — 있을 때만 (검색 중엔 숨김) */}
+                {history.length > 0 && taskSearch.trim().length === 0 && (
                   <div>
                     <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5 flex items-center gap-2">
                       <RefreshCw className="w-3 h-3" />
@@ -583,57 +703,111 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   </div>
                 )}
 
-                {/* Quick Actions */}
-                <div>
-                  <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">자주 쓰는 도구</h2>
-                  <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
-                    {quickActions.map((task) => (
-                      <button
-                        key={task.id}
-                        type="button"
-                        onClick={() => { setSelectedTask(task); setStage('upload'); }}
-                        className="group text-left rounded-xl border border-[hsl(var(--hairline))] bg-card p-3.5 hover:border-violet-300 hover:bg-violet-50/30 hover:shadow-md hover:-translate-y-0.5 transition-all"
-                      >
-                        <div className="flex items-start justify-between mb-1.5">
-                          <span className="text-[22px]">{task.icon}</span>
-                          <TierBadge tier={task.tier} />
-                        </div>
-                        <div className="text-[13px] font-bold text-foreground mb-0.5 leading-tight">{task.label}</div>
-                        <div className="text-[10.5px] text-muted-foreground leading-snug">{task.description}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 카테고리별 더 많은 도구 */}
-                <div className="space-y-4">
-                  <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground">더 많은 도구</h2>
-                  {categories.map((cat) => {
-                    const tasks = getTasksByCategory(cat).filter((t) => !t.quickAction);
-                    if (tasks.length === 0) return null;
+                {/* 검색 활성 시 평면 결과 */}
+                {taskSearch.trim().length > 0 ? (
+                  (() => {
+                    const q = taskSearch.trim().toLowerCase();
+                    const matches = TASKS.filter(
+                      (t) => t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q),
+                    );
                     return (
-                      <div key={cat}>
-                        <h3 className="text-[12px] font-semibold text-muted-foreground mb-2">{CATEGORY_LABELS[cat]}</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                          {tasks.map((task) => (
-                            <button
-                              key={task.id}
-                              type="button"
-                              onClick={() => { setSelectedTask(task); setStage('upload'); }}
-                              className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[hsl(var(--hairline))] bg-card hover:bg-accent/40 text-left"
-                            >
-                              <span className="text-[18px] shrink-0">{task.icon}</span>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-[12.5px] font-semibold text-foreground truncate">{task.label}</div>
-                                <div className="text-[10.5px] text-muted-foreground truncate">{task.description}</div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                      <div>
+                        <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">
+                          검색 결과 · {matches.length}
+                        </h2>
+                        {matches.length === 0 ? (
+                          <p className="text-center text-[13px] text-muted-foreground py-10">
+                            "<span className="text-foreground font-semibold">{taskSearch}</span>" 와 일치하는 도구가 없어요
+                          </p>
+                        ) : (
+                          <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
+                            {matches.map((task) => (
+                              <TaskCard
+                                key={task.id}
+                                task={task}
+                                isFavorite={favoriteIds.includes(task.id)}
+                                onSelect={() => { setSelectedTask(task); setStage('upload'); }}
+                                onToggleFavorite={() => {
+                                  toggleFavorite(task.id);
+                                  setFavoriteIds(getFavoriteIds());
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
-                  })}
-                </div>
+                  })()
+                ) : (
+                  <>
+                    {/* Quick Actions */}
+                    <div>
+                      <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">자주 쓰는 도구</h2>
+                      <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
+                        {quickActions.map((task) => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            isFavorite={favoriteIds.includes(task.id)}
+                            onSelect={() => { setSelectedTask(task); setStage('upload'); }}
+                            onToggleFavorite={() => {
+                              toggleFavorite(task.id);
+                              setFavoriteIds(getFavoriteIds());
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 카테고리별 더 많은 도구 */}
+                    <div className="space-y-4">
+                      <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground">더 많은 도구</h2>
+                      {categories.map((cat) => {
+                        const tasks = getTasksByCategory(cat).filter((t) => !t.quickAction);
+                        if (tasks.length === 0) return null;
+                        return (
+                          <div key={cat}>
+                            <h3 className="text-[12px] font-semibold text-muted-foreground mb-2">{CATEGORY_LABELS[cat]}</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                              {tasks.map((task) => {
+                                const isFav = favoriteIds.includes(task.id);
+                                return (
+                                  <button
+                                    key={task.id}
+                                    type="button"
+                                    onClick={() => { setSelectedTask(task); setStage('upload'); }}
+                                    className="group relative flex items-center gap-2.5 p-2.5 rounded-lg border border-[hsl(var(--hairline))] bg-card hover:bg-accent/40 text-left"
+                                  >
+                                    <span className="text-[18px] shrink-0">{task.icon}</span>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-[12.5px] font-semibold text-foreground truncate">{task.label}</div>
+                                      <div className="text-[10.5px] text-muted-foreground truncate">{task.description}</div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(task.id);
+                                        setFavoriteIds(getFavoriteIds());
+                                      }}
+                                      className={cn(
+                                        'opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded',
+                                        isFav && 'opacity-100',
+                                      )}
+                                      title={isFav ? '즐겨찾기 해제' : '즐겨찾기'}
+                                    >
+                                      <Star className={cn('w-3.5 h-3.5', isFav ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground')} />
+                                    </button>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
