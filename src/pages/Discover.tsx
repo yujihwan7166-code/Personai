@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Keyboard } from 'lucide-react';
 import {
   getWidgets, subscribeWidgets, addWidget, createDefaultWidget,
   type SerendipityWidget,
@@ -16,17 +16,36 @@ import {
 import { CARD_TYPE_META } from '@/lib/serendipity/types';
 import { SEED_CARDS } from '@/lib/serendipity/cards';
 import { SerendipityW } from '@/components/MySpace/serendipity/Card';
+import { SerendipityShortcutsModal } from '@/components/MySpace/serendipity/ShortcutsModal';
 
 export default function Discover() {
   const navigate = useNavigate();
   const [widgets, setWidgets] = useState(() => getWidgets());
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // store 변경 구독
   useEffect(() => subscribeWidgets(setWidgets), []);
 
-  // serendipity 위젯 인스턴스 자동 보장 (페이지 첫 진입 시 없으면 1개 추가)
+  // 페이지 전역 ? 단축키 — 입력 중이 아닐 때
   useEffect(() => {
-    const exists = widgets.some((w) => w.kind === 'serendipity');
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const tgt = e.target as HTMLElement | null;
+      if (tgt && /input|textarea/i.test(tgt.tagName)) return;
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowShortcuts(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // serendipity 위젯 인스턴스 자동 보장 (페이지 첫 진입 시 없으면 1개 추가).
+  // StrictMode 더블 마운트로 인한 중복 추가를 막기 위해 호출 직전에 store 를 직접 조회.
+  useEffect(() => {
+    const fresh = getWidgets();
+    const exists = fresh.some((w) => w.kind === 'serendipity');
     if (!exists) {
       addWidget(createDefaultWidget('serendipity'));
     }
@@ -58,13 +77,24 @@ export default function Discover() {
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="text-[18px]" aria-hidden>🎲</span>
             <h1 className="text-[15px] font-semibold truncate">우연의 발견</h1>
-            <span className="text-[11.5px] text-muted-foreground truncate">
+            <span className="hidden sm:inline text-[11.5px] text-muted-foreground truncate">
               매일 다른 글·명언·발견
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowShortcuts(true)}
+            aria-label="단축키 도움말 (?)"
+            title="단축키 (?)"
+            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-full text-[11.5px] text-muted-foreground bg-[hsl(var(--muted))] hover:bg-[hsl(var(--accent))] hover:text-foreground transition-colors"
+          >
+            <Keyboard className="h-3 w-3" />
+            <span className="hidden sm:inline">단축키</span>
+            <kbd className="hidden sm:inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded bg-background border border-[hsl(var(--hairline))] font-mono text-[10px]">?</kbd>
+          </button>
         </div>
       </header>
 
@@ -125,9 +155,11 @@ export default function Discover() {
         {/* 키보드 단축 안내 */}
         <section className="text-[11px] text-muted-foreground">
           <span className="font-mono">단축키:</span>{' '}
-          R 새로고침 · L 좋아요 · S 메모 저장 · C 복사 · H 다시 안 보기 · Enter 상세
+          R 새로고침 · L 좋아요 · S 메모 저장 · C 복사 · H 다시 안 보기 · Enter 상세 · ? 도움말
         </section>
       </main>
+
+      {showShortcuts && <SerendipityShortcutsModal onClose={() => setShowShortcuts(false)} />}
     </div>
   );
 }

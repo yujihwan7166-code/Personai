@@ -13,14 +13,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Quote, Lightbulb, Sparkles, Link2, Sunrise, HelpCircle, Coffee,
-  RefreshCw, Heart, Save, EyeOff, Maximize2, ExternalLink, Copy,
+  RefreshCw, Heart, Save, EyeOff, Maximize2, ExternalLink, Copy, Keyboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WidgetFrame } from '../WidgetFrame';
 import {
-  updateWidget, removeWidget, addWidget, createDefaultWidget,
-  type SerendipityWidget, type MemoWidget,
+  updateWidget, removeWidget,
+  type SerendipityWidget,
 } from '@/lib/mySpaceStore';
+import { addMemo } from '@/lib/memoStore';
 import { SEED_CARDS } from '@/lib/serendipity/cards';
 import { CARD_TYPE_META, type CardType, type SerendipityCard } from '@/lib/serendipity/types';
 import {
@@ -29,6 +30,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { SerendipityDetailModal } from './DetailModal';
 import { SerendipityCollectionView } from './CollectionView';
+import { SerendipityShortcutsModal } from './ShortcutsModal';
 
 interface Props {
   widget: SerendipityWidget;
@@ -69,6 +71,7 @@ export function SerendipityW({ widget, editable }: Props) {
 
   const [showDetail, setShowDetail] = useState(false);
   const [showCollection, setShowCollection] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [bodyOverflowing, setBodyOverflowing] = useState(false);
   const bodyRef = useRef<HTMLParagraphElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -155,14 +158,13 @@ export function SerendipityW({ widget, editable }: Props) {
 
   const saveAsMemo = useCallback(() => {
     if (!todayCard) return;
-    const memo = createDefaultWidget('memo') as MemoWidget;
     const titleLabel = CARD_TYPE_META[todayCard.type].label;
-    memo.title = todayCard.title ? `🎲 ${titleLabel} · ${todayCard.title}` : `🎲 ${titleLabel}`;
+    const titleLine = todayCard.title ? `🎲 ${titleLabel} · ${todayCard.title}` : `🎲 ${titleLabel}`;
     const sourceLine = todayCard.source ? `\n\n${todayCard.source}` : '';
     const urlLine = todayCard.url ? `\n${todayCard.url}` : '';
-    memo.body = `${todayCard.body}${sourceLine}${urlLine}`;
-    addWidget(memo);
-    toast({ title: '메모로 저장됨', description: '내 공간에 새 메모 위젯이 추가됐어요.' });
+    const body = `${titleLine}\n\n${todayCard.body}${sourceLine}${urlLine}`;
+    addMemo({ body });
+    toast({ title: '메모로 저장됨', description: '/메모 페이지에서 확인할 수 있어요.' });
   }, [todayCard]);
 
   const copyToClipboard = useCallback(async () => {
@@ -221,6 +223,8 @@ export function SerendipityW({ widget, editable }: Props) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const tgt = e.target as HTMLElement | null;
       if (tgt && /input|textarea/i.test(tgt.tagName)) return;
+      // ? 는 shift+/ 라 e.key === '?'  (대소문자 toLowerCase 영향 없음)
+      if (e.key === '?') { e.preventDefault(); setShowShortcuts(true); return; }
       switch (e.key.toLowerCase()) {
         case 'r': e.preventDefault(); refresh(); break;
         case 'l': e.preventDefault(); toggleLike(); break;
@@ -270,26 +274,34 @@ export function SerendipityW({ widget, editable }: Props) {
             />
           ) : (
             <div className="space-y-1.5">
-              <div className="flex items-start gap-1.5">
-                <TypeIcon className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
-                {todayCard.title && (
-                  <span className="text-[11px] font-semibold leading-snug truncate flex-1">
-                    {todayCard.title}
-                  </span>
-                )}
-              </div>
-              <p
-                ref={bodyRef}
-                className="text-[11.5px] leading-relaxed text-foreground/90"
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}
+              <button
+                type="button"
+                onClick={() => setShowDetail(true)}
+                className="block w-full text-left space-y-1.5 cursor-pointer rounded-md hover:bg-[hsl(var(--accent))]/30 transition-colors -mx-1 px-1 py-0.5"
+                aria-label="상세 보기 (Enter)"
+                title="클릭하여 상세 보기"
               >
-                {todayCard.body}
-              </p>
+                <div className="flex items-start gap-1.5">
+                  <TypeIcon className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                  {todayCard.title && (
+                    <span className="text-[11px] font-semibold leading-snug truncate flex-1">
+                      {todayCard.title}
+                    </span>
+                  )}
+                </div>
+                <p
+                  ref={bodyRef}
+                  className="text-[11.5px] leading-relaxed text-foreground/90"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {todayCard.body}
+                </p>
+              </button>
               <div className="flex items-center gap-1 mt-0.5">
                 {todayCard.source && (
                   <span className="text-[10px] text-muted-foreground truncate flex-1">
@@ -346,6 +358,16 @@ export function SerendipityW({ widget, editable }: Props) {
                   {seenCount}/{totalCards}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setShowShortcuts(true)}
+                aria-label="단축키 도움말 (?)"
+                title="단축키 (?)"
+                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-[hsl(var(--muted))] text-muted-foreground hover:bg-[hsl(var(--accent))] hover:text-foreground transition-colors"
+              >
+                <Keyboard className="h-2.5 w-2.5" />
+                <span>단축키</span>
+              </button>
             </div>
           )}
         </WidgetFrame>
@@ -374,6 +396,10 @@ export function SerendipityW({ widget, editable }: Props) {
             updateWidget<SerendipityWidget>(widget.id, { likedIds: Array.from(set) });
           }}
         />
+      )}
+
+      {showShortcuts && (
+        <SerendipityShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
     </>
   );

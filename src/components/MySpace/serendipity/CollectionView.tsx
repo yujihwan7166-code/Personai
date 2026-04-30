@@ -2,14 +2,14 @@
  * 우연의 발견 — 좋아요한 카드 모음 뷰 (모달).
  * 검색·타입 필터·일괄 메모 내보내기 지원.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import {
   Quote, Lightbulb, Sparkles, Link2, Sunrise, HelpCircle, Coffee,
-  Heart, X, ExternalLink, Search, Download,
+  Heart, X, ExternalLink, Search, Download, ArrowDownAZ, Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CARD_TYPE_META, type CardType, type SerendipityCard } from '@/lib/serendipity/types';
-import { addWidget, createDefaultWidget, type MemoWidget } from '@/lib/mySpaceStore';
+import { addMemo } from '@/lib/memoStore';
 import { toast } from '@/hooks/use-toast';
 
 interface Props {
@@ -31,9 +31,12 @@ const TYPE_ICON: Record<CardType, typeof Quote> = {
 
 const TYPE_ORDER: CardType[] = ['quote', 'fact', 'snippet', 'link', 'ritual', 'question', 'pairing'];
 
+type SortMode = 'recent' | 'type' | 'alpha';
+
 export function SerendipityCollectionView({ cards, likedIds, onClose, onUnlike }: Props) {
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<CardType | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>('recent');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -42,9 +45,30 @@ export function SerendipityCollectionView({ cards, likedIds, onClose, onUnlike }
   }, [onClose]);
 
   const liked = useMemo(() => {
+    // likedIds 가 좋아요한 순서대로 누적된다는 가정 — recent 모드에서는 그대로 역순 사용
+    const idIndex = new Map(likedIds.map((id, i) => [id, i]));
     const set = new Set(likedIds);
-    return cards.filter((c) => set.has(c.id));
-  }, [cards, likedIds]);
+    const arr = cards.filter((c) => set.has(c.id));
+    if (sortMode === 'recent') {
+      // likedIds 의 끝에 가까울수록 최근 → desc
+      arr.sort((a, b) => (idIndex.get(b.id) ?? 0) - (idIndex.get(a.id) ?? 0));
+    } else if (sortMode === 'type') {
+      const order = ['quote', 'fact', 'snippet', 'link', 'ritual', 'question', 'pairing'];
+      arr.sort((a, b) => {
+        const ta = order.indexOf(a.type);
+        const tb = order.indexOf(b.type);
+        if (ta !== tb) return ta - tb;
+        return (idIndex.get(b.id) ?? 0) - (idIndex.get(a.id) ?? 0);
+      });
+    } else if (sortMode === 'alpha') {
+      arr.sort((a, b) => {
+        const ka = (a.title ?? a.body).slice(0, 30);
+        const kb = (b.title ?? b.body).slice(0, 30);
+        return ka.localeCompare(kb, 'ko');
+      });
+    }
+    return arr;
+  }, [cards, likedIds, sortMode]);
 
   // 좋아요한 카드들의 type 분포 — 필터 칩에 카운트 표시
   const typeCounts = useMemo(() => {
@@ -65,16 +89,15 @@ export function SerendipityCollectionView({ cards, likedIds, onClose, onUnlike }
 
   const exportAllAsMemo = () => {
     if (liked.length === 0) return;
-    const memo = createDefaultWidget('memo') as MemoWidget;
-    memo.title = `🎲 모은 카드 ${liked.length}장`;
-    memo.body = liked.map((c) => {
+    const header = `🎲 모은 카드 ${liked.length}장\n\n`;
+    const blocks = liked.map((c) => {
       const titleLine = c.title ? `[${CARD_TYPE_META[c.type].label}] ${c.title}` : `[${CARD_TYPE_META[c.type].label}]`;
       const sourceLine = c.source ? `\n— ${c.source}` : '';
       const urlLine = c.url ? `\n${c.url}` : '';
       return `${titleLine}\n${c.body}${sourceLine}${urlLine}`;
     }).join('\n\n───\n\n');
-    addWidget(memo);
-    toast({ title: '메모로 내보냄', description: `${liked.length}장이 한 메모 위젯에 묶여 추가됐어요.` });
+    addMemo({ body: header + blocks });
+    toast({ title: '메모로 내보냄', description: `${liked.length}장이 /메모 페이지에 한 글로 추가됐어요.` });
     onClose();
   };
 
@@ -174,6 +197,15 @@ export function SerendipityCollectionView({ cards, likedIds, onClose, onUnlike }
                 );
               })}
             </div>
+            {/* 정렬 옵션 */}
+            <div className="flex items-center gap-1 pt-0.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 mr-1">
+                정렬
+              </span>
+              <SortChip active={sortMode === 'recent'} onClick={() => setSortMode('recent')} icon={Clock} label="최근" />
+              <SortChip active={sortMode === 'type'} onClick={() => setSortMode('type')} icon={Sparkles} label="타입" />
+              <SortChip active={sortMode === 'alpha'} onClick={() => setSortMode('alpha')} icon={ArrowDownAZ} label="가나다" />
+            </div>
           </div>
         )}
 
@@ -230,7 +262,7 @@ export function SerendipityCollectionView({ cards, likedIds, onClose, onUnlike }
                     </div>
                     {card.title && (
                       <h3 className="text-[12px] font-semibold mb-1 leading-snug truncate">
-                        {card.title}
+                        <Highlight text={card.title} q={query} />
                       </h3>
                     )}
                     <p
@@ -242,11 +274,11 @@ export function SerendipityCollectionView({ cards, likedIds, onClose, onUnlike }
                         overflow: 'hidden',
                       }}
                     >
-                      {card.body}
+                      <Highlight text={card.body} q={query} />
                     </p>
                     {card.source && (
                       <p className="text-[10px] text-muted-foreground mt-2 truncate">
-                        {card.source}
+                        <Highlight text={card.source} q={query} />
                       </p>
                     )}
                     {card.url && (
@@ -310,5 +342,52 @@ function FilterChip({
       <span>{label}</span>
       <span className="tabular-nums opacity-70">{count}</span>
     </button>
+  );
+}
+
+function SortChip({
+  active, onClick, icon: Icon, label,
+}: { active: boolean; onClick: () => void; icon: typeof Clock; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors',
+        active
+          ? 'bg-foreground/10 text-foreground'
+          : 'text-muted-foreground hover:bg-[hsl(var(--accent))] hover:text-foreground',
+      )}
+      aria-pressed={active}
+    >
+      <Icon className="h-2.5 w-2.5" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+/** 검색어 매칭 부분을 <mark> 로 감싸 강조. q 가 비면 평문 그대로. */
+function Highlight({ text, q }: { text: string; q: string }) {
+  const trimmed = q.trim();
+  if (!trimmed) return <>{text}</>;
+  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const splitter = new RegExp(`(${escaped})`, 'gi'); // capture-group 으로 매치도 결과에 포함
+  const matcher = new RegExp(`^${escaped}$`, 'i');   // 매치 여부만 판정 (lastIndex 무관)
+  const parts = text.split(splitter);
+  return (
+    <>
+      {parts.map((p, i) =>
+        matcher.test(p) ? (
+          <mark
+            key={i}
+            className="bg-yellow-200/70 dark:bg-yellow-500/30 text-foreground rounded-sm px-0.5"
+          >
+            {p}
+          </mark>
+        ) : (
+          <Fragment key={i}>{p}</Fragment>
+        ),
+      )}
+    </>
   );
 }
