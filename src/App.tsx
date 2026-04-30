@@ -17,6 +17,9 @@ const Wiki = lazy(() => import("./pages/Wiki"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Memos = lazy(() => import("./pages/Memos"));
 const Journal = lazy(() => import("./pages/Journal"));
+const PomodoroWidget = lazy(() =>
+  import("./components/planner/PomodoroWidget").then((m) => ({ default: m.PomodoroWidget })),
+);
 
 function RouteFallback() {
   return <div className="min-h-screen bg-background" aria-hidden="true" />;
@@ -43,6 +46,10 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+        </Suspense>
+        {/* 글로벌 포모도로 위젯 — 어떤 페이지에서도 활성 세션 보임 */}
+        <Suspense fallback={null}>
+          <PomodoroWidget />
         </Suspense>
       </AuthProvider>
     </TooltipProvider>

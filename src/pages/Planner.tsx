@@ -30,11 +30,12 @@ import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { WeekStrip } from '@/components/planner/WeekStrip';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
+import { usePlannerNotifications } from '@/hooks/planner/usePlannerNotifications';
 import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { MatrixView } from '@/components/planner/MatrixView';
-import { PomodoroWidget } from '@/components/planner/PomodoroWidget';
+import { QuickPomodoroButton } from '@/components/planner/PomodoroWidget';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
@@ -80,6 +81,8 @@ const Planner = () => {
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const todayTasks = useTodayTasks();
+  // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
+  usePlannerNotifications();
 
   // Things3 Today Badge — 페이지 타이틀에 미완료 카운트 노출.
   useEffect(() => {
@@ -582,6 +585,10 @@ const Planner = () => {
               {periodLabel}
             </span>
           </div>
+          {/* 우측 액션 — 자유 포모도로 */}
+          <div className="flex items-center gap-2 ml-auto">
+            <QuickPomodoroButton />
+          </div>
         </header>
 
         {isFullscreen ? (
@@ -655,8 +662,7 @@ const Planner = () => {
         </div>
       )}
     </DragOverlay>
-    {/* 포모도로 floating 위젯 — 활성 세션 있을 때만 자체 렌더 */}
-    <PomodoroWidget />
+    {/* 포모도로 위젯은 App.tsx 에서 글로벌하게 렌더됨 — 여기 중복 X */}
     </DndContext>
   );
 };

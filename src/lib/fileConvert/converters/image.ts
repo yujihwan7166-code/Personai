@@ -125,6 +125,64 @@ export async function compressImage(
   return { blob, suggestedName: `${baseName(file.name)}-compressed${EXT_MAP[inferredTarget]}` };
 }
 
+// ───── 이미지 회전·뒤집기 ─────
+export type ImageTransform =
+  | 'rotate-90'    // 시계방향 90도
+  | 'rotate-180'
+  | 'rotate-270'   // 반시계방향 90도
+  | 'flip-h'       // 좌우 반전
+  | 'flip-v';      // 상하 반전
+
+export async function transformImage(
+  file: File,
+  transform: ImageTransform,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const bitmap = await createImageBitmap(file);
+  const sw = bitmap.width;
+  const sh = bitmap.height;
+  // 회전이면 캔버스 크기 swap
+  const rotated = transform === 'rotate-90' || transform === 'rotate-270';
+  const cw = rotated ? sh : sw;
+  const ch = rotated ? sw : sh;
+  const canvas = document.createElement('canvas');
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context를 얻지 못했어요.');
+
+  // 원본 포맷 추정 (JPEG 면 흰 배경)
+  const ext = file.name.toLowerCase().split('.').pop();
+  const target: ImageOutputFormat = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg';
+  if (target === 'jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, cw, ch);
+  }
+
+  // 변환 적용
+  ctx.save();
+  ctx.translate(cw / 2, ch / 2);
+  switch (transform) {
+    case 'rotate-90':  ctx.rotate(Math.PI / 2); break;
+    case 'rotate-180': ctx.rotate(Math.PI); break;
+    case 'rotate-270': ctx.rotate(-Math.PI / 2); break;
+    case 'flip-h':     ctx.scale(-1, 1); break;
+    case 'flip-v':     ctx.scale(1, -1); break;
+  }
+  ctx.drawImage(bitmap, -sw / 2, -sh / 2);
+  ctx.restore();
+  bitmap.close();
+
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('이미지 변환 실패'))),
+      MIME_MAP[target],
+      0.92,
+    );
+  });
+  const suffix = transform.replace('rotate-', 'r').replace('flip-', 'f');
+  return { blob, suggestedName: `${baseName(file.name)}-${suffix}${EXT_MAP[target]}` };
+}
+
 // ───── 이미지 리사이즈 ─────
 // 옵션: 픽셀 (maxWidth/maxHeight, 비율 유지) 또는 % (scale)
 export interface ResizeOptions {

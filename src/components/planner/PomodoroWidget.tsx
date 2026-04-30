@@ -172,6 +172,58 @@ export const PomodoroWidget = () => {
   );
 };
 
+/** 자유 포모도로 시작 — task 없이 25분 집중. 헤더 등에서 사용. */
+interface QuickPomodoroButtonProps {
+  className?: string;
+}
+
+export const QuickPomodoroButton = ({ className }: QuickPomodoroButtonProps) => {
+  const [open, setOpen] = useState(false);
+  const handleStart = async (durationMin: number) => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      try { await Notification.requestPermission(); } catch { /* silent */ }
+    }
+    pomodoroStore.start({ durationMin, autoComplete: false });
+    notify.success(`🍅 ${durationMin}분 집중 시작!`, { duration: 1200 });
+    setOpen(false);
+  };
+  return (
+    <div className={cn('relative', className)}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11.5px] font-medium border border-[hsl(var(--hairline))] hover:bg-accent transition-colors text-foreground"
+        title="자유 포모도로 시작"
+      >
+        🍅 집중
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="닫기"
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute top-full right-0 mt-1 z-50 min-w-[140px] rounded-md border border-[hsl(var(--hairline))] bg-card shadow-lg overflow-hidden">
+            {[15, 25, 45, 60, 90].map((min) => (
+              <button
+                key={min}
+                type="button"
+                onClick={() => handleStart(min)}
+                className="w-full px-3 py-2 text-left text-[12px] hover:bg-accent transition-colors flex items-center justify-between"
+              >
+                <span>{min}분</span>
+                {min === 25 && <span className="text-[10px] text-muted-foreground">기본</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 /** 시간 블록 / 모달의 "▶ 집중 시작" 버튼 — 작은 헬퍼.
  * 권한 요청 + 세션 시작. */
 interface StartPomodoroButtonProps {
