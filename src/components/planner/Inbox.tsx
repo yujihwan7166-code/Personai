@@ -190,6 +190,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
                         onAddSubtask={(text) => taskStore.addSubtask(t.id, text)}
                         onRemoveSubtask={(sid) => taskStore.removeSubtask(t.id, sid)}
                         onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(t.id, sid, text)}
+                        tags={t.tags}
                       />
                     </DraggableInboxCard>
                   </div>

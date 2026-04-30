@@ -16,6 +16,29 @@ import type { Priority, Subtask } from '@/types/planner';
 import { PRIORITY_COLORS } from '@/types/planner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SubtaskList, SubtaskProgress } from './SubtaskList';
+import { tagColor } from '@/lib/planner/tagColor';
+
+/** 태그 chip — Inbox/Block 양쪽에서 재사용. */
+const TagChip = ({ tag, onClick, compact }: { tag: string; onClick?: () => void; compact?: boolean }) => {
+  const { bg, text } = tagColor(tag);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      className={cn(
+        'inline-flex items-center rounded font-medium leading-none shrink-0 transition-opacity hover:opacity-80',
+        compact ? 'px-1 py-0.5 text-[9.5px]' : 'px-1.5 py-0.5 text-[10px]',
+      )}
+      style={{ backgroundColor: bg, color: text }}
+      title={`#${tag}`}
+    >
+      #{tag}
+    </button>
+  );
+};
 
 interface InboxCardProps {
   variant: 'inbox';
@@ -42,6 +65,9 @@ interface InboxCardProps {
   onAddSubtask?: (text: string) => void;
   onRemoveSubtask?: (subtaskId: string) => void;
   onUpdateSubtask?: (subtaskId: string, text: string) => void;
+  /** 태그 — 첫 2개만 chip 으로 표시. 나머지는 +N. */
+  tags?: string[];
+  onTagClick?: (tag: string) => void;
 }
 
 interface BlockCardProps {
@@ -61,6 +87,8 @@ interface BlockCardProps {
   recurring?: boolean;
   /** 서브태스크 — 있으면 진행률 표시. */
   subtasks?: Subtask[];
+  /** 태그 — 첫 1개만 표시 (공간 적음). */
+  tags?: string[];
 }
 
 type PlannerCardProps = InboxCardProps | BlockCardProps;
@@ -70,6 +98,7 @@ const InboxCardInner = (props: InboxCardProps) => {
   const {
     title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled, recurring,
     subtasks, onToggleSubtask, onAddSubtask, onRemoveSubtask, onUpdateSubtask,
+    tags, onTagClick,
   } = props;
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
@@ -137,6 +166,16 @@ const InboxCardInner = (props: InboxCardProps) => {
         >
           {title}
         </span>
+        {tags && tags.length > 0 && (
+          <div className="hidden sm:flex items-center gap-1 shrink-0">
+            {tags.slice(0, 2).map((tag) => (
+              <TagChip key={tag} tag={tag} onClick={() => onTagClick?.(tag)} />
+            ))}
+            {tags.length > 2 && (
+              <span className="text-[10px] text-muted-foreground tabular-nums">+{tags.length - 2}</span>
+            )}
+          </div>
+        )}
         {hasSubtasks && (
           <button
             type="button"
@@ -238,7 +277,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
   }
 
   // variant === 'block'
-  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks } = props;
+  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags } = props;
   const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
@@ -286,6 +325,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
             <RotateCw className="h-2.5 w-2.5 text-muted-foreground/70" aria-label="반복" strokeWidth={2} />
           )}
           {subtasks && subtasks.length > 0 && <SubtaskProgress subtasks={subtasks} compact />}
+          {tags && tags.length > 0 && <TagChip tag={tags[0]} compact />}
         </div>
         <p className={cn(
           'text-[13px] leading-snug mt-0.5 truncate text-foreground font-medium',
