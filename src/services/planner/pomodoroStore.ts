@@ -6,6 +6,7 @@
  * - taskId 가 있으면 그 task 의 endAt 기준으로 카운트다운.
  * - taskId 없으면 사용자 지정 분 (기본 25분 — pomodoro classic).
  * - 끝나면 옵션: task 자동 완료 / 5분 휴식 시작 / 그냥 알림만.
+ * - stop / 자연 종료 시 pomodoroSessionLog 에 자동 기록.
  *
  * 메모리 + LocalStorage 하이브리드:
  * - 활성 상태 (현재 startedAt, durationMs, taskId) localStorage 에 저장
@@ -14,6 +15,8 @@
  *
  * Broadcast: PLANNER_POMODORO_CHANGED.
  */
+import { pomodoroSessionLog } from './pomodoroSessionLog';
+
 export const PLANNER_POMODORO_CHANGED = 'planner:pomodoro:changed';
 
 export interface PomodoroSession {
@@ -108,8 +111,34 @@ export const pomodoroStore = {
     }
   },
 
-  /** 세션 종료 (성공 또는 취소). */
-  stop(): void {
+  /** 세션 종료 (성공 또는 취소).
+   * 자동으로 pomodoroSessionLog 에 기록 — 실제 집중한 시간 + 완료 여부. */
+  stop(options: { completed?: boolean } = {}): void {
+    const s = safeRead();
+    if (s) {
+      // 실제 집중 시간 계산.
+      const now = new Date();
+      const totalElapsedMs = now.getTime() - new Date(s.startedAt).getTime();
+      const pausedMs = s.pausedMs ?? 0;
+      const currentPauseMs = s.pausedAt ? now.getTime() - new Date(s.pausedAt).getTime() : 0;
+      const focusMs = Math.max(0, totalElapsedMs - pausedMs - currentPauseMs);
+      const actualMin = Math.round(focusMs / 60_000);
+      // completed 자동 판정 — 명시 안 했으면 actualMin >= plannedMin 이면 완료.
+      const completed = options.completed ?? (actualMin >= s.durationMin);
+      // 1분 미만 세션은 기록 X (사용자가 즉시 cancel 등).
+      if (actualMin >= 1) {
+        pomodoroSessionLog.add({
+          startedAt: s.startedAt,
+          endedAt: now.toISOString(),
+          plannedMin: s.durationMin,
+          actualMin,
+          completed,
+          taskId: s.taskId,
+          taskInstanceId: s.taskInstanceId,
+          taskTitle: s.taskTitle,
+        });
+      }
+    }
     safeWrite(null);
   },
 

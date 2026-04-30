@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { taskStore } from '@/services/planner/taskStore';
 import { taskListStore } from '@/services/planner/taskListStore';
+import { pomodoroSessionLog, PLANNER_POMODORO_LOG_CHANGED } from '@/services/planner/pomodoroSessionLog';
 import { computeStreakStats } from '@/lib/planner/streak';
 import { expandRecurrence } from '@/lib/planner/recurrence';
 import { TASK_LIST_COLORS, type PlannerTask, PLANNER_TASK_CHANGED, PLANNER_LIST_CHANGED } from '@/types/planner';
@@ -40,6 +41,27 @@ export const HabitHeatmap = ({ anchorIso, onDayClick }: HabitHeatmapProps) => {
     return () => window.removeEventListener(PLANNER_TASK_CHANGED, refresh);
   }, []);
 
+  // 포모도로 세션 로그 — virtual habit 으로 통합.
+  const [pomodoroDays, setPomodoroDays] = useState<Map<string, number>>(new Map());
+  useEffect(() => {
+    const refresh = () => {
+      const yearStart = new Date(year, 0, 1);
+      const yearEnd = new Date(year + 1, 0, 1);
+      const records = pomodoroSessionLog.listByRange(yearStart, yearEnd);
+      const map = new Map<string, number>();
+      for (const r of records) {
+        const d = new Date(r.startedAt);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        map.set(key, (map.get(key) ?? 0) + 1);
+      }
+      setPomodoroDays(map);
+    };
+    refresh();
+    if (typeof window === 'undefined') return;
+    window.addEventListener(PLANNER_POMODORO_LOG_CHANGED, refresh);
+    return () => window.removeEventListener(PLANNER_POMODORO_LOG_CHANGED, refresh);
+  }, [year]);
+
   // 사용자 lists (color 매핑용).
   const [lists, setLists] = useState(() => taskListStore.list());
   useEffect(() => {
@@ -51,16 +73,21 @@ export const HabitHeatmap = ({ anchorIso, onDayClick }: HabitHeatmapProps) => {
   }, []);
   const listColorMap = useMemo(() => new Map(lists.map((l) => [l.id, l.color])), [lists]);
 
-  // 선택된 task — 기본 첫 번째.
+  // 선택된 task — virtual '__pomodoro__' 또는 task id.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   useEffect(() => {
-    if (!selectedId && recurring.length > 0) setSelectedId(recurring[0].id);
-    if (selectedId && !recurring.find((t) => t.id === selectedId)) {
-      setSelectedId(recurring[0]?.id ?? null);
+    if (!selectedId) {
+      // 포모도로 데이터가 있으면 그걸 우선, 없으면 첫 반복.
+      if (pomodoroDays.size > 0) setSelectedId('__pomodoro__');
+      else if (recurring.length > 0) setSelectedId(recurring[0].id);
     }
-  }, [recurring, selectedId]);
+    if (selectedId && selectedId !== '__pomodoro__' && !recurring.find((t) => t.id === selectedId)) {
+      setSelectedId(recurring[0]?.id ?? (pomodoroDays.size > 0 ? '__pomodoro__' : null));
+    }
+  }, [recurring, selectedId, pomodoroDays]);
 
-  const selectedTask = recurring.find((t) => t.id === selectedId);
+  const isPomodoroSelected = selectedId === '__pomodoro__';
+  const selectedTask = !isPomodoroSelected ? recurring.find((t) => t.id === selectedId) : undefined;
 
   const stats = useMemo(
     () => (selectedTask ? computeStreakStats(selectedTask) : null),
@@ -70,11 +97,41 @@ export const HabitHeatmap = ({ anchorIso, onDayClick }: HabitHeatmapProps) => {
   // 격자 데이터 — 1월 1일 ~ 12월 31일.
   // 셀 = { date, planned, done, isFuture }.
   const grid = useMemo(() => {
-    if (!selectedTask) return [];
     const yearStart = new Date(year, 0, 1);
     const yearEnd = new Date(year + 1, 0, 1);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    // 포모도로 모드 — 매일 가능, 그날 세션이 있으면 done.
+    if (isPomodoroSelected) {
+      const cells: Array<{
+        date: Date;
+        iso: string;
+        planned: boolean;
+        done: boolean;
+        isFuture: boolean;
+        isToday: boolean;
+        intensity: number; // 포모도로 횟수 (색 농도용)
+      }> = [];
+      let cursor = new Date(yearStart);
+      while (cursor.getTime() < yearEnd.getTime()) {
+        const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+        const count = pomodoroDays.get(key) ?? 0;
+        cells.push({
+          date: new Date(cursor),
+          iso: cursor.toISOString(),
+          planned: true,
+          done: count > 0,
+          isFuture: cursor.getTime() > today.getTime(),
+          isToday: cursor.getTime() === today.getTime(),
+          intensity: count,
+        });
+        cursor = new Date(cursor.getTime() + DAY_MS);
+      }
+      return cells;
+    }
+
+    if (!selectedTask) return [];
 
     const expanded = expandRecurrence(selectedTask, yearStart, yearEnd);
     const plannedDays = new Map<string, string>(); // dayKey → occurrenceIso
@@ -92,6 +149,7 @@ export const HabitHeatmap = ({ anchorIso, onDayClick }: HabitHeatmapProps) => {
       done: boolean;
       isFuture: boolean;
       isToday: boolean;
+      intensity?: number;
     }> = [];
     let cursor = new Date(yearStart);
     while (cursor.getTime() < yearEnd.getTime()) {
@@ -110,7 +168,7 @@ export const HabitHeatmap = ({ anchorIso, onDayClick }: HabitHeatmapProps) => {
       cursor = new Date(cursor.getTime() + DAY_MS);
     }
     return cells;
-  }, [selectedTask, year]);
+  }, [selectedTask, year, isPomodoroSelected, pomodoroDays]);
 
   // 53주 × 7일 격자로 재구성 — GitHub style.
   // 첫 주는 1월 1일이 있는 주 (해당 주의 일요일부터 시작).
@@ -133,21 +191,22 @@ export const HabitHeatmap = ({ anchorIso, onDayClick }: HabitHeatmapProps) => {
     return result;
   }, [grid]);
 
-  if (recurring.length === 0) {
+  if (recurring.length === 0 && pomodoroDays.size === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-6">
         <span className="text-3xl mb-3" aria-hidden>📊</span>
         <p className="text-[14px] font-semibold text-foreground mb-1.5">아직 반복 항목이 없어요</p>
         <p className="text-[12px] text-muted-foreground leading-snug max-w-md">
-          매주·매일 반복하는 운동·공부·습관을 등록하면<br />
-          연간 진행률 히트맵으로 볼 수 있어요
+          매주·매일 반복하는 운동·공부·습관을 등록하거나<br />
+          포모도로 집중을 시작하면 히트맵이 채워져요
         </p>
       </div>
     );
   }
 
-  // task list color → cell 색상 (선택된 task 의 list 색 사용, 없으면 emerald).
+  // task list color → cell 색상. 포모도로면 rose, 없으면 emerald.
   const accentColor = (() => {
+    if (isPomodoroSelected) return 'hsl(0 70% 55%)'; // pomodoro rose
     if (selectedTask?.listId) {
       const c = listColorMap.get(selectedTask.listId);
       if (c) return TASK_LIST_COLORS[c].stripe;
@@ -157,12 +216,29 @@ export const HabitHeatmap = ({ anchorIso, onDayClick }: HabitHeatmapProps) => {
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      {/* 좌측 — 반복 task 리스트 */}
+      {/* 좌측 — 반복 task + 포모도로 virtual entry */}
       <div className="w-56 shrink-0 flex flex-col min-h-0 gap-2">
         <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground font-semibold px-1">
-          반복 항목
+          습관 항목
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 space-y-0.5">
+          {/* 포모도로 virtual entry — 항상 최상단 (데이터 0 도 표시 X) */}
+          {pomodoroDays.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedId('__pomodoro__')}
+              className={cn(
+                'w-full flex items-center gap-2 h-8 px-2 rounded-md text-left transition-colors',
+                isPomodoroSelected ? 'bg-accent' : 'hover:bg-accent/60',
+              )}
+            >
+              <span className="text-[14px] leading-none shrink-0" aria-hidden>🍅</span>
+              <span className="flex-1 text-[12.5px] truncate">포모도로 집중</span>
+              <span className="text-[10px] font-mono tabular-nums text-muted-foreground shrink-0">
+                {pomodoroDays.size}일
+              </span>
+            </button>
+          )}
           {recurring.map((t) => {
             const active = t.id === selectedId;
             const tStats = computeStreakStats(t);
@@ -193,6 +269,15 @@ export const HabitHeatmap = ({ anchorIso, onDayClick }: HabitHeatmapProps) => {
 
       {/* 우측 — 히트맵 + 통계 */}
       <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+        {isPomodoroSelected && (
+          <div className="shrink-0 flex items-baseline gap-3 flex-wrap">
+            <h3 className="text-[16px] font-semibold tracking-tight">🍅 포모도로 집중</h3>
+            <div className="flex items-center gap-3 text-[11.5px] font-mono tabular-nums text-muted-foreground">
+              <span>활성 {pomodoroDays.size}일</span>
+              <span>총 {[...pomodoroDays.values()].reduce((a, b) => a + b, 0)}회</span>
+            </div>
+          </div>
+        )}
         {selectedTask && stats && (
           <div className="shrink-0 flex items-baseline gap-3 flex-wrap">
             <h3 className="text-[16px] font-semibold tracking-tight">{selectedTask.title}</h3>

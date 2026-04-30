@@ -50,11 +50,11 @@ export const PomodoroWidget = () => {
     if (!session) return;
     const remaining = pomodoroStore.remainingMs(session, new Date(now));
     if (remaining <= 0 && !session.pausedAt) {
-      // 종료 처리.
+      // 종료 처리 — 계획대로 끝났으니 completed: true.
       handleComplete(session);
-      pomodoroStore.stop();
+      pomodoroStore.stop({ completed: true });
     }
-   
+
   }, [now, session]);
 
   if (!session) return null;

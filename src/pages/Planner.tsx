@@ -36,6 +36,7 @@ import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { MatrixView } from '@/components/planner/MatrixView';
 import { QuickPomodoroButton } from '@/components/planner/PomodoroWidget';
+import { PomodoroStatsWidget } from '@/components/planner/PomodoroStatsWidget';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
@@ -588,8 +589,9 @@ const Planner = () => {
               {periodLabel}
             </span>
           </div>
-          {/* 우측 액션 — 자유 포모도로 + 단축키 도움말 */}
+          {/* 우측 액션 — 통계 + 자유 포모도로 + 단축키 도움말 */}
           <div className="flex items-center gap-2 ml-auto">
+            <PomodoroStatsWidget />
             <QuickPomodoroButton />
             <button
               type="button"
