@@ -335,19 +335,19 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
 
   return (
     <ModeErrorBoundary modeLabel="파일 변환" resetKey={selectedTask?.id ?? 'none'} onReset={reset}>
-      <div className="flex flex-col h-full bg-gradient-to-b from-slate-50/50 to-white relative">
+      <div className="flex flex-col h-full bg-gradient-to-b from-accent/20 to-background relative">
         {/* 전역 드래그 오버레이 */}
         {isDragging && (
           <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
             <div className="absolute inset-0 bg-violet-500/15 backdrop-blur-sm border-4 border-dashed border-violet-400 rounded-lg" />
-            <div className="relative text-[20px] font-bold text-violet-800 bg-white px-6 py-3 rounded-2xl shadow-lg">
+            <div className="relative text-[20px] font-bold text-violet-700 dark:text-violet-300 bg-card px-6 py-3 rounded-2xl shadow-lg border border-[hsl(var(--hairline))]">
               📁 여기에 파일을 놓아주세요
             </div>
           </div>
         )}
 
         {/* 헤더 */}
-        <div className="flex-shrink-0 flex items-center justify-between gap-3 px-5 md:px-8 py-4 border-b border-[hsl(var(--hairline))] bg-white/70 backdrop-blur-sm">
+        <div className="flex-shrink-0 flex items-center justify-between gap-3 px-5 md:px-8 py-4 border-b border-[hsl(var(--hairline))] bg-card/70 backdrop-blur-sm">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/15 via-blue-500/10 to-sky-500/10 border border-border/60 flex items-center justify-center shadow-sm shrink-0">
               <FileSymlink className="w-5 h-5 text-indigo-600/80" strokeWidth={1.8} />
@@ -399,7 +399,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                         key={task.id}
                         type="button"
                         onClick={() => { setSelectedTask(task); setStage('upload'); }}
-                        className="group text-left rounded-xl border border-[hsl(var(--hairline))] bg-white p-3.5 hover:border-violet-300 hover:bg-violet-50/30 hover:shadow-md hover:-translate-y-0.5 transition-all"
+                        className="group text-left rounded-xl border border-[hsl(var(--hairline))] bg-card p-3.5 hover:border-violet-300 hover:bg-violet-50/30 hover:shadow-md hover:-translate-y-0.5 transition-all"
                       >
                         <div className="flex items-start justify-between mb-1.5">
                           <span className="text-[22px]">{task.icon}</span>
@@ -427,7 +427,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                               key={task.id}
                               type="button"
                               onClick={() => { setSelectedTask(task); setStage('upload'); }}
-                              className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[hsl(var(--hairline))] bg-white hover:border-[hsl(var(--hairline))] hover:bg-accent/40 text-left"
+                              className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[hsl(var(--hairline))] bg-card hover:bg-accent/40 text-left"
                             >
                               <span className="text-[18px] shrink-0">{task.icon}</span>
                               <div className="min-w-0 flex-1">
@@ -478,7 +478,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                 {files.length > 0 && (
                   <div className="space-y-2">
                     {files.map((f, i) => (
-                      <div key={`${f.name}-${i}`} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(var(--hairline))] bg-white">
+                      <div key={`${f.name}-${i}`} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(var(--hairline))] bg-card">
                         <span className="text-[20px]">📎</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-[13px] font-semibold text-foreground truncate">{f.name}</div>
@@ -502,7 +502,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                           key={fmt}
                           type="button"
                           onClick={() => setImageTarget(fmt)}
-                          className={cn('px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all', imageTarget === fmt ? 'bg-slate-900 text-white' : 'text-muted-foreground hover:text-slate-900 hover:bg-white')}
+                          className={cn('px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all', imageTarget === fmt ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground hover:bg-card')}
                         >
                           {fmt.toUpperCase()}
                         </button>
@@ -519,7 +519,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                           key={fmt}
                           type="button"
                           onClick={() => setPdfImageFormat(fmt)}
-                          className={cn('px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all', pdfImageFormat === fmt ? 'bg-slate-900 text-white' : 'text-muted-foreground hover:text-slate-900 hover:bg-white')}
+                          className={cn('px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all', pdfImageFormat === fmt ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground hover:bg-card')}
                         >
                           {fmt.toUpperCase()}
                         </button>
@@ -721,7 +721,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   <h2 className="text-[16px] font-bold text-foreground">변환 완료</h2>
                 </div>
 
-                <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-white p-5 space-y-3">
+                <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-card p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-[22px]">{formatIcon(result.outputFormat)}</span>
