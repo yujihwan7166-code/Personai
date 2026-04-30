@@ -35,6 +35,8 @@ import { DraggableBlock } from './dnd/DraggableBlock';
 import { InlineQuickAdd } from './InlineQuickAdd';
 import { SubtaskProgress } from './SubtaskList';
 import { taskListStore } from '@/services/planner/taskListStore';
+import { computeStreakStats } from '@/lib/planner/streak';
+import { parseInstanceId, isInstanceId } from '@/lib/planner/recurrence';
 import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS, TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
 
@@ -299,6 +301,16 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
               const hasNote = item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0);
               const recurring = Boolean(item.data.recurrence);
               const dim = done || canceled;
+              // 시리즈 인스턴스의 streak — master 기준 계산.
+              const streakCurrent = (() => {
+                if (item.kind !== 'task') return undefined;
+                if (!isInstanceId(item.data.id)) return undefined;
+                const parsed = parseInstanceId(item.data.id);
+                if (!parsed) return undefined;
+                const master = taskStore.findMaster(parsed.masterId);
+                if (!master?.recurrence) return undefined;
+                return computeStreakStats(master).current;
+              })();
 
               const blockEl = (
                 <DraggableBlock
@@ -363,6 +375,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                         )}
                         {item.kind === 'task' && item.data.subtasks && item.data.subtasks.length > 0 && (
                           <SubtaskProgress subtasks={item.data.subtasks} compact />
+                        )}
+                        {streakCurrent !== undefined && streakCurrent > 0 && (
+                          <span className="text-[9.5px] font-mono tabular-nums text-amber-600 font-semibold">
+                            🔥{streakCurrent}
+                          </span>
                         )}
                       </div>
                       <p className={cn(

@@ -124,6 +124,9 @@ export interface PlannerTask {
   important?: boolean;
   /** 사용자 분류 (List/Project) — 메모 폴더와 별개. 미설정 = 인박스. */
   listId?: string;
+  /** 반복 시리즈 인스턴스별 완료 상태 — iso(occurrenceStartIso) → done.
+   * 시리즈 마스터에만 의미. expand 시 각 occurrence 의 done 합성. */
+  seriesCompletions?: Record<string, boolean>;
   createdAt: string;
 }
 

@@ -16,6 +16,7 @@ import type { Priority, Subtask } from '@/types/planner';
 import { PRIORITY_COLORS } from '@/types/planner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SubtaskList, SubtaskProgress } from './SubtaskList';
+import { StreakIndicator } from './StreakIndicator';
 import { tagColor } from '@/lib/planner/tagColor';
 
 /** 태그 chip — Inbox/Block 양쪽에서 재사용. */
@@ -68,6 +69,8 @@ interface InboxCardProps {
   /** 태그 — 첫 2개만 chip 으로 표시. 나머지는 +N. */
   tags?: string[];
   onTagClick?: (tag: string) => void;
+  /** Streak (반복 시리즈 연속 완료 수). 0 이면 표시 X. */
+  streakCurrent?: number;
 }
 
 interface BlockCardProps {
@@ -89,6 +92,8 @@ interface BlockCardProps {
   subtasks?: Subtask[];
   /** 태그 — 첫 1개만 표시 (공간 적음). */
   tags?: string[];
+  /** Streak (반복 시리즈 연속 완료 수). */
+  streakCurrent?: number;
 }
 
 type PlannerCardProps = InboxCardProps | BlockCardProps;
@@ -98,7 +103,7 @@ const InboxCardInner = (props: InboxCardProps) => {
   const {
     title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled, recurring,
     subtasks, onToggleSubtask, onAddSubtask, onRemoveSubtask, onUpdateSubtask,
-    tags, onTagClick,
+    tags, onTagClick, streakCurrent,
   } = props;
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
@@ -197,6 +202,9 @@ const InboxCardInner = (props: InboxCardProps) => {
             strokeWidth={2}
           />
         )}
+        {streakCurrent !== undefined && streakCurrent > 0 && (
+          <StreakIndicator current={streakCurrent} compact />
+        )}
         {hasNote && (
           showNoteTooltip ? (
             <Tooltip delayDuration={300}>
@@ -277,7 +285,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
   }
 
   // variant === 'block'
-  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags } = props;
+  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, streakCurrent } = props;
   const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
@@ -326,6 +334,9 @@ export const PlannerCard = (props: PlannerCardProps) => {
           )}
           {subtasks && subtasks.length > 0 && <SubtaskProgress subtasks={subtasks} compact />}
           {tags && tags.length > 0 && <TagChip tag={tags[0]} compact />}
+          {streakCurrent !== undefined && streakCurrent > 0 && (
+            <StreakIndicator current={streakCurrent} compact />
+          )}
         </div>
         <p className={cn(
           'text-[13px] leading-snug mt-0.5 truncate text-foreground font-medium',

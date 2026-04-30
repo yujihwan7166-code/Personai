@@ -8,7 +8,7 @@
  * 변경 broadcast: PLANNER_TASK_CHANGED.
  */
 import { PlannerTask, PLANNER_TASK_CHANGED } from '@/types/planner';
-import { expandRecurrence } from '@/lib/planner/recurrence';
+import { expandRecurrence, isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 
 const STORAGE_KEY = 'planner.tasks.v1';
 
@@ -53,7 +53,8 @@ export const taskStore = {
   },
 
   /** 특정 날짜에 시간 배정된 할일 (시작 시각 오름차순).
-   * 반복 시리즈는 해당 날짜에 떨어지는 가상 인스턴스를 합성해 반환. */
+   * 반복 시리즈는 해당 날짜에 떨어지는 가상 인스턴스를 합성해 반환.
+   * 인스턴스 done 은 master.seriesCompletions[occurrenceIso] 로 결정. */
   listScheduled(dateIso: string): PlannerTask[] {
     const dayPrefix = dateIso.slice(0, 10);
     const rangeStart = new Date(`${dayPrefix}T00:00:00`);
@@ -67,11 +68,13 @@ export const taskStore = {
       if (t.recurrence) {
         const instances = expandRecurrence(t, rangeStart, rangeEnd);
         for (const inst of instances) {
+          const instDone = t.seriesCompletions?.[inst.occurrenceStartIso] ?? false;
           result.push({
             ...t,
             id: inst.id,
             startAt: inst.occurrenceStartIso,
             endAt: inst.occurrenceEndIso,
+            done: instDone,
           });
         }
       } else if (t.startAt.slice(0, 10) === dayPrefix) {
@@ -92,11 +95,13 @@ export const taskStore = {
       if (t.recurrence) {
         const instances = expandRecurrence(t, rangeStart, rangeEnd);
         for (const inst of instances) {
+          const instDone = t.seriesCompletions?.[inst.occurrenceStartIso] ?? false;
           result.push({
             ...t,
             id: inst.id,
             startAt: inst.occurrenceStartIso,
             endAt: inst.occurrenceEndIso,
+            done: instDone,
           });
         }
       } else {
@@ -199,12 +204,36 @@ export const taskStore = {
     safeWrite(all);
   },
 
-  /** done 토글 — 자주 쓰는 패턴 헬퍼. */
+  /** done 토글 — 자주 쓰는 패턴 헬퍼.
+   * 가상 인스턴스 id (`master@iso`) 가 들어오면 toggleInstanceDone 으로 자동 분기. */
   toggleDone(id: string): void {
+    if (isInstanceId(id)) {
+      const parsed = parseInstanceId(id);
+      if (parsed) {
+        this.toggleInstanceDone(parsed.masterId, parsed.occurrenceIso);
+        return;
+      }
+    }
     const all = safeRead();
     const idx = all.findIndex((t) => t.id === id);
     if (idx === -1) return;
     all[idx] = { ...all[idx], done: !all[idx].done };
+    safeWrite(all);
+  },
+
+  /** 시리즈 인스턴스 done 토글 — master.seriesCompletions[occurrenceIso] 토글. */
+  toggleInstanceDone(masterId: string, occurrenceIso: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === masterId);
+    if (idx === -1) return;
+    const completions = { ...(all[idx].seriesCompletions ?? {}) };
+    completions[occurrenceIso] = !completions[occurrenceIso];
+    // false 면 키 제거 (스토리지 절약 — 기본값이 false 라).
+    if (!completions[occurrenceIso]) delete completions[occurrenceIso];
+    all[idx] = {
+      ...all[idx],
+      seriesCompletions: Object.keys(completions).length > 0 ? completions : undefined,
+    };
     safeWrite(all);
   },
 

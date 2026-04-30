@@ -14,7 +14,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Trash2, Flag, FileText, RotateCw, ChevronDown, ListChecks, Folder } from 'lucide-react';
 import { SubtaskList } from './SubtaskList';
+import { StreakCard } from './StreakIndicator';
 import { taskListStore } from '@/services/planner/taskListStore';
+import { computeStreakStats } from '@/lib/planner/streak';
 import type { Subtask, TaskList } from '@/types/planner';
 import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
 import {
@@ -509,6 +511,20 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               </div>
             </div>
           )}
+
+          {/* 시리즈 인스턴스 streak — 반복 task 편집 시에만 */}
+          {!isEvent && series && series.kind === 'task' && series.master.recurrence && (() => {
+            const stats = computeStreakStats(series.master);
+            return (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
+                  🔥
+                  진행률
+                </label>
+                <StreakCard {...stats} />
+              </div>
+            );
+          })()}
 
           {/* 반복 — Apple Cal/Google Cal 패턴. 단발 → 시리즈 / 시리즈 → 단발 모두 가능. */}
           <div className="flex flex-col gap-1.5">

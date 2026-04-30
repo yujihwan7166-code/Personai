@@ -34,6 +34,8 @@ import { Overdue } from './Overdue';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
 import { DroppableInbox } from './dnd/DroppableInbox';
 import { SMART_LISTS, SMART_LIST_ORDER, type SmartListId } from '@/lib/planner/smartLists';
+import { computeStreakStats } from '@/lib/planner/streak';
+import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import {
   type PlannerTask, type Priority, type TaskList, type TaskListColor,
   TASK_LIST_COLORS, PRIORITY_COLORS, PRIORITY_LABELS, PLANNER_LIST_CHANGED, PLANNER_TASK_CHANGED,
@@ -506,6 +508,15 @@ const NewListInput = ({ onDone }: { onDone: () => void }) => {
 const TaskRow = ({
   task, onClick, onDelete,
 }: { task: PlannerTask; onClick: () => void; onDelete: () => void }) => {
+  // streak — 가상 인스턴스면 master 기준, 마스터면 자기 기준.
+  const streakCurrent = (() => {
+    if (!task.recurrence && !isInstanceId(task.id)) return undefined;
+    const masterId = isInstanceId(task.id) ? parseInstanceId(task.id)?.masterId : task.id;
+    if (!masterId) return undefined;
+    const master = taskStore.findMaster(masterId);
+    if (!master?.recurrence) return undefined;
+    return computeStreakStats(master).current;
+  })();
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -531,6 +542,7 @@ const TaskRow = ({
               onRemoveSubtask={(sid) => taskStore.removeSubtask(task.id, sid)}
               onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(task.id, sid, text)}
               tags={task.tags}
+              streakCurrent={streakCurrent}
             />
           </DraggableInboxCard>
         </div>
