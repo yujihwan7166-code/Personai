@@ -3,7 +3,8 @@
  * 좌측 리스트 + 우측 상세 (없으면 빈 상태).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Mic, Upload, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Mic, Upload, Loader2, LogIn } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { notify } from '@/lib/notify';
@@ -38,6 +39,7 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
   const { user } = useAuth();
   const userId = user?.id;
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const [recordings, setRecordings] = useState<VoiceRecording[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -190,10 +192,105 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
   const canStart = remainingSec > 0;
   const usagePct = Math.min(100, Math.round((usedSec / MONTHLY_FREE_SECONDS) * 100));
 
+  // 비로그인 — 풍부한 프리뷰 + 로그인 유도 (실제 녹음/전사는 Supabase 사용량 트래킹 때문에 로그인 필요)
   if (!userId) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <p className="text-[13px] text-slate-500">로그인이 필요해요.</p>
+      <div className="flex h-full flex-col bg-white dark:bg-slate-950">
+        {/* 헤더 — 로그인 상태와 동일한 프레임 */}
+        <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 px-6 py-3">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-1 text-[12px] text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+            aria-label="돌아가기"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> 뒤로
+          </button>
+          <span className="text-slate-300">/</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-base">🎙️</span>
+            <h1 className="text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+              녹음 노트
+            </h1>
+          </div>
+          <div className="flex-1" />
+          <span className="text-[10.5px] text-slate-400 hidden sm:inline">
+            로그인 필요 · 월 30분 무료
+          </span>
+        </div>
+
+        {/* 프리뷰 본문 — 기능 소개 + CTA */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="mx-auto max-w-xl px-6 py-12 text-center">
+            <div className="text-6xl mb-5" aria-hidden="true">🎙️</div>
+            <h2 className="text-[22px] font-bold text-slate-900 dark:text-slate-100 mb-2">
+              녹음 한 번이면<br />회의·인터뷰가 노트가 돼요
+            </h2>
+            <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-7 leading-relaxed">
+              녹음을 올리면 AI 가 자동으로 요약·챕터·할 일을 정리해줘요.<br />
+              한 클릭으로 메모와 플래너 할 일까지 보내요.
+            </p>
+
+            {/* 사용 예시 카드 — 시각적 풍성 */}
+            <ul className="grid sm:grid-cols-3 gap-2.5 mb-8 text-left">
+              <li className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+                <div className="text-2xl mb-2" aria-hidden="true">📚</div>
+                <p className="text-[13px] font-bold text-slate-900 dark:text-slate-100">강의</p>
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  요약 · 챕터 · 복습 카드
+                </p>
+              </li>
+              <li className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+                <div className="text-2xl mb-2" aria-hidden="true">👥</div>
+                <p className="text-[13px] font-bold text-slate-900 dark:text-slate-100">회의·인터뷰</p>
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  결정사항 · 액션 · 담당자
+                </p>
+              </li>
+              <li className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+                <div className="text-2xl mb-2" aria-hidden="true">💭</div>
+                <p className="text-[13px] font-bold text-slate-900 dark:text-slate-100">아이디어</p>
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  음성 메모 → 글 초안
+                </p>
+              </li>
+            </ul>
+
+            {/* 핵심 시너지 — 다른 PKM 도구와 연결 */}
+            <div className="rounded-xl border border-violet-200 dark:border-violet-500/30 bg-violet-50/50 dark:bg-violet-500/5 p-4 mb-8 text-left">
+              <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300 mb-2">
+                ✨ PKM 시너지
+              </p>
+              <ul className="space-y-1.5 text-[12.5px] text-slate-700 dark:text-slate-300">
+                <li>• 챕터 → <strong className="font-semibold">메모로</strong> 한 클릭 보내기</li>
+                <li>• 액션 아이템 → <strong className="font-semibold">플래너 할일로</strong> 자동</li>
+                <li>• 출처 라벨 자동 박힘 (어디서 왔는지 추적 가능)</li>
+              </ul>
+            </div>
+
+            {/* CTA 버튼 — 로그인 */}
+            <div className="flex gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => navigate('/auth')}
+                className="h-11 px-6 rounded-lg inline-flex items-center justify-center gap-1.5 text-[13.5px] font-semibold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white transition-colors"
+              >
+                <LogIn className="h-4 w-4" />
+                로그인하고 시작
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-11 px-5 rounded-lg inline-flex items-center justify-center gap-1.5 text-[13px] font-medium border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+              >
+                나중에
+              </button>
+            </div>
+
+            <p className="text-[10.5px] text-slate-400 mt-5 leading-relaxed">
+              MP3 · M4A · WAV · WebM · 최대 25MB · 매월 30분 무료
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
