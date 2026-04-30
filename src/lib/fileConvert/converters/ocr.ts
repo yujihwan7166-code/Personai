@@ -83,6 +83,40 @@ export async function ocrImageToText(
   return { blob, suggestedName: `${baseName(file.name)}.txt`, previewText: text.slice(0, 500) };
 }
 
+// ───── 영수증 인식 — 금액·날짜·항목 자동 추출 ─────
+export async function ocrReceipt(
+  file: File,
+  signal?: AbortSignal,
+): Promise<{ blob: Blob; suggestedName: string; previewText: string }> {
+  const base64 = await fileToBase64(file);
+  const text = await streamChatText(
+    `당신은 영수증 분석 전문가입니다. 이미지에서 다음 정보를 추출해 마크다운으로 정리하세요.
+
+# 결제 정보
+- 가게: (가게명)
+- 날짜: YYYY-MM-DD HH:mm
+- 결제 수단: (카드/현금/간편결제)
+- 총액: NNN원
+
+# 항목
+| 항목 | 수량 | 단가 | 금액 |
+| --- | ---: | ---: | ---: |
+| ... | ... | ... | ... |
+
+# 요약
+- 카테고리 추정: (음식점/마트/카페 등)
+- 한 줄 요약: ...
+
+판독 안 되는 정보는 [?] 표기. 추측 금지. 마크다운만 출력.`,
+    '이 영수증을 분석해주세요.',
+    [{ name: file.name, mimeType: file.type || 'image/png', base64 }],
+    signal,
+    2500,
+  );
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+  return { blob, suggestedName: `${baseName(file.name)}-receipt.md`, previewText: text.slice(0, 500) };
+}
+
 // ───── 표 OCR — 마크다운 표 ─────
 export async function ocrImageToTable(
   file: File,

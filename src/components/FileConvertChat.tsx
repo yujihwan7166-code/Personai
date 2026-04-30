@@ -14,11 +14,12 @@ import { convertHtmlFileToMd, convertMdFileToHtml, convertMdFileToPdf } from '@/
 import {
   convertImageFormat, isImageFormatSupported,
   convertHeicToJpg, compressImage, resizeImage,
-  transformImage, batchImageProcess, type ImageTransform, type BatchImageTask,
+  transformImage, batchImageProcess, watermarkImage,
+  type ImageTransform, type BatchImageTask, type WatermarkPos,
 } from '@/lib/fileConvert/converters/image';
 import { convertHtmlFileToPdf } from '@/lib/fileConvert/converters/markup';
 import { cleanCsv } from '@/lib/fileConvert/converters/spreadsheet';
-import { ocrImageToText, ocrImageToTable, summarizePdf } from '@/lib/fileConvert/converters/ocr';
+import { ocrImageToText, ocrImageToTable, summarizePdf, ocrReceipt } from '@/lib/fileConvert/converters/ocr';
 import {
   imagesToPdf, mergePdfs, pdfToImages, pdfToText, splitPdf,
   compressPdf, rotatePdf, type PdfCompressLevel,
@@ -99,6 +100,10 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [csvSortColumn, setCsvSortColumn] = useState<number>(0);
   const [csvDedupe, setCsvDedupe] = useState<boolean>(false);
   const [csvHasHeader, setCsvHasHeader] = useState<boolean>(true);
+  // 이미지 워터마크
+  const [imgWatermarkText, setImgWatermarkText] = useState<string>('© 2026');
+  const [imgWatermarkPos, setImgWatermarkPos] = useState<WatermarkPos>('bottom-right');
+  const [imgWatermarkOpacity, setImgWatermarkOpacity] = useState<number>(0.4);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -294,6 +299,20 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
           converted = await ocrImageToTable(files[0], controller.signal);
           break;
         }
+        case 'image-receipt': {
+          setProgress('AI가 영수증을 분석 중... (10~20초)');
+          converted = await ocrReceipt(files[0], controller.signal);
+          break;
+        }
+        case 'image-watermark': {
+          setProgress('이미지 워터마크 적용 중...');
+          converted = await watermarkImage(files[0], {
+            text: imgWatermarkText,
+            position: imgWatermarkPos,
+            opacity: imgWatermarkOpacity,
+          });
+          break;
+        }
         case 'image-rotate': {
           setProgress('이미지 변환 중...');
           converted = await transformImage(files[0], imageTransform);
@@ -477,6 +496,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     imageTransform,
     batchKind, batchTargetFormat,
     csvSortDir, csvSortColumn, csvDedupe, csvHasHeader,
+    imgWatermarkText, imgWatermarkPos, imgWatermarkOpacity,
   ]);
 
   const handleDownload = useCallback(() => {
@@ -1085,6 +1105,62 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     </div>
                   </div>
                 )}
+                {files.length > 0 && selectedTask.id === 'image-watermark' && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">워터마크 텍스트</div>
+                      <input
+                        type="text"
+                        value={imgWatermarkText}
+                        onChange={(e) => setImgWatermarkText(e.target.value)}
+                        maxLength={40}
+                        placeholder="예: © 내 사이트 · 2026"
+                        className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">위치</div>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 max-w-md">
+                        {([
+                          { v: 'top-right' as const, label: '↗ 우상단' },
+                          { v: 'bottom-right' as const, label: '↘ 우하단' },
+                          { v: 'bottom-left' as const, label: '↙ 좌하단' },
+                          { v: 'center' as const, label: '◯ 가운데' },
+                          { v: 'tile' as const, label: '⊞ 패턴' },
+                        ]).map((c) => (
+                          <button
+                            key={c.v}
+                            type="button"
+                            onClick={() => setImgWatermarkPos(c.v)}
+                            className={cn(
+                              'px-2 py-1.5 rounded-md text-[11.5px] font-semibold border transition-all',
+                              imgWatermarkPos === c.v
+                                ? 'bg-foreground text-background border-foreground'
+                                : 'bg-card text-muted-foreground border-[hsl(var(--hairline))] hover:text-foreground',
+                            )}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-[12px] font-semibold text-foreground">투명도</div>
+                        <div className="text-[12px] tabular-nums text-muted-foreground">{Math.round(imgWatermarkOpacity * 100)}%</div>
+                      </div>
+                      <input
+                        type="range"
+                        min={10}
+                        max={80}
+                        step={5}
+                        value={Math.round(imgWatermarkOpacity * 100)}
+                        onChange={(e) => setImgWatermarkOpacity(parseInt(e.target.value, 10) / 100)}
+                        className="w-full accent-violet-600"
+                      />
+                    </div>
+                  </div>
+                )}
                 {files.length > 0 && selectedTask.id === 'image-rotate' && (
                   <div>
                     <div className="text-[12px] font-semibold text-foreground mb-2">변환</div>
@@ -1396,12 +1472,9 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     </div>
                   </div>
 
-                  {/* 프리뷰 */}
+                  {/* 프리뷰 — 포맷별 적합 렌더 */}
                   {result.previewText && (
-                    <div className="p-3 rounded-lg bg-accent/40 border border-[hsl(var(--hairline))] text-[12px] text-foreground whitespace-pre-wrap max-h-60 overflow-auto font-mono leading-relaxed">
-                      {result.previewText}
-                      {result.previewText.length >= 500 && <div className="text-muted-foreground/70 mt-2">... (다운로드하면 전체 확인 가능)</div>}
-                    </div>
+                    <ResultPreview text={result.previewText} format={result.outputFormat} />
                   )}
                   {result.previewUrl && (
                     <img src={result.previewUrl} alt="변환 결과 미리보기" className="max-h-80 rounded-lg border border-[hsl(var(--hairline))] mx-auto" />
@@ -1520,6 +1593,90 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
       </div>
     </ModeErrorBoundary>
   );
+}
+
+function ResultPreview({ text, format }: { text: string; format: FileFormat }) {
+  // JSON — pretty print + 색상 (구분 toggle)
+  if (format === 'json') {
+    let pretty = text;
+    try {
+      pretty = JSON.stringify(JSON.parse(text), null, 2);
+    } catch {
+      // 파싱 실패 시 원문
+    }
+    return (
+      <pre className="p-3 rounded-lg bg-accent/40 border border-[hsl(var(--hairline))] text-[11.5px] text-foreground max-h-60 overflow-auto font-mono leading-relaxed whitespace-pre-wrap">
+        {pretty}
+        {text.length >= 500 && <div className="text-muted-foreground/70 mt-2">... (다운로드하면 전체)</div>}
+      </pre>
+    );
+  }
+
+  // CSV — 표 렌더 (앞 5줄만)
+  if (format === 'csv') {
+    const lines = text.split('\n').filter((l) => l.trim().length > 0).slice(0, 5);
+    const rows = lines.map((l) => l.split(',').map((c) => c.replace(/^"(.*)"$/, '$1')));
+    return (
+      <div className="rounded-lg bg-accent/40 border border-[hsl(var(--hairline))] overflow-auto max-h-60">
+        <table className="w-full text-[11.5px]">
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className={cn(i === 0 && 'bg-accent border-b border-[hsl(var(--hairline))] font-semibold')}>
+                {row.map((cell, j) => (
+                  <td key={j} className="px-2 py-1 border-r border-[hsl(var(--hairline))] last:border-r-0 truncate max-w-[200px]">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {text.length >= 500 && <div className="text-[10px] text-muted-foreground/70 px-2 py-1 border-t border-[hsl(var(--hairline))]">... (다운로드하면 전체)</div>}
+      </div>
+    );
+  }
+
+  // Markdown — 굵게/제목/리스트 등 인라인 매우 라이트 렌더
+  if (format === 'md') {
+    const html = renderLightMarkdown(text);
+    return (
+      <div
+        className="p-3 rounded-lg bg-accent/40 border border-[hsl(var(--hairline))] text-[12.5px] text-foreground max-h-60 overflow-auto leading-relaxed prose-mini"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+
+  // 기본 — mono 텍스트
+  return (
+    <pre className="p-3 rounded-lg bg-accent/40 border border-[hsl(var(--hairline))] text-[12px] text-foreground whitespace-pre-wrap max-h-60 overflow-auto font-mono leading-relaxed">
+      {text}
+      {text.length >= 500 && <div className="text-muted-foreground/70 mt-2">... (다운로드하면 전체 확인 가능)</div>}
+    </pre>
+  );
+}
+
+/** 매우 라이트한 마크다운 렌더 — 외부 lib 없이 헤딩·굵게·리스트만. */
+function renderLightMarkdown(md: string): string {
+  let html = md
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // headings
+  html = html.replace(/^### (.+)$/gm, '<h3 style="font-size:13px;font-weight:700;margin:0.6em 0 0.2em">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 style="font-size:14px;font-weight:700;margin:0.7em 0 0.3em">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 style="font-size:15px;font-weight:800;margin:0.8em 0 0.3em">$1</h1>');
+  // bold + italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // inline code
+  html = html.replace(/`([^`]+)`/g, '<code style="background:hsl(var(--accent));padding:1px 4px;border-radius:3px;font-size:0.9em">$1</code>');
+  // bullets
+  html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\s*)+/g, '<ul style="padding-left:18px;margin:0.3em 0">$&</ul>');
+  // paragraphs
+  html = html.split(/\n{2,}/).map((p) => p.startsWith('<') ? p : `<p style="margin:0.4em 0">${p.replace(/\n/g, '<br>')}</p>`).join('');
+  return html;
 }
 
 function TaskCard({

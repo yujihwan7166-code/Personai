@@ -239,6 +239,96 @@ export async function resizeImage(
   return { blob, suggestedName: `${baseName(file.name)}-${tw}x${th}${EXT_MAP[target]}` };
 }
 
+// ───── 이미지 워터마크 (텍스트) ─────
+export type WatermarkPos = 'center' | 'top-right' | 'bottom-right' | 'bottom-left' | 'tile';
+export interface ImageWatermarkOptions {
+  text: string;
+  position?: WatermarkPos;
+  opacity?: number;        // 0~1, 기본 0.3
+  fontSizeRatio?: number;  // 이미지 짧은 변 대비 %, 기본 0.06 (6%)
+  color?: string;          // CSS color, 기본 white
+  shadowColor?: string;    // 가독성용 그림자, 기본 'rgba(0,0,0,0.5)'
+}
+export async function watermarkImage(
+  file: File,
+  opts: ImageWatermarkOptions,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const text = opts.text.trim();
+  if (!text) throw new Error('워터마크 텍스트를 입력해주세요.');
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context를 얻지 못했어요.');
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+
+  const minSide = Math.min(canvas.width, canvas.height);
+  const fontSize = Math.round(minSide * (opts.fontSizeRatio ?? 0.06));
+  const padding = Math.round(fontSize * 0.6);
+  ctx.font = `bold ${fontSize}px system-ui, -apple-system, "Noto Sans KR", sans-serif`;
+  ctx.fillStyle = opts.color ?? '#ffffff';
+  ctx.shadowColor = opts.shadowColor ?? 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = Math.round(fontSize * 0.2);
+  ctx.globalAlpha = opts.opacity ?? 0.3;
+
+  const position = opts.position ?? 'bottom-right';
+  const metrics = ctx.measureText(text);
+  const textW = metrics.width;
+  const textH = fontSize;
+
+  if (position === 'tile') {
+    // 패턴 반복
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(-Math.PI / 6); // -30도
+    const stepX = textW * 1.8;
+    const stepY = fontSize * 4;
+    const reach = Math.max(canvas.width, canvas.height) * 1.5;
+    for (let y = -reach; y < reach; y += stepY) {
+      for (let x = -reach; x < reach; x += stepX) {
+        ctx.fillText(text, x, y);
+      }
+    }
+    ctx.restore();
+  } else {
+    let x = padding;
+    let y = padding + textH;
+    switch (position) {
+      case 'top-right':
+        x = canvas.width - textW - padding;
+        y = padding + textH;
+        break;
+      case 'bottom-right':
+        x = canvas.width - textW - padding;
+        y = canvas.height - padding;
+        break;
+      case 'bottom-left':
+        x = padding;
+        y = canvas.height - padding;
+        break;
+      case 'center':
+        x = canvas.width / 2 - textW / 2;
+        y = canvas.height / 2 + textH / 2;
+        break;
+    }
+    ctx.fillText(text, x, y);
+  }
+
+  // 원본 포맷 유지
+  const ext = file.name.toLowerCase().split('.').pop();
+  const target: ImageOutputFormat = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg';
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('워터마크 적용 실패'))),
+      MIME_MAP[target],
+      0.92,
+    );
+  });
+  return { blob, suggestedName: `${baseName(file.name)}-watermark${EXT_MAP[target]}` };
+}
+
 // ───── 일괄 처리 — 다중 이미지 → ZIP ─────
 let jszipPromise: Promise<typeof import('jszip')> | null = null;
 function loadJsZip() {
