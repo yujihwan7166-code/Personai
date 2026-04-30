@@ -1,20 +1,23 @@
 /**
  * /discover — 우연의 발견 정보 피드.
  *
- * 한 화면에 다채로운 카드를 그리드로 노출.
- *  - 메인 hero 카드 (오늘의 한 장 — widget store 공유)
- *  - 외부: 위키피디아 무작위 글 + NASA APOD
+ * 한 화면에 다채로운 카드를 그리드로 노출 (hero 카드 없음).
+ *  - 외부에서 가져온 발견: 위키피디아 무작위 글 + NASA APOD (큰 카드)
  *  - 깊이 있는 지식 (topic) 3장
  *  - 가벼운 영감 (quote/fact/snippet/question) 4장
  *  - 발견 (pairing/ritual/link) 3장
  *
  * 카드 클릭 → 상세 모달. 좋아요·저장·복사·숨김은 widget 인스턴스와 공유.
+ * 액션은 hover/focus 시만 노출 (시각적 정돈).
+ * 타입별 좌측 색 라인 + 읽기 시간 표시 (시각 위계).
+ * 태그 클릭 → 같은 태그 카드 모아보기 모달.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Keyboard, RefreshCw, Heart, Save, Copy, EyeOff, ExternalLink,
   Quote, Lightbulb, Sparkles, Link2, Sunrise, HelpCircle, Coffee, BookOpen,
+  Clock, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -22,11 +25,10 @@ import {
   type SerendipityWidget,
 } from '@/lib/mySpaceStore';
 import { addMemo } from '@/lib/memoStore';
-import { CARD_TYPE_META, type CardType, type SerendipityCard } from '@/lib/serendipity/types';
+import { CARD_TYPE_META, estimateReadMinutes, type CardType, type SerendipityCard } from '@/lib/serendipity/types';
 import { SEED_CARDS } from '@/lib/serendipity/cards';
 import { getTodayKey } from '@/lib/serendipity/engine';
 import { fetchAllExternalCards, refetchExternalCards } from '@/lib/serendipity/external';
-import { SerendipityW } from '@/components/MySpace/serendipity/Card';
 import { SerendipityShortcutsModal } from '@/components/MySpace/serendipity/ShortcutsModal';
 import { SerendipityDetailModal } from '@/components/MySpace/serendipity/DetailModal';
 import { SerendipityCollectionView } from '@/components/MySpace/serendipity/CollectionView';
@@ -70,6 +72,7 @@ export default function Discover() {
   const [externalCards, setExternalCards] = useState<SerendipityCard[]>([]);
   const [externalLoading, setExternalLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // 그리드 셔플 시드 토글
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
 
   // store 변경 구독
   useEffect(() => subscribeWidgets(setWidgetsState), []);
@@ -90,7 +93,7 @@ export default function Discover() {
   const likedIds = useMemo(() => widget?.likedIds ?? [], [widget?.likedIds]);
   const hiddenIds = useMemo(() => widget?.hiddenIds ?? [], [widget?.hiddenIds]);
 
-  // 외부 카드 fetch (페이지 진입 시 1회 — 캐시는 일 단위)
+  // 외부 카드 fetch
   useEffect(() => {
     let cancelled = false;
     setExternalLoading(true);
@@ -121,7 +124,6 @@ export default function Discover() {
   const today = getTodayKey();
   const seed = dailySeed(today + ':' + refreshKey);
 
-  // 시드 카드를 hidden 제외하고 type 별 분류 → 매일 다른 셔플 결과
   const cardsByType = useMemo(() => {
     const blocked = new Set(hiddenIds);
     const visible = SEED_CARDS.filter((c) => !blocked.has(c.id));
@@ -154,7 +156,14 @@ export default function Discover() {
     ...pickN('link', 1),
   ], [pickN]);
 
-  // ─────────────── 액션 (페이지 카드 공통) ───────────────
+  // 태그 필터 — 클릭한 태그가 들어 있는 모든 시드 + 외부 카드
+  const taggedCards = useMemo<SerendipityCard[]>(() => {
+    if (!tagFilter) return [];
+    const all = [...externalCards, ...SEED_CARDS];
+    return all.filter((c) => (c.tags ?? []).some((t) => t === tagFilter) && !hiddenIds.includes(c.id));
+  }, [tagFilter, externalCards, hiddenIds]);
+
+  // ─────────────── 액션 ───────────────
   const isLiked = (cardId: string) => likedIds.includes(cardId);
   const toggleLike = useCallback((cardId: string) => {
     if (!widget) return;
@@ -192,7 +201,6 @@ export default function Discover() {
     toast({ title: '숨김', description: '이 카드는 다시 보이지 않아요.' });
   }, [widget]);
 
-  // 전체 새로고침 — 외부 카드 재fetch + 그리드 셔플
   const refreshAll = useCallback(async () => {
     setExternalLoading(true);
     setRefreshKey((k) => k + 1);
@@ -219,7 +227,7 @@ export default function Discover() {
             <span className="text-[18px]" aria-hidden>🎲</span>
             <h1 className="text-[15px] font-semibold truncate">우연의 발견</h1>
             <span className="hidden sm:inline text-[11.5px] text-muted-foreground truncate">
-              {formatToday(today)} · 오늘 어떤 발견이 기다리고 있을까요
+              {formatToday(today)} · 매일 새로운 발견
             </span>
           </div>
           <button
@@ -256,44 +264,37 @@ export default function Discover() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1100px] px-4 py-6 sm:py-8 space-y-8">
-        {/* hero — widget 인스턴스 */}
-        {widget && (
-          <section>
-            <SectionHeader emoji="🌟" title="오늘의 한 장" subtitle="자정마다 새로 도착해요" />
-            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))]/40 p-3 sm:p-4">
-              <div className="max-w-[560px] mx-auto">
-                <SerendipityW widget={widget} editable={true} />
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* 외부 — 위키 + NASA */}
+      <main className="mx-auto max-w-[1100px] px-4 py-6 sm:py-8 space-y-10">
+        {/* 외부 — 위키 + NASA — 페이지 첫 인상으로 큰 카드 */}
         <section>
-          <SectionHeader emoji="🌐" title="외부에서 가져온 발견" subtitle="위키피디아 · NASA — 매일 자동 갱신" />
+          <SectionHeader
+            emoji="🌐"
+            title="오늘의 발견"
+            subtitle="위키피디아 · NASA — 매일 자동 갱신"
+          />
           {externalLoading && externalCards.length === 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <SkeletonCard />
-              <SkeletonCard />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SkeletonCard tall />
+              <SkeletonCard tall />
             </div>
           ) : externalCards.length === 0 ? (
             <div className="rounded-xl border border-dashed border-[hsl(var(--hairline))] py-8 text-center text-[12px] text-muted-foreground">
               외부 데이터를 가져오지 못했어요. 잠시 후 새로고침해주세요.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {externalCards.map((card) => (
                 <CardTile
                   key={card.id}
                   card={card}
-                  large
+                  variant="hero"
                   liked={isLiked(card.id)}
                   onOpen={() => setDetailCard(card)}
                   onLike={() => toggleLike(card.id)}
                   onSave={() => saveCardAsMemo(card)}
                   onCopy={() => void copyCard(card)}
                   onHide={() => hideCard(card.id)}
+                  onTagClick={(t) => setTagFilter(t)}
                 />
               ))}
             </div>
@@ -303,17 +304,19 @@ export default function Discover() {
         {/* 깊이 있는 지식 */}
         <section>
           <SectionHeader emoji="📚" title="깊이 있는 지식" subtitle="2~3분이면 새로 알게 되는 것" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {topicCards.map((card) => (
               <CardTile
                 key={card.id}
                 card={card}
+                variant="default"
                 liked={isLiked(card.id)}
                 onOpen={() => setDetailCard(card)}
                 onLike={() => toggleLike(card.id)}
                 onSave={() => saveCardAsMemo(card)}
                 onCopy={() => void copyCard(card)}
                 onHide={() => hideCard(card.id)}
+                onTagClick={(t) => setTagFilter(t)}
               />
             ))}
           </div>
@@ -322,18 +325,19 @@ export default function Discover() {
         {/* 가벼운 영감 */}
         <section>
           <SectionHeader emoji="✨" title="가벼운 영감" subtitle="명언·사실·단편·질문" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {lightCards.map((card) => (
               <CardTile
                 key={card.id}
                 card={card}
-                compact
+                variant="compact"
                 liked={isLiked(card.id)}
                 onOpen={() => setDetailCard(card)}
                 onLike={() => toggleLike(card.id)}
                 onSave={() => saveCardAsMemo(card)}
                 onCopy={() => void copyCard(card)}
                 onHide={() => hideCard(card.id)}
+                onTagClick={(t) => setTagFilter(t)}
               />
             ))}
           </div>
@@ -347,21 +351,23 @@ export default function Discover() {
               <CardTile
                 key={card.id}
                 card={card}
+                variant="default"
                 liked={isLiked(card.id)}
                 onOpen={() => setDetailCard(card)}
                 onLike={() => toggleLike(card.id)}
                 onSave={() => saveCardAsMemo(card)}
                 onCopy={() => void copyCard(card)}
                 onHide={() => hideCard(card.id)}
+                onTagClick={(t) => setTagFilter(t)}
               />
             ))}
           </div>
         </section>
 
-        {/* 푸터 단축키 */}
+        {/* 푸터 */}
         <section className="text-[11px] text-muted-foreground pt-4 border-t border-[hsl(var(--hairline))]">
-          <span className="font-mono">단축키:</span>{' '}
-          ? 도움말 · 카드 클릭으로 상세 보기 · ❤️ 누르면 모은 카드에 모임
+          <span className="font-mono">팁:</span>{' '}
+          카드 클릭 = 상세 보기 · 태그 클릭 = 같은 결의 카드 모아보기 · ? = 단축키
         </section>
       </main>
 
@@ -385,10 +391,20 @@ export default function Discover() {
           card={detailCard}
           liked={isLiked(detailCard.id)}
           onClose={() => setDetailCard(null)}
-          onRefresh={() => setDetailCard(null)} /* 페이지 컨텍스트 — 전체 새로고침은 헤더에 별도 */
+          onRefresh={() => setDetailCard(null)}
           onToggleLike={() => toggleLike(detailCard.id)}
           onSaveAsMemo={() => { saveCardAsMemo(detailCard); setDetailCard(null); }}
           onHide={() => { hideCard(detailCard.id); setDetailCard(null); }}
+        />
+      )}
+      {tagFilter && (
+        <TagFilterModal
+          tag={tagFilter}
+          cards={taggedCards}
+          likedIds={likedIds}
+          onClose={() => setTagFilter(null)}
+          onOpen={(c) => { setTagFilter(null); setDetailCard(c); }}
+          onLike={(id) => toggleLike(id)}
         />
       )}
     </div>
@@ -409,9 +425,12 @@ function SectionHeader({ emoji, title, subtitle }: { emoji: string; title: strin
   );
 }
 
-function SkeletonCard() {
+function SkeletonCard({ tall }: { tall?: boolean } = {}) {
   return (
-    <div className="rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4 animate-pulse">
+    <div className={cn(
+      'rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4 animate-pulse',
+      tall && 'min-h-[280px]',
+    )}>
       <div className="h-3 w-16 bg-[hsl(var(--muted))] rounded mb-3" />
       <div className="h-4 w-3/4 bg-[hsl(var(--muted))] rounded mb-2" />
       <div className="h-3 w-full bg-[hsl(var(--muted))] rounded mb-1.5" />
@@ -424,31 +443,37 @@ function SkeletonCard() {
 interface CardTileProps {
   card: SerendipityCard;
   liked: boolean;
-  large?: boolean;     // 외부 카드용 (이미지·긴 본문)
-  compact?: boolean;   // 가벼운 카드용 (질문·명언)
+  variant: 'hero' | 'default' | 'compact';
   onOpen: () => void;
   onLike: () => void;
   onSave: () => void;
   onCopy: () => void;
   onHide: () => void;
+  onTagClick: (tag: string) => void;
 }
 
 function CardTile({
-  card, liked, large, compact, onOpen, onLike, onSave, onCopy, onHide,
+  card, liked, variant, onOpen, onLike, onSave, onCopy, onHide, onTagClick,
 }: CardTileProps) {
   const TypeIcon = TYPE_ICON[card.type];
-  const typeLabel = CARD_TYPE_META[card.type].label;
-  const lineClamp = compact ? 4 : large ? 8 : 6;
+  const meta = CARD_TYPE_META[card.type];
+  const readMin = estimateReadMinutes(card);
+
+  const lineClamp = variant === 'compact' ? 4 : variant === 'hero' ? 8 : 6;
+  const isHero = variant === 'hero';
+  const isCompact = variant === 'compact';
 
   return (
     <article
       className={cn(
         'group relative rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))]',
-        'hover:border-[hsl(var(--border))] transition-colors overflow-hidden flex flex-col',
+        'border-l-[3px]', meta.accent,
+        'hover:border-[hsl(var(--border))] hover:shadow-sm',
+        'transition-all overflow-hidden flex flex-col',
       )}
     >
-      {/* 이미지 (large + imageUrl) */}
-      {large && card.imageUrl && (
+      {/* 이미지 (hero + imageUrl) */}
+      {isHero && card.imageUrl && (
         <div className="aspect-[16/9] w-full overflow-hidden bg-[hsl(var(--muted))]">
           <img
             src={card.imageUrl}
@@ -463,24 +488,30 @@ function CardTile({
       <button
         type="button"
         onClick={onOpen}
-        className="text-left flex-1 p-3.5 hover:bg-[hsl(var(--accent))]/30 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--focus-ring))] rounded-none"
+        className="text-left flex-1 p-3.5 hover:bg-[hsl(var(--accent))]/30 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--focus-ring))]"
         aria-label={card.title ?? card.body.slice(0, 40)}
       >
         <div className="flex items-center gap-1.5 mb-2">
           <TypeIcon className="h-3 w-3 text-muted-foreground" />
           <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            {typeLabel}
+            {meta.label}
           </span>
           {card.origin === 'remote' && (
             <span className="text-[9.5px] px-1 py-0 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
               LIVE
             </span>
           )}
+          <div className="flex-1" />
+          {/* 읽기 시간 */}
+          <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground tabular-nums">
+            <Clock className="h-2.5 w-2.5" />
+            {readMin}분
+          </span>
         </div>
         {card.title && (
           <h3 className={cn(
             'font-semibold mb-1.5 leading-snug',
-            large ? 'text-[14px]' : 'text-[12.5px]',
+            isHero ? 'text-[15px]' : isCompact ? 'text-[12px]' : 'text-[12.5px]',
           )}>
             {card.title}
           </h3>
@@ -488,7 +519,7 @@ function CardTile({
         <p
           className={cn(
             'leading-relaxed text-foreground/90',
-            compact ? 'text-[12px]' : large ? 'text-[12.5px]' : 'text-[11.5px]',
+            isCompact ? 'text-[12px]' : isHero ? 'text-[12.5px]' : 'text-[11.5px]',
           )}
           style={{
             display: '-webkit-box',
@@ -506,46 +537,59 @@ function CardTile({
         )}
       </button>
 
-      {/* 액션 바 */}
+      {/* 하단 영역: 태그 + 액션 — 액션은 hover/focus 시만 노출 */}
       <div className="px-3.5 pb-3 flex items-center gap-1 mt-auto">
-        <TileBtn
-          icon={Heart}
-          label={liked ? '좋아요 해제' : '좋아요'}
-          onClick={onLike}
-          active={liked}
-          fill={liked}
-        />
-        <TileBtn icon={Copy} label="복사" onClick={onCopy} />
-        <TileBtn icon={Save} label="메모로 저장" onClick={onSave} />
-        <TileBtn icon={EyeOff} label="다시 안 보기" onClick={onHide} />
-        <div className="flex-1" />
-        {card.url && (
-          <a
-            href={card.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-            onClick={(e) => e.stopPropagation()}
-            aria-label="외부 링크 열기"
-          >
-            열기 <ExternalLink className="h-2.5 w-2.5" />
-          </a>
-        )}
-      </div>
-
-      {/* 태그 */}
-      {card.tags && card.tags.length > 0 && (
-        <div className="px-3.5 pb-3 flex flex-wrap gap-1">
-          {card.tags.slice(0, 4).map((t) => (
-            <span
+        {/* 태그 (좌측, 항상 노출) */}
+        <div className="flex flex-wrap gap-1 flex-1 min-w-0 mr-1">
+          {(card.tags ?? []).slice(0, 3).map((t) => (
+            <button
               key={t}
-              className="text-[9.5px] text-muted-foreground bg-[hsl(var(--muted))] px-1.5 py-0.5 rounded-full"
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onTagClick(t); }}
+              className="text-[9.5px] text-muted-foreground bg-[hsl(var(--muted))] hover:bg-[hsl(var(--accent))] hover:text-foreground px-1.5 py-0.5 rounded-full transition-colors"
+              aria-label={`태그 ${t} 로 모아보기`}
+              title={`#${t} 모아보기`}
             >
               #{t}
-            </span>
+            </button>
           ))}
         </div>
-      )}
+
+        {/* 액션 (우측, hover/focus 시 노출) */}
+        <div
+          className={cn(
+            'flex items-center gap-0.5 shrink-0',
+            'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
+            // 좋아요는 활성 시 항상 노출 (피드백)
+            liked && 'opacity-100',
+            'transition-opacity',
+          )}
+        >
+          <TileBtn
+            icon={Heart}
+            label={liked ? '좋아요 해제' : '좋아요'}
+            onClick={onLike}
+            active={liked}
+            fill={liked}
+          />
+          <TileBtn icon={Copy} label="복사" onClick={onCopy} />
+          <TileBtn icon={Save} label="메모로 저장" onClick={onSave} />
+          <TileBtn icon={EyeOff} label="다시 안 보기" onClick={onHide} />
+          {card.url && (
+            <a
+              href={card.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:bg-[hsl(var(--accent))] hover:text-foreground transition-colors"
+              onClick={(e) => e.stopPropagation()}
+              aria-label="외부 링크 열기"
+              title="외부 링크 열기"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      </div>
     </article>
   );
 }
@@ -571,9 +615,135 @@ function TileBtn({
 }
 
 function formatToday(key: string): string {
-  // 'YYYY-MM-DD' → 'YYYY년 M월 D일 (요일)'
   const [y, m, d] = key.split('-').map((s) => parseInt(s, 10));
   const date = new Date(y, m - 1, d);
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   return `${y}년 ${m}월 ${d}일 (${days[date.getDay()]})`;
+}
+
+// ─────────────────────────── 태그 필터 모달 ───────────────────────────
+
+interface TagFilterModalProps {
+  tag: string;
+  cards: SerendipityCard[];
+  likedIds: string[];
+  onClose: () => void;
+  onOpen: (card: SerendipityCard) => void;
+  onLike: (id: string) => void;
+}
+
+function TagFilterModal({ tag, cards, likedIds, onClose, onOpen, onLike }: TagFilterModalProps) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`#${tag} 카드 모음`}
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div
+        className={cn(
+          'relative w-full max-w-[720px] max-h-[85vh] overflow-hidden flex flex-col',
+          'rounded-2xl bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
+          'shadow-[0_24px_80px_hsl(220_20%_5%_/_0.4)]',
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[hsl(var(--hairline))]">
+          <span className="text-[11.5px] font-mono px-1.5 py-0.5 rounded bg-[hsl(var(--muted))]">#{tag}</span>
+          <h2 className="text-[14px] font-semibold">같은 결의 카드</h2>
+          <span className="text-[11px] text-muted-foreground">{cards.length}장</span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="h-7 w-7 rounded-full bg-[hsl(var(--muted))] hover:bg-[hsl(var(--accent))] flex items-center justify-center transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {cards.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground text-[12px]">
+              이 태그의 다른 카드가 없어요.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {cards.map((card) => {
+                const TypeIcon = TYPE_ICON[card.type];
+                const meta = CARD_TYPE_META[card.type];
+                const readMin = estimateReadMinutes(card);
+                const liked = likedIds.includes(card.id);
+                return (
+                  <article
+                    key={card.id}
+                    className={cn(
+                      'group relative rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))]',
+                      'border-l-[3px]', meta.accent,
+                      'hover:border-[hsl(var(--border))] transition-colors',
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onOpen(card)}
+                      className="w-full text-left p-3 hover:bg-[hsl(var(--accent))]/30 transition-colors rounded-r-xl"
+                    >
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <TypeIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                          {meta.label}
+                        </span>
+                        <div className="flex-1" />
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                          <Clock className="h-2.5 w-2.5" />
+                          {readMin}분
+                        </span>
+                      </div>
+                      {card.title && (
+                        <h3 className="text-[12px] font-semibold mb-1 leading-snug truncate">
+                          {card.title}
+                        </h3>
+                      )}
+                      <p
+                        className="text-[11.5px] leading-relaxed text-foreground/90"
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {card.body}
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onLike(card.id)}
+                      className={cn(
+                        'absolute top-2 right-2 h-6 w-6 rounded-full flex items-center justify-center transition-colors',
+                        liked
+                          ? 'text-rose-500 opacity-100'
+                          : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:bg-[hsl(var(--accent))]',
+                      )}
+                      aria-label={liked ? '좋아요 해제' : '좋아요'}
+                      title={liked ? '좋아요 해제' : '좋아요'}
+                    >
+                      <Heart className={cn('h-3 w-3', liked && 'fill-current')} />
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
