@@ -28,7 +28,6 @@ import { TodayCard } from '@/components/journal/TodayCard';
 import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
 import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
-import { JournalYearHeatmap } from '@/components/journal/JournalYearHeatmap';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
@@ -249,7 +248,7 @@ const Journal = () => {
         {isEmpty ? (
           <JournalEmpty onAdd={() => setEditorMode({ kind: 'create' })} />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6">
           <div className="flex flex-col gap-6 min-w-0">
             {/* Today 카드 + On This Day — 검색 중이 아닐 때만 노출 */}
             {query.trim().length === 0 && (
@@ -422,11 +421,6 @@ const Journal = () => {
                 날짜 필터 해제
               </button>
             )}
-            <JournalYearHeatmap
-              entries={allEntries}
-              selectedDate={activeDate}
-              onDayClick={(d) => setActiveDate(activeDate === d ? null : d)}
-            />
             <JournalSummaryPanel entries={allEntries} />
           </aside>
           </div>
