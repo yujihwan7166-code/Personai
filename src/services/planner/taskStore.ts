@@ -136,4 +136,16 @@ export const taskStore = {
   clear(): void {
     safeWrite([]);
   },
+
+  /** 특정 (녹음, 액션 인덱스) 조합으로 이미 만든 할일이 있는지 — 중복 방지. */
+  findFromRecordingAction(recordingId: string, actionIdx: number): PlannerTask | undefined {
+    return safeRead().find(
+      (t) => t.sourceRecordingId === recordingId && t.sourceActionIndex === actionIdx,
+    );
+  },
+
+  /** 특정 녹음에서 만들어진 할일들 (녹음 디테일 surface 용). */
+  listFromRecording(recordingId: string): PlannerTask[] {
+    return safeRead().filter((t) => t.sourceRecordingId === recordingId);
+  },
 };

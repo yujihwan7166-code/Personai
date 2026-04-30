@@ -4676,6 +4676,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onChange={(m) => handleModeChange(mainToDiscussion(m))}
             onSelectDebateSub={(sub) => handleModeChange(sub)}
             onSelectAssistantCard={(cardId) => {
+              // 노트 허브 '녹음 노트' 슬롯 등 외부 진입로에서 voice-analysis 카드 트리거 → voice_main 모드로 직접 진입
+              if (cardId === 'voice-analysis') {
+                setDiscussionMode('voice');
+                return;
+              }
               if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
               setSelectedAssistantCard(cardId);
             }}

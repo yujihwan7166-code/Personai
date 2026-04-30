@@ -14,6 +14,10 @@ export interface Memo {
   folderId?: string;            // optional — 없으면 미분류 (인박스)
   archivedAt?: number;          // 보관함
   wikiPageId?: string;          // 위키로 보낸 후 그 페이지 id
+  // 녹음 노트 → 메모 승격 시 출처 (단방향 단서 — 메모 → 부모 가리킴)
+  sourceRecordingId?: string;   // 출처 녹음 id (Supabase voice_recording.id)
+  sourceRecordingTitle?: string;// 표시용 스냅샷 (녹음 삭제 후에도 라벨 유지)
+  sourceChapterIndex?: number;  // 그 녹음의 몇 번째 챕터에서 왔는지
   createdAt: number;
   updatedAt: number;
   version: 1;
@@ -211,12 +215,18 @@ export function getMemo(id: string): Memo | undefined {
   return ensure().find((m) => m.id === id);
 }
 
-export function addMemo(initial?: Partial<Pick<Memo, 'body' | 'pinned'>>): Memo {
+export function addMemo(
+  initial?: Partial<Pick<Memo, 'body' | 'pinned' | 'folderId' | 'sourceRecordingId' | 'sourceRecordingTitle' | 'sourceChapterIndex'>>,
+): Memo {
   const now = Date.now();
   const m: Memo = {
     id: newMemoId(),
     body: initial?.body ?? '',
     pinned: initial?.pinned ?? false,
+    folderId: initial?.folderId,
+    sourceRecordingId: initial?.sourceRecordingId,
+    sourceRecordingTitle: initial?.sourceRecordingTitle,
+    sourceChapterIndex: initial?.sourceChapterIndex,
     createdAt: now,
     updatedAt: now,
     version: 1,
@@ -225,10 +235,23 @@ export function addMemo(initial?: Partial<Pick<Memo, 'body' | 'pinned'>>): Memo 
   return m;
 }
 
-export function updateMemo(id: string, patch: Partial<Pick<Memo, 'body' | 'pinned' | 'archivedAt' | 'wikiPageId'>>): void {
+export function updateMemo(
+  id: string,
+  patch: Partial<Pick<Memo, 'body' | 'pinned' | 'archivedAt' | 'wikiPageId' | 'sourceRecordingId' | 'sourceRecordingTitle' | 'sourceChapterIndex'>>,
+): void {
   commit(
     ensure().map((m) => (m.id === id ? { ...m, ...patch, updatedAt: Date.now() } : m)),
   );
+}
+
+/** 특정 녹음에서 만들어진 메모 모두 (녹음 디테일에서 "이 녹음에서 만든 메모" 표시용). */
+export function memosFromRecording(recordingId: string): Memo[] {
+  return ensure().filter((m) => m.sourceRecordingId === recordingId);
+}
+
+/** 특정 (녹음, 챕터 인덱스) 조합으로 이미 만든 메모가 있는지 — 중복 방지. */
+export function findMemoFromChapter(recordingId: string, chapterIdx: number): Memo | undefined {
+  return ensure().find((m) => m.sourceRecordingId === recordingId && m.sourceChapterIndex === chapterIdx);
 }
 
 export function removeMemo(id: string): void {

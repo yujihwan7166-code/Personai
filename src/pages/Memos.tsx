@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight,
-  ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight,
+  ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, Mic,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -801,6 +801,16 @@ function MemoEditor({
           <span className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11px] text-muted-foreground">
             <Folder className="w-3 h-3" strokeWidth={1.75} />
             {currentFolder.emoji ?? '📁'} {currentFolder.name}
+          </span>
+        )}
+        {/* 녹음에서 승격된 메모 — 출생지 칩 */}
+        {memo.sourceRecordingId && memo.sourceRecordingTitle && (
+          <span
+            className="inline-flex items-center gap-1 px-2 h-7 rounded-md bg-violet-500/10 text-violet-600 dark:text-violet-300 text-[11px] font-medium max-w-[200px]"
+            title={`출처 녹음: ${memo.sourceRecordingTitle}${memo.sourceChapterIndex !== undefined ? ` (챕터 ${memo.sourceChapterIndex + 1})` : ''}`}
+          >
+            <Mic className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+            <span className="truncate">{memo.sourceRecordingTitle}</span>
           </span>
         )}
         <div className="flex-1" />
