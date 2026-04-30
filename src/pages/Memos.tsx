@@ -843,7 +843,35 @@ function MemoEditor({
               <MoreHorizontal className="w-4 h-4" strokeWidth={1.75} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem
+              onClick={() => {
+                // 첫 줄 = 제목, 나머지 = note. 자연어 파싱은 plannerInput 만 — 메모는 raw 변환.
+                const lines = draft.split('\n');
+                const title = (lines[0] ?? '').trim();
+                if (!title) {
+                  notify.warning('제목(첫 줄)이 비어있어요');
+                  return;
+                }
+                const note = lines.slice(1).join('\n').trim();
+                // 동적 import 회피 — 직접 import.
+                import('@/services/planner/taskStore').then(({ taskStore }) => {
+                  taskStore.add({
+                    title: title.length > 120 ? title.slice(0, 120) : title,
+                    note: note.length > 0 ? note : undefined,
+                  });
+                  notify.success('할 일로 추가됐어요', {
+                    duration: 3500,
+                    action: { label: '플래너 열기', onClick: () => navigate('/planner') },
+                  });
+                });
+              }}
+              disabled={!draft.trim()}
+            >
+              <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+              할 일로 보내기
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onPin}>
               <Pin className="w-3.5 h-3.5 mr-2" fill={memo.pinned ? 'currentColor' : 'none'} strokeWidth={1.75} />
               {memo.pinned ? '고정 해제' : '맨 위에 고정'}

@@ -279,6 +279,37 @@ export const taskStore = {
     safeWrite(all);
   },
 
+  /** Snooze — task 를 N일 후로 미룸. 시간배정 항목은 시·분 유지하고 날짜만 +N.
+   * 인박스 항목은 그날 09:00 으로 배정. 가상 인스턴스도 자동 처리(detach). */
+  snoozeDays(id: string, days: number): void {
+    // 가상 인스턴스 처리는 caller (Planner.handleDragEnd 패턴) 의 책임 — store 는 단순 task 만.
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    const t = all[idx];
+    if (t.startAt) {
+      // 시·분 유지, 날짜만 +N.
+      const oldStart = new Date(t.startAt);
+      const oldEnd = t.endAt ? new Date(t.endAt) : new Date(oldStart.getTime() + 30 * 60_000);
+      const dur = oldEnd.getTime() - oldStart.getTime();
+      const newStart = new Date(oldStart);
+      newStart.setDate(oldStart.getDate() + days);
+      const newEnd = new Date(newStart.getTime() + dur);
+      all[idx] = { ...t, startAt: newStart.toISOString(), endAt: newEnd.toISOString() };
+    } else {
+      // 인박스 — 그날 09:00 으로 배정.
+      const target = new Date();
+      target.setDate(target.getDate() + days);
+      target.setHours(9, 0, 0, 0);
+      all[idx] = {
+        ...t,
+        startAt: target.toISOString(),
+        endAt: new Date(target.getTime() + 30 * 60_000).toISOString(),
+      };
+    }
+    safeWrite(all);
+  },
+
   remove(id: string): void {
     safeWrite(safeRead().filter((t) => t.id !== id));
   },

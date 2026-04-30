@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Trash2, Flag, FileText, RotateCw, ChevronDown, ListChecks, Folder } from 'lucide-react';
 import { SubtaskList } from './SubtaskList';
 import { StreakCard } from './StreakIndicator';
+import { StartPomodoroButton } from './PomodoroWidget';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { computeStreakStats } from '@/lib/planner/streak';
 import type { Subtask, TaskList } from '@/types/planner';
@@ -35,7 +36,7 @@ import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import type { PlannerTask, Priority, RecurrenceRule, WeekdayCode } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS, WEEKDAY_ORDER, WEEKDAY_LABELS } from '@/types/planner';
-import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
+import { isInstanceId, parseInstanceId, expandRecurrence } from '@/lib/planner/recurrence';
 import { editAll, editThisAndFuture, editThisOnly } from '@/lib/planner/seriesEdit';
 
 type Mode =
@@ -91,19 +92,24 @@ const resolveSeries = (id: string) => {
 
 type RecurrencePreset = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
-const presetToRule = (preset: RecurrencePreset, byday: WeekdayCode[]): RecurrenceRule | undefined => {
+const presetToRule = (
+  preset: RecurrencePreset,
+  byday: WeekdayCode[],
+  until?: string,
+): RecurrenceRule | undefined => {
   if (preset === 'none') return undefined;
-  if (preset === 'weekly') {
-    return { freq: 'weekly', interval: 1, byday: byday.length > 0 ? byday : undefined };
-  }
-  return { freq: preset, interval: 1 };
+  const base: RecurrenceRule = { freq: preset, interval: 1 };
+  if (preset === 'weekly' && byday.length > 0) base.byday = byday;
+  if (until) base.until = until;
+  return base;
 };
 
-const ruleToPreset = (rec: RecurrenceRule | undefined): { preset: RecurrencePreset; byday: WeekdayCode[] } => {
-  if (!rec) return { preset: 'none', byday: [] };
+const ruleToPreset = (rec: RecurrenceRule | undefined): { preset: RecurrencePreset; byday: WeekdayCode[]; until: string } => {
+  if (!rec) return { preset: 'none', byday: [], until: '' };
   return {
     preset: rec.freq as RecurrencePreset,
     byday: rec.byday ?? [],
+    until: rec.until ?? '',
   };
 };
 
@@ -118,6 +124,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const [noteOpen, setNoteOpen] = useState(false);
   const [recurrence, setRecurrence] = useState<RecurrencePreset>('none');
   const [byday, setByday] = useState<WeekdayCode[]>([]);
+  /** 반복 종료일 (YYYY-MM-DD) — 빈 값 = 무한. 사용자가 명시 입력 가능. */
+  const [recurrenceUntil, setRecurrenceUntil] = useState('');
   /** 서브태스크 — schedule 모드에서 master 의 subtasks 를 직접 편집 (자동 저장).
    * create 모드에선 생성 시 함께 저장. */
   const [subtasksDraft, setSubtasksDraft] = useState<Subtask[]>([]);
@@ -154,17 +162,19 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       // 시리즈 인스턴스인 경우 마스터에서 recurrence 회수.
       const series = resolveSeries(mode.taskId);
       if (series) {
-        const { preset, byday: bd } = ruleToPreset(series.master.recurrence);
+        const { preset, byday: bd, until } = ruleToPreset(series.master.recurrence);
         setRecurrence(preset);
         setByday(bd);
+        setRecurrenceUntil(until ? until.slice(0, 10) : '');
         setSubtasksDraft(series.kind === 'task' ? (series.master.subtasks ?? []) : []);
         setListId(series.kind === 'task' ? series.master.listId : undefined);
       } else {
         // 비-인스턴스 — task store 에서 직접 마스터 조회 (단발/시리즈 마스터 양쪽).
         const direct = taskStore.findMaster(mode.taskId);
-        const { preset, byday: bd } = ruleToPreset(direct?.recurrence);
+        const { preset, byday: bd, until } = ruleToPreset(direct?.recurrence);
         setRecurrence(preset);
         setByday(bd);
+        setRecurrenceUntil(until ? until.slice(0, 10) : '');
         setSubtasksDraft(direct?.subtasks ?? []);
         setListId(direct?.listId);
       }
@@ -179,6 +189,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setNoteOpen(false);
       setRecurrence('none');
       setByday([]);
+      setRecurrenceUntil('');
       setSubtasksDraft([]);
       setListId(undefined);
     }
@@ -200,7 +211,10 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     const trimmed = title.trim();
     if (trimmed.length === 0) return;
     const noteTrim = note.trim();
-    const newRecurrence = presetToRule(recurrence, byday);
+    const untilIso = recurrenceUntil
+      ? new Date(`${recurrenceUntil}T23:59:59`).toISOString()
+      : undefined;
+    const newRecurrence = presetToRule(recurrence, byday, untilIso);
 
     if (mode.kind === 'schedule') {
       const patch: Partial<PlannerTask> = {
@@ -585,6 +599,66 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 })}
               </div>
             )}
+            {/* 종료일 (반복 일시정지/종료) — 반복 활성 시만 */}
+            {recurrence !== 'none' && (
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="text-[10.5px] font-mono uppercase tracking-wide text-muted-foreground">
+                  ~까지
+                </span>
+                <input
+                  type="date"
+                  value={recurrenceUntil}
+                  onChange={(e) => setRecurrenceUntil(e.target.value)}
+                  className="px-2 py-1 text-[12px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/40 focus:outline-none"
+                />
+                {recurrenceUntil && (
+                  <button
+                    type="button"
+                    onClick={() => setRecurrenceUntil('')}
+                    className="text-[10.5px] text-muted-foreground hover:text-foreground"
+                  >
+                    무한
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* 다음 발생 미리보기 — 반복 규칙이 있을 때 */}
+            {recurrence !== 'none' && date && time && (() => {
+              const untilIso = recurrenceUntil
+                ? new Date(`${recurrenceUntil}T23:59:59`).toISOString()
+                : undefined;
+              const previewRule = presetToRule(recurrence, byday, untilIso);
+              if (!previewRule) return null;
+              try {
+                const startIso = buildIso(date, time);
+                const fakeMaster = {
+                  id: 'preview', title: '', done: false, createdAt: '',
+                  startAt: startIso,
+                  endAt: addMinutes(startIso, duration),
+                  recurrence: previewRule,
+                } as PlannerTask;
+                const rangeEnd = new Date(new Date(startIso).getTime() + 60 * 86_400_000); // 60일
+                const next = expandRecurrence(fakeMaster, new Date(startIso), rangeEnd).slice(0, 5);
+                if (next.length === 0) return null;
+                return (
+                  <div className="mt-1 px-2 py-1.5 rounded bg-accent/30 text-[10.5px] text-muted-foreground tabular-nums leading-snug">
+                    <span className="font-mono uppercase tracking-wide text-[9.5px] mr-1">다음:</span>
+                    {next.map((inst, i) => {
+                      const d = new Date(inst.occurrenceStartIso);
+                      return (
+                        <span key={inst.id}>
+                          {i > 0 && <span className="mx-1 text-muted-foreground/50">·</span>}
+                          {d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })}
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              } catch {
+                return null;
+              }
+            })()}
           </div>
 
           {/* 서브태스크 (체크리스트) — 할 일 모드만 */}
@@ -662,7 +736,17 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
         <DialogFooter className="flex-row sm:justify-between mt-2 gap-2">
           {mode.kind === 'schedule' ? (
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 items-center">
+              {/* 집중 시작 — 길이만큼 포모도로 */}
+              {!isEvent && date && time && (
+                <StartPomodoroButton
+                  taskId={series ? series.master.id : mode.taskId}
+                  taskInstanceId={mode.taskId}
+                  taskTitle={title.trim() || mode.initialTitle}
+                  durationMin={duration}
+                  autoComplete={true}
+                />
+              )}
               <button
                 type="button"
                 onClick={handleUnschedule}

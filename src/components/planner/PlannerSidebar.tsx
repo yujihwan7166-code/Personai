@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   Inbox as InboxIcon, Plus, Trash2, Eye, EyeOff, Pin, Flag, Ban, Hourglass, ArrowUp,
-  Check, Clock, FolderPlus, MoreHorizontal,
+  Check, Clock, FolderPlus, MoreHorizontal, Clock4,
 } from 'lucide-react';
 import { useInbox, useInboxCounts } from '@/hooks/planner/useInbox';
 import { taskStore } from '@/services/planner/taskStore';
@@ -547,7 +547,7 @@ const TaskRow = ({
           </DraggableInboxCard>
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-44">
+      <ContextMenuContent className="w-48">
         <ContextMenuItem onSelect={onClick}>
           <Clock className="mr-2 h-3.5 w-3.5" />
           시간 배정
@@ -556,6 +556,36 @@ const TaskRow = ({
           <Check className="mr-2 h-3.5 w-3.5" />
           {task.done ? '완료 취소' : '완료'}
         </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Clock4 className="mr-2 h-3.5 w-3.5" />
+            미루기
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-36">
+            <ContextMenuItem onSelect={() => {
+              const masterId = isInstanceId(task.id) ? parseInstanceId(task.id)?.masterId : task.id;
+              if (masterId) {
+                taskStore.snoozeDays(masterId, 1);
+                notify.success('내일로 미뤘어요', { duration: 1500 });
+              }
+            }}>내일로 (+1일)</ContextMenuItem>
+            <ContextMenuItem onSelect={() => {
+              const masterId = isInstanceId(task.id) ? parseInstanceId(task.id)?.masterId : task.id;
+              if (masterId) {
+                taskStore.snoozeDays(masterId, 3);
+                notify.success('3일 후로 미뤘어요', { duration: 1500 });
+              }
+            }}>3일 후</ContextMenuItem>
+            <ContextMenuItem onSelect={() => {
+              const masterId = isInstanceId(task.id) ? parseInstanceId(task.id)?.masterId : task.id;
+              if (masterId) {
+                taskStore.snoozeDays(masterId, 7);
+                notify.success('다음주로 미뤘어요', { duration: 1500 });
+              }
+            }}>다음주 (+7일)</ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
         <ContextMenuSeparator />
         <ContextMenuItem
           onSelect={onDelete}

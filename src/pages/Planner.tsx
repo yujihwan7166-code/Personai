@@ -34,6 +34,7 @@ import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { MatrixView } from '@/components/planner/MatrixView';
+import { PomodoroWidget } from '@/components/planner/PomodoroWidget';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
@@ -654,6 +655,8 @@ const Planner = () => {
         </div>
       )}
     </DragOverlay>
+    {/* 포모도로 floating 위젯 — 활성 세션 있을 때만 자체 렌더 */}
+    <PomodoroWidget />
     </DndContext>
   );
 };

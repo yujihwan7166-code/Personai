@@ -26,6 +26,7 @@ import { detectFormat, extensionOf, formatLabel, type FileFormat } from '@/lib/f
 import { downloadBlob } from '@/lib/fileConvert/download';
 import { isMobile } from '@/lib/fileConvert/features';
 import { CATEGORY_LABELS, TASKS, getQuickActions, getTaskById, getTasksByCategory, getTasksForFile, type ConvertTask, type TaskCategory } from '@/lib/fileConvert/tasks';
+import { listHistory, addToHistory, formatHistoryTime, type ConvertHistoryItem } from '@/lib/fileConvert/history';
 
 // ───────── 메인 ─────────
 interface FileConvertChatProps { onBack?: () => void }
@@ -76,8 +77,13 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   // 결과 → 메모/위키 export 상태
   const [memoExported, setMemoExported] = useState(false);
   const [wikiExported, setWikiExported] = useState(false);
+  // 변환 이력
+  const [history, setHistory] = useState<ConvertHistoryItem[]>(() => listHistory());
+  // 파일명 inline 편집
+  const [editingFileName, setEditingFileName] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   // 이전 결과의 blob URL 정리
@@ -361,8 +367,22 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         newSize: converted.blob.size,
       });
       setMemoExported(false);
+      setWikiExported(false);
+      setEditingFileName(false);
       setStage('done');
       setProgress(null);
+      // 이력 저장
+      addToHistory({
+        taskId: selectedTask.id,
+        taskLabel: selectedTask.label,
+        taskIcon: selectedTask.icon,
+        fileName: files[0].name,
+        outputFileName: converted.suggestedName,
+        outputFormat: outputFmt,
+        originalSize: files[0].size,
+        newSize: converted.blob.size,
+      });
+      setHistory(listHistory());
       // 변환 완료 토스트
       const sizeDiff = files[0].size > 0
         ? Math.round(((converted.blob.size - files[0].size) / files[0].size) * 100)
@@ -501,6 +521,67 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   <div className="text-[11.5px] text-muted-foreground/70">PDF · 이미지 · Word · Excel · CSV · Markdown 등</div>
                 </button>
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => { const picked = Array.from(e.target.files ?? []); void handleFilesSelected(picked); e.target.value = ''; }} />
+                {/* 모바일 — 카메라 직접 촬영 */}
+                {isMobile() && (
+                  <>
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const picked = Array.from(e.target.files ?? []);
+                        void handleFilesSelected(picked);
+                        e.target.value = '';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-violet-300 bg-violet-50/30 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 text-[13.5px] font-bold hover:bg-violet-50 dark:hover:bg-violet-500/15 transition-colors"
+                    >
+                      <span className="text-[18px]">📷</span>
+                      카메라로 찍기
+                    </button>
+                  </>
+                )}
+
+                {/* 최근 변환 — 있을 때만 */}
+                {history.length > 0 && (
+                  <div>
+                    <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5 flex items-center gap-2">
+                      <RefreshCw className="w-3 h-3" />
+                      최근 변환
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      {history.slice(0, 5).map((h) => {
+                        const task = TASKS.find((t) => t.id === h.taskId);
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => {
+                              if (task) {
+                                setSelectedTask(task);
+                                setStage('upload');
+                              }
+                            }}
+                            disabled={!task}
+                            title={`${h.fileName} → ${h.outputFileName} · ${formatHistoryTime(h.completedAt)}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[hsl(var(--hairline))] bg-card hover:border-violet-300 hover:bg-violet-50/30 dark:hover:bg-violet-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                          >
+                            <span className="text-[14px] leading-none">{h.taskIcon}</span>
+                            <span className="flex flex-col min-w-0 max-w-[180px]">
+                              <span className="text-[11.5px] font-semibold text-foreground truncate">{h.taskLabel}</span>
+                              <span className="text-[9.5px] text-muted-foreground tabular-nums">{formatHistoryTime(h.completedAt)}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Quick Actions */}
                 <div>
@@ -923,15 +1004,39 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                 </div>
 
                 <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-card p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="text-[22px]">{formatIcon(result.outputFormat)}</span>
-                      <div className="min-w-0">
-                        <div className="text-[13.5px] font-semibold text-foreground truncate">{result.fileName}</div>
+                      <div className="min-w-0 flex-1">
+                        {/* 파일명 inline 편집 */}
+                        {editingFileName ? (
+                          <input
+                            type="text"
+                            autoFocus
+                            value={result.fileName}
+                            onChange={(e) => setResult({ ...result, fileName: e.target.value })}
+                            onBlur={() => setEditingFileName(false)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') setEditingFileName(false);
+                              if (e.key === 'Escape') setEditingFileName(false);
+                            }}
+                            className="w-full text-[13.5px] font-semibold text-foreground bg-transparent border-b border-violet-400 focus:outline-none"
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setEditingFileName(true)}
+                            className="group/name inline-flex items-center gap-1 text-[13.5px] font-semibold text-foreground hover:text-violet-700 dark:hover:text-violet-300 truncate text-left"
+                            title="클릭해서 이름 수정"
+                          >
+                            <span className="truncate">{result.fileName}</span>
+                            <Pencil className="w-3 h-3 opacity-0 group-hover/name:opacity-60 shrink-0" />
+                          </button>
+                        )}
                         <div className="text-[11px] text-muted-foreground">
                           {formatBytes(result.originalSize)} → {formatBytes(result.newSize)}
                           {result.originalSize > 0 && (
-                            <span className={cn('ml-1.5 font-semibold', result.newSize < result.originalSize ? 'text-emerald-600' : 'text-muted-foreground/70')}>
+                            <span className={cn('ml-1.5 font-semibold', result.newSize < result.originalSize ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground/70')}>
                               ({Math.round(((result.newSize - result.originalSize) / result.originalSize) * 100)}%)
                             </span>
                           )}
