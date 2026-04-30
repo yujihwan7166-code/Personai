@@ -17,6 +17,7 @@ import { SubtaskList } from './SubtaskList';
 import { StreakCard } from './StreakIndicator';
 import { StartPomodoroButton } from './PomodoroWidget';
 import { taskListStore } from '@/services/planner/taskListStore';
+import { pomodoroSessionLog } from '@/services/planner/pomodoroSessionLog';
 import { computeStreakStats } from '@/lib/planner/streak';
 import type { Subtask, TaskList } from '@/types/planner';
 import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
@@ -536,6 +537,46 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   진행률
                 </label>
                 <StreakCard {...stats} />
+              </div>
+            );
+          })()}
+
+          {/* 이 task 의 포모도로 누적 — schedule 모드 + 1회+ 집중 시 표시 */}
+          {!isEvent && mode.kind === 'schedule' && (() => {
+            // 이 task 의 모든 work 세션 (master id 기반).
+            const masterId = series ? series.master.id : mode.taskId;
+            const sessions = pomodoroSessionLog.listByTask(masterId)
+              .filter((r) => !r.phase || r.phase === 'work');
+            if (sessions.length === 0) return null;
+            const totalMin = sessions.reduce((sum, r) => sum + r.actualMin, 0);
+            const completedCount = sessions.filter((r) => r.completed).length;
+            const formatMin = (m: number) => m < 60 ? `${m}분` : `${Math.floor(m/60)}시간 ${m%60 ? `${m%60}분` : ''}`;
+            // estimate vs actual: 시간 배정 길이 대비 실제 누적
+            const showEstimate = duration > 0 && totalMin > 0;
+            const ratio = showEstimate ? totalMin / duration : 0;
+            return (
+              <div className="rounded-md border border-[hsl(var(--hairline))] bg-card px-3 py-2 flex items-center justify-between text-[12px]">
+                <div className="flex items-center gap-2">
+                  <span aria-hidden>🍅</span>
+                  <span className="font-medium text-foreground">
+                    {completedCount}/{sessions.length}회 집중
+                  </span>
+                  <span className="text-muted-foreground tabular-nums">·</span>
+                  <span className="font-mono tabular-nums text-foreground">
+                    {formatMin(totalMin)}
+                  </span>
+                </div>
+                {showEstimate && (
+                  <span
+                    className={cn(
+                      'text-[10.5px] font-mono tabular-nums',
+                      ratio > 1.3 ? 'text-rose-500' : ratio < 0.7 ? 'text-emerald-600' : 'text-muted-foreground',
+                    )}
+                    title={`예상 ${duration}분 대비 ${Math.round(ratio * 100)}%`}
+                  >
+                    예상比 {Math.round(ratio * 100)}%
+                  </span>
+                )}
               </div>
             );
           })()}
