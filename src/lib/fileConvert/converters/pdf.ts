@@ -556,6 +556,74 @@ export async function unlockPdf(
   );
 }
 
+// ───── PDF 빈 페이지 추가 ─────
+export type BlankPagePosition = 'start' | 'end' | 'after-page';
+export interface BlankPageOptions {
+  position: BlankPagePosition;
+  /** position='after-page' 일 때 1-based 페이지 번호 */
+  afterPage?: number;
+  /** 빈 페이지 N장 추가, 기본 1 */
+  count?: number;
+}
+export async function addBlankPdfPage(
+  file: File,
+  opts: BlankPageOptions,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const lib = await loadPdfLib();
+  const { PDFDocument } = lib;
+  const buf = await file.arrayBuffer();
+  const doc = await PDFDocument.load(buf);
+  const total = doc.getPageCount();
+  // 첫 페이지 크기를 빈 페이지에도 사용
+  const firstPage = doc.getPage(0);
+  const { width, height } = firstPage.getSize();
+  const count = Math.max(1, opts.count ?? 1);
+
+  // 삽입 인덱스 결정
+  let insertAt: number;
+  switch (opts.position) {
+    case 'start':       insertAt = 0; break;
+    case 'end':         insertAt = total; break;
+    case 'after-page':  insertAt = Math.max(0, Math.min(total, opts.afterPage ?? total)); break;
+  }
+
+  for (let i = 0; i < count; i++) {
+    doc.insertPage(insertAt + i, [width, height]);
+  }
+  const bytes = await doc.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-blank.pdf` };
+}
+
+// ───── PDF 메타데이터 편집 — 제목·저자·키워드 등 ─────
+export interface PdfMetaOptions {
+  title?: string;
+  author?: string;
+  subject?: string;
+  keywords?: string[];     // 쉼표로 split 처리됨
+  creator?: string;
+  producer?: string;
+}
+export async function setPdfMetadata(
+  file: File,
+  meta: PdfMetaOptions,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const lib = await loadPdfLib();
+  const { PDFDocument } = lib;
+  const buf = await file.arrayBuffer();
+  const doc = await PDFDocument.load(buf);
+  if (meta.title !== undefined) doc.setTitle(meta.title);
+  if (meta.author !== undefined) doc.setAuthor(meta.author);
+  if (meta.subject !== undefined) doc.setSubject(meta.subject);
+  if (meta.keywords !== undefined) doc.setKeywords(meta.keywords);
+  if (meta.creator !== undefined) doc.setCreator(meta.creator);
+  if (meta.producer !== undefined) doc.setProducer(meta.producer);
+  doc.setModificationDate(new Date());
+  const bytes = await doc.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-meta.pdf` };
+}
+
 // ───── PDF 회전 ─────
 // 모든 페이지 또는 페이지 범위 회전. degrees ∈ {90, 180, 270}.
 export async function rotatePdf(

@@ -1,7 +1,7 @@
 // 파일 변환 태스크 카탈로그 — 각 태스크는 독립적 변환 단위
 // ID는 URL-safe한 kebab-case. 카테고리·Quick Action 여부·예상 소요시간 메타 포함.
 
-export type TaskCategory = 'pdf' | 'image' | 'doc' | 'data' | 'markup';
+export type TaskCategory = 'pdf' | 'image' | 'doc' | 'data' | 'markup' | 'utility';
 export type TaskTier = 'native' | 'ai-assisted' | 'lossy';
 
 export interface ConvertTask {
@@ -192,6 +192,28 @@ export const TASKS: ConvertTask[] = [
   },
   // PDF 암호 보호/해제 — pdf-lib 미지원으로 별도 도구 분리 예정 (현재 카탈로그 제외)
   {
+    id: 'pdf-blank-page',
+    label: 'PDF 빈 페이지 추가',
+    category: 'pdf',
+    icon: '📃',
+    description: '맨 앞·맨 뒤 또는 특정 페이지 다음에 빈 페이지',
+    accept: ['.pdf'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '1~2초',
+  },
+  {
+    id: 'pdf-metadata',
+    label: 'PDF 정보 편집',
+    category: 'pdf',
+    icon: '🏷️',
+    description: '제목·저자·키워드 등 PDF 메타 수정',
+    accept: ['.pdf'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '1초 이내',
+  },
+  {
     id: 'pdf-summarize',
     label: 'PDF 요약',
     category: 'pdf',
@@ -258,6 +280,18 @@ export const TASKS: ConvertTask[] = [
     multiFile: false,
     tier: 'native',
     estimatedTime: '1초 이내',
+  },
+  {
+    id: 'image-strip-exif',
+    label: '이미지 메타 제거 (EXIF)',
+    category: 'image',
+    icon: '🛡️',
+    description: '위치·기기 정보 등 프라이버시 메타 삭제',
+    accept: ['.jpg', '.jpeg', '.png', '.webp'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '1초 이내',
+    quickAction: true,
   },
   {
     id: 'image-watermark',
@@ -422,6 +456,52 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '1초 이내',
   },
+  {
+    id: 'json-to-yaml',
+    label: 'JSON을 YAML로',
+    category: 'data',
+    icon: '⬇️',
+    description: 'JSON → YAML (사람이 읽기 좋게)',
+    accept: ['.json'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '1초 이내',
+  },
+  {
+    id: 'yaml-to-json',
+    label: 'YAML을 JSON으로',
+    category: 'data',
+    icon: '⬆️',
+    description: 'YAML → JSON (정확한 데이터 교환)',
+    accept: ['.yaml', '.yml'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '1초 이내',
+  },
+  {
+    id: 'txt-to-pdf',
+    label: 'TXT를 PDF로',
+    category: 'markup',
+    icon: '📃',
+    description: '텍스트 파일을 깔끔한 PDF로',
+    accept: ['.txt'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '1~2초',
+  },
+  // ───── 유틸 (생성·읽기) ─────
+  {
+    id: 'qr-generate',
+    label: 'QR 코드 만들기',
+    category: 'utility',
+    icon: '🔲',
+    description: 'URL·텍스트 → QR PNG (크기·오류수정 옵션)',
+    accept: [],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '1초 이내',
+    quickAction: true,
+  },
 ];
 
 export const CATEGORY_LABELS: Record<TaskCategory, string> = {
@@ -430,6 +510,7 @@ export const CATEGORY_LABELS: Record<TaskCategory, string> = {
   doc: '문서 변환',
   data: '스프레드시트·데이터',
   markup: '마크업',
+  utility: '생성·유틸',
 };
 
 export function getTaskById(id: string): ConvertTask | undefined {

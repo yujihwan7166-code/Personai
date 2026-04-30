@@ -239,6 +239,34 @@ export async function resizeImage(
   return { blob, suggestedName: `${baseName(file.name)}-${tw}x${th}${EXT_MAP[target]}` };
 }
 
+// ───── 이미지 EXIF 제거 — 위치·기기 정보 등 메타 삭제 (프라이버시) ─────
+// 캔버스에 다시 그리면 EXIF 가 자연 삭제됨. 원본 포맷·해상도 유지.
+export async function stripImageExif(file: File): Promise<{ blob: Blob; suggestedName: string }> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context를 얻지 못했어요.');
+  // 원본 포맷 추정
+  const ext = file.name.toLowerCase().split('.').pop();
+  const target: ImageOutputFormat = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg';
+  if (target === 'jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('EXIF 제거 실패'))),
+      MIME_MAP[target],
+      target === 'jpeg' ? 0.95 : undefined,
+    );
+  });
+  return { blob, suggestedName: `${baseName(file.name)}-clean${EXT_MAP[target]}` };
+}
+
 // ───── 이미지 색상 효과 — 흑백·세피아·밝기·대비 ─────
 export type ImageEffect = 'grayscale' | 'sepia' | 'invert' | 'brighten' | 'darken' | 'contrast-up';
 

@@ -14,7 +14,7 @@ import { convertHtmlFileToMd, convertMdFileToHtml, convertMdFileToPdf } from '@/
 import {
   convertImageFormat, isImageFormatSupported,
   convertHeicToJpg, compressImage, resizeImage,
-  transformImage, batchImageProcess, watermarkImage, applyImageEffect,
+  transformImage, batchImageProcess, watermarkImage, applyImageEffect, stripImageExif,
   type ImageTransform, type BatchImageTask, type WatermarkPos, type ImageEffect,
 } from '@/lib/fileConvert/converters/image';
 import { convertHtmlFileToPdf } from '@/lib/fileConvert/converters/markup';
@@ -24,7 +24,10 @@ import {
   imagesToPdf, mergePdfs, pdfToImages, pdfToText, splitPdf,
   compressPdf, rotatePdf, type PdfCompressLevel,
   watermarkPdf, addPdfPageNumbers,
+  addBlankPdfPage, setPdfMetadata, type BlankPagePosition,
 } from '@/lib/fileConvert/converters/pdf';
+import { convertJsonToYaml, convertYamlToJson, convertTxtToPdf } from '@/lib/fileConvert/converters/data';
+import { generateQrCode } from '@/lib/fileConvert/converters/qrcode';
 import { convertCsvToXlsx, convertXlsxToCsv, convertXlsxToJson } from '@/lib/fileConvert/converters/spreadsheet';
 import { detectFormat, extensionOf, formatLabel, type FileFormat } from '@/lib/fileConvert/detect';
 import { downloadBlob } from '@/lib/fileConvert/download';
@@ -107,6 +110,19 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [imgEffect, setImgEffect] = useState<ImageEffect>('grayscale');
   // 번역 대상 언어
   const [translateLang, setTranslateLang] = useState<'한국어' | 'English' | '日本語' | '中文'>('한국어');
+  // PDF 빈 페이지
+  const [blankPagePos, setBlankPagePos] = useState<BlankPagePosition>('end');
+  const [blankPageAfter, setBlankPageAfter] = useState<string>('1');
+  const [blankPageCount, setBlankPageCount] = useState<string>('1');
+  // PDF 메타
+  const [pdfMetaTitle, setPdfMetaTitle] = useState<string>('');
+  const [pdfMetaAuthor, setPdfMetaAuthor] = useState<string>('');
+  const [pdfMetaSubject, setPdfMetaSubject] = useState<string>('');
+  const [pdfMetaKeywords, setPdfMetaKeywords] = useState<string>('');
+  // QR 코드
+  const [qrText, setQrText] = useState<string>('');
+  const [qrSize, setQrSize] = useState<number>(512);
+  const [qrErrorLevel, setQrErrorLevel] = useState<'L' | 'M' | 'Q' | 'H'>('M');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -173,7 +189,10 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   }, [handleFilesSelected]);
 
   const runConversion = useCallback(async () => {
-    if (!selectedTask || files.length === 0) return;
+    if (!selectedTask) return;
+    // QR 생성은 파일 입력 없이 동작 — 텍스트만 필요
+    const isFileOptional = selectedTask.id === 'qr-generate';
+    if (!isFileOptional && files.length === 0) return;
     setStage('converting');
     setProgress('변환 준비 중...');
     setErrorMessage('');
@@ -304,6 +323,56 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         case 'image-effect': {
           setProgress('이미지 효과 적용 중...');
           converted = await applyImageEffect(files[0], imgEffect);
+          break;
+        }
+        case 'image-strip-exif': {
+          setProgress('EXIF 메타 제거 중...');
+          converted = await stripImageExif(files[0]);
+          break;
+        }
+        case 'pdf-blank-page': {
+          setProgress('빈 페이지 추가 중...');
+          converted = await addBlankPdfPage(files[0], {
+            position: blankPagePos,
+            afterPage: parseInt(blankPageAfter, 10) || 1,
+            count: parseInt(blankPageCount, 10) || 1,
+          });
+          break;
+        }
+        case 'pdf-metadata': {
+          setProgress('PDF 메타데이터 갱신 중...');
+          const keywords = pdfMetaKeywords.split(',').map((k) => k.trim()).filter(Boolean);
+          converted = await setPdfMetadata(files[0], {
+            title: pdfMetaTitle.trim() || undefined,
+            author: pdfMetaAuthor.trim() || undefined,
+            subject: pdfMetaSubject.trim() || undefined,
+            keywords: keywords.length > 0 ? keywords : undefined,
+          });
+          break;
+        }
+        case 'json-to-yaml': {
+          setProgress('JSON → YAML 변환 중...');
+          converted = await convertJsonToYaml(files[0]);
+          break;
+        }
+        case 'yaml-to-json': {
+          setProgress('YAML → JSON 변환 중...');
+          converted = await convertYamlToJson(files[0]);
+          break;
+        }
+        case 'txt-to-pdf': {
+          setProgress('TXT → PDF 변환 중...');
+          converted = await convertTxtToPdf(files[0]);
+          break;
+        }
+        case 'qr-generate': {
+          if (!qrText.trim()) throw new Error('QR 코드로 만들 텍스트나 URL을 입력해주세요.');
+          setProgress('QR 코드 생성 중...');
+          converted = await generateQrCode({
+            text: qrText.trim(),
+            size: qrSize,
+            errorLevel: qrErrorLevel,
+          });
           break;
         }
         case 'image-watermark': {
@@ -445,13 +514,15 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         previewUrl = URL.createObjectURL(converted.blob);
       }
 
+      const origSize = files[0]?.size ?? 0;
+      const origName = files[0]?.name ?? selectedTask.label;
       setResult({
         blob: converted.blob,
         fileName: converted.suggestedName,
         previewText: previewText?.slice(0, 500),
         previewUrl,
         outputFormat: outputFmt,
-        originalSize: files[0].size,
+        originalSize: origSize,
         newSize: converted.blob.size,
       });
       setMemoExported(false);
@@ -464,18 +535,18 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         taskId: selectedTask.id,
         taskLabel: selectedTask.label,
         taskIcon: selectedTask.icon,
-        fileName: files[0].name,
+        fileName: origName,
         outputFileName: converted.suggestedName,
         outputFormat: outputFmt,
-        originalSize: files[0].size,
+        originalSize: origSize,
         newSize: converted.blob.size,
       });
       setHistory(listHistory());
       // 변환 완료 토스트
-      const sizeDiff = files[0].size > 0
-        ? Math.round(((converted.blob.size - files[0].size) / files[0].size) * 100)
+      const sizeDiff = origSize > 0
+        ? Math.round(((converted.blob.size - origSize) / origSize) * 100)
         : 0;
-      const sizeNote = files[0].size > 0 && Math.abs(sizeDiff) >= 5
+      const sizeNote = origSize > 0 && Math.abs(sizeDiff) >= 5
         ? ` (${sizeDiff > 0 ? '+' : ''}${sizeDiff}%)`
         : '';
       notify.success(`${converted.suggestedName} 변환 완료${sizeNote}`, { duration: 3000 });
@@ -499,6 +570,9 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     csvSortDir, csvSortColumn, csvDedupe, csvHasHeader,
     imgWatermarkText, imgWatermarkPos, imgWatermarkOpacity,
     imgEffect, translateLang,
+    blankPagePos, blankPageAfter, blankPageCount,
+    pdfMetaTitle, pdfMetaAuthor, pdfMetaSubject, pdfMetaKeywords,
+    qrText, qrSize, qrErrorLevel,
   ]);
 
   const handleDownload = useCallback(() => {
@@ -507,7 +581,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     notify.saved(result.fileName);
   }, [result]);
 
-  const categories: TaskCategory[] = ['pdf', 'image', 'doc', 'data', 'markup'];
+  const categories: TaskCategory[] = ['pdf', 'image', 'doc', 'data', 'markup', 'utility'];
   const quickActions = useMemo(() => getQuickActions(), []);
 
   return (
@@ -1125,6 +1199,166 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   </div>
                 )}
                 {/* PDF 암호 보호/해제 — 카탈로그에서 제거됨 */}
+                {selectedTask.id === 'qr-generate' && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">텍스트 또는 URL</div>
+                      <textarea
+                        value={qrText}
+                        onChange={(e) => setQrText(e.target.value)}
+                        placeholder="https://example.com 또는 임의 텍스트"
+                        rows={3}
+                        maxLength={2000}
+                        className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 resize-none"
+                      />
+                      <div className="text-[10.5px] text-muted-foreground mt-1">{qrText.length} / 2000자</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-[12px] font-semibold text-foreground mb-2">크기</div>
+                        <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                          {([256, 512, 1024] as const).map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setQrSize(s)}
+                              className={cn(
+                                'px-3 py-1.5 rounded-md text-[11.5px] font-semibold transition-all',
+                                qrSize === s
+                                  ? 'bg-foreground text-background'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                              )}
+                            >
+                              {s}px
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[12px] font-semibold text-foreground mb-2">오류 보정</div>
+                        <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                          {(['L', 'M', 'Q', 'H'] as const).map((lvl) => (
+                            <button
+                              key={lvl}
+                              type="button"
+                              onClick={() => setQrErrorLevel(lvl)}
+                              title={`${lvl} (${lvl === 'L' ? '7%' : lvl === 'M' ? '15%' : lvl === 'Q' ? '25%' : '30%'})`}
+                              className={cn(
+                                'px-3 py-1.5 rounded-md text-[11.5px] font-semibold transition-all',
+                                qrErrorLevel === lvl
+                                  ? 'bg-foreground text-background'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                              )}
+                            >
+                              {lvl}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10.5px] text-muted-foreground">L = 7% / M = 15% / Q = 25% / H = 30% 까지 손상 복구</div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'pdf-blank-page' && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">위치</div>
+                      <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                        {([
+                          { v: 'start' as const, label: '맨 앞' },
+                          { v: 'end' as const, label: '맨 뒤' },
+                          { v: 'after-page' as const, label: '특정 페이지 뒤' },
+                        ]).map((c) => (
+                          <button
+                            key={c.v}
+                            type="button"
+                            onClick={() => setBlankPagePos(c.v)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-md text-[11.5px] font-semibold transition-all',
+                              blankPagePos === c.v
+                                ? 'bg-foreground text-background'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                            )}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {blankPagePos === 'after-page' && (
+                      <div>
+                        <div className="text-[12px] font-semibold text-foreground mb-2">페이지 번호 (1부터)</div>
+                        <input
+                          type="number"
+                          value={blankPageAfter}
+                          onChange={(e) => setBlankPageAfter(e.target.value)}
+                          min={1}
+                          className="w-24 h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">개수</div>
+                      <input
+                        type="number"
+                        value={blankPageCount}
+                        onChange={(e) => setBlankPageCount(e.target.value)}
+                        min={1}
+                        max={20}
+                        className="w-24 h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      />
+                    </div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'pdf-metadata' && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-[10.5px] text-muted-foreground mb-1">제목</div>
+                        <input
+                          type="text"
+                          value={pdfMetaTitle}
+                          onChange={(e) => setPdfMetaTitle(e.target.value)}
+                          maxLength={100}
+                          placeholder="비워두면 그대로"
+                          className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[10.5px] text-muted-foreground mb-1">저자</div>
+                        <input
+                          type="text"
+                          value={pdfMetaAuthor}
+                          onChange={(e) => setPdfMetaAuthor(e.target.value)}
+                          maxLength={100}
+                          className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10.5px] text-muted-foreground mb-1">주제</div>
+                      <input
+                        type="text"
+                        value={pdfMetaSubject}
+                        onChange={(e) => setPdfMetaSubject(e.target.value)}
+                        maxLength={200}
+                        className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[10.5px] text-muted-foreground mb-1">키워드 (쉼표로 구분)</div>
+                      <input
+                        type="text"
+                        value={pdfMetaKeywords}
+                        onChange={(e) => setPdfMetaKeywords(e.target.value)}
+                        maxLength={300}
+                        placeholder="회의록, 분기, 2026"
+                        className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      />
+                    </div>
+                    <div className="text-[10.5px] text-muted-foreground">비워둔 항목은 기존 값 그대로 유지됩니다</div>
+                  </div>
+                )}
                 {files.length > 0 && selectedTask.id === 'image-effect' && (
                   <div>
                     <div className="text-[12px] font-semibold text-foreground mb-2">효과</div>
@@ -1470,17 +1704,18 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   </div>
                 )}
 
-                {/* 실행 버튼 */}
-                {files.length > 0 && (
+                {/* 실행 버튼 — qr-generate 는 파일 없이도 가능 */}
+                {(files.length > 0 || selectedTask.id === 'qr-generate') && (
                   <button
                     type="button"
                     onClick={runConversion}
-                    className="w-full h-11 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold shadow-md hover:shadow-lg transition-all"
+                    disabled={selectedTask.id === 'qr-generate' && qrText.trim().length === 0}
+                    className="w-full h-11 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[14px] font-bold shadow-md hover:shadow-lg transition-all disabled:bg-violet-300 disabled:cursor-not-allowed"
                   >
-                    변환하기 →
+                    {selectedTask.id === 'qr-generate' ? 'QR 만들기 →' : '변환하기 →'}
                   </button>
                 )}
-                {files.length > 0 && selectedTask.estimatedTime && (
+                {(files.length > 0 || selectedTask.id === 'qr-generate') && selectedTask.estimatedTime && (
                   <div className="text-[11px] text-muted-foreground/70 text-center">예상 소요: {selectedTask.estimatedTime}</div>
                 )}
               </div>

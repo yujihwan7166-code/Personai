@@ -105,6 +105,7 @@
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.6.205",
     "pptxgenjs": "^4.0.1",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -123,6 +124,7 @@
     "twemoji-parser": "^14.0.0",
     "vaul": "^0.9.9",
     "xlsx": "^0.18.5",
+    "yaml": "^2.8.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -131,6 +133,7 @@
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
     "@types/node": "^22.16.5",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@types/turndown": "^5.0.6",
