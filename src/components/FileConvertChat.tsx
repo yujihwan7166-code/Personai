@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X, Pencil, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X, Pencil, ArrowRight, Globe } from 'lucide-react';
 import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { notify } from '@/lib/notify';
 import { addMemo } from '@/lib/memoStore';
+import { upsertPage } from '@/lib/wikiStore';
+import { newWikiId, type WikiPage } from '@/types/wiki';
 
 import { cn } from '@/lib/utils';
 import { convertDocxToHtml, convertDocxToMarkdown, convertDocxToText } from '@/lib/fileConvert/converters/docx';
-import { convertHtmlFileToMd, convertMdFileToHtml } from '@/lib/fileConvert/converters/markup';
+import { convertHtmlFileToMd, convertMdFileToHtml, convertMdFileToPdf } from '@/lib/fileConvert/converters/markup';
 import {
   convertImageFormat, isImageFormatSupported,
   convertHeicToJpg, compressImage, resizeImage,
 } from '@/lib/fileConvert/converters/image';
-import { ocrImageToText } from '@/lib/fileConvert/converters/ocr';
+import { ocrImageToText, ocrImageToTable, summarizePdf } from '@/lib/fileConvert/converters/ocr';
 import {
   imagesToPdf, mergePdfs, pdfToImages, pdfToText, splitPdf,
   compressPdf, rotatePdf, type PdfCompressLevel,
+  watermarkPdf, addPdfPageNumbers, protectPdf, unlockPdf,
 } from '@/lib/fileConvert/converters/pdf';
 import { convertCsvToXlsx, convertXlsxToCsv, convertXlsxToJson } from '@/lib/fileConvert/converters/spreadsheet';
 import { detectFormat, extensionOf, formatLabel, type FileFormat } from '@/lib/fileConvert/detect';
@@ -62,8 +65,17 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [resizeWidth, setResizeWidth] = useState<string>('1280');
   const [resizeHeight, setResizeHeight] = useState<string>('720');
   const [resizeScale, setResizeScale] = useState<number>(0.5);
-  // 결과 → 메모로 이미 보냈는지
+  // 워터마크
+  const [watermarkText, setWatermarkText] = useState<string>('CONFIDENTIAL');
+  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(0.2);
+  // 페이지 번호
+  const [pageNumPosition, setPageNumPosition] = useState<'bottom-center' | 'bottom-right' | 'top-center' | 'top-right'>('bottom-center');
+  const [pageNumWithTotal, setPageNumWithTotal] = useState<boolean>(true);
+  // 암호
+  const [pdfPassword, setPdfPassword] = useState<string>('');
+  // 결과 → 메모/위키 export 상태
   const [memoExported, setMemoExported] = useState(false);
+  const [wikiExported, setWikiExported] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -105,6 +117,8 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     setErrorMessage('');
     setProgress(null);
     setMemoExported(false);
+    setWikiExported(false);
+    setPdfPassword('');
   }, [result]);
 
   const handleFilesSelected = useCallback(async (picked: File[]) => {
@@ -217,6 +231,45 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
           converted = await rotatePdf(files[0], pdfRotateDegrees, pdfRotateRanges || undefined);
           break;
         }
+        case 'pdf-watermark': {
+          if (!watermarkText.trim()) throw new Error('워터마크 텍스트를 입력해주세요.');
+          setProgress('PDF 워터마크 추가 중...');
+          converted = await watermarkPdf(files[0], { text: watermarkText.trim(), opacity: watermarkOpacity });
+          break;
+        }
+        case 'pdf-page-numbers': {
+          setProgress('PDF 페이지 번호 추가 중...');
+          converted = await addPdfPageNumbers(files[0], {
+            position: pageNumPosition,
+            format: pageNumWithTotal ? 'with-total' : 'plain',
+          });
+          break;
+        }
+        case 'pdf-protect': {
+          if (!pdfPassword || pdfPassword.length < 4) {
+            throw new Error('비밀번호는 4자 이상이어야 해요.');
+          }
+          setProgress('PDF 암호화 중...');
+          converted = await protectPdf(files[0], pdfPassword);
+          break;
+        }
+        case 'pdf-unlock': {
+          if (!pdfPassword) {
+            throw new Error('비밀번호를 입력해주세요.');
+          }
+          setProgress('PDF 암호 해제 중...');
+          converted = await unlockPdf(files[0], pdfPassword);
+          break;
+        }
+        case 'pdf-summarize': {
+          converted = await summarizePdf(files[0], controller.signal, (msg) => setProgress(msg));
+          break;
+        }
+        case 'image-table-ocr': {
+          setProgress('AI가 표를 분석 중... (10~20초)');
+          converted = await ocrImageToTable(files[0], controller.signal);
+          break;
+        }
         // ───── 문서 ─────
         case 'docx-to-text': {
           setProgress('Word → 텍스트 변환 중...');
@@ -258,6 +311,11 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         case 'html-to-md': {
           setProgress('HTML → Markdown 변환 중...');
           converted = await convertHtmlFileToMd(files[0]);
+          break;
+        }
+        case 'md-to-pdf': {
+          setProgress('Markdown → PDF 변환 중...');
+          converted = await convertMdFileToPdf(files[0]);
           break;
         }
         default:
@@ -322,7 +380,14 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
       notify.error('변환 실패', { description: msg, duration: 5000 });
     }
      
-  }, [selectedTask, files, imageTarget, pdfImageFormat, splitRanges, pdfCompressLevel, pdfRotateDegrees, pdfRotateRanges, imageQuality, resizeMode, resizeWidth, resizeHeight, resizeScale]);
+  }, [
+    selectedTask, files, imageTarget, pdfImageFormat, splitRanges,
+    pdfCompressLevel, pdfRotateDegrees, pdfRotateRanges,
+    imageQuality, resizeMode, resizeWidth, resizeHeight, resizeScale,
+    watermarkText, watermarkOpacity,
+    pageNumPosition, pageNumWithTotal,
+    pdfPassword,
+  ]);
 
   const handleDownload = useCallback(() => {
     if (!result) return;
@@ -369,6 +434,53 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
             )}
           </div>
         </div>
+
+        {/* 5단계 진행 인디케이터 — Linear/Stripe 패턴 */}
+        {stage !== 'pick-task' && (
+          <div className="shrink-0 px-5 md:px-8 py-2.5 border-b border-[hsl(var(--hairline))] bg-card/50">
+            <div className="max-w-5xl mx-auto flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-[0.12em]">
+              {([
+                { s: 'pick-task' as Stage, label: '도구' },
+                { s: 'upload' as Stage, label: '업로드' },
+                { s: 'converting' as Stage, label: '변환' },
+                { s: 'done' as Stage, label: '완료' },
+              ]).map((step, i, arr) => {
+                const stageOrder: Record<Stage, number> = { 'pick-task': 0, 'upload': 1, 'converting': 2, 'done': 3, 'error': 2 };
+                const cur = stageOrder[stage];
+                const my = stageOrder[step.s];
+                const active = my === cur;
+                const done = my < cur;
+                return (
+                  <div key={step.s} className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <div
+                      className={cn(
+                        'flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0 transition-all',
+                        active && 'bg-violet-600 text-white',
+                        done && 'bg-emerald-500 text-white',
+                        !active && !done && 'bg-accent text-muted-foreground',
+                      )}
+                    >
+                      {done ? <Check className="w-3 h-3" /> : i + 1}
+                    </div>
+                    <span
+                      className={cn(
+                        'truncate transition-colors',
+                        active && 'text-foreground font-bold',
+                        done && 'text-emerald-700 dark:text-emerald-400',
+                        !active && !done && 'text-muted-foreground/70',
+                      )}
+                    >
+                      {step.label}
+                    </span>
+                    {i < arr.length - 1 && (
+                      <div className={cn('flex-1 h-px transition-colors', done ? 'bg-emerald-500/40' : 'bg-[hsl(var(--hairline))]')} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-auto">
           <div className="max-w-5xl mx-auto px-4 md:px-6 py-6">
@@ -626,6 +738,95 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     </div>
                   </div>
                 )}
+                {files.length > 0 && selectedTask.id === 'pdf-watermark' && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">워터마크 텍스트</div>
+                      <input
+                        type="text"
+                        value={watermarkText}
+                        onChange={(e) => setWatermarkText(e.target.value)}
+                        maxLength={40}
+                        placeholder="예: CONFIDENTIAL · 비공개 · 초안"
+                        className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-[12px] font-semibold text-foreground">투명도</div>
+                        <div className="text-[12px] tabular-nums text-muted-foreground">{Math.round(watermarkOpacity * 100)}%</div>
+                      </div>
+                      <input
+                        type="range"
+                        min={10}
+                        max={60}
+                        step={5}
+                        value={Math.round(watermarkOpacity * 100)}
+                        onChange={(e) => setWatermarkOpacity(parseInt(e.target.value, 10) / 100)}
+                        className="w-full accent-violet-600"
+                      />
+                    </div>
+                    <div className="text-[10.5px] text-muted-foreground">대각선 -45° 로 모든 페이지 중앙에 박힙니다</div>
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'pdf-page-numbers' && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">위치</div>
+                      <div className="grid grid-cols-2 gap-1 max-w-[280px]">
+                        {([
+                          { v: 'top-center' as const, label: '상단 가운데' },
+                          { v: 'top-right' as const, label: '상단 오른쪽' },
+                          { v: 'bottom-center' as const, label: '하단 가운데' },
+                          { v: 'bottom-right' as const, label: '하단 오른쪽' },
+                        ]).map((p) => (
+                          <button
+                            key={p.v}
+                            type="button"
+                            onClick={() => setPageNumPosition(p.v)}
+                            className={cn(
+                              'px-2 py-1.5 rounded-md text-[11.5px] font-semibold border transition-all',
+                              pageNumPosition === p.v
+                                ? 'bg-foreground text-background border-foreground'
+                                : 'bg-card text-muted-foreground border-[hsl(var(--hairline))] hover:text-foreground',
+                            )}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-[12px] text-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={pageNumWithTotal}
+                        onChange={(e) => setPageNumWithTotal(e.target.checked)}
+                        className="accent-violet-600"
+                      />
+                      전체 페이지 수 함께 표시 (3 / 10)
+                    </label>
+                  </div>
+                )}
+                {files.length > 0 && (selectedTask.id === 'pdf-protect' || selectedTask.id === 'pdf-unlock') && (
+                  <div>
+                    <div className="text-[12px] font-semibold text-foreground mb-2">
+                      {selectedTask.id === 'pdf-protect' ? '새 비밀번호 (4자 이상)' : '현재 비밀번호'}
+                    </div>
+                    <input
+                      type="password"
+                      value={pdfPassword}
+                      onChange={(e) => setPdfPassword(e.target.value)}
+                      placeholder={selectedTask.id === 'pdf-protect' ? '강한 비밀번호를 정해주세요' : 'PDF 의 비밀번호를 입력하세요'}
+                      autoComplete="new-password"
+                      className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                    />
+                    <div className="text-[10.5px] text-muted-foreground mt-1.5">
+                      {selectedTask.id === 'pdf-protect'
+                        ? '⚠️ 비밀번호를 잃어버리면 다시 열 수 없어요. 안전하게 보관하세요.'
+                        : '제대로 된 비밀번호여야 해요. 틀리면 변환 실패합니다.'}
+                    </div>
+                  </div>
+                )}
                 {files.length > 0 && selectedTask.id === 'image-resize' && (
                   <div className="space-y-3">
                     <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
@@ -760,7 +961,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                         <button
                           type="button"
                           onClick={() => navigate('/memos')}
-                          className="h-10 px-4 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-700 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border border-violet-200"
+                          className="h-10 px-4 rounded-lg bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border border-violet-200 dark:border-violet-500/30"
                         >
                           <Pencil className="w-4 h-4" />
                           메모 열기
@@ -783,6 +984,59 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                           className="h-10 px-4 rounded-lg bg-card hover:bg-accent border border-[hsl(var(--hairline))] text-foreground text-[13px] font-semibold inline-flex items-center justify-center gap-1.5"
                         >
                           <Pencil className="w-4 h-4" /> 메모로
+                        </button>
+                      )
+                    )}
+                    {/* 위키로 — 긴 텍스트 결과만 (300자+) */}
+                    {result.previewText && result.previewText.length > 100 && ['md', 'html', 'txt'].includes(result.outputFormat) && (
+                      wikiExported ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate('/wiki')}
+                          className="h-10 px-4 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border border-emerald-200 dark:border-emerald-500/30"
+                        >
+                          <Globe className="w-4 h-4" />
+                          위키 열기
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const fullText = await result.blob.text();
+                            // 파일명에서 확장자 제거 → 페이지 제목
+                            const title = result.fileName.replace(/\.[^.]+$/, '').slice(0, 80);
+                            const now = Date.now();
+                            const page: WikiPage = {
+                              id: newWikiId(),
+                              title,
+                              aliases: [],
+                              type: 'source',
+                              status: 'draft',
+                              tags: [],
+                              body: `${fullText}\n\n---\n출처: 파일 변환 (${selectedTask?.label ?? ''})`,
+                              refersTo: [],
+                              cites: [],
+                              inherits: [],
+                              similarTo: [],
+                              parentMocs: [],
+                              createdAt: now,
+                              updatedAt: now,
+                            };
+                            try {
+                              await upsertPage(page);
+                              setWikiExported(true);
+                              notify.success('위키 페이지로 보냈어요', {
+                                duration: 3000,
+                                action: { label: '위키 열기', onClick: () => navigate('/wiki') },
+                              });
+                            } catch (e) {
+                              notify.error('위키 페이지 생성 실패', { description: (e as Error).message });
+                            }
+                          }}
+                          className="h-10 px-4 rounded-lg bg-card hover:bg-accent border border-[hsl(var(--hairline))] text-foreground text-[13px] font-semibold inline-flex items-center justify-center gap-1.5"
+                        >
+                          <Globe className="w-4 h-4" /> 위키로
                         </button>
                       )
                     )}
