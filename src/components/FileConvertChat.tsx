@@ -14,21 +14,21 @@ import { convertHtmlFileToMd, convertMdFileToHtml, convertMdFileToPdf } from '@/
 import {
   convertImageFormat, isImageFormatSupported,
   convertHeicToJpg, compressImage, resizeImage,
-  transformImage, batchImageProcess, watermarkImage,
-  type ImageTransform, type BatchImageTask, type WatermarkPos,
+  transformImage, batchImageProcess, watermarkImage, applyImageEffect,
+  type ImageTransform, type BatchImageTask, type WatermarkPos, type ImageEffect,
 } from '@/lib/fileConvert/converters/image';
 import { convertHtmlFileToPdf } from '@/lib/fileConvert/converters/markup';
 import { cleanCsv } from '@/lib/fileConvert/converters/spreadsheet';
-import { ocrImageToText, ocrImageToTable, summarizePdf, ocrReceipt } from '@/lib/fileConvert/converters/ocr';
+import { ocrImageToText, ocrImageToTable, summarizePdf, ocrReceipt, ocrBusinessCard, ocrAndTranslate } from '@/lib/fileConvert/converters/ocr';
 import {
   imagesToPdf, mergePdfs, pdfToImages, pdfToText, splitPdf,
   compressPdf, rotatePdf, type PdfCompressLevel,
-  watermarkPdf, addPdfPageNumbers, protectPdf, unlockPdf,
+  watermarkPdf, addPdfPageNumbers,
 } from '@/lib/fileConvert/converters/pdf';
 import { convertCsvToXlsx, convertXlsxToCsv, convertXlsxToJson } from '@/lib/fileConvert/converters/spreadsheet';
 import { detectFormat, extensionOf, formatLabel, type FileFormat } from '@/lib/fileConvert/detect';
 import { downloadBlob } from '@/lib/fileConvert/download';
-import { isMobile } from '@/lib/fileConvert/features';
+import { isMobile, evaluateMemoryRisk, estimateMemoryMB, getMemoryBudgetMB } from '@/lib/fileConvert/features';
 import { CATEGORY_LABELS, TASKS, getQuickActions, getTaskById, getTasksByCategory, getTasksForFile, type ConvertTask, type TaskCategory } from '@/lib/fileConvert/tasks';
 import { listHistory, addToHistory, formatHistoryTime, type ConvertHistoryItem } from '@/lib/fileConvert/history';
 import { getFavoriteIds, toggleFavorite } from '@/lib/fileConvert/favorites';
@@ -78,7 +78,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [pageNumPosition, setPageNumPosition] = useState<'bottom-center' | 'bottom-right' | 'top-center' | 'top-right'>('bottom-center');
   const [pageNumWithTotal, setPageNumWithTotal] = useState<boolean>(true);
   // 암호
-  const [pdfPassword, setPdfPassword] = useState<string>('');
   // 결과 → 메모/위키 export 상태
   const [memoExported, setMemoExported] = useState(false);
   const [wikiExported, setWikiExported] = useState(false);
@@ -104,6 +103,10 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [imgWatermarkText, setImgWatermarkText] = useState<string>('© 2026');
   const [imgWatermarkPos, setImgWatermarkPos] = useState<WatermarkPos>('bottom-right');
   const [imgWatermarkOpacity, setImgWatermarkOpacity] = useState<number>(0.4);
+  // 이미지 효과
+  const [imgEffect, setImgEffect] = useState<ImageEffect>('grayscale');
+  // 번역 대상 언어
+  const [translateLang, setTranslateLang] = useState<'한국어' | 'English' | '日本語' | '中文'>('한국어');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -147,7 +150,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     setProgress(null);
     setMemoExported(false);
     setWikiExported(false);
-    setPdfPassword('');
   }, [result]);
 
   const handleFilesSelected = useCallback(async (picked: File[]) => {
@@ -274,22 +276,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
           });
           break;
         }
-        case 'pdf-protect': {
-          if (!pdfPassword || pdfPassword.length < 4) {
-            throw new Error('비밀번호는 4자 이상이어야 해요.');
-          }
-          setProgress('PDF 암호화 중...');
-          converted = await protectPdf(files[0], pdfPassword);
-          break;
-        }
-        case 'pdf-unlock': {
-          if (!pdfPassword) {
-            throw new Error('비밀번호를 입력해주세요.');
-          }
-          setProgress('PDF 암호 해제 중...');
-          converted = await unlockPdf(files[0], pdfPassword);
-          break;
-        }
+        // PDF 암호 보호/해제 — 카탈로그에서 제거됨 (별도 도구로 분리 예정)
         case 'pdf-summarize': {
           converted = await summarizePdf(files[0], controller.signal, (msg) => setProgress(msg));
           break;
@@ -302,6 +289,21 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         case 'image-receipt': {
           setProgress('AI가 영수증을 분석 중... (10~20초)');
           converted = await ocrReceipt(files[0], controller.signal);
+          break;
+        }
+        case 'image-business-card': {
+          setProgress('AI가 명함을 분석 중... (10~15초)');
+          converted = await ocrBusinessCard(files[0], controller.signal);
+          break;
+        }
+        case 'image-translate': {
+          setProgress(`AI가 ${translateLang}로 번역 중... (15~25초)`);
+          converted = await ocrAndTranslate(files[0], translateLang, controller.signal);
+          break;
+        }
+        case 'image-effect': {
+          setProgress('이미지 효과 적용 중...');
+          converted = await applyImageEffect(files[0], imgEffect);
           break;
         }
         case 'image-watermark': {
@@ -492,11 +494,11 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     imageQuality, resizeMode, resizeWidth, resizeHeight, resizeScale,
     watermarkText, watermarkOpacity,
     pageNumPosition, pageNumWithTotal,
-    pdfPassword,
     imageTransform,
     batchKind, batchTargetFormat,
     csvSortDir, csvSortColumn, csvDedupe, csvHasHeader,
     imgWatermarkText, imgWatermarkPos, imgWatermarkOpacity,
+    imgEffect, translateLang,
   ]);
 
   const handleDownload = useCallback(() => {
@@ -864,22 +866,59 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   </>
                 )}
 
-                {/* 파일 목록 */}
+                {/* 파일 목록 + 메모리 경고 */}
                 {files.length > 0 && (
-                  <div className="space-y-2">
-                    {files.map((f, i) => (
-                      <div key={`${f.name}-${i}`} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(var(--hairline))] bg-card">
-                        <span className="text-[20px]">📎</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-semibold text-foreground truncate">{f.name}</div>
-                          <div className="text-[11px] text-muted-foreground">{formatLabel(detectedFormats[i] ?? 'unknown')} · {formatBytes(f.size)}</div>
+                  <>
+                    <div className="space-y-2">
+                      {files.map((f, i) => (
+                        <div key={`${f.name}-${i}`} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(var(--hairline))] bg-card">
+                          <span className="text-[20px]">📎</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-semibold text-foreground truncate">{f.name}</div>
+                            <div className="text-[11px] text-muted-foreground">{formatLabel(detectedFormats[i] ?? 'unknown')} · {formatBytes(f.size)}</div>
+                          </div>
+                          <button type="button" onClick={() => { setFiles((arr) => arr.filter((_, idx) => idx !== i)); setDetectedFormats((arr) => arr.filter((_, idx) => idx !== i)); }} aria-label="제거" className="p-1.5 rounded-md text-muted-foreground/70 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
-                        <button type="button" onClick={() => { setFiles((arr) => arr.filter((_, idx) => idx !== i)); setDetectedFormats((arr) => arr.filter((_, idx) => idx !== i)); }} aria-label="제거" className="p-1.5 rounded-md text-muted-foreground/70 hover:text-rose-600 hover:bg-rose-50">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                    {/* 메모리 위험 경고 — 큰 파일 / 다중 파일 / 모바일 케이스 */}
+                    {(() => {
+                      const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+                      const estimate = estimateMemoryMB({
+                        fileSize: totalSize,
+                        pagesOrMultiplier: files.length > 1 ? files.length : 1,
+                      });
+                      const risk = evaluateMemoryRisk(estimate);
+                      const budget = getMemoryBudgetMB();
+                      if (risk === 'safe') return null;
+                      return (
+                        <div
+                          className={cn(
+                            'flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-[12px]',
+                            risk === 'block'
+                              ? 'border-rose-300 bg-rose-50 dark:bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                              : 'border-amber-300 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300',
+                          )}
+                        >
+                          <span className="text-[16px] leading-none mt-0.5" aria-hidden>{risk === 'block' ? '⛔' : '⚠️'}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold mb-0.5">
+                              {risk === 'block'
+                                ? '용량이 너무 커요 — 변환 실패 위험이 높아요'
+                                : '용량이 큰 편이에요'}
+                            </p>
+                            <p className="text-[11px] opacity-90">
+                              예상 메모리 ~{Math.round(estimate)}MB · 권장 한도 {budget}MB
+                              {risk === 'block' && ' · 압축 또는 분할 후 시도해주세요.'}
+                              {risk === 'warn' && ' · 진행 중 새로고침 안 됩니다.'}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
                 )}
 
                 {/* 태스크별 옵션 */}
@@ -1085,24 +1124,57 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     </label>
                   </div>
                 )}
-                {files.length > 0 && (selectedTask.id === 'pdf-protect' || selectedTask.id === 'pdf-unlock') && (
+                {/* PDF 암호 보호/해제 — 카탈로그에서 제거됨 */}
+                {files.length > 0 && selectedTask.id === 'image-effect' && (
                   <div>
-                    <div className="text-[12px] font-semibold text-foreground mb-2">
-                      {selectedTask.id === 'pdf-protect' ? '새 비밀번호 (4자 이상)' : '현재 비밀번호'}
+                    <div className="text-[12px] font-semibold text-foreground mb-2">효과</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-w-md">
+                      {([
+                        { v: 'grayscale' as const, label: '⚫ 흑백' },
+                        { v: 'sepia' as const, label: '📜 세피아' },
+                        { v: 'brighten' as const, label: '☀ 밝게' },
+                        { v: 'darken' as const, label: '🌙 어둡게' },
+                        { v: 'contrast-up' as const, label: '🔆 대비 ↑' },
+                        { v: 'invert' as const, label: '🔄 반전' },
+                      ]).map((c) => (
+                        <button
+                          key={c.v}
+                          type="button"
+                          onClick={() => setImgEffect(c.v)}
+                          className={cn(
+                            'px-2 py-2 rounded-md text-[12px] font-semibold border transition-all',
+                            imgEffect === c.v
+                              ? 'bg-foreground text-background border-foreground'
+                              : 'bg-card text-muted-foreground border-[hsl(var(--hairline))] hover:text-foreground',
+                          )}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
                     </div>
-                    <input
-                      type="password"
-                      value={pdfPassword}
-                      onChange={(e) => setPdfPassword(e.target.value)}
-                      placeholder={selectedTask.id === 'pdf-protect' ? '강한 비밀번호를 정해주세요' : 'PDF 의 비밀번호를 입력하세요'}
-                      autoComplete="new-password"
-                      className="w-full h-9 px-3 rounded-lg border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
-                    />
-                    <div className="text-[10.5px] text-muted-foreground mt-1.5">
-                      {selectedTask.id === 'pdf-protect'
-                        ? '⚠️ 비밀번호를 잃어버리면 다시 열 수 없어요. 안전하게 보관하세요.'
-                        : '제대로 된 비밀번호여야 해요. 틀리면 변환 실패합니다.'}
+                  </div>
+                )}
+                {files.length > 0 && selectedTask.id === 'image-translate' && (
+                  <div>
+                    <div className="text-[12px] font-semibold text-foreground mb-2">번역 대상 언어</div>
+                    <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                      {(['한국어', 'English', '日本語', '中文'] as const).map((lang) => (
+                        <button
+                          key={lang}
+                          type="button"
+                          onClick={() => setTranslateLang(lang)}
+                          className={cn(
+                            'px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all',
+                            translateLang === lang
+                              ? 'bg-foreground text-background'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                          )}
+                        >
+                          {lang}
+                        </button>
+                      ))}
                     </div>
+                    <div className="text-[10.5px] text-muted-foreground mt-1.5">원문 + 번역이 줄단위로 매칭됩니다</div>
                   </div>
                 )}
                 {files.length > 0 && selectedTask.id === 'image-watermark' && (

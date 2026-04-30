@@ -83,6 +83,82 @@ export async function ocrImageToText(
   return { blob, suggestedName: `${baseName(file.name)}.txt`, previewText: text.slice(0, 500) };
 }
 
+// ───── 명함 인식 — 이름·회사·연락처 자동 추출 ─────
+export async function ocrBusinessCard(
+  file: File,
+  signal?: AbortSignal,
+): Promise<{ blob: Blob; suggestedName: string; previewText: string }> {
+  const base64 = await fileToBase64(file);
+  const text = await streamChatText(
+    `당신은 명함 분석 전문가입니다. 이미지에서 다음 정보를 추출해 마크다운 + vCard 형식으로 정리하세요.
+
+# 명함 정보
+- 이름: (성+이름, 영문명 함께 있으면 둘 다)
+- 직책:
+- 회사:
+- 부서:
+- 이메일:
+- 전화: (모바일/직장 구분)
+- 팩스:
+- 주소:
+- 웹사이트:
+- 기타: (LinkedIn 등 SNS)
+
+# vCard
+\`\`\`
+BEGIN:VCARD
+VERSION:3.0
+FN:이름
+ORG:회사
+TITLE:직책
+EMAIL:이메일
+TEL;TYPE=CELL:전화
+ADR:주소
+URL:웹사이트
+END:VCARD
+\`\`\`
+
+판독 안 되면 [?] 표기. 추측 금지. 마크다운만 출력.`,
+    '이 명함을 분석해주세요.',
+    [{ name: file.name, mimeType: file.type || 'image/png', base64 }],
+    signal,
+    2000,
+  );
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+  return { blob, suggestedName: `${baseName(file.name)}-card.md`, previewText: text.slice(0, 500) };
+}
+
+// ───── 이미지 자동 번역 — OCR + 번역 ─────
+export async function ocrAndTranslate(
+  file: File,
+  targetLang: '한국어' | 'English' | '日本語' | '中文' = '한국어',
+  signal?: AbortSignal,
+): Promise<{ blob: Blob; suggestedName: string; previewText: string }> {
+  const base64 = await fileToBase64(file);
+  const text = await streamChatText(
+    `당신은 OCR + 번역 전문가입니다. 다음 순서로 처리하세요.
+
+1. 이미지 안 모든 텍스트를 그대로 읽습니다 (원문 언어).
+2. 각 줄을 ${targetLang} 로 번역합니다.
+
+출력 형식 (마크다운):
+
+# 원문
+(이미지의 원문, 줄바꿈 유지)
+
+# 번역 (${targetLang})
+(번역된 텍스트, 줄바꿈 매칭)
+
+원문 ↔ 번역이 한 줄씩 매칭되도록. 설명·해설 추가 금지.`,
+    `이 이미지의 텍스트를 ${targetLang}로 번역해주세요.`,
+    [{ name: file.name, mimeType: file.type || 'image/png', base64 }],
+    signal,
+    3500,
+  );
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+  return { blob, suggestedName: `${baseName(file.name)}-translated.md`, previewText: text.slice(0, 500) };
+}
+
 // ───── 영수증 인식 — 금액·날짜·항목 자동 추출 ─────
 export async function ocrReceipt(
   file: File,

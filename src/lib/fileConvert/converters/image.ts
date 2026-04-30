@@ -239,6 +239,46 @@ export async function resizeImage(
   return { blob, suggestedName: `${baseName(file.name)}-${tw}x${th}${EXT_MAP[target]}` };
 }
 
+// ───── 이미지 색상 효과 — 흑백·세피아·밝기·대비 ─────
+export type ImageEffect = 'grayscale' | 'sepia' | 'invert' | 'brighten' | 'darken' | 'contrast-up';
+
+export async function applyImageEffect(
+  file: File,
+  effect: ImageEffect,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context를 얻지 못했어요.');
+
+  // CSS filter 활용 (createImageBitmap → drawImage with filter)
+  switch (effect) {
+    case 'grayscale':    ctx.filter = 'grayscale(1)'; break;
+    case 'sepia':        ctx.filter = 'sepia(0.85) saturate(1.1)'; break;
+    case 'invert':       ctx.filter = 'invert(1)'; break;
+    case 'brighten':     ctx.filter = 'brightness(1.25)'; break;
+    case 'darken':       ctx.filter = 'brightness(0.75)'; break;
+    case 'contrast-up':  ctx.filter = 'contrast(1.3)'; break;
+  }
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  ctx.filter = 'none';
+
+  // 원본 포맷 유지 (효과는 PNG/JPG 모두 OK)
+  const ext = file.name.toLowerCase().split('.').pop();
+  const target: ImageOutputFormat = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg';
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('효과 적용 실패'))),
+      MIME_MAP[target],
+      0.92,
+    );
+  });
+  return { blob, suggestedName: `${baseName(file.name)}-${effect}${EXT_MAP[target]}` };
+}
+
 // ───── 이미지 워터마크 (텍스트) ─────
 export type WatermarkPos = 'center' | 'top-right' | 'bottom-right' | 'bottom-left' | 'tile';
 export interface ImageWatermarkOptions {
