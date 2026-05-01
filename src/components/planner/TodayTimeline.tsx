@@ -98,6 +98,10 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(COMPACT_KEY, compact ? '1' : '0');
   }, [compact]);
+  // 표시할 시간 범위 — compact 면 7-23 만. (선언이 useEffect 보다 먼저 와야 TDZ X)
+  const visibleStart = compact ? COMPACT_START : START_HOUR;
+  const visibleEnd = compact ? COMPACT_END : START_HOUR + TOTAL_HOURS;
+  const visibleHours = visibleEnd - visibleStart;
   /** 사용자 lists — task 의 listId → list.color 매핑 + hidden 필터링. */
   const [lists, setLists] = useState(() => taskListStore.list());
   useEffect(() => {
@@ -225,11 +229,6 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       {compact ? '24h' : '7-23'}
     </button>
   );
-
-  // 표시할 시간 범위 (compact 면 7-23 만).
-  const visibleStart = compact ? COMPACT_START : START_HOUR;
-  const visibleEnd = compact ? COMPACT_END : START_HOUR + TOTAL_HOURS;
-  const visibleHours = visibleEnd - visibleStart;
 
   return (
     <PlannerSection label="오늘" count={dateLabel} action={
