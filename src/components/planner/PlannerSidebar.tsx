@@ -7,7 +7,7 @@
  * 추후: 오버듀, 다가오는 일정 위젯 추가 예정.
  */
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, FileText, Network, Compass } from 'lucide-react';
+import { BookOpen, Compass, FileText, Home, Network } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
@@ -22,6 +22,7 @@ interface PlannerSidebarProps {
 }
 
 const QUICK_NAV: Array<{ to: string; label: string; Icon: typeof FileText }> = [
+  { to: '/',         label: '홈',    Icon: Home },
   { to: '/memos',    label: '메모',  Icon: FileText },
   { to: '/journal',  label: '저널',  Icon: BookOpen },
   { to: '/wiki',     label: '위키',  Icon: Network },
