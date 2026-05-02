@@ -6,7 +6,7 @@ import {
   Link2, Youtube, Mic, ClipboardList,
 } from 'lucide-react';
 import type { StudyNotebook, StudyFolder, StudySource } from '@/types/study';
-import { createEmptyNotebook, countDueCards, FOLDER_COLORS } from '@/types/study';
+import { createEmptyNotebook, FOLDER_COLORS } from '@/types/study';
 import { filesToStudySources } from '@/lib/studySourceFromFile';
 import { IconPicker } from './IconPicker';
 import { cn } from '@/lib/utils';
@@ -102,13 +102,6 @@ export function StudyHome({
     return arr;
   }, [notebooks, activeFolderId, query, sort]);
 
-  const foldersWithCounts = useMemo(() => {
-    return folders.map((f) => ({
-      folder: f,
-      count: notebooks.filter((n) => n.folderId === f.id).length,
-    }));
-  }, [folders, notebooks]);
-
   const handleCreateFolder = () => {
     const name = prompt('새 폴더 이름');
     if (!name) return;
@@ -197,11 +190,10 @@ export function StudyHome({
           )}
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 gap-2 items-start">
             {/* 폴더 카드들 — 루트(전체) 뷰에서만 */}
-            {!activeFolder && foldersWithCounts.map(({ folder, count }) => (
+            {!activeFolder && folders.map((folder) => (
               <FolderTile
                 key={folder.id}
                 folder={folder}
-                count={count}
                 active={false}
                 dragOver={dragOverFolderId === folder.id}
                 onOpen={() => setActiveFolderId(folder.id)}
@@ -489,11 +481,10 @@ function AddTile({
 
 /* ── 폴더 타일 ── */
 function FolderTile({
-  folder, count, dragOver,
+  folder, dragOver,
   onOpen, onRename, onDelete, onColorChange, onDragEnter, onDragLeave, onDropNotebook,
 }: {
   folder: StudyFolder;
-  count: number;
   active: boolean;
   dragOver: boolean;
   onOpen: () => void;

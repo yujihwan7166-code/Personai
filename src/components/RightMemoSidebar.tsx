@@ -56,10 +56,6 @@ function formatTime(date = new Date()) {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function formatStamp(date = new Date()) {
-  return `${formatDateInput(date)} ${formatTime(date)}`;
-}
-
 function makeNote(index = 1): NoteItem {
   const now = new Date();
   return {
@@ -263,14 +259,6 @@ export function RightMemoSidebar() {
 
   const openNote = (noteId: string) => {
     setActiveNoteId(noteId);
-    setMemoExpanded(true);
-  };
-
-  const openMemoSidebar = () => {
-    if (!activeNoteId && notes[0]) {
-      setActiveNoteId(notes[0].id);
-    }
-    setIsOpen(true);
     setMemoExpanded(true);
   };
 
@@ -703,4 +691,3 @@ export function RightMemoSidebar() {
     </aside>
   );
 }
-

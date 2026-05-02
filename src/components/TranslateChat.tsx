@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Copy, Globe, RotateCcw, Save, Search, Settings2, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Copy, Globe, RotateCcw, Save, Search, Sparkles, Trash2, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import {
@@ -30,7 +30,6 @@ import {
   type TranslateHonorific,
   type TranslateLength,
   type TranslateOptions,
-  type TranslatePreset,
   type TranslateReadingLevel,
   type TranslateTone,
   type UserPreset,
@@ -631,8 +630,6 @@ export function TranslateChat({ onBack }: TranslateChatProps) {
   // 프리셋 상태 (툴바·drawer 양쪽이 공유)
   const [userPresetsCache, setUserPresetsCache] = useState<UserPreset[]>(() => loadUserPresets());
   const presetState = getCurrentPresetLabel(options, userPresetsCache);
-  const presetMeta = presetStateToText(presetState);
-
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-slate-50/50 to-white">
       {/* 헤더 */}
