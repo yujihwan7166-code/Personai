@@ -120,7 +120,7 @@ export const PlannerSidebar = ({
           />
         </div>
         {waitingTasks.length === 0 ? (
-          <p className="px-2 py-1 text-[11px] text-muted-foreground leading-snug">
+          <p className="px-2 py-1 text-[12px] text-foreground/65 leading-snug">
             추가한 항목 중 어디에도 안 묶인 게 여기 모여요.
           </p>
         ) : (
@@ -143,7 +143,7 @@ export const PlannerSidebar = ({
           action={<NewListButton />}
         />
         {lists.length === 0 ? (
-          <p className="px-2 py-1 text-[11px] text-muted-foreground leading-snug">
+          <p className="px-2 py-1 text-[12px] text-foreground/65 leading-snug">
             반복하는 항목을 카테고리로 모아두는 곳이에요.
           </p>
         ) : (
@@ -169,12 +169,12 @@ export const PlannerSidebar = ({
 const SidebarHeader = ({
   label, count, action,
 }: { label: string; count?: number; action?: React.ReactNode }) => (
-  <div className="flex items-center gap-1.5 px-2 mb-1.5 shrink-0">
-    <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground font-semibold">
+  <div className="flex items-center gap-2 px-2 mb-2 shrink-0">
+    <span className="text-[13px] font-semibold tracking-tight text-foreground leading-none">
       {label}
     </span>
     {typeof count === 'number' && count > 0 && (
-      <span className="text-[10px] tabular-nums text-muted-foreground/80">{count}</span>
+      <span className="text-[11px] tabular-nums text-foreground/60 font-medium">{count}</span>
     )}
     {action && <span className="ml-auto">{action}</span>}
   </div>
@@ -190,20 +190,20 @@ const SidebarTaskRow = ({
     <button
       type="button"
       onClick={onClick}
-      className="group flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] text-foreground hover:bg-accent transition-colors"
+      className="group flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[13px] text-foreground hover:bg-accent transition-colors"
     >
       <span
-        className="h-1.5 w-1.5 rounded-full shrink-0"
+        className="h-2 w-2 rounded-full shrink-0"
         style={{
           backgroundColor: (task.priority ?? 0) > 0
             ? 'currentColor'
-            : 'hsl(var(--muted-foreground) / 0.4)',
+            : 'hsl(var(--muted-foreground) / 0.55)',
         }}
         aria-hidden
       />
       <span className="min-w-0 flex-1 truncate">{task.title}</span>
       {task.startAt && (
-        <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
+        <span className="text-[11px] tabular-nums text-foreground/60 shrink-0">
           {new Date(task.startAt).toLocaleTimeString('ko-KR', {
             hour: '2-digit', minute: '2-digit', hour12: false,
           })}
@@ -298,10 +298,10 @@ const ListGroup = ({
                 aria-hidden
               />
             )}
-            <span className="flex-1 text-[12.5px] leading-tight truncate text-foreground">
+            <span className="flex-1 text-[13px] font-medium leading-tight truncate text-foreground">
               {list.name}
             </span>
-            <span className="text-[10.5px] tabular-nums text-muted-foreground/80 group-hover:hidden">
+            <span className="text-[11px] tabular-nums text-foreground/60 group-hover:hidden">
               {tasks.length || ''}
             </span>
             <button

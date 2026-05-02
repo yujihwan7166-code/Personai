@@ -641,58 +641,60 @@ const Planner = () => {
                   {/* 큰 날짜 헤더 — 메인 컨텐츠 박스의 시간 ID 역할.
                       앱 헤더에서 시간 네비/날짜 라벨을 제거한 대신 여기 강하게 둔다. */}
                   <div className="shrink-0 flex items-center justify-between gap-3 pb-3 mb-3 border-b border-[hsl(var(--hairline))]">
-                    <div className="min-w-0 flex items-baseline gap-2.5">
-                      <h2 className="text-[20px] sm:text-[22px] font-semibold tracking-tight text-foreground leading-none truncate">
-                        {(() => {
-                          const a = new Date(anchorIso);
-                          const t = new Date();
-                          const tm = new Date(t); tm.setDate(t.getDate() + 1);
-                          if (isSameDay(a, t)) return '오늘';
-                          if (isSameDay(a, tm)) return '내일';
-                          return a.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
-                        })()}
-                      </h2>
-                      <span className="text-[12.5px] text-muted-foreground tabular-nums">
-                        {new Date(anchorIso).toLocaleDateString('ko-KR', {
-                          month: 'long', day: 'numeric', weekday: 'short',
-                        })}
-                      </span>
-                    </div>
-                    <div className="inline-flex items-center gap-0.5">
+                    {/* 날짜 캐러셀 — 화살표가 날짜를 직접 감싸 "이걸로 날짜 넘긴다"는 의미를 시각화. */}
+                    <div className="min-w-0 flex items-center gap-2">
                       <button
                         type="button"
                         onClick={goPrev}
                         aria-label="이전 날"
                         title="이전 날 (←)"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent text-foreground transition-colors"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={goToday}
-                        disabled={anchorIsToday}
-                        aria-label="오늘로"
-                        title="오늘로 (T)"
-                        className={cn(
-                          'h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors',
-                          anchorIsToday
-                            ? 'bg-card text-muted-foreground/60 cursor-default'
-                            : 'bg-card text-foreground hover:bg-accent',
-                        )}
-                      >
-                        오늘
-                      </button>
+                      <div className="min-w-0 flex items-baseline gap-2.5">
+                        <h2 className="text-[20px] sm:text-[22px] font-semibold tracking-tight text-foreground leading-none truncate">
+                          {(() => {
+                            const a = new Date(anchorIso);
+                            const t = new Date();
+                            const tm = new Date(t); tm.setDate(t.getDate() + 1);
+                            if (isSameDay(a, t)) return '오늘';
+                            if (isSameDay(a, tm)) return '내일';
+                            return a.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+                          })()}
+                        </h2>
+                        <span className="text-[13px] text-foreground/70 tabular-nums font-medium">
+                          {new Date(anchorIso).toLocaleDateString('ko-KR', {
+                            month: 'long', day: 'numeric', weekday: 'short',
+                          })}
+                        </span>
+                      </div>
                       <button
                         type="button"
                         onClick={goNext}
                         aria-label="다음 날"
                         title="다음 날 (→)"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent text-foreground transition-colors"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
                     </div>
+                    {/* 오늘로 점프 — anchor 가 이미 오늘이면 dim. */}
+                    <button
+                      type="button"
+                      onClick={goToday}
+                      disabled={anchorIsToday}
+                      aria-label="오늘로"
+                      title="오늘로 (T)"
+                      className={cn(
+                        'shrink-0 h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors',
+                        anchorIsToday
+                          ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
+                          : 'bg-card text-foreground hover:bg-accent',
+                      )}
+                    >
+                      오늘로
+                    </button>
                   </div>
                   <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-4">
                     <TodayExecutionBoard

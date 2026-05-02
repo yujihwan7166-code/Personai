@@ -8,7 +8,7 @@
  * 시간 블록 hover → Tooltip (제목·시간 범위·길이).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate, RotateCw } from 'lucide-react';
+import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate, RotateCw, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
@@ -213,9 +213,9 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       onClick={scrollToNow}
       title="현재 시각으로 스크롤"
       aria-label="현재 시각으로 스크롤"
-      className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-mono tabular-nums text-rose-500 hover:bg-rose-500/10 transition-colors font-semibold"
+      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[11px] tabular-nums text-rose-500 hover:bg-rose-500/10 transition-colors font-semibold"
     >
-      <Locate className="h-3 w-3" />
+      <Locate className="h-3.5 w-3.5" />
       지금
     </button>
   ) : null;
@@ -226,7 +226,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       onClick={() => setCompact((v) => !v)}
       title={compact ? '24시간 모두 보기' : '주요 시간만 (7~23시)'}
       aria-label={compact ? '24시간 모두 보기' : '주요 시간만'}
-      className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-mono tabular-nums text-muted-foreground hover:text-foreground hover:bg-accent transition-colors font-semibold"
+      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[11px] tabular-nums text-foreground/65 hover:text-foreground hover:bg-accent transition-colors font-semibold"
     >
       {compact ? '24h' : '7-23'}
     </button>
@@ -577,7 +577,24 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       </div>
   );
 
-  if (hideHeader) return body;
+  if (hideHeader) {
+    // 좌측 "계획" 라벨과 짝 맞춰 우측에도 "일정" 컬럼 라벨 + 보조 컨트롤만 노출.
+    return (
+      <section className="h-full min-h-0 flex flex-col">
+        <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-[hsl(var(--hairline))]">
+          <CalendarDays className="h-4 w-4 text-foreground" />
+          <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">
+            일정
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1.5">
+            {CompactToggle}
+            {NowButton}
+          </span>
+        </div>
+        <div className="flex-1 min-h-0">{body}</div>
+      </section>
+    );
+  }
 
   return (
     <PlannerSection label="오늘" count={dateLabel} action={

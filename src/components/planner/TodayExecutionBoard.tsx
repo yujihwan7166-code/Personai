@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Clock3, Hourglass } from 'lucide-react';
+/**
+ * 좌측 "계획" 컬럼 — 오늘 할 일 체크리스트.
+ *
+ * 시간 잡힌 항목(=일정)은 우측 타임라인이 그 역할.
+ * 여기는 plannedFor 마킹된 시간 미정 항목만 — 사용자가 "오늘 한다고 결정한 것".
+ */
+import { useEffect, useMemo, useState } from 'react';
+import { ListTodo } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
 import { PlannerInput } from './PlannerInput';
 import { PlannerCard } from './PlannerCard';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
-import { PLANNER_TASK_CHANGED, TASK_LIST_COLORS, type PlannerTask } from '@/types/planner';
+import { PLANNER_TASK_CHANGED, type PlannerTask } from '@/types/planner';
 
 interface TodayExecutionBoardProps {
   anchorIso: string;
@@ -20,18 +26,7 @@ const localDateKey = (date: Date) => {
   return `${y}-${m}-${d}`;
 };
 
-const isSameLocalDay = (iso: string | undefined, day: Date) => {
-  if (!iso) return false;
-  const d = new Date(iso);
-  return d.getFullYear() === day.getFullYear() && d.getMonth() === day.getMonth() && d.getDate() === day.getDate();
-};
-
-const formatTime = (iso?: string) =>
-  iso
-    ? new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
-    : '';
-
-const sortUnscheduled = (items: PlannerTask[]) =>
+const sortPlanned = (items: PlannerTask[]) =>
   [...items].sort((a, b) => {
     const priorityDelta = (b.priority ?? 0) - (a.priority ?? 0);
     if (priorityDelta !== 0) return priorityDelta;
@@ -39,12 +34,6 @@ const sortUnscheduled = (items: PlannerTask[]) =>
     if (!a.pinned && b.pinned) return 1;
     return b.createdAt.localeCompare(a.createdAt);
   });
-
-const compareScheduled = (a: PlannerTask, b: PlannerTask) => {
-  const timeDelta = (a.startAt ?? '').localeCompare(b.startAt ?? '');
-  if (timeDelta !== 0) return timeDelta;
-  return (b.priority ?? 0) - (a.priority ?? 0);
-};
 
 export const TodayExecutionBoard = ({
   anchorIso,
@@ -61,27 +50,12 @@ export const TodayExecutionBoard = ({
     return () => window.removeEventListener(PLANNER_TASK_CHANGED, refresh);
   }, []);
 
-  const day = useMemo(() => new Date(anchorIso), [anchorIso]);
-  const dayKey = useMemo(() => localDateKey(day), [day]);
+  const dayKey = useMemo(() => localDateKey(new Date(anchorIso)), [anchorIso]);
 
-  // 시간표 = 그 날 시간배정 (반복 시리즈 인스턴스 포함).
-  const scheduled = useMemo(
-    () =>
-      taskStore
-        .listScheduled(anchorIso)
-        .filter((task) => !task.done && !task.canceled && !task.someday && isSameLocalDay(task.startAt, day))
-        .sort(compareScheduled),
-    // tasks 변화 시 재계산 트리거.
-    [anchorIso, day, tasks],
-  );
-
-  // 계획(plannedFor) = 그 날 하기로 한 시간 미정 항목.
   const planned = useMemo(
-    () => sortUnscheduled(tasks.filter((task) => !task.startAt && task.plannedFor === dayKey)),
+    () => sortPlanned(tasks.filter((task) => !task.startAt && task.plannedFor === dayKey)),
     [dayKey, tasks],
   );
-
-  const total = scheduled.length + planned.length;
 
   const handleAdd = (
     title: string,
@@ -100,105 +74,70 @@ export const TodayExecutionBoard = ({
       recurrence: parsed?.recurrence,
       tags: parsed?.tags,
       priority: parsed?.priority,
-      // 시간 없으면 현재 보고있는 탭의 plannedFor 키로 (오늘 탭이면 오늘, 이번주 탭이면 이번주 월요일).
+      // 시간 안 정했으면 그 날 계획에 들어감. 시간 정한 NL 입력은 일정으로.
       plannedFor: parsed?.startAt ? undefined : dayKey,
     });
-    notify.success(parsed?.startAt ? '시간표에 추가했어요' : '계획에 추가했어요', { duration: 1200 });
+    notify.success(parsed?.startAt ? '일정에 추가했어요' : '계획에 추가했어요', { duration: 1200 });
   };
 
   return (
-    <section className="h-full min-h-0 flex flex-col border-b lg:border-b-0 lg:border-r border-[hsl(var(--hairline))] pb-3 lg:pb-0 lg:pr-3">
-      <div className="shrink-0 pb-3">
-        <PlannerInput inputRef={inputRef} placeholder="+ 할 일 추가" onSubmit={handleAdd} hidePreview />
+    <section className="h-full min-h-0 flex flex-col">
+      {/* 컬럼 라벨 — 우측 일정과 짝 맞춰 좌/우 영역 구분. */}
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-[hsl(var(--hairline))]">
+        <ListTodo className="h-4 w-4 text-foreground" />
+        <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">
+          계획
+        </span>
+        {planned.length > 0 && (
+          <span className="text-[11.5px] tabular-nums text-foreground/60 font-medium">{planned.length}</span>
+        )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto py-3 space-y-3">
-        {total === 0 && (
+      {/* 입력 — "+ 오늘 할 일" 명시로 일정 입력(시간 슬롯)과 path 구분. */}
+      <div className="shrink-0 pb-2.5">
+        <PlannerInput inputRef={inputRef} placeholder="+ 오늘 할 일 추가" onSubmit={handleAdd} hidePreview />
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
+        {planned.length === 0 ? (
           <button
             type="button"
             onClick={() => inputRef?.current?.focus()}
-            className="w-full rounded-md px-2 py-2 text-left text-[12.5px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="w-full rounded-md px-2 py-3 text-left text-[12.5px] text-foreground/70 hover:bg-accent hover:text-foreground transition-colors leading-snug"
           >
-            지금 선택한 곳에 할 일을 추가하세요
+            오늘 하기로 정한 항목이 없어요.<br />
+            위 입력창에 적거나, 대기함 카드를 끌어와도 돼요.
           </button>
+        ) : (
+          <div className="space-y-0.5 pb-2">
+            {planned.map((task) => (
+              <DraggableInboxCard key={task.id} task={task}>
+                <PlannerCard
+                  variant="inbox"
+                  title={task.title}
+                  done={task.done}
+                  onToggle={() => taskStore.toggleDone(task.id)}
+                  onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
+                  onDelete={() => taskStore.remove(task.id)}
+                  onTogglePin={() => taskStore.togglePinned(task.id)}
+                  priority={task.priority}
+                  pinned={task.pinned}
+                  hasNote={Boolean(task.note)}
+                  note={task.note}
+                  canceled={task.canceled}
+                  recurring={Boolean(task.recurrence)}
+                  subtasks={task.subtasks}
+                  onToggleSubtask={(sid) => taskStore.toggleSubtask(task.id, sid)}
+                  onAddSubtask={(text) => taskStore.addSubtask(task.id, text)}
+                  onRemoveSubtask={(sid) => taskStore.removeSubtask(task.id, sid)}
+                  onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(task.id, sid, text)}
+                  tags={task.tags}
+                />
+              </DraggableInboxCard>
+            ))}
+          </div>
         )}
-
-        <TaskGroup icon={<Clock3 className="h-3.5 w-3.5" />} title="시간표" count={scheduled.length}>
-          {scheduled.map((task) => (
-            <button
-              key={task.id}
-              type="button"
-              onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
-              className="w-full rounded-md text-left hover:bg-accent transition-colors"
-            >
-              <PlannerCard
-                variant="block"
-                kind="task"
-                title={task.title}
-                startLabel={formatTime(task.startAt)}
-                done={task.done}
-                priority={task.priority}
-                color={task.color ? TASK_LIST_COLORS[task.color].stripe : undefined}
-                hasNote={Boolean(task.note)}
-                recurring={Boolean(task.recurrence)}
-                subtasks={task.subtasks}
-                tags={task.tags}
-              />
-            </button>
-          ))}
-        </TaskGroup>
-
-        <TaskGroup icon={<Hourglass className="h-3.5 w-3.5" />} title="계획" count={planned.length}>
-          {planned.map((task) => (
-            <DraggableInboxCard key={task.id} task={task}>
-              <PlannerCard
-                variant="inbox"
-                title={task.title}
-                done={task.done}
-                onToggle={() => taskStore.toggleDone(task.id)}
-                onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
-                onDelete={() => taskStore.remove(task.id)}
-                onTogglePin={() => taskStore.togglePinned(task.id)}
-                priority={task.priority}
-                pinned={task.pinned}
-                hasNote={Boolean(task.note)}
-                note={task.note}
-                canceled={task.canceled}
-                recurring={Boolean(task.recurrence)}
-                subtasks={task.subtasks}
-                onToggleSubtask={(sid) => taskStore.toggleSubtask(task.id, sid)}
-                onAddSubtask={(text) => taskStore.addSubtask(task.id, text)}
-                onRemoveSubtask={(sid) => taskStore.removeSubtask(task.id, sid)}
-                onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(task.id, sid, text)}
-                tags={task.tags}
-              />
-            </DraggableInboxCard>
-          ))}
-        </TaskGroup>
       </div>
     </section>
   );
 };
-
-const TaskGroup = ({
-  icon,
-  title,
-  count,
-  children,
-}: {
-  icon: ReactNode;
-  title: string;
-  count: number;
-  children: ReactNode;
-}) => (
-  <div className={count === 0 ? 'hidden' : undefined}>
-    <div className="mb-1.5 flex items-center gap-1.5 px-1">
-      <span className="text-muted-foreground">{icon}</span>
-      <span className="text-[11px] font-mono uppercase tracking-[0.12em] text-muted-foreground font-semibold">
-        {title}
-      </span>
-      <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground">{count}</span>
-    </div>
-    <div className="space-y-0.5 pb-2">{children}</div>
-  </div>
-);
