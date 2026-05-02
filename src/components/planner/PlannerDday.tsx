@@ -6,7 +6,7 @@
  * - 호버 시 삭제 버튼
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Flag, Plus, X } from 'lucide-react';
+import { Check, Flag, Plus, X } from 'lucide-react';
 import { ddayStore } from '@/services/planner/ddayStore';
 import { cn } from '@/lib/utils';
 import { PLANNER_DDAY_CHANGED, type PlannerDday } from '@/types/planner';
@@ -138,7 +138,15 @@ const NewDdayInput = ({ onDone }: { onDone: () => void }) => {
   };
 
   return (
-    <div className="mt-1 flex items-center gap-1 px-1.5 py-1 rounded bg-accent/60">
+    <div
+      className="mt-1 flex items-center gap-1 px-1.5 py-1 rounded bg-accent/60"
+      // wrapper outside 클릭(focus 가 wrapper 외부로) 시 자동 저장.
+      // wrapper 내부 input ↔ date 이동 시는 저장 X (relatedTarget contained).
+      onBlur={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        submit();
+      }}
+    >
       <input
         autoFocus
         value={label}
@@ -158,8 +166,19 @@ const NewDdayInput = ({ onDone }: { onDone: () => void }) => {
           if (e.key === 'Enter') submit();
           else if (e.key === 'Escape') onDone();
         }}
-        className="bg-transparent text-[10.5px] tabular-nums text-foreground/85 outline-none w-[110px]"
+        className="bg-transparent text-[10.5px] tabular-nums text-foreground/85 outline-none w-[100px]"
       />
+      <button
+        type="button"
+        // mousedown 으로 막아 input blur 가 button click 전 submit 되는 race 방지.
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={submit}
+        aria-label="저장"
+        title="저장 (Enter)"
+        className="h-5 w-5 inline-flex items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-foreground/10 transition-colors shrink-0"
+      >
+        <Check className="h-3 w-3" strokeWidth={2.5} />
+      </button>
     </div>
   );
 };
