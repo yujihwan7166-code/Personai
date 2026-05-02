@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { DISCUSSION_MODE_LABELS } from '@/types/expert';
-import { cn } from '@/lib/utils';
 import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { History, X, Trash2, Clock } from 'lucide-react';
 

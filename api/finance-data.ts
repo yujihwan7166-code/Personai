@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       } catch { /* skip */ }
     }
-  } catch (e) {
+  } catch {
     return res.json({
       domain: 'finance',
       query: keyword || dataType,

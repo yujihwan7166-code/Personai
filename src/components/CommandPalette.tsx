@@ -13,7 +13,7 @@ import {
   MessageCircle, GitMerge, Users, Shield, Sparkles, Swords, Wrench, Gamepad2,
   FlaskConical, Globe, FileBox, BookOpen,
   History, ArrowRight, Search,
-  Download, Copy, Share2, Settings, Moon, Sun, Trash2,
+  Download, Copy, Share2, Settings, Moon, Sun,
 } from 'lucide-react';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import { getDiscussionHistory, type DiscussionRecord } from '@/lib/discussionHistoryStore';

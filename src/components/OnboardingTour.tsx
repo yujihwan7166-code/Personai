@@ -6,7 +6,7 @@
  * - Esc / 건너뛰기 / 마지막 "시작하기" 로 닫힘.
  * - 전역 오버레이, 다른 UI 위에 떠서 블러 처리.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Sparkles, MessageCircle, Bot, Command as CommandIcon, Rocket, ChevronLeft, ChevronRight, X,
@@ -61,11 +61,33 @@ export function OnboardingTour() {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
+    let timer: number | undefined;
+
     try {
       const done = localStorage.getItem(KEY);
-      if (!done) setOpen(true);
+      if (!done) {
+        timer = window.setTimeout(() => setOpen(true), 1600);
+      }
     } catch { /* noop */ }
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, []);
+
+  const close = useCallback(() => {
+    try { localStorage.setItem(KEY, '1'); } catch { /* noop */ }
+    setOpen(false);
+  }, []);
+
+  const next = useCallback(() => {
+    if (step < SLIDES.length - 1) setStep(step + 1);
+    else close();
+  }, [close, step]);
+
+  const prev = useCallback(() => {
+    if (step > 0) setStep(step - 1);
+  }, [step]);
 
   useEffect(() => {
     if (!open) return;
@@ -76,20 +98,7 @@ export function OnboardingTour() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, step]);
-
-  const close = () => {
-    try { localStorage.setItem(KEY, '1'); } catch { /* noop */ }
-    setOpen(false);
-  };
-  const next = () => {
-    if (step < SLIDES.length - 1) setStep(step + 1);
-    else close();
-  };
-  const prev = () => {
-    if (step > 0) setStep(step - 1);
-  };
+  }, [close, next, open, prev]);
 
   if (!open) return null;
   const slide = SLIDES[step];

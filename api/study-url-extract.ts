@@ -86,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         error:
           '이 영상은 자막이 없거나 가져올 수 없어요. 스크립트를 직접 붙여넣어 주세요.',
       });
-    } catch (e) {
+    } catch {
       return res.status(502).json({
         error: '유튜브 자막을 가져오지 못했어요. 스크립트를 붙여넣어 주세요.',
       });

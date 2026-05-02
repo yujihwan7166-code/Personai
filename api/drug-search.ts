@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         fetchedAt: new Date().toISOString(),
       });
     }
-  } catch (e) {
+  } catch {
     return res.json({
       domain: 'drug',
       query: searchTerm,

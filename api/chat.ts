@@ -175,7 +175,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
   ];
   const plugins = buildOpenRouterPluginsForUploadedFiles(validatedFiles);
-  const hasFiles = validatedFiles.length > 0;
 
   try {
     const abortCtrl = new AbortController();

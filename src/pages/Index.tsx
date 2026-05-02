@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
+﻿import { Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
@@ -16,7 +16,7 @@ import { SummaryMessageCard } from '@/components/SummaryMessageCard';
 import { stripSpeakerPrefix } from '@/lib/messageContent';
 import { buildExpertWithPrompt, getExpertPrompt } from '@/lib/expertPromptLoader';
 import { runAutoAgentTurn } from '@/lib/autoAgentTurn';
-import { createStreamExpert, fetchSearchContext, type PreSearchContext, type StreamExpertFn } from '@/lib/chatStream';
+import { fetchSearchContext } from '@/lib/chatStream';
 import { isManagedAutoAgent } from '@/lib/aiAgent';
 import { buildAgentResponsePrompt } from '@/lib/prompts/agentResponsePrompt';
 import { getDefaultProgress, type ResponseProgress } from '@/lib/responseProgress';
@@ -47,87 +47,38 @@ import { useDiscussionHistoryPersistence } from '@/hooks/useDiscussionHistoryPer
 import { usePersistedExpertState } from '@/hooks/usePersistedExpertState';
 import { AUTO_AGENT_CONFIG } from '@/utils/agent/config';
 import { inferAgentIntent } from '@/utils/agent/agentDisplay';
-
-const CHAT_URL = '/api/chat';
-const GENERAL_IMAGE_URL = '/api/general-image';
-const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
-const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
-const LazyModePaletteModal = lazy(() => import('@/components/ModePaletteModal').then((module) => ({ default: module.ModePaletteModal })));
-const LazyMentalTestBrowserModal = lazy(() => import('@/components/MentalTestBrowserModal').then((module) => ({ default: module.MentalTestBrowserModal })));
-const LazyBookmarkGridModal = lazy(() => import('@/components/BookmarkGridModal').then((module) => ({ default: module.BookmarkGridModal })));
-const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
-const LazyOnboardingTour = lazy(() => import('@/components/OnboardingTour').then((module) => ({ default: module.OnboardingTour })));
-const LazyExpertSelectionPanel = lazy(() => import('@/components/ExpertSelectionPanel').then((module) => ({ default: module.ExpertSelectionPanel })));
-const LazyGamePlayer = lazy(() => import('@/components/GamePlayer').then((module) => ({ default: module.GamePlayer })));
-const LazyQuestionInput = lazy(() => import('@/components/QuestionInput').then((module) => ({ default: module.QuestionInput })));
-const LazyPremiumConsultChat = lazy(() => import('@/components/PremiumConsultChat').then((module) => ({ default: module.PremiumConsultChat })));
-const LazyDeepResearchChat = lazy(() => import('@/components/DeepResearchChat').then((module) => ({ default: module.DeepResearchChat })));
-const LazyTranslateChat = lazy(() => import('@/components/TranslateChat').then((module) => ({ default: module.TranslateChat })));
-const LazyFileConvertChat = lazy(() => import('@/components/FileConvertChat').then((module) => ({ default: module.FileConvertChat })));
 import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
-const LazyStudyWorkspace = lazy(() => import('@/components/study/StudyWorkspace').then((module) => ({ default: module.StudyWorkspace })));
-const LazyVoiceAnalysisPanel = lazy(() => import('@/components/voice-analysis/VoiceAnalysisPanel').then((module) => ({ default: module.VoiceAnalysisPanel })));
-const LazyMediaGenPanel = lazy(() => import('@/components/media-gen/MediaGenPanel').then((module) => ({ default: module.MediaGenPanel })));
-let pptGeneratorPromise: Promise<typeof import('@/lib/pptGenerator')> | null = null;
-let questionClassifierPromise: Promise<typeof import('@/utils/agent/questionClassifier')> | null = null;
-let agentPipelinePromise: Promise<typeof import('@/utils/agent/agentPipeline')> | null = null;
-
-type GeneralImageRequestFile = {
-  name: string;
-  mimeType: string;
-  base64: string;
-  extractedText?: string;
-};
-
-type GeneralImageApiResponse = {
-  mode: GeneralImageIntent;
-  text?: string;
-  images?: Array<{
-    mimeType: string;
-    data: string;
-  }>;
-  aspectRatio?: string;
-  sourceModel?: string;
-  error?: string;
-};
-
-async function loadPptGenerator() {
-  if (!pptGeneratorPromise) {
-    pptGeneratorPromise = import('@/lib/pptGenerator');
-  }
-
-  return pptGeneratorPromise;
-}
-
-async function loadQuestionClassifier() {
-  if (!questionClassifierPromise) {
-    questionClassifierPromise = import('@/utils/agent/questionClassifier');
-  }
-
-  return questionClassifierPromise;
-}
-
-async function loadAgentPipeline() {
-  if (!agentPipelinePromise) {
-    agentPipelinePromise = import('@/utils/agent/agentPipeline');
-  }
-
-  return agentPipelinePromise;
-}
-
-// Timing constants
-const DELAY_BETWEEN_EXPERTS = 300; // ms between expert responses
-const DELAY_BETWEEN_ROUNDS = 500; // ms between debate rounds
-const DELAY_ROUTER_ANALYSIS = 1200; // ms for router analysis animation
-const DELAY_ROUTER_TRANSITION = 400; // ms for router to expert transition
-const DELAY_PROCON_START = 500; // ms before procon debate starts
-
-
-const streamExpert: StreamExpertFn = createStreamExpert({
-  chatUrl: CHAT_URL,
-  safetyGuardrail: '',
-  qualityGuardrail: '',
-});
+import {
+  CHAT_URL,
+  DELAY_BETWEEN_EXPERTS,
+  DELAY_BETWEEN_ROUNDS,
+  DELAY_ROUTER_ANALYSIS,
+  DELAY_ROUTER_TRANSITION,
+  GENERAL_IMAGE_MODEL,
+  GENERAL_IMAGE_URL,
+  LazyAppSidebar,
+  LazyBookmarkGridModal,
+  LazyCommandPalette,
+  LazyDeepResearchChat,
+  LazyExpertSelectionPanel,
+  LazyFileConvertChat,
+  LazyGamePlayer,
+  LazyMediaGenPanel,
+  LazyMentalTestBrowserModal,
+  LazyModePaletteModal,
+  LazyOnboardingTour,
+  LazyPremiumConsultChat,
+  LazyQuestionInput,
+  LazyStudyWorkspace,
+  LazyTranslateChat,
+  LazyVoiceAnalysisPanel,
+  loadAgentPipeline,
+  loadPptGenerator,
+  loadQuestionClassifier,
+  streamExpert,
+  type GeneralImageApiResponse,
+  type GeneralImageRequestFile,
+} from './indexRuntime';
 
 const Index = () => {
   const { user } = useAuth();

@@ -178,7 +178,7 @@ async function callProxySearch(
       rawContext: data.rawContext || '',
       error: data.error,
     };
-  } catch (error) {
+  } catch {
     return {
       citations: [],
       rawContext: '',
