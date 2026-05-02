@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Clock3, Hourglass, Plus } from 'lucide-react';
+import { Clock3, Hourglass } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
 import { PlannerInput } from './PlannerInput';
@@ -11,7 +11,6 @@ interface TodayExecutionBoardProps {
   anchorIso: string;
   inputRef?: React.RefObject<HTMLInputElement>;
   onTaskClick?: (task: { id: string; title: string }) => void;
-  onCreateTask?: () => void;
 }
 
 const localDateKey = (date: Date) => {
@@ -51,7 +50,6 @@ export const TodayExecutionBoard = ({
   anchorIso,
   inputRef,
   onTaskClick,
-  onCreateTask,
 }: TodayExecutionBoardProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
 
@@ -83,18 +81,7 @@ export const TodayExecutionBoard = ({
     [dayKey, tasks],
   );
 
-  // 헤더 라벨 — 오늘/내일이면 단어, 그 외엔 날짜.
-  const selectionTitle = useMemo(() => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    if (isSameLocalDay(anchorIso, today)) return '오늘';
-    if (isSameLocalDay(anchorIso, tomorrow)) return '내일';
-    return day.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
-  }, [anchorIso, day]);
-
   const total = scheduled.length + planned.length;
-  const headline = total > 0 ? `${total}개` : '비어 있음';
 
   const handleAdd = (
     title: string,
@@ -121,28 +108,8 @@ export const TodayExecutionBoard = ({
 
   return (
     <section className="h-full min-h-0 flex flex-col border-b lg:border-b-0 lg:border-r border-[hsl(var(--hairline))] pb-3 lg:pb-0 lg:pr-3">
-      <div className="shrink-0 pb-3 border-b border-[hsl(var(--hairline))]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground font-semibold">실행 큐</p>
-            <h2 className="mt-1 flex items-center gap-2 text-[17px] font-semibold tracking-tight text-foreground">
-              <span className="min-w-0 truncate">{selectionTitle}</span>
-              <span className="text-[13px] font-medium tabular-nums text-muted-foreground">{headline}</span>
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onCreateTask ?? (() => inputRef?.current?.focus())}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-background hover:bg-accent transition-colors"
-            aria-label="할 일 추가"
-            title="할 일 추가"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="mt-3">
-          <PlannerInput inputRef={inputRef} placeholder="+ 할 일 추가" onSubmit={handleAdd} hidePreview />
-        </div>
+      <div className="shrink-0 pb-3">
+        <PlannerInput inputRef={inputRef} placeholder="+ 할 일 추가" onSubmit={handleAdd} hidePreview />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto py-3 space-y-3">

@@ -53,6 +53,8 @@ interface TodayTimelineProps {
   onItemClick?: (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => void;
   /** 슬롯 클릭 시 외부 모달 (현재 사용 안함 — 인라인 추가가 기본). */
   onSlotClick?: (slotIso: string) => void;
+  /** 자체 헤더(라벨 + 7-23/지금 토글) 숨김 — 부모가 큰 헤더로 대체할 때 사용. */
+  hideHeader?: boolean;
 }
 
 const formatHm = (iso: string): string =>
@@ -81,7 +83,7 @@ const computeHeightPx = (startIso: string, endIso: string): number => {
   return Math.max(20, (mins / 60) * HOUR_PX);
 };
 
-export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSlotClick }: TodayTimelineProps) => {
+export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSlotClick, hideHeader }: TodayTimelineProps) => {
   const baseDateIso = dateIso ?? new Date().toISOString();
   const itemsRaw = usePlannerToday(baseDateIso);
   const [now, setNow] = useState(new Date());
@@ -193,7 +195,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
 
   const handleUnschedule = (task: PlannerTask) => {
     taskStore.unschedule(task.id);
-    notify.info('인박스로 옮겼어요', { duration: 1500 });
+    notify.info('대기함으로 옮겼어요', { duration: 1500 });
   };
 
   const handleSetPriority = (task: PlannerTask, p: Priority) => {
@@ -230,14 +232,17 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     </button>
   );
 
-  return (
-    <PlannerSection label="오늘" count={dateLabel} action={
-      <span className="inline-flex items-center gap-2">
-        {CompactToggle}
-        {NowButton}
-      </span>
-    } className="h-full">
-      <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+  const sameStartCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      if (!item.data.startAt) continue;
+      counts.set(item.data.startAt, (counts.get(item.data.startAt) ?? 0) + 1);
+    }
+    return counts;
+  }, [items]);
+
+  const body = (
+    <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
         <div className="relative" style={{ height: visibleHours * HOUR_PX }}>
           {/* 시간 격자 */}
           {Array.from({ length: visibleHours }, (_, i) => {
@@ -248,7 +253,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                 className="absolute left-0 right-0 flex"
                 style={{ top: i * HOUR_PX, height: HOUR_PX }}
               >
-                <div className="w-12 shrink-0 pr-2 text-right">
+                <div className="w-10 shrink-0 pr-1.5 text-right">
                   <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground leading-none font-semibold">
                     {String(hour).padStart(2, '0')}:00
                   </span>
@@ -288,7 +293,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
             if (compact && (adjusted < 0 || adjusted > visibleHours * HOUR_PX)) return null;
             return (
             <div
-              className="absolute left-12 right-0 z-20 pointer-events-none"
+              className="absolute left-10 right-0 z-20 pointer-events-none"
               style={{ top: adjusted }}
             >
               <div className="relative h-px bg-rose-500">
@@ -300,13 +305,13 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
 
           {/* 인라인 빠른 추가 — Apple Cal 패턴. 빈 슬롯 클릭 시 그 자리에 input. */}
           {quickAddSlot && (
-            <div className="absolute left-12 right-0 top-0 bottom-0 pointer-events-none z-30">
+            <div className="absolute left-10 right-0 top-0 bottom-0 pointer-events-none z-30">
               <div className="relative h-full pointer-events-none">
                 <InlineQuickAdd
                   startIso={quickAddSlot}
                   style={{
                     top: computeTopPx(quickAddSlot, baseDateIso) - visibleStart * HOUR_PX,
-                    height: HOUR_PX / 2 - 2,
+                    height: 58,
                     pointerEvents: 'auto',
                   }}
                   onClose={() => setQuickAddSlot(null)}
@@ -316,11 +321,19 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
           )}
 
           {/* 시간 블록 */}
-          <div className="absolute left-12 right-0 top-0 bottom-0 pointer-events-none">
+          <div className="absolute left-10 right-0 top-0 bottom-0 pointer-events-none">
+            {(() => {
+              const sameStartSeen = new Map<string, number>();
+              return (
+                <>
             {items.map((item) => {
               const startAt = item.data.startAt;
               const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt!;
               if (!startAt) return null;
+              const laneCount = sameStartCounts.get(startAt) ?? 1;
+              const laneIndex = sameStartSeen.get(startAt) ?? 0;
+              sameStartSeen.set(startAt, laneIndex + 1);
+              const laneWidth = 100 / laneCount;
               const top = computeTopPx(startAt, baseDateIso) - visibleStart * HOUR_PX;
               const height = computeHeightPx(startAt, endAt);
               // compact 모드에서 visible 범위 밖이면 skip.
@@ -334,6 +347,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                 item.kind === 'event'
                   ? item.data.color ?? 'hsl(220 70% 55%)'
                   : (() => {
+                      if (item.data.color) return TASK_LIST_COLORS[item.data.color].stripe;
                       const lid = item.data.listId;
                       if (lid) {
                         const c = listColorMap.get(lid);
@@ -365,13 +379,21 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                   item={item.kind === 'task'
                     ? { kind: 'task', data: item.data as PlannerTask }
                     : { kind: 'event', data: item.data as PlannerEvent }}
-                  style={{ top, height }}
+                  style={{
+                    top,
+                    height,
+                    left: `${laneIndex * laneWidth}%`,
+                    right: 'auto',
+                    width: `calc(${laneWidth}% - 4px)`,
+                  }}
                 >
                 <div
                   className={cn(
                     'h-full w-full',
                     'rounded-lg border border-[hsl(var(--hairline))] bg-card overflow-hidden',
                     'hover:border-foreground/30 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.15)] transition-all cursor-grab active:cursor-grabbing',
+                    taskPriority === 3 && 'border-rose-400/70 shadow-[inset_0_0_0_1px_hsl(0_75%_55%/0.18)]',
+                    taskPriority === 2 && 'border-amber-400/70',
                     dim && 'opacity-50',
                   )}
                   onClick={() => {
@@ -397,7 +419,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                       style={{ backgroundColor: stripeColor }}
                       aria-hidden
                     />
-                    <div className="min-w-0 flex-1 py-1.5 pr-1">
+                    <div className={cn('min-w-0 flex-1 pr-1', height < 34 ? 'py-0.5' : 'py-1.5')}>
+                      {height >= 34 && (
                       <div className="flex items-center gap-1">
                         <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground tracking-wide leading-none font-semibold">
                           {formatHm(startAt)}
@@ -430,12 +453,15 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                           </span>
                         )}
                       </div>
+                      )}
                       <p className={cn(
-                        'text-[13px] leading-snug mt-1 text-foreground font-medium',
-                        height < 40 ? 'truncate' : 'line-clamp-2',
+                        'text-foreground font-medium',
+                        height < 34
+                          ? 'truncate text-[11.5px] leading-[13px]'
+                          : 'mt-1 line-clamp-2 text-[13px] leading-snug',
                         dim && 'line-through',
                       )}>
-                        {item.data.title}
+                        {height < 34 ? `${formatHm(startAt)} ${item.data.title}` : item.data.title}
                       </p>
                       {hasNote && height >= 60 && (
                         <p className="text-[10.5px] text-muted-foreground mt-0.5 truncate">
@@ -524,7 +550,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                         </ContextMenuSub>
                         <ContextMenuItem onSelect={() => handleUnschedule(item.data)}>
                           <InboxIcon className="mr-2 h-3.5 w-3.5" />
-                          인박스로
+                          대기함으로
                         </ContextMenuItem>
                       </>
                     )}
@@ -543,9 +569,24 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                 </ContextMenu>
               );
             })}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
+  );
+
+  if (hideHeader) return body;
+
+  return (
+    <PlannerSection label="오늘" count={dateLabel} action={
+      <span className="inline-flex items-center gap-2">
+        {CompactToggle}
+        {NowButton}
+      </span>
+    } className="h-full">
+      {body}
     </PlannerSection>
   );
 };
