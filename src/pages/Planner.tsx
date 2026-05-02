@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Command, HelpCircle, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -77,9 +77,7 @@ const isSameDay = (a: Date, b: Date): boolean =>
 
 const Planner = () => {
   const navigate = useNavigate();
-  // 사이드바 대기함 빠른 추가 input.
-  const inboxInputRef = useRef<HTMLInputElement>(null);
-  // Day 뷰 공통 input — NL 라우팅(시간 있으면 계획/타임라인, 없으면 할 일).
+  // Day 뷰 공통 input — NL 라우팅(시간 있으면 일정/타임라인, 없으면 할 일).
   const dayInputRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<PlannerView>('day');
   const [anchorIso, setAnchorIso] = useState(() => new Date().toISOString());
@@ -225,8 +223,8 @@ const Planner = () => {
       }
       case 'newTask':
         setView('day');
-        // 다음 frame 에 input 포커스 (palette 닫힘 후).
-        setTimeout(() => inboxInputRef.current?.focus(), 50);
+        // day 뷰의 공통 input 으로 포커스 (palette 닫힘 후).
+        setTimeout(() => dayInputRef.current?.focus(), 50);
         break;
       case 'newAtNow': {
         const now = new Date();
@@ -302,14 +300,10 @@ const Planner = () => {
 
       switch (e.key.toLowerCase()) {
         case 'n':
-          // Day 뷰는 공통 input, 그 외는 사이드바 빠른 추가.
-          if (view === 'day') {
-            e.preventDefault();
-            dayInputRef.current?.focus();
-          } else if (view === 'week') {
-            e.preventDefault();
-            inboxInputRef.current?.focus();
-          }
+          // n = day 뷰 공통 input 포커스 (현재 뷰가 day 가 아니면 day 로 전환).
+          e.preventDefault();
+          if (view !== 'day') setView('day');
+          setTimeout(() => dayInputRef.current?.focus(), 50);
           break;
         case 'd': e.preventDefault(); setView('day'); break;
         case 'w': e.preventDefault(); setView('week'); break;
@@ -567,9 +561,14 @@ const Planner = () => {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-7 max-w-[1400px] w-full mx-auto">
-        <header className="mb-4 sm:mb-5 flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[hsl(var(--hairline))]">
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+      <main className="flex-1 px-4 sm:px-6 py-5 sm:py-6 max-w-[1280px] w-full mx-auto">
+        {/* 페이지 가로 헤더 제거됨 — 메인 링크/제목/뷰 토글은 사이드바 상단으로 이동.
+            day 뷰의 시간 네비/공통 input 은 day 박스 헤더로 흡수.
+            week/month/year 뷰의 시간 네비는 박스 자체 헤더에 별도 (TODO). */}
+
+        {/* 풀뷰(month/year/goals)에선 사이드바가 없으므로 — 위에 mini nav (메인/제목/뷰토글/시간 네비). */}
+        {isFullscreen && (
+          <div className="mb-3 flex flex-wrap items-center gap-3 pb-2 border-b border-[hsl(var(--hairline))]">
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -579,85 +578,26 @@ const Planner = () => {
               <ChevronLeft className="h-3 w-3" />
               <span>메인</span>
             </button>
-            <h1 className="text-[20px] sm:text-[23px] font-semibold tracking-tight leading-none">통합 플래너</h1>
+            <h1 className="text-[17px] font-semibold tracking-tight leading-none">통합 플래너</h1>
             <ViewToggle value={view} onChange={setView} />
-            {/* 시간 네비게이션 — day 뷰는 박스 안 큰 헤더가 대신 함. */}
-            {view !== 'day' && (
+            {view !== 'goals' && (
               <>
                 <div className="inline-flex items-center gap-0.5 ml-1">
-                  <button
-                    type="button"
-                    onClick={goPrev}
-                    aria-label="이전"
-                    title="이전 (←)"
-                    className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent text-foreground transition-colors"
-                  >
+                  <button type="button" onClick={goPrev} aria-label="이전" className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent transition-colors">
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={goToday}
-                    disabled={anchorIsToday}
-                    aria-label="오늘로"
-                    title="오늘로 (T)"
-                    className={cn(
-                      'h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors',
-                      anchorIsToday
-                        ? 'bg-card text-muted-foreground/60 cursor-default'
-                        : 'bg-card text-foreground hover:bg-accent',
-                    )}
-                  >
+                  <button type="button" onClick={goToday} disabled={anchorIsToday} className={cn('h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors', anchorIsToday ? 'bg-card text-muted-foreground/60 cursor-default' : 'bg-card text-foreground hover:bg-accent')}>
                     오늘
                   </button>
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    aria-label="다음"
-                    title="다음 (→)"
-                    className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent text-foreground transition-colors"
-                  >
+                  <button type="button" onClick={goNext} aria-label="다음" className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent transition-colors">
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-                <span className="text-[14px] text-foreground font-medium tabular-nums">
-                  {periodLabel}
-                </span>
+                <span className="text-[14px] text-foreground font-medium tabular-nums">{periodLabel}</span>
               </>
             )}
           </div>
-          {/* 우측 액션 */}
-          <div className="hidden">
-            <button
-              type="button"
-              onClick={() => inboxInputRef.current?.focus()}
-              aria-label="빠른 추가"
-              title="빠른 추가 (N)"
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12px] font-medium text-foreground hover:bg-accent transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">추가</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaletteOpen(true)}
-              aria-label="명령 팔레트"
-              title="명령 팔레트 (Ctrl/Cmd+K)"
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12px] font-medium text-foreground hover:bg-accent transition-colors"
-            >
-              <Command className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">검색</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setHelpOpen(true)}
-              aria-label="단축키 도움말"
-              title="단축키 (?)"
-              className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            >
-              <HelpCircle className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </header>
+        )}
 
         {isFullscreen ? (
           <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)]">
@@ -682,11 +622,16 @@ const Planner = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[calc(100vh-145px)] sm:h-[calc(100vh-155px)]">
-            <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card p-3 min-h-0 max-h-[34vh] md:max-h-none overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[calc(100vh-90px)] sm:h-[calc(100vh-100px)]">
+            <div className="min-h-0 max-h-[40vh] md:max-h-none overflow-y-auto">
               <PlannerSidebar
-                inputRef={inboxInputRef}
-                onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                anchorIso={anchorIso}
+                view={view}
+                onViewChange={setView}
+                onSelectDay={(dayIso) => {
+                  setAnchorIso(dayIso);
+                  setView('day');
+                }}
               />
             </div>
             {view === 'day' ? (
