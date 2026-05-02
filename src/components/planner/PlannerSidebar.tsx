@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
+import { PlannerUpNext } from './PlannerUpNext';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -17,6 +18,8 @@ interface PlannerSidebarProps {
   onViewChange: (view: PlannerView) => void;
   /** 미니 월에서 날짜 클릭 시 — Day 뷰로 전환 + anchor 갱신을 부모가 처리. */
   onSelectDay: (dayIso: string) => void;
+  /** 다가오는 일정 클릭 시 — 모달 등 외부 동작. */
+  onTaskClick?: (task: { id: string; title: string }) => void;
 }
 
 export const PlannerSidebar = ({
@@ -24,6 +27,7 @@ export const PlannerSidebar = ({
   view,
   onViewChange,
   onSelectDay,
+  onTaskClick,
 }: PlannerSidebarProps) => {
   const navigate = useNavigate();
 
@@ -48,6 +52,11 @@ export const PlannerSidebar = ({
 
       {/* 미니 월 캘린더 */}
       <PlannerMiniMonth anchorIso={anchorIso} onSelectDay={onSelectDay} />
+
+      <div className="border-t border-[hsl(var(--hairline))] pt-3" />
+
+      {/* 다가오는 일정 — 다음 7일 시간순 미니 list */}
+      <PlannerUpNext onItemClick={onTaskClick} />
     </div>
   );
 };

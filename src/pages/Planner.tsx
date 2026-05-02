@@ -561,7 +561,7 @@ const Planner = () => {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-4 sm:px-6 py-5 sm:py-6 max-w-[1280px] w-full mx-auto">
+      <main className="flex-1 px-4 sm:px-6 py-4 sm:py-5 max-w-[1280px] w-full mx-auto">
         {/* 페이지 가로 헤더 제거됨 — 메인 링크/제목/뷰 토글은 사이드바 상단으로 이동.
             day 뷰의 시간 네비/공통 input 은 day 박스 헤더로 흡수.
             week/month/year 뷰의 시간 네비는 박스 자체 헤더에 별도 (TODO). */}
@@ -622,8 +622,8 @@ const Planner = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[calc(100vh-90px)] sm:h-[calc(100vh-100px)]">
-            <div className="min-h-0 max-h-[40vh] md:max-h-none overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[calc(100vh-60px)] sm:h-[calc(100vh-70px)]">
+            <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto">
               <PlannerSidebar
                 anchorIso={anchorIso}
                 view={view}
@@ -632,6 +632,7 @@ const Planner = () => {
                   setAnchorIso(dayIso);
                   setView('day');
                 }}
+                onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
               />
             </div>
             {view === 'day' ? (
