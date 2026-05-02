@@ -27,6 +27,7 @@ import {
   type DragMoveEvent,
 } from '@dnd-kit/core';
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
+import { PlannerInput } from '@/components/planner/PlannerInput';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
 import { TodayTodoList } from '@/components/planner/TodayTodoList';
@@ -56,7 +57,7 @@ import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
 
-import type { Priority } from '@/types/planner';
+import type { PlannerTask, Priority } from '@/types/planner';
 
 type DialogMode =
   | {
@@ -76,7 +77,10 @@ const isSameDay = (a: Date, b: Date): boolean =>
 
 const Planner = () => {
   const navigate = useNavigate();
+  // 사이드바 대기함 빠른 추가 input.
   const inboxInputRef = useRef<HTMLInputElement>(null);
+  // Day 뷰 공통 input — NL 라우팅(시간 있으면 계획/타임라인, 없으면 할 일).
+  const dayInputRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<PlannerView>('day');
   const [anchorIso, setAnchorIso] = useState(() => new Date().toISOString());
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
@@ -138,6 +142,34 @@ const Planner = () => {
   const handleSlotClick = useCallback((slotIso: string) => {
     setDialogMode({ kind: 'create', presetStartIso: slotIso });
   }, []);
+
+  /**
+   * Day 뷰 공통 입력 핸들러 — NL 라우팅.
+   * 시간(startAt) 있으면 계획/타임라인으로, 없으면 anchor 날짜의 할 일(plannedFor) 로.
+   */
+  const handleDayAdd = useCallback((
+    title: string,
+    parsed?: {
+      startAt?: string;
+      endAt?: string;
+      recurrence?: PlannerTask['recurrence'];
+      tags?: string[];
+      priority?: PlannerTask['priority'];
+    },
+  ) => {
+    const day = new Date(anchorIso);
+    const dayKey = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+    taskStore.add({
+      title,
+      startAt: parsed?.startAt,
+      endAt: parsed?.endAt,
+      recurrence: parsed?.recurrence,
+      tags: parsed?.tags,
+      priority: parsed?.priority,
+      plannedFor: parsed?.startAt ? undefined : dayKey,
+    });
+    notify.success(parsed?.startAt ? '계획에 추가했어요' : '할 일에 추가했어요', { duration: 1200 });
+  }, [anchorIso]);
 
   const handleItemClick = useCallback(
     (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => {
@@ -270,7 +302,11 @@ const Planner = () => {
 
       switch (e.key.toLowerCase()) {
         case 'n':
-          if (view === 'day' || view === 'week') {
+          // Day 뷰는 공통 input, 그 외는 사이드바 빠른 추가.
+          if (view === 'day') {
+            e.preventDefault();
+            dayInputRef.current?.focus();
+          } else if (view === 'week') {
             e.preventDefault();
             inboxInputRef.current?.focus();
           }
@@ -710,6 +746,15 @@ const Planner = () => {
                     오늘로
                   </button>
                 </div>
+                {/* 공통 입력 — 시간 NL 있으면 계획/타임라인, 없으면 할 일. 추가 path 통일.
+                    우측 타임라인 슬롯 클릭은 보조 path 로 유지 (캘린더 표준 — 시간 직접 그릴 때). */}
+                <div className="shrink-0 px-1">
+                  <PlannerInput
+                    inputRef={dayInputRef}
+                    placeholder="+ 추가 (시간 적으면 계획/타임라인, 안 적으면 할 일)"
+                    onSubmit={handleDayAdd}
+                  />
+                </div>
                 {/* 좌측: 계획(시간 잡힌 리스트) + 할 일(체크리스트) stack / 우측: 타임라인. */}
                 <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-3">
                   <div className="grid grid-rows-[auto_minmax(0,1fr)] gap-3 min-h-0">
@@ -719,8 +764,8 @@ const Planner = () => {
                     />
                     <TodayTodoList
                       anchorIso={anchorIso}
-                      inputRef={inboxInputRef}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                      onFocusAdd={() => dayInputRef.current?.focus()}
                     />
                   </div>
                   <TodayTimeline

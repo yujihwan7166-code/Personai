@@ -1,22 +1,21 @@
 /**
  * 좌하 "할 일" 박스 — 시간 안 정한 오늘 체크리스트.
  *
- * plannedFor=오늘 + startAt 없는 항목들. 빠른 추가 입력은 여기.
- * 시간 잡으면 → 좌상 "계획" + 우측 "타임라인" 으로 자동 이동 (plannedFor 자동 해제).
+ * plannedFor=오늘 + startAt 없는 항목들. 빠른 추가는 메인 영역 공통 입력창에서
+ * NL 라우팅 — 시간 NL 있으면 계획/타임라인, 없으면 여기 할 일로 자동 분류.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { ListTodo } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
-import { notify } from '@/lib/notify';
-import { PlannerInput } from './PlannerInput';
 import { PlannerCard } from './PlannerCard';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
 import { PLANNER_TASK_CHANGED, type PlannerTask } from '@/types/planner';
 
 interface TodayTodoListProps {
   anchorIso: string;
-  inputRef?: React.RefObject<HTMLInputElement>;
   onTaskClick?: (task: { id: string; title: string }) => void;
+  /** 공통 입력창에 포커스 (빈 상태에서 안내 클릭 시). */
+  onFocusAdd?: () => void;
 }
 
 const localDateKey = (date: Date) => {
@@ -35,7 +34,7 @@ const sortPlanned = (items: PlannerTask[]) =>
     return b.createdAt.localeCompare(a.createdAt);
   });
 
-export const TodayTodoList = ({ anchorIso, inputRef, onTaskClick }: TodayTodoListProps) => {
+export const TodayTodoList = ({ anchorIso, onTaskClick, onFocusAdd }: TodayTodoListProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
 
   useEffect(() => {
@@ -53,29 +52,6 @@ export const TodayTodoList = ({ anchorIso, inputRef, onTaskClick }: TodayTodoLis
     [dayKey, tasks],
   );
 
-  const handleAdd = (
-    title: string,
-    parsed?: {
-      startAt?: string;
-      endAt?: string;
-      recurrence?: PlannerTask['recurrence'];
-      tags?: string[];
-      priority?: PlannerTask['priority'];
-    },
-  ) => {
-    taskStore.add({
-      title,
-      startAt: parsed?.startAt,
-      endAt: parsed?.endAt,
-      recurrence: parsed?.recurrence,
-      tags: parsed?.tags,
-      priority: parsed?.priority,
-      // 시간 안 정했으면 그 날 할 일에. 시간 NL 입력은 계획/타임라인 쪽으로.
-      plannedFor: parsed?.startAt ? undefined : dayKey,
-    });
-    notify.success(parsed?.startAt ? '계획에 추가했어요' : '할 일에 추가했어요', { duration: 1200 });
-  };
-
   return (
     <section className="h-full min-h-0 flex flex-col rounded-lg border border-[hsl(var(--hairline))] bg-card p-3">
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-[hsl(var(--hairline))]">
@@ -88,15 +64,11 @@ export const TodayTodoList = ({ anchorIso, inputRef, onTaskClick }: TodayTodoLis
         )}
       </div>
 
-      <div className="shrink-0 pb-2.5">
-        <PlannerInput inputRef={inputRef} placeholder="+ 오늘 할 일 추가" onSubmit={handleAdd} hidePreview />
-      </div>
-
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
         {planned.length === 0 ? (
           <button
             type="button"
-            onClick={() => inputRef?.current?.focus()}
+            onClick={onFocusAdd}
             className="w-full rounded-md px-2 py-3 text-left text-[12.5px] text-foreground/70 hover:bg-accent hover:text-foreground transition-colors leading-snug"
           >
             오늘 하기로 정한 항목이 없어요.<br />

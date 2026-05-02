@@ -108,7 +108,7 @@ export const PlannerSidebar = ({
   }, []);
 
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="h-full flex flex-col gap-2.5">
       {/* 1. 대기함 — 빠른 추가 + 보류 항목 리스트 */}
       <section className="shrink-0 flex flex-col min-h-0">
         <SidebarHeader label="대기함" count={waitingTasks.length} />
@@ -169,12 +169,12 @@ export const PlannerSidebar = ({
 const SidebarHeader = ({
   label, count, action,
 }: { label: string; count?: number; action?: React.ReactNode }) => (
-  <div className="flex items-center gap-2 px-2 mb-2 shrink-0">
-    <span className="text-[13px] font-semibold tracking-tight text-foreground leading-none">
+  <div className="flex items-center gap-2 px-2 mb-1 shrink-0">
+    <span className="text-[12px] font-semibold tracking-tight text-foreground/85 leading-none">
       {label}
     </span>
     {typeof count === 'number' && count > 0 && (
-      <span className="text-[11px] tabular-nums text-foreground/60 font-medium">{count}</span>
+      <span className="text-[10.5px] tabular-nums text-foreground/55 font-medium">{count}</span>
     )}
     {action && <span className="ml-auto">{action}</span>}
   </div>
