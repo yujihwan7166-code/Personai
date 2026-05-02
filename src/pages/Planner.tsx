@@ -622,8 +622,9 @@ const Planner = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[calc(100vh-90px)] sm:h-[calc(100vh-100px)]">
-            <div className="min-h-0 max-h-[40vh] md:max-h-none overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-[224px_minmax(0,1fr)] gap-4 sm:gap-5 h-[calc(100vh-90px)] sm:h-[calc(100vh-100px)]">
+            {/* 사이드바 — 메인과 시각 구분 위해 옅은 panel + 우측 hairline. */}
+            <aside className="min-h-0 max-h-[40vh] md:max-h-none overflow-y-auto rounded-lg bg-muted/30 md:bg-transparent md:border-r md:border-[hsl(var(--hairline))] p-3 md:py-2 md:pr-4 md:pl-1 md:rounded-none">
               <PlannerSidebar
                 anchorIso={anchorIso}
                 view={view}
@@ -633,7 +634,7 @@ const Planner = () => {
                   setView('day');
                 }}
               />
-            </div>
+            </aside>
             {view === 'day' ? (
               <div className="min-h-0 flex flex-col gap-3">
                 {/* 큰 날짜 헤더 + 공통 입력 — 한 줄에 묶어 수직 공간 절약.
