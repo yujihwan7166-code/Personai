@@ -10,8 +10,24 @@ function manualChunks(id: string) {
     return;
   }
 
+  if (id.includes("@tiptap/pm") || id.includes("prosemirror")) {
+    return "vendor-prosemirror";
+  }
+
+  if (id.includes("@tiptap") || id.includes("tiptap-markdown")) {
+    return "vendor-tiptap";
+  }
+
+  if (id.includes("pdfjs-dist")) {
+    return "vendor-pdf";
+  }
+
+  if (/[\\/]node_modules[\\/]d3(?:-|[\\/])/.test(id)) {
+    return "vendor-d3";
+  }
+
   if (id.includes("recharts")) {
-    return "vendor-charts";
+    return "vendor-recharts";
   }
 
   if (id.includes("pptxgenjs") || id.includes("jszip")) {

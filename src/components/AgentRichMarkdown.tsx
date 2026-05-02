@@ -1,4 +1,4 @@
-import { isValidElement, useState, type ReactNode } from 'react';
+import { isValidElement, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
@@ -77,36 +77,41 @@ function CodeBlock({ children }: { children: ReactNode }) {
   );
 }
 
+type MarkdownElementProps<T extends keyof JSX.IntrinsicElements> = ComponentPropsWithoutRef<T>;
+type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & {
+  inline?: boolean;
+};
+
 const markdownComponents = {
-  table: ({ children }: any) => (
+  table: ({ children }: MarkdownElementProps<'table'>) => (
     <div className="agent-md-table-wrap">
       <table className="agent-md-table">{children}</table>
     </div>
   ),
-  thead: ({ children }: any) => <thead className="agent-md-thead">{children}</thead>,
-  th: ({ children }: any) => <th className="agent-md-th">{children}</th>,
-  td: ({ children }: any) => <td className="agent-md-td">{children}</td>,
-  tr: ({ children }: any) => <tr className="agent-md-tr">{children}</tr>,
-  strong: ({ children }: any) => <strong className="agent-md-strong">{children}</strong>,
+  thead: ({ children }: MarkdownElementProps<'thead'>) => <thead className="agent-md-thead">{children}</thead>,
+  th: ({ children }: MarkdownElementProps<'th'>) => <th className="agent-md-th">{children}</th>,
+  td: ({ children }: MarkdownElementProps<'td'>) => <td className="agent-md-td">{children}</td>,
+  tr: ({ children }: MarkdownElementProps<'tr'>) => <tr className="agent-md-tr">{children}</tr>,
+  strong: ({ children }: MarkdownElementProps<'strong'>) => <strong className="agent-md-strong">{children}</strong>,
   // 페이지 h1 은 이미 앱 쉘에 있으므로 여기선 h2 부터 시작 — 스크린리더 계층 유지.
-  h1: ({ children }: any) => <h2 className="agent-md-h1">{children}</h2>,
-  h2: ({ children }: any) => <h3 className="agent-md-h2">{children}</h3>,
-  h3: ({ children }: any) => <h4 className="agent-md-h3">{children}</h4>,
-  h4: ({ children }: any) => <h5 className="agent-md-h4">{children}</h5>,
-  h5: ({ children }: any) => <h6 className="agent-md-h5">{children}</h6>,
-  ul: ({ children }: any) => <ul className="agent-md-list">{children}</ul>,
-  ol: ({ children }: any) => <ol className="agent-md-list">{children}</ol>,
-  li: ({ children }: any) => <li className="agent-md-item">{children}</li>,
-  blockquote: ({ children }: any) => <blockquote className="agent-md-blockquote">{children}</blockquote>,
+  h1: ({ children }: MarkdownElementProps<'h1'>) => <h2 className="agent-md-h1">{children}</h2>,
+  h2: ({ children }: MarkdownElementProps<'h2'>) => <h3 className="agent-md-h2">{children}</h3>,
+  h3: ({ children }: MarkdownElementProps<'h3'>) => <h4 className="agent-md-h3">{children}</h4>,
+  h4: ({ children }: MarkdownElementProps<'h4'>) => <h5 className="agent-md-h4">{children}</h5>,
+  h5: ({ children }: MarkdownElementProps<'h5'>) => <h6 className="agent-md-h5">{children}</h6>,
+  ul: ({ children }: MarkdownElementProps<'ul'>) => <ul className="agent-md-list">{children}</ul>,
+  ol: ({ children }: MarkdownElementProps<'ol'>) => <ol className="agent-md-list">{children}</ol>,
+  li: ({ children }: MarkdownElementProps<'li'>) => <li className="agent-md-item">{children}</li>,
+  blockquote: ({ children }: MarkdownElementProps<'blockquote'>) => <blockquote className="agent-md-blockquote">{children}</blockquote>,
   hr: () => <hr className="agent-md-hr" />,
-  a: ({ href, children }: any) => (
+  a: ({ href, children }: MarkdownElementProps<'a'>) => (
     <a href={href} target="_blank" rel="noreferrer noopener" className="agent-md-link">
       {children}
     </a>
   ),
-  p: ({ children }: any) => <p className="agent-md-p">{children}</p>,
-  pre: ({ children }: any) => <CodeBlock>{children}</CodeBlock>,
-  code: ({ className, children }: any) => {
+  p: ({ children }: MarkdownElementProps<'p'>) => <p className="agent-md-p">{children}</p>,
+  pre: ({ children }: MarkdownElementProps<'pre'>) => <CodeBlock>{children}</CodeBlock>,
+  code: ({ className, children }: MarkdownCodeProps) => {
     const content = String(children ?? '').replace(/\n$/, '');
     const isBlock = Boolean(className?.includes('language-') || content.includes('\n'));
 
