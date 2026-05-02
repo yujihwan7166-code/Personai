@@ -695,6 +695,7 @@ const Planner = () => {
                     [날짜 캐러셀] [공통 input flex-1] [오늘로]
                     공통 input: 시간 NL 있으면 계획/타임라인, 없으면 할 일. */}
                 <div className="shrink-0 flex items-center gap-3 pb-3 px-1 border-b border-[hsl(var(--hairline))]">
+                  {/* 시간 네비 cluster — Google Calendar 패턴 (◀ 라벨 ▶ + 오늘로). */}
                   <div className="shrink-0 flex items-center gap-2">
                     <button
                       type="button"
@@ -731,6 +732,21 @@ const Planner = () => {
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>
+                    <button
+                      type="button"
+                      onClick={goToday}
+                      disabled={anchorIsToday}
+                      aria-label="오늘로"
+                      title="오늘로 (T)"
+                      className={cn(
+                        'ml-1 h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors',
+                        anchorIsToday
+                          ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
+                          : 'bg-card text-foreground hover:bg-accent',
+                      )}
+                    >
+                      오늘로
+                    </button>
                   </div>
                   <div className="flex-1 min-w-0">
                     <PlannerInput
@@ -746,23 +762,7 @@ const Planner = () => {
                         setDialogMode({ kind: 'create', presetStartIso: day.toISOString() });
                       }}
                     />
-                    {/* day-view input: 시간 NL 있으면 일정/타임라인, 없으면 할 일. */}
                   </div>
-                  <button
-                    type="button"
-                    onClick={goToday}
-                    disabled={anchorIsToday}
-                    aria-label="오늘로"
-                    title="오늘로 (T)"
-                    className={cn(
-                      'shrink-0 h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors',
-                      anchorIsToday
-                        ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
-                        : 'bg-card text-foreground hover:bg-accent',
-                    )}
-                  >
-                    오늘로
-                  </button>
                 </div>
                 {/* 좌측: 계획(시간 잡힌 리스트) + 할 일(체크리스트) stack / 우측: 타임라인. */}
                 <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-3">
