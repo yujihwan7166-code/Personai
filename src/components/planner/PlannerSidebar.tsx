@@ -7,10 +7,11 @@
  * 추후: 오버듀, 다가오는 일정 위젯 추가 예정.
  */
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, BookOpen, FileText, Network, Compass } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
-import { PlannerUpNext } from './PlannerUpNext';
+import { PlannerDday } from './PlannerDday';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -18,16 +19,20 @@ interface PlannerSidebarProps {
   onViewChange: (view: PlannerView) => void;
   /** 미니 월에서 날짜 클릭 시 — Day 뷰로 전환 + anchor 갱신을 부모가 처리. */
   onSelectDay: (dayIso: string) => void;
-  /** 다가오는 일정 클릭 시 — 모달 등 외부 동작. */
-  onTaskClick?: (task: { id: string; title: string }) => void;
 }
+
+const QUICK_NAV: Array<{ to: string; label: string; Icon: typeof FileText }> = [
+  { to: '/memos',    label: '메모',  Icon: FileText },
+  { to: '/journal',  label: '저널',  Icon: BookOpen },
+  { to: '/wiki',     label: '위키',  Icon: Network },
+  { to: '/discover', label: '발견',  Icon: Compass },
+];
 
 export const PlannerSidebar = ({
   anchorIso,
   view,
   onViewChange,
   onSelectDay,
-  onTaskClick,
 }: PlannerSidebarProps) => {
   const navigate = useNavigate();
 
@@ -55,8 +60,34 @@ export const PlannerSidebar = ({
 
       <div className="border-t border-[hsl(var(--hairline))] pt-3" />
 
-      {/* 다가오는 일정 — 다음 7일 시간순 미니 list */}
-      <PlannerUpNext onItemClick={onTaskClick} />
+      {/* D-day — 시험·발표·생일·마감 등 카운트다운 */}
+      <PlannerDday />
+
+      <div className="border-t border-[hsl(var(--hairline))] pt-3" />
+
+      {/* 다른 라우트 quick nav — "통합 플래너" 답게 다른 도구로 빠른 진입. */}
+      <nav className="px-1" aria-label="빠른 이동">
+        <div className="px-1.5 mb-1.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-foreground/55 font-semibold">
+          빠른 이동
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          {QUICK_NAV.map(({ to, label, Icon }) => (
+            <button
+              key={to}
+              type="button"
+              onClick={() => navigate(to)}
+              className={cn(
+                'flex items-center gap-1.5 px-2 py-1.5 rounded-md',
+                'text-[12px] font-medium text-foreground/80 hover:text-foreground hover:bg-accent',
+                'transition-colors',
+              )}
+            >
+              <Icon className="h-3.5 w-3.5 text-foreground/55" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 };

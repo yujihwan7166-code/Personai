@@ -95,8 +95,16 @@ export interface PlannerTask {
   endAt?: string;
   /** 연결된 목표 id (v3 활용, v1 미사용). */
   goalId?: string;
+  /** 연결된 목표 마일스톤 id. goalId 없이 단독으로 쓰지 않는다. */
+  milestoneId?: string;
+  /** 날짜 단위 실행 계획. 시간표에는 올리지 않았지만 특정 날짜에 하기로 고른 상태. */
+  plannedFor?: string;
+  /** 실행 상태. 기존 done/canceled와 호환하기 위해 선택 필드로 둔다. */
+  status?: TaskStatus;
   /** 우선순위 (TickTick 패턴). 미지정 = 없음. */
   priority?: Priority;
+  /** 할 일 자체의 색상. 리스트/목표 대신 가볍게 성격을 표시한다. */
+  color?: TaskListColor;
   /** 본문/설명 — 자유 텍스트. */
   note?: string;
   /** 인박스 상단 고정. */
@@ -165,6 +173,59 @@ export interface TaskList {
 
 /** Store 변경 broadcast. */
 export const PLANNER_LIST_CHANGED = 'planner:list:changed';
+
+// ──────────────────────────────────────────────────────────────────────────
+// Goals — 목표 → 마일스톤 → 작업 연결.
+
+export type GoalStatus = 'active' | 'paused' | 'done';
+export type TaskStatus = 'todo' | 'doing' | 'blocked' | 'done' | 'canceled';
+export type GoalColor = 'slate' | 'blue' | 'teal' | 'amber' | 'rose' | 'violet' | 'green';
+
+export const GOAL_COLORS: Record<GoalColor, { stripe: string; chipBg: string; chipText: string }> = {
+  slate:  { stripe: 'hsl(215 16% 47%)', chipBg: 'hsl(210 20% 96%)', chipText: 'hsl(215 20% 28%)' },
+  blue:   { stripe: 'hsl(220 70% 55%)', chipBg: 'hsl(220 70% 95%)', chipText: 'hsl(220 70% 35%)' },
+  teal:   { stripe: 'hsl(180 50% 42%)', chipBg: 'hsl(170 52% 93%)', chipText: 'hsl(175 52% 28%)' },
+  amber:  { stripe: 'hsl(40 82% 50%)',  chipBg: 'hsl(44 82% 93%)',  chipText: 'hsl(36 76% 32%)' },
+  rose:   { stripe: 'hsl(350 72% 56%)', chipBg: 'hsl(350 70% 95%)', chipText: 'hsl(350 62% 38%)' },
+  violet: { stripe: 'hsl(265 55% 58%)', chipBg: 'hsl(265 58% 95%)', chipText: 'hsl(265 45% 38%)' },
+  green:  { stripe: 'hsl(145 52% 42%)', chipBg: 'hsl(145 52% 93%)', chipText: 'hsl(145 48% 28%)' },
+};
+
+export interface PlannerGoal {
+  id: string;
+  title: string;
+  color: GoalColor;
+  status: GoalStatus;
+  dueDate?: string;
+  description?: string;
+  order: number;
+  createdAt: string;
+}
+
+export interface PlannerMilestone {
+  id: string;
+  goalId: string;
+  title: string;
+  done: boolean;
+  dueDate?: string;
+  order: number;
+  createdAt: string;
+}
+
+export const PLANNER_GOAL_CHANGED = 'planner:goal:changed';
+
+// ──────────────────────────────────────────────────────────────────────────
+// D-day — 시험/발표/생일/마감 같은 특별한 날 카운트다운.
+
+export interface PlannerDday {
+  id: string;
+  label: string;
+  /** 'YYYY-MM-DD' 로컬 날짜 키. */
+  dateIso: string;
+  createdAt: string;
+}
+
+export const PLANNER_DDAY_CHANGED = 'planner:dday:changed';
 
 /** 서브태스크 — Task 내부 체크리스트 항목.
  * note (free-form 텍스트) 와 분리: 단계 진행 상태가 있는 작은 단위 액션. */

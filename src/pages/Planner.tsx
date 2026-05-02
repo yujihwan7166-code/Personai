@@ -600,7 +600,7 @@ const Planner = () => {
         )}
 
         {isFullscreen ? (
-          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)]">
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 h-[950px]">
             {view === 'month' && (
               <MonthView
                 anchorIso={anchorIso}
@@ -622,7 +622,7 @@ const Planner = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[calc(100vh-60px)] sm:h-[calc(100vh-70px)]">
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[950px]">
             <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto">
               <PlannerSidebar
                 anchorIso={anchorIso}
@@ -632,7 +632,6 @@ const Planner = () => {
                   setAnchorIso(dayIso);
                   setView('day');
                 }}
-                onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
               />
             </div>
             {view === 'day' ? (
