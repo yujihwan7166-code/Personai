@@ -4,7 +4,6 @@
  * dnd-kit 의 `data` 필드로 흘려보내 onDragEnd 에서 분기.
  */
 import type { PlannerEvent, PlannerTask } from '@/types/planner';
-import type { SmartListId } from '@/lib/planner/smartLists';
 
 // ───── Draggable 종류 ─────
 export type PlannerDragData =
@@ -18,8 +17,7 @@ export type PlannerDragData =
 export type PlannerDropData =
   | { kind: 'time-slot'; startIso: string }
   | { kind: 'day-column'; dayIso: string }
-  | { kind: 'inbox' }
-  | { kind: 'planner-tab'; smartListId: SmartListId };
+  | { kind: 'inbox' };
 
 // 드래그 활성화 거리 (px) — 우발적 드래그 방지.
 export const DRAG_ACTIVATION_DISTANCE = 5;

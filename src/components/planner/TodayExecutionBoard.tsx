@@ -2,11 +2,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Clock3, Hourglass, Plus } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
-import { SMART_LISTS } from '@/lib/planner/smartLists';
 import { PlannerInput } from './PlannerInput';
 import { PlannerCard } from './PlannerCard';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
-import type { PlannerSelection } from './PlannerSidebar';
 import { PLANNER_TASK_CHANGED, TASK_LIST_COLORS, type PlannerTask } from '@/types/planner';
 
 interface TodayExecutionBoardProps {
@@ -14,7 +12,6 @@ interface TodayExecutionBoardProps {
   inputRef?: React.RefObject<HTMLInputElement>;
   onTaskClick?: (task: { id: string; title: string }) => void;
   onCreateTask?: () => void;
-  selection?: PlannerSelection;
 }
 
 const localDateKey = (date: Date) => {
@@ -55,7 +52,6 @@ export const TodayExecutionBoard = ({
   inputRef,
   onTaskClick,
   onCreateTask,
-  selection = { kind: 'smart', id: 'today' },
 }: TodayExecutionBoardProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
 
@@ -69,31 +65,34 @@ export const TodayExecutionBoard = ({
 
   const day = useMemo(() => new Date(anchorIso), [anchorIso]);
   const dayKey = useMemo(() => localDateKey(day), [day]);
-  const smartId = selection.kind === 'smart' ? selection.id : 'today';
-  const smart = SMART_LISTS[smartId];
 
-  // 시간표 = 그 기간에 startAt 잡힌 항목.
-  const scheduled = useMemo(() => {
-    if (smartId === 'today') {
-      // 오늘은 반복 시리즈 인스턴스도 포함해야 하니 listScheduled 사용.
-      return taskStore
+  // 시간표 = 그 날 시간배정 (반복 시리즈 인스턴스 포함).
+  const scheduled = useMemo(
+    () =>
+      taskStore
         .listScheduled(anchorIso)
         .filter((task) => !task.done && !task.canceled && !task.someday && isSameLocalDay(task.startAt, day))
-        .sort(compareScheduled);
-    }
-    return tasks
-      .filter((task) => task.startAt && smart.match(task, day))
-      .sort(compareScheduled);
-  }, [anchorIso, day, smartId, smart, tasks]);
+        .sort(compareScheduled),
+    // tasks 변화 시 재계산 트리거.
+    [anchorIso, day, tasks],
+  );
 
-  // 약속(plannedFor) = 시간 안 잡고 그 기간에 하기로 한 항목.
-  const planned = useMemo(() => {
-    return sortUnscheduled(
-      tasks.filter((task) => !task.startAt && task.plannedFor && smart.match(task, day)),
-    );
-  }, [day, smart, tasks]);
+  // 계획(plannedFor) = 그 날 하기로 한 시간 미정 항목.
+  const planned = useMemo(
+    () => sortUnscheduled(tasks.filter((task) => !task.startAt && task.plannedFor === dayKey)),
+    [dayKey, tasks],
+  );
 
-  const selectionTitle = smart.label;
+  // 헤더 라벨 — 오늘/내일이면 단어, 그 외엔 날짜.
+  const selectionTitle = useMemo(() => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    if (isSameLocalDay(anchorIso, today)) return '오늘';
+    if (isSameLocalDay(anchorIso, tomorrow)) return '내일';
+    return day.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+  }, [anchorIso, day]);
+
   const total = scheduled.length + planned.length;
   const headline = total > 0 ? `${total}개` : '비어 있음';
 

@@ -1,12 +1,12 @@
 /**
- * 좌측 사이드바 — 3박스 구조.
+ * 좌측 사이드바 — 2박스 구조.
  *
- * 1) 플래너 — 시간 필터 4탭 (오늘/내일/이번주/이번달).
- *    클릭 → 실행 큐(중앙)에 그 기간 항목 표시.
- *    드롭 타깃 — 대기함/리스트 카드를 던지면 plannedFor 마킹.
- * 2) 대기함 — startAt·plannedFor·listId·goalId 어디에도 안 묶인 항목.
- *    드래그 소스 (실행 큐 또는 시간표로 옮김).
- * 3) 리스트 — 사용자 카테고리 폴더. 행 클릭 = 펼침/접힘. 안의 항목 드래그 가능.
+ * 1) 대기함 — 어디에도 안 묶인 항목 보관소.
+ *    빠른 추가 입력창 + 항목 리스트 (드래그 소스).
+ * 2) 리스트 — 사용자 카테고리 폴더.
+ *    행 클릭 = 펼침/접힘. 안의 항목 드래그 가능.
+ *
+ * 시간 필터(오늘/내일/이번주/이번달)는 헤더의 날짜 조절+뷰 토글로 충분 — 사이드바엔 없음.
  */
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
@@ -26,9 +26,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { PlannerInput } from './PlannerInput';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
-import {
-  SMART_LISTS, SMART_LIST_ORDER, isWaiting, type SmartListId,
-} from '@/lib/planner/smartLists';
+import { isWaiting } from '@/lib/planner/smartLists';
 import {
   type PlannerTask, type TaskList, type TaskListColor,
   TASK_LIST_COLORS, PLANNER_LIST_CHANGED, PLANNER_TASK_CHANGED,
@@ -37,35 +35,12 @@ import {
 interface PlannerSidebarProps {
   inputRef?: React.RefObject<HTMLInputElement>;
   onTaskClick?: (task: { id: string; title: string }) => void;
-  selection?: PlannerSelection;
-  onSelectionChange?: (selection: PlannerSelection) => void;
 }
-
-/** 현재 사이드바 사용처는 플래너 4탭만 — list/goal kind 는 다른 뷰 호환용으로 유지. */
-export type PlannerSelection =
-  | { kind: 'smart'; id: SmartListId }
-  | { kind: 'list'; id: string }
-  | { kind: 'goal'; id: string };
-
-const RECOMMENDED_LISTS: Array<{ name: string; emoji: string; color: TaskListColor }> = [
-  { name: '일',   emoji: '💼', color: 'blue'   },
-  { name: '운동', emoji: '🏃', color: 'green'  },
-  { name: '공부', emoji: '📚', color: 'violet' },
-];
 
 export const PlannerSidebar = ({
   inputRef,
   onTaskClick,
-  selection: controlledSelection,
-  onSelectionChange,
 }: PlannerSidebarProps) => {
-  const [internalSelection, setInternalSelection] = useState<PlannerSelection>({ kind: 'smart', id: 'today' });
-  const selection = controlledSelection ?? internalSelection;
-  const setSelection = useCallback((next: PlannerSelection) => {
-    setInternalSelection(next);
-    onSelectionChange?.(next);
-  }, [onSelectionChange]);
-
   const [lists, setLists] = useState<TaskList[]>(() => taskListStore.list());
   const [allActive, setAllActive] = useState<PlannerTask[]>([]);
   const fallbackRef = useRef<HTMLInputElement>(null);
@@ -87,16 +62,6 @@ export const PlannerSidebar = ({
     window.addEventListener(PLANNER_TASK_CHANGED, refresh);
     return () => window.removeEventListener(PLANNER_TASK_CHANGED, refresh);
   }, []);
-
-  const smartCounts = useMemo<Record<SmartListId, number>>(() => {
-    const now = new Date();
-    return {
-      today: allActive.filter((t) => SMART_LISTS.today.match(t, now)).length,
-      tomorrow: allActive.filter((t) => SMART_LISTS.tomorrow.match(t, now)).length,
-      thisWeek: allActive.filter((t) => SMART_LISTS.thisWeek.match(t, now)).length,
-      thisMonth: allActive.filter((t) => SMART_LISTS.thisMonth.match(t, now)).length,
-    };
-  }, [allActive]);
 
   const waitingTasks = useMemo(
     () =>
@@ -143,37 +108,19 @@ export const PlannerSidebar = ({
   }, []);
 
   return (
-    <div className="h-full flex flex-col gap-3">
-      {/* 빠른 추가 — 어떤 박스든 항목 추가 가능 */}
-      <div className="shrink-0 px-1">
-        <PlannerInput
-          inputRef={inputRef ?? fallbackRef}
-          placeholder="+ 빠른 추가  (Enter)"
-          onSubmit={handleAdd}
-        />
-      </div>
-
-      {/* 1. 플래너 — 시간 필터 4탭 (드롭 타깃) */}
-      <section className="shrink-0">
-        <SidebarHeader label="플래너" />
-        <div className="space-y-px">
-          {SMART_LIST_ORDER.map((id) => (
-            <PlannerTab
-              key={id}
-              id={id}
-              count={smartCounts[id]}
-              active={selection.kind === 'smart' && selection.id === id}
-              onClick={() => setSelection({ kind: 'smart', id })}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* 2. 대기함 — 보류 중인 항목 (드래그 소스) */}
+    <div className="h-full flex flex-col gap-4">
+      {/* 1. 대기함 — 빠른 추가 + 보류 항목 리스트 */}
       <section className="shrink-0 flex flex-col min-h-0">
         <SidebarHeader label="대기함" count={waitingTasks.length} />
+        <div className="px-1 mb-2">
+          <PlannerInput
+            inputRef={inputRef ?? fallbackRef}
+            placeholder="+ 빠른 추가  (Enter)"
+            onSubmit={handleAdd}
+          />
+        </div>
         {waitingTasks.length === 0 ? (
-          <p className="px-2 py-2 text-[11px] text-muted-foreground leading-snug">
+          <p className="px-2 py-1 text-[11px] text-muted-foreground leading-snug">
             추가한 항목 중 어디에도 안 묶인 게 여기 모여요.
           </p>
         ) : (
@@ -189,14 +136,16 @@ export const PlannerSidebar = ({
         )}
       </section>
 
-      {/* 3. 리스트 — 카테고리 폴더 (펼치면 드래그 소스) */}
+      {/* 2. 리스트 — 카테고리 폴더 (펼치면 드래그 소스) */}
       <section className="shrink-0 flex flex-col min-h-0 flex-1">
         <SidebarHeader
           label="리스트"
           action={<NewListButton />}
         />
         {lists.length === 0 ? (
-          <FirstTimeListSuggestions />
+          <p className="px-2 py-1 text-[11px] text-muted-foreground leading-snug">
+            반복하는 항목을 카테고리로 모아두는 곳이에요.
+          </p>
         ) : (
           <div className="space-y-px overflow-y-auto -mx-1 px-1">
             {lists.map((list) => (
@@ -232,52 +181,7 @@ const SidebarHeader = ({
 );
 
 // ────────────────────────────────────────────────
-// PlannerTab — 시간 필터 1탭. droppable (planner-tab) + clickable selection.
-
-const PlannerTab = ({
-  id, count, active, onClick,
-}: {
-  id: SmartListId;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-}) => {
-  const def = SMART_LISTS[id];
-  const { setNodeRef, isOver } = useDroppable({
-    id: `planner-tab-${id}`,
-    data: { kind: 'planner-tab', smartListId: id },
-  });
-
-  return (
-    <button
-      ref={setNodeRef}
-      onClick={onClick}
-      type="button"
-      className={cn(
-        'group flex w-full items-center gap-2 h-8 px-2 rounded-md text-[12.5px] font-medium transition-colors',
-        active
-          ? 'bg-foreground text-background'
-          : 'text-foreground hover:bg-accent',
-        isOver && !active && 'bg-primary/10 ring-1 ring-primary/40',
-      )}
-      title={def.hint ?? def.label}
-    >
-      <span className="w-5 text-center shrink-0" aria-hidden>{def.emoji}</span>
-      <span className="min-w-0 flex-1 truncate text-left">{def.label}</span>
-      <span
-        className={cn(
-          'text-[11px] tabular-nums shrink-0',
-          active ? 'text-background/75' : 'text-muted-foreground',
-        )}
-      >
-        {count > 0 ? count : ''}
-      </span>
-    </button>
-  );
-};
-
-// ────────────────────────────────────────────────
-// SidebarTaskRow — 사이드바 안 단순 행. 클릭=편집, 드래그=시간 배정/탭으로 이동.
+// SidebarTaskRow — 사이드바 안 단순 행. 클릭=편집, 드래그=시간 배정/리스트로 이동.
 
 const SidebarTaskRow = ({
   task, onClick,
@@ -311,8 +215,6 @@ const SidebarTaskRow = ({
 
 // ────────────────────────────────────────────────
 // ListGroup — 리스트 1개의 행 + 펼침/접힘 컨트롤.
-// 행 자체는 droppable (다른 task 드롭 → listId 변경).
-// 펼친 상태일 때 안에 항목들 보임 + 각 항목 드래그 가능.
 
 const ListGroup = ({
   list, tasks, onTaskClick,
@@ -563,27 +465,3 @@ const NewListInlineDialog = ({ onDone }: { onDone: () => void }) => {
     </div>
   );
 };
-
-// ────────────────────────────────────────────────
-// 첫 사용 시 — 추천 리스트 칩 (운동/공부/일).
-
-const FirstTimeListSuggestions = () => (
-  <div className="px-2 py-1.5">
-    <p className="text-[11px] text-muted-foreground mb-2 leading-snug">
-      자주 묶이는 일을 카테고리로 정리해보세요
-    </p>
-    <div className="flex flex-wrap gap-1">
-      {RECOMMENDED_LISTS.map((rec) => (
-        <button
-          key={rec.name}
-          type="button"
-          onClick={() => taskListStore.add(rec)}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-[hsl(var(--hairline))] hover:bg-accent transition-colors"
-        >
-          <span aria-hidden>{rec.emoji}</span>
-          <span>+ {rec.name}</span>
-        </button>
-      ))}
-    </div>
-  </div>
-);

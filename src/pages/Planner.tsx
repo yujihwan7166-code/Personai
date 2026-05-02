@@ -26,7 +26,7 @@ import {
   type DragStartEvent,
   type DragMoveEvent,
 } from '@dnd-kit/core';
-import { PlannerSidebar, type PlannerSelection } from '@/components/planner/PlannerSidebar';
+import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayExecutionBoard } from '@/components/planner/TodayExecutionBoard';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
@@ -52,7 +52,6 @@ import {
   type PlannerDragData,
   type PlannerDropData,
 } from '@/components/planner/dnd/plannerDndTypes';
-import { plannedKeyForSmartList, type SmartListId } from '@/lib/planner/smartLists';
 import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
@@ -83,7 +82,6 @@ const Planner = () => {
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [plannerSelection, setPlannerSelection] = useState<PlannerSelection>({ kind: 'smart', id: 'today' });
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -402,33 +400,6 @@ const Planner = () => {
       return;
     }
 
-    // ─── 플래너 탭(오늘/내일/이번주/이번달)에 드롭: plannedFor 마킹 ───
-    // 시간은 안 정함. 그 기간 안에 "할 거"로 표시만. 사용자가 나중에 시간표에 올려서 확정.
-    if (
-      rawDropData &&
-      'kind' in rawDropData &&
-      rawDropData.kind === 'planner-tab' &&
-      (dragData.kind === 'inbox-task' || dragData.kind === 'scheduled-task')
-    ) {
-      const task = dragData.task;
-      const targetId = isInstanceId(task.id)
-        ? (parseInstanceId(task.id)?.masterId ?? task.id)
-        : task.id;
-      const smartListId = (rawDropData as { kind: 'planner-tab'; smartListId: SmartListId }).smartListId;
-      const plannedFor = plannedKeyForSmartList(smartListId);
-      // 시간 잡힌 항목을 탭으로 다시 던지면 시간 풀고 plannedFor 만 — "느슨한 약속"으로 되돌림.
-      taskStore.update(targetId, {
-        plannedFor,
-        startAt: undefined,
-        endAt: undefined,
-      });
-      const labels: Record<SmartListId, string> = {
-        today: '오늘', tomorrow: '내일', thisWeek: '이번주', thisMonth: '이번달',
-      };
-      notify.success(`${labels[smartListId]}에 두기로 했어요`, { duration: 1500 });
-      return;
-    }
-
     // ─── Matrix 분면에 드롭: urgent/important 토글 ───
     if (
       rawDropData &&
@@ -700,8 +671,6 @@ const Planner = () => {
               <PlannerSidebar
                 inputRef={inboxInputRef}
                 onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
-                selection={plannerSelection}
-                onSelectionChange={setPlannerSelection}
               />
             </div>
             <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0">
@@ -712,7 +681,6 @@ const Planner = () => {
                     inputRef={inboxInputRef}
                     onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                     onCreateTask={handleCreateForAnchor}
-                    selection={plannerSelection}
                   />
                   <div className="min-h-0">
                     <TodayTimeline
