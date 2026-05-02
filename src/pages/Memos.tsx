@@ -732,7 +732,7 @@ function MemoEditor({
   useEffect(() => {
     setDraft(memo.body);
     setSaveState('saved');
-  }, [memo.id]);
+  }, [memo.id, memo.body]);
 
   // 자동 저장 — 400ms debounce
   useEffect(() => {
@@ -746,8 +746,7 @@ function MemoEditor({
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, memo.id]);
+  }, [draft, memo.body, memo.id]);
 
   const tags = useMemo(() => extractMemoTags({ ...memo, body: draft }), [draft, memo]);
   const charCount = draft.replace(/\s+/g, '').length;

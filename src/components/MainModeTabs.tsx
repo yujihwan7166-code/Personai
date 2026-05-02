@@ -559,7 +559,7 @@ export function MainModeTabs({
       window.removeEventListener('mousedown', onClick);
       window.removeEventListener('keydown', onKey);
     };
-  }, [open, openLifeSubgroup]);
+  }, [open, debateOpen, openLifeSubgroup]);
 
   // 드롭다운 닫힐 때 서브 그룹 상태도 초기화
   useEffect(() => {

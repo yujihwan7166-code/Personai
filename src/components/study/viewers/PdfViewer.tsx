@@ -87,6 +87,11 @@ export function PdfViewer({
   const renderedRef = useRef<Set<number>>(new Set());
   const pdfjsRef = useRef<typeof import('pdfjs-dist') | null>(null);
   const containerWidthRef = useRef(0);
+  const currentPageRef = useRef(currentPage);
+
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
 
   // 초기 로드: blob → pdf.js document
   useEffect(() => {
@@ -280,14 +285,14 @@ export function PdfViewer({
     );
     for (const [, el] of pageRefs.current) io.observe(el);
     return () => io.disconnect();
-  }, [doc, scale, numPages, query, onActivePageChange]);
+  }, [doc, scale, numPages, query, onActivePageChange, blobRef, ocrPagesReady, scanPages]);
 
   // activePage prop 변경 시 해당 페이지로 스크롤 + 하이라이트
   // 단, 내부 IO 콜백으로 activePage 가 자기 자신(currentPage)으로 되돌아오는 경우는 스킵
   // (그러지 않으면 스크롤 중에 "절반 넘으면 자동 점프" 처럼 보임)
   useEffect(() => {
     if (!activePage || !numPages) return;
-    if (activePage === currentPage) return;
+    if (activePage === currentPageRef.current) return;
     const el = pageRefs.current.get(activePage);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -296,8 +301,6 @@ export function PdfViewer({
       el.classList.remove('ring-2', 'ring-indigo-400', 'ring-offset-2', 'ring-offset-slate-100');
     }, 1500);
     return () => clearTimeout(t);
-    // currentPage 는 의도적으로 deps 에서 제외 — 내부 스크롤이 끝난 뒤 재진입 방지.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePage, numPages]);
 
   // 검색 쿼리 변경 시 모든 렌더된 textLayer에 하이라이트 재적용
