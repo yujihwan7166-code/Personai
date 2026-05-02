@@ -32,12 +32,20 @@ export const DroppableTimeSlot = ({ startIso, onClick, ariaLabel, className }: D
       onClick={onClick}
       aria-label={ariaLabel}
       className={cn(
-        'transition-colors',
+        'group relative transition-colors',
         isOver
           ? 'bg-primary/10 ring-1 ring-primary/40 ring-inset'
-          : 'hover:bg-accent/30',
+          : 'hover:bg-accent/50',
         className,
       )}
-    />
+    >
+      {/* hover 시 좌측에 작은 + — "여기 누르면 추가" affordance */}
+      <span
+        className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[12px] font-medium text-transparent group-hover:text-foreground/45 transition-colors"
+        aria-hidden
+      >
+        +
+      </span>
+    </button>
   );
 };

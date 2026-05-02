@@ -270,13 +270,13 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                           startIso={slot0.toISOString()}
                           onClick={() => handleSlotClick(hour, 0)}
                           ariaLabel={`${hour}:00`}
-                          className="absolute inset-x-0 top-0 h-1/2 border-t border-[hsl(var(--hairline))]"
+                          className="absolute inset-x-0 top-0 h-1/2 border-t border-foreground/15"
                         />
                         <DroppableTimeSlot
                           startIso={slot30.toISOString()}
                           onClick={() => handleSlotClick(hour, 30)}
                           ariaLabel={`${hour}:30`}
-                          className="absolute inset-x-0 top-1/2 h-1/2 border-t border-dashed border-[hsl(var(--hairline))]"
+                          className="absolute inset-x-0 top-1/2 h-1/2 border-t border-dashed border-foreground/8"
                         />
                       </>
                     );

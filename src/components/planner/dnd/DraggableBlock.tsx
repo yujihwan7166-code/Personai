@@ -59,10 +59,13 @@ export const DraggableBlock = ({ item, style, children, enableResize = true, res
       style={composedStyle}
       {...listeners}
       {...attributes}
-      className={cn('touch-none absolute left-1 right-2 pointer-events-auto', isDragging && 'cursor-grabbing shadow-lg')}
+      className={cn(
+        'group touch-none absolute left-1 right-2 pointer-events-auto cursor-grab',
+        isDragging && 'cursor-grabbing shadow-lg',
+      )}
     >
       {children}
-      {/* 길이 조정 핸들 — 하단 6px */}
+      {/* 길이 조정 핸들 — 하단 6px. 블록 hover 시 살짝 보이고, 핸들 hover 시 진하게. */}
       {enableResize && (
         <div
           ref={resize.setNodeRef}
@@ -70,9 +73,9 @@ export const DraggableBlock = ({ item, style, children, enableResize = true, res
           {...resize.attributes}
           aria-label="길이 조정"
           className={cn(
-            'absolute left-0 right-0 bottom-0 h-1.5 cursor-ns-resize',
-            'opacity-0 hover:opacity-100 transition-opacity',
-            resize.isDragging && 'opacity-100 bg-primary/50',
+            'absolute left-0 right-0 bottom-0 h-1.5 cursor-ns-resize rounded-b transition-all',
+            'bg-transparent group-hover:bg-foreground/15 hover:!bg-foreground/45',
+            resize.isDragging && '!bg-primary/55',
           )}
           onClick={(e) => e.stopPropagation()}
         />
