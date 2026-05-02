@@ -63,23 +63,16 @@ export const PlannerInput = ({
 
   return (
     <div className={cn('relative', className)}>
-      {isProminent && (
-        onPlus ? (
-          <button
-            type="button"
-            onClick={onPlus}
-            aria-label="상세 추가"
-            title="상세 추가 (제목·시간·우선순위 등 직접 채우기)"
-            className="absolute left-1 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded text-foreground/70 hover:bg-foreground hover:text-background transition-colors"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-        ) : (
-          <Plus
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55"
-            aria-hidden
-          />
-        )
+      {isProminent && onPlus && (
+        <button
+          type="button"
+          onClick={onPlus}
+          aria-label="상세 추가"
+          title="상세 추가 (제목·시간·우선순위 등 직접 채우기)"
+          className="absolute left-1 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded text-foreground/70 hover:bg-foreground hover:text-background transition-colors"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+        </button>
       )}
       <input
         ref={inputRef}
@@ -92,7 +85,8 @@ export const PlannerInput = ({
           'w-full text-foreground rounded-md transition-colors',
           isProminent
             ? [
-                'pl-8 pr-3 py-2 text-[14px] leading-tight font-medium',
+                onPlus ? 'pl-8' : 'pl-3',
+                'pr-3 py-2 text-[14px] leading-tight font-medium',
                 'bg-accent/40 border border-[hsl(var(--hairline))]',
                 'placeholder:text-foreground/55 placeholder:font-normal',
                 'hover:bg-accent/60 hover:border-foreground/30',

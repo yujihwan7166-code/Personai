@@ -5,7 +5,7 @@
  * 새 항목 추가는 day 뷰 공통 입력 또는 타임라인 슬롯 클릭으로 — 여기는 read-only.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Flag, ListChecks } from 'lucide-react';
+import { Check, Flag, ListChecks, Plus } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { cn } from '@/lib/utils';
 import { PLANNER_TASK_CHANGED, PRIORITY_COLORS, TASK_LIST_COLORS, type PlannerTask } from '@/types/planner';
@@ -13,6 +13,8 @@ import { PLANNER_TASK_CHANGED, PRIORITY_COLORS, TASK_LIST_COLORS, type PlannerTa
 interface TodayScheduledListProps {
   anchorIso: string;
   onTaskClick?: (task: { id: string; title: string }) => void;
+  /** + 버튼 클릭 — 시간 정해 추가하는 상세 모달 띄우기. */
+  onAdd?: () => void;
 }
 
 const isSameLocalDay = (iso: string | undefined, day: Date) => {
@@ -24,7 +26,7 @@ const isSameLocalDay = (iso: string | undefined, day: Date) => {
 const formatTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 
-export const TodayScheduledList = ({ anchorIso, onTaskClick }: TodayScheduledListProps) => {
+export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodayScheduledListProps) => {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -55,6 +57,17 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick }: TodayScheduledLis
         </span>
         {scheduled.length > 0 && (
           <span className="text-[11.5px] tabular-nums text-foreground/60 font-medium">{scheduled.length}</span>
+        )}
+        {onAdd && (
+          <button
+            type="button"
+            onClick={onAdd}
+            aria-label="일정 추가"
+            title="일정 추가 (시간 정해서)"
+            className="ml-auto h-6 w-6 inline-flex items-center justify-center rounded text-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </button>
         )}
       </div>
 

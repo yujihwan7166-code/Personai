@@ -689,12 +689,6 @@ const Planner = () => {
                       onSubmit={handleDayAdd}
                       variant="prominent"
                       hidePreview
-                      onPlus={() => {
-                        // + 버튼 = 상세 추가 모달. anchor 날짜 09:00 기본.
-                        const day = new Date(anchorIso);
-                        day.setHours(9, 0, 0, 0);
-                        setDialogMode({ kind: 'create', presetStartIso: day.toISOString() });
-                      }}
                     />
                   </div>
                 </div>
@@ -704,6 +698,12 @@ const Planner = () => {
                     <TodayScheduledList
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                      onAdd={() => {
+                        // 시간 정해서 추가 — anchor 날짜 09:00 default 모달.
+                        const day = new Date(anchorIso);
+                        day.setHours(9, 0, 0, 0);
+                        setDialogMode({ kind: 'create', presetStartIso: day.toISOString() });
+                      }}
                     />
                     <TodayTodoList
                       anchorIso={anchorIso}
