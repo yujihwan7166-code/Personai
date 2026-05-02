@@ -691,9 +691,11 @@ const Planner = () => {
             </div>
             {view === 'day' ? (
               <div className="min-h-0 flex flex-col gap-3">
-                {/* 큰 날짜 헤더 — 박스 wrapper 없이, 3개 카드(계획/할일/타임라인) 위에 borderless 로. */}
-                <div className="shrink-0 flex items-center justify-between gap-3 pb-3 px-1 border-b border-[hsl(var(--hairline))]">
-                  <div className="min-w-0 flex items-center gap-2">
+                {/* 큰 날짜 헤더 + 공통 입력 — 한 줄에 묶어 수직 공간 절약.
+                    [날짜 캐러셀] [공통 input flex-1] [오늘로]
+                    공통 input: 시간 NL 있으면 계획/타임라인, 없으면 할 일. */}
+                <div className="shrink-0 flex items-center gap-3 pb-3 px-1 border-b border-[hsl(var(--hairline))]">
+                  <div className="shrink-0 flex items-center gap-2">
                     <button
                       type="button"
                       onClick={goPrev}
@@ -714,7 +716,7 @@ const Planner = () => {
                           return a.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
                         })()}
                       </h2>
-                      <span className="text-[13px] text-foreground/70 tabular-nums font-medium">
+                      <span className="hidden sm:inline text-[13px] text-foreground/70 tabular-nums font-medium">
                         {new Date(anchorIso).toLocaleDateString('ko-KR', {
                           month: 'long', day: 'numeric', weekday: 'short',
                         })}
@@ -729,6 +731,14 @@ const Planner = () => {
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <PlannerInput
+                      inputRef={dayInputRef}
+                      placeholder="+ 추가 — 시간 적으면 계획, 안 적으면 할 일"
+                      onSubmit={handleDayAdd}
+                      hidePreview
+                    />
                   </div>
                   <button
                     type="button"
@@ -745,15 +755,6 @@ const Planner = () => {
                   >
                     오늘로
                   </button>
-                </div>
-                {/* 공통 입력 — 시간 NL 있으면 계획/타임라인, 없으면 할 일. 추가 path 통일.
-                    우측 타임라인 슬롯 클릭은 보조 path 로 유지 (캘린더 표준 — 시간 직접 그릴 때). */}
-                <div className="shrink-0 px-1">
-                  <PlannerInput
-                    inputRef={dayInputRef}
-                    placeholder="+ 추가 (시간 적으면 계획/타임라인, 안 적으면 할 일)"
-                    onSubmit={handleDayAdd}
-                  />
                 </div>
                 {/* 좌측: 계획(시간 잡힌 리스트) + 할 일(체크리스트) stack / 우측: 타임라인. */}
                 <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-3">
