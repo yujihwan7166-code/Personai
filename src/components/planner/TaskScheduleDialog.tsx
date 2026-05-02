@@ -373,7 +373,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md" onKeyDown={handleKeyDownGlobal}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onKeyDown={handleKeyDownGlobal}>
         <DialogHeader>
           <DialogTitle className="text-[15px] font-semibold">
             {mode.kind === 'schedule' ? '시간 배정' : '새 항목'}
@@ -383,9 +383,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 mt-2">
-          {/* 제목 — schedule/create 모두 편집 가능 */}
-          <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 mt-2">
+          {/* 제목 — schedule/create 모두 편집 가능. full row */}
+          <div className="flex flex-col gap-1 sm:col-span-2">
             <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
               제목
             </label>
@@ -402,9 +402,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             />
           </div>
 
-          {/* 종류 (create 모드만) */}
+          {/* 종류 (create 모드만) — full row */}
           {mode.kind === 'create' && (
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-5 gap-1.5 sm:col-span-2">
               <button
                 type="button"
                 onClick={() => setIsEvent(false)}
@@ -432,8 +432,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
-          {/* 날짜 + 시간 */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* 날짜 + 시간 — full row, 내부 2col */}
+          <div className="grid grid-cols-2 gap-3 sm:col-span-2">
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
                 날짜
@@ -459,8 +459,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           </div>
 
-          {/* 길이 chip */}
-          <div className="flex flex-col gap-1.5">
+          {/* 길이 chip — full row (10개 chip 많아 wrap 시 좁으면 답답) */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
               길이
             </label>
@@ -499,7 +499,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </label>
           </div>
 
-          {/* 우선순위 chip — 할 일 모드에서만 (일정은 priority 없음) */}
+          {/* 우선순위 chip — 할 일 모드에서만 (일정은 priority 없음). 좌측 col */}
           {!isEvent && (
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
@@ -534,7 +534,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
-          {/* 리스트 — 할 일 모드만 */}
+          {/* 색상 — 할 일 모드만. 우측 col (우선순위 옆) */}
           {!isEvent && (
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
@@ -577,6 +577,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
+          {/* 리스트 — 좌측 col */}
           {!isEvent && lists.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
@@ -628,6 +629,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
+          {/* 목표 — 우측 col */}
           {!isEvent && goals.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
@@ -697,11 +699,11 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
-          {/* 시리즈 인스턴스 streak — 반복 task 편집 시에만 */}
+          {/* 시리즈 인스턴스 streak — 반복 task 편집 시에만. full row */}
           {!isEvent && series && series.kind === 'task' && series.master.recurrence && (() => {
             const stats = computeStreakStats(series.master);
             return (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
                   🔥
                   진행률
@@ -711,8 +713,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             );
           })()}
 
-          {/* 반복 — Apple Cal/Google Cal 패턴. 단발 → 시리즈 / 시리즈 → 단발 모두 가능. */}
-          <div className="flex flex-col gap-1.5">
+          {/* 반복 — Apple Cal/Google Cal 패턴. 단발 → 시리즈 / 시리즈 → 단발 모두 가능. full row */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
               <RotateCw className="h-3 w-3" />
               반복
@@ -832,9 +834,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             })()}
           </div>
 
-          {/* 서브태스크 (체크리스트) — 할 일 모드만 */}
+          {/* 서브태스크 (체크리스트) — 할 일 모드만. full row */}
           {!isEvent && (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
               <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
                 <ListChecks className="h-3 w-3" />
                 체크리스트
@@ -875,9 +877,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
-          {/* 노트 (collapsible) — 할 일 모드만 */}
+          {/* 노트 (collapsible) — 할 일 모드만. full row */}
           {!isEvent && (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
               {!noteOpen ? (
                 <button
                   type="button"
