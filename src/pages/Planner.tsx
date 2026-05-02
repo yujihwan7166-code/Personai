@@ -168,7 +168,7 @@ const Planner = () => {
       priority: parsed?.priority,
       plannedFor: parsed?.startAt ? undefined : dayKey,
     });
-    notify.success(parsed?.startAt ? '계획에 추가했어요' : '할 일에 추가했어요', { duration: 1200 });
+    notify.success(parsed?.startAt ? '일정에 추가했어요' : '할 일에 추가했어요', { duration: 1200 });
   }, [anchorIso]);
 
   const handleItemClick = useCallback(
@@ -746,6 +746,7 @@ const Planner = () => {
                         setDialogMode({ kind: 'create', presetStartIso: day.toISOString() });
                       }}
                     />
+                    {/* day-view input: 시간 NL 있으면 일정/타임라인, 없으면 할 일. */}
                   </div>
                   <button
                     type="button"

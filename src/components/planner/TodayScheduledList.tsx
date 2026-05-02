@@ -1,8 +1,8 @@
 /**
- * 좌상 "계획" 박스 — 오늘 시간 잡힌 항목들의 리스트 표현.
+ * 좌상 "일정" 박스 — 오늘 시간 잡힌 항목들의 리스트 표현.
  * (우측 "타임라인" 이 시간 그리드 표현이라면 여기는 같은 데이터의 리스트 버전)
  *
- * 새 항목 추가는 좌하 "할 일" 박스 또는 타임라인 슬롯 클릭으로 — 여기는 read-only.
+ * 새 항목 추가는 day 뷰 공통 입력 또는 타임라인 슬롯 클릭으로 — 여기는 read-only.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Flag, ListChecks } from 'lucide-react';
@@ -51,7 +51,7 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick }: TodayScheduledLis
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-[hsl(var(--hairline))]">
         <ListChecks className="h-4 w-4 text-foreground" />
         <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">
-          계획
+          일정
         </span>
         {scheduled.length > 0 && (
           <span className="text-[11.5px] tabular-nums text-foreground/60 font-medium">{scheduled.length}</span>
