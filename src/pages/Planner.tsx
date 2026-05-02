@@ -735,9 +735,16 @@ const Planner = () => {
                   <div className="flex-1 min-w-0">
                     <PlannerInput
                       inputRef={dayInputRef}
-                      placeholder="+ 추가 — 시간 적으면 계획, 안 적으면 할 일"
+                      placeholder="여기에 적어요 — 예: ‘오후 3시 회의’ 또는 ‘약 사기’"
                       onSubmit={handleDayAdd}
+                      variant="prominent"
                       hidePreview
+                      onPlus={() => {
+                        // + 버튼 = 상세 추가 모달. anchor 날짜 09:00 기본.
+                        const day = new Date(anchorIso);
+                        day.setHours(9, 0, 0, 0);
+                        setDialogMode({ kind: 'create', presetStartIso: day.toISOString() });
+                      }}
                     />
                   </div>
                   <button
