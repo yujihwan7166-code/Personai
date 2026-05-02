@@ -169,8 +169,8 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
 
   // 페이지 언로드 시 대기 중인 삭제 플러시
   useEffect(() => {
+    const timers = pendingDeleteTimers.current;
     return () => {
-      const timers = pendingDeleteTimers.current;
       timers.forEach((t) => clearTimeout(t));
       timers.clear();
     };

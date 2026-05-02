@@ -117,7 +117,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
 
   const suggestions = useMemo(() => {
     return getTopTags(journalStore.list(), 8).map((t) => t.tag);
-  }, [open]);
+  }, []);
 
   useEffect(() => {
     if (!mode) return;
@@ -158,7 +158,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
       setSeenPromptIds((prev) => [...prev, fresh.id].slice(-15)); // 최근 15개만 기억
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, open]);
+  }, [mode]);
 
   // 자동 저장 (create 모드만, 30초 debounce)
   useEffect(() => {
@@ -221,7 +221,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
     return new Date().toLocaleDateString('ko-KR', {
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
     });
-  }, [mode, open]);
+  }, [mode]);
 
   if (!mode) return null;
 

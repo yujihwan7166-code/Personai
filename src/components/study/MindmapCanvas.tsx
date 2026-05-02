@@ -134,7 +134,10 @@ export function MindmapCanvas({ content, meta, notebook, onChange, onJumpToPage,
   // 인덱스 (부모/자손수)
   const index = useMemo(() => rootData ? buildIndex(rootData) : null, [rootData]);
 
-  const states = (meta?.userNodeStates ?? {}) as Record<string, MindmapNodeStatus>;
+  const states = useMemo(
+    () => (meta?.userNodeStates ?? {}) as Record<string, MindmapNodeStatus>,
+    [meta?.userNodeStates],
+  );
 
   // ── reduced-motion ──
   const [reducedMotion, setReducedMotion] = useState(false);

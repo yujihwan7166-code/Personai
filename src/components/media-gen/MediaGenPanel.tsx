@@ -258,8 +258,8 @@ export function MediaGenPanel({ onClose }: Props) {
   );
 
   useEffect(() => {
+    const timers = pendingDeleteTimers.current;
     return () => {
-      const timers = pendingDeleteTimers.current;
       timers.forEach((t) => clearTimeout(t));
       timers.clear();
     };
