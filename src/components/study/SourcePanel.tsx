@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { FileText, Link2, Youtube, Clipboard, Trash2, Mic, Upload, Plus, X } from 'lucide-react';
+import { Link2, Youtube, Clipboard, Trash2, Mic, Upload, Plus, X } from 'lucide-react';
 import type { StudySource } from '@/types/study';
 import { newId } from '@/types/study';
 import { filesToStudySources } from '@/lib/studySourceFromFile';

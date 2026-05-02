@@ -124,14 +124,12 @@ export const usePomodoroStats = (): PomodoroStats => {
     // 역대 최장 streak — 모든 활성일 정렬 후 연속 길이 계산.
     let bestStreak = 0;
     const sortedDays = [...activeDays].sort((a, b) => a - b);
-    let runStart = -1;
     let runLen = 0;
     for (let i = 0; i < sortedDays.length; i++) {
       if (i === 0 || sortedDays[i] - sortedDays[i - 1] === DAY_MS) {
         runLen += 1;
       } else {
         runLen = 1;
-        runStart = i;
       }
       if (runLen > bestStreak) bestStreak = runLen;
     }

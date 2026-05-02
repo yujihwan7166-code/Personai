@@ -1,7 +1,6 @@
 import { Command } from 'cmdk';
 import { useEffect, useMemo } from 'react';
 import {
-  BookOpen,
   Plus,
   Mic,
   Play,

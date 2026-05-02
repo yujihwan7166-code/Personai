@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  ChevronRight, ChevronDown, Folder as FolderIcon, FolderOpen, FileText,
+  ChevronRight, ChevronDown, Folder as FolderIcon, FolderOpen,
   Plus, Search, MoreHorizontal, Pin, Pencil, Trash2, FolderInput, X, Home,
 } from 'lucide-react';
 import type { StudyNotebook, StudyFolder } from '@/types/study';

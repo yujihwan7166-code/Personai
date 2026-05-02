@@ -11,8 +11,6 @@ interface Props {
   onOpenStorage: () => void;
 }
 
-const DAY = 24 * 60 * 60 * 1000;
-
 /**
  * 사이드바 헤더에 배치되는 작은 신뢰성 배지들.
  * - quota 80%+ → 노랑, 95%+ → 빨강. 클릭 시 사용량 패널.

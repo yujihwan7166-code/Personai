@@ -10,10 +10,10 @@
  */
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
-  Inbox as InboxIcon, Plus, Trash2, Eye, EyeOff, Pin, Flag, Ban, Hourglass, ArrowUp,
-  Check, Clock, FolderPlus, MoreHorizontal, Clock4, CheckSquare, X, Folder,
+  Inbox as InboxIcon, Trash2, Eye, EyeOff,
+  Check, Clock, FolderPlus, Clock4, CheckSquare, X, Folder,
 } from 'lucide-react';
-import { useInbox, useInboxCounts } from '@/hooks/planner/useInbox';
+import { useInboxCounts } from '@/hooks/planner/useInbox';
 import { taskStore } from '@/services/planner/taskStore';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { notify } from '@/lib/notify';
@@ -26,7 +26,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
-import { PlannerSection } from './PlannerSection';
 import { PlannerInput } from './PlannerInput';
 import { PlannerCard } from './PlannerCard';
 import { PlannerEmpty } from './PlannerEmpty';
@@ -37,8 +36,8 @@ import { SMART_LISTS, SMART_LIST_ORDER, type SmartListId } from '@/lib/planner/s
 import { computeStreakStats } from '@/lib/planner/streak';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import {
-  type PlannerTask, type Priority, type TaskList, type TaskListColor,
-  TASK_LIST_COLORS, PRIORITY_COLORS, PRIORITY_LABELS, PLANNER_LIST_CHANGED, PLANNER_TASK_CHANGED,
+  type PlannerTask, type TaskList, type TaskListColor,
+  TASK_LIST_COLORS, PLANNER_LIST_CHANGED, PLANNER_TASK_CHANGED,
 } from '@/types/planner';
 
 interface PlannerSidebarProps {
@@ -92,7 +91,6 @@ export const PlannerSidebar = ({ inputRef, onTaskClick }: PlannerSidebarProps) =
   // 사용자 lists 구독 — broadcast 이벤트 listen.
   const [lists, setLists] = useState<TaskList[]>(() => taskListStore.list());
   // 모든 active task — Smart List filter 적용 위해.
-  const inboxTasks = useInbox('anytime');
   const counts = useInboxCounts();
   const [allActive, setAllActive] = useState<PlannerTask[]>([]);
   const fallbackRef = useRef<HTMLInputElement>(null);

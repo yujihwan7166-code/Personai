@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { PREMIUM_DOMAIN_TEMPLATES, type PremiumDomainId, type PremiumDomainTemplate, type ApiSourceCitation } from '@/types/expert';
+import { PREMIUM_DOMAIN_TEMPLATES, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { buildAttachmentPrompt, formatFileSize, getFileIcon, processFile, validateFile, type AttachedFile } from '@/lib/fileProcessor';
 import { TrustIndicator } from './TrustIndicator';
 import { LazyMarkdown } from './LazyMarkdown';
@@ -290,7 +290,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
               {/* Messages */}
               {messages.map((msg) => {
                 const isUser = msg.role === 'user';
-                const { clean, followUps } = isUser ? { clean: msg.content, followUps: [] } : parseFollowUps(msg.content);
+                const { clean } = isUser ? { clean: msg.content } : parseFollowUps(msg.content);
 
                 if (isUser) {
                   const isLong = msg.content.length > USER_COLLAPSE_LEN;

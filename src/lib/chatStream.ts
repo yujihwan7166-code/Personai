@@ -79,7 +79,7 @@ export function createStreamExpert({
     question,
     expert,
     previousResponses,
-    round,
+    round: _round,
     onDelta,
     onDone,
     onProgress,

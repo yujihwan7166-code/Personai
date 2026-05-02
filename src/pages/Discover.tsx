@@ -84,7 +84,6 @@ export default function Discover() {
     const fresh = getWidgets();
     const exists = fresh.some((w) => w.kind === 'serendipity');
     if (!exists) addWidget(createDefaultWidget('serendipity'));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const widget = useMemo<SerendipityWidget | undefined>(

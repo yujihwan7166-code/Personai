@@ -37,7 +37,7 @@ export function LiveRecorder({ onClose, onDone }: Props) {
         rec.start(1000);
         recorderRef.current = rec;
         intervalRef.current = window.setInterval(() => setElapsed((e) => e + 1), 1000);
-      } catch (e) {
+      } catch {
         setError('마이크 권한이 필요해요. 브라우저 설정에서 마이크 접근을 허용해주세요.');
       }
     })();

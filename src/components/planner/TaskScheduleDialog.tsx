@@ -11,7 +11,7 @@
  * - 길이 = chip 4종 (30 / 60 / 90 / 120 분)
  * - 인박스로 (시간 해제) 옵션 — schedule 모드에서만
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Trash2, Flag, FileText, RotateCw, ChevronDown, ListChecks, Folder } from 'lucide-react';
 import { SubtaskList } from './SubtaskList';
 import { StreakCard } from './StreakIndicator';
@@ -141,11 +141,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     window.addEventListener(PLANNER_LIST_CHANGED, refresh);
     return () => window.removeEventListener(PLANNER_LIST_CHANGED, refresh);
   }, []);
-  const selectedList = useMemo(
-    () => (listId ? lists.find((l) => l.id === listId) : undefined),
-    [listId, lists],
-  );
-
   // 모드 변경 시 폼 초기화.
   useEffect(() => {
     if (!mode) return;
