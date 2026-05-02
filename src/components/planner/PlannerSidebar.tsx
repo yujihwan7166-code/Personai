@@ -7,7 +7,7 @@
  * 추후: 오버듀, 다가오는 일정 위젯 추가 예정.
  */
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, BookOpen, FileText, Network, Compass } from 'lucide-react';
+import { BookOpen, FileText, Network, Compass } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
@@ -38,17 +38,8 @@ export const PlannerSidebar = ({
 
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* 상단 — 메인 링크 + (제목 + 뷰 토글 한 줄) */}
+      {/* 상단 — 제목 + 뷰 토글 한 줄 */}
       <div className="shrink-0 px-1">
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors font-mono uppercase tracking-[0.16em] mb-2"
-          aria-label="메인으로"
-        >
-          <ChevronLeft className="h-3 w-3" />
-          <span>메인</span>
-        </button>
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-[15px] font-semibold tracking-tight leading-none truncate">통합 플래너</h1>
           <ViewToggle value={view} onChange={onViewChange} />

@@ -13,7 +13,6 @@
  * - t: 오늘로
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   DndContext,
@@ -76,7 +75,6 @@ const isSameDay = (a: Date, b: Date): boolean =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 const Planner = () => {
-  const navigate = useNavigate();
   // Day 뷰 공통 input — NL 라우팅(시간 있으면 일정/타임라인, 없으면 할 일).
   const dayInputRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<PlannerView>('day');
@@ -566,18 +564,9 @@ const Planner = () => {
             day 뷰의 시간 네비/공통 input 은 day 박스 헤더로 흡수.
             week/month/year 뷰의 시간 네비는 박스 자체 헤더에 별도 (TODO). */}
 
-        {/* 풀뷰(month/year/goals)에선 사이드바가 없으므로 — 위에 mini nav (메인/제목/뷰토글/시간 네비). */}
+        {/* 풀뷰(month/year/goals)에선 사이드바가 없으므로 — 위에 mini nav (제목/뷰토글/시간 네비). */}
         {isFullscreen && (
           <div className="mb-3 flex flex-wrap items-center gap-3 pb-2 border-b border-[hsl(var(--hairline))]">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors font-mono uppercase tracking-[0.16em]"
-              aria-label="메인으로"
-            >
-              <ChevronLeft className="h-3 w-3" />
-              <span>메인</span>
-            </button>
             <h1 className="text-[17px] font-semibold tracking-tight leading-none">통합 플래너</h1>
             <ViewToggle value={view} onChange={setView} />
             {view !== 'goals' && (
