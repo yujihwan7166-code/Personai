@@ -34,7 +34,6 @@ import { usePlannerNotifications } from '@/hooks/planner/usePlannerNotifications
 import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
-import { MatrixView } from '@/components/planner/MatrixView';
 import { GoalProgressView } from '@/components/planner/GoalProgressView';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
@@ -273,7 +272,7 @@ const Planner = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [view, dialogMode, goPrev, goNext, goToday]);
 
-  const isFullscreen = view === 'month' || view === 'year' || view === 'matrix' || view === 'goals';
+  const isFullscreen = view === 'month' || view === 'year' || view === 'goals';
 
   // ────── DnD ──────
   // 드래그 기준점 (5px) 으로 클릭과 분리.
@@ -356,12 +355,10 @@ const Planner = () => {
 
   const handleDragEnd = useCallback((e: DragEndEvent) => {
     const dragData = e.active.data.current as PlannerDragData | undefined;
-    type MatrixDropData = { kind: 'matrix-quadrant'; patch: { urgent?: boolean; important?: boolean } };
     type AssignListDropData = { kind: 'assign-list'; listId: string };
     const rawDropData = e.over?.data.current as
-      | PlannerDropData | MatrixDropData | AssignListDropData | undefined;
+      | PlannerDropData | AssignListDropData | undefined;
     const dropData = rawDropData && 'kind' in rawDropData
-      && rawDropData.kind !== 'matrix-quadrant'
       && rawDropData.kind !== 'assign-list'
       ? (rawDropData as PlannerDropData)
       : undefined;
@@ -382,24 +379,6 @@ const Planner = () => {
         : task.id;
       taskStore.update(targetId, { listId: (rawDropData as AssignListDropData).listId });
       notify.success('분류 변경됐어요', { duration: 1200 });
-      return;
-    }
-
-    // ─── Matrix 분면에 드롭: urgent/important 토글 ───
-    if (
-      rawDropData &&
-      'kind' in rawDropData &&
-      rawDropData.kind === 'matrix-quadrant' &&
-      (dragData.kind === 'inbox-task' || dragData.kind === 'scheduled-task')
-    ) {
-      const task = dragData.task;
-      const patch = (rawDropData as MatrixDropData).patch;
-      // 가상 인스턴스면 master id 로 변환 — matrix 는 시리즈 마스터 단위 분류.
-      const targetId = isInstanceId(task.id)
-        ? (parseInstanceId(task.id)?.masterId ?? task.id)
-        : task.id;
-      taskStore.update(targetId, patch);
-      notify.success('분류됐어요', { duration: 1200 });
       return;
     }
 
@@ -640,11 +619,6 @@ const Planner = () => {
                 anchorIso={anchorIso}
                 onMonthClick={handleMonthClick}
                 onDayClick={handleDayClick}
-              />
-            )}
-            {view === 'matrix' && (
-              <MatrixView
-                onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
               />
             )}
             {view === 'goals' && (

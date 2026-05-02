@@ -12,20 +12,17 @@
  * - 인박스로 (시간 해제) 옵션 — schedule 모드에서만
  */
 import { useEffect, useState } from 'react';
-import { Trash2, Flag, FileText, RotateCw, ChevronDown, ListChecks, Folder } from 'lucide-react';
+import { Trash2, Flag, FileText, RotateCw, ChevronDown, ListChecks, Folder, Target } from 'lucide-react';
 import { SubtaskList } from './SubtaskList';
 import { StreakCard } from './StreakIndicator';
-import { StartPomodoroButton } from './PomodoroWidget';
-import { taskListStore } from '@/services/planner/taskListStore';
-import { pomodoroSessionLog } from '@/services/planner/pomodoroSessionLog';
 import { computeStreakStats } from '@/lib/planner/streak';
-import type { Subtask, TaskList } from '@/types/planner';
-import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
+import type { Subtask } from '@/types/planner';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -33,10 +30,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
+import { taskListStore } from '@/services/planner/taskListStore';
+import { goalStore } from '@/services/planner/goalStore';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
-import type { PlannerTask, Priority, RecurrenceRule, WeekdayCode } from '@/types/planner';
-import { PRIORITY_COLORS, PRIORITY_LABELS, WEEKDAY_ORDER, WEEKDAY_LABELS } from '@/types/planner';
+import type { PlannerGoal, PlannerMilestone, PlannerTask, Priority, RecurrenceRule, TaskList, TaskListColor, WeekdayCode } from '@/types/planner';
+import { GOAL_COLORS, PLANNER_GOAL_CHANGED, PLANNER_LIST_CHANGED, PRIORITY_COLORS, PRIORITY_LABELS, TASK_LIST_COLORS, WEEKDAY_ORDER, WEEKDAY_LABELS } from '@/types/planner';
 import { isInstanceId, parseInstanceId, expandRecurrence } from '@/lib/planner/recurrence';
 import { editAll, editThisAndFuture, editThisOnly } from '@/lib/planner/seriesEdit';
 
@@ -59,7 +58,15 @@ interface TaskScheduleDialogProps {
   onClose: () => void;
 }
 
-const DURATIONS = [30, 60, 90, 120] as const;
+const DURATIONS = [30, 60, 120] as const;
+const TASK_COLOR_OPTIONS: Array<{ value: TaskListColor; label: string }> = [
+  { value: 'blue', label: '파랑' },
+  { value: 'green', label: '초록' },
+  { value: 'amber', label: '노랑' },
+  { value: 'rose', label: '빨강' },
+  { value: 'violet', label: '보라' },
+  { value: 'teal', label: '청록' },
+];
 
 const toDateInput = (iso: string): string => iso.slice(0, 10);
 const toTimeInput = (iso: string): string => {
@@ -130,17 +137,30 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   /** 서브태스크 — schedule 모드에서 master 의 subtasks 를 직접 편집 (자동 저장).
    * create 모드에선 생성 시 함께 저장. */
   const [subtasksDraft, setSubtasksDraft] = useState<Subtask[]>([]);
-  /** 선택된 list id. undefined = 인박스(미분류). */
-  const [listId, setListId] = useState<string | undefined>(undefined);
-  /** 사용자 lists — 모달 표시용. */
+  const [taskColor, setTaskColor] = useState<TaskListColor | undefined>();
+  const [listId, setListId] = useState<string | undefined>();
+  const [goalId, setGoalId] = useState<string | undefined>();
+  const [milestoneId, setMilestoneId] = useState<string | undefined>();
+  // 사용자 카테고리 / 목표 — store 구독 (모달 열릴 때마다 최신).
   const [lists, setLists] = useState<TaskList[]>(() => taskListStore.list());
+  const [goals, setGoals] = useState<PlannerGoal[]>(() => goalStore.listActive());
+  const [milestones, setMilestones] = useState<PlannerMilestone[]>(() => goalStore.listMilestones());
   useEffect(() => {
-    const refresh = () => setLists(taskListStore.list());
-    refresh();
     if (typeof window === 'undefined') return;
-    window.addEventListener(PLANNER_LIST_CHANGED, refresh);
-    return () => window.removeEventListener(PLANNER_LIST_CHANGED, refresh);
+    const refreshLists = () => setLists(taskListStore.list());
+    const refreshGoals = () => {
+      setGoals(goalStore.listActive());
+      setMilestones(goalStore.listMilestones());
+    };
+    window.addEventListener(PLANNER_LIST_CHANGED, refreshLists);
+    window.addEventListener(PLANNER_GOAL_CHANGED, refreshGoals);
+    return () => {
+      window.removeEventListener(PLANNER_LIST_CHANGED, refreshLists);
+      window.removeEventListener(PLANNER_GOAL_CHANGED, refreshGoals);
+    };
   }, []);
+  const selectedGoal = goalId ? goals.find((g) => g.id === goalId) : undefined;
+  const selectedMilestones = goalId ? milestones.filter((m) => m.goalId === goalId) : [];
   // 모드 변경 시 폼 초기화.
   useEffect(() => {
     if (!mode) return;
@@ -163,7 +183,16 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         setByday(bd);
         setRecurrenceUntil(until ? until.slice(0, 10) : '');
         setSubtasksDraft(series.kind === 'task' ? (series.master.subtasks ?? []) : []);
-        setListId(series.kind === 'task' ? series.master.listId : undefined);
+        setTaskColor(series.kind === 'task' ? series.master.color : undefined);
+        if (series.kind === 'task') {
+          setListId(series.master.listId);
+          setGoalId(series.master.goalId);
+          setMilestoneId(series.master.milestoneId);
+        } else {
+          setListId(undefined);
+          setGoalId(undefined);
+          setMilestoneId(undefined);
+        }
       } else {
         // 비-인스턴스 — task store 에서 직접 마스터 조회 (단발/시리즈 마스터 양쪽).
         const direct = taskStore.findMaster(mode.taskId);
@@ -172,7 +201,10 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         setByday(bd);
         setRecurrenceUntil(until ? until.slice(0, 10) : '');
         setSubtasksDraft(direct?.subtasks ?? []);
+        setTaskColor(direct?.color);
         setListId(direct?.listId);
+        setGoalId(direct?.goalId);
+        setMilestoneId(direct?.milestoneId);
       }
     } else {
       setTitle('');
@@ -187,7 +219,10 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setByday([]);
       setRecurrenceUntil('');
       setSubtasksDraft([]);
+      setTaskColor(undefined);
       setListId(undefined);
+      setGoalId(undefined);
+      setMilestoneId(undefined);
     }
   }, [mode, open]);
 
@@ -195,7 +230,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
   const series = mode.kind === 'schedule' ? resolveSeries(mode.taskId) : null;
   const isSeriesInstance = Boolean(series);
-
   /**
    * scope: 시리즈 인스턴스 편집 시 정책 — 'this' / 'future' / 'all'.
    * 단발 항목이면 무관 (그냥 update).
@@ -218,10 +252,14 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         startAt: startIso,
         endAt: endIso,
         priority: priority === 0 ? undefined : priority,
+        color: taskColor,
         note: noteTrim.length > 0 ? noteTrim : undefined,
         recurrence: newRecurrence,
         subtasks: subtasksDraft.length > 0 ? subtasksDraft : undefined,
         listId,
+        goalId,
+        // goal 해제 시 milestone 도 같이 해제 (UI 가드와 일관).
+        milestoneId: goalId ? milestoneId : undefined,
       };
 
       if (series && series.kind === 'task') {
@@ -256,10 +294,13 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           startAt: startIso,
           endAt: endIso,
           priority: priority === 0 ? undefined : priority,
+          color: taskColor,
           note: noteTrim.length > 0 ? noteTrim : undefined,
           recurrence: newRecurrence,
           subtasks: subtasksDraft.length > 0 ? subtasksDraft : undefined,
           listId,
+          goalId,
+          milestoneId: goalId ? milestoneId : undefined,
         });
         notify.success(newRecurrence ? '반복 할 일 추가됐어요' : '할 일 추가됐어요');
       }
@@ -272,7 +313,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const handleUnschedule = () => {
     if (mode.kind === 'schedule') {
       taskStore.unschedule(mode.taskId);
-      notify.info('인박스로 옮겼어요', { duration: 1500 });
+      notify.info('대기함으로 옮겼어요', { duration: 1500 });
       onClose();
     }
   };
@@ -296,12 +337,13 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
     // 단발 항목 또는 전체 시리즈 삭제.
     const target = series ? series.master : taskStore.findMaster(mode.taskId);
-    const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'goalId' | 'priority' | 'note' | 'pinned' | 'recurrence'> = {
+    const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'priority' | 'color' | 'note' | 'pinned' | 'recurrence'> = {
       title: title.trim() || mode.initialTitle,
       done: false,
       startAt: target?.startAt ?? mode.initialStart,
       endAt: target?.endAt ?? mode.initialEnd,
       priority: priority === 0 ? undefined : priority,
+      color: target?.color,
       note: note.trim().length > 0 ? note.trim() : undefined,
       pinned: mode.initialPinned,
       recurrence: target?.recurrence,
@@ -333,6 +375,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           <DialogTitle className="text-[15px] font-semibold">
             {mode.kind === 'schedule' ? '시간 배정' : '새 항목'}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            작업 또는 일정을 날짜와 시간에 배정하고 우선순위, 반복, 체크리스트, 노트를 편집합니다.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 mt-2">
@@ -356,7 +401,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
           {/* 종류 (create 모드만) */}
           {mode.kind === 'create' && (
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-5 gap-1.5">
               <button
                 type="button"
                 onClick={() => setIsEvent(false)}
@@ -416,14 +461,14 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
               길이
             </label>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {DURATIONS.map((d) => (
                 <button
                   key={d}
                   type="button"
                   onClick={() => setDuration(d)}
                   className={cn(
-                    'flex-1 px-3 py-1.5 text-[12px] tabular-nums rounded-md transition-colors',
+                    'px-3 py-2 text-[12px] tabular-nums rounded-md transition-colors',
                     duration === d
                       ? 'bg-foreground text-background font-medium'
                       : 'border border-[hsl(var(--hairline))] hover:bg-accent',
@@ -433,6 +478,22 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </button>
               ))}
             </div>
+            <label className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+              직접
+              <input
+                type="number"
+                min={5}
+                step={5}
+                value={duration}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  setDuration(Number.isFinite(next) && next > 0 ? Math.max(5, next) : 5);
+                }}
+                className="h-7 w-20 rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[12px] tabular-nums text-foreground focus:border-foreground/40 focus:outline-none"
+                aria-label="길이 직접 입력"
+              />
+              분
+            </label>
           </div>
 
           {/* 우선순위 chip — 할 일 모드에서만 (일정은 priority 없음) */}
@@ -470,12 +531,54 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
-          {/* 분류 (List) — 할 일 모드만 */}
+          {/* 리스트 — 할 일 모드만 */}
+          {!isEvent && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                색상
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTaskColor(undefined)}
+                  className={cn(
+                    'h-8 rounded-md border px-2.5 text-[11px] transition-colors',
+                    !taskColor
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
+                  )}
+                >
+                  기본
+                </button>
+                {TASK_COLOR_OPTIONS.map((option) => {
+                  const active = taskColor === option.value;
+                  const color = TASK_LIST_COLORS[option.value].stripe;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setTaskColor(option.value)}
+                      className={cn(
+                        'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] transition-colors',
+                        active
+                          ? 'border-foreground bg-accent text-foreground'
+                          : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
+                      )}
+                    >
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {!isEvent && lists.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
                 <Folder className="h-3 w-3" />
-                분류
+                리스트
               </label>
               <div className="flex gap-1.5 flex-wrap">
                 <button
@@ -488,7 +591,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                       : 'border border-[hsl(var(--hairline))] hover:bg-accent',
                   )}
                 >
-                  📥 인박스
+                  대기함
                 </button>
                 {lists.map((l) => {
                   const active = listId === l.id;
@@ -522,6 +625,75 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
+          {!isEvent && goals.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold inline-flex items-center gap-1.5">
+                <Target className="h-3 w-3" />
+                목표
+              </label>
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoalId(undefined);
+                    setMilestoneId(undefined);
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-3 py-1.5 text-[12px] rounded-md transition-colors',
+                    !goalId
+                      ? 'bg-foreground text-background font-medium'
+                      : 'border border-[hsl(var(--hairline))] hover:bg-accent',
+                  )}
+                >
+                  연결 안 함
+                </button>
+                {goals.map((goal) => {
+                  const active = goalId === goal.id;
+                  const color = GOAL_COLORS[goal.color];
+                  return (
+                    <button
+                      key={goal.id}
+                      type="button"
+                      onClick={() => {
+                        setGoalId(goal.id);
+                        setMilestoneId(undefined);
+                      }}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-md transition-colors',
+                        active
+                          ? 'bg-foreground text-background font-medium'
+                          : 'border border-[hsl(var(--hairline))] hover:bg-accent',
+                      )}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: active ? 'currentColor' : color.stripe }}
+                        aria-hidden
+                      />
+                      <span>{goal.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedGoal && selectedMilestones.length > 0 && (
+                <select
+                  value={milestoneId ?? ''}
+                  onChange={(event) => setMilestoneId(event.target.value || undefined)}
+                  className="mt-1 w-full px-2.5 py-2 text-[12px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/40 focus:outline-none text-foreground"
+                  aria-label="마일스톤"
+                >
+                  <option value="">마일스톤 없이 연결</option>
+                  {selectedMilestones.map((milestone) => (
+                    <option key={milestone.id} value={milestone.id}>
+                      {milestone.done ? '완료 - ' : ''}{milestone.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
           {/* 시리즈 인스턴스 streak — 반복 task 편집 시에만 */}
           {!isEvent && series && series.kind === 'task' && series.master.recurrence && (() => {
             const stats = computeStreakStats(series.master);
@@ -532,46 +704,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   진행률
                 </label>
                 <StreakCard {...stats} />
-              </div>
-            );
-          })()}
-
-          {/* 이 task 의 포모도로 누적 — schedule 모드 + 1회+ 집중 시 표시 */}
-          {!isEvent && mode.kind === 'schedule' && (() => {
-            // 이 task 의 모든 work 세션 (master id 기반).
-            const masterId = series ? series.master.id : mode.taskId;
-            const sessions = pomodoroSessionLog.listByTask(masterId)
-              .filter((r) => !r.phase || r.phase === 'work');
-            if (sessions.length === 0) return null;
-            const totalMin = sessions.reduce((sum, r) => sum + r.actualMin, 0);
-            const completedCount = sessions.filter((r) => r.completed).length;
-            const formatMin = (m: number) => m < 60 ? `${m}분` : `${Math.floor(m/60)}시간 ${m%60 ? `${m%60}분` : ''}`;
-            // estimate vs actual: 시간 배정 길이 대비 실제 누적
-            const showEstimate = duration > 0 && totalMin > 0;
-            const ratio = showEstimate ? totalMin / duration : 0;
-            return (
-              <div className="rounded-md border border-[hsl(var(--hairline))] bg-card px-3 py-2 flex items-center justify-between text-[12px]">
-                <div className="flex items-center gap-2">
-                  <span aria-hidden>🍅</span>
-                  <span className="font-medium text-foreground">
-                    {completedCount}/{sessions.length}회 집중
-                  </span>
-                  <span className="text-muted-foreground tabular-nums">·</span>
-                  <span className="font-mono tabular-nums text-foreground">
-                    {formatMin(totalMin)}
-                  </span>
-                </div>
-                {showEstimate && (
-                  <span
-                    className={cn(
-                      'text-[10.5px] font-mono tabular-nums',
-                      ratio > 1.3 ? 'text-rose-500' : ratio < 0.7 ? 'text-emerald-600' : 'text-muted-foreground',
-                    )}
-                    title={`예상 ${duration}분 대비 ${Math.round(ratio * 100)}%`}
-                  >
-                    예상比 {Math.round(ratio * 100)}%
-                  </span>
-                )}
               </div>
             );
           })()}
@@ -773,22 +905,12 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         <DialogFooter className="flex-row sm:justify-between mt-2 gap-2">
           {mode.kind === 'schedule' ? (
             <div className="flex gap-1.5 items-center">
-              {/* 집중 시작 — 길이만큼 포모도로 */}
-              {!isEvent && date && time && (
-                <StartPomodoroButton
-                  taskId={series ? series.master.id : mode.taskId}
-                  taskInstanceId={mode.taskId}
-                  taskTitle={title.trim() || mode.initialTitle}
-                  durationMin={duration}
-                  autoComplete={true}
-                />
-              )}
               <button
                 type="button"
                 onClick={handleUnschedule}
                 className="px-3 py-1.5 text-[12px] rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
-                인박스로
+                대기함으로
               </button>
               {/* 삭제 — 시리즈면 split button 으로 '이 항목만 / 전체' 분기 */}
               {isSeriesInstance ? (
