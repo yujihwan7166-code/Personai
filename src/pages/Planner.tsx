@@ -8,13 +8,13 @@
  *
  * 단축키:
  * - n: 인박스 빠른 추가 포커스 (Day/Week 뷰)
- * - d/w/m/y: 뷰 전환
+ * - d/w/m/y/g: 뷰 전환
  * - ← / →: 이전 / 다음
  * - t: 오늘로
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Command, HelpCircle, Plus } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -26,17 +26,16 @@ import {
   type DragStartEvent,
   type DragMoveEvent,
 } from '@dnd-kit/core';
-import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
+import { PlannerSidebar, type PlannerSelection } from '@/components/planner/PlannerSidebar';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
-import { WeekStrip } from '@/components/planner/WeekStrip';
+import { TodayExecutionBoard } from '@/components/planner/TodayExecutionBoard';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
 import { usePlannerNotifications } from '@/hooks/planner/usePlannerNotifications';
 import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { MatrixView } from '@/components/planner/MatrixView';
-import { QuickPomodoroButton } from '@/components/planner/PomodoroWidget';
-import { PomodoroStatsWidget } from '@/components/planner/PomodoroStatsWidget';
+import { GoalProgressView } from '@/components/planner/GoalProgressView';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
@@ -53,6 +52,7 @@ import {
   type PlannerDragData,
   type PlannerDropData,
 } from '@/components/planner/dnd/plannerDndTypes';
+import { plannedKeyForSmartList, type SmartListId } from '@/lib/planner/smartLists';
 import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
@@ -83,6 +83,7 @@ const Planner = () => {
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [plannerSelection, setPlannerSelection] = useState<PlannerSelection>({ kind: 'smart', id: 'today' });
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -123,6 +124,21 @@ const Planner = () => {
     setDialogMode({ kind: 'create', presetStartIso: slotIso });
   }, []);
 
+  const handleCreateForAnchor = useCallback(() => {
+    const anchor = new Date(anchorIso);
+    const now = new Date();
+    if (isSameDay(anchor, now)) {
+      const rounded = new Date(now);
+      const minutes = rounded.getMinutes();
+      rounded.setSeconds(0, 0);
+      rounded.setMinutes(minutes <= 30 ? 30 : 60);
+      setDialogMode({ kind: 'create', presetStartIso: rounded.toISOString() });
+      return;
+    }
+    anchor.setHours(9, 0, 0, 0);
+    setDialogMode({ kind: 'create', presetStartIso: anchor.toISOString() });
+  }, [anchorIso]);
+
   const handleItemClick = useCallback(
     (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => {
       if (item.kind === 'task') {
@@ -149,7 +165,7 @@ const Planner = () => {
       if (view === 'day') d.setDate(d.getDate() + direction);
       else if (view === 'week') d.setDate(d.getDate() + 7 * direction);
       else if (view === 'month') d.setMonth(d.getMonth() + direction);
-      else if (view === 'year') d.setFullYear(d.getFullYear() + direction);
+      else if (view === 'year' || view === 'goals') d.setFullYear(d.getFullYear() + direction);
       return d.toISOString();
     });
   }, [view]);
@@ -263,6 +279,7 @@ const Planner = () => {
         case 'w': e.preventDefault(); setView('week'); break;
         case 'm': e.preventDefault(); setView('month'); break;
         case 'y': e.preventDefault(); setView('year'); break;
+        case 'g': e.preventDefault(); setView('goals'); break;
         case 't': e.preventDefault(); goToday(); break;
         case 'arrowleft':  e.preventDefault(); goPrev(); break;
         case 'arrowright': e.preventDefault(); goNext(); break;
@@ -273,7 +290,7 @@ const Planner = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [view, dialogMode, goPrev, goNext, goToday]);
 
-  const isFullscreen = view === 'month' || view === 'year' || view === 'matrix';
+  const isFullscreen = view === 'month' || view === 'year' || view === 'matrix' || view === 'goals';
 
   // ────── DnD ──────
   // 드래그 기준점 (5px) 으로 클릭과 분리.
@@ -382,6 +399,33 @@ const Planner = () => {
         : task.id;
       taskStore.update(targetId, { listId: (rawDropData as AssignListDropData).listId });
       notify.success('분류 변경됐어요', { duration: 1200 });
+      return;
+    }
+
+    // ─── 플래너 탭(오늘/내일/이번주/이번달)에 드롭: plannedFor 마킹 ───
+    // 시간은 안 정함. 그 기간 안에 "할 거"로 표시만. 사용자가 나중에 시간표에 올려서 확정.
+    if (
+      rawDropData &&
+      'kind' in rawDropData &&
+      rawDropData.kind === 'planner-tab' &&
+      (dragData.kind === 'inbox-task' || dragData.kind === 'scheduled-task')
+    ) {
+      const task = dragData.task;
+      const targetId = isInstanceId(task.id)
+        ? (parseInstanceId(task.id)?.masterId ?? task.id)
+        : task.id;
+      const smartListId = (rawDropData as { kind: 'planner-tab'; smartListId: SmartListId }).smartListId;
+      const plannedFor = plannedKeyForSmartList(smartListId);
+      // 시간 잡힌 항목을 탭으로 다시 던지면 시간 풀고 plannedFor 만 — "느슨한 약속"으로 되돌림.
+      taskStore.update(targetId, {
+        plannedFor,
+        startAt: undefined,
+        endAt: undefined,
+      });
+      const labels: Record<SmartListId, string> = {
+        today: '오늘', tomorrow: '내일', thisWeek: '이번주', thisMonth: '이번달',
+      };
+      notify.success(`${labels[smartListId]}에 두기로 했어요`, { duration: 1500 });
       return;
     }
 
@@ -535,7 +579,7 @@ const Planner = () => {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1 px-4 sm:px-6 py-6 sm:py-7 max-w-[1400px] w-full mx-auto">
-        <header className="mb-5 sm:mb-6 flex flex-wrap items-end justify-between gap-3 pb-3 sm:pb-4 border-b-2 border-[hsl(var(--hairline))]">
+        <header className="mb-4 sm:mb-5 flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[hsl(var(--hairline))]">
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <button
               type="button"
@@ -546,7 +590,7 @@ const Planner = () => {
               <ChevronLeft className="h-3 w-3" />
               <span>메인</span>
             </button>
-            <h1 className="text-[22px] sm:text-[26px] font-semibold tracking-tight leading-none">통합 플래너</h1>
+            <h1 className="text-[20px] sm:text-[23px] font-semibold tracking-tight leading-none">통합 플래너</h1>
             <ViewToggle value={view} onChange={setView} />
             {/* 시간 네비게이션 */}
             <div className="inline-flex items-center gap-0.5 ml-1">
@@ -589,18 +633,36 @@ const Planner = () => {
               {periodLabel}
             </span>
           </div>
-          {/* 우측 액션 — 통계 + 자유 포모도로 + 단축키 도움말 */}
-          <div className="flex items-center gap-2 ml-auto">
-            <PomodoroStatsWidget />
-            <QuickPomodoroButton />
+          {/* 우측 액션 */}
+          <div className="hidden">
+            <button
+              type="button"
+              onClick={() => inboxInputRef.current?.focus()}
+              aria-label="빠른 추가"
+              title="빠른 추가 (N)"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12px] font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">추가</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="명령 팔레트"
+              title="명령 팔레트 (Ctrl/Cmd+K)"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12px] font-medium text-foreground hover:bg-accent transition-colors"
+            >
+              <Command className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">검색</span>
+            </button>
             <button
               type="button"
               onClick={() => setHelpOpen(true)}
               aria-label="단축키 도움말"
               title="단축키 (?)"
-              className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
-              <span className="text-[12px] font-mono font-semibold">?</span>
+              <HelpCircle className="h-3.5 w-3.5" />
             </button>
           </div>
         </header>
@@ -626,22 +688,40 @@ const Planner = () => {
                 onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
               />
             )}
+            {view === 'goals' && (
+              <GoalProgressView
+                onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+              />
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr_280px] gap-3 sm:gap-4 h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)]">
-            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0 max-h-[40vh] md:max-h-none">
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[calc(100vh-145px)] sm:h-[calc(100vh-155px)]">
+            <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card p-3 min-h-0 max-h-[34vh] md:max-h-none overflow-y-auto">
               <PlannerSidebar
                 inputRef={inboxInputRef}
                 onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                selection={plannerSelection}
+                onSelectionChange={setPlannerSelection}
               />
             </div>
-            <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0">
+            <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0">
               {view === 'day' && (
-                <TodayTimeline
-                  dateIso={anchorIso}
-                  onItemClick={handleItemClick}
-                  onSlotClick={handleSlotClick}
-                />
+                <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-4">
+                  <TodayExecutionBoard
+                    anchorIso={anchorIso}
+                    inputRef={inboxInputRef}
+                    onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                    onCreateTask={handleCreateForAnchor}
+                    selection={plannerSelection}
+                  />
+                  <div className="min-h-0">
+                    <TodayTimeline
+                      dateIso={anchorIso}
+                      onItemClick={handleItemClick}
+                      onSlotClick={handleSlotClick}
+                    />
+                  </div>
+                </div>
               )}
               {view === 'week' && (
                 <WeekView
@@ -650,9 +730,6 @@ const Planner = () => {
                   onItemClick={handleItemClick}
                 />
               )}
-            </div>
-            <div className="hidden lg:block rounded-xl border border-[hsl(var(--hairline))] bg-card p-4 min-h-0">
-              <WeekStrip anchorIso={anchorIso} onDayClick={handleDayClick} />
             </div>
           </div>
         )}
