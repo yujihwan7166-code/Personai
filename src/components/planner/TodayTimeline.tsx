@@ -578,13 +578,13 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   );
 
   if (hideHeader) {
-    // 좌측 "계획" 라벨과 짝 맞춰 우측에도 "일정" 컬럼 라벨 + 보조 컨트롤만 노출.
+    // 좌측 "계획"/"할 일" 카드들과 짝 맞춰 우측 "타임라인" 도 자체 카드.
     return (
-      <section className="h-full min-h-0 flex flex-col">
+      <section className="h-full min-h-0 flex flex-col rounded-lg border border-[hsl(var(--hairline))] bg-card p-3">
         <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-[hsl(var(--hairline))]">
           <CalendarDays className="h-4 w-4 text-foreground" />
           <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">
-            일정
+            타임라인
           </span>
           <span className="ml-auto inline-flex items-center gap-1.5">
             {CompactToggle}
