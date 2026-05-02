@@ -256,7 +256,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
   const pathSet = useMemo(() => {
     if (!pathStart || !pathEnd) return null;
     return bfsPath(neighborMapRef.current, pathStart, pathEnd);
-  }, [pathStart, pathEnd, pages]);
+  }, [pathStart, pathEnd]);
 
   /* ── rAF 시뮬레이션 루프 ── */
   const [, bumpTick] = useReducer((x: number) => (x + 1) | 0, 0);
@@ -853,7 +853,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
 
           <g transform={`translate(${VB_W / 2 + tx * scale}, ${VB_H / 2 + ty * scale}) scale(${scale}) translate(${-VB_W / 2}, ${-VB_H / 2})`}>
             {/* Hulls (뒤쪽) */}
-            {hullData.map((h, i) => {
+            {hullData.map((h) => {
               const pts: Array<{ x: number; y: number }> = [];
               for (const id of h.ids) {
                 const n = nodesRef.current.get(id);

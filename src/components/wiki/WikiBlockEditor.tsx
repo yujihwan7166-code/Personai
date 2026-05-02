@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -95,7 +95,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
         HTMLAttributes: { class: 'wiki-extlink' },
         autolink: true,
         // ##wiki: 같은 커스텀 scheme 허용
-        validate: (href) => true,
+        validate: (_href) => true,
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -318,7 +318,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
     { id: 'table', label: '📊 표', keys: ['표', '테이블', 'table'], icon: <TableIcon className="w-4 h-4" />, run: (_e: typeof editor) => {
       setTableSizeOpen(true);
     } },
-  ], [editor, onPickPage, onUploadImage]);
+  ], [editor, onUploadImage]);
 
   const filteredCommands = useMemo(() => {
     const q = slashQuery.trim().toLowerCase();
@@ -330,6 +330,17 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
   }, [slashQuery, slashCommands]);
 
   useEffect(() => { setSlashIndex(0); }, [slashQuery]);
+
+  const runSlashCommandCallback = useCallback((cmd: typeof slashCommands[number]) => {
+    if (!editor) return;
+    // Remove the slash query token before running the command.
+    const anchor = slashAnchorRef.current;
+    if (anchor) {
+      editor.chain().focus().deleteRange({ from: anchor.from, to: anchor.to }).run();
+    }
+    cmd.run(editor);
+    setSlashOpen(false);
+  }, [editor]);
 
   // 슬래시 메뉴 키보드 이동
   useEffect(() => {
@@ -346,7 +357,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
         const cmd = filteredCommands[slashIndex];
         if (cmd) {
           e.preventDefault();
-          runSlashCommand(cmd);
+          runSlashCommandCallback(cmd);
         }
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -355,7 +366,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
     };
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [editor, slashOpen, filteredCommands, slashIndex]);
+  }, [editor, slashOpen, filteredCommands, slashIndex, runSlashCommandCallback]);
 
   function runSlashCommand(cmd: typeof slashCommands[number]) {
     if (!editor) return;

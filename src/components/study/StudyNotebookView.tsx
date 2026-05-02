@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Download, Trash2, MoreHorizontal, PanelLeft, Home } from 'lucide-react';
 import type { StudyNotebook, Flashcard, StudyPaneKind } from '@/types/study';
 import { newId } from '@/types/study';
@@ -30,7 +30,7 @@ interface Props {
 type MobileTab = 'viewer' | 'chat' | 'studio';
 
 export function StudyNotebookView({
-  notebook, onChange, onDelete, onBack, onSessionComplete, paletteTrigger, onOpenPalette,
+  notebook, onChange, onDelete, onBack, onSessionComplete, paletteTrigger,
   sidebarOpen, onToggleSidebar,
 }: Props) {
   const [showQuickStart, setShowQuickStart] = useState(false);
@@ -38,7 +38,9 @@ export function StudyNotebookView({
   const [showRecorder, setShowRecorder] = useState(false);
   const [sessionOpts, setSessionOpts] = useState<{ filter?: 'saved' | 'deck' | 'quizDeck'; deckId?: string } | null>(null);
   const showSession = sessionOpts !== null;
-  const setShowSession = (v: boolean) => setSessionOpts(v ? (sessionOpts ?? {}) : null);
+  const setShowSession = useCallback((v: boolean) => {
+    setSessionOpts((prev) => (v ? (prev ?? {}) : null));
+  }, []);
   const [mobileTab, setMobileTab] = useState<MobileTab>('chat');
   const [activeSourcePage, setActiveSourcePage] = useState<number | undefined>(undefined);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -70,7 +72,7 @@ export function StudyNotebookView({
     if (a === 'record') setShowRecorder(true);
     if (a === 'quickstart') setShowQuickStart(true);
     if (a === 'export') setShowExport(true);
-  }, [paletteTrigger?.tick, paletteTrigger?.action]);
+  }, [paletteTrigger?.tick, paletteTrigger?.action, setShowSession]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -82,7 +84,7 @@ export function StudyNotebookView({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [setShowSession]);
 
   useEffect(() => {
     if (!overflowOpen) return;
