@@ -251,6 +251,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         title: trimmed,
         startAt: startIso,
         endAt: endIso,
+        // 시간이 잡혔으면 "계획"(plannedFor) 마킹은 자동 해제 — 좌측 계획 컬럼에 중복 안 뜨고
+        // 시간표 이동의 의도가 명확.
+        plannedFor: undefined,
         priority: priority === 0 ? undefined : priority,
         color: taskColor,
         note: noteTrim.length > 0 ? noteTrim : undefined,

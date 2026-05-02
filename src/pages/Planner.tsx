@@ -107,15 +107,32 @@ const Planner = () => {
 
   const handleInboxClick = useCallback((task: { id: string; title: string }) => {
     const full = taskStore.list().find((t) => t.id === task.id);
+    // 시간 미정 task: 모달 기본 날짜를 plannedFor (계획 잡힌 날) 또는 현재 보고 있는 anchor 날짜로.
+    // 이걸 안 하면 default = new Date() 로 잡혀, 사용자가 5/2 페이지에서 5/2 계획 항목 시간 배정해도
+    // 모달 default 가 오늘(5/3 등)이라 startAt 이 다른 날로 저장되고 타임라인엔 안 보임.
+    let initialStart: string | undefined;
+    let initialEnd: string | undefined;
+    if (full && !full.startAt) {
+      const dayKey = full.plannedFor ?? new Date(anchorIso).toISOString().slice(0, 10);
+      // 로컬 자정 기준 09:00 으로 default — 사용자가 시간 input 만 바꾸면 그 날에 잘 떨어지도록.
+      const start = new Date(`${dayKey}T09:00:00`);
+      initialStart = start.toISOString();
+      initialEnd = new Date(start.getTime() + 60 * 60_000).toISOString();
+    } else if (full?.startAt) {
+      initialStart = full.startAt;
+      initialEnd = full.endAt;
+    }
     setDialogMode({
       kind: 'schedule',
       taskId: task.id,
       initialTitle: task.title,
+      initialStart,
+      initialEnd,
       initialPriority: full?.priority,
       initialNote: full?.note,
       initialPinned: full?.pinned,
     });
-  }, []);
+  }, [anchorIso]);
 
   const handleSlotClick = useCallback((slotIso: string) => {
     setDialogMode({ kind: 'create', presetStartIso: slotIso });

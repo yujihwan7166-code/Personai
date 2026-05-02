@@ -54,10 +54,14 @@ export const taskStore = {
 
   /** 특정 날짜에 시간 배정된 할일 (시작 시각 오름차순).
    * 반복 시리즈는 해당 날짜에 떨어지는 가상 인스턴스를 합성해 반환.
-   * 인스턴스 done 은 master.seriesCompletions[occurrenceIso] 로 결정. */
+   * 인스턴스 done 은 master.seriesCompletions[occurrenceIso] 로 결정.
+   *
+   * 비교는 로컬 시각 기준 — `dateIso` 와 `t.startAt` 둘 다 UTC ISO 라도, 사용자
+   * 입장의 "그 날" 로 매칭한다 (예: KST 5/3 14:00 task = UTC 5/3 05:00 → KST anchor 5/3 와 매치). */
   listScheduled(dateIso: string): PlannerTask[] {
-    const dayPrefix = dateIso.slice(0, 10);
-    const rangeStart = new Date(`${dayPrefix}T00:00:00`);
+    const day = new Date(dateIso);
+    const rangeStart = new Date(day);
+    rangeStart.setHours(0, 0, 0, 0);
     const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
 
     const all = safeRead();
@@ -77,8 +81,11 @@ export const taskStore = {
             done: instDone,
           });
         }
-      } else if (t.startAt.slice(0, 10) === dayPrefix) {
-        result.push(t);
+      } else {
+        const ts = new Date(t.startAt).getTime();
+        if (ts >= rangeStart.getTime() && ts < rangeEnd.getTime()) {
+          result.push(t);
+        }
       }
     }
 
