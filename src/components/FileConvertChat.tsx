@@ -35,6 +35,7 @@ import { isMobile, evaluateMemoryRisk, estimateMemoryMB, getMemoryBudgetMB } fro
 import { CATEGORY_LABELS, TASKS, getQuickActions, getTaskById, getTasksByCategory, getTasksForFile, type ConvertTask, type TaskCategory } from '@/lib/fileConvert/tasks';
 import { listHistory, addToHistory, formatHistoryTime, type ConvertHistoryItem } from '@/lib/fileConvert/history';
 import { getFavoriteIds, toggleFavorite } from '@/lib/fileConvert/favorites';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 // ───────── 메인 ─────────
 interface FileConvertChatProps { onBack?: () => void }
@@ -1945,7 +1946,7 @@ function ResultPreview({ text, format }: { text: string; format: FileFormat }) {
 
   // Markdown — 굵게/제목/리스트 등 인라인 매우 라이트 렌더
   if (format === 'md') {
-    const html = renderLightMarkdown(text);
+    const html = sanitizeHtml(renderLightMarkdown(text));
     return (
       <div
         className="p-3 rounded-lg bg-accent/40 border border-[hsl(var(--hairline))] text-[12.5px] text-foreground max-h-60 overflow-auto leading-relaxed prose-mini"

@@ -21,6 +21,7 @@ import { MindmapCanvas } from './MindmapCanvas';
 import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { getBlob } from '@/lib/studyBlobStore';
 
 interface Props {
   notebook: StudyNotebook;
@@ -1346,7 +1347,6 @@ function SummarySection({
     setPagesIndexLoading(true);
     setVisionProgress({ phase: 'render', done: 0, total });
     try {
-      const { getBlob } = await import('@/lib/studyBlobStore');
       const { renderPdfPagesToImages } = await import('@/lib/fileConvert/converters/pdf');
       const blob = await getBlob(pdfSource.blobRef);
       if (!blob) {
@@ -1409,7 +1409,6 @@ function SummarySection({
     if (chunk.pages.length === 0 || !structured?.pages?.sourceBlobRef) return;
     setLoadingChunkId(chunk.id);
     try {
-      const { getBlob } = await import('@/lib/studyBlobStore');
       const { renderPdfPagesToImages } = await import('@/lib/fileConvert/converters/pdf');
       const blob = await getBlob(structured.pages.sourceBlobRef);
       if (!blob) {

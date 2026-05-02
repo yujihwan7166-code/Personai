@@ -44,6 +44,17 @@ interface Props {
   onCreateAndLink?: (title: string, type: import('@/types/wiki').WikiPageType) => Promise<WikiPage> | WikiPage;
 }
 
+interface MarkdownStorage {
+  markdown?: {
+    getMarkdown?: () => string;
+  };
+}
+
+function getEditorMarkdown(editor: { storage: unknown; getHTML: () => string }, fallback = ''): string {
+  const storage = editor.storage as MarkdownStorage;
+  return storage.markdown?.getMarkdown?.() ?? fallback;
+}
+
 /**
  * 마이위키 블록 에디터 (TipTap 기반).
  *
@@ -156,9 +167,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
       },
     },
     onUpdate: ({ editor }) => {
-      // markdown 으로 직렬화 — tiptap-markdown 이 storage.markdown 노출
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const md = (editor.storage as any).markdown?.getMarkdown?.() ?? editor.getHTML();
+      const md = getEditorMarkdown(editor, editor.getHTML());
       onChangeRef.current(md);
     },
   });
@@ -172,9 +181,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
     if (!editor) return;
     if (lastBodyRef.current === body) return;
     lastBodyRef.current = body;
-    // 현재 에디터 출력과 동일하면 skip
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const current = (editor.storage as any).markdown?.getMarkdown?.() ?? '';
+    const current = getEditorMarkdown(editor);
     if (current.trim() === body.trim()) return;
     editor.commands.setContent(body || '', false);
   }, [body, editor]);

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import {
   listMediaItems,
   getMonthlyMediaUsage,
+  getMediaBlob,
   deleteMediaItem,
   canGenerateImages,
   canGenerateVideoSeconds,
@@ -317,7 +318,6 @@ export function MediaGenPanel({ onClose }: Props) {
     let url = item.resultUrl || '';
     if (!url && item.blobRef) {
       try {
-        const { getMediaBlob } = await import('@/lib/mediaGenStore');
         const blob = await getMediaBlob(item.blobRef);
         if (blob) {
           url = await new Promise<string>((resolve, reject) => {

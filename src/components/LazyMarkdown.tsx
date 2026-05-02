@@ -1,10 +1,8 @@
 import { Suspense, lazy } from 'react';
+import remarkGfm from 'remark-gfm';
 
 const MarkdownRenderer = lazy(async () => {
-  const [{ default: ReactMarkdown }, { default: remarkGfm }] = await Promise.all([
-    import('react-markdown'),
-    import('remark-gfm'),
-  ]);
+  const { default: ReactMarkdown } = await import('react-markdown');
   return {
     default: (props: { children: string }) => (
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{props.children}</ReactMarkdown>

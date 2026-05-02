@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { MindmapNodeStatus } from '@/types/study';
 import { cn } from '@/lib/utils';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import { Maximize2, Minimize2, Download, AlertTriangle } from 'lucide-react';
 
 /** 노드 상태별 색상. SVG 에 inline style 로 override. */
@@ -322,7 +323,7 @@ export function MermaidView({
             'p-4 overflow-auto',
             fullscreen ? 'h-full' : 'max-h-[60vh]',
           )}
-          dangerouslySetInnerHTML={{ __html: svgText }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(svgText) }}
         />
       )}
     </div>

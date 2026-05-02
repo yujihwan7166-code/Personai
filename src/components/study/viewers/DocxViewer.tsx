@@ -3,6 +3,7 @@
  */
 import { useEffect, useState } from 'react';
 import { getBlob } from '@/lib/studyBlobStore';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 interface Props {
   blobRef: string;
@@ -21,7 +22,7 @@ export function DocxViewer({ blobRef }: Props) {
         const arrayBuffer = await blob.arrayBuffer();
         const mammoth = await import('mammoth');
         const { value } = await mammoth.convertToHtml({ arrayBuffer });
-        if (!cancelled) setHtml(value);
+        if (!cancelled) setHtml(sanitizeHtml(value));
       } catch (e: unknown) {
         if (!cancelled) setErr(e instanceof Error ? e.message : '렌더 실패');
       }
