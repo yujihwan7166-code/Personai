@@ -289,6 +289,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           endAt: endIso,
           source: 'user',
           recurrence: newRecurrence,
+          // taskColor (TaskListColor enum) → stripe hex 매핑.
+          color: taskColor ? TASK_LIST_COLORS[taskColor].stripe : undefined,
         });
         notify.success(newRecurrence ? '반복 일정 추가됐어요' : '일정 추가됐어요');
       } else {
@@ -375,11 +377,18 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onKeyDown={handleKeyDownGlobal}>
         <DialogHeader>
-          <DialogTitle className="text-[15px] font-semibold">
-            {mode.kind === 'schedule' ? '시간 배정' : '새 항목'}
+          <DialogTitle className="text-[15px] font-semibold flex items-center gap-2">
+            <span aria-hidden>{isEvent ? '🗓' : '✅'}</span>
+            <span>
+              {mode.kind === 'schedule'
+                ? `${isEvent ? '일정' : '할 일'} 시간 배정`
+                : `새 ${isEvent ? '일정' : '할 일'}`}
+            </span>
           </DialogTitle>
           <DialogDescription className="sr-only">
-            작업 또는 일정을 날짜와 시간에 배정하고 우선순위, 반복, 체크리스트, 노트를 편집합니다.
+            {isEvent
+              ? '일정의 시간·색·반복을 편집합니다.'
+              : '할 일의 시간·우선순위·리스트·목표·체크리스트·노트를 편집합니다.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -402,32 +411,46 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             />
           </div>
 
-          {/* 종류 (create 모드만) — full row */}
+          {/* 종류 (create 모드만) — 큰 segmented control + 의미 hint */}
           {mode.kind === 'create' && (
-            <div className="grid grid-cols-5 gap-1.5 sm:col-span-2">
+            <div className="sm:col-span-2 grid grid-cols-2 gap-1.5 p-1 rounded-md bg-accent/40 border border-[hsl(var(--hairline))]">
               <button
                 type="button"
                 onClick={() => setIsEvent(false)}
+                aria-pressed={!isEvent}
                 className={cn(
-                  'px-3 py-1.5 text-[12px] rounded-md transition-colors',
+                  'flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-[12.5px] rounded transition-all',
                   !isEvent
-                    ? 'bg-foreground text-background'
-                    : 'border border-[hsl(var(--hairline))] hover:bg-accent',
+                    ? 'bg-foreground text-background font-semibold shadow-sm'
+                    : 'text-foreground/65 hover:bg-accent hover:text-foreground',
                 )}
               >
-                할 일
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden>✅</span>
+                  <span>할 일</span>
+                </span>
+                <span className={cn('text-[10.5px] font-normal leading-tight', !isEvent ? 'text-background/65' : 'text-foreground/45')}>
+                  체크리스트·우선순위·목표
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => setIsEvent(true)}
+                aria-pressed={isEvent}
                 className={cn(
-                  'px-3 py-1.5 text-[12px] rounded-md transition-colors',
+                  'flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-[12.5px] rounded transition-all',
                   isEvent
-                    ? 'bg-foreground text-background'
-                    : 'border border-[hsl(var(--hairline))] hover:bg-accent',
+                    ? 'bg-foreground text-background font-semibold shadow-sm'
+                    : 'text-foreground/65 hover:bg-accent hover:text-foreground',
                 )}
               >
-                일정
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden>🗓</span>
+                  <span>일정</span>
+                </span>
+                <span className={cn('text-[10.5px] font-normal leading-tight', isEvent ? 'text-background/65' : 'text-foreground/45')}>
+                  시간 블록·색·반복
+                </span>
               </button>
             </div>
           )}
@@ -534,48 +557,46 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
-          {/* 색상 — 할 일 모드만. 우측 col (우선순위 옆) */}
-          {!isEvent && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
-                색상
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setTaskColor(undefined)}
-                  className={cn(
-                    'h-8 rounded-md border px-2.5 text-[11px] transition-colors',
-                    !taskColor
-                      ? 'border-foreground bg-foreground text-background'
-                      : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
-                  )}
-                >
-                  기본
-                </button>
-                {TASK_COLOR_OPTIONS.map((option) => {
-                  const active = taskColor === option.value;
-                  const color = TASK_LIST_COLORS[option.value].stripe;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setTaskColor(option.value)}
-                      className={cn(
-                        'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] transition-colors',
-                        active
-                          ? 'border-foreground bg-accent text-foreground'
-                          : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
-                      )}
-                    >
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
+          {/* 색상 — 할 일/일정 둘 다. 일정은 시간 블록 색, 할 일은 카테고리 색. */}
+          <div className={cn('flex flex-col gap-1.5', isEvent && 'sm:col-span-2')}>
+            <label className="text-[11px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+              색상
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setTaskColor(undefined)}
+                className={cn(
+                  'h-8 rounded-md border px-2.5 text-[11px] transition-colors',
+                  !taskColor
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+              >
+                기본
+              </button>
+              {TASK_COLOR_OPTIONS.map((option) => {
+                const active = taskColor === option.value;
+                const color = TASK_LIST_COLORS[option.value].stripe;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setTaskColor(option.value)}
+                    className={cn(
+                      'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] transition-colors',
+                      active
+                        ? 'border-foreground bg-accent text-foreground'
+                        : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+                    {option.label}
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
 
           {/* 리스트 — 좌측 col */}
           {!isEvent && lists.length > 0 && (
