@@ -38,7 +38,7 @@ export const PlannerSidebar = ({
 
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* 상단 — 메인 링크 + 제목 + 뷰 토글 */}
+      {/* 상단 — 메인 링크 + (제목 + 뷰 토글 한 줄) */}
       <div className="shrink-0 px-1">
         <button
           type="button"
@@ -49,8 +49,10 @@ export const PlannerSidebar = ({
           <ChevronLeft className="h-3 w-3" />
           <span>메인</span>
         </button>
-        <h1 className="text-[17px] font-semibold tracking-tight leading-none mb-2">통합 플래너</h1>
-        <ViewToggle value={view} onChange={onViewChange} />
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-[15px] font-semibold tracking-tight leading-none truncate">통합 플래너</h1>
+          <ViewToggle value={view} onChange={onViewChange} />
+        </div>
       </div>
 
       <div className="border-t border-[hsl(var(--hairline))] pt-3" />
