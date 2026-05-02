@@ -315,9 +315,9 @@ function updateDiscussionTitle(id: string, newTitle: string) {
 }
 
 export function AppSidebar({
-  experts, onLoadHistory, onUpdateExperts,
-  discussionMode, onModeChange, isDiscussing, onNewDiscussion,
-  favoriteIds = [], onSelectExpert, onSidebarToggle, onStartChat, onOpenModePalette,
+  experts, onLoadHistory,
+  discussionMode, onModeChange, onNewDiscussion,
+  onSidebarToggle, onStartChat, onOpenModePalette,
 }: Props) {
   // Phase B 리모델링: 넓은 화면(lg+)에서 기본 열림, 모바일/좁은 화면은 접힘.
   // 기존 사용자 설정이 있으면 그대로 존중.
@@ -385,7 +385,7 @@ export function AppSidebar({
   const [showBotBrowser, setShowBotBrowser] = useState(false);
   const [botBrowserCat, setBotBrowserCat] = useState('전체');
   const [botMoreOpen, setBotMoreOpen] = useState(false);
-  const [selectedBotProfile, setSelectedBotProfile] = useState<string | null>(null);
+  const [, setSelectedBotProfile] = useState<string | null>(null);
   // Bot browser portal tooltip
   const [hoveredBotExpert, setHoveredBotExpert] = useState<Expert | null>(null);
   const [botTipPos, setBotTipPos] = useState<{ x: number; y: number } | null>(null);
@@ -746,7 +746,6 @@ export function AppSidebar({
   const renderConversationItem = (record: DiscussionRecord) => {
     const isActive = activeRecordId === record.id;
     const isHovered = hoveredRecordId === record.id;
-    const isDeleting = deletingId === record.id;
     const isEditing = editingId === record.id;
 
     // Find the first expert for the avatar icon
@@ -2073,9 +2072,6 @@ export function AppSidebar({
                         const imageThumbnail = getRecordImageThumbnail(record);
                         // Get preview text from first message content (if available)
                         const preview = record.messages?.[1]?.content?.slice(0, 100) || record.messages?.[0]?.content?.slice(0, 100) || '';
-                        const msgCount = record.messages?.length || 0;
-                        const expertName = firstExpert?.nameKo || 'AI';
-
                         return (
                           <button
                             key={record.id}
