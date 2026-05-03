@@ -2315,11 +2315,27 @@ export function ExpertSelectionPanel({
         || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2)
         || (discussionMode === 'procon' && !isProconTeamComplete)
         || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2));
-  const selectedExpertsForInput = useMemo(() => (
-    (discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')
-      ? []
-      : experts.filter((expert) => selectedIds.includes(expert.id))
-  ), [discussionMode, experts, isBrainstorm, isHearing, isStakeholder, selectedIds]);
+  const selectedExpertsForInput = useMemo(() => {
+    if (isBrowserMode) {
+      if (!selectedSearchEngine) return [];
+      // 검색 엔진을 Expert 모양 객체로 wrap — chip 표시용 (실제 LLM 호출엔 사용 안 됨).
+      const fake: Expert = {
+        id: `browser-${selectedSearchEngine.id}`,
+        name: selectedSearchEngine.name,
+        nameKo: `${selectedSearchEngine.name} 검색`,
+        icon: selectedSearchEngine.iconUrl ?? '',
+        avatarUrl: selectedSearchEngine.iconUrl,
+        color: 'blue',
+        description: selectedSearchEngine.hint,
+        category: 'ai',
+      };
+      return [fake];
+    }
+    if (discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk') {
+      return [];
+    }
+    return experts.filter((expert) => selectedIds.includes(expert.id));
+  }, [isBrowserMode, selectedSearchEngine, discussionMode, experts, isBrainstorm, isHearing, isStakeholder, selectedIds]);
 
   const sharedQuestionInputProps = {
     onSubmit: resolvedQuestionSubmit,
