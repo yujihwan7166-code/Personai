@@ -58,7 +58,7 @@ export const ModeLauncher = ({ open, onOpenChange }: ModeLauncherProps) => {
           </span>
           <div className="flex items-center gap-1">
             <a
-              href="/"
+              href="/?palette=1"
               target="_blank"
               rel="noreferrer"
               aria-label="새 탭에서 열기"
@@ -82,8 +82,8 @@ export const ModeLauncher = ({ open, onOpenChange }: ModeLauncherProps) => {
         {/* 홈 화면 임베드 */}
         <div className="flex-1 min-h-0 bg-background">
           <iframe
-            src="/"
-            title="홈"
+            src="/?palette=1"
+            title="홈 도구 런처"
             className="w-full h-full border-0 block"
           />
         </div>
