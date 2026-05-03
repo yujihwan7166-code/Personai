@@ -6,13 +6,10 @@
  *
  * 추후: 오버듀, 다가오는 일정 위젯 추가 예정.
  */
-import { useState } from 'react';
-import { Grid2x2 } from 'lucide-react';
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
 import { PlannerMatrixMini } from './PlannerMatrixMini';
-import { ModeLauncher } from './ModeLauncher';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -31,24 +28,8 @@ export const PlannerSidebar = ({
   onSelectDay,
   onTaskClick,
 }: PlannerSidebarProps) => {
-  const [launcherOpen, setLauncherOpen] = useState(false);
-
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* 맨 위 — 모드 런처 버튼 (단독 행) */}
-      <div className="shrink-0 px-1">
-        <button
-          type="button"
-          onClick={() => setLauncherOpen(true)}
-          aria-label="모드 목록 열기"
-          title="모드 목록"
-          className="w-full h-9 inline-flex items-center justify-center gap-2 rounded-md border border-[hsl(var(--hairline))] bg-card text-foreground/75 hover:text-foreground hover:bg-accent transition-colors"
-        >
-          <Grid2x2 className="h-4 w-4" />
-          <span className="text-[12px] font-medium">모드</span>
-        </button>
-      </div>
-
       {/* 제목 + 뷰 토글 */}
       <div className="shrink-0 px-1">
         <div className="flex items-center justify-between gap-2">
@@ -71,13 +52,6 @@ export const PlannerSidebar = ({
 
       {/* 미니 아이젠하워 매트릭스 — 글랜스용 */}
       <PlannerMatrixMini onTaskClick={onTaskClick} />
-
-      <ModeLauncher
-        open={launcherOpen}
-        view={view}
-        onOpenChange={setLauncherOpen}
-        onViewChange={onViewChange}
-      />
     </div>
   );
 };
