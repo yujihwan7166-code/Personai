@@ -733,16 +733,29 @@ const Planner = () => {
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                       onAdd={() => {
-                        // 시간 정해서 추가 — anchor 날짜 09:00 default 모달.
+                        // 일정 추가 — anchor 날짜 09:00 default + presetIsEvent.
                         const day = new Date(anchorIso);
                         day.setHours(9, 0, 0, 0);
-                        setDialogMode({ kind: 'create', presetStartIso: day.toISOString() });
+                        setDialogMode({
+                          kind: 'create',
+                          presetStartIso: day.toISOString(),
+                          presetIsEvent: true,
+                        });
                       }}
                     />
                     <TodayTodoList
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
-                      onFocusAdd={() => dayInputRef.current?.focus()}
+                      onAdd={() => {
+                        // 할 일 추가 — anchor 날짜 09:00 default + presetIsEvent=false (시간 input 숨김).
+                        const day = new Date(anchorIso);
+                        day.setHours(9, 0, 0, 0);
+                        setDialogMode({
+                          kind: 'create',
+                          presetStartIso: day.toISOString(),
+                          presetIsEvent: false,
+                        });
+                      }}
                     />
                   </div>
                   <TodayTimeline

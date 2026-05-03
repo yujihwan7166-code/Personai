@@ -43,7 +43,7 @@ type Mode =
       initialNote?: string;
       initialPinned?: boolean;
     }
-  | { kind: 'create'; presetStartIso: string };
+  | { kind: 'create'; presetStartIso: string; presetIsEvent?: boolean };
 
 interface TaskScheduleDialogProps {
   open: boolean;
@@ -118,7 +118,7 @@ const ruleToPreset = (rec: RecurrenceRule | undefined): { preset: RecurrencePres
 
 // 라이트 톤 라벨.
 const LabelText = ({ children }: { children: React.ReactNode }) => (
-  <label className="text-[11.5px] font-medium text-foreground/65 leading-none">
+  <label className="text-[12.5px] font-semibold text-foreground/80 leading-none">
     {children}
   </label>
 );
@@ -174,7 +174,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setDate(toDateInput(mode.presetStartIso));
       setTime(toTimeInput(mode.presetStartIso));
       setDuration(60);
-      setIsEvent(false);
+      setIsEvent(mode.presetIsEvent ?? false);
       setPriority(0);
       setRecurrence('none');
       setByday([]);
@@ -338,15 +338,19 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   // chip base style — 라이트 outline.
   const chip = (active: boolean) =>
     cn(
-      'px-3 py-1.5 text-[12.5px] rounded-md transition-colors border',
+      'px-3.5 py-2 text-[13px] rounded-md transition-colors border',
       active
-        ? 'bg-foreground text-background border-foreground font-medium'
-        : 'bg-card border-foreground/10 text-foreground/75 hover:border-foreground/30 hover:text-foreground',
+        ? 'bg-foreground text-background border-foreground font-semibold'
+        : 'bg-card border-foreground/15 text-foreground/80 hover:border-foreground/35 hover:text-foreground',
     );
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onKeyDown={handleKeyDownGlobal}>
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onKeyDown={handleKeyDownGlobal}
+        hideClose
+      >
         <DialogHeader>
           {/* visible 헤더 라벨은 제거 — 종류 toggle 자체가 식별자 역할.
               radix a11y 위해 DialogTitle sr-only 로만 유지. */}
@@ -370,8 +374,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               onClick={() => setIsEvent(false)}
               aria-pressed={!isEvent}
               className={cn(
-                'relative inline-flex items-center justify-center gap-1.5 h-8 text-[12.5px] transition-colors',
-                !isEvent ? 'text-foreground font-semibold' : 'text-foreground/45 hover:text-foreground/80',
+                'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
+                !isEvent ? 'text-foreground font-semibold' : 'text-foreground/55 hover:text-foreground/85',
               )}
             >
               <span>할 일</span>
@@ -388,8 +392,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               onClick={() => setIsEvent(true)}
               aria-pressed={isEvent}
               className={cn(
-                'relative inline-flex items-center justify-center gap-1.5 h-8 text-[12.5px] transition-colors',
-                isEvent ? 'text-foreground font-semibold' : 'text-foreground/45 hover:text-foreground/80',
+                'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
+                isEvent ? 'text-foreground font-semibold' : 'text-foreground/55 hover:text-foreground/85',
               )}
             >
               <span>일정</span>
@@ -427,7 +431,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="px-2.5 py-2 text-[13px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none"
+                  className="px-3 py-2 text-[14px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -437,7 +441,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
                   step={1800}
-                  className="px-2.5 py-2 text-[13px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none"
+                  className="px-3 py-2 text-[14px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none"
                 />
               </div>
             </div>
@@ -501,10 +505,10 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                       type="button"
                       onClick={() => setPriority(p)}
                       className={cn(
-                        'flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[12px] rounded-md transition-colors border',
+                        'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12.5px] rounded-md transition-colors border',
                         active
                           ? 'bg-foreground text-background font-medium border-foreground'
-                          : 'bg-card border-foreground/10 hover:border-foreground/30 text-foreground/75',
+                          : 'bg-card border-foreground/15 hover:border-foreground/35 text-foreground/80',
                       )}
                     >
                       {p > 0 && (
@@ -541,10 +545,10 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                     type="button"
                     onClick={() => setTaskColor(option.value)}
                     className={cn(
-                      'inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] rounded-md transition-colors border',
+                      'inline-flex items-center gap-1.5 px-3 py-2 text-[12.5px] rounded-md transition-colors border',
                       active
                         ? 'bg-accent border-foreground text-foreground font-medium'
-                        : 'bg-card border-foreground/10 hover:border-foreground/30 text-foreground/75',
+                        : 'bg-card border-foreground/15 hover:border-foreground/35 text-foreground/80',
                     )}
                   >
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />
@@ -641,7 +645,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="flex items-center gap-1 px-3 py-1.5 text-[12px] rounded-md text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                      className="flex items-center gap-1 px-3.5 py-2 text-[12.5px] rounded-md text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                     >
                       <Trash2 className="h-3 w-3" />
                       삭제
@@ -659,7 +663,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 <button
                   type="button"
                   onClick={() => handleDelete('all')}
-                  className="flex items-center gap-1 px-3 py-1.5 text-[12px] rounded-md text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  className="flex items-center gap-1 px-3.5 py-2 text-[12.5px] rounded-md text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                 >
                   <Trash2 className="h-3 w-3" />
                   삭제
@@ -671,7 +675,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-[12px] rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+              className="px-3.5 py-2 text-[12.5px] rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
             >
               취소
             </button>
@@ -681,7 +685,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   type="button"
                   onClick={() => submitWithScope('this')}
                   title="이 항목만 (Ctrl/Cmd + Enter)"
-                  className="px-4 py-1.5 text-[12px] bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+                  className="px-4 py-2 text-[13px] bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
                 >
                   이 항목만
                 </button>
@@ -707,7 +711,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 type="button"
                 onClick={handleSubmit}
                 title="Ctrl/Cmd + Enter"
-                className="px-4 py-1.5 text-[12px] rounded-md bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+                className="px-4 py-2 text-[13px] rounded-md bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
               >
                 {mode.kind === 'schedule' ? '배정' : '추가'}
               </button>

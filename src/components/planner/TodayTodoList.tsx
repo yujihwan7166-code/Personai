@@ -5,11 +5,10 @@
  * - 헤더 + 버튼 → 인라인 input row
  * - 또는 day 뷰 공통 input (시간 NL 없으면 자동 여기)
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ListTodo, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ListTodo, Plus } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { taskStore } from '@/services/planner/taskStore';
-import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { PlannerCard } from './PlannerCard';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
@@ -18,8 +17,8 @@ import { PLANNER_TASK_CHANGED, type PlannerTask } from '@/types/planner';
 interface TodayTodoListProps {
   anchorIso: string;
   onTaskClick?: (task: { id: string; title: string }) => void;
-  /** 공통 입력창에 포커스 (빈 상태에서 안내 클릭 시). */
-  onFocusAdd?: () => void;
+  /** + 버튼 / 빈 상태 클릭 시 — 할 일 모드로 모달을 연다. */
+  onAdd?: () => void;
 }
 
 const localDateKey = (date: Date) => {
@@ -38,9 +37,8 @@ const sortPlanned = (items: PlannerTask[]) =>
     return b.createdAt.localeCompare(a.createdAt);
   });
 
-export const TodayTodoList = ({ anchorIso, onTaskClick, onFocusAdd }: TodayTodoListProps) => {
+export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
-  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     const refresh = () => setTasks(taskStore.list().filter((task) => !task.done && !task.canceled && !task.someday));
@@ -81,7 +79,7 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onFocusAdd }: TodayTodoL
         )}
         <button
           type="button"
-          onClick={() => setAdding(true)}
+          onClick={onAdd}
           aria-label="할 일 추가"
           title="할 일 추가"
           className="ml-auto h-6 w-6 inline-flex items-center justify-center rounded text-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
@@ -91,22 +89,14 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onFocusAdd }: TodayTodoL
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
-        {/* 인라인 추가 row — + 버튼 클릭 시. */}
-        {adding && (
-          <NewTodoInline
-            dayKey={dayKey}
-            onDone={() => setAdding(false)}
-          />
-        )}
-
-        {planned.length === 0 && !adding ? (
+        {planned.length === 0 ? (
           <button
             type="button"
-            onClick={onFocusAdd}
+            onClick={onAdd}
             className="w-full rounded-md px-2 py-3 text-left text-[12.5px] text-foreground/70 hover:bg-accent hover:text-foreground transition-colors leading-snug"
           >
             오늘 하기로 정한 항목이 없어요.<br />
-            위 입력창에 적거나, 헤더 + 로 추가하세요.
+            <span className="text-foreground/55">+ 로 새 할 일 추가</span>
           </button>
         ) : (
           <div className="space-y-0.5 pb-1">
@@ -142,50 +132,3 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onFocusAdd }: TodayTodoL
   );
 };
 
-/** 인라인 add row — 단순 텍스트 입력만. Enter / outside blur / ✓ 저장. */
-const NewTodoInline = ({ dayKey, onDone }: { dayKey: string; onDone: () => void }) => {
-  const [value, setValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const submit = () => {
-    const trimmed = value.trim();
-    if (trimmed) {
-      taskStore.add({ title: trimmed, plannedFor: dayKey });
-      notify.success('할 일에 추가했어요', { duration: 1000 });
-    }
-    onDone();
-  };
-
-  return (
-    <div
-      className="mb-1 flex items-center gap-1 px-2 py-1.5 rounded-md bg-accent/60"
-      onBlur={(e) => {
-        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-        submit();
-      }}
-    >
-      <input
-        ref={inputRef}
-        autoFocus
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') submit();
-          else if (e.key === 'Escape') onDone();
-        }}
-        placeholder="할 일 제목"
-        className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-foreground/45 text-foreground"
-      />
-      <button
-        type="button"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={submit}
-        aria-label="저장"
-        title="저장 (Enter)"
-        className="h-5 w-5 inline-flex items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-foreground/10 transition-colors shrink-0"
-      >
-        <Check className="h-3 w-3" strokeWidth={2.5} />
-      </button>
-    </div>
-  );
-};
