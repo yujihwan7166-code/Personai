@@ -347,13 +347,12 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onKeyDown={handleKeyDownGlobal}>
         <DialogHeader>
-          <DialogTitle className="text-[15px] font-semibold flex items-center gap-2">
-            <span aria-hidden>{isEvent ? '🗓' : '✅'}</span>
-            <span>
-              {mode.kind === 'schedule'
-                ? `${isEvent ? '일정' : '할 일'} 편집`
-                : `새 ${isEvent ? '일정' : '할 일'}`}
-            </span>
+          {/* visible 헤더 라벨은 제거 — 종류 toggle 자체가 식별자 역할.
+              radix a11y 위해 DialogTitle sr-only 로만 유지. */}
+          <DialogTitle className="sr-only">
+            {mode.kind === 'schedule'
+              ? `${isEvent ? '일정' : '할 일'} 편집`
+              : `새 ${isEvent ? '일정' : '할 일'}`}
           </DialogTitle>
           <DialogDescription className="sr-only">
             {isEvent
@@ -363,7 +362,41 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 mt-2">
-          {/* 제목 — full row */}
+          {/* 종류 toggle — 맨 위. iOS 식 slim pill segmented control. */}
+          <div className="sm:col-span-2 flex">
+            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-accent/50 border border-foreground/10">
+              <button
+                type="button"
+                onClick={() => setIsEvent(false)}
+                aria-pressed={!isEvent}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3.5 h-8 rounded-md text-[12.5px] transition-all',
+                  !isEvent
+                    ? 'bg-card text-foreground shadow-sm font-semibold'
+                    : 'text-foreground/55 hover:text-foreground',
+                )}
+              >
+                <span aria-hidden>✅</span>
+                <span>할 일</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEvent(true)}
+                aria-pressed={isEvent}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3.5 h-8 rounded-md text-[12.5px] transition-all',
+                  isEvent
+                    ? 'bg-card text-foreground shadow-sm font-semibold'
+                    : 'text-foreground/55 hover:text-foreground',
+                )}
+              >
+                <span aria-hidden>🗓</span>
+                <span>일정</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 제목 — toggle 아래 */}
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <LabelText>제목</LabelText>
             <input
@@ -376,48 +409,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               className="w-full px-3 py-2 text-[14px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none transition-colors text-foreground"
             />
           </div>
-
-          {/* 종류 — create/schedule 둘 다. 토글로 일정↔할 일 자유 변환. */}
-          <div className="sm:col-span-2 grid grid-cols-2 gap-1.5 p-1 rounded-md bg-accent/40 border border-foreground/10">
-              <button
-                type="button"
-                onClick={() => setIsEvent(false)}
-                aria-pressed={!isEvent}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-[12.5px] rounded transition-all',
-                  !isEvent
-                    ? 'bg-foreground text-background font-semibold shadow-sm'
-                    : 'text-foreground/65 hover:bg-accent hover:text-foreground',
-                )}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden>✅</span>
-                  <span>할 일</span>
-                </span>
-                <span className={cn('text-[10.5px] font-normal leading-tight', !isEvent ? 'text-background/65' : 'text-foreground/45')}>
-                  체크리스트형
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEvent(true)}
-                aria-pressed={isEvent}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-[12.5px] rounded transition-all',
-                  isEvent
-                    ? 'bg-foreground text-background font-semibold shadow-sm'
-                    : 'text-foreground/65 hover:bg-accent hover:text-foreground',
-                )}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden>🗓</span>
-                  <span>일정</span>
-                </span>
-                <span className={cn('text-[10.5px] font-normal leading-tight', isEvent ? 'text-background/65' : 'text-foreground/45')}>
-                  타임라인 시간 블록
-                </span>
-              </button>
-            </div>
 
           {/* 날짜 — 항상 노출. 할 일은 이 날짜에 plannedFor 마킹. 일정은 startAt 의 날짜. */}
           {/* 시간(시작·길이) — 일정 또는 schedule 모드(시간 변경)에서만. 할 일 create 면 hide. */}
