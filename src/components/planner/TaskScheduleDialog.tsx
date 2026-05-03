@@ -51,7 +51,8 @@ interface TaskScheduleDialogProps {
   onClose: () => void;
 }
 
-const DURATIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180, 240] as const;
+// 자주 쓰는 4개만. 그 외 시간은 "직접" input 으로.
+const DURATIONS = [30, 60, 90, 120] as const;
 
 const TASK_COLOR_OPTIONS: Array<{ value: TaskListColor; label: string }> = [
   { value: 'blue',   label: '파랑' },
@@ -362,38 +363,36 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 mt-2">
-          {/* 종류 toggle — 맨 위. iOS 식 slim pill segmented control. */}
-          <div className="sm:col-span-2 flex">
-            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-accent/50 border border-foreground/10">
-              <button
-                type="button"
-                onClick={() => setIsEvent(false)}
-                aria-pressed={!isEvent}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3.5 h-8 rounded-md text-[12.5px] transition-all',
-                  !isEvent
-                    ? 'bg-card text-foreground shadow-sm font-semibold'
-                    : 'text-foreground/55 hover:text-foreground',
-                )}
-              >
-                <span aria-hidden>✅</span>
-                <span>할 일</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEvent(true)}
-                aria-pressed={isEvent}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3.5 h-8 rounded-md text-[12.5px] transition-all',
-                  isEvent
-                    ? 'bg-card text-foreground shadow-sm font-semibold'
-                    : 'text-foreground/55 hover:text-foreground',
-                )}
-              >
-                <span aria-hidden>🗓</span>
-                <span>일정</span>
-              </button>
-            </div>
+          {/* 종류 toggle — 맨 위. 풀폭 segmented (균등 분배). */}
+          <div className="sm:col-span-2 grid grid-cols-2 gap-1 p-1 rounded-lg bg-accent/40 border border-foreground/10">
+            <button
+              type="button"
+              onClick={() => setIsEvent(false)}
+              aria-pressed={!isEvent}
+              className={cn(
+                'inline-flex items-center justify-center gap-2 h-10 rounded-md text-[13px] transition-all',
+                !isEvent
+                  ? 'bg-card text-foreground shadow-sm font-semibold'
+                  : 'text-foreground/55 hover:text-foreground',
+              )}
+            >
+              <span aria-hidden className="text-[14px]">✅</span>
+              <span>할 일</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEvent(true)}
+              aria-pressed={isEvent}
+              className={cn(
+                'inline-flex items-center justify-center gap-2 h-10 rounded-md text-[13px] transition-all',
+                isEvent
+                  ? 'bg-card text-foreground shadow-sm font-semibold'
+                  : 'text-foreground/55 hover:text-foreground',
+              )}
+            >
+              <span aria-hidden className="text-[14px]">🗓</span>
+              <span>일정</span>
+            </button>
           </div>
 
           {/* 제목 — toggle 아래 */}
