@@ -6,24 +6,13 @@
  *
  * 추후: 오버듀, 다가오는 일정 위젯 추가 예정.
  */
-import { Calendar, CalendarDays, CalendarRange, Grid2x2, LayoutGrid, Target } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
-  DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
+import { Grid2x2 } from 'lucide-react';
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
 import { PlannerMatrixMini } from './PlannerMatrixMini';
-
-const MODE_OPTIONS: Array<{ id: PlannerView; label: string; hint: string; Icon: typeof Calendar }> = [
-  { id: 'day',   label: '일',   hint: '오늘 시간표 + 할 일', Icon: Calendar },
-  { id: 'week',  label: '주',   hint: '일주일 한눈에',       Icon: CalendarRange },
-  { id: 'month', label: '월',   hint: '월 캘린더',            Icon: CalendarDays },
-  { id: 'year',  label: '년',   hint: '연 히트맵',            Icon: LayoutGrid },
-  { id: 'goals', label: '목표', hint: '진행률 추적',          Icon: Target },
-];
+import { ModeLauncher } from './ModeLauncher';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -42,49 +31,28 @@ export const PlannerSidebar = ({
   onSelectDay,
   onTaskClick,
 }: PlannerSidebarProps) => {
+  const [launcherOpen, setLauncherOpen] = useState(false);
+
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* 상단 — 모드 그리드 + 제목 + 뷰 토글 */}
+      {/* 맨 위 — 모드 런처 버튼 (단독 행) */}
       <div className="shrink-0 px-1">
-        <div className="flex items-center gap-1.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="모드 목록"
-                title="모드 목록"
-                className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card text-foreground/70 hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <Grid2x2 className="h-3.5 w-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-52">
-              <DropdownMenuLabel className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55">
-                모드
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {MODE_OPTIONS.map((opt) => {
-                const active = view === opt.id;
-                return (
-                  <DropdownMenuItem
-                    key={opt.id}
-                    onSelect={() => onViewChange(opt.id)}
-                    className={cn(
-                      'flex items-start gap-2 cursor-pointer',
-                      active && 'bg-accent',
-                    )}
-                  >
-                    <opt.Icon className={cn('h-4 w-4 mt-0.5 shrink-0', active ? 'text-foreground' : 'text-foreground/55')} />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[13px] font-medium leading-tight">{opt.label}</span>
-                      <span className="text-[11px] text-foreground/55 leading-tight truncate">{opt.hint}</span>
-                    </div>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <h1 className="text-[15px] font-semibold tracking-tight leading-none truncate flex-1">통합 플래너</h1>
+        <button
+          type="button"
+          onClick={() => setLauncherOpen(true)}
+          aria-label="모드 목록 열기"
+          title="모드 목록"
+          className="w-full h-9 inline-flex items-center justify-center gap-2 rounded-md border border-[hsl(var(--hairline))] bg-card text-foreground/75 hover:text-foreground hover:bg-accent transition-colors"
+        >
+          <Grid2x2 className="h-4 w-4" />
+          <span className="text-[12px] font-medium">모드</span>
+        </button>
+      </div>
+
+      {/* 제목 + 뷰 토글 */}
+      <div className="shrink-0 px-1">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-[15px] font-semibold tracking-tight leading-none truncate">통합 플래너</h1>
           <ViewToggle value={view} onChange={onViewChange} />
         </div>
       </div>
@@ -103,6 +71,13 @@ export const PlannerSidebar = ({
 
       {/* 미니 아이젠하워 매트릭스 — 글랜스용 */}
       <PlannerMatrixMini onTaskClick={onTaskClick} />
+
+      <ModeLauncher
+        open={launcherOpen}
+        view={view}
+        onOpenChange={setLauncherOpen}
+        onViewChange={onViewChange}
+      />
     </div>
   );
 };
