@@ -1,83 +1,94 @@
 /**
- * 모드 런처 — 사이드바 맨 위 2×2 버튼 클릭 시 뜨는 플로팅 카드 그리드.
+ * 모드 런처 — 좌측 rail 의 2×2 버튼 클릭 시 뜨는 플로팅 홈 화면.
  *
- * 큰 카드(아이콘+제목+설명) 형태. 모드 선택 시 onViewChange + 닫힘.
- * Dialog 위에 띄워 일반 popover 보다 시각적 강조.
+ * shadcn Dialog 의 max-w 충돌 회피 위해 직접 overlay 구성.
+ * 홈 페이지(Index) 자체가 거대 stateful 이라 iframe 으로 "/" 임베드.
+ * (동일 출처 — auth/cookie 그대로 넘어감.)
  */
-import { Calendar, CalendarDays, CalendarRange, LayoutGrid, Target } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import {
-  Dialog, DialogContent, DialogTitle, DialogDescription,
-} from '@/components/ui/dialog';
+import { useEffect } from 'react';
+import { ExternalLink, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import type { PlannerView } from './ViewToggle';
 
 interface ModeLauncherProps {
   open: boolean;
-  view: PlannerView;
+  /** 외부 호환용 — 현재 미사용. */
+  view?: PlannerView;
   onOpenChange: (open: boolean) => void;
-  onViewChange: (view: PlannerView) => void;
+  /** 외부 호환용 — 현재 미사용. */
+  onViewChange?: (view: PlannerView) => void;
 }
 
-const MODES: Array<{ id: PlannerView; label: string; hint: string; Icon: typeof Calendar; tone: string }> = [
-  { id: 'day',   label: '일',   hint: '오늘 시간표 + 할 일',     Icon: Calendar,      tone: 'from-rose-500/15  to-rose-500/0' },
-  { id: 'week',  label: '주',   hint: '일주일 한눈에',           Icon: CalendarRange, tone: 'from-amber-500/15 to-amber-500/0' },
-  { id: 'month', label: '월',   hint: '월 캘린더 그리드',         Icon: CalendarDays,  tone: 'from-emerald-500/15 to-emerald-500/0' },
-  { id: 'year',  label: '년',   hint: '연 활동 히트맵',           Icon: LayoutGrid,    tone: 'from-blue-500/15 to-blue-500/0' },
-  { id: 'goals', label: '목표', hint: '진행률 추적',              Icon: Target,        tone: 'from-violet-500/15 to-violet-500/0' },
-];
+export const ModeLauncher = ({ open, onOpenChange }: ModeLauncherProps) => {
+  // ESC 로 닫기 + body 스크롤 잠금.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChange(false);
+    };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onOpenChange]);
 
-export const ModeLauncher = ({ open, view, onOpenChange, onViewChange }: ModeLauncherProps) => {
-  const select = (id: PlannerView) => {
-    onViewChange(id);
-    onOpenChange(false);
-  };
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden" hideClose>
-        <DialogTitle className="sr-only">모드 선택</DialogTitle>
-        <DialogDescription className="sr-only">통합 플래너의 보기 모드를 선택합니다.</DialogDescription>
-        <div className="px-5 pt-5 pb-3">
-          <div className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-foreground/55 font-semibold">
-            모드 선택
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="홈 — 도구 런처"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onOpenChange(false);
+      }}
+    >
+      <div
+        className="bg-background border border-[hsl(var(--hairline))] rounded-lg shadow-2xl flex flex-col overflow-hidden"
+        style={{ width: 'min(96vw, 1280px)', height: '90vh' }}
+      >
+        {/* 헤더 — 새 탭 열기 + 닫기 */}
+        <div className="shrink-0 flex items-center justify-between gap-2 px-3 h-10 border-b border-[hsl(var(--hairline))] bg-card/60">
+          <span className="text-[12px] font-mono uppercase tracking-[0.14em] text-foreground/55 font-semibold">
+            홈 · 도구 런처
+          </span>
+          <div className="flex items-center gap-1">
+            <a
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="새 탭에서 열기"
+              title="새 탭에서 열기"
+              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              aria-label="닫기"
+              title="닫기 (ESC)"
+              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <div className="text-[15px] font-semibold tracking-tight mt-1">어떤 화면으로 볼까요?</div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 pt-1">
-          {MODES.map((m) => {
-            const active = view === m.id;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => select(m.id)}
-                className={cn(
-                  'group relative overflow-hidden rounded-xl border bg-card text-left p-3 min-h-[96px]',
-                  'transition-all hover:-translate-y-0.5 hover:shadow-md',
-                  active
-                    ? 'border-foreground ring-2 ring-foreground/15'
-                    : 'border-[hsl(var(--hairline))] hover:border-foreground/30',
-                )}
-              >
-                <div className={cn('absolute inset-0 bg-gradient-to-br opacity-90', m.tone)} aria-hidden />
-                <div className="relative flex flex-col gap-1.5">
-                  <m.Icon className="h-5 w-5 text-foreground/85" />
-                  <div className="text-[14px] font-semibold leading-tight">{m.label}</div>
-                  <div className="text-[11.5px] text-foreground/65 leading-tight">{m.hint}</div>
-                </div>
-              </button>
-            );
-          })}
+
+        {/* 홈 화면 임베드 */}
+        <div className="flex-1 min-h-0 bg-background">
+          <iframe
+            src="/"
+            title="홈"
+            className="w-full h-full border-0 block"
+          />
         </div>
-        <div className="px-5 py-3 border-t border-[hsl(var(--hairline))] text-[11px] text-foreground/55">
-          <kbd className="px-1.5 py-0.5 rounded bg-accent text-foreground/80 font-mono text-[10px]">D</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 rounded bg-accent text-foreground/80 font-mono text-[10px]">W</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 rounded bg-accent text-foreground/80 font-mono text-[10px]">M</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 rounded bg-accent text-foreground/80 font-mono text-[10px]">Y</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 rounded bg-accent text-foreground/80 font-mono text-[10px]">G</kbd>{' '}
-          단축키로도 전환할 수 있어요.
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>,
+    document.body,
   );
 };
