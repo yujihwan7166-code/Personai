@@ -9,6 +9,7 @@
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
+import { PlannerMatrixMini } from './PlannerMatrixMini';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -16,6 +17,8 @@ interface PlannerSidebarProps {
   onViewChange: (view: PlannerView) => void;
   /** 미니 월에서 날짜 클릭 시 — Day 뷰로 전환 + anchor 갱신을 부모가 처리. */
   onSelectDay: (dayIso: string) => void;
+  /** 매트릭스 위젯에서 task 클릭 시 — 모달 오픈을 부모가 처리. */
+  onTaskClick?: (task: { id: string; title: string }) => void;
 }
 
 export const PlannerSidebar = ({
@@ -23,6 +26,7 @@ export const PlannerSidebar = ({
   view,
   onViewChange,
   onSelectDay,
+  onTaskClick,
 }: PlannerSidebarProps) => {
   return (
     <div className="h-full flex flex-col gap-3">
@@ -43,6 +47,11 @@ export const PlannerSidebar = ({
 
       {/* D-day — 시험·발표·생일·마감 등 카운트다운 */}
       <PlannerDday />
+
+      <div className="border-t border-[hsl(var(--hairline))] pt-3" />
+
+      {/* 미니 아이젠하워 매트릭스 — 글랜스용 */}
+      <PlannerMatrixMini onTaskClick={onTaskClick} />
     </div>
   );
 };
