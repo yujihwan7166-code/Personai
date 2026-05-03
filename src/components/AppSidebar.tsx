@@ -1017,6 +1017,7 @@ export function AppSidebar({
               { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
               { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
               { icon: LayoutGrid, label: '모드 · 도구', onClick: (e) => { const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect(); onOpenModePalette?.({ top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height }); } },
+              { icon: CalendarDays, label: '통합 캘린더', onClick: () => navigate('/planner') },
               { icon: Settings, label: '설정', onClick: () => { setSettingsSection('general'); setSettingsOpen(true); } },
             ];
             return isOpen ? (
@@ -1053,25 +1054,6 @@ export function AppSidebar({
             );
           })()}
         </nav>
-
-        {/* 접힘 상태 전용: 통합 캘린더 마크 — 클릭 시 /planner 로 이동, 오늘 미완료 카운트 배지. */}
-        {!isOpen && (
-          <div className="shrink-0 px-1 mt-0.5">
-            <button
-              type="button"
-              onClick={() => navigate('/planner')}
-              title={`통합 캘린더${todayPlannerTasks.length > 0 ? ` · 오늘 ${todayPlannerTasks.length}개` : ''}`}
-              className="relative font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center transition-colors w-full p-1.5 justify-center"
-            >
-              <CalendarDays className="w-4 h-4 shrink-0" />
-              {todayPlannerTasks.length > 0 && (
-                <span className="absolute top-0.5 right-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-1 rounded-full bg-blue-500 text-white text-[8.5px] font-semibold tabular-nums leading-none">
-                  {todayPlannerTasks.length > 99 ? '99+' : todayPlannerTasks.length}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
 
         {/* Phase D-3 보정: 모드 섹션 — 상단 아이콘 행과 동일한 리듬(h-8, rounded-md, 슬레이트 톤).
             label 과 pill 사이즈를 맞춰 위-아래 밀도 균일화. */}
@@ -1315,11 +1297,6 @@ export function AppSidebar({
                 {calendarExpanded
                   ? <ChevronDown className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                   : <ChevronRight className="w-3 h-3 text-slate-400 dark:text-slate-500" />}
-                {todayPlannerTasks.length > 0 && (
-                  <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-[15px] px-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[9.5px] font-semibold tabular-nums">
-                    {todayPlannerTasks.length}
-                  </span>
-                )}
               </button>
               <button
                 type="button"
@@ -1344,27 +1321,6 @@ export function AppSidebar({
                     navigate(`/planner?date=${y}-${m}-${dd}`);
                   }}
                 />
-
-                {/* 오늘 요약 */}
-                <div className="mt-1.5 px-2 py-1.5 rounded-md bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-300">
-                    <CalendarDays className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
-                    <span className="font-medium tabular-nums">오늘 {todayPlannerTasks.length}개</span>
-                  </div>
-                  {upcomingEvent && (
-                    <button
-                      type="button"
-                      onClick={() => navigate('/planner')}
-                      className="mt-0.5 w-full flex items-center gap-1.5 text-left text-[10.5px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                      title={upcomingEvent.title}
-                    >
-                      <span className="tabular-nums shrink-0 text-blue-500/80 dark:text-blue-400/80 font-mono">
-                        {new Date(upcomingEvent.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                      </span>
-                      <span className="truncate">{upcomingEvent.title}</span>
-                    </button>
-                  )}
-                </div>
               </div>
             )}
           </div>
