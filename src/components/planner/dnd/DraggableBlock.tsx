@@ -59,6 +59,7 @@ export const DraggableBlock = ({ item, style, children, enableResize = true, res
       style={composedStyle}
       {...listeners}
       {...attributes}
+      data-block="true"
       className={cn(
         'group touch-none absolute left-1 right-2 pointer-events-auto cursor-grab',
         isDragging && 'cursor-grabbing shadow-lg',

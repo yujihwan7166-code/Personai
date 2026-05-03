@@ -91,6 +91,12 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   const didInitialScroll = useRef(false);
   /** 인라인 빠른 추가 — 클릭한 슬롯 ISO. null = 닫힘. */
   const [quickAddSlot, setQuickAddSlot] = useState<string | null>(null);
+  /** drag-to-create 로 들어온 사용자 지정 길이(분). null = 기본 30분. */
+  const [customDuration, setCustomDuration] = useState<number | undefined>();
+  /** drag-to-create 중 ghost block 좌표 (분 단위, 자정 기준). */
+  const [dragRange, setDragRange] = useState<{ startMin: number; currentMin: number } | null>(null);
+  const dragStartRef = useRef<{ clientY: number; startMin: number } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   /** 압축 모드 — 7~23시만 표시. */
   const [compact, setCompact] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -169,6 +175,73 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     const d = new Date(baseDateIso);
     d.setHours(hour, halfHour, 0, 0);
     setQuickAddSlot(d.toISOString());
+    setCustomDuration(undefined); // 단순 click = 기본 30분
+  };
+
+  /** y 좌표(grid 내) → 분 단위 (15분 snap). */
+  const yToMin = (y: number): number => {
+    const m = (y / HOUR_PX) * 60;
+    return Math.max(0, Math.round(m / 15) * 15);
+  };
+
+  /** 빈 영역 mousedown → drag → mouseup 으로 시간 범위 그리기.
+   *  자식 block 안이면 무시 (dnd-kit 처리). 5px 미만 이동은 click 으로 (slot button onClick). */
+  const handleGridPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-block="true"]')) return;
+    if (!gridRef.current) return;
+    const rect = gridRef.current.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const startMin = visibleStart * 60 + yToMin(y);
+    dragStartRef.current = { clientY: e.clientY, startMin };
+
+    const handleMove = (ev: PointerEvent) => {
+      if (!dragStartRef.current || !gridRef.current) return;
+      const r = gridRef.current.getBoundingClientRect();
+      const y2 = ev.clientY - r.top;
+      const m = visibleStart * 60 + yToMin(y2);
+      // 5px 이상 이동했을 때만 ghost 표시 (click 과 분리).
+      const moved = Math.abs(ev.clientY - dragStartRef.current.clientY);
+      if (moved >= 5) {
+        setDragRange({ startMin: dragStartRef.current.startMin, currentMin: m });
+      }
+    };
+
+    const handleUp = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      const start = dragStartRef.current;
+      dragStartRef.current = null;
+      if (!start) {
+        setDragRange(null);
+        return;
+      }
+      const moved = Math.abs(ev.clientY - start.clientY);
+      if (moved < 5) {
+        // click — slot button onClick 이 자동 fire.
+        setDragRange(null);
+        return;
+      }
+      if (!gridRef.current) {
+        setDragRange(null);
+        return;
+      }
+      const r = gridRef.current.getBoundingClientRect();
+      const y2 = ev.clientY - r.top;
+      const endRaw = visibleStart * 60 + yToMin(y2);
+      const sMin = Math.min(start.startMin, endRaw);
+      const eMin = Math.max(start.startMin, endRaw);
+      const dur = Math.max(15, eMin - sMin);
+      const startD = new Date(baseDateIso);
+      startD.setHours(Math.floor(sMin / 60), sMin % 60, 0, 0);
+      setQuickAddSlot(startD.toISOString());
+      setCustomDuration(dur);
+      setDragRange(null);
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
   };
 
   const handleDeleteTask = (task: PlannerTask) => {
@@ -243,7 +316,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
 
   const body = (
     <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
-        <div className="relative" style={{ height: visibleHours * HOUR_PX }}>
+        <div ref={gridRef} onPointerDown={handleGridPointerDown} className="relative" style={{ height: visibleHours * HOUR_PX }}>
           {/* 시간 격자 */}
           {Array.from({ length: visibleHours }, (_, i) => {
             const hour = visibleStart + i;
@@ -303,18 +376,35 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
             );
           })()}
 
-          {/* 인라인 빠른 추가 — Apple Cal 패턴. 빈 슬롯 클릭 시 그 자리에 input. */}
+          {/* drag-to-create 중 ghost block — 사용자가 mouse drag 로 시간 범위 그리는 동안. */}
+          {dragRange && (() => {
+            const minA = Math.min(dragRange.startMin, dragRange.currentMin);
+            const minB = Math.max(dragRange.startMin, dragRange.currentMin);
+            const top = (minA - visibleStart * 60) / 60 * HOUR_PX;
+            const height = Math.max(8, (minB - minA) / 60 * HOUR_PX);
+            return (
+              <div
+                className="absolute left-10 right-2 bg-primary/15 border border-dashed border-primary/55 rounded pointer-events-none z-25"
+                style={{ top, height }}
+                aria-hidden
+              />
+            );
+          })()}
+
+          {/* 인라인 빠른 추가 — Apple Cal 패턴. 빈 슬롯 클릭 시 그 자리에 input.
+              drag-to-create 면 customDuration 으로 길이 반영. */}
           {quickAddSlot && (
             <div className="absolute left-10 right-0 top-0 bottom-0 pointer-events-none z-30">
               <div className="relative h-full pointer-events-none">
                 <InlineQuickAdd
                   startIso={quickAddSlot}
+                  durationMin={customDuration}
                   style={{
                     top: computeTopPx(quickAddSlot, baseDateIso) - visibleStart * HOUR_PX,
-                    height: 58,
+                    height: customDuration ? Math.max(40, (customDuration / 60) * HOUR_PX) : 58,
                     pointerEvents: 'auto',
                   }}
-                  onClose={() => setQuickAddSlot(null)}
+                  onClose={() => { setQuickAddSlot(null); setCustomDuration(undefined); }}
                 />
               </div>
             </div>

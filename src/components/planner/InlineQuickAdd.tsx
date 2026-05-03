@@ -18,6 +18,8 @@ import type { PlannerTask } from '@/types/planner';
 interface InlineQuickAddProps {
   /** 슬롯의 시작 ISO. */
   startIso: string;
+  /** 사용자 지정 길이(분). drag-to-create 로 들어왔을 때 그 길이. 미지정 시 30분. */
+  durationMin?: number;
   /** 절대 좌표 + 크기 (시간표 안 위치). */
   style: React.CSSProperties;
   /** 닫기. */
@@ -27,7 +29,7 @@ interface InlineQuickAddProps {
 /** 기본 길이 — 30분. 자연어로 다른 길이 지정 가능. */
 const DEFAULT_DURATION_MIN = 30;
 
-export const InlineQuickAdd = ({ startIso, style, onClose }: InlineQuickAddProps) => {
+export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: InlineQuickAddProps) => {
   const [value, setValue] = useState('');
   const [asEvent, setAsEvent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -65,9 +67,10 @@ export const InlineQuickAdd = ({ startIso, style, onClose }: InlineQuickAddProps
 
     // 자연어가 startAt 을 안 줬으면 슬롯 시간 그대로.
     const startAt = parsed.startAt ?? startIso;
+    const fallbackDuration = durationMin ?? DEFAULT_DURATION_MIN;
     const endAt =
       parsed.endAt ??
-      new Date(new Date(startAt).getTime() + DEFAULT_DURATION_MIN * 60_000).toISOString();
+      new Date(new Date(startAt).getTime() + fallbackDuration * 60_000).toISOString();
 
     if (asEvent) {
       eventStore.add({
@@ -95,8 +98,8 @@ export const InlineQuickAdd = ({ startIso, style, onClose }: InlineQuickAddProps
   return (
     <div
       className={cn(
-        'absolute left-1 right-2 z-30 rounded-lg overflow-hidden',
-        'border-2 border-primary bg-card shadow-[0_4px_16px_-4px_hsl(var(--foreground)/0.2)]',
+        'absolute left-2 z-30 w-[calc(100%_-_16px)] max-w-[420px] rounded-md overflow-hidden',
+        'border border-foreground/20 bg-card shadow-xl',
         'flex flex-col',
       )}
       style={style}
@@ -104,24 +107,24 @@ export const InlineQuickAdd = ({ startIso, style, onClose }: InlineQuickAddProps
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-stretch h-full">
-        <span className="w-[3px] shrink-0 bg-primary" aria-hidden />
-        <div className="flex-1 min-w-0 flex flex-col py-1.5 pr-1">
-          <div className="flex items-center gap-1 mb-0.5">
+        <span className="w-[3px] shrink-0 bg-foreground" aria-hidden />
+        <div className="flex-1 min-w-0 flex flex-col py-2 pr-2 pl-2">
+          <div className="flex items-center gap-1.5 mb-1">
             <button
               type="button"
               onClick={() => setAsEvent(false)}
               className={cn(
-                'h-4 px-1.5 text-[9.5px] font-mono uppercase tracking-wide rounded transition-colors',
+                'h-5 px-1.5 text-[10px] font-mono uppercase tracking-wide rounded transition-colors',
                 !asEvent ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              할일
+              할 일
             </button>
             <button
               type="button"
               onClick={() => setAsEvent(true)}
               className={cn(
-                'h-4 px-1.5 text-[9.5px] font-mono uppercase tracking-wide rounded transition-colors',
+                'h-5 px-1.5 text-[10px] font-mono uppercase tracking-wide rounded transition-colors',
                 asEvent ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -154,7 +157,7 @@ export const InlineQuickAdd = ({ startIso, style, onClose }: InlineQuickAddProps
               }
             }}
             placeholder="제목  (예: 회의 1시간)"
-            className="w-full bg-transparent text-[13px] leading-tight text-foreground placeholder:text-muted-foreground/70 outline-none"
+            className="w-full min-w-0 bg-transparent text-[13px] leading-tight text-foreground placeholder:text-muted-foreground/70 outline-none focus:outline-none focus:ring-0"
           />
         </div>
       </div>
