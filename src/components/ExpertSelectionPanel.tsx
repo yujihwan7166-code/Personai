@@ -2246,9 +2246,11 @@ export function ExpertSelectionPanel({
     aiAgentIds: AI_AGENT_IDS,
   }), [experts, favoriteIds, visibleCategories]);
 
-  // 가상 'browser' 카테고리 — 즐겨찾기 다음, AI 모델 앞.
+  // 가상 'browser' 카테고리 — 일반 채팅 (single AI) 모드에서만 노출.
   // 'fictional' (캐릭터) 은 더보기 드롭다운으로 이동.
+  const showBrowserTab = mainMode === 'general';
   const groupedWithBrowser = useMemo(() => {
+    if (!showBrowserTab) return grouped;
     const favIdx = grouped.findIndex(g => g.cat === 'favorites');
     const insertAt = favIdx >= 0 ? favIdx + 1 : 0;
     return [
@@ -2256,7 +2258,7 @@ export function ExpertSelectionPanel({
       { cat: 'browser', label: '브라우저', items: [] as Expert[] },
       ...grouped.slice(insertAt),
     ];
-  }, [grouped]);
+  }, [grouped, showBrowserTab]);
   const validCats = groupedWithBrowser.map(g => g.cat);
   const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
   const effectiveCategory = aiBlocked
