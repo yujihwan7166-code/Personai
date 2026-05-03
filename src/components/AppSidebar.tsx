@@ -3,9 +3,6 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Expert, DiscussionMode, AIAbilityStats } from '@/types/expert';
 import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
-import { PlannerMiniMonth } from '@/components/planner/PlannerMiniMonth';
-import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
-import { useUpcomingEvent } from '@/hooks/planner/useUpcomingEvent';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -18,7 +15,7 @@ import {
   Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
   FolderOpen, ChevronRight, Plus, X,
   LogOut, Shield, User, ExternalLink, Command as CommandIcon, LayoutGrid,
-  CalendarDays, ChevronDown, ArrowRight,
+  CalendarDays,
 } from 'lucide-react';
 
 interface Props {
@@ -365,17 +362,7 @@ export function AppSidebar({
   };
   const [isMobile, setIsMobile] = useState(false);
 
-  // 통합 캘린더 (사이드바 미니뷰) state
   const navigate = useNavigate();
-  const [calendarExpanded, setCalendarExpanded] = useState(() => {
-    try { return localStorage.getItem('sidebar-calendar-expanded') !== '0'; } catch { return true; }
-  });
-  const [calendarAnchorIso, setCalendarAnchorIso] = useState(() => new Date().toISOString());
-  const todayPlannerTasks = useTodayTasks();
-  const upcomingEvent = useUpcomingEvent();
-  useEffect(() => {
-    try { localStorage.setItem('sidebar-calendar-expanded', calendarExpanded ? '1' : '0'); } catch { /* noop */ }
-  }, [calendarExpanded]);
 
   // Project state
   const [projects, setProjects] = useState<Project[]>(() => getProjects());
@@ -1279,49 +1266,6 @@ export function AppSidebar({
               >
                 <Plus className="w-3.5 h-3.5" /> 새 프로젝트
               </button>
-            )}
-          </div>
-        )}
-
-        {/* ── 통합 캘린더 (사이드바 미니뷰) ── */}
-        {isOpen && (
-          <div className="shrink-0 px-1.5 mt-1">
-            <div className="flex items-center justify-between px-2 py-1">
-              <button
-                type="button"
-                onClick={() => setCalendarExpanded((v) => !v)}
-                className="flex items-center gap-1 group"
-                aria-expanded={calendarExpanded}
-              >
-                <span className="text-[9.5px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">통합 캘린더</span>
-                {calendarExpanded
-                  ? <ChevronDown className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                  : <ChevronRight className="w-3 h-3 text-slate-400 dark:text-slate-500" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/planner')}
-                title="플래너 열기"
-                className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-
-            {calendarExpanded && (
-              <div className="pb-1.5">
-                <PlannerMiniMonth
-                  anchorIso={calendarAnchorIso}
-                  onSelectDay={(dayIso) => {
-                    setCalendarAnchorIso(dayIso);
-                    const d = new Date(dayIso);
-                    const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, '0');
-                    const dd = String(d.getDate()).padStart(2, '0');
-                    navigate(`/planner?date=${y}-${m}-${dd}`);
-                  }}
-                />
-              </div>
             )}
           </div>
         )}
