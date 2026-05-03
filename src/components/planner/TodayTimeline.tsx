@@ -30,6 +30,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { PlannerSection } from './PlannerSection';
+import { HabitTimelineOverlay } from './HabitTimelineOverlay';
+import { toDateKey } from '@/lib/planner/habitStats';
 import { DroppableTimeSlot } from './dnd/DroppableTimeSlot';
 import { DraggableBlock } from './dnd/DraggableBlock';
 import { InlineQuickAdd } from './InlineQuickAdd';
@@ -459,6 +461,13 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
               </div>
             </div>
           )}
+
+          {/* 습관 오버레이 — reminderTime 칩 */}
+          <HabitTimelineOverlay
+            dayKey={toDateKey(new Date(baseDateIso))}
+            hourPx={HOUR_PX}
+            visibleStartHour={visibleStart}
+          />
 
           {/* 시간 블록 */}
           <div className="absolute left-10 right-0 top-0 bottom-0 pointer-events-none">
