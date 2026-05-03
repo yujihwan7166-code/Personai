@@ -10,9 +10,10 @@ import { habitStore } from '@/services/planner/habitStore';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { useHabitCheckins } from '@/hooks/planner/useHabitCheckins';
 import {
-  currentStreak, maxStreak, monthCheckinCount, monthCompletionRate,
-  totalCheckins, toDateKey,
+  currentStreak, isScheduledOn, maxStreak, monthCheckinCount, monthCompletionRate,
+  nextDue, totalCheckins, toDateKey,
 } from '@/lib/planner/habitStats';
+import { HabitYearHeatmap } from './HabitYearHeatmap';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -41,6 +42,23 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
       total: totalCheckins(habit, allCheckins),
     };
   }, [habit, allCheckins, viewYear, viewMonth]);
+
+  // 다음 예정 메시지 — 오늘 미완 시 streak 위기 경고, 완 시 다음 예정.
+  const todayKey = toDateKey(today);
+  const todayCheckin = allCheckins.find((c) => c.date === todayKey);
+  const tpd = Math.max(1, habit.schedule.timesPerDay ?? 1);
+  const todayDone = todayCheckin && (todayCheckin.count ?? 0) >= tpd;
+  const todayScheduled = isScheduledOn(habit, todayKey);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const next = todayDone ? nextDue(habit, toDateKey(tomorrow)) : todayScheduled ? todayKey : nextDue(habit, todayKey);
+  const nextLabel = (() => {
+    if (!next) return '예정 없음';
+    if (next === todayKey) return '오늘';
+    if (next === toDateKey(tomorrow)) return '내일';
+    const d = new Date(`${next}T00:00:00`);
+    return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+  })();
 
   // 메모 — 월 시작 row 의 note 사용 (단순화). 더 정교한 모델은 이후.
   const monthFirstKey = `${viewYear}-${String(viewMonth).padStart(2, '0')}-01`;
@@ -106,6 +124,33 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
 
       {/* 본문 — 스크롤 */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+        {/* 다음 예정 + streak 상태 한 줄 */}
+        <div className={cn(
+          'flex items-center gap-2 px-3 py-2 rounded-lg border text-[12px]',
+          todayScheduled && !todayDone && stats.streak >= 3
+            ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-400'
+            : todayDone
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+              : 'bg-card border-[hsl(var(--hairline))] text-foreground/70',
+        )}>
+          {todayScheduled && !todayDone && stats.streak >= 3 ? (
+            <>
+              <Flame className="h-3.5 w-3.5" />
+              <span><b>{stats.streak}일 streak 위기</b> — 오늘 체크하면 유지돼요</span>
+            </>
+          ) : todayDone ? (
+            <>
+              <Target className="h-3.5 w-3.5" />
+              <span>오늘 완료! 다음은 <b>{nextLabel}</b></span>
+            </>
+          ) : (
+            <>
+              <Target className="h-3.5 w-3.5" />
+              <span>다음 예정: <b>{nextLabel}</b></span>
+            </>
+          )}
+        </div>
+
         {/* Stats 4 카드 — 큼직, 색조 */}
         <div className="grid grid-cols-2 gap-2.5">
           <StatCard Icon={Target} label="월간 출석" value={stats.monthCount} unit="일" tone="emerald" />
@@ -129,6 +174,14 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
             month1Indexed={viewMonth}
             onChangeMonth={(y, m) => { setViewYear(y); setViewMonth(m); }}
           />
+        </div>
+
+        {/* 365일 히트맵 */}
+        <div className="rounded-lg border border-[hsl(var(--hairline))] p-3">
+          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2">
+            연간 패턴
+          </div>
+          <HabitYearHeatmap habit={habit} checkins={allCheckins} />
         </div>
 
         {/* 메모 */}

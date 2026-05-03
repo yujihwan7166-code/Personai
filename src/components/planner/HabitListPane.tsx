@@ -6,22 +6,42 @@
  *   본문:    카드 형태 행 × N        ── 각 행 = 둥근 흰 카드 + 보더
  *   카드 안: emoji circle | 제목 + streak | 7개 dot | ⋯
  */
-import { useMemo } from 'react';
-import { Flame, MoreHorizontal, Pin, Plus, Zap } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  ArrowUpDown, Flame, MoreHorizontal, Pin, Plus, Search, Zap,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TASK_LIST_COLORS } from '@/types/planner';
-import type { Habit, HabitCheckin } from '@/types/habit';
+import { TASK_LIST_COLORS, type TaskListColor } from '@/types/planner';
+import type { Habit, HabitCheckin, HabitFreq } from '@/types/habit';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { habitStore } from '@/services/planner/habitStore';
 import {
   currentStreak, isScheduledOn, maxStreak, toDateKey,
 } from '@/lib/planner/habitStats';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HabitDayDot } from './HabitDayDot';
 import { HabitDayProgress } from './HabitDayProgress';
+import { HabitInsightBar } from './HabitInsightBar';
+import { HabitHeatStrip } from './HabitHeatStrip';
+
+type SortKey = 'order' | 'streak' | 'name';
+const SORT_LABEL: Record<SortKey, string> = {
+  order: '추가순',
+  streak: 'streak 순',
+  name: '이름순',
+};
+
+const STARTER_PACKS: Array<{ title: string; emoji: string; color: TaskListColor; freq: HabitFreq }> = [
+  { title: '운동',     emoji: '💪', color: 'rose',   freq: 'daily' },
+  { title: '물 마시기', emoji: '💧', color: 'blue',   freq: 'daily' },
+  { title: '독서 30분', emoji: '📚', color: 'amber',  freq: 'daily' },
+  { title: '명상 10분', emoji: '🧘', color: 'violet', freq: 'daily' },
+  { title: '일기 쓰기', emoji: '✍️', color: 'green',  freq: 'daily' },
+  { title: '식단 관리', emoji: '🥗', color: 'teal',   freq: 'daily' },
+];
 
 interface HabitListPaneProps {
   habits: Habit[];
@@ -39,6 +59,10 @@ export const HabitListPane = ({
 }: HabitListPaneProps) => {
   const today = new Date();
   const todayKey = toDateKey(today);
+  const [query, setQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('order');
+  const [todayOnly, setTodayOnly] = useState(false);
 
   // 이번 주 (월~일) 7일 dateKeys.
   const weekDays = useMemo(() => {
@@ -53,6 +77,28 @@ export const HabitListPane = ({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayKey]);
+
+  // 검색·필터·정렬 적용된 list
+  const visibleHabits = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let arr = habits;
+    if (q) arr = arr.filter((h) => h.title.toLowerCase().includes(q));
+    if (todayOnly) arr = arr.filter((h) => isScheduledOn(h, todayKey));
+    if (sortKey === 'name') {
+      arr = [...arr].sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+    } else if (sortKey === 'streak') {
+      const cache = new Map<string, number>();
+      const streakOf = (h: Habit) => {
+        if (cache.has(h.id)) return cache.get(h.id)!;
+        const cs = currentStreak(h, allCheckins.filter((c) => c.habitId === h.id));
+        cache.set(h.id, cs);
+        return cs;
+      };
+      arr = [...arr].sort((a, b) => streakOf(b) - streakOf(a));
+    }
+    // 'order' = 기본 sortOrder (이미 store 에서 sort)
+    return arr;
+  }, [habits, query, todayOnly, sortKey, allCheckins, todayKey]);
 
   // 각 날의 (스케줄, 완료) — 진행률 링.
   const dayProgress = useMemo(() => {
@@ -75,23 +121,96 @@ export const HabitListPane = ({
 
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
-      {/* 헤더 — 제목 + 액션 */}
-      <div className="shrink-0 flex items-center gap-2 px-4 h-12 border-b border-[hsl(var(--hairline))] bg-card">
+      {/* 헤더 — 제목 + 검색/정렬/today/+ */}
+      <div className="shrink-0 flex items-center gap-1.5 px-4 h-12 border-b border-[hsl(var(--hairline))] bg-card">
         <span className="text-[15px] font-bold tracking-tight text-foreground">습관</span>
-        <span className="text-[12px] text-foreground/55 tabular-nums">{habits.length}</span>
-        <button
-          type="button"
-          onClick={onAdd}
-          aria-label="새 습관"
-          title="새 습관"
-          className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
+        <span className="text-[12px] text-foreground/55 tabular-nums">{visibleHabits.length}/{habits.length}</span>
+
+        <div className="ml-auto flex items-center gap-0.5">
+          {/* 검색 */}
+          {showSearch ? (
+            <input
+              type="text"
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onBlur={() => { if (!query) setShowSearch(false); }}
+              placeholder="검색"
+              className="h-7 w-32 px-2 text-[12px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowSearch(true)}
+              aria-label="검색"
+              title="검색"
+              className="inline-flex h-7 w-7 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {/* 오늘만 */}
+          <button
+            type="button"
+            onClick={() => setTodayOnly((v) => !v)}
+            aria-pressed={todayOnly}
+            title="오늘 스케줄만"
+            className={cn(
+              'inline-flex h-7 px-2 items-center justify-center rounded text-[11px] font-semibold transition-colors',
+              todayOnly
+                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                : 'text-foreground/65 hover:text-foreground hover:bg-accent',
+            )}
+          >
+            오늘만
+          </button>
+
+          {/* 정렬 */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="정렬"
+                title={`정렬: ${SORT_LABEL[sortKey]}`}
+                className="inline-flex h-7 w-7 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuLabel className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55">정렬</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+                <DropdownMenuItem
+                  key={k}
+                  onSelect={() => setSortKey(k)}
+                  className={cn('cursor-pointer', sortKey === k && 'bg-accent font-semibold')}
+                >
+                  {SORT_LABEL[k]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* + 추가 */}
+          <button
+            type="button"
+            onClick={onAdd}
+            aria-label="새 습관"
+            title="새 습관"
+            className="inline-flex h-7 w-7 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
+      {/* 인사이트 바 */}
+      <HabitInsightBar habits={habits} allCheckins={allCheckins} />
+
       {/* 주 진행률 헤더 — 도넛 링 7개 */}
-      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_28px] gap-1 items-center px-4 py-3 border-b border-[hsl(var(--hairline))] bg-card">
+      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-4 py-3 border-b border-[hsl(var(--hairline))] bg-card">
         <div />
         {weekDays.map((d, i) => {
           const dk = toDateKey(d);
@@ -111,29 +230,57 @@ export const HabitListPane = ({
             </div>
           );
         })}
+        <div className="text-[9.5px] font-mono uppercase tracking-wide text-foreground/45 text-center">최근 30일</div>
         <div />
       </div>
 
       {/* 카드형 행 리스트 */}
       <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
         {habits.length === 0 ? (
-          <div className="h-full flex items-center justify-center p-6 text-center">
-            <div>
-              <div className="text-[14px] text-foreground/65 font-medium mb-2">
-                첫 습관을 만들어보세요
-              </div>
-              <button
-                type="button"
-                onClick={onAdd}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-foreground text-background text-[13px] font-medium hover:opacity-90"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                새 습관
-              </button>
+          <div className="p-2">
+            <div className="text-[13px] text-foreground/70 font-medium mb-2">
+              한 번에 시작하기 — 스타터 팩
             </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {STARTER_PACKS.map((p) => (
+                <button
+                  key={p.title}
+                  type="button"
+                  onClick={() => {
+                    habitStore.add({
+                      title: p.title,
+                      emoji: p.emoji,
+                      color: p.color,
+                      schedule: { freq: p.freq },
+                      startDate: toDateKey(new Date()),
+                    });
+                  }}
+                  style={{
+                    backgroundColor: `color-mix(in oklab, ${TASK_LIST_COLORS[p.color].stripe} 14%, hsl(var(--background)))`,
+                    borderColor: `color-mix(in oklab, ${TASK_LIST_COLORS[p.color].stripe} 30%, transparent)`,
+                  }}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg border text-left hover:brightness-105 transition-all"
+                >
+                  <span className="text-[18px]">{p.emoji}</span>
+                  <span className="text-[13px] font-medium text-foreground">{p.title}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onAdd}
+              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-foreground/20 text-[12.5px] text-foreground/65 hover:text-foreground hover:border-foreground/40 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              직접 만들기
+            </button>
+          </div>
+        ) : visibleHabits.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-[13px] text-foreground/55">
+            {todayOnly ? '오늘 예정된 습관이 없어요' : query ? '일치하는 습관 없음' : ''}
           </div>
         ) : (
-          habits.map((habit) => {
+          visibleHabits.map((habit) => {
             const checkins = allCheckins.filter((c) => c.habitId === habit.id);
             const checkinMap = new Map(checkins.map((c) => [c.date, c]));
             const streak = currentStreak(habit, checkins);
@@ -155,7 +302,7 @@ export const HabitListPane = ({
                   }
                 }}
                 className={cn(
-                  'group relative grid grid-cols-[1fr_repeat(7,40px)_28px] gap-1 items-center',
+                  'group relative grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center',
                   'rounded-xl bg-card px-3.5 py-3 cursor-pointer transition-all',
                   'border shadow-[0_1px_2px_rgba(0,0,0,0.03)]',
                   isSelected
@@ -221,6 +368,11 @@ export const HabitListPane = ({
                     </div>
                   );
                 })}
+
+                {/* 30일 heat strip */}
+                <div className="flex items-center justify-end pr-1" title="최근 30일">
+                  <HabitHeatStrip habit={habit} checkins={checkins} />
+                </div>
 
                 {/* ⋯ 메뉴 */}
                 <div onClick={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity">
