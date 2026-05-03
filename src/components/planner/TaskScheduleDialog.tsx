@@ -363,35 +363,43 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 mt-2">
-          {/* 종류 toggle — 맨 위. 풀폭 segmented (균등 분배). */}
-          <div className="sm:col-span-2 grid grid-cols-2 gap-1 p-1 rounded-lg bg-accent/40 border border-foreground/10">
+          {/* 종류 toggle — 맨 위. 탭 underline 스타일 (슬림). */}
+          <div className="sm:col-span-2 -mt-1 grid grid-cols-2 border-b border-foreground/10">
             <button
               type="button"
               onClick={() => setIsEvent(false)}
               aria-pressed={!isEvent}
               className={cn(
-                'inline-flex items-center justify-center gap-2 h-10 rounded-md text-[13px] transition-all',
-                !isEvent
-                  ? 'bg-card text-foreground shadow-sm font-semibold'
-                  : 'text-foreground/55 hover:text-foreground',
+                'relative inline-flex items-center justify-center gap-1.5 h-8 text-[12.5px] transition-colors',
+                !isEvent ? 'text-foreground font-semibold' : 'text-foreground/45 hover:text-foreground/80',
               )}
             >
-              <span aria-hidden className="text-[14px]">✅</span>
               <span>할 일</span>
+              <span
+                aria-hidden
+                className={cn(
+                  'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
+                  !isEvent ? 'bg-foreground opacity-100' : 'opacity-0',
+                )}
+              />
             </button>
             <button
               type="button"
               onClick={() => setIsEvent(true)}
               aria-pressed={isEvent}
               className={cn(
-                'inline-flex items-center justify-center gap-2 h-10 rounded-md text-[13px] transition-all',
-                isEvent
-                  ? 'bg-card text-foreground shadow-sm font-semibold'
-                  : 'text-foreground/55 hover:text-foreground',
+                'relative inline-flex items-center justify-center gap-1.5 h-8 text-[12.5px] transition-colors',
+                isEvent ? 'text-foreground font-semibold' : 'text-foreground/45 hover:text-foreground/80',
               )}
             >
-              <span aria-hidden className="text-[14px]">🗓</span>
               <span>일정</span>
+              <span
+                aria-hidden
+                className={cn(
+                  'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
+                  isEvent ? 'bg-foreground opacity-100' : 'opacity-0',
+                )}
+              />
             </button>
           </div>
 
