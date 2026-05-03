@@ -12,14 +12,21 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { taskStore } from '@/services/planner/taskStore';
+import { notify } from '@/lib/notify';
 import { PLANNER_TASK_CHANGED, type PlannerTask } from '@/types/planner';
 import { cn } from '@/lib/utils';
 
 interface PlannerMatrixMiniProps {
+  /** 호환용 — 더 이상 사용 X (matrix 클릭은 항상 완료 토글). */
   onTaskClick?: (task: { id: string; title: string }) => void;
   /** large 모드 — 팝오버용. 폰트/간격/표시 개수 모두 큼. */
   large?: boolean;
 }
+
+const handleClickDone = (task: PlannerTask): void => {
+  taskStore.toggleDone(task.id);
+  notify.success('완료!', { duration: 1000 });
+};
 
 const QUADRANT_HINT: Record<Quadrant, string> = {
   q1: '지금 해야 할 일',
@@ -139,7 +146,7 @@ export const PlannerMatrixMini = ({ onTaskClick, large = false }: PlannerMatrixM
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => onTaskClick?.({ id: t.id, title: t.title })}
+                      onClick={() => handleClickDone(t)}
                       title={t.title}
                       className="text-left text-[13px] leading-snug text-foreground/90 hover:text-foreground hover:bg-foreground/5 rounded px-2 py-1 truncate font-medium"
                     >
