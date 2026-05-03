@@ -139,14 +139,22 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     if (!mode) return;
     if (mode.kind === 'schedule') {
       setTitle(mode.initialTitle);
-      const start = mode.initialStart ?? new Date().toISOString();
-      const end = mode.initialEnd ?? addMinutes(start, 60);
+      // task 의 실제 startAt 유무로 isEvent 자동 결정 (사용자가 toggle 로 변경 가능).
+      const direct = taskStore.findMaster(mode.taskId);
+      const series = resolveSeries(mode.taskId);
+      const masterTask = series?.kind === 'task' ? series.master : direct;
+      const hasTime = Boolean(mode.initialStart ?? masterTask?.startAt);
+      setIsEvent(hasTime);
+      // 날짜/시간 default — initialStart 가 없고 plannedFor 만 있으면 그 날 09:00.
+      const fallbackStart = masterTask?.plannedFor
+        ? `${masterTask.plannedFor}T09:00:00`
+        : new Date().toISOString();
+      const start = mode.initialStart ?? masterTask?.startAt ?? fallbackStart;
+      const end = mode.initialEnd ?? masterTask?.endAt ?? addMinutes(start, 60);
       setDate(toDateInput(start));
       setTime(toTimeInput(start));
       setDuration(minutesBetween(start, end) || 60);
-      setIsEvent(false);
-      setPriority(mode.initialPriority ?? 0);
-      const series = resolveSeries(mode.taskId);
+      setPriority(mode.initialPriority ?? masterTask?.priority ?? 0);
       if (series) {
         const { preset, byday: bd, until } = ruleToPreset(series.master.recurrence);
         setRecurrence(preset);
@@ -154,7 +162,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         setRecurrenceUntil(until ? until.slice(0, 10) : '');
         setTaskColor(series.kind === 'task' ? series.master.color : undefined);
       } else {
-        const direct = taskStore.findMaster(mode.taskId);
         const { preset, byday: bd, until } = ruleToPreset(direct?.recurrence);
         setRecurrence(preset);
         setByday(bd);
@@ -179,9 +186,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
   const series = mode.kind === 'schedule' ? resolveSeries(mode.taskId) : null;
   const isSeriesInstance = Boolean(series);
-  // 시간(시작·길이) input 노출 — 일정이거나 schedule 모드(편집).
-  // 할 일 create 모드면 시간 input hide (할 일 = 시간 무관).
-  const showsTimeInputs = mode.kind === 'schedule' || isEvent;
+  // 시간(시작·길이) input 노출은 isEvent 만으로 결정 — 모드 무관.
+  // 할 일 = 시간 무관, 일정 = 시간 블록.
+  const showsTimeInputs = isEvent;
 
   const submitWithScope = (scope: 'this' | 'future' | 'all' = 'all') => {
     const trimmed = title.trim();
@@ -191,21 +198,49 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       : undefined;
     const newRecurrence = presetToRule(recurrence, byday, untilIso);
 
-    // ─── 할 일 create 모드 (시간 input 없음) — plannedFor 만 ───
-    if (mode.kind === 'create' && !isEvent && !showsTimeInputs) {
+    // ─── 할 일 (isEvent=false) — 시간 input 없음, plannedFor 만. create + schedule 둘 다. ───
+    if (!isEvent) {
       if (!date) return;
-      taskStore.add({
+      const patch: Partial<PlannerTask> = {
         title: trimmed,
+        startAt: undefined,
+        endAt: undefined,
         plannedFor: date,
         priority: priority === 0 ? undefined : priority,
         color: taskColor,
         recurrence: newRecurrence,
-      });
-      notify.success(newRecurrence ? '반복 할 일 추가됐어요' : '할 일 추가됐어요');
+      };
+      if (mode.kind === 'schedule') {
+        if (series && series.kind === 'task') {
+          if (scope === 'this') {
+            editThisOnly(taskStore, series.master, series.occurrenceIso, patch);
+            notify.success('이 항목만 할 일로 변경됐어요');
+          } else if (scope === 'future') {
+            editThisAndFuture(taskStore, series.master, series.occurrenceIso, patch);
+            notify.success('이 항목과 이후 시리즈가 할 일로 변경됐어요');
+          } else {
+            editAll(taskStore, series.master, patch);
+            notify.success('전체 시리즈가 할 일로 변경됐어요');
+          }
+        } else {
+          taskStore.update(mode.taskId, patch);
+          notify.success('할 일로 변경됐어요');
+        }
+      } else {
+        taskStore.add({
+          title: trimmed,
+          plannedFor: date,
+          priority: priority === 0 ? undefined : priority,
+          color: taskColor,
+          recurrence: newRecurrence,
+        });
+        notify.success(newRecurrence ? '반복 할 일 추가됐어요' : '할 일 추가됐어요');
+      }
       onClose();
       return;
     }
 
+    // ─── 일정 (isEvent=true) — 시간 input 있음 ───
     if (!date || !time) return;
     const startIso = buildIso(date, time);
     const endIso = addMinutes(startIso, duration);
@@ -237,54 +272,22 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         notify.success(newRecurrence ? '시리즈 갱신됐어요' : '시간 배정됐어요');
       }
     } else {
-      if (isEvent) {
-        eventStore.add({
-          title: trimmed,
-          startAt: startIso,
-          endAt: endIso,
-          source: 'user',
-          recurrence: newRecurrence,
-          color: taskColor ? TASK_LIST_COLORS[taskColor].stripe : undefined,
-        });
-        notify.success(newRecurrence ? '반복 일정 추가됐어요' : '일정 추가됐어요');
-      } else {
-        taskStore.add({
-          title: trimmed,
-          startAt: startIso,
-          endAt: endIso,
-          priority: priority === 0 ? undefined : priority,
-          color: taskColor,
-          recurrence: newRecurrence,
-        });
-        notify.success(newRecurrence ? '반복 할 일 추가됐어요' : '할 일 추가됐어요');
-      }
+      // create + 일정 — eventStore 가 아니라 taskStore 에 시간 잡힌 task 로 추가.
+      // (eventStore 와 분리 — 모든 새 항목은 task. event 는 외부 통합용.)
+      taskStore.add({
+        title: trimmed,
+        startAt: startIso,
+        endAt: endIso,
+        priority: priority === 0 ? undefined : priority,
+        color: taskColor,
+        recurrence: newRecurrence,
+      });
+      notify.success(newRecurrence ? '반복 일정 추가됐어요' : '일정 추가됐어요');
     }
     onClose();
   };
 
   const handleSubmit = () => submitWithScope(isSeriesInstance ? 'this' : 'all');
-
-  /** 시간 잡힌 task 를 "할 일" (시간 미정 체크리스트) 로 변환.
-   *  startAt/endAt 제거 + plannedFor=현재 모달 날짜 → 좌하 할 일 박스에 즉시 노출. */
-  const handleConvertToTodo = () => {
-    if (mode.kind !== 'schedule') return;
-    const dayKey = date || new Date().toISOString().slice(0, 10);
-    if (series && series.kind === 'task') {
-      editThisOnly(taskStore, series.master, series.occurrenceIso, {
-        startAt: undefined,
-        endAt: undefined,
-        plannedFor: dayKey,
-      });
-    } else {
-      taskStore.update(mode.taskId, {
-        startAt: undefined,
-        endAt: undefined,
-        plannedFor: dayKey,
-      });
-    }
-    notify.info('할 일로 옮겼어요', { duration: 1500 });
-    onClose();
-  };
 
   const handleDelete = (scope: 'this' | 'all' = 'all') => {
     if (mode.kind !== 'schedule') return;
@@ -348,14 +351,14 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             <span aria-hidden>{isEvent ? '🗓' : '✅'}</span>
             <span>
               {mode.kind === 'schedule'
-                ? `${isEvent ? '일정' : '할 일'} 시간 배정`
+                ? `${isEvent ? '일정' : '할 일'} 편집`
                 : `새 ${isEvent ? '일정' : '할 일'}`}
             </span>
           </DialogTitle>
           <DialogDescription className="sr-only">
             {isEvent
               ? '일정의 시간·색·반복을 편집합니다.'
-              : '할 일의 시간·우선순위·색·반복을 편집합니다.'}
+              : '할 일의 우선순위·색·반복을 편집합니다.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -374,9 +377,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             />
           </div>
 
-          {/* 종류 (create 모드만) — segmented full row */}
-          {mode.kind === 'create' && (
-            <div className="sm:col-span-2 grid grid-cols-2 gap-1.5 p-1 rounded-md bg-accent/40 border border-foreground/10">
+          {/* 종류 — create/schedule 둘 다. 토글로 일정↔할 일 자유 변환. */}
+          <div className="sm:col-span-2 grid grid-cols-2 gap-1.5 p-1 rounded-md bg-accent/40 border border-foreground/10">
               <button
                 type="button"
                 onClick={() => setIsEvent(false)}
@@ -416,7 +418,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </span>
               </button>
             </div>
-          )}
 
           {/* 날짜 — 항상 노출. 할 일은 이 날짜에 plannedFor 마킹. 일정은 startAt 의 날짜. */}
           {/* 시간(시작·길이) — 일정 또는 schedule 모드(시간 변경)에서만. 할 일 create 면 hide. */}
@@ -637,14 +638,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         <DialogFooter className="flex-row sm:justify-between mt-3 gap-2">
           {mode.kind === 'schedule' ? (
             <div className="flex gap-1.5 items-center">
-              <button
-                type="button"
-                onClick={handleConvertToTodo}
-                title="시간 빼고 좌하 할 일 박스로 옮김"
-                className="px-3 py-1.5 text-[12px] rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
-              >
-                할 일로
-              </button>
               {isSeriesInstance ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
