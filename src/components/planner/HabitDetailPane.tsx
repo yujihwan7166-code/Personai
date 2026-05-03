@@ -106,12 +106,19 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
 
       {/* 본문 — 스크롤 */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-        {/* Stats 4 카드 */}
-        <div className="grid grid-cols-2 gap-2">
-          <StatCard Icon={Target} label="월간 출석" value={`${stats.monthCount}일`} tone="text-emerald-500" />
-          <StatCard Icon={Zap} label="총 체크인" value={`${stats.total}일`} tone="text-amber-500" />
-          <StatCard Icon={TrendingUp} label="월별 비율" value={`${Math.round(stats.monthRate * 100)}%`} tone="text-blue-500" />
-          <StatCard Icon={Flame} label="연속" value={`${stats.streak}일`} tone={stats.streak >= 3 ? 'text-rose-500' : 'text-foreground/55'} sub={stats.max > 0 ? `최장 ${stats.max}일` : undefined} />
+        {/* Stats 4 카드 — 큼직, 색조 */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <StatCard Icon={Target} label="월간 출석" value={stats.monthCount} unit="일" tone="emerald" />
+          <StatCard Icon={Zap} label="총 체크인" value={stats.total} unit="일" tone="amber" />
+          <StatCard Icon={TrendingUp} label="월별 비율" value={Math.round(stats.monthRate * 100)} unit="%" tone="blue" />
+          <StatCard
+            Icon={Flame}
+            label="연속"
+            value={stats.streak}
+            unit="일"
+            tone={stats.streak >= 3 ? 'rose' : 'gray'}
+            sub={stats.max > 0 ? `최장 ${stats.max}일` : undefined}
+          />
         </div>
 
         {/* 월 캘린더 */}
@@ -144,23 +151,48 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
   );
 };
 
+type StatTone = 'emerald' | 'amber' | 'blue' | 'rose' | 'gray';
+const TONE_BG: Record<StatTone, string> = {
+  emerald: 'hsl(160 60% 45% / 0.10)',
+  amber:   'hsl(40 85% 55% / 0.12)',
+  blue:    'hsl(220 70% 55% / 0.10)',
+  rose:    'hsl(0 75% 55% / 0.10)',
+  gray:    'hsl(220 10% 60% / 0.08)',
+};
+const TONE_TEXT: Record<StatTone, string> = {
+  emerald: 'text-emerald-500',
+  amber:   'text-amber-500',
+  blue:    'text-blue-500',
+  rose:    'text-rose-500',
+  gray:    'text-foreground/55',
+};
+
 const StatCard = ({
-  Icon, label, value, tone, sub,
+  Icon, label, value, unit, tone, sub,
 }: {
   Icon: typeof Target;
   label: string;
-  value: string;
-  tone: string;
+  value: number;
+  unit: string;
+  tone: StatTone;
   sub?: string;
 }) => (
-  <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card/40 px-3 py-2.5">
-    <div className="flex items-center gap-1.5 mb-1">
-      <Icon className={cn('h-3.5 w-3.5', tone)} />
-      <span className="text-[11px] font-mono uppercase tracking-wide text-foreground/55 font-semibold">
+  <div
+    className="rounded-xl border border-[hsl(var(--hairline))] px-3.5 py-3"
+    style={{ backgroundColor: TONE_BG[tone] }}
+  >
+    <div className="flex items-center gap-1.5 mb-1.5">
+      <Icon className={cn('h-3.5 w-3.5', TONE_TEXT[tone])} />
+      <span className="text-[11px] font-mono uppercase tracking-wide text-foreground/65 font-semibold">
         {label}
       </span>
     </div>
-    <div className="text-[20px] font-bold tabular-nums leading-none">{value}</div>
-    {sub && <div className="mt-0.5 text-[10.5px] text-foreground/55">{sub}</div>}
+    <div className="flex items-baseline gap-1">
+      <span className={cn('text-[28px] font-bold tabular-nums leading-none', TONE_TEXT[tone])}>
+        {value}
+      </span>
+      <span className="text-[13px] font-medium text-foreground/55">{unit}</span>
+    </div>
+    {sub && <div className="mt-1 text-[10.5px] text-foreground/55">{sub}</div>}
   </div>
 );

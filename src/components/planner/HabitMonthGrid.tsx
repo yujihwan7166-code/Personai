@@ -8,7 +8,7 @@ import type { Habit } from '@/types/habit';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { useHabitCheckins } from '@/hooks/planner/useHabitCheckins';
 import { isScheduledOn, toDateKey } from '@/lib/planner/habitStats';
-import { HabitDayDot } from './HabitDayDot';
+import { TASK_LIST_COLORS } from '@/types/planner';
 
 interface HabitMonthGridProps {
   habit: Habit;
@@ -46,6 +46,7 @@ export const HabitMonthGrid = ({ habit, year, month1Indexed, onChangeMonth }: Ha
 
   const todayKey = toDateKey(new Date());
   const timesPerDay = Math.max(1, habit.schedule.timesPerDay ?? 1);
+  const stripe = (TASK_LIST_COLORS[habit.color] ?? TASK_LIST_COLORS.blue).stripe;
 
   return (
     <div>
@@ -94,34 +95,52 @@ export const HabitMonthGrid = ({ habit, year, month1Indexed, onChangeMonth }: Ha
         ))}
       </div>
 
-      {/* 그리드 */}
-      <div className="grid grid-cols-7 gap-1">
+      {/* 그리드 — 각 cell 은 큰 원 + 안에 날짜 숫자 (체크 시 색 fill + 흰 숫자) */}
+      <div className="grid grid-cols-7 gap-1.5">
         {cells.map((d, i) => {
           if (!d) return <div key={`pad-${i}`} className="h-10" />;
           const dk = toDateKey(d);
           const sched = isScheduledOn(habit, dk);
           const ci = checkinMap.get(dk);
+          const tpd = timesPerDay;
+          const completed = (ci?.count ?? 0) >= tpd;
+          const partial = (ci?.count ?? 0) > 0 && !completed;
           const isToday = dk === todayKey;
           const isFuture = dk > todayKey;
+          const dow = d.getDay();
           return (
-            <div key={dk} className="flex flex-col items-center gap-1 py-1">
-              <HabitDayDot
-                scheduled={sched}
-                count={ci?.count ?? 0}
-                timesPerDay={timesPerDay}
-                color={habit.color}
-                isToday={isToday}
-                isFuture={isFuture}
-                ariaLabel={`${dk}`}
-                onClick={() => habitCheckinStore.toggle(habit.id, dk, timesPerDay)}
-              />
-              <span className={cn(
-                'text-[10px] font-mono tabular-nums',
-                isToday ? 'text-foreground font-bold' : 'text-foreground/55',
-              )}>
-                {d.getDate()}
-              </span>
-            </div>
+            <button
+              key={dk}
+              type="button"
+              onClick={() => habitCheckinStore.toggle(habit.id, dk, tpd)}
+              disabled={dk < habit.startDate || (habit.endDate ? dk > habit.endDate : false)}
+              aria-label={`${dk} ${completed ? '체크 해제' : '체크'}`}
+              style={
+                completed
+                  ? { backgroundColor: stripe, borderColor: stripe }
+                  : partial
+                    ? { borderColor: stripe }
+                    : undefined
+              }
+              className={cn(
+                'h-10 inline-flex items-center justify-center rounded-full text-[12px] font-medium tabular-nums transition-all',
+                'border-[1.5px] hover:scale-105 active:scale-95',
+                !sched && !completed && !partial && 'border-transparent',
+                sched && !completed && !partial && 'border-foreground/15 hover:border-foreground/35',
+                isToday && !completed && 'ring-2 ring-foreground/25 ring-offset-1 ring-offset-background',
+                isFuture && 'opacity-55',
+                completed && 'text-white font-semibold',
+                !completed && (
+                  isToday ? 'text-foreground font-bold'
+                  : dow === 0 ? 'text-rose-500/65'
+                  : dow === 6 ? 'text-blue-500/65'
+                  : 'text-foreground/65'
+                ),
+                'disabled:opacity-30 disabled:cursor-not-allowed',
+              )}
+            >
+              {d.getDate()}
+            </button>
           );
         })}
       </div>

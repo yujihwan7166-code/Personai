@@ -12,7 +12,6 @@ const OPTIONS: Array<{ id: PlannerView; label: string; key: string }> = [
   { id: 'week',   label: '주',     key: 'W' },
   { id: 'month',  label: '월',     key: 'M' },
   { id: 'year',   label: '년',     key: 'Y' },
-  { id: 'habits', label: '습관',   key: 'H' },
 ];
 
 interface ViewToggleProps {

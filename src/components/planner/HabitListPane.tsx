@@ -71,7 +71,7 @@ export const HabitListPane = ({
       </div>
 
       {/* 주 헤더 */}
-      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,28px)_24px] gap-1 items-center px-4 py-2 border-b border-[hsl(var(--hairline))] bg-card/40">
+      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,36px)_28px] gap-1 items-center px-4 py-2 border-b border-[hsl(var(--hairline))] bg-card/40">
         <div />
         {weekDays.map((d) => {
           const isToday = toDateKey(d) === todayKey;
@@ -129,43 +129,50 @@ export const HabitListPane = ({
                 <li
                   key={habit.id}
                   className={cn(
-                    'group grid grid-cols-[1fr_repeat(7,28px)_24px] gap-1 items-center px-4 py-2 cursor-pointer',
-                    isSelected ? 'bg-accent/50' : 'hover:bg-accent/30',
+                    'group relative grid grid-cols-[1fr_repeat(7,36px)_28px] gap-1 items-center mx-3 my-1.5 px-3 py-3 rounded-xl cursor-pointer transition-all',
+                    isSelected
+                      ? 'bg-card ring-2 shadow-sm'
+                      : 'hover:bg-accent/40',
                   )}
+                  style={isSelected ? { '--tw-ring-color': stripe } as React.CSSProperties : undefined}
                   onClick={() => onSelect(habit.id)}
                 >
                   {/* 좌: emoji + 제목 + meta */}
-                  <div className="min-w-0 flex items-center gap-2.5">
+                  <div className="min-w-0 flex items-center gap-3">
                     <span
-                      className="h-7 w-7 inline-flex items-center justify-center rounded-full text-[14px] shrink-0"
+                      className="h-11 w-11 inline-flex items-center justify-center rounded-full text-[22px] shrink-0 ring-1"
                       style={{
-                        backgroundColor: `color-mix(in oklab, ${stripe} 18%, hsl(var(--background)))`,
+                        backgroundColor: `color-mix(in oklab, ${stripe} 25%, hsl(var(--background)))`,
+                        ['--tw-ring-color' as 'color']: `color-mix(in oklab, ${stripe} 35%, transparent)` as unknown as string,
                       }}
                     >
                       {habit.emoji}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[13.5px] font-medium text-foreground truncate">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[14.5px] font-semibold text-foreground truncate">
                           {habit.title}
                         </span>
                         {habit.pinned && <Pin className="h-3 w-3 text-foreground/55" />}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-[10.5px] font-mono tabular-nums text-foreground/55">
+                      <div className="flex items-center gap-2.5 mt-1 text-[11px] font-mono tabular-nums">
                         {streak > 0 && (
-                          <span className="inline-flex items-center gap-0.5">
-                            <Zap className="h-2.5 w-2.5" />
+                          <span className="inline-flex items-center gap-0.5 text-amber-500 font-semibold">
+                            <Zap className="h-3 w-3 fill-current" />
                             {streak}일
                           </span>
                         )}
                         {max > 0 && (
-                          <span className="inline-flex items-center gap-0.5">
-                            <Flame className={cn('h-2.5 w-2.5', max >= 3 && 'text-rose-500/80')} />
+                          <span className={cn(
+                            'inline-flex items-center gap-0.5 font-semibold',
+                            max >= 7 ? 'text-rose-500' : max >= 3 ? 'text-rose-500/75' : 'text-foreground/55',
+                          )}>
+                            <Flame className="h-3 w-3 fill-current" />
                             {max}일
                           </span>
                         )}
                         {timesPerDay > 1 && habit.unit && (
-                          <span className="text-foreground/45">
+                          <span className="text-foreground/55">
                             {timesPerDay}{habit.unit}/일
                           </span>
                         )}
@@ -189,6 +196,7 @@ export const HabitListPane = ({
                           color={habit.color}
                           isToday={isToday}
                           isFuture={isFuture}
+                          size="md"
                           ariaLabel={`${habit.title} ${dk}`}
                           onClick={() => habitCheckinStore.toggle(habit.id, dk, timesPerDay)}
                         />
