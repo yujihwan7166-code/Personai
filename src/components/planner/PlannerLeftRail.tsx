@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText, Home, Network, Repeat, Search, Sparkles, Timer,
+  FileText, Grid2x2, Home, Network, Repeat, Search, Sparkles, Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -29,16 +29,18 @@ type RailItem =
 /** Planner 가 listen 하는 커스텀 이벤트 이름들 — 결합도 낮추기. */
 export const RAIL_EVENT = {
   openPalette: 'planner:open-palette',
+  openMatrix: 'planner:open-matrix',
 } as const;
 
 const ITEMS: RailItem[] = [
-  { kind: 'route',  to: '/',                       label: '홈',     Icon: Home },
-  { kind: 'soon',                                  label: '습관',   Icon: Repeat },
-  { kind: 'soon',                                  label: 'AI',     Icon: Sparkles },
+  { kind: 'route',  to: '/',                          label: '홈',     Icon: Home },
+  { kind: 'soon',                                     label: '습관',   Icon: Repeat },
+  { kind: 'soon',                                     label: 'AI',     Icon: Sparkles },
   { kind: 'event',  eventName: RAIL_EVENT.openPalette, label: '검색',   Icon: Search },
-  { kind: 'drawer', drawer: 'memos',               label: '메모',   Icon: FileText },
-  { kind: 'drawer', drawer: 'wiki',                label: '위키',   Icon: Network },
-  { kind: 'soon',                                  label: '타이머', Icon: Timer },
+  { kind: 'event',  eventName: RAIL_EVENT.openMatrix,  label: '매트릭스', Icon: Grid2x2 },
+  { kind: 'drawer', drawer: 'memos',                  label: '메모',   Icon: FileText },
+  { kind: 'drawer', drawer: 'wiki',                   label: '위키',   Icon: Network },
+  { kind: 'soon',                                     label: '타이머', Icon: Timer },
 ];
 
 export const PlannerLeftRail = () => {

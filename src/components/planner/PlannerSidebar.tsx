@@ -9,7 +9,7 @@
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
-import { PlannerMatrixMini } from './PlannerMatrixMini';
+import { PlannerAgendaMini } from './PlannerAgendaMini';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -50,8 +50,8 @@ export const PlannerSidebar = ({
 
       <div className="border-t border-[hsl(var(--hairline))] pt-3" />
 
-      {/* 미니 아이젠하워 매트릭스 — 글랜스용 */}
-      <PlannerMatrixMini onTaskClick={onTaskClick} />
+      {/* 다가오는 일정 — 날짜별 아젠다 미니 (TickTick 식) */}
+      <PlannerAgendaMini onItemClick={onTaskClick} />
     </div>
   );
 };

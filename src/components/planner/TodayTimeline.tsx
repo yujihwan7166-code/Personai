@@ -305,13 +305,63 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     </button>
   );
 
-  const sameStartCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of items) {
-      if (!item.data.startAt) continue;
-      counts.set(item.data.startAt, (counts.get(item.data.startAt) ?? 0) + 1);
+  /**
+   * 겹침 lane 할당 — 시간 충돌하는 그룹별로 lane 분배 (Google Calendar 패턴).
+   * 1분이라도 겹치면 동등 폭으로 옆에 나란히 배치한다.
+   *
+   * 알고리즘:
+   *   1) startAt 오름차순 정렬
+   *   2) 활성 lane 풀 유지 — endAt < 다음 startAt 이면 lane 회수
+   *   3) 빈 lane 있으면 거기, 없으면 새 lane
+   *   4) 같은 "충돌 클러스터" 안의 모든 항목은 동일 laneCount 공유 (max lane in cluster)
+   */
+  const layout = useMemo(() => {
+    const sorted = items
+      .filter((it) => it.data.startAt && (it.kind === 'event' ? it.data.endAt : (it.data as PlannerTask).endAt))
+      .map((it) => ({
+        id: it.data.id,
+        start: new Date(it.data.startAt!).getTime(),
+        end: new Date((it.kind === 'event' ? it.data.endAt : (it.data as PlannerTask).endAt!)!).getTime(),
+      }))
+      .sort((a, b) => a.start - b.start || a.end - b.end);
+
+    type Layout = { laneIndex: number; laneCount: number };
+    const result = new Map<string, Layout>();
+    // 충돌 클러스터: 한 묶음 내 항목들이 끝날 때까지 모인 인덱스 집합.
+    let cluster: { id: string; lane: number }[] = [];
+    let clusterEnd = 0;
+    let activeLanes: number[] = []; // lane index → 그 lane 의 현재 endTime
+
+    const flushCluster = () => {
+      if (cluster.length === 0) return;
+      const laneCount = Math.max(...cluster.map((c) => c.lane)) + 1;
+      for (const c of cluster) result.set(c.id, { laneIndex: c.lane, laneCount });
+      cluster = [];
+      activeLanes = [];
+    };
+
+    for (const item of sorted) {
+      // 활성 lane 회수 — item.start 이전에 끝난 lane.
+      for (let i = 0; i < activeLanes.length; i++) {
+        if (activeLanes[i] <= item.start) activeLanes[i] = -1;
+      }
+      // 클러스터 경계: 모든 lane 비었거나 item.start >= clusterEnd → 이전 클러스터 flush.
+      if (item.start >= clusterEnd) {
+        flushCluster();
+      }
+      // 빈 lane 찾기, 없으면 새 lane.
+      let lane = activeLanes.findIndex((e) => e === -1);
+      if (lane === -1) {
+        lane = activeLanes.length;
+        activeLanes.push(item.end);
+      } else {
+        activeLanes[lane] = item.end;
+      }
+      cluster.push({ id: item.id, lane });
+      clusterEnd = Math.max(clusterEnd, item.end);
     }
-    return counts;
+    flushCluster();
+    return result;
   }, [items]);
 
   const body = (
@@ -413,16 +463,15 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
           {/* 시간 블록 */}
           <div className="absolute left-10 right-0 top-0 bottom-0 pointer-events-none">
             {(() => {
-              const sameStartSeen = new Map<string, number>();
               return (
                 <>
             {items.map((item) => {
               const startAt = item.data.startAt;
               const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt!;
               if (!startAt) return null;
-              const laneCount = sameStartCounts.get(startAt) ?? 1;
-              const laneIndex = sameStartSeen.get(startAt) ?? 0;
-              sameStartSeen.set(startAt, laneIndex + 1);
+              const lay = layout.get(item.data.id) ?? { laneIndex: 0, laneCount: 1 };
+              const laneIndex = lay.laneIndex;
+              const laneCount = lay.laneCount;
               const laneWidth = 100 / laneCount;
               const top = computeTopPx(startAt, baseDateIso) - visibleStart * HOUR_PX;
               const height = computeHeightPx(startAt, endAt);

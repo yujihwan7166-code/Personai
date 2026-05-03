@@ -195,8 +195,7 @@ const InboxCardInner = (props: InboxCardProps) => {
         )}
         {showFlag && (
           <Flag
-            className="h-3 w-3 shrink-0"
-            style={{ color: PRIORITY_COLORS[priority as Priority], fill: PRIORITY_COLORS[priority as Priority] }}
+            className="h-3 w-3 shrink-0 text-rose-500 fill-rose-500"
             aria-hidden
           />
         )}

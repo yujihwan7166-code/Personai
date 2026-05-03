@@ -37,10 +37,10 @@ import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { GoalProgressView } from '@/components/planner/GoalProgressView';
-import { AgendaView } from '@/components/planner/AgendaView';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
+import { PlannerMatrixPopover } from '@/components/planner/PlannerMatrixPopover';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
@@ -84,6 +84,7 @@ const Planner = () => {
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [matrixPopoverOpen, setMatrixPopoverOpen] = useState(false);
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -310,7 +311,6 @@ const Planner = () => {
         case 'm': e.preventDefault(); setView('month'); break;
         case 'y': e.preventDefault(); setView('year'); break;
         case 'g': e.preventDefault(); setView('goals'); break;
-        case 'a': e.preventDefault(); setView('agenda'); break;
         case 't': e.preventDefault(); goToday(); break;
         case 'arrowleft':  e.preventDefault(); goPrev(); break;
         case 'arrowright': e.preventDefault(); goNext(); break;
@@ -328,8 +328,15 @@ const Planner = () => {
     return () => window.removeEventListener(RAIL_EVENT.openPalette, open);
   }, []);
 
+  // Rail 의 "매트릭스" 클릭 → 매트릭스 팝오버.
+  useEffect(() => {
+    const open = () => setMatrixPopoverOpen(true);
+    window.addEventListener(RAIL_EVENT.openMatrix, open);
+    return () => window.removeEventListener(RAIL_EVENT.openMatrix, open);
+  }, []);
 
-  const isFullscreen = view === 'month' || view === 'year' || view === 'goals' || view === 'agenda';
+
+  const isFullscreen = view === 'month' || view === 'year' || view === 'goals';
 
   // ────── DnD ──────
   // 드래그 기준점 (5px) 으로 클릭과 분리.
@@ -653,12 +660,6 @@ const Planner = () => {
                 onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
               />
             )}
-            {view === 'agenda' && (
-              <AgendaView
-                anchorIso={anchorIso}
-                onItemClick={handleItemClick}
-              />
-            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[950px]">
@@ -806,6 +807,11 @@ const Planner = () => {
         onAction={handleCommandAction}
       />
       <ShortcutHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <PlannerMatrixPopover
+        open={matrixPopoverOpen}
+        onOpenChange={setMatrixPopoverOpen}
+        onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+      />
     </div>
     {/* 드래그 시간 미리보기 — DragOverlay 로 마우스 옆 표시. */}
     <DragOverlay dropAnimation={null}>
