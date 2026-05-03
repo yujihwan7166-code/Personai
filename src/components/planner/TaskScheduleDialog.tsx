@@ -179,17 +179,36 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
   const series = mode.kind === 'schedule' ? resolveSeries(mode.taskId) : null;
   const isSeriesInstance = Boolean(series);
+  // 시간(시작·길이) input 노출 — 일정이거나 schedule 모드(편집).
+  // 할 일 create 모드면 시간 input hide (할 일 = 시간 무관).
+  const showsTimeInputs = mode.kind === 'schedule' || isEvent;
 
   const submitWithScope = (scope: 'this' | 'future' | 'all' = 'all') => {
-    if (!date || !time) return;
-    const startIso = buildIso(date, time);
-    const endIso = addMinutes(startIso, duration);
     const trimmed = title.trim();
     if (trimmed.length === 0) return;
     const untilIso = recurrenceUntil
       ? new Date(`${recurrenceUntil}T23:59:59`).toISOString()
       : undefined;
     const newRecurrence = presetToRule(recurrence, byday, untilIso);
+
+    // ─── 할 일 create 모드 (시간 input 없음) — plannedFor 만 ───
+    if (mode.kind === 'create' && !isEvent && !showsTimeInputs) {
+      if (!date) return;
+      taskStore.add({
+        title: trimmed,
+        plannedFor: date,
+        priority: priority === 0 ? undefined : priority,
+        color: taskColor,
+        recurrence: newRecurrence,
+      });
+      notify.success(newRecurrence ? '반복 할 일 추가됐어요' : '할 일 추가됐어요');
+      onClose();
+      return;
+    }
+
+    if (!date || !time) return;
+    const startIso = buildIso(date, time);
+    const endIso = addMinutes(startIso, duration);
 
     if (mode.kind === 'schedule') {
       const patch: Partial<PlannerTask> = {
@@ -245,12 +264,26 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
   const handleSubmit = () => submitWithScope(isSeriesInstance ? 'this' : 'all');
 
-  const handleUnschedule = () => {
-    if (mode.kind === 'schedule') {
-      taskStore.unschedule(mode.taskId);
-      notify.info('대기함으로 옮겼어요', { duration: 1500 });
-      onClose();
+  /** 시간 잡힌 task 를 "할 일" (시간 미정 체크리스트) 로 변환.
+   *  startAt/endAt 제거 + plannedFor=현재 모달 날짜 → 좌하 할 일 박스에 즉시 노출. */
+  const handleConvertToTodo = () => {
+    if (mode.kind !== 'schedule') return;
+    const dayKey = date || new Date().toISOString().slice(0, 10);
+    if (series && series.kind === 'task') {
+      editThisOnly(taskStore, series.master, series.occurrenceIso, {
+        startAt: undefined,
+        endAt: undefined,
+        plannedFor: dayKey,
+      });
+    } else {
+      taskStore.update(mode.taskId, {
+        startAt: undefined,
+        endAt: undefined,
+        plannedFor: dayKey,
+      });
     }
+    notify.info('할 일로 옮겼어요', { duration: 1500 });
+    onClose();
   };
 
   const handleDelete = (scope: 'this' | 'all' = 'all') => {
@@ -385,9 +418,32 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           )}
 
-          {/* 날짜 + 시간 */}
-          <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-            <div className="flex flex-col gap-1.5">
+          {/* 날짜 — 항상 노출. 할 일은 이 날짜에 plannedFor 마킹. 일정은 startAt 의 날짜. */}
+          {/* 시간(시작·길이) — 일정 또는 schedule 모드(시간 변경)에서만. 할 일 create 면 hide. */}
+          {showsTimeInputs ? (
+            <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+              <div className="flex flex-col gap-1.5">
+                <LabelText>날짜</LabelText>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="px-2.5 py-2 text-[13px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <LabelText>시작</LabelText>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  step={1800}
+                  className="px-2.5 py-2 text-[13px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
               <LabelText>날짜</LabelText>
               <input
                 type="date"
@@ -396,50 +452,42 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 className="px-2.5 py-2 text-[13px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <LabelText>시작</LabelText>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                step={1800}
-                className="px-2.5 py-2 text-[13px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none"
-              />
-            </div>
-          </div>
+          )}
 
-          {/* 길이 — full row */}
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <LabelText>길이</LabelText>
-            <div className="flex flex-wrap gap-1.5">
-              {DURATIONS.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDuration(d)}
-                  className={chip(duration === d)}
-                >
-                  {d < 60 ? `${d}분` : `${Math.floor(d / 60)}시간${d % 60 ? ` ${d % 60}분` : ''}`}
-                </button>
-              ))}
+          {/* 길이 — 시간 input 노출될 때만. */}
+          {showsTimeInputs && (
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <LabelText>길이</LabelText>
+              <div className="flex flex-wrap gap-1.5">
+                {DURATIONS.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDuration(d)}
+                    className={chip(duration === d)}
+                  >
+                    {d < 60 ? `${d}분` : `${Math.floor(d / 60)}시간${d % 60 ? ` ${d % 60}분` : ''}`}
+                  </button>
+                ))}
+              </div>
+              <label className="mt-0.5 flex items-center gap-2 text-[11px] text-foreground/55">
+                직접
+                <input
+                  type="number"
+                  min={5}
+                  step={5}
+                  value={duration}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    setDuration(Number.isFinite(next) && next > 0 ? Math.max(5, next) : 5);
+                  }}
+                  className="h-7 w-20 rounded-md border border-foreground/10 bg-card px-2 text-[12px] tabular-nums text-foreground focus:border-foreground/40 focus:outline-none"
+                  aria-label="길이 직접 입력"
+                />
+                분
+              </label>
             </div>
-            <label className="mt-0.5 flex items-center gap-2 text-[11px] text-foreground/55">
-              직접
-              <input
-                type="number"
-                min={5}
-                step={5}
-                value={duration}
-                onChange={(event) => {
-                  const next = Number(event.target.value);
-                  setDuration(Number.isFinite(next) && next > 0 ? Math.max(5, next) : 5);
-                }}
-                className="h-7 w-20 rounded-md border border-foreground/10 bg-card px-2 text-[12px] tabular-nums text-foreground focus:border-foreground/40 focus:outline-none"
-                aria-label="길이 직접 입력"
-              />
-              분
-            </label>
-          </div>
+          )}
 
           {/* 우선순위 — 할 일만, 좌측 col */}
           {!isEvent && (
@@ -591,10 +639,11 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             <div className="flex gap-1.5 items-center">
               <button
                 type="button"
-                onClick={handleUnschedule}
+                onClick={handleConvertToTodo}
+                title="시간 빼고 좌하 할 일 박스로 옮김"
                 className="px-3 py-1.5 text-[12px] rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
               >
-                대기함으로
+                할 일로
               </button>
               {isSeriesInstance ? (
                 <DropdownMenu>

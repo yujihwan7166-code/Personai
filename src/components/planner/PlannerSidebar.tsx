@@ -14,6 +14,8 @@ import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
 import { MemoDrawer } from './MemoDrawer';
+import { JournalDrawer } from './JournalDrawer';
+import { WikiDrawer } from './WikiDrawer';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -23,16 +25,18 @@ interface PlannerSidebarProps {
   onSelectDay: (dayIso: string) => void;
 }
 
+type DrawerKind = 'memos' | 'journal' | 'wiki';
+
 type QuickNavItem =
   | { kind: 'route'; to: string; label: string; Icon: typeof FileText }
-  | { kind: 'drawer'; drawer: 'memos'; label: string; Icon: typeof FileText };
+  | { kind: 'drawer'; drawer: DrawerKind; label: string; Icon: typeof FileText };
 
 const QUICK_NAV: QuickNavItem[] = [
-  { kind: 'route', to: '/',         label: '홈',    Icon: Home },
-  { kind: 'drawer', drawer: 'memos', label: '메모',  Icon: FileText },
-  { kind: 'route', to: '/journal',  label: '저널',  Icon: BookOpen },
-  { kind: 'route', to: '/wiki',     label: '위키',  Icon: Network },
-  { kind: 'route', to: '/discover', label: '발견',  Icon: Compass },
+  { kind: 'route',  to: '/',         label: '홈',   Icon: Home },
+  { kind: 'drawer', drawer: 'memos', label: '메모', Icon: FileText },
+  { kind: 'drawer', drawer: 'journal', label: '저널', Icon: BookOpen },
+  { kind: 'drawer', drawer: 'wiki',  label: '위키', Icon: Network },
+  { kind: 'route',  to: '/discover', label: '발견', Icon: Compass },
 ];
 
 export const PlannerSidebar = ({
@@ -42,8 +46,8 @@ export const PlannerSidebar = ({
   onSelectDay,
 }: PlannerSidebarProps) => {
   const navigate = useNavigate();
-  // 메모 등 floating drawer — 라우트 점프 대신 옆 panel 로 띄움.
-  const [activeDrawer, setActiveDrawer] = useState<'memos' | null>(null);
+  // 메모/저널/위키 floating drawer — 라우트 점프 대신 옆 panel 로 띄움.
+  const [activeDrawer, setActiveDrawer] = useState<DrawerKind | null>(null);
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -102,6 +106,14 @@ export const PlannerSidebar = ({
       <MemoDrawer
         open={activeDrawer === 'memos'}
         onOpenChange={(o) => setActiveDrawer(o ? 'memos' : null)}
+      />
+      <JournalDrawer
+        open={activeDrawer === 'journal'}
+        onOpenChange={(o) => setActiveDrawer(o ? 'journal' : null)}
+      />
+      <WikiDrawer
+        open={activeDrawer === 'wiki'}
+        onOpenChange={(o) => setActiveDrawer(o ? 'wiki' : null)}
       />
     </div>
   );
