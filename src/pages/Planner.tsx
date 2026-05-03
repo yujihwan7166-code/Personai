@@ -26,7 +26,7 @@ import {
   type DragMoveEvent,
 } from '@dnd-kit/core';
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
-import { PlannerLeftRail } from '@/components/planner/PlannerLeftRail';
+import { PlannerLeftRail, RAIL_EVENT } from '@/components/planner/PlannerLeftRail';
 import { PlannerInput } from '@/components/planner/PlannerInput';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
@@ -318,6 +318,13 @@ const Planner = () => {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [view, dialogMode, goPrev, goNext, goToday]);
+
+  // Rail 의 "검색" 클릭 → 명령 팔레트 열기.
+  useEffect(() => {
+    const open = () => setPaletteOpen(true);
+    window.addEventListener(RAIL_EVENT.openPalette, open);
+    return () => window.removeEventListener(RAIL_EVENT.openPalette, open);
+  }, []);
 
   const isFullscreen = view === 'month' || view === 'year' || view === 'goals';
 
