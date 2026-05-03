@@ -26,6 +26,7 @@ import {
   type DragMoveEvent,
 } from '@dnd-kit/core';
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
+import { PlannerLeftRail } from '@/components/planner/PlannerLeftRail';
 import { PlannerInput } from '@/components/planner/PlannerInput';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
@@ -587,8 +588,12 @@ const Planner = () => {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
-    <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-4 sm:px-6 py-4 sm:py-5 max-w-[1280px] w-full mx-auto">
+    <div className="min-h-screen bg-background flex">
+      {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
+      <aside className="shrink-0 w-12 border-r border-[hsl(var(--hairline))] bg-card/40">
+        <PlannerLeftRail />
+      </aside>
+      <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 sm:py-5 max-w-[1280px] w-full mx-auto">
         {/* 페이지 가로 헤더 제거됨 — 메인 링크/제목/뷰 토글은 사이드바 상단으로 이동.
             day 뷰의 시간 네비/공통 input 은 day 박스 헤더로 흡수.
             week/month/year 뷰의 시간 네비는 박스 자체 헤더에 별도 (TODO). */}

@@ -6,16 +6,9 @@
  *
  * 추후: 오버듀, 다가오는 일정 위젯 추가 예정.
  */
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BookOpen, Compass, FileText, Home, Network } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
-import { MemoDrawer } from './MemoDrawer';
-import { JournalDrawer } from './JournalDrawer';
-import { WikiDrawer } from './WikiDrawer';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -25,30 +18,12 @@ interface PlannerSidebarProps {
   onSelectDay: (dayIso: string) => void;
 }
 
-type DrawerKind = 'memos' | 'journal' | 'wiki';
-
-type QuickNavItem =
-  | { kind: 'route'; to: string; label: string; Icon: typeof FileText }
-  | { kind: 'drawer'; drawer: DrawerKind; label: string; Icon: typeof FileText };
-
-const QUICK_NAV: QuickNavItem[] = [
-  { kind: 'route',  to: '/',         label: '홈',   Icon: Home },
-  { kind: 'drawer', drawer: 'memos', label: '메모', Icon: FileText },
-  { kind: 'drawer', drawer: 'journal', label: '저널', Icon: BookOpen },
-  { kind: 'drawer', drawer: 'wiki',  label: '위키', Icon: Network },
-  { kind: 'route',  to: '/discover', label: '발견', Icon: Compass },
-];
-
 export const PlannerSidebar = ({
   anchorIso,
   view,
   onViewChange,
   onSelectDay,
 }: PlannerSidebarProps) => {
-  const navigate = useNavigate();
-  // 메모/저널/위키 floating drawer — 라우트 점프 대신 옆 panel 로 띄움.
-  const [activeDrawer, setActiveDrawer] = useState<DrawerKind | null>(null);
-
   return (
     <div className="h-full flex flex-col gap-3">
       {/* 상단 — 제목 + 뷰 토글 한 줄 */}
@@ -68,53 +43,6 @@ export const PlannerSidebar = ({
 
       {/* D-day — 시험·발표·생일·마감 등 카운트다운 */}
       <PlannerDday />
-
-      <div className="border-t border-[hsl(var(--hairline))] pt-3" />
-
-      {/* 다른 라우트 quick nav — "통합 플래너" 답게 다른 도구로 빠른 진입. */}
-      <nav className="px-1" aria-label="빠른 이동">
-        <div className="px-1.5 mb-1.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-foreground/55 font-semibold">
-          빠른 이동
-        </div>
-        <div className="grid grid-cols-2 gap-1">
-          {QUICK_NAV.map((item) => {
-            const key = item.kind === 'route' ? item.to : `drawer-${item.drawer}`;
-            const onClick = () => {
-              if (item.kind === 'route') navigate(item.to);
-              else setActiveDrawer(item.drawer);
-            };
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={onClick}
-                className={cn(
-                  'flex items-center gap-1.5 px-2 py-1.5 rounded-md',
-                  'text-[12px] font-medium text-foreground/80 hover:text-foreground hover:bg-accent',
-                  'transition-colors',
-                )}
-              >
-                <item.Icon className="h-3.5 w-3.5 text-foreground/55" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Floating drawers — 라우트 점프 없이 panel 로 참고. */}
-      <MemoDrawer
-        open={activeDrawer === 'memos'}
-        onOpenChange={(o) => setActiveDrawer(o ? 'memos' : null)}
-      />
-      <JournalDrawer
-        open={activeDrawer === 'journal'}
-        onOpenChange={(o) => setActiveDrawer(o ? 'journal' : null)}
-      />
-      <WikiDrawer
-        open={activeDrawer === 'wiki'}
-        onOpenChange={(o) => setActiveDrawer(o ? 'wiki' : null)}
-      />
     </div>
   );
 };
