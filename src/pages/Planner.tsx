@@ -13,6 +13,7 @@
  * - t: 오늘로
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   DndContext,
@@ -82,7 +83,29 @@ const Planner = () => {
   // Day 뷰 공통 input — NL 라우팅(시간 있으면 일정/타임라인, 없으면 할 일).
   const dayInputRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<PlannerView>('day');
-  const [anchorIso, setAnchorIso] = useState(() => new Date().toISOString());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [anchorIso, setAnchorIso] = useState(() => {
+    // ?date=YYYY-MM-DD 로 사이드바 미니캘린더에서 점프 가능.
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      const m = dateParam.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) {
+        const [, y, mo, d] = m;
+        const dt = new Date(Number(y), Number(mo) - 1, Number(d), 9, 0, 0);
+        if (!isNaN(dt.getTime())) return dt.toISOString();
+      }
+    }
+    return new Date().toISOString();
+  });
+  // 진입 시 한 번만 ?date 소비.
+  useEffect(() => {
+    if (searchParams.has('date')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('date');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
