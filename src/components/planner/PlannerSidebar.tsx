@@ -9,7 +9,6 @@
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
-import { PlannerAgendaMini } from './PlannerAgendaMini';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -47,11 +46,6 @@ export const PlannerSidebar = ({
 
       {/* D-day — 시험·발표·생일·마감 등 카운트다운 */}
       <PlannerDday />
-
-      <div className="border-t border-[hsl(var(--hairline))] pt-3" />
-
-      {/* 다가오는 일정 — 날짜별 아젠다 미니 (TickTick 식) */}
-      <PlannerAgendaMini onItemClick={onTaskClick} />
     </div>
   );
 };

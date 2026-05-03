@@ -28,6 +28,8 @@ interface AgendaItem {
 
 interface PlannerAgendaMiniProps {
   onItemClick?: (it: { id: string; title: string }) => void;
+  /** 팝오버용 large 모드 — TickTick 식 풀블록. */
+  large?: boolean;
 }
 
 const localDayKey = (d: Date) => {
@@ -53,7 +55,7 @@ const formatDayLabel = (d: Date): string => {
   return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
 };
 
-export const PlannerAgendaMini = ({ onItemClick }: PlannerAgendaMiniProps) => {
+export const PlannerAgendaMini = ({ onItemClick, large = false }: PlannerAgendaMiniProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
   const [events, setEvents] = useState<PlannerEvent[]>([]);
 
@@ -101,6 +103,79 @@ export const PlannerAgendaMini = ({ onItemClick }: PlannerAgendaMiniProps) => {
       return { dayKey: k, date: new Date(y, m - 1, d), items: arr };
     });
   }, [tasks, events]);
+
+  if (large) {
+    return (
+      <div>
+        {groups.length === 0 ? (
+          <p className="py-8 text-center text-[14px] text-foreground/45">예정된 일정 없음</p>
+        ) : (
+          <ol className="flex flex-col gap-7">
+            {groups.map(({ dayKey, date, items }) => {
+              const dow = date.getDay();
+              const isToday = localDayKey(date) === localDayKey(new Date());
+              return (
+                <li key={dayKey} className="grid grid-cols-[80px_minmax(0,1fr)] gap-4">
+                  <div className="pt-1">
+                    <div className={cn(
+                      'text-[26px] font-bold tabular-nums leading-none',
+                      isToday ? 'text-foreground' : dow === 0 ? 'text-rose-500/80' : dow === 6 ? 'text-blue-500/80' : 'text-foreground/85',
+                    )}>
+                      {date.getDate()}
+                    </div>
+                    <div className={cn(
+                      'mt-1 text-[11.5px] font-mono uppercase tracking-wide',
+                      isToday ? 'text-foreground/70' : 'text-foreground/50',
+                    )}>
+                      {date.toLocaleDateString('ko-KR', { weekday: 'short' })}
+                    </div>
+                    <div className="mt-1 text-[10.5px] text-foreground/45 truncate">
+                      {formatDayLabel(date)}
+                    </div>
+                  </div>
+                  <ul className="flex flex-col gap-1.5 min-w-0">
+                    {items.map((it) => {
+                      const accent = it.color ?? (it.kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(262 70% 60%)');
+                      const dim = it.done || it.canceled;
+                      return (
+                        <li key={`${it.kind}-${it.id}`}>
+                          <button
+                            type="button"
+                            onClick={() => onItemClick?.({ id: it.id, title: it.title })}
+                            style={{
+                              backgroundColor: `color-mix(in oklab, ${accent} 18%, hsl(var(--background)))`,
+                              borderColor: `color-mix(in oklab, ${accent} 35%, hsl(var(--background)))`,
+                              borderLeftColor: accent,
+                              borderLeftWidth: 3,
+                            }}
+                            className={cn(
+                              'group w-full text-left rounded-md border px-3 py-2',
+                              'hover:brightness-[1.03] transition-all',
+                              dim && 'opacity-55',
+                            )}
+                          >
+                            <div className="text-[11.5px] font-mono tabular-nums text-foreground/65">
+                              {formatHm(it.startAt)}
+                            </div>
+                            <div className={cn(
+                              'mt-0.5 text-[14px] font-medium text-foreground truncate',
+                              dim && 'line-through',
+                            )}>
+                              {it.title}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="px-1">

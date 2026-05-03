@@ -6,7 +6,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, Search, X } from 'lucide-react';
+import { ChevronLeft, ExternalLink, Search, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { loadAllPages } from '@/lib/wikiStore';
 import type { WikiPage } from '@/types/wiki';
@@ -43,11 +43,14 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
   const [pages, setPages] = useState<WikiPage[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  // 인라인 detail view — selectedId 있으면 페이지 본문 표시.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // drawer 열릴 때만 로드 (idb 비용 회피).
   useEffect(() => {
     if (!open) {
       setQuery('');
+      setSelectedId(null);
       return;
     }
     let cancelled = false;
@@ -60,6 +63,11 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
     });
     return () => { cancelled = true; };
   }, [open]);
+
+  const selected = useMemo(
+    () => pages.find((p) => p.id === selectedId) ?? null,
+    [pages, selectedId],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -76,18 +84,36 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-md w-[420px] p-0 flex flex-col">
+      <SheetContent side="right" className="sm:max-w-md w-[460px] p-0 flex flex-col">
         <SheetTitle className="sr-only">위키</SheetTitle>
         <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[hsl(var(--hairline))]">
-          <span className="text-[14px] font-semibold tracking-tight text-foreground">🌐 위키</span>
-          <span className="text-[11px] tabular-nums text-foreground/55">
-            {loading ? '…' : pages.length}
+          {selected ? (
+            <button
+              type="button"
+              onClick={() => setSelectedId(null)}
+              aria-label="목록으로"
+              title="목록으로"
+              className="inline-flex h-7 w-7 items-center justify-center rounded text-foreground/70 hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          ) : null}
+          <span className="text-[14px] font-semibold tracking-tight text-foreground truncate">
+            {selected ? selected.title : '🌐 위키'}
           </span>
+          {!selected && (
+            <span className="text-[11px] tabular-nums text-foreground/55">
+              {loading ? '…' : pages.length}
+            </span>
+          )}
           <button
             type="button"
-            onClick={() => { onOpenChange(false); navigate('/wiki'); }}
-            aria-label="위키 페이지로"
-            title="위키 페이지로"
+            onClick={() => {
+              onOpenChange(false);
+              navigate('/wiki');
+            }}
+            aria-label={selected ? '풀 페이지로 편집' : '위키 페이지로'}
+            title={selected ? '풀 페이지로 편집' : '위키 페이지로'}
             className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded text-foreground/55 hover:text-foreground hover:bg-accent transition-colors"
           >
             <ExternalLink className="h-3.5 w-3.5" />
@@ -102,6 +128,38 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
           </button>
         </div>
 
+        {/* ─── Detail view ─── */}
+        {selected ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+              {selected.tags.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-1">
+                  {selected.tags.map((t) => (
+                    <span key={t} className="text-[10.5px] text-foreground/65 px-1.5 py-0.5 rounded bg-accent/40">
+                      #{t}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {selected.aliases.length > 0 && (
+                <div className="mb-3 text-[11px] text-foreground/55">
+                  별칭: {selected.aliases.join(', ')}
+                </div>
+              )}
+              <div className="prose prose-sm max-w-none text-[13.5px] leading-relaxed whitespace-pre-wrap break-words text-foreground/90">
+                {selected.body || (
+                  <span className="text-foreground/45 italic">본문이 비어있어요</span>
+                )}
+              </div>
+              <div className="mt-6 pt-3 border-t border-[hsl(var(--hairline))] text-[11px] text-foreground/55">
+                마지막 수정: {formatRelative(selected.updatedAt)}
+                <span className="mx-1.5 text-foreground/30">·</span>
+                편집·블록 추가는 우상단 "전체 페이지" 클릭
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* 검색 */}
         <div className="shrink-0 px-4 pt-3 pb-2">
           <div className="relative">
@@ -131,7 +189,7 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
                 <li key={p.id}>
                   <button
                     type="button"
-                    onClick={() => { onOpenChange(false); navigate('/wiki'); }}
+                    onClick={() => setSelectedId(p.id)}
                     className={cn(
                       'w-full flex flex-col items-start gap-0.5 px-3 py-2 rounded text-left',
                       'hover:bg-accent transition-colors',
@@ -165,6 +223,8 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
             </ul>
           )}
         </div>
+          </>
+        )}
       </SheetContent>
     </Sheet>
   );

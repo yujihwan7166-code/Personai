@@ -41,6 +41,7 @@ import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
 import { PlannerMatrixPopover } from '@/components/planner/PlannerMatrixPopover';
+import { PlannerAgendaPopover } from '@/components/planner/PlannerAgendaPopover';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
@@ -85,6 +86,7 @@ const Planner = () => {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [matrixPopoverOpen, setMatrixPopoverOpen] = useState(false);
+  const [agendaPopoverOpen, setAgendaPopoverOpen] = useState(false);
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -333,6 +335,13 @@ const Planner = () => {
     const open = () => setMatrixPopoverOpen(true);
     window.addEventListener(RAIL_EVENT.openMatrix, open);
     return () => window.removeEventListener(RAIL_EVENT.openMatrix, open);
+  }, []);
+
+  // Rail 의 "다가오는 일정" 클릭 → 아젠다 팝오버.
+  useEffect(() => {
+    const open = () => setAgendaPopoverOpen(true);
+    window.addEventListener(RAIL_EVENT.openAgenda, open);
+    return () => window.removeEventListener(RAIL_EVENT.openAgenda, open);
   }, []);
 
 
@@ -811,6 +820,11 @@ const Planner = () => {
         open={matrixPopoverOpen}
         onOpenChange={setMatrixPopoverOpen}
         onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+      />
+      <PlannerAgendaPopover
+        open={agendaPopoverOpen}
+        onOpenChange={setAgendaPopoverOpen}
+        onItemClick={(it) => handleInboxClick({ id: it.id, title: it.title })}
       />
     </div>
     {/* 드래그 시간 미리보기 — DragOverlay 로 마우스 옆 표시. */}

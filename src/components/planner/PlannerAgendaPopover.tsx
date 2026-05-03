@@ -1,0 +1,72 @@
+/**
+ * Rail "다가오는 일정" 클릭 → 플로팅 팝오버로 TickTick 식 아젠다 표시.
+ */
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+import { PlannerAgendaMini } from './PlannerAgendaMini';
+
+interface PlannerAgendaPopoverProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onItemClick?: (item: { id: string; title: string }) => void;
+}
+
+export const PlannerAgendaPopover = ({ open, onOpenChange, onItemClick }: PlannerAgendaPopoverProps) => {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChange(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onOpenChange]);
+
+  if (!open || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="다가오는 일정"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onOpenChange(false);
+      }}
+    >
+      <div
+        className="bg-card border border-[hsl(var(--hairline))] rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        style={{ width: 'min(94vw, 760px)', maxHeight: '85vh' }}
+      >
+        <div className="shrink-0 flex items-center justify-between gap-3 px-5 h-12 border-b border-[hsl(var(--hairline))]">
+          <div className="min-w-0 flex items-baseline gap-2">
+            <span className="text-[16px] font-bold tracking-tight text-foreground">
+              다가오는 일정
+            </span>
+            <span className="text-[12px] text-foreground/55">
+              날짜별 모음
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label="닫기"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-5">
+          <PlannerAgendaMini
+            large
+            onItemClick={(it) => {
+              onItemClick?.(it);
+              onOpenChange(false);
+            }}
+          />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+};
