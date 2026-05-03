@@ -554,6 +554,35 @@ const Planner = () => {
       }
       notify.info('인박스로 옮겼어요', { duration: 1500 });
     }
+
+    // ─── 시간 블록 → 좌하 "할 일" 박스: 시간 빼고 plannedFor=오늘 (일정 → 할 일 변환) ───
+    if (
+      (dragData.kind === 'scheduled-task' || dragData.kind === 'scheduled-event') &&
+      dropData.kind === 'todo-list'
+    ) {
+      // event 는 task 가 아니라 무시.
+      if (dragData.kind === 'scheduled-event') return;
+      const task = dragData.task;
+      const dayKey = dropData.dayKey;
+      if (isInstanceId(task.id)) {
+        const parsed = parseInstanceId(task.id);
+        if (!parsed) return;
+        const master = taskStore.findMaster(parsed.masterId);
+        if (!master) return;
+        editThisOnly(taskStore, master, parsed.occurrenceIso, {
+          startAt: undefined,
+          endAt: undefined,
+          plannedFor: dayKey,
+        });
+      } else {
+        taskStore.update(task.id, {
+          startAt: undefined,
+          endAt: undefined,
+          plannedFor: dayKey,
+        });
+      }
+      notify.success('할 일로 옮겼어요', { duration: 1500 });
+    }
   }, [tryDetachInstance]);
 
   return (

@@ -7,8 +7,10 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ListTodo, Plus } from 'lucide-react';
+import { useDroppable } from '@dnd-kit/core';
 import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
+import { cn } from '@/lib/utils';
 import { PlannerCard } from './PlannerCard';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
 import { PLANNER_TASK_CHANGED, type PlannerTask } from '@/types/planner';
@@ -55,8 +57,20 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onFocusAdd }: TodayTodoL
     [dayKey, tasks],
   );
 
+  // 시간 블록을 여기 드래그하면 일정→할 일 변환 (시간 빼고 plannedFor=오늘).
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `todo-list-${dayKey}`,
+    data: { kind: 'todo-list', dayKey },
+  });
+
   return (
-    <section className="h-full min-h-0 flex flex-col rounded-lg border border-[hsl(var(--hairline))] bg-card p-3">
+    <section
+      ref={setDropRef}
+      className={cn(
+        'h-full min-h-0 flex flex-col rounded-lg border bg-card p-3 transition-colors',
+        isOver ? 'border-primary/50 bg-primary/5' : 'border-[hsl(var(--hairline))]',
+      )}
+    >
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-[hsl(var(--hairline))]">
         <ListTodo className="h-4 w-4 text-foreground" />
         <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">

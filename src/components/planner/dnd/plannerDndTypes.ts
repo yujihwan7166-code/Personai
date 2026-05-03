@@ -17,7 +17,8 @@ export type PlannerDragData =
 export type PlannerDropData =
   | { kind: 'time-slot'; startIso: string }
   | { kind: 'day-column'; dayIso: string }
-  | { kind: 'inbox' };
+  | { kind: 'inbox' }
+  | { kind: 'todo-list'; dayKey: string };
 
 // 드래그 활성화 거리 (px) — 우발적 드래그 방지.
 export const DRAG_ACTIVATION_DISTANCE = 5;
