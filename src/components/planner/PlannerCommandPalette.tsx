@@ -11,7 +11,7 @@
  */
 import { Command } from 'cmdk';
 import { useEffect, useState, ReactNode } from 'react';
-import { CalendarDays, Plus, Clock, Search, ArrowRight, Flag } from 'lucide-react';
+import { CalendarDays, Plus, Clock, Search, ArrowRight, Flag, Target } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import type { Priority } from '@/types/planner';
@@ -107,7 +107,7 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
             <Item icon={<CalendarDays className="h-3.5 w-3.5" />} label="오늘로" hint="T" onSelect={() => run({ kind: 'today' })} />
             <Item icon={<ArrowRight className="h-3.5 w-3.5 -scale-x-100" />} label="어제" onSelect={() => run({ kind: 'shift', days: -1 })} />
             <Item icon={<ArrowRight className="h-3.5 w-3.5" />} label="내일" onSelect={() => run({ kind: 'shift', days: 1 })} />
-            <Item icon={<Plus className="h-3.5 w-3.5" />} label="새 할 일 (인박스)" hint="N" onSelect={() => run({ kind: 'newTask' })} />
+            <Item icon={<Plus className="h-3.5 w-3.5" />} label="새 할 일" hint="N" onSelect={() => run({ kind: 'newTask' })} />
             <Item icon={<Clock className="h-3.5 w-3.5" />} label="지금 시간에 새 항목" onSelect={() => run({ kind: 'newAtNow' })} />
           </Command.Group>
 
@@ -119,6 +119,7 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
             <Item label="주 뷰" hint="W" onSelect={() => run({ kind: 'view', view: 'week' })} />
             <Item label="월 뷰" hint="M" onSelect={() => run({ kind: 'view', view: 'month' })} />
             <Item label="년 뷰" hint="Y" onSelect={() => run({ kind: 'view', view: 'year' })} />
+            <Item icon={<Target className="h-3.5 w-3.5" />} label="목표" hint="G" onSelect={() => run({ kind: 'view', view: 'goals' })} />
           </Command.Group>
 
           {hasQuery && allTasks.length > 0 && (
@@ -139,7 +140,7 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
                     meta={t.startAt
                       ? new Date(t.startAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) +
                         ' ' + new Date(t.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
-                      : '인박스'}
+                      : '대기함'}
                     onSelect={() => run({ kind: 'jumpToTask', id: t.id, startAt: t.startAt })}
                   />
                 );

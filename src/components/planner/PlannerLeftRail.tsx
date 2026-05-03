@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText, Grid2x2, Home, Network, Repeat, Search, Sparkles, Timer,
+  FileText, Home, Network, Repeat, Search, Sparkles, Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -29,11 +29,9 @@ type RailItem =
 /** Planner 가 listen 하는 커스텀 이벤트 이름들 — 결합도 낮추기. */
 export const RAIL_EVENT = {
   openPalette: 'planner:open-palette',
-  openModeLauncher: 'planner:open-mode-launcher',
 } as const;
 
 const ITEMS: RailItem[] = [
-  { kind: 'event',  eventName: RAIL_EVENT.openModeLauncher, label: '모드',   Icon: Grid2x2 },
   { kind: 'route',  to: '/',                       label: '홈',     Icon: Home },
   { kind: 'soon',                                  label: '습관',   Icon: Repeat },
   { kind: 'soon',                                  label: 'AI',     Icon: Sparkles },

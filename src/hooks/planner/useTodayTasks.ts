@@ -9,14 +9,24 @@ import { useEffect, useState, useCallback } from 'react';
 import { taskStore } from '@/services/planner/taskStore';
 import { PlannerTask, PLANNER_TASK_CHANGED } from '@/types/planner';
 
+const localDateKey = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const compute = (): PlannerTask[] => {
-  const todayIso = new Date().toISOString();
+  const today = new Date();
+  const todayIso = today.toISOString();
+  const todayKey = localDateKey(today);
   // 인박스 (시간 미배정) — 마스터들 중 startAt 없는 것만.
   const inbox = taskStore.list().filter((t) => {
     if (t.startAt) return false; // 시간 배정 항목은 listScheduled 가 처리
     if (t.done) return false;
     if (t.canceled) return false;
     if (t.someday) return false;
+    if (t.goalId && t.plannedFor !== todayKey) return false;
     return true;
   });
   // 오늘 시간배정 — 반복 인스턴스 expand 포함.

@@ -139,16 +139,6 @@ const Index = () => {
     return undefined;
 
   }, [location.key]);
-
-  // URL ?palette=1 → 모드 팔레트 자동 오픈 (iframe/링크 진입용).
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('palette') !== '1') return;
-    const t = window.setTimeout(() => {
-      mainModeTabsApiRef.current?.open();
-    }, 100);
-    return () => window.clearTimeout(t);
-  }, [location.search]);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.

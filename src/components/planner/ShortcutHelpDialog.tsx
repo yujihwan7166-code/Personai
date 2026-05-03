@@ -39,7 +39,7 @@ const GROUPS: ShortcutGroup[] = [
   {
     label: '입력',
     items: [
-      { keys: ['N'], desc: '인박스 빠른 추가 포커스' },
+  { keys: ['N'], desc: '빠른 추가 포커스' },
       { keys: ['Ctrl', 'K'], desc: '명령 팔레트' },
       { keys: ['?'], desc: '이 도움말' },
     ],
@@ -49,11 +49,11 @@ const GROUPS: ShortcutGroup[] = [
     items: [
       { keys: ['우클릭'], desc: '시간 배정 / 완료 / 미루기 / 분류' },
       { keys: ['더블클릭'], desc: '시간 블록 — 빠른 완료 토글' },
-      { keys: ['드래그'], desc: '인박스 → 시간표 (배정), 시간표 ↔ 인박스 (해제)' },
+  { keys: ['드래그'], desc: '대기함 → 시간표 (배정), 시간표 ↔ 대기함 (해제)' },
     ],
   },
   {
-    label: '자연어 입력 (인박스)',
+    label: '자연어 입력',
     items: [
       { keys: ['예'], desc: '"내일 오후 3시 회의 1시간"' },
       { keys: ['예'], desc: '"매주 월요일 운동 #건강 !2"' },

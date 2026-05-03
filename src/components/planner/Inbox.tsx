@@ -105,7 +105,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
 
   const handleToggleSomeday = (task: PlannerTask) => {
     taskStore.toggleSomeday(task.id);
-    notify.success(task.someday ? '인박스로 옮겼어요' : '보류함으로 옮겼어요', { duration: 1500 });
+    notify.success(task.someday ? '대기함으로 옮겼어요' : '보류함으로 옮겼어요', { duration: 1500 });
   };
 
   const handleSetPriority = (task: PlannerTask, p: Priority) => {
@@ -145,7 +145,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
 
   return (
     <PlannerSection
-      label="인박스"
+      label="대기함"
       action={ModeToggle}
       className="h-full"
     >
@@ -160,7 +160,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
         {tasks.length === 0 ? (
           <PlannerEmpty
             icon={mode === 'someday' ? <Hourglass className="h-6 w-6" /> : <InboxIcon className="h-6 w-6" />}
-            title={mode === 'someday' ? '보류함이 비어 있어요' : '인박스가 비어 있어요'}
+            title={mode === 'someday' ? '보류함이 비어 있어요' : '대기함이 비어 있어요'}
             hint={mode === 'someday' ? '나중에 할지도 모르는 것들을 모아두세요' : '떠오르는 할 일을 빠르게 적어두세요'}
             action={{ label: mode === 'someday' ? '+ 보류 항목' : '+ 첫 할 일', onClick: focusInput }}
           />
@@ -215,7 +215,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
                   </ContextMenuItem>
                   <ContextMenuItem onSelect={() => handleToggleSomeday(t)}>
                     {t.someday ? <ArrowUp className="mr-2 h-3.5 w-3.5" /> : <Hourglass className="mr-2 h-3.5 w-3.5" />}
-                    {t.someday ? '인박스로 (Anytime)' : '보류함으로 (Someday)'}
+                    {t.someday ? '대기함으로' : '보류함으로'}
                   </ContextMenuItem>
                   <ContextMenuSub>
                     <ContextMenuSubTrigger>

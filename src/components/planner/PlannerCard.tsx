@@ -19,6 +19,42 @@ import { SubtaskList, SubtaskProgress } from './SubtaskList';
 import { StreakIndicator } from './StreakIndicator';
 import { tagColor } from '@/lib/planner/tagColor';
 
+interface MetaChip {
+  label: string;
+  color?: string;
+}
+
+const MetaChips = ({ items, compact }: { items?: MetaChip[]; compact?: boolean }) => {
+  if (!items || items.length === 0) return null;
+  const limit = compact ? 1 : 2;
+  return (
+    <div className={cn('flex min-w-0 flex-wrap items-center gap-1', compact ? 'mt-1' : 'mt-1.5')}>
+      {items.slice(0, limit).map((item) => (
+        <span
+          key={item.label}
+          className={cn(
+            'inline-flex max-w-full items-center gap-1 rounded border border-[hsl(var(--hairline))] bg-background/70 text-muted-foreground',
+            compact ? 'px-1 py-0.5 text-[9.5px]' : 'px-1.5 py-0.5 text-[10px]',
+          )}
+          title={item.label}
+        >
+          {item.color && (
+            <span
+              className="h-1.5 w-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: item.color }}
+              aria-hidden
+            />
+          )}
+          <span className="truncate">{item.label}</span>
+        </span>
+      ))}
+      {items.length > limit && (
+        <span className="text-[10px] tabular-nums text-muted-foreground">+{items.length - limit}</span>
+      )}
+    </div>
+  );
+};
+
 /** 태그 chip — Inbox/Block 양쪽에서 재사용. */
 const TagChip = ({ tag, onClick, compact }: { tag: string; onClick?: () => void; compact?: boolean }) => {
   const { bg, text } = tagColor(tag);
@@ -68,6 +104,7 @@ interface InboxCardProps {
   onUpdateSubtask?: (subtaskId: string, text: string) => void;
   /** 태그 — 첫 2개만 chip 으로 표시. 나머지는 +N. */
   tags?: string[];
+  meta?: MetaChip[];
   onTagClick?: (tag: string) => void;
   /** Streak (반복 시리즈 연속 완료 수). 0 이면 표시 X. */
   streakCurrent?: number;
@@ -96,14 +133,14 @@ interface BlockCardProps {
   streakCurrent?: number;
 }
 
-type PlannerCardProps = InboxCardProps | BlockCardProps;
+type PlannerCardProps = (InboxCardProps | BlockCardProps) & { meta?: MetaChip[] };
 
 /** Inbox variant — 별도 컴포넌트로 추출 (useState 가 hooks 규칙에 맞도록). */
 const InboxCardInner = (props: InboxCardProps) => {
   const {
     title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled, recurring,
     subtasks, onToggleSubtask, onAddSubtask, onRemoveSubtask, onUpdateSubtask,
-    tags, onTagClick, streakCurrent,
+    tags, meta, onTagClick, streakCurrent,
   } = props;
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
@@ -163,13 +200,16 @@ const InboxCardInner = (props: InboxCardProps) => {
             aria-hidden
           />
         )}
-        <span
-          className={cn(
-            'text-[13.5px] leading-tight truncate flex-1 text-foreground',
-            dim && 'line-through text-muted-foreground',
-          )}
-        >
-          {title}
+        <span className="min-w-0 flex-1">
+          <span
+            className={cn(
+              'block text-[13.5px] leading-tight truncate text-foreground',
+              dim && 'line-through text-muted-foreground',
+            )}
+          >
+            {title}
+          </span>
+          <MetaChips items={meta} />
         </span>
         {tags && tags.length > 0 && (
           <div className="hidden sm:flex items-center gap-1 shrink-0">
@@ -285,7 +325,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
   }
 
   // variant === 'block'
-  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, streakCurrent } = props;
+  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, meta, streakCurrent } = props;
   const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
@@ -344,6 +384,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
         )}>
           {title}
         </p>
+        <MetaChips items={meta} compact />
       </div>
     </div>
   );

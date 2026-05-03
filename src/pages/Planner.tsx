@@ -40,7 +40,6 @@ import { GoalProgressView } from '@/components/planner/GoalProgressView';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
-import { ModeLauncher } from '@/components/planner/ModeLauncher';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
@@ -84,7 +83,6 @@ const Planner = () => {
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [modeLauncherOpen, setModeLauncherOpen] = useState(false);
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -328,12 +326,6 @@ const Planner = () => {
     return () => window.removeEventListener(RAIL_EVENT.openPalette, open);
   }, []);
 
-  // Rail 의 "모드" 클릭 → 모드 런처 열기.
-  useEffect(() => {
-    const open = () => setModeLauncherOpen(true);
-    window.addEventListener(RAIL_EVENT.openModeLauncher, open);
-    return () => window.removeEventListener(RAIL_EVENT.openModeLauncher, open);
-  }, []);
 
   const isFullscreen = view === 'month' || view === 'year' || view === 'goals';
 
@@ -806,12 +798,6 @@ const Planner = () => {
         onAction={handleCommandAction}
       />
       <ShortcutHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
-      <ModeLauncher
-        open={modeLauncherOpen}
-        view={view}
-        onOpenChange={setModeLauncherOpen}
-        onViewChange={setView}
-      />
     </div>
     {/* 드래그 시간 미리보기 — DragOverlay 로 마우스 옆 표시. */}
     <DragOverlay dropAnimation={null}>

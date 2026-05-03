@@ -32,6 +32,8 @@ export interface ParsedInput {
   tags?: string[];
   /** 우선순위. */
   priority?: Priority;
+  /** @목표명 패턴으로 추출한 목표 이름. 실제 goalId 매핑은 호출자가 수행. */
+  goalTitle?: string;
 }
 
 const WEEKDAY_KO_TO_CODE: Record<string, WeekdayCode> = {
@@ -195,6 +197,16 @@ const parsePriority = (text: string): Priority | null => {
   return null;
 };
 
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** @목표 또는 @"띄어쓰기 목표" 패턴. */
+const extractGoalTitle = (text: string): string | null => {
+  const quoted = text.match(/@"([^"]+)"/);
+  if (quoted) return quoted[1].trim();
+  const m = text.match(/@([\p{L}\p{N}_-]+)/u);
+  return m ? m[1].trim() : null;
+};
+
 /** 전체 파서 — base 는 시간 인식 기준점 (보통 현재 또는 슬롯 클릭 시각). */
 export function parseNaturalLanguage(input: string, base: Date = new Date()): ParsedInput {
   const text = input.trim();
@@ -211,6 +223,15 @@ export function parseNaturalLanguage(input: string, base: Date = new Date()): Pa
     for (const tag of tags) {
       working = working.replace(new RegExp(`#${tag}\\b`, 'g'), '').trim();
     }
+  }
+
+  const goalTitle = extractGoalTitle(working);
+  if (goalTitle) {
+    result.goalTitle = goalTitle;
+    working = working
+      .replace(new RegExp(`@"${escapeRegExp(goalTitle)}"`, 'u'), '')
+      .replace(new RegExp(`@${escapeRegExp(goalTitle)}\\b`, 'u'), '')
+      .trim();
   }
 
   // ── 우선순위 ──
@@ -299,6 +320,9 @@ export function formatParsedPreview(parsed: ParsedInput): string {
   }
   if (parsed.tags && parsed.tags.length > 0) {
     parts.push(parsed.tags.map((t) => `#${t}`).join(' '));
+  }
+  if (parsed.goalTitle) {
+    parts.push(`@${parsed.goalTitle}`);
   }
   return parts.join('  ');
 }

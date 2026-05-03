@@ -200,7 +200,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
         <PlannerEmpty
           icon={<CalendarIcon className="h-6 w-6" />}
           title="이번 주는 비어 있어요"
-          hint="좌측 인박스에서 할 일을 골라 시간을 배정해보세요"
+              hint="대기함에서 할 일을 골라 시간을 배정해보세요"
         />
       )}
     </PlannerSection>
