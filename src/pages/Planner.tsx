@@ -37,6 +37,7 @@ import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { GoalProgressView } from '@/components/planner/GoalProgressView';
+import { AgendaView } from '@/components/planner/AgendaView';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
@@ -309,6 +310,7 @@ const Planner = () => {
         case 'm': e.preventDefault(); setView('month'); break;
         case 'y': e.preventDefault(); setView('year'); break;
         case 'g': e.preventDefault(); setView('goals'); break;
+        case 'a': e.preventDefault(); setView('agenda'); break;
         case 't': e.preventDefault(); goToday(); break;
         case 'arrowleft':  e.preventDefault(); goPrev(); break;
         case 'arrowright': e.preventDefault(); goNext(); break;
@@ -327,7 +329,7 @@ const Planner = () => {
   }, []);
 
 
-  const isFullscreen = view === 'month' || view === 'year' || view === 'goals';
+  const isFullscreen = view === 'month' || view === 'year' || view === 'goals' || view === 'agenda';
 
   // ────── DnD ──────
   // 드래그 기준점 (5px) 으로 클릭과 분리.
@@ -649,6 +651,12 @@ const Planner = () => {
             {view === 'goals' && (
               <GoalProgressView
                 onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+              />
+            )}
+            {view === 'agenda' && (
+              <AgendaView
+                anchorIso={anchorIso}
+                onItemClick={handleItemClick}
               />
             )}
           </div>
