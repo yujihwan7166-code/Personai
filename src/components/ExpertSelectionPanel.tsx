@@ -30,6 +30,9 @@ import { useFavoriteExperts } from '@/hooks/useFavoriteExperts';
 import { useHoverExpertTip } from '@/hooks/useHoverExpertTip';
 import { useMainModeTransition } from '@/hooks/useMainModeTransition';
 import { buildExpertSelectionGroups, FAST_MODEL_IDS, RESEARCH_AGENT_IDS } from '@/lib/expertSelectionGroups';
+import { BrowserEnginePicker } from '@/components/BrowserEnginePicker';
+import { runSearch } from '@/lib/searchEngines';
+import { useSelectedSearchEngine } from '@/hooks/useSelectedSearchEngine';
 import { cn } from '@/lib/utils';
 import { processFile, validateFile, MAX_FILES, type AttachedFile } from '@/lib/fileProcessor';
 import { Paperclip, Loader2, Info } from 'lucide-react';
@@ -2243,7 +2246,18 @@ export function ExpertSelectionPanel({
     aiAgentIds: AI_AGENT_IDS,
   }), [experts, favoriteIds, visibleCategories]);
 
-  const validCats = grouped.map(g => g.cat);
+  // 가상 'browser' 카테고리 — 즐겨찾기 다음, AI 모델 앞.
+  // 'fictional' (캐릭터) 은 더보기 드롭다운으로 이동.
+  const groupedWithBrowser = useMemo(() => {
+    const favIdx = grouped.findIndex(g => g.cat === 'favorites');
+    const insertAt = favIdx >= 0 ? favIdx + 1 : 0;
+    return [
+      ...grouped.slice(0, insertAt),
+      { cat: 'browser', label: '브라우저', items: [] as Expert[] },
+      ...grouped.slice(insertAt),
+    ];
+  }, [grouped]);
+  const validCats = groupedWithBrowser.map(g => g.cat);
   const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
   const effectiveCategory = aiBlocked
     ? (validCats.find(c => c === 'specialist') || validCats[0] || 'ai')
@@ -2284,14 +2298,23 @@ export function ExpertSelectionPanel({
   const isPlayerActive = mainMode === 'player';
   const isLeavingPlayer = mainMode === 'player' && pendingMode !== null && pendingMode !== 'player';
   const isGoingToPlayer = pendingMode === 'player';
-  const resolvedQuestionSubmit = autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit;
-  const resolvedQuestionSubmitWithFiles = autoAssign && supportsAutoAssign ? handleAutoSubmitWithFiles : onSubmitWithFiles;
-  const questionInputDisabled = isDiscussing
-    || (!autoAssign && selectedIds.length < 1)
-    || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2)
-    || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2)
-    || (discussionMode === 'procon' && !isProconTeamComplete)
-    || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2);
+  const selectedSearchEngine = useSelectedSearchEngine();
+  const isBrowserMode = effectiveCategory === 'browser';
+  const browserSubmit: SubmitDiscussion = (question) => {
+    if (selectedSearchEngine) runSearch(selectedSearchEngine, question);
+  };
+  const baseSubmit = autoAssign && supportsAutoAssign ? handleAutoSubmit : onSubmit;
+  const baseSubmitWithFiles = autoAssign && supportsAutoAssign ? handleAutoSubmitWithFiles : onSubmitWithFiles;
+  const resolvedQuestionSubmit = isBrowserMode ? browserSubmit : baseSubmit;
+  const resolvedQuestionSubmitWithFiles = isBrowserMode ? undefined : baseSubmitWithFiles;
+  const questionInputDisabled = isBrowserMode
+    ? !selectedSearchEngine
+    : (isDiscussing
+        || (!autoAssign && selectedIds.length < 1)
+        || (!autoAssign && discussionMode === 'multi' && selectedIds.length < 2)
+        || (!autoAssign && discussionMode === 'standard' && selectedIds.length < 2)
+        || (discussionMode === 'procon' && !isProconTeamComplete)
+        || (!autoAssign && discussionMode === 'freetalk' && selectedIds.length < 2));
   const selectedExpertsForInput = useMemo(() => (
     (discussionMode === 'standard' || isBrainstorm || isHearing || isStakeholder || discussionMode === 'freetalk')
       ? []
@@ -2504,7 +2527,7 @@ export function ExpertSelectionPanel({
               ) : (
                 <>
                   <div className="flex flex-1 min-w-0 gap-0.5">
-                    {grouped.filter(g => !['region', 'mythology'].includes(g.cat)).map(({ cat, label }) => {
+                    {groupedWithBrowser.filter(g => !['region', 'mythology', 'fictional'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = cat === 'ai';
                       const isAiDisabled = isAiTab && isStandardOrProcon;
@@ -2543,7 +2566,7 @@ export function ExpertSelectionPanel({
                     })}
                     {/* 더보기 — 호버 시 세로 드롭다운 */}
                     {(() => {
-                      const moreCats = grouped.filter(g => ['region', 'mythology'].includes(g.cat));
+                      const moreCats = groupedWithBrowser.filter(g => ['region', 'mythology', 'fictional'].includes(g.cat));
                       if (moreCats.length === 0) return null;
                       const isMoreActive = moreCats.some(g => effectiveCategory === g.cat);
                       return (
@@ -2592,8 +2615,13 @@ export function ExpertSelectionPanel({
             )}
           </div>
 
+          {/* 브라우저 카테고리 — 검색 엔진 picker 로 대체 */}
+          {effectiveCategory === 'browser' && !searchMode && (
+            <BrowserEnginePicker />
+          )}
+
           {/* Expert grid */}
-          {(searchMode && searchQuery.trim()
+          {effectiveCategory !== 'browser' && (searchMode && searchQuery.trim()
             ? [{ cat: 'search' as ExpertCategory, label: '검색', items: experts.filter(e => e.id !== 'router' && (e.nameKo.includes(searchQuery) || e.name.toLowerCase().includes(searchQuery.toLowerCase()) || e.description.includes(searchQuery))) }]
             : grouped.filter(({ cat }) => cat === effectiveCategory)
           ).map(({ cat, items }) => {
