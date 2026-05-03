@@ -1054,6 +1054,25 @@ export function AppSidebar({
           })()}
         </nav>
 
+        {/* 접힘 상태 전용: 통합 캘린더 마크 — 클릭 시 /planner 로 이동, 오늘 미완료 카운트 배지. */}
+        {!isOpen && (
+          <div className="shrink-0 px-1 mt-0.5">
+            <button
+              type="button"
+              onClick={() => navigate('/planner')}
+              title={`통합 캘린더${todayPlannerTasks.length > 0 ? ` · 오늘 ${todayPlannerTasks.length}개` : ''}`}
+              className="relative font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center transition-colors w-full p-1.5 justify-center"
+            >
+              <CalendarDays className="w-4 h-4 shrink-0" />
+              {todayPlannerTasks.length > 0 && (
+                <span className="absolute top-0.5 right-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-1 rounded-full bg-blue-500 text-white text-[8.5px] font-semibold tabular-nums leading-none">
+                  {todayPlannerTasks.length > 99 ? '99+' : todayPlannerTasks.length}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Phase D-3 보정: 모드 섹션 — 상단 아이콘 행과 동일한 리듬(h-8, rounded-md, 슬레이트 톤).
             label 과 pill 사이즈를 맞춰 위-아래 밀도 균일화. */}
         {isOpen && (
