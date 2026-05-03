@@ -8,6 +8,8 @@ interface AppErrorBoundaryProps {
 interface AppErrorBoundaryState {
   hasError: boolean;
   errorMessage: string | null;
+  errorStack: string | null;
+  componentStack: string | null;
   /** error 발생 시점의 pathname — 이후 다른 경로로 이동하면 자동 reset. */
   errorPath: string | null;
 }
@@ -16,6 +18,8 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   state: AppErrorBoundaryState = {
     hasError: false,
     errorMessage: null,
+    errorStack: null,
+    componentStack: null,
     errorPath: null,
   };
 
@@ -25,6 +29,8 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
     return {
       hasError: true,
       errorMessage: error.message,
+      errorStack: error.stack ?? null,
+      componentStack: null,
       errorPath: typeof window !== 'undefined' ? window.location.pathname : null,
     };
   }
@@ -59,10 +65,29 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("AppErrorBoundary caught an app render error", error, errorInfo);
+    this.setState({ componentStack: errorInfo.componentStack ?? null });
   }
 
   private reset = () => {
-    this.setState({ hasError: false, errorMessage: null, errorPath: null });
+    this.setState({
+      hasError: false,
+      errorMessage: null,
+      errorStack: null,
+      componentStack: null,
+      errorPath: null,
+    });
+  };
+
+  private handleClearStorage = () => {
+    if (typeof window === 'undefined') return;
+    const ok = window.confirm(
+      '모든 localStorage 데이터를 지우고 새로고침합니다.\n' +
+      '(메모/할 일/일기/위키 IndexedDB 는 유지됩니다)\n\n계속할까요?'
+    );
+    if (!ok) return;
+    try { window.localStorage.clear(); } catch { /* ignore */ }
+    try { window.sessionStorage.clear(); } catch { /* ignore */ }
+    window.location.assign('/');
   };
 
   private handleReload = () => {
@@ -95,7 +120,18 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           </p>
           {this.state.errorMessage ? (
             <div className="mt-5 rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-              {this.state.errorMessage}
+              <div className="font-mono">{this.state.errorMessage}</div>
+              {(this.state.errorStack || this.state.componentStack) && (
+                <details className="mt-2 text-[11px] text-rose-200/80">
+                  <summary className="cursor-pointer select-none hover:text-rose-100">
+                    상세 (개발자용)
+                  </summary>
+                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all font-mono text-[10.5px] leading-snug">
+                    {this.state.errorStack}
+                    {this.state.componentStack ? `\n\n--- component stack ---\n${this.state.componentStack}` : ''}
+                  </pre>
+                </details>
+              )}
             </div>
           ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
@@ -119,6 +155,14 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
               className="rounded-xl border border-white/30 bg-transparent px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
             >
               새로고침
+            </button>
+            <button
+              type="button"
+              onClick={this.handleClearStorage}
+              className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-100 transition hover:bg-rose-500/20"
+              title="저장된 설정값을 모두 비우고 다시 시작"
+            >
+              저장값 초기화
             </button>
           </div>
         </div>
