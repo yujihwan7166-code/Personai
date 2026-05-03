@@ -692,6 +692,7 @@ const Planner = () => {
                   setView('day');
                 }}
                 onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                onOpenHabits={() => setView('habits')}
               />
             </div>
             {view === 'day' ? (

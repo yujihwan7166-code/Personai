@@ -9,6 +9,7 @@
 import { ViewToggle, type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
+import { HabitTodayWidget } from './HabitTodayWidget';
 
 interface PlannerSidebarProps {
   anchorIso: string;
@@ -18,6 +19,8 @@ interface PlannerSidebarProps {
   onSelectDay: (dayIso: string) => void;
   /** 매트릭스 위젯에서 task 클릭 시 — 모달 오픈을 부모가 처리. */
   onTaskClick?: (task: { id: string; title: string }) => void;
+  /** 사이드바 "오늘의 습관" 헤더 클릭 — habits 풀뷰 점프. */
+  onOpenHabits?: () => void;
 }
 
 export const PlannerSidebar = ({
@@ -26,6 +29,7 @@ export const PlannerSidebar = ({
   onViewChange,
   onSelectDay,
   onTaskClick,
+  onOpenHabits,
 }: PlannerSidebarProps) => {
   return (
     <div className="h-full flex flex-col gap-3">
@@ -46,6 +50,11 @@ export const PlannerSidebar = ({
 
       {/* D-day — 시험·발표·생일·마감 등 카운트다운 */}
       <PlannerDday />
+
+      <div className="border-t border-[hsl(var(--hairline))] pt-3" />
+
+      {/* 오늘의 습관 — 인라인 체크 + 풀뷰 점프 */}
+      <HabitTodayWidget onOpenAll={onOpenHabits} />
     </div>
   );
 };
