@@ -17,7 +17,23 @@ import { cn } from '@/lib/utils';
 
 interface PlannerMatrixMiniProps {
   onTaskClick?: (task: { id: string; title: string }) => void;
+  /** large 모드 — 팝오버용. 폰트/간격/표시 개수 모두 큼. */
+  large?: boolean;
 }
+
+const QUADRANT_HINT: Record<Quadrant, string> = {
+  q1: '지금 해야 할 일',
+  q2: '미리 일정 잡기',
+  q3: '위임 / 빠르게 처리',
+  q4: '나중에 / 검토',
+};
+
+const QUADRANT_BG: Record<Quadrant, string> = {
+  q1: 'hsl(0 75% 55% / 0.08)',
+  q2: 'hsl(45 85% 55% / 0.08)',
+  q3: 'hsl(220 70% 55% / 0.08)',
+  q4: 'hsl(220 10% 60% / 0.06)',
+};
 
 type Quadrant = 'q1' | 'q2' | 'q3' | 'q4';
 
@@ -53,7 +69,7 @@ const classify = (task: PlannerTask, todayKey: string, tomorrowKey: string): Qua
   return 'q4';
 };
 
-export const PlannerMatrixMini = ({ onTaskClick }: PlannerMatrixMiniProps) => {
+export const PlannerMatrixMini = ({ onTaskClick, large = false }: PlannerMatrixMiniProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
 
   useEffect(() => {
@@ -83,6 +99,66 @@ export const PlannerMatrixMini = ({ onTaskClick }: PlannerMatrixMiniProps) => {
     }
     return acc;
   }, [tasks]);
+
+  if (large) {
+    const maxItems = 6;
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        {(['q1', 'q2', 'q3', 'q4'] as Quadrant[]).map((q) => {
+          const items = grouped[q];
+          const visible = items.slice(0, maxItems);
+          const overflow = items.length - visible.length;
+          const meta = QUADRANT_META[q];
+          return (
+            <div
+              key={q}
+              style={{ backgroundColor: QUADRANT_BG[q] }}
+              className={cn(
+                'min-h-[180px] rounded-lg border border-[hsl(var(--hairline))] p-3.5',
+                'flex flex-col gap-2',
+              )}
+            >
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className={cn('text-[15px] font-bold tracking-tight leading-none', meta.tone)}>
+                    {meta.label}
+                  </span>
+                  <span className="text-[12px] text-foreground/50 tabular-nums font-medium">
+                    {items.length}
+                  </span>
+                </div>
+                <div className="mt-1 text-[11px] text-foreground/55 leading-tight">
+                  {QUADRANT_HINT[q]}
+                </div>
+              </div>
+              <div className="flex flex-col gap-0.5 min-h-0">
+                {visible.length === 0 ? (
+                  <span className="px-1 text-[12.5px] text-foreground/35 italic">없음</span>
+                ) : (
+                  visible.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => onTaskClick?.({ id: t.id, title: t.title })}
+                      title={t.title}
+                      className="text-left text-[13px] leading-snug text-foreground/90 hover:text-foreground hover:bg-foreground/5 rounded px-2 py-1 truncate font-medium"
+                    >
+                      {t.title}
+                    </button>
+                  ))
+                )}
+                {overflow > 0 && (
+                  <span className="px-2 mt-0.5 text-[11px] text-foreground/55 tabular-nums">
+                    +{overflow}개 더
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="px-1">
