@@ -326,7 +326,10 @@ export const PlannerCard = (props: PlannerCardProps) => {
 
   // variant === 'block'
   const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, meta, streakCurrent } = props;
-  const stripeColor = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.6)');
+  const accent = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.7)');
+  // 파스텔 풀 블록 — 색을 배경에 22% 섞고, 보더는 38% 로 약간 진하게.
+  const blockBg = `color-mix(in oklab, ${accent} 22%, hsl(var(--background)))`;
+  const blockBorder = `color-mix(in oklab, ${accent} 38%, hsl(var(--background)))`;
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
   return (
@@ -341,22 +344,17 @@ export const PlannerCard = (props: PlannerCardProps) => {
           onClick?.();
         }
       }}
+      style={{ backgroundColor: blockBg, borderColor: blockBorder }}
       className={cn(
-        'group flex items-stretch gap-2.5 pr-2.5 py-2 rounded-lg cursor-pointer overflow-hidden',
-        'border border-[hsl(var(--hairline))] bg-card',
-        'hover:border-foreground/20 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)] transition-all',
-        'focus:outline-none focus:border-foreground/40',
+        'group flex items-stretch gap-2 px-2.5 py-1.5 rounded-md cursor-pointer overflow-hidden',
+        'border hover:brightness-[1.04] hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)] transition-all',
+        'focus:outline-none focus:ring-1 focus:ring-foreground/40',
         dim && 'opacity-50',
       )}
     >
-      <span
-        className="w-[3px] self-stretch shrink-0"
-        style={{ backgroundColor: stripeColor }}
-        aria-hidden
-      />
       <div className="min-w-0 flex-1 py-px">
         <div className="flex items-center gap-1">
-          <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground tracking-wide font-semibold">
+          <span className="text-[10.5px] font-mono tabular-nums text-foreground/65 tracking-wide font-semibold">
             {startLabel}
           </span>
           {showFlag && (

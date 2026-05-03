@@ -443,7 +443,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                         const c = listColorMap.get(lid);
                         if (c) return TASK_LIST_COLORS[c].stripe;
                       }
-                      return 'hsl(var(--muted-foreground) / 0.6)';
+                      // 색 미지정 task — 기본 라벤더(프라이머리 계열) 톤. 흰색 안 되도록 충분히 채도 있게.
+                      return 'hsl(262 70% 60%)';
                     })();
               const done = item.kind === 'task' ? item.data.done : false;
               const canceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
@@ -478,13 +479,16 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                   }}
                 >
                 <div
+                  style={{
+                    backgroundColor: `color-mix(in oklab, ${stripeColor} 22%, hsl(var(--background)))`,
+                    borderColor: `color-mix(in oklab, ${stripeColor} 38%, hsl(var(--background)))`,
+                  }}
                   className={cn(
                     'h-full w-full',
-                    'rounded-lg border border-[hsl(var(--hairline))] bg-card overflow-hidden',
-                    'hover:border-foreground/30 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.15)] transition-all cursor-grab active:cursor-grabbing',
-                    taskPriority === 3 && 'border-rose-400/70 shadow-[inset_0_0_0_1px_hsl(0_75%_55%/0.18)]',
-                    taskPriority === 2 && 'border-amber-400/70',
-                    dim && 'opacity-50',
+                    'rounded-md border overflow-hidden',
+                    'hover:brightness-[1.04] hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.15)] transition-all cursor-grab active:cursor-grabbing',
+                    taskPriority === 3 && 'ring-1 ring-rose-500/40',
+                    dim && 'opacity-55',
                   )}
                   onClick={() => {
                     onItemClick?.({
@@ -503,20 +507,15 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                     }
                   }}
                 >
-                  <div className="flex items-stretch gap-2 h-full">
-                    <span
-                      className="w-[3px] shrink-0"
-                      style={{ backgroundColor: stripeColor }}
-                      aria-hidden
-                    />
-                    <div className={cn('min-w-0 flex-1 pr-1', height < 34 ? 'py-0.5' : 'py-1.5')}>
+                  <div className="flex items-stretch h-full">
+                    <div className={cn('min-w-0 flex-1 px-2', height < 34 ? 'py-0.5' : 'py-1.5')}>
                       {height >= 34 && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground tracking-wide leading-none font-semibold">
+                        <span className="text-[10.5px] font-mono tabular-nums text-foreground/65 tracking-wide leading-none font-semibold">
                           {formatHm(startAt)}
                         </span>
                         {height >= 60 && (
-                          <span className="text-[9.5px] font-mono tabular-nums text-muted-foreground/70 leading-none">
+                          <span className="text-[9.5px] font-mono tabular-nums text-foreground/50 leading-none">
                             · {formatDuration(startAt, endAt)}
                           </span>
                         )}
