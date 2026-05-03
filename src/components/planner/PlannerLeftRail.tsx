@@ -31,11 +31,12 @@ export const RAIL_EVENT = {
   openPalette: 'planner:open-palette',
   openMatrix: 'planner:open-matrix',
   openAgenda: 'planner:open-agenda',
+  openHabits: 'planner:open-habits',
 } as const;
 
 const ITEMS: RailItem[] = [
   { kind: 'route',  to: '/',                           label: '홈',         Icon: Home },
-  { kind: 'soon',                                      label: '습관',       Icon: Repeat },
+  { kind: 'event',  eventName: RAIL_EVENT.openHabits,   label: '습관',       Icon: Repeat },
   { kind: 'soon',                                      label: 'AI',         Icon: Sparkles },
   { kind: 'event',  eventName: RAIL_EVENT.openPalette,  label: '검색',       Icon: Search },
   { kind: 'event',  eventName: RAIL_EVENT.openMatrix,   label: '매트릭스',   Icon: Grid2x2 },

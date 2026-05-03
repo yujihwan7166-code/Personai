@@ -37,6 +37,7 @@ import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { GoalProgressView } from '@/components/planner/GoalProgressView';
+import { HabitsView } from '@/components/planner/HabitsView';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
@@ -313,6 +314,7 @@ const Planner = () => {
         case 'm': e.preventDefault(); setView('month'); break;
         case 'y': e.preventDefault(); setView('year'); break;
         case 'g': e.preventDefault(); setView('goals'); break;
+        case 'h': e.preventDefault(); setView('habits'); break;
         case 't': e.preventDefault(); goToday(); break;
         case 'arrowleft':  e.preventDefault(); goPrev(); break;
         case 'arrowright': e.preventDefault(); goNext(); break;
@@ -344,8 +346,15 @@ const Planner = () => {
     return () => window.removeEventListener(RAIL_EVENT.openAgenda, open);
   }, []);
 
+  // Rail 의 "습관" 클릭 → habits 풀뷰로 전환.
+  useEffect(() => {
+    const open = () => setView('habits');
+    window.addEventListener(RAIL_EVENT.openHabits, open);
+    return () => window.removeEventListener(RAIL_EVENT.openHabits, open);
+  }, []);
 
-  const isFullscreen = view === 'month' || view === 'year' || view === 'goals';
+
+  const isFullscreen = view === 'month' || view === 'year' || view === 'goals' || view === 'habits';
 
   // ────── DnD ──────
   // 드래그 기준점 (5px) 으로 클릭과 분리.
@@ -669,6 +678,7 @@ const Planner = () => {
                 onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
               />
             )}
+            {view === 'habits' && <HabitsView />}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[950px]">
