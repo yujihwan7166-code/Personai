@@ -1,9 +1,9 @@
 /**
- * 브라우저 엔진 선택 carousel — ExpertSelectionPanel 안 "브라우저" 탭에서 사용.
+ * 브라우저 엔진 선택 carousel — AI 모델 카드와 동일한 비주얼 (vertical mini card).
  *
- * 카드 클릭 시 그 엔진을 selected 로 저장. 컴포저 submit 때 그 엔진으로 새 탭 검색.
+ * grid-cols-4 sm:6 md:8 — favicon 위, 이름 아래.
+ * 선택 시 같은 indigo ring + 우상단 ✓ 점 패턴.
  */
-import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   SEARCH_ENGINES, setSelectedEngineId,
@@ -14,61 +14,64 @@ export const BrowserEnginePicker = () => {
   const selected = useSelectedSearchEngine();
 
   return (
-    <div className="px-3 py-3">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-[11px] font-mono uppercase tracking-wide text-foreground/55 font-semibold">
-          웹 검색
-        </span>
-        <span className="text-[11px] text-foreground/45">
-          엔진 고르고 아래 입력창에 키워드를 적으면 새 탭으로 검색돼요
-        </span>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+    <div className="px-3 pt-1.5 pb-1.5">
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
         {SEARCH_ENGINES.map((eng) => {
-          const isActive = selected?.id === eng.id;
+          const isSelected = selected?.id === eng.id;
           return (
-            <button
+            <div
               key={eng.id}
-              type="button"
-              onClick={() => setSelectedEngineId(eng.id)}
               className={cn(
-                'group relative flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-card transition-all text-left',
-                'hover:-translate-y-0.5 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.15)]',
-                isActive
-                  ? 'border-blue-500/60 ring-1 ring-blue-500/30'
-                  : 'border-[hsl(var(--hairline))] hover:border-foreground/20',
+                'group relative flex flex-col items-center gap-0.5 p-1.5 rounded-xl transition-all duration-150',
+                !isSelected && 'hover:bg-[hsl(var(--accent))] hover:-translate-y-[1px]',
+                isSelected && 'bg-[hsl(var(--primary)/0.08)] ring-1 ring-inset ring-[hsl(var(--primary)/0.4)] dark:bg-[hsl(var(--primary)/0.15)]',
               )}
+              title={eng.hint}
             >
-              {/* favicon (img onError → emoji fallback) */}
-              <span className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-foreground/5 shrink-0 overflow-hidden">
-                {eng.iconUrl ? (
-                  <img
-                    src={eng.iconUrl}
-                    alt=""
-                    className="h-5 w-5 object-contain"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      const img = e.currentTarget;
-                      const parent = img.parentElement;
-                      if (parent) {
-                        img.remove();
-                        parent.textContent = eng.emoji;
-                        parent.classList.add('text-[16px]');
-                      }
-                    }}
-                  />
-                ) : (
-                  <span className="text-[16px]">{eng.emoji}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedEngineId(eng.id)}
+                className="flex flex-col items-center gap-1 w-full"
+              >
+                {isSelected && (
+                  <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm z-10">
+                    <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
                 )}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[12.5px] font-semibold text-foreground truncate">{eng.name}</div>
-                <div className="text-[10.5px] text-foreground/55 truncate">{eng.hint}</div>
-              </div>
-              {isActive && (
-                <Check className="h-3.5 w-3.5 text-blue-500 shrink-0" strokeWidth={3} />
-              )}
-            </button>
+                {/* Avatar — favicon (img onError → emoji fallback). md size = 40x40 (ExpertAvatar md 와 정렬). */}
+                <span className="h-10 w-10 inline-flex items-center justify-center rounded-full bg-white dark:bg-slate-800 ring-1 ring-[hsl(var(--hairline))] shrink-0 overflow-hidden shadow-[0_1px_2px_hsl(220_15%_8%_/0.06)]">
+                  {eng.iconUrl ? (
+                    <img
+                      src={eng.iconUrl}
+                      alt=""
+                      className="h-6 w-6 object-contain"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        const parent = img.parentElement;
+                        if (parent) {
+                          img.remove();
+                          parent.textContent = eng.emoji;
+                          parent.classList.add('text-[20px]');
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-[20px]">{eng.emoji}</span>
+                  )}
+                </span>
+                <span className={cn(
+                  'text-[9.5px] font-medium whitespace-nowrap truncate max-w-full leading-tight transition-colors',
+                  isSelected
+                    ? 'text-[hsl(var(--primary))] font-semibold'
+                    : 'text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))]',
+                )}>
+                  {eng.name}
+                </span>
+              </button>
+            </div>
           );
         })}
       </div>
