@@ -84,4 +84,25 @@ describe('journalStore', () => {
     expect(restored[0].body).toBe('저장됨');
     expect(restored[0].mood).toBe(5);
   });
+  it('normalizes legacy or corrupted stored entries instead of throwing', () => {
+    window.localStorage.setItem('journal.entries.v1', JSON.stringify([
+      {
+        id: 'legacy',
+        body: null,
+        mood: 9,
+        tags: null,
+        images: [{ src: 'data:image/png;base64,abc' }],
+      },
+      null,
+    ]));
+
+    const restored = journalStore.list();
+    expect(restored).toHaveLength(1);
+    expect(restored[0].id).toBe('legacy');
+    expect(restored[0].body).toBe('');
+    expect(restored[0].mood).toBeUndefined();
+    expect(restored[0].tags).toEqual([]);
+    expect(restored[0].createdAt).toBeTruthy();
+    expect(restored[0].images?.[0].id).toBe('img_0');
+  });
 });

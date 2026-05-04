@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { WikiPage } from '@/types/wiki';
 import { extractWikiLinks } from '@/types/wiki';
-import { deletePage as idbDelete, loadAllPages, upsertPage as idbUpsert } from '@/lib/wikiStore';
+import { deletePage as idbDelete, loadAllPages, normalizeWikiPage, upsertPage as idbUpsert } from '@/lib/wikiStore';
 import { isWikiSeeded, seedWiki } from '@/lib/wikiSeed';
 import { recordRevision, deleteRevisionsForPage } from '@/lib/wikiHistory';
 import { garbageCollectImages } from '@/lib/wikiMaintenance';
@@ -52,23 +52,25 @@ export function useWikiPages() {
 
   /** 본문에서 [[link]] 추출 → refersTo 자동 갱신 + 직전 스냅샷 history 기록 후 저장. */
   const upsertPage = useCallback(async (page: WikiPage) => {
+    const safePage = normalizeWikiPage(page);
+    if (!safePage) throw new Error('Invalid wiki page');
     // 직전 페이지 (있으면 history 에 기록할 스냅샷)
-    const prev = pagesRef.current.find((p) => p.id === page.id);
+    const prev = pagesRef.current.find((p) => p.id === safePage.id);
 
     // title → id 매핑 (현재 정확한 snapshot 기준)
     const titleToId = new Map<string, string>();
     for (const p of pagesRef.current) {
       titleToId.set(p.title, p.id);
-      for (const a of p.aliases) titleToId.set(a, p.id);
+      for (const a of p.aliases ?? []) titleToId.set(a, p.id);
     }
 
-    const linkedTitles = extractWikiLinks(page.body);
+    const linkedTitles = extractWikiLinks(safePage.body);
     const refersTo = linkedTitles
       .map((t) => titleToId.get(t))
-      .filter((id): id is string => !!id && id !== page.id);
+      .filter((id): id is string => !!id && id !== safePage.id);
 
     const next: WikiPage = {
-      ...page,
+      ...safePage,
       refersTo,
       updatedAt: Date.now(),
     };
@@ -105,12 +107,12 @@ export function useWikiPages() {
   }, [upsertPage]);
 
   const getBacklinks = useCallback((id: string): WikiPage[] => {
-    return pages.filter((p) => p.refersTo.includes(id) || p.cites.includes(id));
+    return pages.filter((p) => (p.refersTo ?? []).includes(id) || (p.cites ?? []).includes(id));
   }, [pages]);
 
   const findByTitle = useCallback((title: string): WikiPage | undefined => {
     const t = title.trim();
-    return pages.find((p) => p.title === t || p.aliases.includes(t));
+    return pages.find((p) => p.title === t || (p.aliases ?? []).includes(t));
   }, [pages]);
 
   /** ID(`w_xxx`) 또는 제목으로 페이지 찾기. ID 우선, 없으면 제목 매칭. */
@@ -120,7 +122,7 @@ export function useWikiPages() {
       const byId = pages.find((p) => p.id === t);
       if (byId) return byId;
     }
-    return pages.find((p) => p.title === t || p.aliases.includes(t));
+    return pages.find((p) => p.title === t || (p.aliases ?? []).includes(t));
   }, [pages]);
 
   return {
@@ -143,7 +145,7 @@ function hasMeaningfulChange(prev: WikiPage, next: WikiPage): boolean {
   if (prev.type !== next.type) return true;
   if (prev.status !== next.status) return true;
   if (prev.category !== next.category) return true;
-  if (prev.tags.join('|') !== next.tags.join('|')) return true;
-  if (prev.aliases.join('|') !== next.aliases.join('|')) return true;
+  if ((prev.tags ?? []).join('|') !== (next.tags ?? []).join('|')) return true;
+  if ((prev.aliases ?? []).join('|') !== (next.aliases ?? []).join('|')) return true;
   return false;
 }

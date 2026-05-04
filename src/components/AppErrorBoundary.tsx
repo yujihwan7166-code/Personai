@@ -24,6 +24,10 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   };
 
   private popstateHandler?: () => void;
+  private originalPushState?: History['pushState'];
+  private originalReplaceState?: History['replaceState'];
+  private patchedPushState?: History['pushState'];
+  private patchedReplaceState?: History['replaceState'];
 
   static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
     return {
@@ -46,21 +50,29 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
     };
     window.addEventListener('popstate', this.popstateHandler);
     // pushState/replaceState 도 감지 — patch 한 번만.
-    const origPush = window.history.pushState;
-    const origReplace = window.history.replaceState;
-    window.history.pushState = (...args) => {
-      origPush.apply(window.history, args);
+    this.originalPushState = window.history.pushState;
+    this.originalReplaceState = window.history.replaceState;
+    this.patchedPushState = ((...args: Parameters<History['pushState']>) => {
+      this.originalPushState?.apply(window.history, args);
       this.popstateHandler?.();
-    };
-    window.history.replaceState = (...args) => {
-      origReplace.apply(window.history, args);
+    }) as History['pushState'];
+    this.patchedReplaceState = ((...args: Parameters<History['replaceState']>) => {
+      this.originalReplaceState?.apply(window.history, args);
       this.popstateHandler?.();
-    };
+    }) as History['replaceState'];
+    window.history.pushState = this.patchedPushState;
+    window.history.replaceState = this.patchedReplaceState;
   }
 
   componentWillUnmount() {
     if (typeof window === 'undefined' || !this.popstateHandler) return;
     window.removeEventListener('popstate', this.popstateHandler);
+    if (this.patchedPushState && window.history.pushState === this.patchedPushState && this.originalPushState) {
+      window.history.pushState = this.originalPushState;
+    }
+    if (this.patchedReplaceState && window.history.replaceState === this.patchedReplaceState && this.originalReplaceState) {
+      window.history.replaceState = this.originalReplaceState;
+    }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {

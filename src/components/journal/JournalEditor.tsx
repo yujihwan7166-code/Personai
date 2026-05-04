@@ -68,14 +68,35 @@ interface DraftSnapshot {
   savedAt: number;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const normalizeStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+
+const normalizeMood = (value: unknown): Mood | undefined =>
+  typeof value === 'number' && value >= 1 && value <= 5 ? value as Mood : undefined;
+
+const normalizeFormat = (value: unknown): BodyFormat =>
+  value === 'plain' || value === 'markdown' ? value : 'markdown';
+
 const loadDraft = (): DraftSnapshot | null => {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (typeof parsed !== 'object' || !parsed || typeof parsed.body !== 'string') return null;
-    return parsed as DraftSnapshot;
+    if (!isRecord(parsed) || typeof parsed.body !== 'string') return null;
+    return {
+      body: parsed.body,
+      mood: normalizeMood(parsed.mood),
+      manualTags: normalizeStringArray(parsed.manualTags),
+      format: normalizeFormat(parsed.format),
+      activities: normalizeStringArray(parsed.activities),
+      savedAt: typeof parsed.savedAt === 'number' && Number.isFinite(parsed.savedAt) ? parsed.savedAt : Date.now(),
+    };
   } catch {
     return null;
   }

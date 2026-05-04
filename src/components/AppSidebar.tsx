@@ -13,9 +13,9 @@ import {
   PanelLeft, House, Bot, Search,
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
   Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
-  FolderOpen, ChevronRight, Plus, X,
+  FolderOpen, ChevronRight, ChevronDown, Plus, X,
   LogOut, Shield, User, ExternalLink, Command as CommandIcon, LayoutGrid,
-  CalendarDays,
+  CalendarDays, Sparkles,
 } from 'lucide-react';
 
 interface Props {
@@ -369,6 +369,17 @@ export function AppSidebar({
   const [projectMap, setProjectMap] = useState<Record<string, string>>(() => getProjectMap());
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [projectsExpanded, setProjectsExpanded] = useState(true);
+  const [modeExpanded, setModeExpanded] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('personai-sidebar-mode-expanded') === '1';
+  });
+  const toggleModeExpanded = () => {
+    setModeExpanded((v) => {
+      const next = !v;
+      try { window.localStorage.setItem('personai-sidebar-mode-expanded', next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [creatingProject, setCreatingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectIcon, setNewProjectIcon] = useState('📁');
@@ -763,13 +774,17 @@ export function AppSidebar({
         onMouseEnter={() => setHoveredRecordId(record.id)}
         onMouseLeave={() => setHoveredRecordId(null)}
         className={cn(
-          'px-2.5 py-[6px] rounded-lg flex items-center gap-2.5 cursor-pointer transition-colors mx-1.5 h-8',
+          'relative px-2.5 py-[6px] rounded-lg flex items-center gap-2.5 cursor-pointer transition-colors mx-1.5 h-8',
           isActive
-            ? 'bg-slate-100 dark:bg-slate-800'
+            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
             : 'hover:bg-slate-100 dark:hover:bg-slate-800',
         )}
         onClick={() => !isEditing && handleLoadHistory(record)}
       >
+        {/* active 좌측 stripe */}
+        {isActive && (
+          <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-blue-500" aria-hidden />
+        )}
         {/* AI model icon circle */}
         <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0">
           {firstExpert ? (
@@ -1046,9 +1061,21 @@ export function AppSidebar({
             label 과 pill 사이즈를 맞춰 위-아래 밀도 균일화. */}
         {isOpen && (
           <div className="shrink-0 px-2 mt-1.5">
-            <div className="px-1 flex items-center">
+            <button
+              type="button"
+              onClick={toggleModeExpanded}
+              aria-expanded={modeExpanded}
+              className="w-full px-1 flex items-center gap-1 text-left rounded hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+            >
+              <ChevronRight className={cn('w-3 h-3 text-slate-400 transition-transform', modeExpanded && 'rotate-90')} />
               <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">모드</span>
-            </div>
+              {!modeExpanded && (
+                <span className="ml-auto text-[9.5px] text-slate-400 dark:text-slate-500">
+                  {{ general: '일반', multi: '멀티', study: '공부', research: '리서치', standard: '토론', stakeholder: '시뮬', expert: '프리미엄', assistant: '도구' }[discussionMode as string] ?? ''}
+                </span>
+              )}
+            </button>
+            {modeExpanded && (
             <div className="grid grid-cols-2 gap-0.5 mt-1">
               {([
                 { id: 'general',          label: '일반',     tint: '221 83% 50%' },
@@ -1086,6 +1113,7 @@ export function AppSidebar({
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
@@ -1318,32 +1346,34 @@ export function AppSidebar({
           onClose={() => setShowIconPicker(null)}
         />
 
-        {/* ── 4. Conversation List Header ── */}
-        {isOpen && <div className="shrink-0 px-2 py-1.5">
-          {searchVisible ? (
-            <div className="flex items-center gap-1.5">
-              <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
-                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <input
-                  ref={searchInputRef}
-                  value={searchQuery}
-                  onChange={e => { setSearchQuery(e.target.value); refreshHistory(); }}
-                  placeholder="대화 검색..."
-                  className="flex-1 min-w-0 bg-transparent text-[11px] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none"
-                />
-              </div>
-              <button onClick={toggleSearch} className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0">
-                <X className="w-3.5 h-3.5" />
-              </button>
+        {/* ── 4. Conversation List Header — 검색 항상 노출 ── */}
+        {isOpen && <div className="shrink-0 px-2 pt-2 pb-1 space-y-1.5">
+          <div className="flex items-center gap-1">
+            <div className="flex-1 flex items-center gap-2 px-2.5 h-7 rounded-md bg-slate-100 dark:bg-slate-800/70 focus-within:ring-1 focus-within:ring-slate-300 dark:focus-within:ring-slate-600 transition-shadow">
+              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); refreshHistory(); }}
+                placeholder="대화 검색"
+                className="flex-1 min-w-0 bg-transparent text-[11px] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); refreshHistory(); }}
+                  aria-label="검색 비우기"
+                  className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">모든 대화</span>
-              <button className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <SlidersHorizontal className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+          </div>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              모든 대화{filteredHistory.length > 0 ? ` · ${filteredHistory.length}` : ''}
+            </span>
+          </div>
         </div>}
 
         {/* ── 5. Conversation List (scrollable) — 미니모드에서는 숨김 ── */}
@@ -1354,12 +1384,11 @@ export function AppSidebar({
             const pinned = filteredHistory.filter(r => pinnedIds.has(r.id));
             if (pinned.length === 0) return null;
             return (
-              <div className="mb-1">
-                <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 pt-2 pb-1 flex items-center gap-1">
-                  <Pin className="w-3 h-3" /> 고정됨
+              <div className="mb-1.5 mx-1.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/15 ring-1 ring-amber-200/40 dark:ring-amber-900/30 py-1">
+                <p className="text-[10px] font-semibold text-amber-700/80 dark:text-amber-400/80 uppercase tracking-wider px-3 pt-1 pb-1 flex items-center gap-1">
+                  <Pin className="w-3 h-3 fill-current" /> 고정됨 · {pinned.length}
                 </p>
                 {pinned.map(r => renderConversationItem(r))}
-                <div className="border-b border-slate-200 dark:border-slate-800 mx-3 mt-1" />
               </div>
             );
           })()}
@@ -1380,17 +1409,34 @@ export function AppSidebar({
 
           {/* Empty state */}
           {filteredHistory.length === 0 && (
-            <div className="px-4 py-12 text-center">
+            <div className="px-4 py-10 text-center">
               {searchQuery ? (
                 <>
                   <Search className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                   <p className="text-[12px] text-slate-400 dark:text-slate-500">검색 결과가 없습니다</p>
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); refreshHistory(); }}
+                    className="mt-3 text-[11px] text-blue-500 hover:underline"
+                  >
+                    검색 비우기
+                  </button>
                 </>
               ) : (
                 <>
-                  <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                  <p className="text-[12px] font-medium text-slate-400 dark:text-slate-500">대화 기록이 없습니다</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-600 mt-1">새 채팅을 시작해보세요</p>
+                  <Sparkles className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                  <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">아직 대화가 없어요</p>
+                  <p className="text-[10.5px] text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
+                    위 모드를 골라서<br/>첫 질문을 해보세요
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleGoHome}
+                    className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                  >
+                    <Plus className="w-3 h-3" />
+                    새 채팅
+                  </button>
                 </>
               )}
             </div>

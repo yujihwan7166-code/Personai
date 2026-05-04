@@ -5,7 +5,7 @@ import {
   Heading1, Heading2, Heading3, Type,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, CheckSquare, Quote, Code2, Minus,
-  Link as LinkIcon, BookOpen, ImagePlus, Table as TableIcon,
+  Link as LinkIcon, BookOpen, ImagePlus,
   Palette, Highlighter, ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -129,12 +129,6 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
         {onPickImage && (
           <ToolbarBtn onClick={onPickImage} title="이미지"><ImagePlus className="w-3.5 h-3.5" /></ToolbarBtn>
         )}
-        <ToolbarBtn
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-          title="표 삽입"
-        >
-          <TableIcon className="w-3.5 h-3.5" />
-        </ToolbarBtn>
       </div>
     </div>
   );

@@ -48,10 +48,44 @@ interface PersistedState {
 
 const DEFAULT_FORCES = { center: 0.025, repel: 70, link: 0.4, distance: 80 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const finiteNumber = (value: unknown, fallback: number, min?: number, max?: number): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  const lower = min ?? Number.NEGATIVE_INFINITY;
+  const upper = max ?? Number.POSITIVE_INFINITY;
+  return Math.min(upper, Math.max(lower, value));
+};
+
+const normalizeForces = (value: unknown): PersistedState['forces'] => {
+  if (!isRecord(value)) return DEFAULT_FORCES;
+  return {
+    center: finiteNumber(value.center, DEFAULT_FORCES.center, 0, 0.1),
+    repel: finiteNumber(value.repel, DEFAULT_FORCES.repel, 20, 200),
+    link: finiteNumber(value.link, DEFAULT_FORCES.link, 0.05, 1.5),
+    distance: finiteNumber(value.distance, DEFAULT_FORCES.distance, 30, 200),
+  };
+};
+
 function loadState(): Partial<PersistedState> {
   try {
+    if (typeof window === 'undefined') return {};
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!isRecord(parsed)) return {};
+    return {
+      scale: finiteNumber(parsed.scale, 1, 0.4, 3),
+      tx: finiteNumber(parsed.tx, 0, -VB_W, VB_W),
+      ty: finiteNumber(parsed.ty, 0, -VB_H, VB_H),
+      layout: parsed.layout === 'force' || parsed.layout === 'cluster' ? parsed.layout : 'cluster',
+      colorBy: parsed.colorBy === 'status' || parsed.colorBy === 'tag' || parsed.colorBy === 'type' ? parsed.colorBy : 'type',
+      tagPick: typeof parsed.tagPick === 'string' ? parsed.tagPick : '',
+      hullsOn: typeof parsed.hullsOn === 'boolean' ? parsed.hullsOn : false,
+      paused: typeof parsed.paused === 'boolean' ? parsed.paused : false,
+      forces: normalizeForces(parsed.forces),
+    };
   } catch { return {}; }
 }
 function saveState(s: PersistedState) {
