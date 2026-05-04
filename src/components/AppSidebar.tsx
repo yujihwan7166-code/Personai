@@ -12,10 +12,10 @@ import { AIAbilityRadar } from './AIAbilityRadar';
 import {
   PanelLeft, House, Bot, Search,
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
-  Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
-  FolderOpen, ChevronRight, ChevronDown, Plus, X,
+  Sun, Moon, HelpCircle, MessageSquare, MessageSquarePlus, MoreHorizontal, Share2,
+  FolderOpen, ChevronRight, Plus, X,
   LogOut, Shield, User, ExternalLink, Command as CommandIcon, LayoutGrid,
-  CalendarDays, Sparkles,
+  CalendarDays, Sparkles, FileText, Network,
 } from 'lucide-react';
 
 interface Props {
@@ -369,17 +369,6 @@ export function AppSidebar({
   const [projectMap, setProjectMap] = useState<Record<string, string>>(() => getProjectMap());
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [projectsExpanded, setProjectsExpanded] = useState(true);
-  const [modeExpanded, setModeExpanded] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem('personai-sidebar-mode-expanded') === '1';
-  });
-  const toggleModeExpanded = () => {
-    setModeExpanded((v) => {
-      const next = !v;
-      try { window.localStorage.setItem('personai-sidebar-mode-expanded', next ? '1' : '0'); } catch { /* ignore */ }
-      return next;
-    });
-  };
   const [creatingProject, setCreatingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectIcon, setNewProjectIcon] = useState('📁');
@@ -1012,30 +1001,34 @@ export function AppSidebar({
           )}
         </div>
 
-        {/* ── 2. Navigation Menu (Phase D-3 보정: 한 줄 4 아이콘) ── */}
+        {/* ── 2. Navigation Menu — 4×2 그리드 (펼침) / 세로 나열 (접힘) ── */}
         <nav className={cn("shrink-0", isOpen ? 'px-2' : 'px-1')}>
           {(() => {
             const items = [
-              { icon: House, label: '메인 화면', onClick: handleGoHome, highlight: true },
-              { icon: Bot, label: 'AI 봇', onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
-              { icon: LayoutGrid, label: '모드 · 도구', onClick: (e) => { const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect(); onOpenModePalette?.({ top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height }); } },
-              { icon: CalendarDays, label: '통합 캘린더', onClick: () => navigate('/planner') },
-              { icon: Settings, label: '설정', onClick: () => { setSettingsSection('general'); setSettingsOpen(true); } },
+              { icon: House, label: '메인',     onClick: handleGoHome },
+              { icon: MessageSquarePlus, label: '새 채팅', onClick: handleGoHome },
+              { icon: Bot, label: 'AI 봇',      onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
+              { icon: LayoutGrid, label: '모드', onClick: (e) => { const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect(); onOpenModePalette?.({ top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height }); } },
+              { icon: CalendarDays, label: '캘린더', onClick: () => navigate('/planner') },
+              { icon: FileText, label: '메모',   onClick: () => navigate('/memos') },
+              { icon: Network, label: '위키',    onClick: () => navigate('/wiki') },
+              { icon: Settings, label: '설정',   onClick: () => { setSettingsSection('general'); setSettingsOpen(true); } },
             ];
             return isOpen ? (
-              // Phase D-3 보정: 아래 모드 섹션과 일관된 밀도·톤. 메인 칸의 이질 하이라이트 제거.
-              <div className="flex items-center justify-between gap-1">
+              <div className="grid grid-cols-4 gap-0.5">
                 {items.map((item) => (
                   <button
                     key={item.label}
                     onClick={item.onClick}
                     title={item.label}
+                    aria-label={item.label}
                     className={cn(
-                      "flex items-center justify-center h-8 flex-1 rounded-md transition-colors",
+                      "group flex flex-col items-center justify-center gap-0.5 h-12 rounded-md transition-colors",
                       "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800",
                     )}
                   >
                     <item.icon className="w-[15px] h-[15px] shrink-0" />
+                    <span className="text-[9px] font-medium leading-none">{item.label}</span>
                   </button>
                 ))}
               </div>
@@ -1059,66 +1052,10 @@ export function AppSidebar({
 
         {/* Phase D-3 보정: 모드 섹션 — 상단 아이콘 행과 동일한 리듬(h-8, rounded-md, 슬레이트 톤).
             label 과 pill 사이즈를 맞춰 위-아래 밀도 균일화. */}
-        {isOpen && (
-          <div className="shrink-0 px-2 mt-1.5">
-            <button
-              type="button"
-              onClick={toggleModeExpanded}
-              aria-expanded={modeExpanded}
-              className="w-full px-1 flex items-center gap-1 text-left rounded hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-            >
-              <ChevronRight className={cn('w-3 h-3 text-slate-400 transition-transform', modeExpanded && 'rotate-90')} />
-              <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">모드</span>
-              {!modeExpanded && (
-                <span className="ml-auto text-[9.5px] text-slate-400 dark:text-slate-500">
-                  {{ general: '일반', multi: '멀티', study: '공부', research: '리서치', standard: '토론', stakeholder: '시뮬', expert: '프리미엄', assistant: '도구' }[discussionMode as string] ?? ''}
-                </span>
-              )}
-            </button>
-            {modeExpanded && (
-            <div className="grid grid-cols-2 gap-0.5 mt-1">
-              {([
-                { id: 'general',          label: '일반',     tint: '221 83% 50%' },
-                { id: 'multi',            label: '멀티',     tint: '262 83% 58%' },
-                { id: 'study',            label: '공부',     tint: '32 95% 44%' },
-                { id: 'research',         label: '리서치',   tint: '203 82% 24%' },
-                { id: 'standard',         label: '토론',     tint: '221 83% 53%' },
-                { id: 'stakeholder',      label: '시뮬',     tint: '160 65% 36%' },
-                { id: 'expert',           label: '프리미엄', tint: '38 58% 32%' },
-                { id: 'assistant',        label: '도구',     tint: '188 85% 35%' },
-              ] as const).map((m) => {
-                const activeMain = discussionMode === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => onModeChange(m.id as DiscussionMode)}
-                    title={`${m.label} 모드로 전환`}
-                    className={cn(
-                      // 2×4 리스트: dot 시작점 정렬 + 충분한 라벨 폭. 활성은 미묘한 배경 + 컬러드 도트 glow 로만.
-                      'group flex items-center gap-2 h-7 rounded-md px-2 text-[11px] font-medium transition-colors',
-                      activeMain
-                        ? 'bg-slate-100/70 dark:bg-slate-800/70 text-slate-800 dark:text-slate-100'
-                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-100',
-                    )}
-                  >
-                    <span
-                      className="h-[6px] w-[6px] rounded-full shrink-0 transition-shadow"
-                      style={{
-                        background: `hsl(${m.tint})`,
-                        boxShadow: activeMain ? `0 0 0 2.5px hsl(${m.tint}/0.25)` : undefined,
-                      }}
-                    />
-                    <span className="truncate">{m.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            )}
-          </div>
-        )}
+        {/* 모드 grid 섹션 제거됨 — 위 nav 의 LayoutGrid (모드) 아이콘으로 통합 진입. */}
 
-        {/* ── 3. Section Divider ── (Phase D-3 보정: my-2 → my-1 로 축소) */}
-        {isOpen && <div className="border-t border-slate-200 dark:border-slate-800 my-1" />}
+        {/* ── Section Divider ── */}
+        {isOpen && <div className="border-t border-slate-200 dark:border-slate-800 mt-2 mb-1" />}
 
         {/* ── Projects Section ── */}
         {isOpen && (
