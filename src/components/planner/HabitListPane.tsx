@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { HabitDayDot } from './HabitDayDot';
 import { HabitDayProgress } from './HabitDayProgress';
-import { HabitInsightBar } from './HabitInsightBar';
 import { HabitHeatStrip } from './HabitHeatStrip';
 
 type SortKey = 'order' | 'streak' | 'name';
@@ -205,9 +204,6 @@ export const HabitListPane = ({
           </button>
         </div>
       </div>
-
-      {/* 인사이트 바 */}
-      <HabitInsightBar habits={habits} allCheckins={allCheckins} />
 
       {/* 주 진행률 헤더 — 도넛 링 7개 */}
       <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-4 py-3 border-b border-[hsl(var(--hairline))] bg-card">
