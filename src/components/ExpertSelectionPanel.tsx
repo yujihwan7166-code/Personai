@@ -2649,12 +2649,12 @@ export function ExpertSelectionPanel({
           )}
 
           {/* 전체 모델 탭 — 2차 브랜드 필터 칩.
-              구조: [전체] [GPT 🤖] [Claude] ... [기타]  │  [🌐 오픈소스]
+              구조: [전체] [🤖 GPT] [Claude] ... [기타]  │  [🌐 오픈소스]
               - 비활성: 회색 텍스트 + 흐린 로고
-              - 활성: 다크 채움 + 풀컬러 로고
+              - 활성: 흰 배경 + 진한 ring + 그림자 (segmented 스타일) — 로고 가독성 유지
               - 오픈소스(라이선스 축)는 분리선으로 구분 + 에메랄드 톤 */}
           {effectiveCategory === 'ai' && !searchMode && (
-            <div className="flex items-center gap-1.5 px-3 pt-0.5 pb-2 overflow-x-auto scrollbar-none">
+            <div className="flex items-center gap-1 px-3 pt-0.5 pb-2 overflow-x-auto scrollbar-none">
               {/* 브랜드 그룹 (전체 + 8개 브랜드) */}
               {(['all', ...BRAND_ORDER] as const).map((brand) => {
                 const isActive = activeBrandFilter === brand;
@@ -2667,10 +2667,10 @@ export function ExpertSelectionPanel({
                     type="button"
                     onClick={() => setActiveBrandFilter(brand)}
                     className={cn(
-                      'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10.5px] whitespace-nowrap transition-all duration-150 font-medium shrink-0',
+                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] whitespace-nowrap transition-all duration-150 shrink-0',
                       isActive
-                        ? 'bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900'
-                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+                        ? 'bg-white text-slate-900 ring-1 ring-slate-900 shadow-sm font-semibold dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-100'
+                        : 'font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
                     )}
                   >
                     {logo && (
@@ -2678,7 +2678,7 @@ export function ExpertSelectionPanel({
                         src={logo}
                         alt=""
                         className={cn(
-                          'h-3 w-3 object-contain shrink-0 transition-all',
+                          'h-2.5 w-2.5 object-contain shrink-0 transition-all',
                           isActive ? 'opacity-100' : 'opacity-60 grayscale',
                         )}
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -2689,16 +2689,16 @@ export function ExpertSelectionPanel({
                 );
               })}
               {/* 분리선 (브랜드 축 ↔ 라이선스 축) */}
-              <span className="mx-0.5 h-4 w-px bg-slate-200 dark:bg-slate-700 shrink-0" aria-hidden />
+              <span className="mx-0.5 h-3.5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" aria-hidden />
               {/* 오픈소스 (라이선스 축 — 에메랄드 톤) */}
               <button
                 type="button"
                 onClick={() => setActiveBrandFilter('opensource')}
                 className={cn(
-                  'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10.5px] whitespace-nowrap transition-all duration-150 font-medium shrink-0',
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] whitespace-nowrap transition-all duration-150 shrink-0',
                   activeBrandFilter === 'opensource'
-                    ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
-                    : 'text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40',
+                    ? 'bg-white text-emerald-700 ring-1 ring-emerald-600 shadow-sm font-semibold dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-500'
+                    : 'font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40',
                 )}
               >
                 🌐 오픈소스
