@@ -2,7 +2,7 @@
  * 우측 detail pane — 선택된 습관의 통계 + 월 캘린더 + 메모.
  */
 import { useMemo, useState } from 'react';
-import { Calendar, Edit3, Flame, MoreHorizontal, Pin, Target, Trophy } from 'lucide-react';
+import { Calendar, Edit3, Flame, MoreHorizontal, Pin, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TASK_LIST_COLORS } from '@/types/planner';
 import type { Habit } from '@/types/habit';
@@ -10,8 +10,7 @@ import { habitStore } from '@/services/planner/habitStore';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { useHabitCheckins } from '@/hooks/planner/useHabitCheckins';
 import {
-  currentStreak, isScheduledOn, maxStreak, monthCheckinCount,
-  nextDue, toDateKey,
+  currentStreak, maxStreak, monthCheckinCount, toDateKey,
 } from '@/lib/planner/habitStats';
 import { HabitYearHeatmap } from './HabitYearHeatmap';
 import {
@@ -41,23 +40,6 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
     };
   }, [habit, allCheckins, viewYear, viewMonth]);
 
-  // 다음 예정 메시지 — 오늘 미완 시 streak 위기 경고, 완 시 다음 예정.
-  const todayKey = toDateKey(today);
-  const todayCheckin = allCheckins.find((c) => c.date === todayKey);
-  const tpd = Math.max(1, habit.schedule.timesPerDay ?? 1);
-  const todayDone = todayCheckin && (todayCheckin.count ?? 0) >= tpd;
-  const todayScheduled = isScheduledOn(habit, todayKey);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const next = todayDone ? nextDue(habit, toDateKey(tomorrow)) : todayScheduled ? todayKey : nextDue(habit, todayKey);
-  const nextLabel = (() => {
-    if (!next) return '예정 없음';
-    if (next === todayKey) return '오늘';
-    if (next === toDateKey(tomorrow)) return '내일';
-    const d = new Date(`${next}T00:00:00`);
-    return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
-  })();
-
   // 메모 — 월 시작 row 의 note 사용 (단순화). 더 정교한 모델은 이후.
   const monthFirstKey = `${viewYear}-${String(viewMonth).padStart(2, '0')}-01`;
   const noteRow = allCheckins.find((c) => c.date === monthFirstKey);
@@ -73,10 +55,10 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
 
   return (
     <div className="h-full min-h-0 flex flex-col">
-      {/* 헤더 */}
-      <div className="shrink-0 flex items-center gap-3 px-4 h-12 border-b border-[hsl(var(--hairline))]">
+      {/* 헤더 — 컴팩트 (h-10) */}
+      <div className="shrink-0 flex items-center gap-2.5 px-3 h-10 border-b border-[hsl(var(--hairline))]">
         <span
-          className="h-7 w-7 inline-flex items-center justify-center rounded-full text-[14px] shrink-0"
+          className="h-6 w-6 inline-flex items-center justify-center rounded-full text-[12px] shrink-0"
           style={{ backgroundColor: `color-mix(in oklab, ${stripe} 18%, hsl(var(--background)))` }}
         >
           {habit.emoji}
@@ -120,30 +102,8 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
         </DropdownMenu>
       </div>
 
-      {/* 본문 — 스크롤. 섹션 간격은 각 section 의 pt-3 + border-t 가 담당. */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
-        {/* streak 상태 한 줄 — 위기/완료 시에만 노출 (기본 "다음 예정: 오늘" placeholder 는 가치 없음) */}
-        {((todayScheduled && !todayDone && stats.streak >= 3) || todayDone) && (
-          <div className={cn(
-            'flex items-center gap-2 px-3 py-2 rounded-lg border text-[12px]',
-            todayScheduled && !todayDone && stats.streak >= 3
-              ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-400'
-              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400',
-          )}>
-            {todayScheduled && !todayDone && stats.streak >= 3 ? (
-              <>
-                <Flame className="h-3.5 w-3.5" />
-                <span><b>{stats.streak}일 streak 위기</b> — 오늘 체크하면 유지돼요</span>
-              </>
-            ) : (
-              <>
-                <Target className="h-3.5 w-3.5" />
-                <span>오늘 완료! 다음은 <b>{nextLabel}</b></span>
-              </>
-            )}
-          </div>
-        )}
-
+      {/* 본문 — 스크롤. 상단 여백 컴팩트 (pt-2). */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-2 pb-3 space-y-3">
         {/* Stats — 단일 카드 3분할 (연속·이번 달·베스트) — 동기 위계 */}
         <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card grid grid-cols-3 divide-x divide-[hsl(var(--hairline))]">
           {[
