@@ -6,7 +6,7 @@
  *
  * 추후: 오버듀, 다가오는 일정 위젯 추가 예정.
  */
-import { ViewToggle, type PlannerView } from './ViewToggle';
+import { type PlannerView } from './ViewToggle';
 import { PlannerMiniMonth } from './PlannerMiniMonth';
 import { PlannerDday } from './PlannerDday';
 import { HabitTodayWidget } from './HabitTodayWidget';
@@ -14,7 +14,6 @@ import { HabitTodayWidget } from './HabitTodayWidget';
 interface PlannerSidebarProps {
   anchorIso: string;
   view: PlannerView;
-  onViewChange: (view: PlannerView) => void;
   /** 미니 월에서 날짜 클릭 시 — Day 뷰로 전환 + anchor 갱신을 부모가 처리. */
   onSelectDay: (dayIso: string) => void;
   /** 매트릭스 위젯에서 task 클릭 시 — 모달 오픈을 부모가 처리. */
@@ -26,22 +25,13 @@ interface PlannerSidebarProps {
 export const PlannerSidebar = ({
   anchorIso,
   view,
-  onViewChange,
   onSelectDay,
   onTaskClick,
   onOpenHabits,
 }: PlannerSidebarProps) => {
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* 제목 + 뷰 토글 */}
-      <div className="shrink-0 px-1">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-[15px] font-semibold tracking-tight leading-none truncate">통합 플래너</h1>
-          <ViewToggle value={view} onChange={onViewChange} />
-        </div>
-      </div>
-
-      <div className="border-t border-[hsl(var(--hairline))] pt-3" />
+      {/* 제목·뷰 토글 제거됨 — 페이지 상단 mini nav 로 단일화 (Planner.tsx). */}
 
       {/* 미니 월 캘린더 */}
       <PlannerMiniMonth anchorIso={anchorIso} onSelectDay={onSelectDay} />

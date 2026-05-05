@@ -656,29 +656,30 @@ const Planner = () => {
             day 뷰의 시간 네비/공통 input 은 day 박스 헤더로 흡수.
             week/month/year 뷰의 시간 네비는 박스 자체 헤더에 별도 (TODO). */}
 
-        {/* 풀뷰(month/year/goals)에선 사이드바가 없으므로 — 위에 mini nav (제목/뷰토글/시간 네비). */}
-        {isFullscreen && (
-          <div className="mb-3 flex flex-wrap items-center gap-3 pb-2 border-b border-[hsl(var(--hairline))]">
-            <h1 className="text-[17px] font-semibold tracking-tight leading-none">통합 플래너</h1>
-            <ViewToggle value={view} onChange={setView} />
-            {view !== 'goals' && (
-              <>
-                <div className="inline-flex items-center gap-0.5 ml-1">
-                  <button type="button" onClick={goPrev} aria-label="이전" className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent transition-colors">
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button type="button" onClick={goToday} disabled={anchorIsToday} className={cn('h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors', anchorIsToday ? 'bg-card text-muted-foreground/60 cursor-default' : 'bg-card text-foreground hover:bg-accent')}>
-                    오늘
-                  </button>
-                  <button type="button" onClick={goNext} aria-label="다음" className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent transition-colors">
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-                <span className="text-[14px] text-foreground font-medium tabular-nums">{periodLabel}</span>
-              </>
-            )}
-          </div>
-        )}
+        {/* 통합 mini nav — 모든 뷰에서 항상 노출 (h-11 고정, nowrap, 페이지 높이 일관성).
+            일/주: 내부 날짜 캐러셀이 input flow 와 함께 있어 시간 네비는 거기서 처리.
+            월/년: 시간 네비 + period label 까지 mini nav 안에 모두 넣음.
+            goals/habits: 시간 네비 없음. */}
+        <div className="mb-3 flex items-center gap-3 h-11 px-1 border-b border-[hsl(var(--hairline))] overflow-hidden whitespace-nowrap">
+          <h1 className="shrink-0 text-[17px] font-semibold tracking-tight leading-none">통합 플래너</h1>
+          <ViewToggle value={view} onChange={setView} />
+          {(view === 'month' || view === 'year') && (
+            <>
+              <div className="shrink-0 inline-flex items-center gap-0.5 ml-1">
+                <button type="button" onClick={goPrev} aria-label="이전" className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent transition-colors">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={goToday} disabled={anchorIsToday} className={cn('h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors', anchorIsToday ? 'bg-card text-muted-foreground/60 cursor-default' : 'bg-card text-foreground hover:bg-accent')}>
+                  오늘
+                </button>
+                <button type="button" onClick={goNext} aria-label="다음" className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent transition-colors">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+              <span className="shrink-0 text-[14px] text-foreground font-medium tabular-nums truncate">{periodLabel}</span>
+            </>
+          )}
+        </div>
 
         {isFullscreen ? (
           <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 h-[950px]">
@@ -709,7 +710,6 @@ const Planner = () => {
               <PlannerSidebar
                 anchorIso={anchorIso}
                 view={view}
-                onViewChange={setView}
                 onSelectDay={(dayIso) => {
                   setAnchorIso(dayIso);
                   setView('day');
