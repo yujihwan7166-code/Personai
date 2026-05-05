@@ -29,12 +29,38 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+/**
+ * 개발용 인증 우회 플래그.
+ * .env.local 에 `VITE_BYPASS_AUTH=1` 설정 시 가짜 user/profile 주입.
+ * - 페이지 진입 게이트(`!user` 체크) 통과 목적
+ * - 실제 Supabase API 호출은 여전히 인증 토큰 필요 (로그인 안 한 상태이므로 RLS 통과 못 함)
+ * - 프로덕션 빌드에서 환경변수 빠지면 자동으로 정상 흐름 복귀
+ */
+const BYPASS_AUTH = import.meta.env.VITE_BYPASS_AUTH === '1' || import.meta.env.VITE_BYPASS_AUTH === 'true';
+
+const MOCK_USER = {
+  id: '00000000-0000-0000-0000-000000000000',
+  email: 'dev@local',
+  aud: 'authenticated',
+  created_at: new Date(0).toISOString(),
+  app_metadata: { provider: 'dev-bypass' },
+  user_metadata: { full_name: '개발 모드' },
+  role: 'authenticated',
+} as unknown as User;
+
+const MOCK_PROFILE = {
+  id: MOCK_USER.id,
+  email: MOCK_USER.email,
+  plan: 'free',
+  role: 'user',
+} as unknown as UserProfile;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(BYPASS_AUTH ? MOCK_USER : null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [loading, setLoading] = useState(!BYPASS_AUTH);
+  const [profile, setProfile] = useState<UserProfile | null>(BYPASS_AUTH ? MOCK_PROFILE : null);
+  const [profileLoading, setProfileLoading] = useState(!BYPASS_AUTH);
 
   const loadProfile = useCallback(async (nextUser: User | null) => {
     if (!nextUser) {
@@ -73,6 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile, user]);
 
   useEffect(() => {
+    if (BYPASS_AUTH) {
+      // 개발 우회 모드 — Supabase 구독 스킵, mock user 유지
+       
+      console.warn('[auth] VITE_BYPASS_AUTH 활성화 — mock user 사용 중. 프로덕션에서는 절대 활성화하지 말 것.');
+      return;
+    }
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const nextUser = session?.user ?? null;
       setSession(session);
@@ -93,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile]);
 
   const signOut = async () => {
+    if (BYPASS_AUTH) return;  // 우회 모드에서는 sign out 무의미
     await supabase.auth.signOut();
     setProfile(null);
   };
