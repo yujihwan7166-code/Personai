@@ -29,7 +29,6 @@ import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalWeekSpotlight } from '@/components/journal/JournalWeekSpotlight';
-import { JournalYearJump } from '@/components/journal/JournalYearJump';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
@@ -172,36 +171,6 @@ const Journal = () => {
 
   const isEmpty = allEntries.length === 0;
   const hasResults = filteredEntries.length > 0;
-
-  // 작성된 모든 월 키 (필터 무관, 전체 시간축).
-  const allMonthKeys = useMemo(() => {
-    const set = new Set<string>();
-    allEntries.forEach((e) => set.add(monthKey(e.createdAt)));
-    return Array.from(set);
-  }, [allEntries]);
-
-  // 월 점프 — 해당 월 섹션으로 부드럽게 스크롤.
-  const handleJumpMonth = (mk: string) => {
-    if (typeof document === 'undefined') return;
-    const el = document.getElementById(`journal-month-${mk}`);
-    if (!el) {
-      // 필터 때문에 그 월이 안 보이면 필터 해제하고 재시도
-      if (query || activeTag || activeActivity || activeDate) {
-        setQuery('');
-        setActiveTag(null);
-        setActiveActivity(null);
-        setActiveDate(null);
-        // 다음 프레임에 스크롤
-        requestAnimationFrame(() => {
-          const retry = document.getElementById(`journal-month-${mk}`);
-          retry?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-        return;
-      }
-      return;
-    }
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   // WeekSpotlight 콜백 — entry 편집 / 빈 날 새로 작성.
   const handleWeekClickEntry = (entry: JournalEntry) => {
@@ -487,10 +456,6 @@ const Journal = () => {
                 날짜 필터 해제
               </button>
             )}
-            <JournalYearJump
-              monthKeys={allMonthKeys}
-              onJump={handleJumpMonth}
-            />
             <JournalSummaryPanel entries={allEntries} />
           </aside>
           </div>
