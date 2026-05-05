@@ -129,10 +129,23 @@ export const DraggableBlock = ({
     return { time: formatHm(finalEnd.toISOString()), dur: formatDur(totalMin) };
   })();
 
+  // 라이브 이동 라벨 — 본체 드래그 중 새 시작/종료 시각 (Google Calendar 패턴).
+  const liveMoveLabel = (() => {
+    if (!isDragging || !transform || !item.data.startAt || !item.data.endAt) return null;
+    const oldStart = new Date(item.data.startAt);
+    const oldEnd = new Date(item.data.endAt);
+    const deltaMin = Math.round((transform.y / HOUR_PX) * 60 / 15) * 15;
+    if (deltaMin === 0) return null;
+    const newStart = new Date(oldStart.getTime() + deltaMin * 60_000);
+    const newEnd = new Date(oldEnd.getTime() + deltaMin * 60_000);
+    return `${formatHm(newStart.toISOString())} ~ ${formatHm(newEnd.toISOString())}`;
+  })();
+
   const composedStyle: React.CSSProperties = {
     ...style,
     transform: isDragging ? CSS.Translate.toString(transform) : undefined,
-    opacity: isDragging ? 0.5 : 1,
+    // 블록 자체가 따라오게 — opacity 0.5(반투명 ghost) → 0.92 (블록이 그대로 옮겨가는 느낌)
+    opacity: isDragging ? 0.92 : 1,
     height: liveHeight,
     zIndex: isDragging || isResizing ? 30 : 10,
   };
@@ -159,6 +172,16 @@ export const DraggableBlock = ({
           aria-hidden
         >
           → {liveEndLabel.time}  ·  {liveEndLabel.dur}
+        </div>
+      )}
+
+      {/* 라이브 이동 시각 chip — 본체 드래그 중 좌상단에 새 시간 (Google Calendar 패턴) */}
+      {liveMoveLabel && (
+        <div
+          className="pointer-events-none absolute left-1.5 top-1.5 px-1.5 py-0.5 rounded bg-foreground text-background text-[10.5px] font-mono tabular-nums shadow-sm"
+          aria-hidden
+        >
+          {liveMoveLabel}
         </div>
       )}
 

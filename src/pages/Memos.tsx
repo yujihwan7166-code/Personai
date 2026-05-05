@@ -1274,12 +1274,18 @@ function EmptyState({ onNew }: { onNew: () => void }) {
 }
 
 // ──────────────────────────────────────────
+type AfterAction = 'keep' | 'archive' | 'delete';
+
 function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void }) {
   const navigate = useNavigate();
-  const [wikiType, setWikiType] = useState<WikiPageType>('concept');
   const [busy, setBusy] = useState(false);
+  // 보낸 후 메모 처리 (현실 시나리오 3개) — keep 이 기본 (안전)
+  const [afterAction, setAfterAction] = useState<AfterAction>('keep');
+  // 별칭 (검색·링크용, 옵션). 쉼표로 구분.
+  const [aliases, setAliases] = useState('');
 
   const title = memoTitle(memo);
+  const tagsPreview = useMemo(() => extractMemoTags(memo), [memo]);
 
   const submit = async () => {
     if (!memo.body.trim()) return;
@@ -1288,11 +1294,15 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
       const now = Date.now();
       const tags = extractMemoTags(memo);
       const body = memo.body.split('\n').slice(1).join('\n').trim() || memo.body;
+      const aliasList = aliases
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
       const page: WikiPage = {
         id: newWikiId(),
         title: title.length > 80 ? title.slice(0, 80) : title,
-        aliases: [],
-        type: wikiType,
+        aliases: aliasList,
+        type: 'concept', // default — type picker 제거
         status: 'draft',
         tags,
         body,
@@ -1306,7 +1316,20 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
       };
       await upsertPage(page);
       updateMemo(memo.id, { wikiPageId: page.id });
-      notify.success('위키 페이지로 보냈어요', {
+
+      // 보낸 후 메모 처리
+      if (afterAction === 'archive') {
+        archiveMemo(memo.id);
+      } else if (afterAction === 'delete') {
+        removeMemo(memo.id);
+      }
+
+      const msg = afterAction === 'keep'
+        ? '위키로 보냈어요'
+        : afterAction === 'archive'
+          ? '위키로 보내고 메모는 보관함으로 옮겼어요'
+          : '위키로 보내고 메모는 삭제했어요';
+      notify.success(msg, {
         duration: 3500,
         action: { label: '위키 열기', onClick: () => navigate('/wiki') },
       });
@@ -1329,6 +1352,18 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">위키로 보내기</p>
             <h3 className="text-[16px] font-semibold text-foreground truncate">{title}</h3>
+            {tagsPreview.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {tagsPreview.slice(0, 5).map((t) => (
+                  <span key={t} className="text-[10.5px] text-foreground/65 px-1.5 py-0.5 rounded bg-accent/50">
+                    #{t}
+                  </span>
+                ))}
+                {tagsPreview.length > 5 && (
+                  <span className="text-[10.5px] text-foreground/45 tabular-nums">+{tagsPreview.length - 5}</span>
+                )}
+              </div>
+            )}
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="닫기">
             <X className="w-4 h-4" strokeWidth={1.5} />
@@ -1336,31 +1371,60 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
         </div>
 
         <div className="px-5 py-4 space-y-4">
+          {/* 별칭 — 검색/링크용 */}
           <div>
-            <label className="text-[12px] font-semibold text-foreground block mb-2.5">어떤 type 으로?</label>
-            <div className="grid grid-cols-2 gap-2">
-              {USER_FACING_TYPES.filter((t) => t !== 'index').map((t) => {
-                const meta = WIKI_TYPE_META[t];
-                const active = wikiType === t;
+            <label className="text-[12px] font-semibold text-foreground block mb-1.5">
+              별칭 <span className="text-foreground/45 font-normal">(선택, 쉼표로 구분)</span>
+            </label>
+            <input
+              type="text"
+              value={aliases}
+              onChange={(e) => setAliases(e.target.value)}
+              placeholder="예) AI, 인공지능, ML"
+              className="w-full px-3 py-2 text-[13px] rounded-md border border-foreground/20 bg-card focus:border-foreground/40 focus:outline-none"
+            />
+            <p className="mt-1 text-[11px] text-foreground/55 leading-snug">
+              나중에 다른 페이지에서 [[별칭]] 으로 이 페이지를 링크할 수 있어요.
+            </p>
+          </div>
+
+          {/* 보낸 후 메모 처리 */}
+          <div>
+            <label className="text-[12px] font-semibold text-foreground block mb-1.5">
+              보낸 후 메모는?
+            </label>
+            <div className="grid grid-cols-3 gap-1">
+              {([
+                { id: 'keep' as const,    label: '그대로',   hint: '메모도 유지' },
+                { id: 'archive' as const, label: '보관함',   hint: '나중에 복원 가능' },
+                { id: 'delete' as const,  label: '삭제',     hint: '완전히 제거' },
+              ]).map((opt) => {
+                const active = afterAction === opt.id;
                 return (
                   <button
-                    key={t}
-                    onClick={() => setWikiType(t)}
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setAfterAction(opt.id)}
                     className={cn(
-                      'inline-flex items-center gap-2 px-3 py-2.5 rounded-md border text-[13px] transition-colors',
+                      'flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border text-left transition-colors',
                       active
-                        ? 'bg-primary/10 text-primary border-primary/40'
-                        : 'bg-card text-foreground border-[hsl(var(--hairline))] hover:bg-accent',
+                        ? 'bg-foreground/8 ring-1 ring-inset ring-foreground/30 border-transparent'
+                        : 'bg-card border-foreground/15 hover:border-foreground/30',
+                      opt.id === 'delete' && active && 'ring-rose-500/40 bg-rose-500/8',
                     )}
                   >
-                    <span>{meta.icon}</span>
-                    <span className="font-medium">{meta.label}</span>
+                    <span className={cn(
+                      'text-[12.5px] font-semibold',
+                      active && opt.id === 'delete' ? 'text-rose-600 dark:text-rose-400' : 'text-foreground',
+                    )}>
+                      {opt.label}
+                    </span>
+                    <span className="text-[10.5px] text-foreground/55 leading-tight">{opt.hint}</span>
                   </button>
                 );
               })}
             </div>
           </div>
-
         </div>
 
         <div className="shrink-0 px-5 py-3 border-t border-foreground/22 bg-accent/20 flex items-center justify-between gap-3">

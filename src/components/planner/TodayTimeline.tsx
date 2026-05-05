@@ -599,7 +599,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                       {height >= 34 && (
                       <div className="flex items-center gap-1">
                         <span className="text-[10.5px] font-mono tabular-nums text-foreground/65 tracking-wide leading-none font-semibold">
-                          {formatHm(startAt)}
+                          {formatHm(startAt)} ~ {formatHm(endAt)}
                         </span>
                         {height >= 60 && (
                           <span className="text-[9.5px] font-mono tabular-nums text-foreground/50 leading-none">

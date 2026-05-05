@@ -397,26 +397,13 @@ const Planner = () => {
     setActiveDrag((prev) => (prev ? { ...prev, deltaY: e.delta.y } : prev));
   }, []);
 
-  // 드래그 중 시간 미리보기 — 블록 이동/리사이즈 둘 다.
+  // 드래그 중 시간 미리보기 (DragOverlay).
+  // - scheduled (시간표 안 이동): 블록 자체가 transform 으로 따라옴 + 블록 안 라이브 라벨로 충분 → null
+  // - inbox-task (대기함 → 시간표): 새 task 라 위치 미정, 작은 라벨 칩만 마우스 옆에 표시
+  // - resize: 네이티브 pointer event 가 처리, 블록 안 inline chip
   const previewLabel = useMemo(() => {
     if (!activeDrag) return null;
-    const { data, deltaY } = activeDrag;
-    const HOUR_PX = 56;
-    const fmtTime = (d: Date) =>
-      d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-    if (data.kind === 'scheduled-task' || data.kind === 'scheduled-event') {
-      const item = data.kind === 'scheduled-task' ? data.task : data.event;
-      if (!item.startAt || !item.endAt) return null;
-      const oldStart = new Date(item.startAt);
-      const dur = new Date(item.endAt).getTime() - oldStart.getTime();
-      const deltaMin = Math.round((deltaY / HOUR_PX) * 60 / 15) * 15;
-      const newStart = new Date(oldStart.getTime() + deltaMin * 60_000);
-      const newEnd = new Date(newStart.getTime() + dur);
-      return `${fmtTime(newStart)} ~ ${fmtTime(newEnd)}`;
-    }
-    // resize 는 더 이상 dnd-kit 통과 X — DraggableBlock 안에서 네이티브 pointer event 로 처리.
-    // 블록 자체가 늘어나면서 안 inline chip 으로 시간/길이 노출 (Google Calendar 패턴).
+    const { data } = activeDrag;
     if (data.kind === 'inbox-task') {
       return `← ${data.task.title}`;
     }
