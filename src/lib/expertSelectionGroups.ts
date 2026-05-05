@@ -125,9 +125,10 @@ export function buildExpertSelectionGroups({
   const allAiItems = orderAiModels(experts, ['ancano-pro']);
   const aiById = new Map(allAiItems.map((e) => [e.id, e]));
 
-  // 추천 — RECOMMENDED_MODEL_IDS 순서대로, 누락 ID 는 무시
+  // 추천 — RECOMMENDED_MODEL_IDS 순서대로, 누락 ID 는 무시.
+  // 전체 experts 에서 찾음 (ancano-pro 등 allAiItems 에서 제외된 special agent 도 포함 가능).
   const recommendedItems = RECOMMENDED_MODEL_IDS
-    .map((id) => aiById.get(id))
+    .map((id) => experts.find((e) => e.id === id))
     .filter(Boolean) as Expert[];
 
   // 빠른 — FAST_MODEL_IDS 중 실제 존재하는 모델만
