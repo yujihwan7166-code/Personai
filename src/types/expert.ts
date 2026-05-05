@@ -22,7 +22,7 @@ export const EXPERT_CATEGORY_LABELS: Record<ExpertCategory, string> = {
     ideology: '이념',
     perspective: '페르소나',
     religion: '철학/종교',
-    lifestyle: '라이프스타일',
+    lifestyle: '라이프',
 };
 
 export const EXPERT_CATEGORY_ORDER: ExpertCategory[] = ['ai', 'occupation', 'specialist', 'religion', 'ideology', 'lifestyle', 'perspective', 'celebrity', 'fictional', 'mythology', 'region'];
