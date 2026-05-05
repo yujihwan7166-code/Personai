@@ -694,8 +694,6 @@ const Planner = () => {
             <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto">
               <PlannerSidebar
                 anchorIso={anchorIso}
-                view={view}
-                onViewChange={setView}
                 onSelectDay={(dayIso) => {
                   setAnchorIso(dayIso);
                   setView('day');
@@ -772,6 +770,8 @@ const Planner = () => {
                       hidePreview
                     />
                   </div>
+                  {/* 뷰 토글 — 우측 끝 (Google Calendar 패턴: utility 우측). */}
+                  <ViewToggle value={view} onChange={setView} />
                 </div>
                 {/* 좌측: 계획(시간 잡힌 리스트) + 할 일(체크리스트) stack / 우측: 타임라인. */}
                 <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-3">

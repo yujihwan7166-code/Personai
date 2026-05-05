@@ -102,17 +102,18 @@ export const JournalWeekBoard = ({
   return (
     <section
       className={cn(
-        // 탭 + 본문이 하나의 큰 통합 카드 — mockup 양식
-        'rounded-xl border bg-card overflow-hidden transition-all',
+        // 탭 + 본문이 하나의 큰 통합 카드 — Linear/Apple Calendar 톤
+        'rounded-2xl border bg-card overflow-hidden transition-all',
         'border-[hsl(var(--hairline))]',
+        'shadow-[0_1px_2px_hsl(30_30%_8%/0.04),0_4px_16px_-8px_hsl(30_30%_8%/0.06)]',
         isSelectedFuture && 'opacity-95',
       )}
     >
-      {/* ── 상단 7-day 탭 row — 요일만, panel 상단 row 형태 ── */}
+      {/* ── 상단 7-day 탭 row — Apple Calendar 패턴 (underline indicator) ── */}
       <div
         role="tablist"
         aria-label="요일 선택"
-        className="grid grid-cols-7 border-b border-[hsl(var(--hairline))]"
+        className="grid grid-cols-7 border-b border-[hsl(var(--hairline))] bg-card/40"
       >
         {days.map((d, i) => {
           const key = ymd(d);
@@ -121,7 +122,6 @@ export const JournalWeekBoard = ({
           const isToday = key === today;
           const isFuture = key > today;
           const isSelected = key === selectedDay;
-          const isLast = i === days.length - 1;
 
           return (
             <button
@@ -138,44 +138,43 @@ export const JournalWeekBoard = ({
                     : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
               }
               className={cn(
-                'relative flex items-center justify-center h-14 sm:h-16 transition-colors',
-                !isLast && 'border-r border-[hsl(var(--hairline))]',
-                isSelected
-                  ? 'bg-amber-100/70 dark:bg-amber-500/15'
-                  : 'hover:bg-accent/50',
-                isFuture && !isSelected && 'opacity-55',
+                'group/tab relative flex items-center justify-center h-14 sm:h-16 transition-all',
+                !isSelected && 'hover:bg-accent/40',
+                isFuture && !isSelected && 'opacity-50',
               )}
             >
               <span
                 className={cn(
-                  'text-[18px] sm:text-[20px] font-bold tracking-tight',
+                  'text-[18px] sm:text-[20px] tracking-tight transition-colors',
                   isSelected
-                    ? 'text-amber-900 dark:text-amber-200'
+                    ? 'font-bold text-foreground'
                     : isToday
-                      ? 'text-primary'
-                      : 'text-foreground/85',
+                      ? 'font-bold text-primary'
+                      : 'font-medium text-muted-foreground group-hover/tab:text-foreground/80',
                 )}
                 style={{
                   fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                  letterSpacing: '-0.01em',
+                  letterSpacing: '-0.012em',
                 }}
               >
                 {WEEKDAYS_KO[i]}
               </span>
-              {/* 작성된 날 우하단 작은 dot */}
+
+              {/* 작성된 날 — 요일 글자 옆 작은 dot (mood 색 빼고 단순) */}
               {hasEntry && (
                 <span
                   className={cn(
-                    'absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full',
-                    isSelected ? 'bg-amber-700/70 dark:bg-amber-300/70' : 'bg-foreground/45',
+                    'absolute bottom-3 left-1/2 -translate-x-1/2 translate-x-[18px] w-1 h-1 rounded-full',
+                    isSelected ? 'bg-foreground/70' : 'bg-foreground/35',
                   )}
                   aria-hidden
                 />
               )}
-              {/* 오늘 = 우상단 매우 작은 primary dot */}
-              {isToday && !isSelected && (
+
+              {/* 선택된 탭 underline indicator — Apple Calendar 패턴 */}
+              {isSelected && (
                 <span
-                  className="absolute top-1.5 right-1.5 w-1 h-1 rounded-full bg-primary"
+                  className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-foreground"
                   aria-hidden
                 />
               )}
