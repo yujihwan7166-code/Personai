@@ -1009,18 +1009,18 @@ export function AppSidebar({
           !isOpen && 'max-md:-translate-x-full',
         )}
       >
-        {/* ── 1. Header — mark 심볼 + 워드마크 + 토글 (밀도 통일 h-10, nav 와 같은 톤·크기) ── */}
-        <div className={cn("shrink-0 flex items-center h-10 transition-all duration-300", isOpen ? 'justify-between px-2' : 'justify-center px-0')}>
+        {/* ── 1. Header — mark 심볼 + 워드마크 + 토글 (h-11, ANCANO 격조 ↑) ── */}
+        <div className={cn("shrink-0 flex items-center h-11 transition-all duration-300", isOpen ? 'justify-between px-2.5' : 'justify-center px-0')}>
           {isOpen ? (
             <>
               <button
                 onClick={handleGoHome}
-                className="flex items-center gap-2 h-8 px-1 -ml-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors group"
+                className="flex items-center gap-2 h-8 pl-1 pr-1.5 -ml-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors group"
                 title="메인으로"
               >
-                <img src="/logos/ancano/mark_128.png" alt="" className="h-[22px] w-[22px] object-contain dark:hidden" />
-                <img src="/logos/ancano/icon_dark_128.png" alt="" className="h-[22px] w-[22px] object-contain hidden dark:block" />
-                <span className="text-[13.5px] font-semibold tracking-[0.1em] text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white">ANCANO</span>
+                <img src="/logos/ancano/mark_128.png" alt="" className="h-6 w-6 object-contain dark:hidden" />
+                <img src="/logos/ancano/icon_dark_128.png" alt="" className="h-6 w-6 object-contain hidden dark:block" />
+                <span className="text-[15px] font-semibold tracking-[0.12em] text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white leading-none">ANCANO</span>
               </button>
               <button onClick={toggleSidebar} className="p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="사이드바 접기">
                 <ChevronsLeft className="w-[15px] h-[15px]" />
