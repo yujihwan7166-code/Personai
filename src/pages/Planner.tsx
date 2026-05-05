@@ -665,12 +665,12 @@ const Planner = () => {
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <div className="min-w-0 flex items-baseline gap-2.5">
+              <div className="min-w-0 flex items-baseline gap-3">
                 <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-foreground leading-none truncate">
                   {headerLabels.primary}
                 </h2>
                 {headerLabels.secondary && (
-                  <span className="hidden sm:inline text-[14px] text-foreground/70 tabular-nums font-medium">
+                  <span className="hidden sm:inline text-[18px] sm:text-[20px] text-foreground/70 tabular-nums font-semibold leading-none">
                     {headerLabels.secondary}
                   </span>
                 )}
