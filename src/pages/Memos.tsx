@@ -847,7 +847,7 @@ function MemoRow({
             : 'flex items-center gap-2 h-8 px-3',
           hasActions && 'pr-9',
           active
-            ? 'bg-primary/15 text-foreground shadow-[inset_4px_0_0_0_hsl(var(--primary))]'
+            ? 'bg-foreground/8 ring-1 ring-inset ring-foreground/15 text-foreground'
             : 'text-foreground hover:bg-accent',
           archived && 'opacity-70',
         )}
@@ -874,7 +874,7 @@ function MemoRow({
               )}
               <span className={cn(
                 'tabular-nums text-[10.5px] shrink-0 font-medium',
-                active ? 'text-primary' : 'text-muted-foreground',
+                active ? 'text-foreground/70' : 'text-muted-foreground',
                 hasActions && 'group-hover:invisible',
               )}>
                 {memoTimeLabel(memo.updatedAt)}
