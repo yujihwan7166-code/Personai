@@ -121,7 +121,7 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
       </div>
 
       {/* 본문 — 스크롤 */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2.5">
         {/* streak 상태 한 줄 — 위기/완료 시에만 노출 (기본 "다음 예정: 오늘" placeholder 는 가치 없음) */}
         {((todayScheduled && !todayDone && stats.streak >= 3) || todayDone) && (
           <div className={cn(
@@ -151,13 +151,13 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
             { Icon: Calendar, label: '이번 달', value: stats.monthCount, unit: '일', accent: 'text-blue-600 dark:text-blue-400' },
             { Icon: Trophy, label: '베스트', value: stats.max, unit: '일', accent: 'text-amber-600 dark:text-amber-400' },
           ].map(({ Icon, label, value, unit, accent }) => (
-            <div key={label} className="flex flex-col items-center justify-center gap-1 px-2 py-3 text-center">
+            <div key={label} className="flex flex-col items-center justify-center gap-0.5 px-2 py-2 text-center">
               <div className={cn('flex items-center gap-1', accent)}>
                 <Icon className="h-3 w-3" />
                 <span className="text-[10.5px] font-semibold tracking-wide text-foreground/65">{label}</span>
               </div>
               <div className="flex items-baseline gap-0.5">
-                <span className={cn('text-[20px] font-bold tabular-nums leading-none', accent)}>{value}</span>
+                <span className={cn('text-[17px] font-bold tabular-nums leading-none', accent)}>{value}</span>
                 <span className="text-[10.5px] text-foreground/50">{unit}</span>
               </div>
             </div>
@@ -165,7 +165,7 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
         </div>
 
         {/* 월 캘린더 */}
-        <div className="rounded-lg border border-[hsl(var(--hairline))] p-3">
+        <div className="rounded-lg border border-[hsl(var(--hairline))] p-2.5">
           <HabitMonthGrid
             habit={habit}
             year={viewYear}
@@ -175,8 +175,8 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
         </div>
 
         {/* 365일 히트맵 */}
-        <div className="rounded-lg border border-[hsl(var(--hairline))] p-3">
-          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2">
+        <div className="rounded-lg border border-[hsl(var(--hairline))] p-2.5">
+          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-1.5">
             연간 패턴
           </div>
           <HabitYearHeatmap habit={habit} checkins={allCheckins} />

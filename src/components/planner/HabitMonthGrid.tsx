@@ -96,9 +96,9 @@ export const HabitMonthGrid = ({ habit, year, month1Indexed, onChangeMonth }: Ha
       </div>
 
       {/* 그리드 — 각 cell 은 큰 원 + 안에 날짜 숫자 (체크 시 색 fill + 흰 숫자) */}
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-1">
         {cells.map((d, i) => {
-          if (!d) return <div key={`pad-${i}`} className="h-10" />;
+          if (!d) return <div key={`pad-${i}`} className="h-8" />;
           const dk = toDateKey(d);
           const sched = isScheduledOn(habit, dk);
           const ci = checkinMap.get(dk);
@@ -123,7 +123,7 @@ export const HabitMonthGrid = ({ habit, year, month1Indexed, onChangeMonth }: Ha
                     : undefined
               }
               className={cn(
-                'h-10 inline-flex items-center justify-center rounded-full text-[12px] font-medium tabular-nums transition-all',
+                'h-8 inline-flex items-center justify-center rounded-full text-[11.5px] font-medium tabular-nums transition-all',
                 'border-[1.5px] hover:scale-105 active:scale-95',
                 !sched && !completed && !partial && 'border-transparent',
                 sched && !completed && !partial && 'border-foreground/15 hover:border-foreground/35',
