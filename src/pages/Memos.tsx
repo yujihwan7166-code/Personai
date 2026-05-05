@@ -189,12 +189,12 @@ const Memos = () => {
     <div className="min-h-screen flex bg-background">
       {/* 좌 사이드 */}
       <aside className={cn(
-        'shrink-0 border-r border-foreground/15 bg-card flex flex-col',
+        'shrink-0 border-r border-foreground/25 bg-card flex flex-col',
         isMobile ? 'w-full' : 'w-[320px]',
         !showSidebar && 'hidden',
       )}>
         {/* 상단 — 뒤로 + 제목 + 새 메모 */}
-        <div className="shrink-0 px-3.5 py-3 border-b border-foreground/12 flex items-center gap-2">
+        <div className="shrink-0 px-3.5 py-3 border-b border-foreground/22 flex items-center gap-2">
           <button
             onClick={() => navigate('/')}
             className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -226,7 +226,7 @@ const Memos = () => {
         </div>
 
         {/* 검색 */}
-        <div className="shrink-0 px-3.5 py-2.5 border-b border-foreground/12">
+        <div className="shrink-0 px-3.5 py-2.5 border-b border-foreground/22">
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/50">
             <Search className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
             <input
@@ -353,7 +353,7 @@ const Memos = () => {
 
               {/* 태그 — 하단 칩 */}
               {tags.length > 0 && (
-                <div className="px-3.5 py-3 mt-2 border-t border-[hsl(var(--hairline))]">
+                <div className="px-3.5 py-3 mt-2 border-t border-foreground/22">
                   <div className="flex flex-wrap gap-1.5">
                     {tags.slice(0, 12).map(([tag, n]) => (
                       <button
@@ -720,7 +720,7 @@ function FolderEditModal({
           </div>
 
           {/* footer */}
-          <div className="flex items-center justify-between pt-3 mt-1 border-t border-[hsl(var(--hairline))]">
+          <div className="flex items-center justify-between pt-3 mt-1 border-t border-foreground/22">
             <button
               type="button"
               onClick={onDelete}
@@ -763,10 +763,10 @@ function MoveToFolderModal({ memo, folders, onClose }: { memo: Memo; folders: Me
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-foreground/15 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[380px] bg-card rounded-lg border border-[hsl(var(--hairline))] shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col"
+        className="relative w-full max-w-[380px] bg-card rounded-lg border border-foreground/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="shrink-0 px-5 py-3.5 border-b border-[hsl(var(--hairline))] flex items-center justify-between">
+        <div className="shrink-0 px-5 py-3.5 border-b border-foreground/22 flex items-center justify-between">
           <h3 className="text-[14px] font-semibold text-foreground">폴더 이동</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="닫기">
             <X className="w-4 h-4" strokeWidth={1.5} />
@@ -1064,7 +1064,7 @@ function MemoEditor({
   return (
     <>
       {/* 상단 액션바 — TipTap 툴바(중앙) + 위키 + ⋯ */}
-      <div className="shrink-0 px-3 py-2 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
+      <div className="shrink-0 px-3 py-2 border-b border-foreground/22 flex items-center gap-2">
         {onBackToList && (
           <button
             onClick={onBackToList}
@@ -1146,34 +1146,6 @@ function MemoEditor({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuItem
-              onClick={() => {
-                // 첫 줄 = 제목, 나머지 = note. 자연어 파싱은 plannerInput 만 — 메모는 raw 변환.
-                const lines = draft.split('\n');
-                const title = (lines[0] ?? '').trim();
-                if (!title) {
-                  notify.warning('제목(첫 줄)이 비어있어요');
-                  return;
-                }
-                const note = lines.slice(1).join('\n').trim();
-                // 동적 import 회피 — 직접 import.
-                import('@/services/planner/taskStore').then(({ taskStore }) => {
-                  taskStore.add({
-                    title: title.length > 120 ? title.slice(0, 120) : title,
-                    note: note.length > 0 ? note : undefined,
-                  });
-                  notify.success('할 일로 추가됐어요', {
-                    duration: 3500,
-                    action: { label: '플래너 열기', onClick: () => navigate('/planner') },
-                  });
-                });
-              }}
-              disabled={!draft.trim()}
-            >
-              <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-              할 일로 보내기
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onPin}>
               <Pin className="w-3.5 h-3.5 mr-2" fill={memo.pinned ? 'currentColor' : 'none'} strokeWidth={1.75} />
               {memo.pinned ? '고정 해제' : '맨 위에 고정'}
@@ -1210,7 +1182,7 @@ function MemoEditor({
         <div className="shrink-0 px-6 sm:px-10 pt-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {memo.images!.map((img) => (
-              <div key={img.id} className="relative group/img rounded-md overflow-hidden border border-[hsl(var(--hairline))] aspect-video bg-foreground/5">
+              <div key={img.id} className="relative group/img rounded-md overflow-hidden border border-foreground/20 aspect-video bg-foreground/5">
                 <img
                   src={img.dataUrl}
                   alt={img.name ?? 'attached'}
@@ -1255,7 +1227,7 @@ function MemoEditor({
       </div>
 
       {/* 하단 메타 */}
-      <div className="shrink-0 px-6 sm:px-10 py-2.5 border-t border-[hsl(var(--hairline))] flex items-center gap-3 text-[12px] text-muted-foreground">
+      <div className="shrink-0 px-6 sm:px-10 py-2.5 border-t border-foreground/22 flex items-center gap-3 text-[12px] text-muted-foreground">
         <span className="tabular-nums">{charCount.toLocaleString()}자</span>
         {tags.length > 0 && (
           <>
@@ -1350,10 +1322,10 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-foreground/15 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[440px] bg-card rounded-lg border border-[hsl(var(--hairline))] shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col"
+        className="relative w-full max-w-[440px] bg-card rounded-lg border border-foreground/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="shrink-0 px-5 py-4 border-b border-[hsl(var(--hairline))] flex items-start gap-3">
+        <div className="shrink-0 px-5 py-4 border-b border-foreground/22 flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">위키로 보내기</p>
             <h3 className="text-[16px] font-semibold text-foreground truncate">{title}</h3>
@@ -1391,7 +1363,7 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
 
         </div>
 
-        <div className="shrink-0 px-5 py-3 border-t border-[hsl(var(--hairline))] bg-accent/20 flex items-center justify-between gap-3">
+        <div className="shrink-0 px-5 py-3 border-t border-foreground/22 bg-accent/20 flex items-center justify-between gap-3">
           <button onClick={onClose} className="text-[13px] text-muted-foreground hover:text-foreground">취소</button>
           <button
             onClick={submit}
