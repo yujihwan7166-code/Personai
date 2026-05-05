@@ -29,7 +29,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFavoriteExperts } from '@/hooks/useFavoriteExperts';
 import { useHoverExpertTip } from '@/hooks/useHoverExpertTip';
 import { useMainModeTransition } from '@/hooks/useMainModeTransition';
-import { buildExpertSelectionGroups, FAST_MODEL_IDS, RESEARCH_AGENT_IDS } from '@/lib/expertSelectionGroups';
+import { buildExpertSelectionGroups, RESEARCH_AGENT_IDS, isAiGroupCat } from '@/lib/expertSelectionGroups';
+import { BRAND_LABEL, BRAND_ORDER, MODEL_BRAND, MODEL_IS_OPENSOURCE, type ModelBrand } from '@/lib/modelTaxonomy';
 import { BrowserEnginePicker } from '@/components/BrowserEnginePicker';
 import { runSearch } from '@/lib/searchEngines';
 import { useSelectedSearchEngine } from '@/hooks/useSelectedSearchEngine';
@@ -1983,10 +1984,11 @@ export function ExpertSelectionPanel({
   const { user, profile } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>('ai');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
+  // 전체 모델 탭의 2차 브랜드 필터: 'all' | ModelBrand | 'opensource'
+  const [activeBrandFilter, setActiveBrandFilter] = useState<'all' | ModelBrand | 'opensource'>('all');
   // 이스터에그 — 즐겨찾기 탭 5번 연속 클릭 시 발동.
   const [favTabClicks, setFavTabClicks] = useState(0);
   const [easterEggOpen, setEasterEggOpen] = useState(false);
-  const [aiModelExpanded, setAiModelExpanded] = useState(false);
   const isProcon = discussionMode === 'procon';
   const [proconAssignMode, setProconAssignMode] = useState<'manual' | 'auto'>('manual');
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -2260,7 +2262,7 @@ export function ExpertSelectionPanel({
     ];
   }, [grouped, showBrowserTab]);
   const validCats = groupedWithBrowser.map(g => g.cat);
-  const aiBlocked = isStandardOrProcon && activeCategory === 'ai';
+  const aiBlocked = isStandardOrProcon && isAiGroupCat(activeCategory);
   const effectiveCategory = aiBlocked
     ? (validCats.find(c => c === 'specialist') || validCats[0] || 'ai')
     : (validCats.includes(activeCategory) ? activeCategory : validCats[0] || 'ai');
@@ -2547,7 +2549,7 @@ export function ExpertSelectionPanel({
                   <div className="flex flex-1 min-w-0 gap-0.5">
                     {groupedWithBrowser.filter(g => !['region', 'mythology', 'fictional'].includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
-                      const isAiTab = cat === 'ai';
+                      const isAiTab = isAiGroupCat(cat);
                       const isAiDisabled = isAiTab && isStandardOrProcon;
                       return (
                         <button key={cat} type="button"
@@ -2556,6 +2558,8 @@ export function ExpertSelectionPanel({
                             if (isAiDisabled) return;
                             setActiveCategory(cat);
                             setActiveSubCategory('전체');
+                            // 전체 모델 탭으로 진입 시 브랜드 필터는 항상 '전체'로 리셋.
+                            if (cat === 'ai') setActiveBrandFilter('all');
                             // 이스터에그 트리거 — 즐겨찾기 탭만 카운트, 다른 탭 누르면 리셋.
                             if (cat === 'favorites') {
                               setFavTabClicks((n) => {
@@ -2638,15 +2642,51 @@ export function ExpertSelectionPanel({
             <BrowserEnginePicker />
           )}
 
+          {/* 전체 모델 탭 — 2차 브랜드 필터 칩 (전체 / GPT / Claude / ... / 오픈소스) */}
+          {effectiveCategory === 'ai' && !searchMode && (
+            <div className="flex items-center gap-1 px-3 pt-0 pb-1.5 overflow-x-auto scrollbar-none">
+              {(['all', ...BRAND_ORDER, 'opensource'] as const).map((brand) => {
+                const isActive = activeBrandFilter === brand;
+                const label = brand === 'all'
+                  ? '전체'
+                  : brand === 'opensource'
+                    ? '🌐 오픈소스'
+                    : BRAND_LABEL[brand as ModelBrand];
+                return (
+                  <button
+                    key={brand}
+                    type="button"
+                    onClick={() => setActiveBrandFilter(brand)}
+                    className={cn(
+                      'px-2 py-0.5 rounded text-[9.5px] whitespace-nowrap transition-all duration-150 border font-medium',
+                      isActive
+                        ? 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600'
+                        : 'text-slate-400 hover:text-slate-600 border-transparent hover:border-slate-200 dark:hover:text-slate-200',
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Expert grid */}
           {effectiveCategory !== 'browser' && (searchMode && searchQuery.trim()
             ? [{ cat: 'search' as ExpertCategory, label: '검색', items: experts.filter(e => e.id !== 'router' && (e.nameKo.includes(searchQuery) || e.name.toLowerCase().includes(searchQuery.toLowerCase()) || e.description.includes(searchQuery))) }]
             : grouped.filter(({ cat }) => cat === effectiveCategory)
           ).map(({ cat, items }) => {
             const subCats = searchMode ? undefined : EXPERT_SUB_CATEGORIES[cat as ExpertCategory];
-            const filtered = !subCats || activeSubCategory === '전체'
+            const subFiltered = !subCats || activeSubCategory === '전체'
               ? items : items.filter(e => e.subCategory === activeSubCategory);
-            const isAiCategory = cat === 'ai';
+            // 전체 모델 탭 한정: 브랜드 필터 적용
+            const filtered = (cat === 'ai' && activeBrandFilter !== 'all')
+              ? subFiltered.filter((e) => {
+                  if (activeBrandFilter === 'opensource') return MODEL_IS_OPENSOURCE.has(e.id);
+                  return MODEL_BRAND[e.id] === activeBrandFilter;
+                })
+              : subFiltered;
+            const isAiCategory = isAiGroupCat(cat);
             const displayItems = filtered;
 
             /* ── Helper: render a single expert cell ── */
@@ -2714,51 +2754,29 @@ export function ExpertSelectionPanel({
 
             return (
               <div key={cat} className="relative bg-white">
-                {/* AI 통합 탭: 빠른 모델 + 모든 모델 보기 */}
+                {/* AI 큐레이션 탭(추천/빠른/추론) + 전체 모델 탭 — 단순 그리드.
+                    탭별 items 는 buildExpertSelectionGroups 에서 이미 필터됨.
+                    'ai' 탭만 추가로 브랜드 칩 필터 적용. */}
                 {isAiCategory && !searchMode && (
                   <div className="px-3 pt-1.5 pb-1.5">
-                    {/* 메인 한 줄: 빠른 모델 */}
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
-                      {FAST_MODEL_IDS.map(id => {
-                        const expert = visibleItems.find(e => e.id === id);
-                        return expert ? renderExpertCell(expert) : null;
-                      })}
-                    </div>
-                    {/* 모든 모델 보기 / 접기 토글 */}
-                    {!aiModelExpanded && (
-                      <button
-                        type="button"
-                        onClick={() => setAiModelExpanded(true)}
-                        className="w-full mt-1 py-0.5 text-[10px] text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1"
-                      >
-                        모든 모델 보기
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
-                    )}
-                    {/* 펼쳐진 전체 모델 목록 + 하단 접기 */}
-                    {aiModelExpanded && (
-                      <>
-                        <div className="flex items-center gap-1.5 mt-2 mb-1 px-0.5">
-                          <span className="text-[10px] font-bold text-slate-500">전체 모델</span>
-                          <span className="text-[9px] text-slate-400">·</span>
-                          <span className="text-[9px] text-slate-400">출시순 정렬</span>
-                        </div>
-                        <div className="max-h-[185px] overflow-y-auto scrollbar-thin border-t border-slate-100 pt-2">
-                          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2">
-                            {visibleItems
-                              .filter(e => !FAST_MODEL_IDS.includes(e.id as typeof FAST_MODEL_IDS[number]))
-                              .map(expert => renderExpertCell(expert))}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setAiModelExpanded(false)}
-                          className="w-full mt-0.5 py-0.5 text-[10px] text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1"
-                        >
-                          접기
-                          <ChevronDown className="w-3 h-3 rotate-180" />
-                        </button>
-                      </>
+                    {visibleItems.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-[12px] text-slate-400">
+                          {cat === 'favorites'
+                            ? '⭐을 눌러 즐겨찾기에 추가하세요'
+                            : cat === 'ai' && activeBrandFilter !== 'all'
+                              ? '해당 브랜드 모델이 없습니다'
+                              : '표시할 모델이 없습니다'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className={cn(
+                        'grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2',
+                        // 전체 모델 탭은 모델 수 많아 스크롤 영역으로
+                        cat === 'ai' && 'max-h-[260px] overflow-y-auto scrollbar-thin',
+                      )}>
+                        {visibleItems.map(expert => renderExpertCell(expert))}
+                      </div>
                     )}
                   </div>
                 )}

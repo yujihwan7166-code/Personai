@@ -3,6 +3,10 @@ import {
   type Expert,
   type ExpertCategory,
 } from '@/types/expert';
+import {
+  MODEL_IS_REASONING,
+  RECOMMENDED_MODEL_IDS,
+} from '@/lib/modelTaxonomy';
 
 export interface ExpertSelectionGroup {
   cat: string;
@@ -105,7 +109,7 @@ export function buildExpertSelectionGroups({
   experts,
   favoriteIds,
   visibleCategories,
-  aiAgentIds,
+  aiAgentIds: _aiAgentIds,
 }: {
   experts: Expert[];
   favoriteIds: string[];
@@ -116,22 +120,44 @@ export function buildExpertSelectionGroups({
     .map((id) => experts.find((expert) => expert.id === id))
     .filter(Boolean) as Expert[];
 
-  // 모든 AI를 하나의 그룹으로 (출시순 정렬, ancano-pro 제외)
+  // ── AI 모델 큐레이션 그룹 ──
+  // 전체(출시순 정렬, ancano-pro 제외) — "전체 모델" 탭
   const allAiItems = orderAiModels(experts, ['ancano-pro']);
+  const aiById = new Map(allAiItems.map((e) => [e.id, e]));
+
+  // 추천 — RECOMMENDED_MODEL_IDS 순서대로, 누락 ID 는 무시
+  const recommendedItems = RECOMMENDED_MODEL_IDS
+    .map((id) => aiById.get(id))
+    .filter(Boolean) as Expert[];
+
+  // 빠른 — FAST_MODEL_IDS 중 실제 존재하는 모델만
+  const fastItems = FAST_MODEL_IDS
+    .map((id) => aiById.get(id))
+    .filter(Boolean) as Expert[];
+
+  // 추론 — MODEL_IS_REASONING 셋 안의 모델 (출시순 그대로)
+  const reasoningItems = allAiItems.filter((e) => MODEL_IS_REASONING.has(e.id));
+
+  // ── 직업/전문가 카테고리 (기존 유지) ──
+  const otherCategoryGroups = visibleCategories
+    .filter((category) => category !== 'ai')
+    .map((category) => ({
+      cat: category as string,
+      label: EXPERT_CATEGORY_LABELS[category],
+      items: experts.filter((expert) => expert.category === category),
+    }));
 
   return [
     { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
-    {
-      cat: 'ai',
-      label: 'AI 모델',
-      items: allAiItems,
-    },
-    ...visibleCategories
-      .filter((category) => category !== 'ai')
-      .map((category) => ({
-        cat: category as string,
-        label: EXPERT_CATEGORY_LABELS[category],
-        items: experts.filter((expert) => expert.category === category),
-      })),
+    { cat: 'ai_recommended', label: '추천', items: recommendedItems },
+    { cat: 'ai_fast', label: '빠른', items: fastItems },
+    { cat: 'ai_reasoning', label: '추론', items: reasoningItems },
+    { cat: 'ai', label: '전체 모델', items: allAiItems },
+    ...otherCategoryGroups,
   ].filter((group) => group.items.length > 0 || group.cat === 'favorites');
 }
+
+/** 'ai_*' 큐레이션 카테고리(추천/빠른/추론) 인지 + 'ai'(전체 모델) 인지 — 패널의 AI 그룹 분기에 사용. */
+export const AI_GROUP_CATS = ['ai', 'ai_recommended', 'ai_fast', 'ai_reasoning'] as const;
+export const isAiGroupCat = (cat: string): boolean =>
+  (AI_GROUP_CATS as readonly string[]).includes(cat);
