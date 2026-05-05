@@ -1,35 +1,30 @@
 /**
- * 주간 보드 — 월~일 7컬럼 weekly spread (Hobonichi Weeks · Sunsama 패턴).
+ * 주간 보드 — 상단 7-day 탭 strip + 선택된 day 의 일기 풀 뷰.
  *
- * 메인 뷰. 한 주가 한눈에 펼쳐진다.
- * 셀 = 그날의 일기 발췌 + 메타 (요일·일·mood·시간·태그·다중 entry 카운트).
+ * 패턴: Apple Calendar Day View · Things3 Today · iOS Reminders.
+ * - 상단: 월~일 7칸 탭 (요일 + 일 + mood dot/emoji + entry 카운트)
+ * - 본문: 선택된 day 의 entry 들 stack 또는 빈 상태 prompt
  *
- * - 작성된 날: bg-card + 본문 발췌 (Newsreader 14px / 1.7 / line-clamp-7)
- * - 빈 날: 옅은 placeholder + hover 시 "✏️ 적기" prompt
- * - 오늘: ring-2 ring-primary/40
- * - 미래: opacity-50 (입력 가능)
- *
- * 클릭:
- * - 본문 영역 → 그날 첫 entry 편집 모달
- * - 빈 셀 → 그날 새 entry 작성 (date 지정)
- * - "+N" → 그날 모든 entry 리스트 popover 토글
- *
- * 모바일 (lg 미만): 7컬럼 → vertical stack 7행 (Sunsama 모바일 패턴).
+ * UX:
+ * - 탭 클릭 → 그 day 선택
+ * - 빈 day 선택 시 본문 영역에 큰 ✏️ 적기 prompt
+ * - 여러 entry 일 때 stack (시간 오름차순)
+ * - 오늘 탭 = ring + 색 강조, 미래 탭 = opacity 50
  */
-import { useMemo, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Pencil, Plus, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { stripMarkdown } from '@/lib/journalMarkdown';
 import type { JournalEntry, Mood } from '@/types/journal';
-import { MOOD_EMOJI, MOOD_TINT } from '@/types/journal';
+import { MOOD_EMOJI, MOOD_TINT, ACTIVITY_META } from '@/types/journal';
 
 interface JournalWeekBoardProps {
   entries: JournalEntry[];
-  /** 주의 기준 날짜 ISO (이 날 포함 월~일). 미지정 시 오늘 기준 이번 주. */
-  anchorIso?: string;
-  /** 셀 클릭 — 그날 첫 entry 편집. */
+  /** 주의 기준 날짜 ISO (이 날 포함 월~일). */
+  anchorIso: string;
+  /** 본문 영역에서 entry 클릭 → 편집 모달. */
   onClickEntry: (entry: JournalEntry) => void;
-  /** 빈 날 클릭 — 그 날짜로 새 entry 시작. */
+  /** 빈 날 / "+ 더 적기" 클릭 → 그 날짜로 새 entry 작성. */
   onAddForDate: (dateIso: string) => void;
 }
 
@@ -44,9 +39,9 @@ function ymd(d: Date): string {
 }
 
 /** 주어진 날짜 기준 월요일 ~ 일요일 7개 Date 배열. */
-function weekDaysFromAnchor(anchorIso?: string): Date[] {
-  const anchor = anchorIso ? new Date(anchorIso) : new Date();
-  const day = anchor.getDay(); // 0=일 ~ 6=토
+function weekDaysFromAnchor(anchorIso: string): Date[] {
+  const anchor = new Date(anchorIso);
+  const day = anchor.getDay();
   const monOffset = day === 0 ? -6 : 1 - day;
   const monday = new Date(anchor);
   monday.setHours(0, 0, 0, 0);
@@ -58,6 +53,13 @@ function weekDaysFromAnchor(anchorIso?: string): Date[] {
   });
 }
 
+const formatTime = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
 export const JournalWeekBoard = ({
   entries,
   anchorIso,
@@ -67,7 +69,7 @@ export const JournalWeekBoard = ({
   const days = useMemo(() => weekDaysFromAnchor(anchorIso), [anchorIso]);
   const today = ymd(new Date());
 
-  // 날짜별 entry 인덱스 (시간 오름차순 — 첫 entry 가 그날 처음 쓴 것).
+  // 날짜별 entry 인덱스 (시간 오름차순).
   const byDate = useMemo(() => {
     const m = new Map<string, JournalEntry[]>();
     for (const e of entries) {
@@ -75,221 +77,320 @@ export const JournalWeekBoard = ({
       list.push(e);
       m.set(e.date, list);
     }
-    // 각 날짜 내부 시각순 정렬
-    m.forEach((arr) => {
-      arr.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-    });
+    m.forEach((arr) => arr.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
     return m;
   }, [entries]);
 
-  // 다중 entry stack popover — 어느 셀이 열려있는지
-  const [stackOpenDate, setStackOpenDate] = useState<string | null>(null);
+  // 선택된 day — 기본: 주 안에 오늘이 있으면 오늘, 아니면 월요일.
+  const defaultDay = useMemo(() => {
+    const todayInWeek = days.find((d) => ymd(d) === today);
+    return ymd(todayInWeek ?? days[0]);
+  }, [days, today]);
+
+  const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
+
+  // anchor 가 바뀌면 (다른 주로 이동) 선택 day 도 default 로 재설정
+  useEffect(() => {
+    setSelectedDay(defaultDay);
+  }, [defaultDay]);
+
+  const selectedDate = useMemo(() => new Date(`${selectedDay}T00:00:00`), [selectedDay]);
+  const selectedEntries = byDate.get(selectedDay) ?? [];
+  const isSelectedFuture = selectedDay > today;
+  const isSelectedToday = selectedDay === today;
 
   return (
-    <div
-      className={cn(
-        // 데스크톱: 7컬럼 grid
-        'grid gap-1.5',
-        'grid-cols-1 lg:grid-cols-7',
-      )}
-    >
-      {days.map((d, idx) => {
-        const key = ymd(d);
-        const dayEntries = byDate.get(key) ?? [];
-        const hasEntry = dayEntries.length > 0;
-        const isToday = key === today;
-        const isFuture = key > today;
-        const firstEntry = hasEntry ? dayEntries[0] : null;
+    <section className="flex flex-col gap-3">
+      {/* ── 상단 7-day 탭 strip ── */}
+      <div role="tablist" aria-label="요일 선택" className="grid grid-cols-7 gap-1.5">
+        {days.map((d, i) => {
+          const key = ymd(d);
+          const dayEntries = byDate.get(key) ?? [];
+          const hasEntry = dayEntries.length > 0;
+          const isToday = key === today;
+          const isFuture = key > today;
+          const isSelected = key === selectedDay;
+          const mood = hasEntry
+            ? (dayEntries.find((e) => e.mood !== undefined)?.mood as Mood | undefined)
+            : undefined;
+          const moodTint = mood !== undefined ? MOOD_TINT[mood] : null;
 
-        const mood = hasEntry
-          ? (dayEntries.find((e) => e.mood !== undefined)?.mood as Mood | undefined)
-          : undefined;
-        const moodEmoji = mood !== undefined ? MOOD_EMOJI[mood] : null;
-        const moodTint = mood !== undefined ? MOOD_TINT[mood] : null;
-
-        const previewBody = firstEntry
-          ? firstEntry.bodyFormat === 'markdown'
-            ? stripMarkdown(firstEntry.body)
-            : firstEntry.body
-          : '';
-        const trimmed = previewBody.trim();
-        const hasBody = trimmed.length > 0;
-
-        const time = firstEntry
-          ? new Date(firstEntry.createdAt).toLocaleTimeString('ko-KR', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false,
-            })
-          : null;
-
-        const stackOpen = stackOpenDate === key;
-
-        return (
-          <div
-            key={key}
-            className={cn(
-              'group/cell relative flex flex-col rounded-xl border bg-card transition-all',
-              'min-h-[200px] lg:min-h-[280px]',
-              'border-[hsl(var(--hairline))]',
-              !isFuture && 'hover:border-foreground/25 hover:shadow-[0_2px_10px_-4px_hsl(30_30%_8%/0.08)]',
-              isToday && 'ring-2 ring-primary/40 ring-offset-2 ring-offset-[hsl(var(--background))]',
-              isFuture && 'opacity-50',
-            )}
-          >
-            {/* 헤더 — 요일 + 일 + mood */}
-            <header
-              className={cn(
-                'flex items-center justify-between px-3 pt-2.5 pb-2 border-b border-[hsl(var(--hairline))]',
-              )}
-            >
-              <div className="flex items-baseline gap-1.5 min-w-0">
-                <span
-                  className={cn(
-                    'text-[10px] font-mono uppercase tracking-[0.18em]',
-                    isToday ? 'text-primary' : 'text-muted-foreground',
-                  )}
-                >
-                  {WEEKDAYS_KO[idx]}
-                </span>
-                <span
-                  className={cn(
-                    'text-[20px] tabular-nums leading-none font-bold',
-                    isToday ? 'text-primary' : 'text-foreground',
-                  )}
-                  style={{
-                    fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  {d.getDate()}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {moodEmoji && (
-                  <span className="text-[14px] leading-none" title={`mood ${mood}`}>
-                    {moodEmoji}
-                  </span>
-                )}
-                {moodTint && !moodEmoji && (
-                  <span className={cn('w-1.5 h-1.5 rounded-full', moodTint)} aria-hidden />
-                )}
-              </div>
-            </header>
-
-            {/* 본문 영역 */}
+          return (
             <button
+              key={key}
               type="button"
-              disabled={isFuture && !hasEntry}
-              onClick={() => {
-                if (hasEntry && firstEntry) onClickEntry(firstEntry);
-                else onAddForDate(key);
-              }}
+              role="tab"
+              aria-selected={isSelected}
+              onClick={() => setSelectedDay(key)}
+              title={
+                isFuture
+                  ? '미래'
+                  : hasEntry
+                    ? `${d.getMonth() + 1}월 ${d.getDate()}일 · ${dayEntries.length}개`
+                    : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
+              }
               className={cn(
-                'flex-1 flex flex-col items-stretch text-left px-3 py-2.5 min-h-0',
-                !isFuture && 'cursor-pointer',
-                isFuture && hasEntry && 'cursor-pointer',
-                isFuture && !hasEntry && 'cursor-default',
+                'group/tab flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg border transition-all',
+                isSelected
+                  ? 'border-foreground/40 bg-card shadow-[0_2px_10px_-4px_hsl(30_30%_8%/0.1)]'
+                  : 'border-[hsl(var(--hairline))] bg-card/60 hover:bg-card hover:border-foreground/20',
+                isToday && !isSelected && 'ring-1 ring-primary/30',
+                isFuture && !isSelected && 'opacity-50',
               )}
             >
-              {hasBody ? (
-                <p
-                  className="text-[13.5px] leading-[1.7] text-foreground/90 whitespace-pre-wrap line-clamp-7 lg:line-clamp-[10]"
-                  style={{
-                    fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                  }}
-                >
-                  {trimmed}
-                </p>
-              ) : (
-                /* 빈 셀 — hover 시에만 prompt 노출 */
-                <div className="flex-1 flex items-center justify-center min-h-[120px] opacity-0 group-hover/cell:opacity-100 transition-opacity">
-                  <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-                    <Pencil className="h-3 w-3" />
-                    적기
-                  </span>
-                </div>
-              )}
-            </button>
-
-            {/* 푸터 — 시간 + 다중 entry 카운트 */}
-            {hasEntry && (
-              <footer className="flex items-center justify-between px-3 pt-1.5 pb-2 border-t border-[hsl(var(--hairline))] mt-auto">
-                <span className="text-[9.5px] font-mono uppercase tracking-[0.16em] tabular-nums text-muted-foreground">
-                  {time}
-                </span>
-                {dayEntries.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setStackOpenDate(stackOpen ? null : key);
-                    }}
-                    className={cn(
-                      'inline-flex items-center gap-0.5 px-1.5 h-5 rounded text-[10px] font-mono tabular-nums',
-                      stackOpen
-                        ? 'bg-foreground text-background'
-                        : 'bg-accent text-foreground/80 hover:bg-accent/80',
-                    )}
-                    title={`${dayEntries.length}개 entry`}
-                  >
-                    +{dayEntries.length - 1}
-                  </button>
-                )}
-              </footer>
-            )}
-
-            {/* 다중 entry stack popover */}
-            {stackOpen && dayEntries.length > 1 && (
-              <div
+              <span
                 className={cn(
-                  'absolute z-20 top-full left-0 right-0 mt-1 rounded-lg border bg-card shadow-lg',
-                  'border-[hsl(var(--hairline))] p-1.5 flex flex-col gap-0.5',
+                  'text-[10px] font-mono uppercase tracking-[0.18em] leading-none',
+                  isSelected
+                    ? 'text-foreground'
+                    : isToday
+                      ? 'text-primary'
+                      : 'text-muted-foreground',
                 )}
-                onMouseLeave={() => setStackOpenDate(null)}
               >
-                {dayEntries.map((entry, i) => {
-                  const t = new Date(entry.createdAt).toLocaleTimeString('ko-KR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false,
-                  });
-                  const body =
-                    entry.bodyFormat === 'markdown' ? stripMarkdown(entry.body) : entry.body;
-                  return (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setStackOpenDate(null);
-                        onClickEntry(entry);
-                      }}
-                      className={cn(
-                        'flex items-start gap-2 px-2 py-1.5 rounded text-left',
-                        'hover:bg-accent transition-colors',
-                        i === 0 && 'bg-accent/40',
-                      )}
-                    >
-                      <span className="text-[9.5px] font-mono tabular-nums text-muted-foreground pt-0.5 shrink-0">
-                        {t}
+                {WEEKDAYS_KO[i]}
+              </span>
+              <span
+                className={cn(
+                  'text-[20px] tabular-nums leading-none mt-0.5',
+                  isSelected ? 'font-bold text-foreground' : 'font-medium',
+                  isToday && !isSelected && 'text-primary font-bold',
+                )}
+                style={{
+                  fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {d.getDate()}
+              </span>
+              {/* 인디케이터 — mood dot + 다중 entry 카운트 */}
+              <span className="flex items-center gap-0.5 h-3">
+                {hasEntry ? (
+                  <>
+                    <span
+                      className={cn('w-1.5 h-1.5 rounded-full', moodTint ?? 'bg-foreground/40')}
+                      aria-hidden
+                    />
+                    {dayEntries.length > 1 && (
+                      <span className="text-[8.5px] font-mono tabular-nums text-muted-foreground leading-none">
+                        {dayEntries.length}
                       </span>
-                      <span
-                        className="text-[12px] text-foreground/85 leading-[1.55] line-clamp-2"
-                        style={{
-                          fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                        }}
-                      >
-                        {body.trim() || '(빈 본문)'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                    )}
+                  </>
+                ) : isFuture ? (
+                  <span className="w-1.5 h-1.5 rounded-full bg-transparent" aria-hidden />
+                ) : (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full border border-[hsl(var(--hairline))] bg-transparent"
+                    aria-hidden
+                  />
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── 하단 본문 panel — 선택된 day 의 entry 들 ── */}
+      <div
+        className={cn(
+          'rounded-xl border bg-card transition-all',
+          'border-[hsl(var(--hairline))]',
+          isSelectedFuture && 'opacity-80',
+        )}
+      >
+        {/* panel 헤더 — 선택된 날짜 풀 라벨 + 새 entry 버튼 */}
+        <header className="flex items-center justify-between gap-3 px-5 sm:px-7 pt-5 pb-3 border-b border-[hsl(var(--hairline))]">
+          <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">
+            <h3
+              className={cn(
+                'text-[20px] sm:text-[22px] font-bold tracking-tight tabular-nums',
+                isSelectedToday ? 'text-primary' : 'text-foreground',
+              )}
+              style={{
+                fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일
+            </h3>
+            <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+              {selectedDate.toLocaleDateString('ko-KR', { weekday: 'long' })}
+            </span>
+            {isSelectedToday && (
+              <span className="inline-flex items-center px-2 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.16em]">
+                오늘
+              </span>
+            )}
+            {selectedEntries.length > 0 && (
+              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/80">
+                {selectedEntries.length} 개
+              </span>
             )}
           </div>
-        );
-      })}
-    </div>
+          <button
+            type="button"
+            onClick={() => onAddForDate(selectedDay)}
+            title={isSelectedFuture ? '예정 일기' : '이 날 더 적기'}
+            className="inline-flex items-center gap-1 px-2.5 h-8 rounded-md text-[12px] font-semibold border border-[hsl(var(--hairline))] bg-card text-foreground/85 hover:border-foreground/30 hover:bg-accent transition-colors shrink-0"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {selectedEntries.length === 0 ? '적기' : '더 적기'}
+          </button>
+        </header>
+
+        {/* panel 본문 */}
+        <div className="px-5 sm:px-7 py-5 sm:py-6">
+          {selectedEntries.length === 0 ? (
+            /* 빈 상태 — 큰 prompt */
+            <button
+              type="button"
+              onClick={() => onAddForDate(selectedDay)}
+              className="w-full flex flex-col items-center justify-center py-12 sm:py-16 gap-3 rounded-lg border border-dashed border-[hsl(var(--hairline))] bg-card/40 hover:border-foreground/25 hover:bg-card transition-all group/empty"
+            >
+              <span className="inline-flex items-center justify-center h-11 w-11 rounded-full bg-accent/60 text-foreground/60 group-hover/empty:text-foreground/80 transition-colors">
+                <Pencil className="h-5 w-5" strokeWidth={1.5} />
+              </span>
+              <p
+                className="text-[15px] sm:text-[16px] text-muted-foreground italic"
+                style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+              >
+                {isSelectedFuture
+                  ? '예정 일기를 미리 적어볼까요'
+                  : isSelectedToday
+                    ? '오늘 어떤 하루였나요'
+                    : '이 날의 한 페이지를 채워보세요'}
+              </p>
+              <span className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-muted-foreground/70">
+                클릭해서 시작
+              </span>
+            </button>
+          ) : (
+            /* entry stack — 시간 오름차순 */
+            <div className="flex flex-col divide-y divide-[hsl(var(--hairline))]">
+              {selectedEntries.map((entry, idx) => {
+                const moodKey = entry.mood !== undefined ? (entry.mood as Mood) : null;
+                const moodEmoji = moodKey ? MOOD_EMOJI[moodKey] : null;
+                const time = formatTime(entry.createdAt);
+                const previewBody =
+                  entry.bodyFormat === 'markdown' ? stripMarkdown(entry.body) : entry.body;
+                const hasBody = previewBody.trim().length > 0;
+                return (
+                  <article
+                    key={entry.id}
+                    className={cn(
+                      'group/entry flex flex-col gap-3 py-5 first:pt-0 last:pb-0',
+                      idx === 0 && 'first:pt-0',
+                    )}
+                  >
+                    {/* entry 헤더 — 시각 + mood + 편집 */}
+                    <header className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground">
+                          {time}
+                        </span>
+                        {moodEmoji && (
+                          <span className="text-[14px] leading-none">{moodEmoji}</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onClickEntry(entry)}
+                        title="수정"
+                        className="opacity-0 group-hover/entry:opacity-100 transition-opacity inline-flex items-center justify-center h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </header>
+
+                    {/* entry 본문 — 클릭 시 편집 */}
+                    <button
+                      type="button"
+                      onClick={() => onClickEntry(entry)}
+                      className="text-left"
+                    >
+                      {hasBody ? (
+                        <p
+                          className="text-[16px] sm:text-[17px] leading-[1.85] text-foreground/95 whitespace-pre-wrap"
+                          style={{
+                            fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                          }}
+                        >
+                          {previewBody}
+                        </p>
+                      ) : (
+                        <p
+                          className="text-[14px] italic text-muted-foreground/75"
+                          style={{
+                            fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                          }}
+                        >
+                          (빈 본문)
+                        </p>
+                      )}
+                    </button>
+
+                    {/* 사진 grid (있을 때만) */}
+                    {entry.images && entry.images.length > 0 && (
+                      <div
+                        className={cn(
+                          'grid gap-1.5',
+                          entry.images.length === 1 && 'grid-cols-1 max-w-[320px]',
+                          entry.images.length === 2 && 'grid-cols-2 max-w-[480px]',
+                          entry.images.length >= 3 && 'grid-cols-3 max-w-[600px]',
+                        )}
+                      >
+                        {entry.images.slice(0, 3).map((img) => (
+                          <div
+                            key={img.id}
+                            className="relative aspect-square rounded-lg overflow-hidden bg-card border border-[hsl(var(--hairline))]"
+                          >
+                            <img
+                              src={img.src}
+                              alt=""
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 활동 + 태그 */}
+                    {((entry.activities && entry.activities.length > 0) ||
+                      (entry.tags && entry.tags.length > 0)) && (
+                      <div className="flex flex-wrap gap-1">
+                        {entry.activities?.map((key) => {
+                          const meta = ACTIVITY_META[key];
+                          return (
+                            <span
+                              key={`a-${key}`}
+                              className="inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] font-medium bg-accent/60 text-foreground/80"
+                              title={meta?.label ?? key}
+                            >
+                              <span aria-hidden>{meta?.emoji ?? '·'}</span>
+                              {meta?.label ?? key}
+                            </span>
+                          );
+                        })}
+                        {entry.tags?.map((t) => (
+                          <span
+                            key={`t-${t}`}
+                            className="inline-flex items-center gap-0.5 px-2 h-5 rounded text-[10.5px] font-medium bg-accent/60 text-muted-foreground"
+                          >
+                            <Hash className="h-2.5 w-2.5 opacity-70" />
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 };
