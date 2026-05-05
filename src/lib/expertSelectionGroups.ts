@@ -150,8 +150,8 @@ export function buildExpertSelectionGroups({
   return [
     { cat: 'favorites', label: '즐겨찾기', items: favoriteItems },
     { cat: 'ai_recommended', label: '추천', items: recommendedItems },
-    { cat: 'ai_fast', label: '빠른', items: fastItems },
-    { cat: 'ai_reasoning', label: '추론', items: reasoningItems },
+    { cat: 'ai_fast', label: '빠른 모델', items: fastItems },
+    { cat: 'ai_reasoning', label: '추론 모델', items: reasoningItems },
     { cat: 'ai', label: '전체 모델', items: allAiItems },
     ...otherCategoryGroups,
   ].filter((group) => group.items.length > 0 || group.cat === 'favorites');

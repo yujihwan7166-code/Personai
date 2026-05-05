@@ -99,6 +99,8 @@ interface Props {
 
 const mainModes: MainMode[] = ['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant'];
 const AI_AGENT_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
+/** 1차 탭에서 빼고 "더보기" 드롭다운으로 보낼 카테고리들. */
+const MORE_DROPDOWN_CATS: string[] = ['region', 'mythology', 'fictional', 'ideology', 'religion', 'perspective'];
 
 function isInstantChatLayoutSwitch(from: MainMode, to: MainMode) {
   return (
@@ -2547,7 +2549,7 @@ export function ExpertSelectionPanel({
               ) : (
                 <>
                   <div className="flex flex-1 min-w-0 gap-0.5">
-                    {groupedWithBrowser.filter(g => !['region', 'mythology', 'fictional'].includes(g.cat)).map(({ cat, label }) => {
+                    {groupedWithBrowser.filter(g => !MORE_DROPDOWN_CATS.includes(g.cat)).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = isAiGroupCat(cat);
                       const isAiDisabled = isAiTab && isStandardOrProcon;
@@ -2588,7 +2590,7 @@ export function ExpertSelectionPanel({
                     })}
                     {/* 더보기 — 호버 시 세로 드롭다운 */}
                     {(() => {
-                      const moreCats = groupedWithBrowser.filter(g => ['region', 'mythology', 'fictional'].includes(g.cat));
+                      const moreCats = groupedWithBrowser.filter(g => MORE_DROPDOWN_CATS.includes(g.cat));
                       if (moreCats.length === 0) return null;
                       const isMoreActive = moreCats.some(g => effectiveCategory === g.cat);
                       return (

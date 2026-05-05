@@ -15,9 +15,6 @@ export type ModelBrand =
   | 'perplexity'
   | 'deepseek'
   | 'qwen'
-  | 'kimi'
-  | 'mistral'
-  | 'llama'
   | 'other';
 
 /** UI 라벨 */
@@ -29,13 +26,10 @@ export const BRAND_LABEL: Record<ModelBrand, string> = {
   perplexity: 'Perplexity',
   deepseek: 'DeepSeek',
   qwen: 'Qwen',
-  kimi: 'Kimi',
-  mistral: 'Mistral',
-  llama: 'Llama',
   other: '기타',
 };
 
-/** 칩 노출 순서 (전체 → 메이저 브랜드 → 기타 → 오픈소스) */
+/** 칩 노출 순서 (전체 → 메이저 브랜드 → 기타). 오픈소스는 별도 칩으로 panel 에서 추가. */
 export const BRAND_ORDER: ModelBrand[] = [
   'gpt',
   'claude',
@@ -44,9 +38,6 @@ export const BRAND_ORDER: ModelBrand[] = [
   'perplexity',
   'deepseek',
   'qwen',
-  'kimi',
-  'mistral',
-  'llama',
   'other',
 ];
 
@@ -93,21 +84,21 @@ export const MODEL_BRAND: Record<string, ModelBrand> = {
   'qwen-plus': 'qwen',
   'qwen-thinking': 'qwen',
 
-  // Moonshot Kimi
-  'kimi': 'kimi',
-  'kimi-thinking': 'kimi',
+  // Moonshot Kimi → 기타로 통합
+  'kimi': 'other',
+  'kimi-thinking': 'other',
 
-  // Mistral 계열
-  'mistral-large': 'mistral',
-  'mistral-medium': 'mistral',
-  'mistral-small': 'mistral',
-  'mistral-creative': 'mistral',
-  'codestral': 'mistral',
-  'devstral': 'mistral',
+  // Mistral 계열 → 기타로 통합
+  'mistral-large': 'other',
+  'mistral-medium': 'other',
+  'mistral-small': 'other',
+  'mistral-creative': 'other',
+  'codestral': 'other',
+  'devstral': 'other',
 
-  // Meta
-  'llama-maverick': 'llama',
-  'llama-scout': 'llama',
+  // Meta Llama → 기타로 통합
+  'llama-maverick': 'other',
+  'llama-scout': 'other',
 
   // 특수 (앱 자체 어시스턴트 / 개발자 카드)
   'developer-yjh': 'claude',  // Sonnet 4.6 기반
