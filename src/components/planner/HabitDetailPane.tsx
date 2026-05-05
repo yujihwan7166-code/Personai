@@ -55,8 +55,8 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
 
   return (
     <div className="h-full min-h-0 flex flex-col">
-      {/* 헤더 — 컴팩트 (h-10) */}
-      <div className="shrink-0 flex items-center gap-2.5 px-3 h-10 border-b border-[hsl(var(--hairline))]">
+      {/* 헤더 — 좌측 리스트 헤더(h-16)와 border-b 라인 정렬, 콘텐츠는 상단 정렬로 ㅎㅇㅎㅇ 위 여백 최소화 */}
+      <div className="shrink-0 flex items-start gap-2.5 px-3 pt-2.5 h-16 border-b border-[hsl(var(--hairline))]">
         <span
           className="h-6 w-6 inline-flex items-center justify-center rounded-full text-[12px] shrink-0"
           style={{ backgroundColor: `color-mix(in oklab, ${stripe} 18%, hsl(var(--background)))` }}
