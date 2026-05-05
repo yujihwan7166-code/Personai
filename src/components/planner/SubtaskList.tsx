@@ -82,7 +82,7 @@ export const SubtaskList = ({
               sizeBox,
               sub.done
                 ? 'bg-foreground border-foreground text-background'
-                : 'border-[hsl(var(--hairline))] hover:border-foreground/50',
+                : 'border-foreground/20 hover:border-foreground/50',
             )}
             aria-label={sub.done ? '완료 취소' : '완료'}
           >

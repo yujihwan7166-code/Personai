@@ -190,7 +190,7 @@ export const PomodoroWidget = () => {
         : 'border-cyan-300 bg-cyan-50/90'
       : remaining < 60_000
         ? 'border-rose-300 bg-rose-50/90'
-        : 'border-[hsl(var(--hairline))]';
+        : 'border-foreground/20';
 
   return (
     <div
@@ -310,7 +310,7 @@ export const QuickPomodoroButton = ({ className }: QuickPomodoroButtonProps) => 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11.5px] font-medium border border-[hsl(var(--hairline))] hover:bg-accent transition-colors text-foreground"
+        className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11.5px] font-medium border border-foreground/20 hover:bg-accent transition-colors text-foreground"
         title="자유 포모도로 시작"
       >
         🍅 집중
@@ -323,7 +323,7 @@ export const QuickPomodoroButton = ({ className }: QuickPomodoroButtonProps) => 
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute top-full right-0 mt-1 z-50 min-w-[140px] rounded-md border border-[hsl(var(--hairline))] bg-card shadow-lg overflow-hidden">
+          <div className="absolute top-full right-0 mt-1 z-50 min-w-[140px] rounded-md border border-foreground/20 bg-card shadow-lg overflow-hidden">
             {[15, 25, 45, 60, 90].map((min) => (
               <button
                 key={min}

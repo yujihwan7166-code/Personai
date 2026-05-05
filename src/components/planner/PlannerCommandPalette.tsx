@@ -80,11 +80,11 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
       aria-label="명령 팔레트"
     >
       <Command
-        className="w-full max-w-xl rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl overflow-hidden"
+        className="w-full max-w-xl rounded-xl border border-foreground/20 bg-popover shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         loop
       >
-        <div className="border-b border-[hsl(var(--hairline))] px-3 flex items-center gap-2">
+        <div className="border-b border-foreground/20 px-3 flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <Command.Input
             value={query}
@@ -168,7 +168,7 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
           )}
         </Command.List>
 
-        <div className="border-t border-[hsl(var(--hairline))] px-3 py-2 flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+        <div className="border-t border-foreground/20 px-3 py-2 flex items-center justify-between text-[10px] text-muted-foreground font-mono">
           <span>↑↓ 이동  ·  ↵ 선택  ·  esc 닫기</span>
           <span>⌘K</span>
         </div>

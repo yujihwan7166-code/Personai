@@ -38,7 +38,7 @@ import {
 import type { Mood, JournalEntry, BodyFormat, JournalImage } from '@/types/journal';
 
 type Mode =
-  | { kind: 'create' }
+  | { kind: 'create'; date?: string /* YYYY-MM-DD — 미지정 시 오늘 */ }
   | {
       kind: 'edit';
       id: string;
@@ -239,7 +239,11 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
       });
     }
-    return new Date().toLocaleDateString('ko-KR', {
+    // create — date 지정 시 그 날짜, 아니면 오늘
+    const target = mode?.kind === 'create' && mode.date
+      ? new Date(`${mode.date}T00:00:00`)
+      : new Date();
+    return target.toLocaleDateString('ko-KR', {
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
     });
   }, [mode]);
@@ -281,6 +285,8 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         bodyFormat: formatToSave,
         images: imagesToSave,
         activities: activitiesToSave,
+        // create 모드에서 date 지정된 경우 그 날짜로 저장 (WeekSpotlight 과거 빈 날 채우기)
+        date: mode.kind === 'create' ? mode.date : undefined,
       });
       clearDraft();
       setDraftSavedAt(null);

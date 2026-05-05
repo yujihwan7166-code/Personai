@@ -121,7 +121,7 @@ export const PlannerMatrixMini = ({ onTaskClick, large = false }: PlannerMatrixM
               key={q}
               style={{ backgroundColor: QUADRANT_BG[q] }}
               className={cn(
-                'min-h-[180px] rounded-lg border border-[hsl(var(--hairline))] p-3.5',
+                'min-h-[180px] rounded-lg border border-foreground/20 p-3.5',
                 'flex flex-col gap-2',
               )}
             >
@@ -182,7 +182,7 @@ export const PlannerMatrixMini = ({ onTaskClick, large = false }: PlannerMatrixM
             <div
               key={q}
               className={cn(
-                'min-h-[78px] rounded-md border border-[hsl(var(--hairline))] bg-card/60 p-1.5',
+                'min-h-[78px] rounded-md border border-foreground/20 bg-card/60 p-1.5',
                 'flex flex-col gap-1',
               )}
             >

@@ -75,7 +75,7 @@ export const JournalDrawer = ({ open, onOpenChange }: JournalDrawerProps) => {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-md w-[420px] p-0 flex flex-col">
         <SheetTitle className="sr-only">저널</SheetTitle>
-        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[hsl(var(--hairline))]">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-foreground/20">
           <span className="text-[14px] font-semibold tracking-tight text-foreground">📔 저널</span>
           <span className="text-[11px] tabular-nums text-foreground/55">{entries.length}</span>
           <button
@@ -180,7 +180,7 @@ export const JournalDrawer = ({ open, onOpenChange }: JournalDrawerProps) => {
         </div>
 
         {/* 최근 — 오늘 외 */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2 border-t border-[hsl(var(--hairline))]">
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2 border-t border-foreground/20">
           <div className="px-2 mb-1.5 text-[10.5px] font-mono uppercase tracking-[0.14em] text-foreground/55 font-semibold">
             최근
           </div>

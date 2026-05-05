@@ -115,7 +115,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
   const ModeToggle = (
     <div
       role="tablist"
-      className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-accent/40 border border-[hsl(var(--hairline))]"
+      className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-accent/40 border border-foreground/20"
     >
       {(['anytime', 'someday'] as InboxMode[]).map((m) => {
         const active = mode === m;
@@ -131,7 +131,7 @@ export const Inbox = ({ inputRef, onTaskClick }: InboxProps) => {
             className={cn(
               'inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] font-semibold transition-colors',
               active
-                ? 'bg-card text-foreground shadow-sm ring-1 ring-[hsl(var(--hairline))]'
+                ? 'bg-card text-foreground shadow-sm ring-1 ring-foreground/30'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >

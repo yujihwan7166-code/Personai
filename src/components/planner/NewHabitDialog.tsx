@@ -212,10 +212,10 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
           <div className="flex gap-2">
             {/* emoji popover (간단 grid) */}
             <details className="relative">
-              <summary className="list-none h-10 w-10 inline-flex items-center justify-center rounded-md border border-foreground/15 bg-card cursor-pointer text-[18px] hover:border-foreground/35">
+              <summary className="list-none h-10 w-10 inline-flex items-center justify-center rounded-md border border-foreground/25 bg-card cursor-pointer text-[18px] hover:border-foreground/35">
                 {emoji}
               </summary>
-              <div className="absolute z-50 mt-1 p-2 grid grid-cols-6 gap-1 rounded-md border border-foreground/15 bg-card shadow-lg">
+              <div className="absolute z-50 mt-1 p-2 grid grid-cols-6 gap-1 rounded-md border border-foreground/25 bg-card shadow-lg">
                 {EMOJI_PRESETS.map((e) => (
                   <button
                     key={e}
@@ -238,7 +238,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
               autoFocus={mode.kind === 'create'}
               placeholder="습관 제목"
               onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-              className="flex-1 px-3 py-2 text-[14px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none"
+              className="flex-1 px-3 py-2 text-[14px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none"
             />
           </div>
 
@@ -257,7 +257,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
                     title={c}
                     className={cn(
                       'h-7 w-7 inline-flex items-center justify-center rounded-full border transition-all',
-                      active ? 'border-foreground ring-2 ring-foreground/15' : 'border-foreground/15 hover:border-foreground/35',
+                      active ? 'border-foreground ring-2 ring-foreground/15' : 'border-foreground/25 hover:border-foreground/35',
                     )}
                     style={{ backgroundColor: stripe }}
                   />
@@ -281,7 +281,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
                       'px-3.5 py-2 text-[13px] rounded-md transition-colors border',
                       active
                         ? 'bg-foreground text-background border-foreground font-semibold'
-                        : 'bg-card border-foreground/15 text-foreground/80 hover:border-foreground/35 hover:text-foreground',
+                        : 'bg-card border-foreground/25 text-foreground/80 hover:border-foreground/35 hover:text-foreground',
                     )}
                   >
                     {f.label}
@@ -306,7 +306,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
                         'h-8 w-8 text-[12.5px] font-medium rounded-md transition-colors border',
                         active
                           ? 'bg-foreground text-background border-foreground'
-                          : 'bg-card border-foreground/15 hover:border-foreground/35 text-foreground/80',
+                          : 'bg-card border-foreground/25 hover:border-foreground/35 text-foreground/80',
                       )}
                     >
                       {WEEKDAY_LABELS[d]}
@@ -339,14 +339,14 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
                 value={timesPerDay}
                 onChange={(e) => setTimesPerDay(Math.max(2, Number(e.target.value) || 2))}
                 disabled={!timesEnabled}
-                className="h-8 w-16 rounded-md border border-foreground/15 bg-card px-2 text-[12.5px] tabular-nums disabled:opacity-50"
+                className="h-8 w-16 rounded-md border border-foreground/25 bg-card px-2 text-[12.5px] tabular-nums disabled:opacity-50"
               />
               <input
                 type="text"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 placeholder="단위 (잔/분/회)"
-                className="flex-1 h-8 rounded-md border border-foreground/15 bg-card px-2 text-[12.5px]"
+                className="flex-1 h-8 rounded-md border border-foreground/25 bg-card px-2 text-[12.5px]"
               />
             </div>
           </div>
@@ -367,7 +367,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
               value={reminderTime}
               onChange={(e) => setReminderTime(e.target.value)}
               disabled={!reminderEnabled}
-              className="h-8 rounded-md border border-foreground/15 bg-card px-2 text-[12.5px] disabled:opacity-50"
+              className="h-8 rounded-md border border-foreground/25 bg-card px-2 text-[12.5px] disabled:opacity-50"
             />
           </div>
 
@@ -377,7 +377,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
             onChange={(e) => setNotes(e.target.value)}
             placeholder="메모 (선택) — 왜 이 습관을 만드는지"
             rows={2}
-            className="w-full px-3 py-2 text-[13px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none resize-none placeholder:text-foreground/45"
+            className="w-full px-3 py-2 text-[13px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none resize-none placeholder:text-foreground/45"
           />
 
           {/* 스타터 팩 — create 모드 + 제목 비어있을 때만 */}
@@ -392,7 +392,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
                     key={p.title}
                     type="button"
                     onClick={() => submitFromPack(p)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] border border-foreground/15 bg-card hover:border-foreground/35 hover:bg-accent transition-all"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] border border-foreground/25 bg-card hover:border-foreground/35 hover:bg-accent transition-all"
                   >
                     <span>{p.emoji}</span>
                     <span>{p.title}</span>
@@ -403,7 +403,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
           )}
 
           {/* footer */}
-          <div className="flex items-center justify-between pt-3 mt-1 border-t border-[hsl(var(--hairline))]">
+          <div className="flex items-center justify-between pt-3 mt-1 border-t border-foreground/20">
             <div>
               {mode.kind === 'edit' && (
                 <button

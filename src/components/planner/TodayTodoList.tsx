@@ -66,10 +66,10 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListPr
       ref={setDropRef}
       className={cn(
         'h-full min-h-0 flex flex-col rounded-lg border bg-card p-3 transition-colors',
-        isOver ? 'border-primary/50 bg-primary/5' : 'border-[hsl(var(--hairline))]',
+        isOver ? 'border-primary/50 bg-primary/5' : 'border-foreground/20',
       )}
     >
-      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-[hsl(var(--hairline))]">
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-foreground/20">
         <ListTodo className="h-4 w-4 text-foreground" />
         <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">
           할 일

@@ -189,12 +189,12 @@ const Memos = () => {
     <div className="min-h-screen flex bg-background">
       {/* 좌 사이드 */}
       <aside className={cn(
-        'shrink-0 border-r border-[hsl(var(--hairline))] bg-card flex flex-col',
+        'shrink-0 border-r border-foreground/15 bg-card flex flex-col',
         isMobile ? 'w-full' : 'w-[320px]',
         !showSidebar && 'hidden',
       )}>
         {/* 상단 — 뒤로 + 제목 + 새 메모 */}
-        <div className="shrink-0 px-3.5 py-3 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
+        <div className="shrink-0 px-3.5 py-3 border-b border-foreground/12 flex items-center gap-2">
           <button
             onClick={() => navigate('/')}
             className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -226,7 +226,7 @@ const Memos = () => {
         </div>
 
         {/* 검색 */}
-        <div className="shrink-0 px-3.5 py-2.5 border-b border-[hsl(var(--hairline))]">
+        <div className="shrink-0 px-3.5 py-2.5 border-b border-foreground/12">
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/50">
             <Search className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
             <input
@@ -831,14 +831,14 @@ function MemoRow({
       <button
         onClick={onClick}
         className={cn(
-          'relative w-full text-left rounded-lg transition-all',
+          'relative w-full text-left transition-all',
           isCardMode
-            ? 'flex flex-col gap-0.5 px-3 py-2'
-            : 'flex items-center gap-2 h-8 px-3',
+            ? 'flex flex-col gap-0.5 px-3 py-2.5 rounded-md border-b border-foreground/8'
+            : 'flex items-center gap-2 h-8 px-3 rounded-md',
           hasActions && 'pr-9',
           active
-            ? 'bg-primary/10 ring-1 ring-inset ring-primary/40 text-foreground shadow-[inset_3px_0_0_0_hsl(var(--primary))]'
-            : 'text-foreground hover:bg-accent/60',
+            ? 'bg-primary/12 text-foreground shadow-[inset_3px_0_0_0_hsl(var(--primary))]'
+            : 'text-foreground hover:bg-accent/70',
           archived && 'opacity-70',
         )}
       >
@@ -957,7 +957,7 @@ function MemoRow({
       )}
     </>
   );
-  const wrapClass = isCardMode ? 'relative group mb-1' : 'relative group';
+  const wrapClass = 'relative group';
   return bare
     ? <div className={wrapClass}>{inner}</div>
     : <li className={wrapClass}>{inner}</li>;

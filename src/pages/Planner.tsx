@@ -648,7 +648,7 @@ const Planner = () => {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
     <div className="min-h-screen bg-background flex">
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
-      <aside className="shrink-0 w-12 border-r border-[hsl(var(--hairline))] bg-card/40">
+      <aside className="shrink-0 w-12 border-r border-foreground/20 bg-card/40">
         <PlannerLeftRail />
       </aside>
       <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 sm:py-5 max-w-[1280px] w-full mx-auto">
@@ -658,19 +658,19 @@ const Planner = () => {
 
         {/* 풀뷰(month/year/goals)에선 사이드바가 없으므로 — 위에 mini nav (제목/뷰토글/시간 네비). */}
         {isFullscreen && (
-          <div className="mb-3 flex flex-wrap items-center gap-3 pb-2 border-b border-[hsl(var(--hairline))]">
+          <div className="mb-3 flex flex-wrap items-center gap-3 pb-2 border-b border-foreground/20">
             <h1 className="text-[17px] font-semibold tracking-tight leading-none">통합 플래너</h1>
             <ViewToggle value={view} onChange={setView} />
             {view !== 'goals' && (
               <>
                 <div className="inline-flex items-center gap-0.5 ml-1">
-                  <button type="button" onClick={goPrev} aria-label="이전" className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent transition-colors">
+                  <button type="button" onClick={goPrev} aria-label="이전" className="flex h-7 w-7 items-center justify-center rounded-md border border-foreground/20 bg-card hover:bg-accent transition-colors">
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <button type="button" onClick={goToday} disabled={anchorIsToday} className={cn('h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors', anchorIsToday ? 'bg-card text-muted-foreground/60 cursor-default' : 'bg-card text-foreground hover:bg-accent')}>
+                  <button type="button" onClick={goToday} disabled={anchorIsToday} className={cn('h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-foreground/20 transition-colors', anchorIsToday ? 'bg-card text-muted-foreground/60 cursor-default' : 'bg-card text-foreground hover:bg-accent')}>
                     오늘
                   </button>
-                  <button type="button" onClick={goNext} aria-label="다음" className="flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent transition-colors">
+                  <button type="button" onClick={goNext} aria-label="다음" className="flex h-7 w-7 items-center justify-center rounded-md border border-foreground/20 bg-card hover:bg-accent transition-colors">
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -681,7 +681,7 @@ const Planner = () => {
         )}
 
         {isFullscreen ? (
-          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-[600px] h-[calc(100vh-160px)]">
+          <div className="rounded-xl border border-foreground/20 bg-card p-3 sm:p-4 min-h-[600px] h-[calc(100vh-160px)]">
             {view === 'month' && (
               <MonthView
                 anchorIso={anchorIso}
@@ -723,7 +723,7 @@ const Planner = () => {
                 {/* 큰 날짜 헤더 + 공통 입력 — 한 줄에 묶어 수직 공간 절약.
                     [날짜 캐러셀] [공통 input flex-1] [오늘로]
                     공통 input: 시간 NL 있으면 계획/타임라인, 없으면 할 일. */}
-                <div className="shrink-0 flex items-center gap-3 pb-3 px-1 border-b border-[hsl(var(--hairline))]">
+                <div className="shrink-0 flex items-center gap-3 pb-3 px-1 border-b border-foreground/20">
                   {/* 시간 네비 cluster — Google Calendar 패턴 (◀ 라벨 ▶ + 오늘로). */}
                   <div className="shrink-0 flex items-center gap-2">
                     <button
@@ -768,7 +768,7 @@ const Planner = () => {
                       aria-label="오늘로"
                       title="오늘로 (T)"
                       className={cn(
-                        'ml-1 h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-[hsl(var(--hairline))] transition-colors',
+                        'ml-1 h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-foreground/20 transition-colors',
                         anchorIsToday
                           ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
                           : 'bg-card text-foreground hover:bg-accent',
@@ -828,7 +828,7 @@ const Planner = () => {
                 </div>
               </div>
             ) : view === 'week' ? (
-              <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-0">
+              <div className="rounded-lg border border-foreground/20 bg-card p-3 sm:p-4 min-h-0">
                 <WeekView
                   anchorIso={anchorIso}
                   onDayClick={handleDayClick}

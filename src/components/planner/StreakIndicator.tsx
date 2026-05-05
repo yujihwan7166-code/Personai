@@ -86,14 +86,14 @@ export const StreakCard = ({ current, best, rate, missed, total }: StreakCardPro
   // 0회 시 — 부드러운 onboarding 톤.
   if (total === 0) {
     return (
-      <div className="rounded-md border border-[hsl(var(--hairline))] bg-accent/30 px-3 py-2.5 text-[12px] text-muted-foreground leading-snug">
+      <div className="rounded-md border border-foreground/20 bg-accent/30 px-3 py-2.5 text-[12px] text-muted-foreground leading-snug">
         아직 시작 단계예요. 처음 한 번 체크하면 streak 이 시작돼요.
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border border-[hsl(var(--hairline))] bg-card px-3 py-2.5 flex flex-col gap-1.5">
+    <div className="rounded-md border border-foreground/20 bg-card px-3 py-2.5 flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
         <StreakIndicator current={current} compact={false} />
         {best > current && best >= 3 && (

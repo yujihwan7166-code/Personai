@@ -103,7 +103,7 @@ export const TodayPlanPanel = ({ anchorIso, onDayClick, onTaskClick }: TodayPlan
             onClick={() => {
               if (nextItem.kind === 'task') onTaskClick?.({ id: nextItem.data.id, title: nextItem.data.title });
             }}
-            className="w-full rounded-md border border-[hsl(var(--hairline))] bg-background/60 px-3 py-2.5 text-left hover:bg-accent transition-colors"
+            className="w-full rounded-md border border-foreground/20 bg-background/60 px-3 py-2.5 text-left hover:bg-accent transition-colors"
           >
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <Clock3 className="h-3.5 w-3.5" />
@@ -112,7 +112,7 @@ export const TodayPlanPanel = ({ anchorIso, onDayClick, onTaskClick }: TodayPlan
             <p className="mt-1 truncate text-[13px] font-medium text-foreground">{nextItem.data.title}</p>
           </button>
         ) : (
-          <div className="rounded-md border border-dashed border-[hsl(var(--hairline))] px-3 py-3 text-[12.5px] text-muted-foreground">
+          <div className="rounded-md border border-dashed border-foreground/20 px-3 py-3 text-[12.5px] text-muted-foreground">
             남은 예정 항목 없음
           </div>
         )}
@@ -126,7 +126,7 @@ export const TodayPlanPanel = ({ anchorIso, onDayClick, onTaskClick }: TodayPlan
               return (
                 <div
                   key={item.goal.id}
-                  className="rounded-md border border-[hsl(var(--hairline))] bg-background/60 px-3 py-2"
+                  className="rounded-md border border-foreground/20 bg-background/60 px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
                     <span

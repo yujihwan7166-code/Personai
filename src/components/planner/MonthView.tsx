@@ -124,7 +124,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick }: MonthViewProps
           ))}
         </div>
         {/* 6주 격자 */}
-        <div className="flex-1 grid grid-rows-6 gap-px bg-[hsl(var(--hairline))] border border-[hsl(var(--hairline))] rounded-lg overflow-hidden min-h-0">
+        <div className="flex-1 grid grid-rows-6 gap-px bg-foreground/15 border border-foreground/20 rounded-lg overflow-hidden min-h-0">
           {weeks.map((week, wi) => (
             <div key={wi} className="grid grid-cols-7 gap-px">
               {week.map((cell) => {

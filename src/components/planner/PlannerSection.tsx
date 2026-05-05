@@ -17,7 +17,7 @@ interface PlannerSectionProps {
 
 export const PlannerSection = ({ label, count, action, className, children }: PlannerSectionProps) => (
   <section className={cn('flex flex-col min-h-0', className)}>
-    <header className="flex items-baseline gap-2.5 px-0.5 pb-2.5 mb-2 border-b border-[hsl(var(--hairline))]">
+    <header className="flex items-baseline gap-2.5 px-0.5 pb-2.5 mb-2 border-b border-foreground/20">
       <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-foreground font-semibold">
         {label}
       </span>

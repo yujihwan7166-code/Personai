@@ -126,7 +126,7 @@ export const HabitMonthGrid = ({ habit, year, month1Indexed, onChangeMonth }: Ha
                 'h-8 inline-flex items-center justify-center rounded-full text-[11.5px] font-medium tabular-nums transition-all',
                 'border-[1.5px] hover:scale-105 active:scale-95',
                 !sched && !completed && !partial && 'border-transparent',
-                sched && !completed && !partial && 'border-foreground/15 hover:border-foreground/35',
+                sched && !completed && !partial && 'border-foreground/25 hover:border-foreground/35',
                 isToday && !completed && 'ring-2 ring-foreground/25 ring-offset-1 ring-offset-background',
                 isFuture && 'opacity-55',
                 completed && 'text-white font-semibold',

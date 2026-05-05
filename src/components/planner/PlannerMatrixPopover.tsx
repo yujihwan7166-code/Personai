@@ -38,10 +38,10 @@ export const PlannerMatrixPopover = ({ open, onOpenChange, onTaskClick }: Planne
       }}
     >
       <div
-        className="bg-card border border-[hsl(var(--hairline))] rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        className="bg-card border border-foreground/20 rounded-xl shadow-2xl flex flex-col overflow-hidden"
         style={{ width: 'min(94vw, 880px)', maxHeight: '85vh' }}
       >
-        <div className="shrink-0 flex items-center justify-between gap-3 px-5 h-12 border-b border-[hsl(var(--hairline))]">
+        <div className="shrink-0 flex items-center justify-between gap-3 px-5 h-12 border-b border-foreground/20">
           <div className="min-w-0 flex items-baseline gap-2">
             <span className="text-[16px] font-bold tracking-tight text-foreground">
               아이젠하워 매트릭스

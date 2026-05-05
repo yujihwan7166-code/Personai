@@ -87,14 +87,14 @@ export const PlannerInput = ({
             ? [
                 onPlus ? 'pl-8' : 'pl-3',
                 'pr-3 py-2 text-[14px] leading-tight font-medium',
-                'bg-accent/40 border border-[hsl(var(--hairline))]',
+                'bg-accent/40 border border-foreground/20',
                 'placeholder:text-foreground/55 placeholder:font-normal',
                 'hover:bg-accent/60 hover:border-foreground/30',
                 'focus:bg-background focus:border-foreground/55 focus:outline-none focus:ring-2 focus:ring-foreground/10',
               ]
             : [
                 'px-2.5 py-2 text-[13.5px] leading-tight',
-                'bg-transparent border border-dashed border-[hsl(var(--hairline))]',
+                'bg-transparent border border-dashed border-foreground/20',
                 'placeholder:text-muted-foreground',
                 'hover:border-solid hover:border-foreground/30 hover:bg-accent/40',
                 'focus:border-solid focus:border-foreground/50 focus:bg-accent/40 focus:outline-none',

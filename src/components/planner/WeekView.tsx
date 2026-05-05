@@ -107,7 +107,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
                 className={cn(
                   'flex items-baseline gap-1 pb-2 mb-1.5 border-b text-left transition-colors',
                   'hover:bg-accent/40 rounded-t-md px-1 -mx-1',
-                  d.isToday ? 'border-foreground' : 'border-[hsl(var(--hairline))]',
+                  d.isToday ? 'border-foreground' : 'border-foreground/20',
                 )}
               >
                 <span className={cn(

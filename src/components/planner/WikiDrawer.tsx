@@ -86,7 +86,7 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-md w-[460px] p-0 flex flex-col">
         <SheetTitle className="sr-only">위키</SheetTitle>
-        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[hsl(var(--hairline))]">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-foreground/20">
           {selected ? (
             <button
               type="button"
@@ -151,7 +151,7 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
                   <span className="text-foreground/45 italic">본문이 비어있어요</span>
                 )}
               </div>
-              <div className="mt-6 pt-3 border-t border-[hsl(var(--hairline))] text-[11px] text-foreground/55">
+              <div className="mt-6 pt-3 border-t border-foreground/20 text-[11px] text-foreground/55">
                 마지막 수정: {formatRelative(selected.updatedAt)}
                 <span className="mx-1.5 text-foreground/30">·</span>
                 편집·블록 추가는 우상단 "전체 페이지" 클릭
@@ -170,7 +170,7 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="위키 검색 (제목·별칭·태그·본문)"
-              className="w-full pl-8 pr-3 py-1.5 text-[13px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/40 focus:outline-none placeholder:text-foreground/45"
+              className="w-full pl-8 pr-3 py-1.5 text-[13px] rounded-md border border-foreground/20 bg-card focus:border-foreground/40 focus:outline-none placeholder:text-foreground/45"
             />
           </div>
         </div>

@@ -119,7 +119,7 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
       <SheetContent side="right" className="sm:max-w-md w-[420px] p-0 flex flex-col">
         <SheetTitle className="sr-only">메모</SheetTitle>
         {/* 헤더 */}
-        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[hsl(var(--hairline))]">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-foreground/20">
           {editing ? (
             <button
               type="button"
@@ -208,7 +208,7 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="메모 검색"
-                  className="w-full pl-8 pr-3 py-1.5 text-[13px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/40 focus:outline-none placeholder:text-foreground/45"
+                  className="w-full pl-8 pr-3 py-1.5 text-[13px] rounded-md border border-foreground/20 bg-card focus:border-foreground/40 focus:outline-none placeholder:text-foreground/45"
                 />
               </div>
             </div>

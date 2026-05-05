@@ -49,8 +49,8 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
   );
 
   return (
-    <section className="h-full min-h-0 flex flex-col rounded-lg border border-[hsl(var(--hairline))] bg-card p-3">
-      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-[hsl(var(--hairline))]">
+    <section className="h-full min-h-0 flex flex-col rounded-lg border border-foreground/20 bg-card p-3">
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-foreground/20">
         <ListChecks className="h-4 w-4 text-foreground" />
         <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">
           일정

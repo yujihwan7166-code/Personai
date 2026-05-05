@@ -65,7 +65,7 @@ export const HabitDayProgress = ({
         <circle
           cx={14} cy={14} r={r}
           fill="none"
-          stroke="hsl(var(--hairline))"
+          stroke="hsl(var(--foreground) / 0.20)"
           strokeWidth={2.5}
         />
         {/* 진행 원 */}

@@ -131,7 +131,7 @@ export const GoalProgressView = ({ onTaskClick }: GoalProgressViewProps) => {
           </div>
         </div>
 
-        <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 py-3">
+        <div className="rounded-lg border border-foreground/20 bg-card px-3 py-3">
           <div className="grid gap-2 lg:grid-cols-[minmax(220px,1fr)_160px_220px_auto]">
             <input
               value={title}
@@ -140,13 +140,13 @@ export const GoalProgressView = ({ onTaskClick }: GoalProgressViewProps) => {
                 if (event.key === 'Enter') addGoal();
               }}
               placeholder="새 목표"
-              className="h-10 rounded-md border border-[hsl(var(--hairline))] bg-background px-3 text-[13px] outline-none focus:border-foreground/40"
+              className="h-10 rounded-md border border-foreground/20 bg-background px-3 text-[13px] outline-none focus:border-foreground/40"
             />
             <input
               value={dueDate}
               onChange={(event) => setDueDate(event.target.value)}
               type="date"
-              className="h-10 rounded-md border border-[hsl(var(--hairline))] bg-background px-3 text-[13px] outline-none focus:border-foreground/40"
+              className="h-10 rounded-md border border-foreground/20 bg-background px-3 text-[13px] outline-none focus:border-foreground/40"
             />
             <div className="flex items-center gap-1">
               {COLOR_ORDER.map((item) => (
@@ -158,7 +158,7 @@ export const GoalProgressView = ({ onTaskClick }: GoalProgressViewProps) => {
                   title={item}
                   className={cn(
                     'h-8 w-8 rounded-md border transition-transform',
-                    color === item ? 'border-foreground scale-105' : 'border-transparent hover:border-[hsl(var(--hairline))]',
+                    color === item ? 'border-foreground scale-105' : 'border-transparent hover:border-foreground/20',
                   )}
                   style={{ backgroundColor: GOAL_COLORS[item].chipBg }}
                 >
@@ -182,7 +182,7 @@ export const GoalProgressView = ({ onTaskClick }: GoalProgressViewProps) => {
         </div>
 
         {activeProgress.length === 0 ? (
-          <div className="min-h-[320px] rounded-lg border border-dashed border-[hsl(var(--hairline))] bg-card/60 flex flex-col items-center justify-center text-center px-6">
+          <div className="min-h-[320px] rounded-lg border border-dashed border-foreground/20 bg-card/60 flex flex-col items-center justify-center text-center px-6">
             <Target className="h-8 w-8 text-muted-foreground mb-3" />
             <p className="text-[15px] font-semibold text-foreground">아직 진행 중인 목표가 없어요</p>
             <p className="mt-1 text-[12.5px] text-muted-foreground">
@@ -218,7 +218,7 @@ export const GoalProgressView = ({ onTaskClick }: GoalProgressViewProps) => {
                   key={item.goal.id}
                   type="button"
                   onClick={() => goalStore.update(item.goal.id, { status: 'active' })}
-                  className="rounded-md border border-[hsl(var(--hairline))] bg-card px-3 py-2 text-left hover:bg-accent transition-colors"
+                  className="rounded-md border border-foreground/20 bg-card px-3 py-2 text-left hover:bg-accent transition-colors"
                 >
                   <span className="text-[13px] font-medium text-foreground">{item.goal.title}</span>
                   <span className="ml-2 text-[11px] text-muted-foreground">다시 활성화</span>
@@ -233,7 +233,7 @@ export const GoalProgressView = ({ onTaskClick }: GoalProgressViewProps) => {
 };
 
 const SummaryMetric = ({ label, value }: { label: string; value: string | number }) => (
-  <div className="rounded-md border border-[hsl(var(--hairline))] bg-card px-3 py-2">
+  <div className="rounded-md border border-foreground/20 bg-card px-3 py-2">
     <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
     <div className="mt-1 text-[20px] font-semibold tabular-nums text-foreground">{value}</div>
   </div>
@@ -271,7 +271,7 @@ const GoalCard = ({
     .slice(0, 5);
 
   return (
-    <section className="rounded-lg border border-[hsl(var(--hairline))] bg-card overflow-hidden">
+    <section className="rounded-lg border border-foreground/20 bg-card overflow-hidden">
       <div className="h-1" style={{ backgroundColor: color.stripe }} />
       <div className="p-4 space-y-4">
         <div className="flex items-start gap-3">
@@ -444,7 +444,7 @@ const InlineInput = ({
   onChange: (value: string) => void;
   onSubmit: () => void;
 }) => (
-  <div className="flex items-center gap-1 rounded-md border border-[hsl(var(--hairline))] bg-background px-2">
+  <div className="flex items-center gap-1 rounded-md border border-foreground/20 bg-background px-2">
     <Plus className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
     <input
       value={value}

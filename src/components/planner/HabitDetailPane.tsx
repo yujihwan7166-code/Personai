@@ -42,7 +42,7 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
   return (
     <div className="h-full min-h-0 flex flex-col">
       {/* 헤더 — 좌측 리스트 헤더(h-16)와 border-b 라인 정렬, 콘텐츠는 상단 정렬로 ㅎㅇㅎㅇ 위 여백 최소화 */}
-      <div className="shrink-0 flex items-start gap-2.5 px-3 pt-2.5 h-16 border-b border-[hsl(var(--hairline))]">
+      <div className="shrink-0 flex items-start gap-2.5 px-3 pt-2.5 h-16 border-b border-foreground/20">
         <span
           className="h-6 w-6 inline-flex items-center justify-center rounded-full text-[12px] shrink-0"
           style={{ backgroundColor: `color-mix(in oklab, ${stripe} 18%, hsl(var(--background)))` }}
@@ -91,7 +91,7 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
       {/* 본문 — 스크롤. 상단 여백 컴팩트 (pt-2). */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-2 pb-3 space-y-3">
         {/* Stats — 단일 카드 3분할 (연속·이번 달·베스트) — 동기 위계 */}
-        <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card grid grid-cols-3 divide-x divide-[hsl(var(--hairline))]">
+        <div className="rounded-lg border border-foreground/20 bg-card grid grid-cols-3 divide-x divide-foreground/20">
           {[
             { Icon: Flame, label: '연속', value: stats.streak, unit: '일', accent: stats.streak >= 3 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground/60' },
             { Icon: Calendar, label: '이번 달', value: stats.monthCount, unit: '일', accent: 'text-blue-600 dark:text-blue-400' },
@@ -111,7 +111,7 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
         </div>
 
         {/* 월 캘린더 — 섹션 패턴 (border-t 위, 라벨 + 내용, 카드 wrapper 없음) */}
-        <section className="pt-3 border-t border-[hsl(var(--hairline))]">
+        <section className="pt-3 border-t border-foreground/20">
           <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
             이번 달
           </div>
@@ -124,7 +124,7 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
         </section>
 
         {/* 365일 히트맵 — 섹션 패턴 */}
-        <section className="pt-3 border-t border-[hsl(var(--hairline))]">
+        <section className="pt-3 border-t border-foreground/20">
           <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
             연간 패턴
           </div>

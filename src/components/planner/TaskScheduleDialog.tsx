@@ -341,7 +341,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       'px-3.5 py-2 text-[13px] rounded-md transition-colors border',
       active
         ? 'bg-foreground text-background border-foreground font-semibold'
-        : 'bg-card border-foreground/15 text-foreground/80 hover:border-foreground/35 hover:text-foreground',
+        : 'bg-card border-foreground/25 text-foreground/80 hover:border-foreground/35 hover:text-foreground',
     );
 
   return (
@@ -431,7 +431,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="px-3 py-2 text-[14px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none"
+                  className="px-3 py-2 text-[14px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -441,7 +441,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
                   step={1800}
-                  className="px-3 py-2 text-[14px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none"
+                  className="px-3 py-2 text-[14px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none"
                 />
               </div>
             </div>
@@ -508,7 +508,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                         'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12.5px] rounded-md transition-colors border',
                         active
                           ? 'bg-foreground text-background font-medium border-foreground'
-                          : 'bg-card border-foreground/15 hover:border-foreground/35 text-foreground/80',
+                          : 'bg-card border-foreground/25 hover:border-foreground/35 text-foreground/80',
                       )}
                     >
                       {p > 0 && (
@@ -548,7 +548,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                       'inline-flex items-center gap-1.5 px-3 py-2 text-[12.5px] rounded-md transition-colors border',
                       active
                         ? 'bg-accent border-foreground text-foreground font-medium'
-                        : 'bg-card border-foreground/15 hover:border-foreground/35 text-foreground/80',
+                        : 'bg-card border-foreground/25 hover:border-foreground/35 text-foreground/80',
                     )}
                   >
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />

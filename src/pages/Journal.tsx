@@ -29,6 +29,8 @@ import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
 import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
+import { JournalWeekSpotlight } from '@/components/journal/JournalWeekSpotlight';
+import { JournalYearJump } from '@/components/journal/JournalYearJump';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';

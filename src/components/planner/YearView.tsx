@@ -109,7 +109,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
   const ModeToggle = (
     <div
       role="tablist"
-      className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-accent/40 border border-[hsl(var(--hairline))]"
+      className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-accent/40 border border-foreground/20"
     >
       {([
         ['months', '월 보기'],
@@ -126,7 +126,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             className={cn(
               'px-2.5 h-5 rounded text-[10.5px] font-semibold transition-colors',
               active
-                ? 'bg-card text-foreground shadow-sm ring-1 ring-[hsl(var(--hairline))]'
+                ? 'bg-card text-foreground shadow-sm ring-1 ring-foreground/30'
                 : 'text-foreground/70 hover:text-foreground',
             )}
           >
@@ -155,7 +155,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             onClick={() => onMonthClick?.(mo.firstIso)}
             className={cn(
               'flex flex-col items-stretch p-3 rounded-lg text-left',
-              'border border-[hsl(var(--hairline))] bg-card',
+              'border border-foreground/20 bg-card',
               'hover:border-foreground/30 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)]',
               'transition-all',
               mo.isCurrentMonth && 'ring-1 ring-foreground/30',

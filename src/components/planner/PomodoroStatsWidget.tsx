@@ -33,7 +33,7 @@ export const PomodoroStatsWidget = ({ className }: { className?: string }) => {
         onClick={() => setOpen(true)}
         className={cn(
           'inline-flex items-center gap-1.5 px-2 h-7 rounded-md text-[11.5px] font-medium',
-          'border border-[hsl(var(--hairline))] hover:bg-accent transition-colors text-foreground',
+          'border border-foreground/20 hover:bg-accent transition-colors text-foreground',
           className,
         )}
         title="포모도로 통계"
@@ -159,7 +159,7 @@ const PomodoroStatsModal = ({ open, onClose, stats }: ModalProps) => {
 const Stat = ({
   label, main, sub, accent,
 }: { label: string; main: number; sub: string; accent?: boolean }) => (
-  <div className="flex flex-col items-center justify-center gap-0.5 py-2 rounded-md border border-[hsl(var(--hairline))] bg-card">
+  <div className="flex flex-col items-center justify-center gap-0.5 py-2 rounded-md border border-foreground/20 bg-card">
     <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
       {label}
     </span>

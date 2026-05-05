@@ -33,7 +33,7 @@ const MetaChips = ({ items, compact }: { items?: MetaChip[]; compact?: boolean }
         <span
           key={item.label}
           className={cn(
-            'inline-flex max-w-full items-center gap-1 rounded border border-[hsl(var(--hairline))] bg-background/70 text-muted-foreground',
+            'inline-flex max-w-full items-center gap-1 rounded border border-foreground/20 bg-background/70 text-muted-foreground',
             compact ? 'px-1 py-0.5 text-[9.5px]' : 'px-1.5 py-0.5 text-[10px]',
           )}
           title={item.label}
@@ -186,7 +186,7 @@ const InboxCardInner = (props: InboxCardProps) => {
               'flex h-[14px] w-[14px] items-center justify-center rounded-[3px] border transition-all shrink-0',
               done
                 ? 'bg-foreground border-foreground text-background'
-                : 'border-[hsl(var(--hairline))] hover:border-foreground/50 hover:scale-110',
+                : 'border-foreground/20 hover:border-foreground/50 hover:scale-110',
             )}
             aria-label={done ? '완료 취소' : '완료'}
           >
@@ -303,7 +303,7 @@ const InboxCardInner = (props: InboxCardProps) => {
 
       {/* 서브태스크 펼침 영역 */}
       {hasSubtasks && expanded && (
-        <div className="ml-5 mt-1 mb-1 pl-2 border-l border-[hsl(var(--hairline))]" onClick={(e) => e.stopPropagation()}>
+        <div className="ml-5 mt-1 mb-1 pl-2 border-l border-foreground/20" onClick={(e) => e.stopPropagation()}>
           <SubtaskList
             subtasks={subtasks!}
             onToggle={(id) => onToggleSubtask?.(id)}
