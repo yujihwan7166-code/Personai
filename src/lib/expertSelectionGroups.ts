@@ -4,7 +4,7 @@ import {
   type ExpertCategory,
 } from '@/types/expert';
 import {
-  MODEL_IS_REASONING,
+  REASONING_MODEL_IDS,
   RECOMMENDED_MODEL_IDS,
 } from '@/lib/modelTaxonomy';
 
@@ -135,8 +135,10 @@ export function buildExpertSelectionGroups({
     .map((id) => aiById.get(id))
     .filter(Boolean) as Expert[];
 
-  // 추론 — MODEL_IS_REASONING 셋 안의 모델 (출시순 그대로)
-  const reasoningItems = allAiItems.filter((e) => MODEL_IS_REASONING.has(e.id));
+  // 추론 — REASONING_MODEL_IDS 명시 순서대로, 누락 ID 는 무시
+  const reasoningItems = REASONING_MODEL_IDS
+    .map((id) => aiById.get(id))
+    .filter(Boolean) as Expert[];
 
   // ── 직업/전문가 카테고리 (기존 유지) ──
   const otherCategoryGroups = visibleCategories

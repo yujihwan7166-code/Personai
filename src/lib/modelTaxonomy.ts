@@ -173,23 +173,26 @@ export const MODEL_IS_OPENSOURCE: ReadonlySet<string> = new Set<string>([
 /**
  * 추론(reasoning) 특화 모델 — 각 브랜드의 "생각하는 모델" 1개.
  *
+ * 표시 순서: 사용자 지정 1~3위(GPT/Gemini/Claude) + 그 외 인지도 순.
+ *
  * 기준:
  * - 별도 thinking ID 가 등록된 브랜드: 그 thinking 변형 사용 (deepseek-r1, qwen-thinking, kimi-thinking)
  * - thinking 변형이 없는 브랜드: 그 브랜드의 최상위 추론력 모델 (reasoning 점수 90+)
  * - Perplexity 는 sonar-pro 가 심층 리서치 라인이라 포함
  */
-export const MODEL_IS_REASONING: ReadonlySet<string> = new Set<string>([
-  // 별도 thinking 변형
-  'deepseek-r1',
-  'qwen-thinking',
-  'kimi-thinking',
-  'perplexity-pro',
-  // 브랜드 최상위 추론 (thinking 변형이 별도 등록 안 된 브랜드)
-  'gpt',          // GPT-5.4 (reasoning 96)
-  'claude',       // Claude Opus 4.6 (reasoning 97)
-  'gemini-pro',   // Gemini 3.1 Pro (reasoning 94)
-  'grok',         // Grok 4.1 Fast (reasoning 86)
-]);
+export const REASONING_MODEL_IDS: readonly string[] = [
+  'gpt',             // 1. OpenAI GPT-5.4
+  'gemini-pro',      // 2. Google Gemini 3.1 Pro
+  'claude',          // 3. Anthropic Claude Opus 4.6
+  'grok',            // 4. xAI Grok 4.1 Fast
+  'perplexity-pro',  // 5. Perplexity Sonar Pro
+  'deepseek-r1',     // 6. DeepSeek R1
+  'qwen-thinking',   // 7. Qwen3 Max Thinking
+  'kimi-thinking',   // 8. Kimi K2 Thinking
+] as const;
+
+/** 빠른 lookup 용 Set (panel 외 다른 곳에서 boolean 체크 필요 시). */
+export const MODEL_IS_REASONING: ReadonlySet<string> = new Set<string>(REASONING_MODEL_IDS);
 
 /**
  * 추천 모델 셀렉션 (5~7개).
