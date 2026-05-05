@@ -681,7 +681,7 @@ const Planner = () => {
         )}
 
         {isFullscreen ? (
-          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 h-[950px]">
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 sm:p-4 min-h-[600px] h-[calc(100vh-160px)]">
             {view === 'month' && (
               <MonthView
                 anchorIso={anchorIso}
