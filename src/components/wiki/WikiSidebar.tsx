@@ -212,11 +212,7 @@ export function WikiSidebar({
         )}
       </div>
 
-      {/* 하단 카운트 */}
-      <div className="px-3 py-2 border-t border-[hsl(var(--hairline))] text-[10px] text-muted-foreground flex items-center justify-between">
-        <span>{pages.length}개 페이지</span>
-        {filter !== 'all' && <span>{filtered.length} 필터</span>}
-      </div>
+      {/* 하단 카운트 행 제거됨 — Wiki.tsx 의 footer 에서 설정 버튼과 같은 줄에 노출. */}
     </div>
   );
 }

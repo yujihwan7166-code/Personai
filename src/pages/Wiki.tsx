@@ -379,8 +379,11 @@ const Wiki = () => {
             onQueryChange={setSidebarQuery}
             onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
           />
-          {/* 사이드바 footer — 우하단 설정 */}
-          <div className="px-2 h-9 border-t border-[hsl(var(--hairline))] flex items-center justify-end shrink-0">
+          {/* 사이드바 footer — 좌측: 페이지 카운트 / 우측: 설정 (같은 줄) */}
+          <div className="px-3 h-9 border-t border-[hsl(var(--hairline))] flex items-center justify-between shrink-0">
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {pages.length}개 페이지
+            </span>
             <WikiSettingsMenu
               onMutated={() => { void reload(); setActiveId(null); }}
               onOpenStorage={() => setStorageOpen(true)}
