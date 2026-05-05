@@ -16,7 +16,7 @@ import { Pencil, Plus, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { stripMarkdown } from '@/lib/journalMarkdown';
 import type { JournalEntry, Mood } from '@/types/journal';
-import { MOOD_EMOJI, MOOD_TINT, ACTIVITY_META } from '@/types/journal';
+import { MOOD_EMOJI, ACTIVITY_META } from '@/types/journal';
 
 interface JournalWeekBoardProps {
   entries: JournalEntry[];
@@ -185,49 +185,48 @@ export const JournalWeekBoard = ({
       </div>
 
       {/* ── 하단 본문 panel ── */}
-      <div>
-        {/* panel 헤더 — 선택된 날짜 풀 라벨 + 새 entry 버튼 */}
-        <header className="flex items-center justify-between gap-3 px-5 sm:px-7 pt-5 pb-3 border-b border-[hsl(var(--hairline))]">
-          <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">
-            <h3
-              className={cn(
-                'text-[20px] sm:text-[22px] font-bold tracking-tight tabular-nums',
-                isSelectedToday ? 'text-primary' : 'text-foreground',
-              )}
-              style={{
-                fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일
-            </h3>
-            <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="px-5 sm:px-7 pt-5 pb-6 sm:pb-7">
+        {/* panel 헤더 — "5월 5일 화요일" 한 줄 좌상단 (mockup 양식) */}
+        <header className="flex items-start justify-between gap-3 mb-4 sm:mb-5">
+          <h3
+            className={cn(
+              'text-[18px] sm:text-[20px] font-bold tracking-tight',
+              isSelectedToday ? 'text-primary' : 'text-foreground',
+            )}
+            style={{
+              fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+              letterSpacing: '-0.015em',
+            }}
+          >
+            {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일{' '}
+            <span className="font-medium text-foreground/70">
               {selectedDate.toLocaleDateString('ko-KR', { weekday: 'long' })}
             </span>
-            {isSelectedToday && (
-              <span className="inline-flex items-center px-2 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.16em]">
-                오늘
+            {selectedEntries.length > 1 && (
+              <span className="ml-2 text-[11px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/70 align-middle">
+                {selectedEntries.length}
               </span>
             )}
-            {selectedEntries.length > 0 && (
-              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/80">
-                {selectedEntries.length} 개
-              </span>
-            )}
-          </div>
+          </h3>
           <button
             type="button"
             onClick={() => onAddForDate(selectedDay)}
-            title={isSelectedFuture ? '예정 일기' : '이 날 더 적기'}
-            className="inline-flex items-center gap-1 px-2.5 h-8 rounded-md text-[12px] font-semibold border border-[hsl(var(--hairline))] bg-card text-foreground/85 hover:border-foreground/30 hover:bg-accent transition-colors shrink-0"
+            title={
+              isSelectedFuture
+                ? '예정 일기'
+                : selectedEntries.length === 0
+                  ? '적기'
+                  : '더 적기'
+            }
+            aria-label="새 일기"
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
           >
-            <Plus className="h-3.5 w-3.5" />
-            {selectedEntries.length === 0 ? '적기' : '더 적기'}
+            <Plus className="h-4 w-4" />
           </button>
         </header>
 
-        {/* panel 본문 */}
-        <div className="px-5 sm:px-7 py-5 sm:py-6">
+        {/* panel 본문 영역 */}
+        <div>
           {selectedEntries.length === 0 ? (
             /* 빈 상태 — 큰 prompt */
             <button
