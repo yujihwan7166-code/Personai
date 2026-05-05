@@ -35,7 +35,7 @@ import {
   type Memo, type MemoFolder, type MemoFolderColor,
 } from '@/lib/memoStore';
 import { upsertPage } from '@/lib/wikiStore';
-import { newWikiId, type WikiPage, type WikiPageType, USER_FACING_TYPES, WIKI_TYPE_META } from '@/types/wiki';
+import { newWikiId, type WikiPage } from '@/types/wiki';
 
 const Memos = () => {
   const navigate = useNavigate();
