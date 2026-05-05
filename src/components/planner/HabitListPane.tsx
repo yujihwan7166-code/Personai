@@ -120,8 +120,8 @@ export const HabitListPane = ({
 
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
-      {/* 헤더 — 카드 행과 동일한 grid 컬럼 (도트 세로선 정렬). border-x transparent 로 카드 border 1px inset 보정. */}
-      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-x border-x-transparent border-b border-b-[hsl(var(--hairline))] bg-card">
+      {/* 헤더 — 카드 행과 동일한 grid 컬럼 (도트 세로선 정렬). 좌측 2px border-l 보정으로 row 와 정렬. */}
+      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-l-2 border-l-transparent border-b border-b-[hsl(var(--hairline))] bg-card">
         {/* col 1: 제목 + 액션 버튼들 */}
         <div className="min-w-0 flex items-center gap-1.5">
           <span className="text-[15px] font-bold tracking-tight text-foreground">습관</span>
@@ -234,8 +234,8 @@ export const HabitListPane = ({
         <div />
       </div>
 
-      {/* 카드형 행 리스트 — 좌우 padding 제거하여 헤더 grid 와 컬럼 정렬 일치 */}
-      <div className="flex-1 min-h-0 overflow-y-auto py-3 space-y-2">
+      {/* 테이블 행 리스트 — 행 간격 0, hairline divider 만으로 구분 */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {habits.length === 0 ? (
           <div className="p-2">
             <div className="text-[13px] text-foreground/70 font-medium mb-2">
@@ -303,11 +303,11 @@ export const HabitListPane = ({
                 }}
                 className={cn(
                   'group relative grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center',
-                  'rounded-xl bg-card px-3.5 py-3 cursor-pointer transition-all',
-                  'border shadow-[0_1px_2px_rgba(0,0,0,0.03)]',
+                  'px-3.5 py-3 cursor-pointer transition-colors',
+                  'border-b border-b-[hsl(var(--hairline))] border-l-2',
                   isSelected
-                    ? 'border-blue-500/60 ring-1 ring-blue-500/30'
-                    : 'border-[hsl(var(--hairline))] hover:border-foreground/20 hover:shadow-[0_2px_6px_rgba(0,0,0,0.05)]',
+                    ? 'bg-blue-500/5 border-l-blue-500'
+                    : 'border-l-transparent hover:bg-accent/50',
                 )}
               >
                 {/* 좌: emoji + 제목 + meta */}

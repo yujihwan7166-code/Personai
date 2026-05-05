@@ -120,8 +120,8 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
         </DropdownMenu>
       </div>
 
-      {/* 본문 — 스크롤 */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2.5">
+      {/* 본문 — 스크롤. 섹션 간격은 각 section 의 pt-3 + border-t 가 담당. */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
         {/* streak 상태 한 줄 — 위기/완료 시에만 노출 (기본 "다음 예정: 오늘" placeholder 는 가치 없음) */}
         {((todayScheduled && !todayDone && stats.streak >= 3) || todayDone) && (
           <div className={cn(
@@ -164,23 +164,26 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
           ))}
         </div>
 
-        {/* 월 캘린더 */}
-        <div className="rounded-lg border border-[hsl(var(--hairline))] p-2.5">
+        {/* 월 캘린더 — 섹션 패턴 (border-t 위, 라벨 + 내용, 카드 wrapper 없음) */}
+        <section className="pt-3 border-t border-[hsl(var(--hairline))]">
+          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
+            이번 달
+          </div>
           <HabitMonthGrid
             habit={habit}
             year={viewYear}
             month1Indexed={viewMonth}
             onChangeMonth={(y, m) => { setViewYear(y); setViewMonth(m); }}
           />
-        </div>
+        </section>
 
-        {/* 365일 히트맵 */}
-        <div className="rounded-lg border border-[hsl(var(--hairline))] p-2.5">
-          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-1.5">
+        {/* 365일 히트맵 — 섹션 패턴 */}
+        <section className="pt-3 border-t border-[hsl(var(--hairline))]">
+          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
             연간 패턴
           </div>
           <HabitYearHeatmap habit={habit} checkins={allCheckins} />
-        </div>
+        </section>
 
         {/* 메모 */}
         <div>
