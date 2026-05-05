@@ -23,7 +23,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
   <div
     role="tablist"
     aria-label="뷰 전환"
-    className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-accent/40 border border-foreground/20"
+    className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-accent/40 border border-foreground/20"
   >
     {OPTIONS.map((opt) => {
       const active = value === opt.id;
@@ -36,7 +36,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
           onClick={() => onChange(opt.id)}
           title={`${opt.label} (${opt.key})`}
           className={cn(
-            'px-2.5 h-6 rounded text-[12px] font-semibold tabular-nums transition-colors',
+            'px-3.5 h-8 rounded-md text-[14px] font-semibold tabular-nums transition-colors',
             active
               ? 'bg-card text-foreground shadow-sm ring-1 ring-foreground/30'
               : 'text-foreground/70 hover:text-foreground',

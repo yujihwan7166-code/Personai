@@ -661,16 +661,16 @@ const Planner = () => {
                 onClick={goPrev}
                 aria-label="이전"
                 title="이전 (←)"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-5 w-5" />
               </button>
               <div className="min-w-0 flex items-baseline gap-2.5">
-                <h2 className="text-[18px] sm:text-[20px] font-semibold tracking-tight text-foreground leading-none truncate">
+                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-foreground leading-none truncate">
                   {headerLabels.primary}
                 </h2>
                 {headerLabels.secondary && (
-                  <span className="hidden sm:inline text-[13px] text-foreground/70 tabular-nums font-medium">
+                  <span className="hidden sm:inline text-[14px] text-foreground/70 tabular-nums font-medium">
                     {headerLabels.secondary}
                   </span>
                 )}
@@ -680,9 +680,9 @@ const Planner = () => {
                 onClick={goNext}
                 aria-label="다음"
                 title="다음 (→)"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-5 w-5" />
               </button>
               <button
                 type="button"
@@ -691,7 +691,7 @@ const Planner = () => {
                 aria-label="오늘로"
                 title="오늘로 (T)"
                 className={cn(
-                  'ml-1 h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-foreground/20 transition-colors',
+                  'ml-1 h-8 px-3 text-[13px] font-semibold rounded-md border border-foreground/20 transition-colors',
                   anchorIsToday
                     ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
                     : 'bg-card text-foreground hover:bg-accent',
