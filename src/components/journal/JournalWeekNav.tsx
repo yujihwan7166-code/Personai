@@ -66,37 +66,37 @@ export const JournalWeekNav = ({
   }, [shortcutsEnabled, onPrev, onNext, onToday]);
 
   return (
-    <div className="flex items-center justify-between gap-2 pb-3">
+    <div className="flex items-center justify-between gap-3 px-1">
       <button
         type="button"
         onClick={onPrev}
         title="이전 주 (←)"
         aria-label="이전 주"
         className={cn(
-          'inline-flex items-center justify-center h-8 w-8 rounded-md border transition-colors shrink-0',
-          'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:text-foreground hover:border-foreground/25',
+          'inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors shrink-0',
+          'text-muted-foreground hover:text-foreground hover:bg-accent/60',
         )}
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={1.75} />
       </button>
 
       <h2
-        className="text-[15px] sm:text-[17px] font-bold tracking-tight text-foreground text-center min-w-0 truncate"
+        className="text-[16px] sm:text-[18px] font-bold tracking-tight text-foreground text-center min-w-0 truncate tabular-nums"
         style={{
           fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-          letterSpacing: '-0.01em',
+          letterSpacing: '-0.015em',
         }}
       >
         {label}
       </h2>
 
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         {!isCurrentWeek && (
           <button
             type="button"
             onClick={onToday}
             title="이번 주 (T)"
-            className="px-2.5 h-8 rounded-md border border-[hsl(var(--hairline))] bg-card text-[11.5px] font-semibold text-foreground hover:border-foreground/25 transition-colors"
+            className="px-2.5 h-8 rounded-lg text-[11.5px] font-semibold text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
           >
             오늘
           </button>
@@ -107,11 +107,11 @@ export const JournalWeekNav = ({
           title="다음 주 (→)"
           aria-label="다음 주"
           className={cn(
-            'inline-flex items-center justify-center h-8 w-8 rounded-md border transition-colors',
-            'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:text-foreground hover:border-foreground/25',
+            'inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors',
+            'text-muted-foreground hover:text-foreground hover:bg-accent/60',
           )}
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-[18px] w-[18px]" strokeWidth={1.75} />
         </button>
       </div>
     </div>

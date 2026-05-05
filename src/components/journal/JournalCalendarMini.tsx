@@ -106,7 +106,7 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
   };
 
   return (
-    <aside className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3.5">
+    <aside className="rounded-2xl border border-[hsl(var(--hairline))] bg-card p-4 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)]">
       {/* 헤더 — 월 네비 */}
       <header className="flex items-center justify-between mb-2.5">
         <h3 className="text-[12.5px] font-semibold tracking-tight text-foreground">

@@ -59,8 +59,9 @@ export const OnThisDayCard = ({ allEntries, onClickEntry }: OnThisDayCardProps) 
               type="button"
               onClick={() => onClickEntry(entry)}
               className={cn(
-                'group flex flex-col gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 py-2.5 text-left',
-                'hover:border-foreground/25 hover:shadow-[0_2px_10px_-4px_hsl(30_30%_8%/0.08)] transition-all',
+                'group flex flex-col gap-1.5 rounded-xl border border-[hsl(var(--hairline))] bg-card px-3.5 py-3 text-left',
+                'shadow-[0_1px_2px_hsl(30_30%_8%/0.03)]',
+                'hover:border-foreground/22 hover:shadow-[0_3px_12px_-6px_hsl(30_30%_8%/0.1)] transition-all',
               )}
             >
               <div className="flex items-center gap-2">

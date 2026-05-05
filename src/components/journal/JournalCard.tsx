@@ -87,9 +87,10 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
   return (
     <article
       className={cn(
-        'group rounded-xl border border-[hsl(var(--hairline))] bg-card',
+        'group rounded-2xl border border-[hsl(var(--hairline))] bg-card',
         'pl-6 pr-7 py-6',
-        'hover:border-foreground/30 hover:shadow-[0_6px_22px_-8px_hsl(30_30%_8%/0.12)]',
+        'shadow-[0_1px_2px_hsl(30_30%_8%/0.04)]',
+        'hover:border-foreground/25 hover:shadow-[0_4px_18px_-8px_hsl(30_30%_8%/0.1)]',
         'transition-all duration-200',
       )}
     >

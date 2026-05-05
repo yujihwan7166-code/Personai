@@ -26,7 +26,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
   const writingRate = stats.totalDays > 0 ? Math.round((stats.uniqueDays / stats.totalDays) * 100) : 0;
 
   return (
-    <aside className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3.5 flex flex-col gap-3">
+    <aside className="rounded-2xl border border-[hsl(var(--hairline))] bg-card p-4 flex flex-col gap-3 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)]">
       {/* 헤더 + 기간 토글 */}
       <header className="flex items-center justify-between">
         <h3

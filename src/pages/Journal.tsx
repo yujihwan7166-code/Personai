@@ -243,14 +243,14 @@ const Journal = () => {
               </h1>
               {streak > 0 && (
                 <span
-                  className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] font-semibold tabular-nums"
+                  className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-foreground/[0.04] text-foreground/70 text-[11px] font-semibold tabular-nums border border-[hsl(var(--hairline))]"
                   title={`${streak}일 연속 작성`}
                 >
-                  <Flame className="h-3 w-3" />
+                  <Flame className="h-3 w-3 text-amber-600/80 dark:text-amber-400/80" />
                   {streak}
                 </span>
               )}
-              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/80 hidden sm:inline">
+              <span className="text-[10px] font-mono uppercase tracking-[0.22em] tabular-nums text-muted-foreground/70 hidden sm:inline">
                 {allEntries.length} 페이지
               </span>
             </div>
@@ -258,8 +258,8 @@ const Journal = () => {
             {/* 검색 input */}
             <div
               className={cn(
-                'relative inline-flex items-center gap-1.5 h-9 px-3 rounded-md border transition-all',
-                'border-[hsl(var(--hairline))] bg-card focus-within:border-foreground/30',
+                'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border transition-all',
+                'border-[hsl(var(--hairline))] bg-card/60 focus-within:bg-card focus-within:border-foreground/25 focus-within:shadow-[0_1px_4px_hsl(30_30%_8%/0.04)]',
                 query.length > 0 ? 'w-52' : 'w-36 focus-within:w-52',
               )}
             >
@@ -288,7 +288,7 @@ const Journal = () => {
             <div
               role="tablist"
               aria-label="뷰 모드"
-              className="inline-flex items-center p-0.5 rounded-md border border-[hsl(var(--hairline))] bg-card"
+              className="inline-flex items-center p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60"
               title={
                 query.trim().length > 0 || hasActiveFilter
                   ? '검색·필터 시 자동 목록 뷰'
@@ -337,10 +337,10 @@ const Journal = () => {
                 aria-label="필터"
                 title={hasActiveFilter ? '필터 활성' : '필터'}
                 className={cn(
-                  'relative inline-flex items-center justify-center h-9 w-9 rounded-md border transition-colors',
+                  'relative inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors',
                   filterOpen || hasActiveFilter
-                    ? 'border-foreground/30 bg-accent text-foreground'
-                    : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:text-foreground hover:border-foreground/20',
+                    ? 'border-foreground/25 bg-accent text-foreground'
+                    : 'border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card',
                 )}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -353,7 +353,7 @@ const Journal = () => {
               type="button"
               onClick={() => setEditorMode({ kind: 'create' })}
               title="새 일기 (N)"
-              className="inline-flex items-center gap-1.5 px-4 h-9 text-[13px] font-semibold rounded-md bg-foreground text-background hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-colors shadow-[0_1px_2px_hsl(30_30%_8%/0.08)]"
             >
               <Plus className="h-3.5 w-3.5" />
               오늘 일기
