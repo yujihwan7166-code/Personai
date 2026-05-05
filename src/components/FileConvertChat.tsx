@@ -675,18 +675,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
             {/* Stage 1: 태스크 선택 */}
             {stage === 'pick-task' && (
               <div className="space-y-6">
-                {/* 드롭존 */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={onDropZoneDrop}
-                  className="w-full flex flex-col items-center justify-center gap-2 py-10 px-6 rounded-2xl border-2 border-dashed border-[hsl(var(--hairline))] hover:border-violet-400 hover:bg-violet-50/30 transition-colors"
-                >
-                  <Upload className="w-8 h-8 text-muted-foreground/70" />
-                  <div className="text-[14px] font-semibold text-foreground">파일을 여기 놓거나 클릭해서 선택하세요</div>
-                  <div className="text-[11.5px] text-muted-foreground/70">PDF · 이미지 · Word · Excel · CSV · Markdown 등</div>
-                </button>
+                {/* 드롭존 제거됨 — 도구 카드 선택 후 upload stage 에서 파일 픽 / 또는 전역 드래그&드롭 오버레이로 진입. */}
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => { const picked = Array.from(e.target.files ?? []); void handleFilesSelected(picked); e.target.value = ''; }} />
                 {/* 모바일 — 카메라 직접 촬영 */}
                 {isMobile() && (
