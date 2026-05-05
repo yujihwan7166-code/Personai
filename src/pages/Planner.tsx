@@ -643,7 +643,7 @@ const Planner = () => {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
-    <div className="min-h-screen bg-[hsl(35_25%_95%)] flex">
+    <div className="min-h-screen bg-[hsl(40_30%_97%)] flex">
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
       <aside className="shrink-0 w-12 border-r border-foreground/20 bg-card/40">
         <PlannerLeftRail />
