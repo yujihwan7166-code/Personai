@@ -28,7 +28,7 @@ import '@/styles/memo.css';
 import {
   useMemos, addMemo, updateMemo, removeMemo, togglePin,
   archiveMemo, unarchiveMemo, addMemoImage, removeMemoImage,
-  memoTitle, extractMemoTags, memoTimeLabel,
+  memoTitle, memoPreview, extractMemoTags, memoTimeLabel,
   tagFrequencies,
   useFolders, addFolder, renameFolder, removeFolder, updateFolder, moveMemoToFolder,
   MEMO_FOLDER_COLORS,
@@ -202,7 +202,11 @@ const Memos = () => {
           >
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
-          <h1 className="text-[15px] font-semibold text-foreground tracking-tight flex-1">메모</h1>
+          <h1 className="text-[15px] font-semibold text-foreground tracking-tight flex-1 flex items-center gap-1.5">
+            <span aria-hidden className="text-[16px]">📝</span>
+            <span>메모</span>
+            <span className="text-[11.5px] font-normal text-muted-foreground tabular-nums">{activeMemos.length}</span>
+          </h1>
           <button
             onClick={() => setCreatingFolder(true)}
             className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -818,61 +822,85 @@ function MemoRow({
   onUnarchive?: () => void;
 }) {
   const title = memoTitle(memo);
+  const preview = memoPreview(memo);
   const hasActions = !!(onPin || onMoveFolder || onDelete || onArchive || onUnarchive);
+  // loose / bare: 2줄 카드 (제목 + 미리보기). 폴더 안 children: 1줄 컴팩트.
+  const isCardMode = loose || bare;
   const inner = (
     <>
       <button
         onClick={onClick}
         className={cn(
-          'w-full text-left rounded-md flex items-center gap-2 transition-colors',
-          loose ? 'h-9 px-3' : 'h-8 px-3',
-          hasActions && 'pr-9', // ⋯ 자리 확보
+          'relative w-full text-left rounded-lg transition-all',
+          isCardMode
+            ? 'flex flex-col gap-0.5 px-3 py-2'
+            : 'flex items-center gap-2 h-8 px-3',
+          hasActions && 'pr-9',
           active
-            ? 'bg-primary/12 text-primary'
-            : 'text-foreground hover:bg-accent',
-          archived && 'opacity-65',
+            ? 'bg-primary/10 ring-1 ring-inset ring-primary/40 text-foreground shadow-[inset_3px_0_0_0_hsl(var(--primary))]'
+            : 'text-foreground hover:bg-accent/60',
+          archived && 'opacity-70',
         )}
       >
-        {loose && !memo.pinned && (
-          <span
-            aria-hidden
-            className="w-1 h-1 rounded-full bg-muted-foreground/45 shrink-0"
-          />
-        )}
-        {memo.pinned && (
-          <Pin
-            className={cn(
-              'text-amber-500 shrink-0',
-              loose ? 'w-3.5 h-3.5' : 'w-3 h-3',
+        {isCardMode ? (
+          <>
+            {/* row 1: pin + 제목 + 시간 */}
+            <div className="flex items-center gap-1.5 w-full">
+              {memo.pinned && (
+                <Pin className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
+              )}
+              <span className={cn(
+                'truncate flex-1 text-[13.5px] leading-tight',
+                active ? 'font-semibold text-foreground' : 'font-medium text-foreground',
+                !memo.body.trim() && 'text-muted-foreground italic font-normal',
+              )}>
+                {title}
+              </span>
+              {memo.wikiPageId && (
+                <ExternalLink className="w-3 h-3 text-primary/70 shrink-0" strokeWidth={1.75} />
+              )}
+              <span className={cn(
+                'tabular-nums text-[10.5px] shrink-0',
+                active ? 'text-foreground/65' : 'text-muted-foreground/70',
+                hasActions && 'group-hover:invisible',
+              )}>
+                {memoTimeLabel(memo.updatedAt)}
+              </span>
+            </div>
+            {/* row 2: 미리보기 (첫 본문 줄) */}
+            {preview && (
+              <span className="block truncate text-[11.5px] text-muted-foreground/85 leading-tight">
+                {preview}
+              </span>
             )}
-            fill="currentColor"
-            strokeWidth={1.5}
-          />
-        )}
-        <span className={cn(
-          'truncate flex-1',
-          loose ? 'text-[14px]' : 'text-[13px]',
-          active && 'font-medium',
-          !memo.body.trim() && 'text-muted-foreground italic',
-        )}>
-          {title}
-        </span>
-        {memo.wikiPageId && (
-          <ExternalLink
-            className={cn(
-              'text-primary/70 shrink-0',
-              loose ? 'w-3.5 h-3.5' : 'w-3 h-3',
+          </>
+        ) : (
+          // 폴더 children — 컴팩트 1줄
+          <>
+            {memo.pinned ? (
+              <Pin className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
+            ) : (
+              <span aria-hidden className="w-1 h-1 rounded-full bg-muted-foreground/45 shrink-0" />
             )}
-            strokeWidth={1.75}
-          />
+            <span className={cn(
+              'truncate flex-1 text-[13px]',
+              active && 'font-medium',
+              !memo.body.trim() && 'text-muted-foreground italic',
+            )}>
+              {title}
+            </span>
+            {memo.wikiPageId && (
+              <ExternalLink className="w-3 h-3 text-primary/70 shrink-0" strokeWidth={1.75} />
+            )}
+            <span className={cn(
+              'tabular-nums text-[11px] shrink-0',
+              active ? 'text-foreground/65' : 'text-muted-foreground/70',
+              hasActions && 'group-hover:invisible',
+            )}>
+              {memoTimeLabel(memo.updatedAt)}
+            </span>
+          </>
         )}
-        <span className={cn(
-          'tabular-nums text-muted-foreground/80 shrink-0',
-          loose ? 'text-[12px]' : 'text-[11px]',
-          hasActions && 'group-hover:invisible',
-        )}>
-          {memoTimeLabel(memo.updatedAt)}
-        </span>
       </button>
       {hasActions && (
         <DropdownMenu>
@@ -929,9 +957,10 @@ function MemoRow({
       )}
     </>
   );
+  const wrapClass = isCardMode ? 'relative group mb-1' : 'relative group';
   return bare
-    ? <div className="relative group">{inner}</div>
-    : <li className="relative group">{inner}</li>;
+    ? <div className={wrapClass}>{inner}</div>
+    : <li className={wrapClass}>{inner}</li>;
 }
 
 // ──────────────────────────────────────────

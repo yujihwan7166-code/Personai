@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, Home, ChevronDown, FileText, FileType, FileCode, Pencil as PencilIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMemos } from '@/lib/memoStore';
 import {
-  type WikiPage, type WikiPageType, type WikiPageStatus,
-  WIKI_TYPE_META, WIKI_STATUS_META, isMainDoc, USER_FACING_TYPES,
+  type WikiPage, type WikiPageStatus,
+  WIKI_TYPE_META, WIKI_STATUS_META, VISIBLE_WIKI_STATUSES, isMainDoc,
   extractWikiLinks,
 } from '@/types/wiki';
 import { WikiBody } from './WikiBody';
@@ -322,6 +322,7 @@ export function WikiPageView({
                 editing={editing}
                 onChange={(d) => setDraft(d)}
                 draft={draft}
+                allPages={allPages}
               />
             </div>
           </header>
@@ -334,6 +335,7 @@ export function WikiPageView({
                 editing
                 onChange={setDraft}
                 draft={draft}
+                allPages={allPages}
               />
             </div>
           )}
@@ -433,12 +435,13 @@ function SaveStatusBadge({ status }: { status: SaveStatus }) {
 
 /* ── 메타 칩/폼 ── */
 function MetaChips({
-  page, editing, draft, onChange,
+  page, editing, draft, onChange, allPages,
 }: {
   page: WikiPage;
   editing: boolean;
   draft: WikiPage;
   onChange: (d: WikiPage) => void;
+  allPages?: WikiPage[];
 }) {
   const typeMeta = WIKI_TYPE_META[page.type];
   const statusMeta = WIKI_STATUS_META[page.status];
@@ -466,59 +469,172 @@ function MetaChips({
     );
   }
 
+  // 편집 모드 — 슬림 메타 바: [메인 문서 토글] [상태] [태그 칩+자동완성]
+  const isMainOn = !!draft.isMain || draft.type === 'moc';
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      <select
-        value={USER_FACING_TYPES.includes(draft.type) ? draft.type : 'concept'}
-        onChange={(e) => onChange({ ...draft, type: e.target.value as WikiPageType })}
-        className="text-[11px] px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background"
-      >
-        {USER_FACING_TYPES.map((k) => {
-          const m = WIKI_TYPE_META[k];
-          return <option key={k} value={k}>{m.icon} {m.label}</option>;
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* 메인 문서 토글 (chip 형태) */}
+      <button
+        type="button"
+        onClick={() => onChange({
+          ...draft,
+          isMain: !isMainOn,
+          // 토글 끄면 legacy 'moc' type 도 일반으로 정리
+          type: isMainOn && draft.type === 'moc' ? 'concept' : draft.type,
         })}
-      </select>
-      <label className="inline-flex items-center gap-1 text-[11px] px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background cursor-pointer hover:border-primary/40 wiki-trans-color">
-        <input
-          type="checkbox"
-          checked={!!draft.isMain || draft.type === 'moc'}
-          onChange={(e) => onChange({
-            ...draft,
-            isMain: e.target.checked,
-            // 토글 끄면 legacy 'moc' type 도 일반으로 정리
-            type: !e.target.checked && draft.type === 'moc' ? 'concept' : draft.type,
-          })}
-          className="accent-primary"
-        />
-        <span className="text-foreground/85">📖 메인 문서</span>
-      </label>
+        title={isMainOn ? '메인 문서 해제' : '메인 문서로 지정'}
+        className={cn(
+          'inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11.5px] font-semibold transition-colors border',
+          isMainOn
+            ? 'bg-violet-500/12 border-violet-300 text-violet-700 dark:text-violet-300'
+            : 'bg-card border-[hsl(var(--hairline))] text-muted-foreground hover:border-violet-200 hover:text-foreground',
+        )}
+      >
+        <span>📖</span>
+        <span>메인 문서</span>
+        {isMainOn && <Check className="w-3 h-3" />}
+      </button>
+
+      {/* 상태 dropdown — 일반 3 단계. archived 페이지는 유지(데이터 손실 방지) 후 사용자가 명시 변경 시에만 전환. */}
       <select
         value={draft.status}
         onChange={(e) => onChange({ ...draft, status: e.target.value as WikiPageStatus })}
-        className="text-[11px] px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background"
+        className="h-7 px-2 rounded-md border border-[hsl(var(--hairline))] bg-card text-[11.5px] font-medium text-foreground focus:outline-none focus:border-primary/40"
       >
-        {Object.entries(WIKI_STATUS_META).map(([k, m]) => (
-          <option key={k} value={k}>{m.label}</option>
+        {VISIBLE_WIKI_STATUSES.map((k) => (
+          <option key={k} value={k}>{WIKI_STATUS_META[k].label}</option>
         ))}
+        {draft.status === 'archived' && (
+          <option value="archived">{WIKI_STATUS_META.archived.label}</option>
+        )}
       </select>
-      <input
-        value={draft.tags.join(', ')}
-        onChange={(e) => onChange({ ...draft, tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean) })}
-        placeholder="태그 (쉼표)"
-        className="text-[11px] px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background min-w-[160px]"
+
+      {/* 태그 칩 + 자동완성 */}
+      <WikiTagChipInput
+        tags={draft.tags}
+        onChange={(next) => onChange({ ...draft, tags: next })}
+        allPages={allPages ?? []}
+        currentId={draft.id}
       />
-      <input
-        value={draft.aliases.join(', ')}
-        onChange={(e) => onChange({ ...draft, aliases: e.target.value.split(',').map((t) => t.trim()).filter(Boolean) })}
-        placeholder="별칭 (쉼표)"
-        className="text-[11px] px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background min-w-[140px]"
-      />
-      <input
-        value={draft.category ?? ''}
-        onChange={(e) => onChange({ ...draft, category: e.target.value.trim() || undefined })}
-        placeholder="분류"
-        className="text-[11px] px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background min-w-[100px]"
-      />
+    </div>
+  );
+}
+
+/* ── 태그 칩 입력 — 칩 인라인 + 자동완성 popover ── */
+function WikiTagChipInput({
+  tags, onChange, allPages, currentId,
+}: {
+  tags: string[];
+  onChange: (next: string[]) => void;
+  allPages: WikiPage[];
+  currentId: string;
+}) {
+  const [input, setInput] = useState('');
+  const [focused, setFocused] = useState(false);
+
+  // 다른 페이지의 태그 풀 (빈도순 top, 현재 페이지 제외)
+  const allTagsPool = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of allPages) {
+      if (p.id === currentId) continue;
+      for (const t of p.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+  }, [allPages, currentId]);
+
+  const suggestions = useMemo(() => {
+    const q = input.trim().toLowerCase();
+    const taken = new Set(tags.map((t) => t.toLowerCase()));
+    const pool = allTagsPool.filter((t) => !taken.has(t.toLowerCase()));
+    if (!q) return pool.slice(0, 6);
+    return pool.filter((t) => t.toLowerCase().includes(q)).slice(0, 6);
+  }, [allTagsPool, tags, input]);
+
+  const addTag = (raw: string) => {
+    const t = raw.trim().replace(/^#+/, '');
+    if (!t) return;
+    if (tags.some((existing) => existing.toLowerCase() === t.toLowerCase())) {
+      setInput('');
+      return;
+    }
+    onChange([...tags, t]);
+    setInput('');
+  };
+
+  const removeTag = (idx: number) => {
+    const next = tags.slice();
+    next.splice(idx, 1);
+    onChange(next);
+  };
+
+  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',' || (e.key === ' ' && input.trim())) {
+      e.preventDefault();
+      addTag(input);
+    } else if (e.key === 'Backspace' && !input && tags.length > 0) {
+      e.preventDefault();
+      removeTag(tags.length - 1);
+    }
+  };
+
+  return (
+    <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-wrap items-center gap-1 min-h-7 px-1.5 py-0.5 rounded-md border border-[hsl(var(--hairline))] bg-card focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-colors">
+        {tags.map((t, i) => (
+          <span
+            key={`${t}-${i}`}
+            className="inline-flex items-center gap-0.5 h-5 pl-1.5 pr-1 rounded bg-accent text-foreground text-[10.5px] font-medium"
+          >
+            <span className="text-muted-foreground">#</span>
+            {t}
+            <button
+              type="button"
+              onClick={() => removeTag(i)}
+              aria-label={`${t} 태그 삭제`}
+              className="ml-0.5 inline-flex items-center justify-center w-3.5 h-3.5 rounded-sm text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors"
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKey}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            // popover 클릭 위해 약간 지연
+            setTimeout(() => setFocused(false), 150);
+            if (input.trim()) addTag(input);
+          }}
+          placeholder={tags.length === 0 ? '태그 입력 후 Enter' : ''}
+          className="flex-1 min-w-[80px] h-6 px-1 bg-transparent text-[11.5px] outline-none placeholder:text-muted-foreground/55"
+        />
+      </div>
+
+      {/* 자동완성 popover */}
+      {focused && suggestions.length > 0 && (
+        <div className="absolute z-30 left-0 top-full mt-1 min-w-[200px] rounded-md border border-[hsl(var(--hairline))] bg-card shadow-md py-1">
+          <div className="px-2 py-0.5 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70">
+            {input.trim() ? '검색' : '자주 쓰는 태그'}
+          </div>
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault(); // blur 방지
+                addTag(s);
+              }}
+              className="w-full text-left px-2 py-1 text-[11.5px] hover:bg-accent transition-colors flex items-center gap-1"
+            >
+              <span className="text-muted-foreground">#</span>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

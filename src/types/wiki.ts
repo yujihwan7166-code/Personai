@@ -75,9 +75,12 @@ export const WIKI_TYPE_META: Record<WikiPageType, { label: string; icon: string;
 export const WIKI_STATUS_META: Record<WikiPageStatus, { label: string; tint: string }> = {
   draft:    { label: '초안',   tint: 'hsl(0 0% 60%)' },
   active:   { label: '작업중', tint: 'hsl(210 70% 55%)' },
-  stable:   { label: '안정',   tint: 'hsl(145 55% 45%)' },
+  stable:   { label: '완성',   tint: 'hsl(145 55% 45%)' },
   archived: { label: '보관',   tint: 'hsl(0 0% 40%)' },
 };
+
+/** dropdown 에 노출할 상태 — 'archived' 는 별도 메뉴 액션. */
+export const VISIBLE_WIKI_STATUSES: WikiPageStatus[] = ['draft', 'active', 'stable'];
 
 export function newWikiId(): string {
   return `w_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
