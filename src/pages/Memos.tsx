@@ -22,6 +22,8 @@ import {
   Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { WikiBlockEditor } from '@/components/wiki/WikiBlockEditor';
+import { WikiEditorToolbar } from '@/components/wiki/WikiEditorToolbar';
+import type { Editor } from '@tiptap/react';
 import {
   useMemos, addMemo, updateMemo, removeMemo, togglePin,
   archiveMemo, unarchiveMemo, addMemoImage, removeMemoImage,
@@ -951,6 +953,8 @@ function MemoEditor({
   const debounceRef = useRef<number | null>(null);
   const isArchived = !!memo.archivedAt;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // TipTap 에디터 인스턴스 — 외부 툴바와 공유.
+  const [tipTapEditor, setTipTapEditor] = useState<Editor | null>(null);
 
   // 이미지 첨부 — 파일을 dataURL 로 변환해 store 에 추가. 1MB 제한.
   const attachFiles = useCallback(async (files: FileList | File[]) => {
@@ -1016,92 +1020,59 @@ function MemoEditor({
 
   return (
     <>
-      {/* 상단 액션바 — 위키로 보내기(메인) + ⋯ (핀·폴더·삭제) */}
-      <div className="shrink-0 px-6 py-3 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
+      {/* 상단 액션바 — TipTap 툴바(중앙) + 위키 + ⋯ */}
+      <div className="shrink-0 px-3 py-2 border-b border-[hsl(var(--hairline))] flex items-center gap-2">
         {onBackToList && (
           <button
             onClick={onBackToList}
-            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors shrink-0"
             aria-label="목록"
             title="목록으로"
           >
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
         )}
-        {/* 자동 저장 상태 — 좌상단 빈 공간 채움 */}
-        <span
-          className={cn(
-            'inline-flex items-center gap-1.5 h-7 px-2 text-[11.5px] tabular-nums select-none',
-            saveState === 'saving' ? 'text-amber-600' : 'text-muted-foreground',
-          )}
-          title={saveState === 'saving' ? '저장 중' : '자동 저장됨'}
-        >
-          <span
-            aria-hidden
-            className={cn(
-              'w-1.5 h-1.5 rounded-full',
-              saveState === 'saving'
-                ? 'bg-amber-500 animate-pulse'
-                : 'bg-emerald-500/70',
-            )}
-          />
-          {saveState === 'saving' ? '저장 중…' : '저장됨'}
-        </span>
-        <span className="text-border">·</span>
-        <span className="text-[11.5px] text-muted-foreground tabular-nums select-none">
-          {memoTimeLabel(memo.updatedAt)} 수정
-        </span>
-        {/* 핀이 켜진 메모는 작은 인디케이터만 (토글은 ⋯ 메뉴에서) */}
-        {memo.pinned && (
-          <span className="inline-flex items-center gap-1 px-2 h-7 rounded-md bg-amber-500/10 text-amber-600 text-[11px] font-medium">
-            <Pin className="w-3 h-3" fill="currentColor" strokeWidth={1.5} />
-            고정됨
+        {/* 작은 메타 (보관/녹음 출처) — 툴바 왼쪽에 컴팩트하게 */}
+        {isArchived && (
+          <span className="inline-flex items-center gap-1 px-2 h-7 rounded-md bg-foreground/10 text-foreground/70 text-[11px] font-medium shrink-0">
+            <Archive className="w-3 h-3" strokeWidth={1.75} />
+            보관됨
           </span>
         )}
-        {/* 현재 폴더 표시 (정보용) */}
-        {currentFolder && (
-          <span className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11px] text-muted-foreground">
-            <Folder className="w-3 h-3" strokeWidth={1.75} />
-            {currentFolder.emoji ?? '📁'} {currentFolder.name}
-          </span>
-        )}
-        {/* 녹음에서 승격된 메모 — 출생지 칩 */}
         {memo.sourceRecordingId && memo.sourceRecordingTitle && (
           <span
-            className="inline-flex items-center gap-1 px-2 h-7 rounded-md bg-violet-500/10 text-violet-600 dark:text-violet-300 text-[11px] font-medium max-w-[200px]"
-            title={`출처 녹음: ${memo.sourceRecordingTitle}${memo.sourceChapterIndex !== undefined ? ` (챕터 ${memo.sourceChapterIndex + 1})` : ''}`}
+            className="inline-flex items-center gap-1 px-2 h-7 rounded-md bg-violet-500/10 text-violet-600 dark:text-violet-300 text-[11px] font-medium max-w-[160px] shrink-0"
+            title={`출처 녹음: ${memo.sourceRecordingTitle}`}
           >
             <Mic className="w-3 h-3 shrink-0" strokeWidth={1.75} />
             <span className="truncate">{memo.sourceRecordingTitle}</span>
           </span>
         )}
-        {isArchived && (
-          <span className="inline-flex items-center gap-1 px-2 h-7 rounded-md bg-foreground/10 text-foreground/70 text-[11px] font-medium">
-            <Archive className="w-3 h-3" strokeWidth={1.75} />
-            보관됨
-          </span>
-        )}
-        <div className="flex-1" />
-        {/* 이미지 첨부 */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files) attachFiles(e.target.files);
-            e.target.value = '';
-          }}
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          aria-label="이미지 첨부"
-          title="이미지 첨부 (paste / drop 도 가능)"
-        >
-          <ImagePlus className="w-4 h-4" strokeWidth={1.75} />
-        </button>
+        {/* TipTap 툴바 — 가운데 flex-1 영역. editor 준비된 후에만 렌더 */}
+        <div className="flex-1 min-w-0 overflow-x-auto memo-toolbar-host">
+          {tipTapEditor && (
+            <WikiEditorToolbar
+              editor={tipTapEditor}
+              onPickImage={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = async () => {
+                  const file = input.files?.[0];
+                  if (!file) return;
+                  const dataUrl: string = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsDataURL(file);
+                  });
+                  tipTapEditor.chain().focus().setImage({ src: dataUrl }).run();
+                };
+                input.click();
+              }}
+            />
+          )}
+        </div>
         {memo.wikiPageId ? (
           <button
             onClick={() => navigate('/wiki')}
@@ -1216,12 +1187,14 @@ function MemoEditor({
         </div>
       )}
 
-      {/* 본문 — TipTap 블록 에디터 (위키 동일 툴바: 헤딩/볼드/이탤릭/리스트/체크박스/색·하이라이트 등) */}
+      {/* 본문 — TipTap 블록 에디터 (툴바는 위 액션바에 외부 렌더) */}
       <div className="flex-1 min-h-0 overflow-y-auto px-6 sm:px-10 py-4">
         <WikiBlockEditor
           body={draft}
           onChange={setDraft}
           allPages={[]}
+          hideToolbar
+          onEditorReady={setTipTapEditor}
           onUploadImage={async (file) => {
             const dataUrl: string = await new Promise((resolve, reject) => {
               const reader = new FileReader();

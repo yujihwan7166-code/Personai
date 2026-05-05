@@ -36,6 +36,10 @@ interface Props {
   onUploadImage?: (file: File) => Promise<string>;
   /** 새 페이지 만들고 링크 (picker 의 '새로 만들기' 탭) */
   onCreateAndLink?: (title: string, type: import('@/types/wiki').WikiPageType) => Promise<WikiPage> | WikiPage;
+  /** 상단 고정 툴바 숨김 — 외부에서 별도로 렌더할 때 (예: 메모 페이지 액션바). */
+  hideToolbar?: boolean;
+  /** 에디터 인스턴스 노출 — 외부에서 툴바 따로 만들 때 사용. */
+  onEditorReady?: (editor: ReturnType<typeof useEditor>) => void;
 }
 
 interface MarkdownStorage {
@@ -61,7 +65,7 @@ function getEditorMarkdown(editor: { storage: unknown; getHTML: () => string }, 
  *
  * 저장 형식: markdown (tiptap-markdown 변환). 기존 IDB body 와 100% 호환.
  */
-export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPage, onUploadImage, onCreateAndLink }: Props) {
+export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPage, onUploadImage, onCreateAndLink, hideToolbar, onEditorReady }: Props) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -155,6 +159,13 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
 
   const editorRef = useRef<typeof editor>(editor);
   useEffect(() => { editorRef.current = editor; }, [editor]);
+
+  // 외부 툴바 hookup
+  const onEditorReadyRef = useRef(onEditorReady);
+  onEditorReadyRef.current = onEditorReady;
+  useEffect(() => {
+    if (editor) onEditorReadyRef.current?.(editor);
+  }, [editor]);
 
   // 외부 body 변경 시 (예: 페이지 전환) 에디터 컨텐츠 동기화
   const lastBodyRef = useRef(body);
@@ -359,23 +370,25 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
 
   return (
     <div className="relative">
-      {/* 상단 고정 툴바 (네이버 블로그 톤) */}
-      <WikiEditorToolbar
-        editor={editor}
-        onPickPage={onPickPage ? () => onPickPage((title) => editor.chain().focus().insertContent(`[[${title}]]`).run()) : undefined}
-        onPickImage={onUploadImage ? () => {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = 'image/*';
-          input.onchange = async () => {
-            const file = input.files?.[0];
-            if (!file) return;
-            const src = await onUploadImage(file);
-            editor.chain().focus().setImage({ src }).run();
-          };
-          input.click();
-        } : undefined}
-      />
+      {/* 상단 고정 툴바 (네이버 블로그 톤) — hideToolbar 시 외부 렌더 */}
+      {!hideToolbar && (
+        <WikiEditorToolbar
+          editor={editor}
+          onPickPage={onPickPage ? () => onPickPage((title) => editor.chain().focus().insertContent(`[[${title}]]`).run()) : undefined}
+          onPickImage={onUploadImage ? () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async () => {
+              const file = input.files?.[0];
+              if (!file) return;
+              const src = await onUploadImage(file);
+              editor.chain().focus().setImage({ src }).run();
+            };
+            input.click();
+          } : undefined}
+        />
+      )}
 
       {/* 인라인 툴바 — 텍스트 선택 시 떠오름 */}
       <BubbleMenu
