@@ -1062,11 +1062,11 @@ export function AppSidebar({
             };
             const items = [
               { icon: House,            label: '메인',     onClick: handleGoHome },
-              { icon: Bot,              label: 'AI 봇',    onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
               { icon: LayoutGrid,       label: '모드',     onClick: (e: React.MouseEvent<HTMLButtonElement>) => { const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect(); onOpenModePalette?.({ top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height }); } },
               { icon: CalendarDays,     label: '캘린더',   onClick: () => navigate('/planner') },
-              { icon: FileText,         label: '메모',     onClick: () => navigate('/memos') },
               { icon: Network,          label: '위키',     onClick: () => navigate('/wiki') },
+              { icon: Bot,              label: 'AI 봇',    onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
+              { icon: FileText,         label: '메모',     onClick: () => navigate('/memos') },
               {
                 icon: customSlotMeta.icon,
                 label: customSlotMeta.label,
