@@ -43,7 +43,7 @@ export const HabitsView = () => {
 
   return (
     <>
-      <div className="h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-0 min-h-0">
+      <div className="h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] gap-0 min-h-0">
         <div className="min-h-0 lg:border-r lg:border-[hsl(var(--hairline))]">
           <HabitListPane
             habits={habits}
