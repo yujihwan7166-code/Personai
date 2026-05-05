@@ -120,8 +120,8 @@ export const HabitListPane = ({
 
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
-      {/* 헤더 — 카드 행과 동일한 grid 컬럼 (도트 세로선 정렬). */}
-      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-b border-[hsl(var(--hairline))] bg-card">
+      {/* 헤더 — 카드 행과 동일한 grid 컬럼 (도트 세로선 정렬). border-x transparent 로 카드 border 1px inset 보정. */}
+      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-x border-x-transparent border-b border-b-[hsl(var(--hairline))] bg-card">
         {/* col 1: 제목 + 액션 버튼들 */}
         <div className="min-w-0 flex items-center gap-1.5">
           <span className="text-[15px] font-bold tracking-tight text-foreground">습관</span>
@@ -234,8 +234,8 @@ export const HabitListPane = ({
         <div />
       </div>
 
-      {/* 카드형 행 리스트 */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+      {/* 카드형 행 리스트 — 좌우 padding 제거하여 헤더 grid 와 컬럼 정렬 일치 */}
+      <div className="flex-1 min-h-0 overflow-y-auto py-3 space-y-2">
         {habits.length === 0 ? (
           <div className="p-2">
             <div className="text-[13px] text-foreground/70 font-medium mb-2">
