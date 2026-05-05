@@ -30,7 +30,7 @@ import { useFavoriteExperts } from '@/hooks/useFavoriteExperts';
 import { useHoverExpertTip } from '@/hooks/useHoverExpertTip';
 import { useMainModeTransition } from '@/hooks/useMainModeTransition';
 import { buildExpertSelectionGroups, RESEARCH_AGENT_IDS, isAiGroupCat } from '@/lib/expertSelectionGroups';
-import { BRAND_LABEL, BRAND_ORDER, MODEL_BRAND, MODEL_IS_OPENSOURCE, type ModelBrand } from '@/lib/modelTaxonomy';
+import { BRAND_LABEL, BRAND_LOGO, BRAND_ORDER, MODEL_BRAND, MODEL_IS_OPENSOURCE, type ModelBrand } from '@/lib/modelTaxonomy';
 import { BrowserEnginePicker } from '@/components/BrowserEnginePicker';
 import { runSearch } from '@/lib/searchEngines';
 import { useSelectedSearchEngine } from '@/hooks/useSelectedSearchEngine';
@@ -2648,32 +2648,61 @@ export function ExpertSelectionPanel({
             <BrowserEnginePicker />
           )}
 
-          {/* 전체 모델 탭 — 2차 브랜드 필터 칩 (전체 / GPT / Claude / ... / 오픈소스) */}
+          {/* 전체 모델 탭 — 2차 브랜드 필터 칩.
+              구조: [전체] [GPT 🤖] [Claude] ... [기타]  │  [🌐 오픈소스]
+              - 비활성: 회색 텍스트 + 흐린 로고
+              - 활성: 다크 채움 + 풀컬러 로고
+              - 오픈소스(라이선스 축)는 분리선으로 구분 + 에메랄드 톤 */}
           {effectiveCategory === 'ai' && !searchMode && (
-            <div className="flex items-center gap-1 px-3 pt-0 pb-1.5 overflow-x-auto scrollbar-none">
-              {(['all', ...BRAND_ORDER, 'opensource'] as const).map((brand) => {
+            <div className="flex items-center gap-1.5 px-3 pt-0.5 pb-2 overflow-x-auto scrollbar-none">
+              {/* 브랜드 그룹 (전체 + 8개 브랜드) */}
+              {(['all', ...BRAND_ORDER] as const).map((brand) => {
                 const isActive = activeBrandFilter === brand;
-                const label = brand === 'all'
-                  ? '전체'
-                  : brand === 'opensource'
-                    ? '🌐 오픈소스'
-                    : BRAND_LABEL[brand as ModelBrand];
+                const isAll = brand === 'all';
+                const label = isAll ? '전체' : BRAND_LABEL[brand as ModelBrand];
+                const logo = isAll ? null : BRAND_LOGO[brand as ModelBrand];
                 return (
                   <button
                     key={brand}
                     type="button"
                     onClick={() => setActiveBrandFilter(brand)}
                     className={cn(
-                      'px-2 py-0.5 rounded text-[9.5px] whitespace-nowrap transition-all duration-150 border font-medium',
+                      'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10.5px] whitespace-nowrap transition-all duration-150 font-medium shrink-0',
                       isActive
-                        ? 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600'
-                        : 'text-slate-400 hover:text-slate-600 border-transparent hover:border-slate-200 dark:hover:text-slate-200',
+                        ? 'bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900'
+                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
                     )}
                   >
+                    {logo && (
+                      <img
+                        src={logo}
+                        alt=""
+                        className={cn(
+                          'h-3 w-3 object-contain shrink-0 transition-all',
+                          isActive ? 'opacity-100' : 'opacity-60 grayscale',
+                        )}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                     {label}
                   </button>
                 );
               })}
+              {/* 분리선 (브랜드 축 ↔ 라이선스 축) */}
+              <span className="mx-0.5 h-4 w-px bg-slate-200 dark:bg-slate-700 shrink-0" aria-hidden />
+              {/* 오픈소스 (라이선스 축 — 에메랄드 톤) */}
+              <button
+                type="button"
+                onClick={() => setActiveBrandFilter('opensource')}
+                className={cn(
+                  'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10.5px] whitespace-nowrap transition-all duration-150 font-medium shrink-0',
+                  activeBrandFilter === 'opensource'
+                    ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
+                    : 'text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40',
+                )}
+              >
+                🌐 오픈소스
+              </button>
             </div>
           )}
 

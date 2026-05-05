@@ -29,6 +29,18 @@ export const BRAND_LABEL: Record<ModelBrand, string> = {
   other: '기타',
 };
 
+/** 브랜드 로고 경로 (public/logos/...). null 이면 이모지 폴백. */
+export const BRAND_LOGO: Record<ModelBrand, string | null> = {
+  gpt: '/logos/gpt.svg',
+  claude: '/logos/claude.png',
+  gemini: '/logos/gemini.svg',
+  grok: '/logos/grok.svg',
+  perplexity: '/logos/perplexity.svg',
+  deepseek: '/logos/deepseek.png',
+  qwen: '/logos/qwen.png',
+  other: null,
+};
+
 /** 칩 노출 순서 (전체 → 메이저 브랜드 → 기타). 오픈소스는 별도 칩으로 panel 에서 추가. */
 export const BRAND_ORDER: ModelBrand[] = [
   'gpt',
