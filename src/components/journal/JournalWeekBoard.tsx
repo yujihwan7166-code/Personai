@@ -100,9 +100,20 @@ export const JournalWeekBoard = ({
   const isSelectedToday = selectedDay === today;
 
   return (
-    <section className="flex flex-col gap-3">
-      {/* ── 상단 7-day 탭 strip ── */}
-      <div role="tablist" aria-label="요일 선택" className="grid grid-cols-7 gap-1.5">
+    <section
+      className={cn(
+        // 탭 + 본문이 하나의 큰 통합 카드 — mockup 양식
+        'rounded-xl border bg-card overflow-hidden transition-all',
+        'border-[hsl(var(--hairline))]',
+        isSelectedFuture && 'opacity-95',
+      )}
+    >
+      {/* ── 상단 7-day 탭 row — 요일만, panel 상단 row 형태 ── */}
+      <div
+        role="tablist"
+        aria-label="요일 선택"
+        className="grid grid-cols-7 border-b border-[hsl(var(--hairline))]"
+      >
         {days.map((d, i) => {
           const key = ymd(d);
           const dayEntries = byDate.get(key) ?? [];
@@ -110,10 +121,7 @@ export const JournalWeekBoard = ({
           const isToday = key === today;
           const isFuture = key > today;
           const isSelected = key === selectedDay;
-          const mood = hasEntry
-            ? (dayEntries.find((e) => e.mood !== undefined)?.mood as Mood | undefined)
-            : undefined;
-          const moodTint = mood !== undefined ? MOOD_TINT[mood] : null;
+          const isLast = i === days.length - 1;
 
           return (
             <button
@@ -124,81 +132,60 @@ export const JournalWeekBoard = ({
               onClick={() => setSelectedDay(key)}
               title={
                 isFuture
-                  ? '미래'
+                  ? `${d.getMonth() + 1}월 ${d.getDate()}일 (미래)`
                   : hasEntry
                     ? `${d.getMonth() + 1}월 ${d.getDate()}일 · ${dayEntries.length}개`
                     : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
               }
               className={cn(
-                'group/tab flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg border transition-all',
+                'relative flex items-center justify-center h-14 sm:h-16 transition-colors',
+                !isLast && 'border-r border-[hsl(var(--hairline))]',
                 isSelected
-                  ? 'border-foreground/40 bg-card shadow-[0_2px_10px_-4px_hsl(30_30%_8%/0.1)]'
-                  : 'border-[hsl(var(--hairline))] bg-card/60 hover:bg-card hover:border-foreground/20',
-                isToday && !isSelected && 'ring-1 ring-primary/30',
-                isFuture && !isSelected && 'opacity-50',
+                  ? 'bg-amber-100/70 dark:bg-amber-500/15'
+                  : 'hover:bg-accent/50',
+                isFuture && !isSelected && 'opacity-55',
               )}
             >
               <span
                 className={cn(
-                  'text-[10px] font-mono uppercase tracking-[0.18em] leading-none',
+                  'text-[18px] sm:text-[20px] font-bold tracking-tight',
                   isSelected
-                    ? 'text-foreground'
+                    ? 'text-amber-900 dark:text-amber-200'
                     : isToday
                       ? 'text-primary'
-                      : 'text-muted-foreground',
-                )}
-              >
-                {WEEKDAYS_KO[i]}
-              </span>
-              <span
-                className={cn(
-                  'text-[20px] tabular-nums leading-none mt-0.5',
-                  isSelected ? 'font-bold text-foreground' : 'font-medium',
-                  isToday && !isSelected && 'text-primary font-bold',
+                      : 'text-foreground/85',
                 )}
                 style={{
                   fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                  letterSpacing: '-0.02em',
+                  letterSpacing: '-0.01em',
                 }}
               >
-                {d.getDate()}
+                {WEEKDAYS_KO[i]}
               </span>
-              {/* 인디케이터 — mood dot + 다중 entry 카운트 */}
-              <span className="flex items-center gap-0.5 h-3">
-                {hasEntry ? (
-                  <>
-                    <span
-                      className={cn('w-1.5 h-1.5 rounded-full', moodTint ?? 'bg-foreground/40')}
-                      aria-hidden
-                    />
-                    {dayEntries.length > 1 && (
-                      <span className="text-[8.5px] font-mono tabular-nums text-muted-foreground leading-none">
-                        {dayEntries.length}
-                      </span>
-                    )}
-                  </>
-                ) : isFuture ? (
-                  <span className="w-1.5 h-1.5 rounded-full bg-transparent" aria-hidden />
-                ) : (
-                  <span
-                    className="w-1.5 h-1.5 rounded-full border border-[hsl(var(--hairline))] bg-transparent"
-                    aria-hidden
-                  />
-                )}
-              </span>
+              {/* 작성된 날 우하단 작은 dot */}
+              {hasEntry && (
+                <span
+                  className={cn(
+                    'absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full',
+                    isSelected ? 'bg-amber-700/70 dark:bg-amber-300/70' : 'bg-foreground/45',
+                  )}
+                  aria-hidden
+                />
+              )}
+              {/* 오늘 = 우상단 매우 작은 primary dot */}
+              {isToday && !isSelected && (
+                <span
+                  className="absolute top-1.5 right-1.5 w-1 h-1 rounded-full bg-primary"
+                  aria-hidden
+                />
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* ── 하단 본문 panel — 선택된 day 의 entry 들 ── */}
-      <div
-        className={cn(
-          'rounded-xl border bg-card transition-all',
-          'border-[hsl(var(--hairline))]',
-          isSelectedFuture && 'opacity-80',
-        )}
-      >
+      {/* ── 하단 본문 panel ── */}
+      <div>
         {/* panel 헤더 — 선택된 날짜 풀 라벨 + 새 entry 버튼 */}
         <header className="flex items-center justify-between gap-3 px-5 sm:px-7 pt-5 pb-3 border-b border-[hsl(var(--hairline))]">
           <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">

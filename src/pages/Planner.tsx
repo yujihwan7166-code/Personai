@@ -705,11 +705,11 @@ const Planner = () => {
               />
             </div>
             {view === 'day' ? (
-              <div className="min-h-0 flex flex-col gap-3">
+              <div className="min-h-0 flex flex-col gap-1.5">
                 {/* 큰 날짜 헤더 + 공통 입력 — 한 줄에 묶어 수직 공간 절약.
                     [날짜 캐러셀] [공통 input flex-1] [오늘로]
                     공통 input: 시간 NL 있으면 계획/타임라인, 없으면 할 일. */}
-                <div className="shrink-0 flex items-center gap-3 pb-3 px-1">
+                <div className="shrink-0 flex items-center gap-3 px-1">
                   {/* 시간 네비 cluster — Google Calendar 패턴 (◀ 라벨 ▶ + 오늘로). */}
                   <div className="shrink-0 flex items-center gap-2">
                     <button
