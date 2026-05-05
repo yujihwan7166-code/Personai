@@ -296,7 +296,6 @@ const Planner = () => {
     return a.getFullYear() === today.getFullYear();
   }, [anchorIso, view]);
 
-  // 현재 기간 라벨 (헤더 강조 텍스트).
   const periodLabel = useMemo(() => {
     const d = new Date(anchorIso);
     if (view === 'day') {
@@ -314,6 +313,18 @@ const Planner = () => {
     if (view === 'month') return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
     return `${d.getFullYear()}년`;
   }, [anchorIso, view]);
+
+  // 헤더 라벨 — day 뷰만 "오늘"/"내일" smart label + 보조 라벨, 그 외 periodLabel.
+  const headerLabels = useMemo<{ primary: string; secondary?: string }>(() => {
+    if (view !== 'day') return { primary: periodLabel };
+    const d = new Date(anchorIso);
+    const t = new Date();
+    const tm = new Date(t); tm.setDate(t.getDate() + 1);
+    const fullLabel = d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+    if (isSameDay(d, t)) return { primary: '오늘', secondary: fullLabel };
+    if (isSameDay(d, tm)) return { primary: '내일', secondary: fullLabel };
+    return { primary: fullLabel };
+  }, [anchorIso, view, periodLabel]);
 
   // 키보드 단축키.
   useEffect(() => {
@@ -638,33 +649,77 @@ const Planner = () => {
         <PlannerLeftRail />
       </aside>
       <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 sm:py-5 max-w-[1280px] w-full mx-auto">
-        {/* 페이지 가로 헤더 제거됨 — 메인 링크/제목/뷰 토글은 사이드바 상단으로 이동.
-            day 뷰의 시간 네비/공통 input 은 day 박스 헤더로 흡수.
-            week/month/year 뷰의 시간 네비는 박스 자체 헤더에 별도 (TODO). */}
+        {/* ── Universal top bar ── 모든 뷰 공유.
+            [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
+            ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}
+        <div className="mb-3 flex items-center gap-3 px-1">
+          {/* 시간 네비 cluster — goals 외 모든 뷰. */}
+          {view !== 'goals' && (
+            <div className="shrink-0 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={goPrev}
+                aria-label="이전"
+                title="이전 (←)"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="min-w-0 flex items-baseline gap-2.5">
+                <h2 className="text-[18px] sm:text-[20px] font-semibold tracking-tight text-foreground leading-none truncate">
+                  {headerLabels.primary}
+                </h2>
+                {headerLabels.secondary && (
+                  <span className="hidden sm:inline text-[13px] text-foreground/70 tabular-nums font-medium">
+                    {headerLabels.secondary}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label="다음"
+                title="다음 (→)"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={goToday}
+                disabled={anchorIsToday}
+                aria-label="오늘로"
+                title="오늘로 (T)"
+                className={cn(
+                  'ml-1 h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-foreground/20 transition-colors',
+                  anchorIsToday
+                    ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
+                    : 'bg-card text-foreground hover:bg-accent',
+                )}
+              >
+                오늘로
+              </button>
+            </div>
+          )}
 
-        {/* 풀뷰(month/year/goals)에선 사이드바가 없으므로 — 위에 mini nav (제목/뷰토글/시간 네비). */}
-        {isFullscreen && (
-          <div className="mb-3 flex flex-wrap items-center gap-3 pb-2 border-b border-foreground/20">
-            <h1 className="text-[17px] font-semibold tracking-tight leading-none">통합 플래너</h1>
-            <ViewToggle value={view} onChange={setView} />
-            {view !== 'goals' && (
-              <>
-                <div className="inline-flex items-center gap-0.5 ml-1">
-                  <button type="button" onClick={goPrev} aria-label="이전" className="flex h-7 w-7 items-center justify-center rounded-md border border-foreground/20 bg-card hover:bg-accent transition-colors">
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button type="button" onClick={goToday} disabled={anchorIsToday} className={cn('h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-foreground/20 transition-colors', anchorIsToday ? 'bg-card text-muted-foreground/60 cursor-default' : 'bg-card text-foreground hover:bg-accent')}>
-                    오늘
-                  </button>
-                  <button type="button" onClick={goNext} aria-label="다음" className="flex h-7 w-7 items-center justify-center rounded-md border border-foreground/20 bg-card hover:bg-accent transition-colors">
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-                <span className="text-[14px] text-foreground font-medium tabular-nums">{periodLabel}</span>
-              </>
-            )}
-          </div>
-        )}
+          {/* 입력창 — day 뷰만. 그 외 뷰는 spacer 로 뷰토글을 우측 끝으로 밀기. */}
+          {view === 'day' ? (
+            <div className="flex-1 min-w-0">
+              <PlannerInput
+                inputRef={dayInputRef}
+                placeholder="여기에 적어요 — 예: ‘오후 3시 회의’ 또는 ‘약 사기’"
+                onSubmit={handleDayAdd}
+                variant="prominent"
+                hidePreview
+              />
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
+
+          {/* 뷰 토글 — 모든 뷰 공통, 우측 끝. */}
+          <ViewToggle value={view} onChange={setView} />
+        </div>
 
         {isFullscreen ? (
           <div className="rounded-xl border border-foreground/20 bg-card p-3 sm:p-4 min-h-[600px] h-[calc(100vh-160px)]">
@@ -703,77 +758,8 @@ const Planner = () => {
               />
             </div>
             {view === 'day' ? (
-              <div className="min-h-0 flex flex-col gap-1.5">
-                {/* 큰 날짜 헤더 + 공통 입력 — 한 줄에 묶어 수직 공간 절약.
-                    [날짜 캐러셀] [공통 input flex-1] [오늘로]
-                    공통 input: 시간 NL 있으면 계획/타임라인, 없으면 할 일. */}
-                <div className="shrink-0 flex items-center gap-3 px-1">
-                  {/* 시간 네비 cluster — Google Calendar 패턴 (◀ 라벨 ▶ + 오늘로). */}
-                  <div className="shrink-0 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={goPrev}
-                      aria-label="이전 날"
-                      title="이전 날 (←)"
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <div className="min-w-0 flex items-baseline gap-2.5">
-                      <h2 className="text-[20px] sm:text-[22px] font-semibold tracking-tight text-foreground leading-none truncate">
-                        {(() => {
-                          const a = new Date(anchorIso);
-                          const t = new Date();
-                          const tm = new Date(t); tm.setDate(t.getDate() + 1);
-                          if (isSameDay(a, t)) return '오늘';
-                          if (isSameDay(a, tm)) return '내일';
-                          return a.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
-                        })()}
-                      </h2>
-                      <span className="hidden sm:inline text-[13px] text-foreground/70 tabular-nums font-medium">
-                        {new Date(anchorIso).toLocaleDateString('ko-KR', {
-                          month: 'long', day: 'numeric', weekday: 'short',
-                        })}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={goNext}
-                      aria-label="다음 날"
-                      title="다음 날 (→)"
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={goToday}
-                      disabled={anchorIsToday}
-                      aria-label="오늘로"
-                      title="오늘로 (T)"
-                      className={cn(
-                        'ml-1 h-7 px-2.5 text-[11.5px] font-semibold rounded-md border border-foreground/20 transition-colors',
-                        anchorIsToday
-                          ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
-                          : 'bg-card text-foreground hover:bg-accent',
-                      )}
-                    >
-                      오늘로
-                    </button>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <PlannerInput
-                      inputRef={dayInputRef}
-                      placeholder="여기에 적어요 — 예: ‘오후 3시 회의’ 또는 ‘약 사기’"
-                      onSubmit={handleDayAdd}
-                      variant="prominent"
-                      hidePreview
-                    />
-                  </div>
-                  {/* 뷰 토글 — 우측 끝 (Google Calendar 패턴: utility 우측). */}
-                  <ViewToggle value={view} onChange={setView} />
-                </div>
-                {/* 좌측: 계획(시간 잡힌 리스트) + 할 일(체크리스트) stack / 우측: 타임라인. */}
+              <div className="min-h-0 flex flex-col">
+                {/* 헤더는 universal topbar 로 이동됨. day content 만 여기 — 좌측 계획/할일 + 우측 타임라인. */}
                 <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-3">
                   <div className="grid grid-rows-[auto_minmax(0,1fr)] gap-3 min-h-0">
                     <TodayScheduledList
