@@ -39,7 +39,7 @@ import { ACTIVITY_META } from '@/types/journal';
 import type { JournalImage } from '@/types/journal';
 
 type EditorMode =
-  | { kind: 'create' }
+  | { kind: 'create'; date?: string }
   | {
       kind: 'edit';
       id: string;
@@ -175,6 +175,53 @@ const Journal = () => {
   const isEmpty = allEntries.length === 0;
   const hasResults = filteredEntries.length > 0;
 
+  // 작성된 모든 월 키 (필터 무관, 전체 시간축).
+  const allMonthKeys = useMemo(() => {
+    const set = new Set<string>();
+    allEntries.forEach((e) => set.add(monthKey(e.createdAt)));
+    return Array.from(set);
+  }, [allEntries]);
+
+  // 월 점프 — 해당 월 섹션으로 부드럽게 스크롤.
+  const handleJumpMonth = (mk: string) => {
+    if (typeof document === 'undefined') return;
+    const el = document.getElementById(`journal-month-${mk}`);
+    if (!el) {
+      // 필터 때문에 그 월이 안 보이면 필터 해제하고 재시도
+      if (query || activeTag || activeActivity || activeDate) {
+        setQuery('');
+        setActiveTag(null);
+        setActiveActivity(null);
+        setActiveDate(null);
+        // 다음 프레임에 스크롤
+        requestAnimationFrame(() => {
+          const retry = document.getElementById(`journal-month-${mk}`);
+          retry?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        return;
+      }
+      return;
+    }
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // WeekSpotlight 콜백 — entry 편집 / 빈 날 새로 작성.
+  const handleWeekClickEntry = (entry: JournalEntry) => {
+    setEditorMode({
+      kind: 'edit',
+      id: entry.id,
+      initialBody: entry.body,
+      initialMood: entry.mood,
+      initialTags: entry.tags,
+      initialFormat: entry.bodyFormat,
+      initialImages: entry.images,
+      initialActivities: entry.activities,
+    });
+  };
+  const handleWeekAddForDate = (dateIso: string) => {
+    setEditorMode({ kind: 'create', date: dateIso });
+  };
+
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-8 sm:py-12 max-w-5xl w-full mx-auto">
@@ -277,6 +324,11 @@ const Journal = () => {
                 <TodayCard
                   todayEntries={todayEntries}
                   onAdd={() => setEditorMode({ kind: 'create' })}
+                />
+                <JournalWeekSpotlight
+                  entries={allEntries}
+                  onClickEntry={handleWeekClickEntry}
+                  onAddForDate={handleWeekAddForDate}
                 />
                 <OnThisDayCard
                   allEntries={allEntries}
@@ -390,7 +442,11 @@ const Journal = () => {
             )}
 
             {grouped.map((group) => (
-              <section key={group.key} className="flex flex-col gap-4">
+              <section
+                key={group.key}
+                id={`journal-month-${group.key}`}
+                className="flex flex-col gap-4 scroll-mt-24"
+              >
                 {/* 월 헤더 — 책 챕터 톤 */}
                 <div className="flex items-baseline gap-4 mb-1 px-1 pt-2">
                   <h2
@@ -446,6 +502,10 @@ const Journal = () => {
                 날짜 필터 해제
               </button>
             )}
+            <JournalYearJump
+              monthKeys={allMonthKeys}
+              onJump={handleJumpMonth}
+            />
             <JournalSummaryPanel entries={allEntries} />
           </aside>
           </div>
