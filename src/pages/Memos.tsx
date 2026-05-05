@@ -374,47 +374,58 @@ const Memos = () => {
                 </div>
               )}
 
-              {/* 보관함 — 항상 하단 */}
-              <button
-                type="button"
-                onClick={() => setShowArchive((v) => !v)}
-                className={cn(
-                  'mx-2 mt-2 mb-2 flex items-center gap-2 px-2.5 py-2 rounded-md text-[12.5px] transition-colors',
-                  showArchive
-                    ? 'bg-accent text-foreground font-semibold'
-                    : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+              {/* 보관함 — 분리된 영역 (시각 강화) */}
+              <div className={cn(
+                'mt-4 mx-2 rounded-lg border border-foreground/15 bg-foreground/[0.025]',
+                showArchive && 'pb-1.5',
+              )}>
+                <button
+                  type="button"
+                  onClick={() => setShowArchive((v) => !v)}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors',
+                    showArchive
+                      ? 'text-foreground'
+                      : 'text-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground',
+                  )}
+                >
+                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-foreground/10 shrink-0">
+                    <Archive className="w-3.5 h-3.5 text-foreground/70" strokeWidth={2} />
+                  </span>
+                  <span className="text-[13.5px] font-bold tracking-tight">보관함</span>
+                  <span className="ml-auto text-[11px] tabular-nums font-semibold text-foreground/55 px-1.5 rounded bg-foreground/10">
+                    {archivedMemos.length}
+                  </span>
+                  <ChevronRight className={cn(
+                    'w-3.5 h-3.5 text-foreground/45 transition-transform shrink-0',
+                    showArchive && 'rotate-90',
+                  )} strokeWidth={2} />
+                </button>
+                {showArchive && (
+                  archivedMemos.length === 0 ? (
+                    <p className="px-4 pb-2 text-[11.5px] text-muted-foreground text-center italic">
+                      보관된 메모 없음
+                    </p>
+                  ) : (
+                    <ul className="px-1.5">
+                      {archivedMemos.map((m) => (
+                        <MemoRow
+                          key={m.id}
+                          memo={m}
+                          active={activeId === m.id}
+                          onClick={() => setActiveId(m.id)}
+                          loose
+                          archived
+                          onPin={() => togglePin(m.id)}
+                          onMoveFolder={() => setMovingMemo(m)}
+                          onDelete={() => handleDelete(m.id)}
+                          onUnarchive={() => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); }}
+                        />
+                      ))}
+                    </ul>
+                  )
                 )}
-              >
-                <Archive className="w-3.5 h-3.5" strokeWidth={1.75} />
-                <span>보관함</span>
-                <span className="ml-auto text-[10.5px] tabular-nums opacity-70">
-                  {archivedMemos.length}
-                </span>
-              </button>
-              {showArchive && (
-                archivedMemos.length === 0 ? (
-                  <p className="px-4 pb-3 text-[12px] text-muted-foreground text-center">
-                    보관된 메모 없음
-                  </p>
-                ) : (
-                  <ul className="px-2 pb-2">
-                    {archivedMemos.map((m) => (
-                      <MemoRow
-                        key={m.id}
-                        memo={m}
-                        active={activeId === m.id}
-                        onClick={() => setActiveId(m.id)}
-                        loose
-                        archived
-                        onPin={() => togglePin(m.id)}
-                        onMoveFolder={() => setMovingMemo(m)}
-                        onDelete={() => handleDelete(m.id)}
-                        onUnarchive={() => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); }}
-                      />
-                    ))}
-                  </ul>
-                )
-              )}
+              </div>
             </>
           )}
         </div>
@@ -517,25 +528,25 @@ function FolderGroup({
   return (
     <div>
       <div
-        className="group flex items-center gap-2 h-9 px-3 rounded-md cursor-pointer text-foreground hover:bg-accent transition-colors"
+        className="group flex items-center gap-2 h-10 px-3 rounded-md cursor-pointer text-foreground bg-foreground/[0.04] hover:bg-accent transition-colors"
         onClick={onToggle}
         onDoubleClick={onStartRename}
       >
         <ChevronRight
           className={cn(
-            'w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0',
+            'w-4 h-4 text-foreground/65 transition-transform shrink-0',
             expanded && 'rotate-90',
           )}
-          strokeWidth={2}
+          strokeWidth={2.25}
         />
         <span
-          className="inline-flex items-center justify-center h-5 w-5 rounded text-[14px] leading-none shrink-0"
-          style={folderColor ? { backgroundColor: `color-mix(in oklab, ${folderColor} 22%, hsl(var(--background)))` } : undefined}
+          className="inline-flex items-center justify-center h-6 w-6 rounded-md text-[15px] leading-none shrink-0"
+          style={folderColor ? { backgroundColor: `color-mix(in oklab, ${folderColor} 25%, hsl(var(--background)))` } : { backgroundColor: 'hsl(var(--accent))' }}
         >
           {folder.emoji ?? '📁'}
         </span>
-        <span className="flex-1 text-[14px] font-medium truncate">{folder.name}</span>
-        <span className="text-[12px] tabular-nums text-muted-foreground group-hover:hidden">{memos.length}</span>
+        <span className="flex-1 text-[14.5px] font-bold truncate text-foreground">{folder.name}</span>
+        <span className="text-[11.5px] tabular-nums text-foreground/55 font-medium group-hover:hidden px-1.5 rounded bg-foreground/8">{memos.length}</span>
         <div className="hidden group-hover:flex items-center gap-0.5">
           <button
             type="button"
@@ -830,11 +841,10 @@ function MemoRow({
   onUnarchive?: () => void;
 }) {
   const title = memoTitle(memo);
-  const preview = memoPreview(memo);
   // 본문 첫 emoji 자동 추출 (Bear 패턴). 제목 prefix 로 사용.
   const titleEmoji = extractLeadingEmoji(memo.body);
   const hasActions = !!(onPin || onMoveFolder || onDelete || onArchive || onUnarchive);
-  // loose / bare: 2줄 카드 (제목 + 미리보기). 폴더 안 children: 1줄 컴팩트.
+  // loose (최상위 미분류) vs bare (폴더 children) — 둘 다 1줄, 미리보기 X.
   const isCardMode = loose || bare;
   const inner = (
     <>
@@ -854,17 +864,26 @@ function MemoRow({
       >
         {isCardMode ? (
           <>
-            {/* row 1: emoji prefix + pin + 제목 + 시간 */}
+            {/* 1줄 — emoji + pin + 제목 + 시간 */}
             <div className="flex items-center gap-1.5 w-full">
               {titleEmoji ? (
                 <span aria-hidden className="text-[14px] leading-none shrink-0">{titleEmoji}</span>
-              ) : null}
+              ) : (
+                /* 미분류(loose) 메모는 작은 muted dot prefix 로 폴더 children 과 구분 */
+                loose && !memo.pinned && (
+                  <span aria-hidden className="w-1 h-1 rounded-full bg-muted-foreground/45 shrink-0" />
+                )
+              )}
               {memo.pinned && (
                 <Pin className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
               )}
               <span className={cn(
-                'truncate flex-1 text-[14px] leading-tight',
-                active ? 'font-bold text-foreground' : 'font-semibold text-foreground',
+                'truncate flex-1 text-[13.5px] leading-tight',
+                active
+                  ? 'font-bold text-foreground'
+                  : loose
+                    ? 'font-medium text-foreground/85' /* 일반 메모 — 폴더 안 children 보다 살짝 옅게 */
+                    : 'font-semibold text-foreground', /* 폴더 children */
                 !memo.body.trim() && 'text-muted-foreground italic font-normal',
               )}>
                 {title}
@@ -880,12 +899,6 @@ function MemoRow({
                 {memoTimeLabel(memo.updatedAt)}
               </span>
             </div>
-            {/* row 2: 미리보기 (첫 본문 줄) */}
-            {preview && (
-              <span className="block truncate text-[12px] text-muted-foreground leading-snug">
-                {preview}
-              </span>
-            )}
           </>
         ) : (
           // 폴더 children — 컴팩트 1줄

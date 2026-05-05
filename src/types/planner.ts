@@ -81,6 +81,8 @@ export interface PlannerEvent {
   source: EventSource;
   /** 반복 규칙. 있으면 이 항목은 시리즈 마스터 — listByDate 시 expand 됨. */
   recurrence?: RecurrenceRule;
+  /** 겹침 lane 순서 우선권. 작을수록 좌측. 미지정 시 startAt 으로 fallback. */
+  laneOrder?: number;
   createdAt: string;
 }
 
@@ -135,6 +137,9 @@ export interface PlannerTask {
   /** 반복 시리즈 인스턴스별 완료 상태 — iso(occurrenceStartIso) → done.
    * 시리즈 마스터에만 의미. expand 시 각 occurrence 의 done 합성. */
   seriesCompletions?: Record<string, boolean>;
+  /** 겹침 lane 순서 우선권. 작을수록 좌측. 가로 드래그로 사용자가 조정.
+   * 미지정 시 startAt 정렬 fallback. */
+  laneOrder?: number;
   createdAt: string;
 }
 

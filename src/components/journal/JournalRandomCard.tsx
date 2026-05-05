@@ -70,47 +70,41 @@ export const JournalRandomCard = ({ allEntries, excludeIds, onClickEntry }: Jour
   });
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-2">
       <header className="flex items-baseline gap-2 px-1">
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <Sparkles className="h-3 w-3 text-foreground/60" />
         <h3 className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-foreground/85 font-semibold">
           묻혀있던 한 페이지
         </h3>
         <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-          매일 새롭게
-        </span>
       </header>
       <button
         type="button"
         onClick={() => onClickEntry(picked)}
         className={cn(
-          'group flex items-start gap-3.5 rounded-xl border border-[hsl(var(--hairline))] bg-violet-50/40 dark:bg-violet-950/15 px-4 py-3.5 text-left',
-          'hover:border-primary/40 hover:shadow-[0_4px_14px_-6px_hsl(265_60%_55%_/_0.18)] transition-all',
+          'group flex flex-col gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 py-2.5 text-left',
+          'hover:border-foreground/25 hover:shadow-[0_2px_10px_-4px_hsl(30_30%_8%/0.08)] transition-all',
         )}
       >
-        <span className="inline-flex flex-col items-center justify-center h-12 w-12 rounded-lg bg-violet-500/15 text-violet-800 dark:text-violet-300 shrink-0">
+        <div className="flex items-center gap-2">
           <span
-            className="text-[11px] font-bold tabular-nums leading-none tracking-tight"
+            className="text-[11.5px] font-bold tabular-nums text-foreground/90 tracking-tight"
             style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
           >
             {ago}
           </span>
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-              {dateLabel}
-            </span>
-            {moodEmoji && <span className="text-[14px] leading-none">{moodEmoji}</span>}
-          </div>
-          <p
-            className="text-[14px] text-foreground/90 leading-[1.7] line-clamp-3"
-            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-          >
-            {previewBody}
-          </p>
+          <span className="w-1 h-1 rounded-full bg-foreground/30" aria-hidden />
+          <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground truncate">
+            {dateLabel}
+          </span>
+          {moodEmoji && <span className="text-[12px] leading-none ml-auto">{moodEmoji}</span>}
         </div>
+        <p
+          className="text-[12.5px] text-foreground/85 leading-[1.65] line-clamp-3"
+          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+        >
+          {previewBody}
+        </p>
       </button>
     </section>
   );

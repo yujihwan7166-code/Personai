@@ -325,20 +325,46 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
         id: it.data.id,
         start: new Date(it.data.startAt!).getTime(),
         end: new Date((it.kind === 'event' ? it.data.endAt : (it.data as PlannerTask).endAt!)!).getTime(),
+        // 가로 드래그로 조정된 사용자 순위. 작을수록 좌측. 미지정 시 Infinity (=startAt fallback).
+        laneOrder: (it.data as PlannerTask | PlannerEvent).laneOrder ?? Infinity,
       }))
+      // 1차 정렬은 start (cluster 결정용 — 시간 흐름 보존).
+      // lane 할당 시 cluster 안에서 laneOrder 재정렬로 좌/우 결정.
       .sort((a, b) => a.start - b.start || a.end - b.end);
 
     type Layout = { laneIndex: number; laneCount: number };
     const result = new Map<string, Layout>();
     // 충돌 클러스터: 한 묶음 내 항목들이 끝날 때까지 모인 인덱스 집합.
-    let cluster: { id: string; lane: number }[] = [];
+    // 단계 1: 원래 lane 재사용 알고리즘으로 raw lane 할당 (시간 안 겹치면 lane 공유).
+    // 단계 2: 클러스터 flush 시 lane 별 min laneOrder 계산해서 좌/우 재배치.
+    let cluster: { id: string; rawLane: number; laneOrder: number }[] = [];
     let clusterEnd = 0;
-    let activeLanes: number[] = []; // lane index → 그 lane 의 현재 endTime
+    let activeLanes: number[] = []; // lane index → 그 lane 의 현재 endTime (-1 = 비었음)
 
     const flushCluster = () => {
       if (cluster.length === 0) return;
-      const laneCount = Math.max(...cluster.map((c) => c.lane)) + 1;
-      for (const c of cluster) result.set(c.id, { laneIndex: c.lane, laneCount });
+      // 같은 raw lane 끼리 묶기 + 그 lane 의 min laneOrder 계산.
+      const lanes = new Map<number, { items: typeof cluster; minOrder: number }>();
+      for (const c of cluster) {
+        const existing = lanes.get(c.rawLane);
+        if (existing) {
+          existing.items.push(c);
+          existing.minOrder = Math.min(existing.minOrder, c.laneOrder);
+        } else {
+          lanes.set(c.rawLane, { items: [c], minOrder: c.laneOrder });
+        }
+      }
+      // lane 들을 minOrder 오름차순으로 재정렬 (사용자 좌측 드래그한 lane 이 더 왼쪽).
+      // tie: 원래 raw lane index 유지.
+      const sortedLanes = [...lanes.entries()].sort(
+        (a, b) => a[1].minOrder - b[1].minOrder || a[0] - b[0],
+      );
+      const laneCount = sortedLanes.length;
+      sortedLanes.forEach(([_oldLane, { items: laneItems }], newIdx) => {
+        for (const item of laneItems) {
+          result.set(item.id, { laneIndex: newIdx, laneCount });
+        }
+      });
       cluster = [];
       activeLanes = [];
     };
@@ -348,7 +374,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       for (let i = 0; i < activeLanes.length; i++) {
         if (activeLanes[i] <= item.start) activeLanes[i] = -1;
       }
-      // 클러스터 경계: 모든 lane 비었거나 item.start >= clusterEnd → 이전 클러스터 flush.
+      // 클러스터 경계: item.start >= clusterEnd → 이전 클러스터 flush.
       if (item.start >= clusterEnd) {
         flushCluster();
       }
@@ -360,7 +386,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       } else {
         activeLanes[lane] = item.end;
       }
-      cluster.push({ id: item.id, lane });
+      cluster.push({ id: item.id, rawLane: lane, laneOrder: item.laneOrder });
       clusterEnd = Math.max(clusterEnd, item.end);
     }
     flushCluster();

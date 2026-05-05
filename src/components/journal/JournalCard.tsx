@@ -32,7 +32,7 @@ function BodyPreview({ text }: { text: string }) {
     <div className="relative">
       <p
         ref={ref}
-        className="text-[17px] leading-[1.85] text-foreground/95 whitespace-pre-wrap line-clamp-7"
+        className="text-[18px] leading-[1.85] text-foreground/95 whitespace-pre-wrap line-clamp-7"
         style={{
           fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
           fontWeight: 400,
@@ -88,16 +88,16 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
     <article
       className={cn(
         'group rounded-xl border border-[hsl(var(--hairline))] bg-card',
-        'pl-5 pr-6 py-5',
-        'hover:border-foreground/25 hover:shadow-[0_4px_18px_-6px_hsl(30_30%_8%/0.08)]',
+        'pl-6 pr-7 py-6',
+        'hover:border-foreground/30 hover:shadow-[0_6px_22px_-8px_hsl(30_30%_8%/0.12)]',
         'transition-all duration-200',
       )}
     >
-      <div className="flex gap-5">
+      <div className="flex gap-6">
         {/* ── 좌 날짜 컬럼 — Hobonichi/NYT 톤 ── */}
-        <div className="w-16 shrink-0 flex flex-col items-start pr-5 border-r border-[hsl(var(--hairline))]">
+        <div className="w-16 shrink-0 flex flex-col items-start pr-6 border-r border-[hsl(var(--hairline))]">
           <span
-            className="text-[36px] font-bold tabular-nums leading-none text-foreground group-hover:text-primary transition-colors"
+            className="text-[40px] font-bold tabular-nums leading-none text-foreground group-hover:text-primary transition-colors"
             style={{
               fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
               letterSpacing: '-0.04em',

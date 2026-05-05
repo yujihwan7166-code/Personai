@@ -494,16 +494,47 @@ const Planner = () => {
       const newStart = newStartDate.toISOString();
       const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
 
+      // 가로 드래그 = lane 좌/우 swap. 임계 60px.
+      const LANE_SWAP_THRESHOLD = 60;
+      let newLaneOrder: number | undefined;
+      if (Math.abs(e.delta.x) > LANE_SWAP_THRESHOLD) {
+        const dayPrefix = newStart.slice(0, 10);
+        const newStartMs = new Date(newStart).getTime();
+        const newEndMs = new Date(newEnd).getTime();
+        type WithLane = { id: string; startAt?: string; endAt?: string; laneOrder?: number };
+        const overlapping: WithLane[] = [
+          ...taskStore.listScheduled(`${dayPrefix}T00:00:00`),
+          ...eventStore.listByDate(`${dayPrefix}T00:00:00`),
+        ].filter((other) => {
+          if (other.id === item.id) return false;
+          if (!other.startAt || !other.endAt) return false;
+          const oS = new Date(other.startAt).getTime();
+          const oE = new Date(other.endAt).getTime();
+          return oS < newEndMs && oE > newStartMs;
+        });
+        const orders = overlapping.map((o) => o.laneOrder ?? 0);
+        newLaneOrder = e.delta.x < 0
+          ? (orders.length ? Math.min(...orders) - 1 : -1)
+          : (orders.length ? Math.max(...orders) + 1 : 1);
+      }
+
       if (dragData.kind === 'scheduled-task') {
         if (!tryDetachInstance(item.id, 'task', newStart, newEnd)) {
           taskStore.schedule(item.id, newStart, newEnd);
+          if (newLaneOrder !== undefined) {
+            taskStore.update(item.id, { laneOrder: newLaneOrder });
+          }
         }
       } else {
         if (!tryDetachInstance(item.id, 'event', newStart, newEnd)) {
-          eventStore.update(item.id, { startAt: newStart, endAt: newEnd });
+          eventStore.update(item.id, {
+            startAt: newStart,
+            endAt: newEnd,
+            ...(newLaneOrder !== undefined && { laneOrder: newLaneOrder }),
+          });
         }
       }
-      notify.success('이동됐어요', { duration: 1200 });
+      notify.success(newLaneOrder !== undefined ? '순서도 변경됐어요' : '이동됐어요', { duration: 1200 });
       return;
     }
 

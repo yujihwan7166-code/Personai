@@ -28,8 +28,7 @@ interface DraggableBlockProps {
   children: React.ReactNode;
   /** resize 핸들 활성화 여부 — 일정/할일 모두 지원. */
   enableResize?: boolean;
-  /** Resize 완료 시 호출 — 부모가 store 업데이트.
-   * 가상 인스턴스 id 들어오면 부모에서 detach 처리. */
+  /** Resize 완료 시 호출 — 부모가 store 업데이트. */
   onResize?: (newEndIso: string) => void;
 }
 

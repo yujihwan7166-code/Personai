@@ -16,7 +16,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Search, Flame, X, Hash } from 'lucide-react';
+import { ChevronLeft, Plus, Search, Flame, X, Hash, SlidersHorizontal } from 'lucide-react';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
@@ -63,7 +63,10 @@ const Journal = () => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeActivity, setActiveActivity] = useState<string | null>(null);
   const [activeDate, setActiveDate] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const hasActiveFilter = !!(activeTag || activeActivity || activeDate);
 
   // 자주 쓴 태그 5개.
   const topTags = useMemo(() => getTopTags(allEntries, 5), [allEntries]);
@@ -257,6 +260,27 @@ const Journal = () => {
                 </button>
               )}
             </div>
+            {/* 필터 토글 — 활동·태그 패널 collapse */}
+            {(topActivities.length > 0 || topTags.length > 0) && (
+              <button
+                type="button"
+                onClick={() => setFilterOpen((v) => !v)}
+                aria-expanded={filterOpen}
+                aria-label="필터"
+                title={hasActiveFilter ? '필터 활성' : '필터'}
+                className={cn(
+                  'relative inline-flex items-center justify-center h-9 w-9 rounded-md border transition-colors',
+                  filterOpen || hasActiveFilter
+                    ? 'border-foreground/30 bg-accent text-foreground'
+                    : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:text-foreground hover:border-foreground/20',
+                )}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                {hasActiveFilter && (
+                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" aria-hidden />
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setEditorMode({ kind: 'create' })}
@@ -268,15 +292,171 @@ const Journal = () => {
             </button>
           </div>
           </div>
+
+          {/* 필터 collapse 패널 — 활동 + 태그 (검색 중이 아닐 때만) */}
+          {filterOpen && query.trim().length === 0 && (topActivities.length > 0 || topTags.length > 0) && (
+            <div className="mt-4 pt-4 border-t border-[hsl(var(--hairline))] flex flex-col gap-3">
+              {topActivities.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold mr-1 w-10">
+                    활동
+                  </span>
+                  {topActivities.map((a) => {
+                    const meta = ACTIVITY_META[a.key];
+                    const active = activeActivity === a.key;
+                    return (
+                      <button
+                        key={a.key}
+                        type="button"
+                        onClick={() => setActiveActivity(active ? null : a.key)}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2 h-6 rounded text-[11.5px] font-medium transition-colors',
+                          active
+                            ? 'bg-foreground text-background'
+                            : 'bg-accent text-foreground hover:bg-accent/80',
+                        )}
+                      >
+                        <span aria-hidden>{meta?.emoji ?? '·'}</span>
+                        {meta?.label ?? a.key}
+                        <span className="opacity-60 tabular-nums ml-0.5">{a.count}</span>
+                      </button>
+                    );
+                  })}
+                  {activeActivity && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveActivity(null)}
+                      className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                      초기화
+                    </button>
+                  )}
+                </div>
+              )}
+              {topTags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold mr-1 w-10">
+                    태그
+                  </span>
+                  {topTags.map((t) => (
+                    <button
+                      key={t.tag}
+                      type="button"
+                      onClick={() => setActiveTag(activeTag === t.tag ? null : t.tag)}
+                      className={cn(
+                        'inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11.5px] font-medium transition-colors',
+                        activeTag === t.tag
+                          ? 'bg-foreground text-background'
+                          : 'bg-accent text-foreground hover:bg-accent/80',
+                      )}
+                    >
+                      <Hash className="h-2.5 w-2.5 opacity-70" />
+                      {t.tag}
+                      <span className="opacity-60 tabular-nums ml-0.5">{t.count}</span>
+                    </button>
+                  ))}
+                  {activeTag && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTag(null)}
+                      className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                      초기화
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </header>
 
         {isEmpty ? (
           <JournalEmpty onAdd={() => setEditorMode({ kind: 'create' })} />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6">
-          <div className="flex flex-col gap-6 min-w-0">
-            {/* WeekSpotlight + 회상 카드 — 검색 중이 아닐 때만 노출
-                (오늘 일기는 헤더의 '+ 오늘 일기' 버튼 + WeekSpotlight 의 오늘 셀로 충분) */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
+          <div className="flex flex-col gap-5 min-w-0">
+            {/* 모바일 (lg 미만) — WeekSpotlight 만 헤더 직후 컴팩트 노출 */}
+            {query.trim().length === 0 && (
+              <div className="lg:hidden">
+                <JournalWeekSpotlight
+                  entries={allEntries}
+                  onClickEntry={handleWeekClickEntry}
+                  onAddForDate={handleWeekAddForDate}
+                />
+              </div>
+            )}
+
+            {!hasResults && query.trim().length > 0 && (
+              <div className="rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-card/40 py-10 px-4 text-center">
+                <p className="text-[13px] text-muted-foreground">
+                  '<span className="text-foreground font-medium">{query}</span>' 으로 일치하는 일기가 없어요
+                </p>
+              </div>
+            )}
+
+            {grouped.map((group) => (
+              <section
+                key={group.key}
+                id={`journal-month-${group.key}`}
+                className="flex flex-col gap-5 scroll-mt-24"
+              >
+                {/* 월 헤더 — 책 챕터 톤 */}
+                <div className="flex items-baseline gap-4 mb-1 px-1">
+                  <h2
+                    className="text-[24px] sm:text-[26px] font-bold tracking-tight text-foreground"
+                    style={{
+                      fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                      letterSpacing: '-0.015em',
+                    }}
+                  >
+                    {group.label}
+                  </h2>
+                  <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+                  <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/70">
+                    {group.items.length} 페이지
+                  </span>
+                </div>
+                <div className="flex flex-col gap-5">
+                  {group.items.map((entry) => (
+                    <JournalCard
+                      key={entry.id}
+                      entry={entry}
+                      onEdit={() => setEditorMode({
+                        kind: 'edit',
+                        id: entry.id,
+                        initialBody: entry.body,
+                        initialMood: entry.mood,
+                        initialTags: entry.tags,
+                        initialFormat: entry.bodyFormat,
+                        initialImages: entry.images,
+                        initialActivities: entry.activities,
+                      })}
+                      onDelete={() => handleDelete(entry)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+          {/* 우측 사이드 — lg 이상에서만 노출. 정보 위계: 시각 앵커 → 회상 → 통계 */}
+          <aside className="hidden lg:flex flex-col gap-5 sticky top-8 self-start max-h-[calc(100vh-4rem)] overflow-y-auto pr-1">
+            <JournalCalendarMini
+              entries={allEntries}
+              selectedDate={activeDate}
+              onDayClick={(d) => setActiveDate(activeDate === d ? null : d)}
+            />
+            {activeDate && (
+              <button
+                type="button"
+                onClick={() => setActiveDate(null)}
+                className="-mt-3 inline-flex items-center justify-center gap-1 px-2 h-7 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <X className="h-3 w-3" />
+                날짜 필터 해제
+              </button>
+            )}
             {query.trim().length === 0 && (
               <>
                 <JournalWeekSpotlight
@@ -309,152 +489,7 @@ const Journal = () => {
                     initialImages: entry.images,
                   })}
                 />
-                {/* 활동 필터 칩 (자주 쓴 5개) */}
-                {topActivities.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 px-1">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold mr-1">
-                      활동
-                    </span>
-                    {topActivities.map((a) => {
-                      const meta = ACTIVITY_META[a.key];
-                      const active = activeActivity === a.key;
-                      return (
-                        <button
-                          key={a.key}
-                          type="button"
-                          onClick={() => setActiveActivity(active ? null : a.key)}
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 h-6 rounded text-[11.5px] font-medium transition-colors',
-                            active
-                              ? 'bg-foreground text-background'
-                              : 'bg-accent text-foreground hover:bg-accent/80',
-                          )}
-                        >
-                          <span aria-hidden>{meta?.emoji ?? '·'}</span>
-                          {meta?.label ?? a.key}
-                          <span className="opacity-60 tabular-nums ml-0.5">{a.count}</span>
-                        </button>
-                      );
-                    })}
-                    {activeActivity && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveActivity(null)}
-                        className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                      >
-                        <X className="h-2.5 w-2.5" />
-                        초기화
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* 태그 필터 칩 (자주 쓴 5개) */}
-                {topTags.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 px-1">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold mr-1">
-                      태그
-                    </span>
-                    {topTags.map((t) => (
-                      <button
-                        key={t.tag}
-                        type="button"
-                        onClick={() => setActiveTag(activeTag === t.tag ? null : t.tag)}
-                        className={cn(
-                          'inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11.5px] font-medium transition-colors',
-                          activeTag === t.tag
-                            ? 'bg-foreground text-background'
-                            : 'bg-accent text-foreground hover:bg-accent/80',
-                        )}
-                      >
-                        <Hash className="h-2.5 w-2.5 opacity-70" />
-                        {t.tag}
-                        <span className="opacity-60 tabular-nums ml-0.5">{t.count}</span>
-                      </button>
-                    ))}
-                    {activeTag && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveTag(null)}
-                        className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                      >
-                        <X className="h-2.5 w-2.5" />
-                        초기화
-                      </button>
-                    )}
-                  </div>
-                )}
               </>
-            )}
-
-            {!hasResults && query.trim().length > 0 && (
-              <div className="rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-card/40 py-10 px-4 text-center">
-                <p className="text-[13px] text-muted-foreground">
-                  '<span className="text-foreground font-medium">{query}</span>' 으로 일치하는 일기가 없어요
-                </p>
-              </div>
-            )}
-
-            {grouped.map((group) => (
-              <section
-                key={group.key}
-                id={`journal-month-${group.key}`}
-                className="flex flex-col gap-4 scroll-mt-24"
-              >
-                {/* 월 헤더 — 책 챕터 톤 */}
-                <div className="flex items-baseline gap-4 mb-1 px-1 pt-2">
-                  <h2
-                    className="text-[24px] sm:text-[26px] font-bold tracking-tight text-foreground"
-                    style={{
-                      fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                      letterSpacing: '-0.015em',
-                    }}
-                  >
-                    {group.label}
-                  </h2>
-                  <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/70">
-                    {group.items.length} 페이지
-                  </span>
-                </div>
-                <div className="flex flex-col gap-4">
-                  {group.items.map((entry) => (
-                    <JournalCard
-                      key={entry.id}
-                      entry={entry}
-                      onEdit={() => setEditorMode({
-                        kind: 'edit',
-                        id: entry.id,
-                        initialBody: entry.body,
-                        initialMood: entry.mood,
-                        initialTags: entry.tags,
-                        initialFormat: entry.bodyFormat,
-                        initialImages: entry.images,
-                        initialActivities: entry.activities,
-                      })}
-                      onDelete={() => handleDelete(entry)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-          {/* 우측 사이드 — lg 이상에서만 노출 */}
-          <aside className="hidden lg:flex flex-col gap-4 sticky top-8 self-start max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <JournalCalendarMini
-              entries={allEntries}
-              selectedDate={activeDate}
-              onDayClick={(d) => setActiveDate(activeDate === d ? null : d)}
-            />
-            {activeDate && (
-              <button
-                type="button"
-                onClick={() => setActiveDate(null)}
-                className="inline-flex items-center justify-center gap-1 px-2 h-7 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <X className="h-3 w-3" />
-                날짜 필터 해제
-              </button>
             )}
             <JournalSummaryPanel entries={allEntries} />
           </aside>
