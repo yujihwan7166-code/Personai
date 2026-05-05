@@ -25,6 +25,8 @@ import {
   compressPdf, rotatePdf, type PdfCompressLevel,
   watermarkPdf, addPdfPageNumbers,
   addBlankPdfPage, setPdfMetadata, type BlankPagePosition,
+  extractPdfPages, deletePdfPages, reorderPdfPages,
+  extractPdfImages, addPdfHeaderFooter, grayscalePdf,
 } from '@/lib/fileConvert/converters/pdf';
 import { convertJsonToYaml, convertYamlToJson, convertTxtToPdf } from '@/lib/fileConvert/converters/data';
 import { generateQrCode } from '@/lib/fileConvert/converters/qrcode';
@@ -81,6 +83,12 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   // 페이지 번호
   const [pageNumPosition, setPageNumPosition] = useState<'bottom-center' | 'bottom-right' | 'top-center' | 'top-right'>('bottom-center');
   const [pageNumWithTotal, setPageNumWithTotal] = useState<boolean>(true);
+  // 새 PDF 도구들
+  const [extractRanges, setExtractRanges] = useState<string>('1-3');
+  const [deleteRanges, setDeleteRanges] = useState<string>('2');
+  const [reorderOrder, setReorderOrder] = useState<string>('');
+  const [headerFooterText, setHeaderFooterText] = useState<{ header: string; footer: string }>({ header: '', footer: '{page} / {total}' });
+  const [headerFooterPos, setHeaderFooterPos] = useState<'left' | 'center' | 'right'>('center');
   // 암호
   // 결과 → 메모/위키 export 상태
   const [memoExported, setMemoExported] = useState(false);
@@ -294,6 +302,45 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
             position: pageNumPosition,
             format: pageNumWithTotal ? 'with-total' : 'plain',
           });
+          break;
+        }
+        case 'pdf-extract-pages': {
+          setProgress('PDF 페이지 추출 중...');
+          converted = await extractPdfPages(files[0], extractRanges);
+          break;
+        }
+        case 'pdf-delete-pages': {
+          setProgress('PDF 페이지 삭제 중...');
+          converted = await deletePdfPages(files[0], deleteRanges);
+          break;
+        }
+        case 'pdf-reorder-pages': {
+          if (!reorderOrder.trim()) throw new Error('새 순서를 입력해주세요. 예: 3,1,2,4');
+          setProgress('PDF 페이지 재배열 중...');
+          converted = await reorderPdfPages(files[0], reorderOrder);
+          break;
+        }
+        case 'pdf-extract-images': {
+          setProgress('PDF에서 이미지 추출 중...');
+          const r = await extractPdfImages(files[0], (msg) => setProgress(msg));
+          converted = { blob: r.blob, suggestedName: r.suggestedName };
+          break;
+        }
+        case 'pdf-header-footer': {
+          if (!headerFooterText.header.trim() && !headerFooterText.footer.trim()) {
+            throw new Error('헤더 또는 푸터 텍스트를 입력해주세요. 변수: {page} {total} {date} {filename}');
+          }
+          setProgress('PDF 헤더·푸터 추가 중...');
+          converted = await addPdfHeaderFooter(files[0], {
+            headerText: headerFooterText.header.trim() || undefined,
+            footerText: headerFooterText.footer.trim() || undefined,
+            position: headerFooterPos,
+          });
+          break;
+        }
+        case 'pdf-grayscale': {
+          setProgress('PDF 흑백 변환 중...');
+          converted = await grayscalePdf(files[0], (msg) => setProgress(msg));
           break;
         }
         // PDF 암호 보호/해제 — 카탈로그에서 제거됨 (별도 도구로 분리 예정)
@@ -585,6 +632,55 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const categories: TaskCategory[] = ['pdf', 'image', 'doc', 'data', 'markup', 'utility'];
   const quickActions = useMemo(() => getQuickActions(), []);
 
+  // 카테고리 칩 필터 — 사용자 의도("PDF만 보기", "AI 만 보기")
+  type ChipId = 'all' | 'favorite' | 'pdf' | 'image' | 'convert' | 'ai' | 'data' | 'utility';
+  const [activeChip, setActiveChip] = useState<ChipId>('all');
+  const CHIP_FILTERS: Array<{ id: ChipId; label: string; emoji: string; match: (t: ConvertTask) => boolean }> = useMemo(() => [
+    { id: 'all',      label: '전체',  emoji: '🗂', match: () => true },
+    { id: 'favorite', label: '자주',  emoji: '⭐', match: (t) => !!t.quickAction },
+    { id: 'pdf',      label: 'PDF',   emoji: '📕', match: (t) => t.category === 'pdf' },
+    { id: 'image',    label: '이미지', emoji: '🖼', match: (t) => t.category === 'image' && t.tier !== 'ai-assisted' },
+    { id: 'convert',  label: '변환',  emoji: '🔁', match: (t) => /-to-|format/.test(t.id) || t.category === 'doc' || t.category === 'markup' },
+    { id: 'ai',       label: 'AI',    emoji: '✨', match: (t) => t.tier === 'ai-assisted' },
+    { id: 'data',     label: '데이터', emoji: '📊', match: (t) => t.category === 'data' },
+    { id: 'utility',  label: '유틸',  emoji: '⚙️', match: (t) => t.category === 'utility' },
+  ], []);
+
+  // 한국어 동의어 매핑 — 검색 만족도 ↑ ("암호" 검색 → "비밀번호" 도구도 매치)
+  const SEARCH_SYNONYMS: Record<string, string[]> = useMemo(() => ({
+    '암호': ['비밀번호', 'password', 'protect'],
+    '비밀번호': ['암호', 'password'],
+    '돌리기': ['회전', 'rotate'],
+    '자르기': ['크롭', 'crop', 'trim'],
+    '쪼개기': ['분할', 'split'],
+    '나누기': ['분할', 'split'],
+    '묶기': ['합치기', '병합', 'merge'],
+    '뽑기': ['추출', 'extract'],
+    '지우기': ['삭제', 'delete', '제거'],
+    '넣기': ['추가', 'add'],
+    '엑셀': ['xlsx', 'excel'],
+    '워드': ['docx', 'word'],
+    '글자': ['텍스트', 'text', 'OCR'],
+    '인쇄': ['흑백', 'grayscale', 'gray'],
+    '한장': ['추출', 'extract'],
+  }), []);
+
+  const expandQuery = (q: string): string[] => {
+    const lower = q.trim().toLowerCase();
+    const expanded = new Set<string>([lower]);
+    for (const [key, synonyms] of Object.entries(SEARCH_SYNONYMS)) {
+      if (lower.includes(key.toLowerCase())) synonyms.forEach((s) => expanded.add(s.toLowerCase()));
+      if (synonyms.some((s) => lower.includes(s.toLowerCase()))) expanded.add(key.toLowerCase());
+    }
+    return [...expanded];
+  };
+
+  const matchTask = (t: ConvertTask, query: string): boolean => {
+    const queries = expandQuery(query);
+    const haystack = (t.label + ' ' + t.description + ' ' + (t.io?.from ?? '') + ' ' + (t.io?.to ?? '')).toLowerCase();
+    return queries.some((q) => haystack.includes(q));
+  };
+
   return (
     <ModeErrorBoundary modeLabel="파일 변환" resetKey={selectedTask?.id ?? 'none'} onReset={reset}>
       <div className="flex flex-col h-full bg-gradient-to-b from-accent/20 to-background relative">
@@ -703,14 +799,14 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   </>
                 )}
 
-                {/* 도구 검색바 — 28+ 카탈로그 발견성 */}
+                {/* 도구 검색바 — 34+ 카탈로그 발견성 (한국어 동의어 매핑 포함) */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
                     value={taskSearch}
                     onChange={(e) => setTaskSearch(e.target.value)}
-                    placeholder="도구 검색 (예: 압축, PDF, 회전)"
+                    placeholder="도구 검색 (예: 압축, 암호, 회전, 흑백)"
                     className="w-full h-10 pl-10 pr-9 rounded-xl border border-[hsl(var(--hairline))] bg-card text-[13px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
                   />
                   {taskSearch && (
@@ -724,6 +820,31 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     </button>
                   )}
                 </div>
+
+                {/* 카테고리 칩 필터 — 검색 활성 시엔 자동 숨김 */}
+                {taskSearch.trim().length === 0 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin pb-1 -mx-1 px-1">
+                    {CHIP_FILTERS.map((chip) => {
+                      const active = activeChip === chip.id;
+                      return (
+                        <button
+                          key={chip.id}
+                          type="button"
+                          onClick={() => setActiveChip(chip.id)}
+                          className={cn(
+                            'shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-full text-[12px] font-semibold transition-colors border',
+                            active
+                              ? 'bg-violet-500/12 border-violet-300 text-violet-700 dark:text-violet-300'
+                              : 'bg-card border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
+                          )}
+                        >
+                          <span className="text-[13px] leading-none">{chip.emoji}</span>
+                          <span>{chip.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* 즐겨찾기 — 있을 때만 (검색 중엔 숨김) */}
                 {favoriteIds.length > 0 && taskSearch.trim().length === 0 && (
@@ -792,22 +913,38 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   </div>
                 )}
 
-                {/* 검색 활성 시 평면 결과 */}
+                {/* 검색 활성 시 평면 결과 + No-result fallback */}
                 {taskSearch.trim().length > 0 ? (
                   (() => {
-                    const q = taskSearch.trim().toLowerCase();
-                    const matches = TASKS.filter(
-                      (t) => t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q),
-                    );
+                    const matches = TASKS.filter((t) => matchTask(t, taskSearch));
                     return (
                       <div>
                         <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">
                           검색 결과 · {matches.length}
                         </h2>
                         {matches.length === 0 ? (
-                          <p className="text-center text-[13px] text-muted-foreground py-10">
-                            "<span className="text-foreground font-semibold">{taskSearch}</span>" 와 일치하는 도구가 없어요
-                          </p>
+                          <div className="text-center py-10 space-y-3">
+                            <p className="text-[13px] text-muted-foreground">
+                              "<span className="text-foreground font-semibold">{taskSearch}</span>" 와 일치하는 도구가 없어요
+                            </p>
+                            <p className="text-[11.5px] text-muted-foreground/70">
+                              혹시 이걸 찾으시나요?
+                            </p>
+                            <div className={cn('grid gap-2.5 max-w-2xl mx-auto', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3')}>
+                              {quickActions.slice(0, 6).map((task) => (
+                                <TaskCard
+                                  key={task.id}
+                                  task={task}
+                                  isFavorite={favoriteIds.includes(task.id)}
+                                  onSelect={() => { setSelectedTask(task); setStage('upload'); }}
+                                  onToggleFavorite={() => {
+                                    toggleFavorite(task.id);
+                                    setFavoriteIds(getFavoriteIds());
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
                         ) : (
                           <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
                             {matches.map((task) => (
@@ -829,72 +966,85 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                   })()
                 ) : (
                   <>
-                    {/* Quick Actions */}
-                    <div>
-                      <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">자주 쓰는 도구</h2>
-                      <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
-                        {quickActions.map((task) => (
-                          <TaskCard
-                            key={task.id}
-                            task={task}
-                            isFavorite={favoriteIds.includes(task.id)}
-                            onSelect={() => { setSelectedTask(task); setStage('upload'); }}
-                            onToggleFavorite={() => {
-                              toggleFavorite(task.id);
-                              setFavoriteIds(getFavoriteIds());
-                            }}
-                          />
-                        ))}
+                    {/* '자주' 칩 또는 '전체' 칩 → Quick Actions 노출 */}
+                    {(activeChip === 'all' || activeChip === 'favorite') && (
+                      <div>
+                        <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">자주 쓰는 도구</h2>
+                        <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
+                          {quickActions.map((task) => (
+                            <TaskCard
+                              key={task.id}
+                              task={task}
+                              isFavorite={favoriteIds.includes(task.id)}
+                              onSelect={() => { setSelectedTask(task); setStage('upload'); }}
+                              onToggleFavorite={() => {
+                                toggleFavorite(task.id);
+                                setFavoriteIds(getFavoriteIds());
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* 카테고리별 더 많은 도구 */}
-                    <div className="space-y-4">
-                      <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground">더 많은 도구</h2>
-                      {categories.map((cat) => {
-                        const tasks = getTasksByCategory(cat).filter((t) => !t.quickAction);
-                        if (tasks.length === 0) return null;
-                        return (
-                          <div key={cat}>
-                            <h3 className="text-[12px] font-semibold text-muted-foreground mb-2">{CATEGORY_LABELS[cat]}</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                              {tasks.map((task) => {
-                                const isFav = favoriteIds.includes(task.id);
-                                return (
-                                  <button
+                    {/* '전체' 칩 → 카테고리별 섹션 / 그 외 칩 → 매칭 도구만 평면 그리드 */}
+                    {activeChip === 'all' ? (
+                      <div className="space-y-5">
+                        <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground">더 많은 도구</h2>
+                        {categories.map((cat) => {
+                          const tasks = getTasksByCategory(cat).filter((t) => !t.quickAction);
+                          if (tasks.length === 0) return null;
+                          return (
+                            <div key={cat}>
+                              <h3 className="text-[12px] font-semibold text-foreground/80 mb-2">
+                                {CATEGORY_LABELS[cat]}
+                                <span className="ml-1.5 text-muted-foreground/60 text-[11px] font-normal">· {tasks.length}</span>
+                              </h3>
+                              <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
+                                {tasks.map((task) => (
+                                  <TaskCard
                                     key={task.id}
-                                    type="button"
-                                    onClick={() => { setSelectedTask(task); setStage('upload'); }}
-                                    className="group relative flex items-center gap-2.5 p-2.5 rounded-lg border border-[hsl(var(--hairline))] bg-card hover:bg-accent/40 text-left"
-                                  >
-                                    <span className="text-[18px] shrink-0">{task.icon}</span>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="text-[12.5px] font-semibold text-foreground truncate">{task.label}</div>
-                                      <div className="text-[10.5px] text-muted-foreground truncate">{task.description}</div>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleFavorite(task.id);
-                                        setFavoriteIds(getFavoriteIds());
-                                      }}
-                                      className={cn(
-                                        'opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded',
-                                        isFav && 'opacity-100',
-                                      )}
-                                      title={isFav ? '즐겨찾기 해제' : '즐겨찾기'}
-                                    >
-                                      <Star className={cn('w-3.5 h-3.5', isFav ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground')} />
-                                    </button>
-                                  </button>
-                                );
-                              })}
+                                    task={task}
+                                    isFavorite={favoriteIds.includes(task.id)}
+                                    onSelect={() => { setSelectedTask(task); setStage('upload'); }}
+                                    onToggleFavorite={() => {
+                                      toggleFavorite(task.id);
+                                      setFavoriteIds(getFavoriteIds());
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : activeChip !== 'favorite' && (
+                      (() => {
+                        const matcher = CHIP_FILTERS.find((c) => c.id === activeChip)!.match;
+                        const filtered = TASKS.filter(matcher);
+                        return (
+                          <div>
+                            <h2 className="text-[11.5px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">
+                              {CHIP_FILTERS.find((c) => c.id === activeChip)?.label} 도구 · {filtered.length}
+                            </h2>
+                            <div className={cn('grid gap-2.5', isMobile() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4')}>
+                              {filtered.map((task) => (
+                                <TaskCard
+                                  key={task.id}
+                                  task={task}
+                                  isFavorite={favoriteIds.includes(task.id)}
+                                  onSelect={() => { setSelectedTask(task); setStage('upload'); }}
+                                  onToggleFavorite={() => {
+                                    toggleFavorite(task.id);
+                                    setFavoriteIds(getFavoriteIds());
+                                  }}
+                                />
+                              ))}
                             </div>
                           </div>
                         );
-                      })}
-                    </div>
+                      })()
+                    )}
                   </>
                 )}
               </div>
@@ -1188,6 +1338,113 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     </label>
                   </div>
                 )}
+                {/* PDF 페이지 추출 */}
+                {files.length > 0 && selectedTask.id === 'pdf-extract-pages' && (
+                  <div className="space-y-2">
+                    <div className="text-[12px] font-semibold text-foreground">추출할 페이지 범위</div>
+                    <input
+                      type="text"
+                      value={extractRanges}
+                      onChange={(e) => setExtractRanges(e.target.value)}
+                      placeholder="예: 1-3,5,7-9"
+                      className="w-full max-w-[320px] h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12.5px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                    />
+                    <div className="text-[10.5px] text-muted-foreground">쉼표로 구분, 하이픈으로 범위 지정. 예: <code className="font-mono">1,3,5-7</code></div>
+                  </div>
+                )}
+                {/* PDF 페이지 삭제 */}
+                {files.length > 0 && selectedTask.id === 'pdf-delete-pages' && (
+                  <div className="space-y-2">
+                    <div className="text-[12px] font-semibold text-foreground">삭제할 페이지 범위</div>
+                    <input
+                      type="text"
+                      value={deleteRanges}
+                      onChange={(e) => setDeleteRanges(e.target.value)}
+                      placeholder="예: 2,4-5"
+                      className="w-full max-w-[320px] h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12.5px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                    />
+                    <div className="text-[10.5px] text-muted-foreground">선택한 페이지를 빼고 나머지로 새 PDF가 만들어져요.</div>
+                  </div>
+                )}
+                {/* PDF 페이지 재배열 */}
+                {files.length > 0 && selectedTask.id === 'pdf-reorder-pages' && (
+                  <div className="space-y-2">
+                    <div className="text-[12px] font-semibold text-foreground">새 페이지 순서</div>
+                    <input
+                      type="text"
+                      value={reorderOrder}
+                      onChange={(e) => setReorderOrder(e.target.value)}
+                      placeholder="예: 3,1,2,4 (4페이지짜리 PDF의 경우)"
+                      className="w-full max-w-[420px] h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12.5px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                    />
+                    <div className="text-[10.5px] text-muted-foreground">
+                      쉼표로 구분된 1-based 페이지 번호. 같은 페이지를 여러 번 넣으면 복제도 가능해요.
+                    </div>
+                  </div>
+                )}
+                {/* PDF 헤더·푸터 */}
+                {files.length > 0 && selectedTask.id === 'pdf-header-footer' && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">헤더 텍스트 (선택)</div>
+                      <input
+                        type="text"
+                        value={headerFooterText.header}
+                        onChange={(e) => setHeaderFooterText((prev) => ({ ...prev, header: e.target.value }))}
+                        placeholder="예: 회사 보고서 — {date}"
+                        className="w-full h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12.5px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">푸터 텍스트 (선택)</div>
+                      <input
+                        type="text"
+                        value={headerFooterText.footer}
+                        onChange={(e) => setHeaderFooterText((prev) => ({ ...prev, footer: e.target.value }))}
+                        placeholder="예: {page} / {total}"
+                        className="w-full h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-card text-[12.5px] focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[12px] font-semibold text-foreground mb-2">정렬</div>
+                      <div className="inline-flex gap-1 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-accent/40">
+                        {([
+                          { v: 'left' as const, label: '왼쪽' },
+                          { v: 'center' as const, label: '가운데' },
+                          { v: 'right' as const, label: '오른쪽' },
+                        ]).map((p) => (
+                          <button
+                            key={p.v}
+                            type="button"
+                            onClick={() => setHeaderFooterPos(p.v)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-md text-[11.5px] font-semibold transition-all',
+                              headerFooterPos === p.v ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground hover:bg-card',
+                            )}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-[10.5px] text-muted-foreground bg-muted/40 p-2 rounded-md">
+                      💡 변수: <code className="font-mono mx-0.5">{'{page}'}</code> <code className="font-mono mx-0.5">{'{total}'}</code> <code className="font-mono mx-0.5">{'{date}'}</code> <code className="font-mono mx-0.5">{'{filename}'}</code>
+                    </div>
+                  </div>
+                )}
+                {/* PDF 흑백 변환 — 옵션 없음, 안내 */}
+                {files.length > 0 && selectedTask.id === 'pdf-grayscale' && (
+                  <div className="text-[11.5px] text-muted-foreground bg-muted/40 p-2.5 rounded-md">
+                    각 페이지를 그레이스케일로 변환해 흑백 인쇄용 PDF로 만들어요. 손실 변환이라 원본 색상은 복구할 수 없어요.
+                  </div>
+                )}
+                {/* PDF 이미지 추출 — 옵션 없음, 안내 */}
+                {files.length > 0 && selectedTask.id === 'pdf-extract-images' && (
+                  <div className="text-[11.5px] text-muted-foreground bg-muted/40 p-2.5 rounded-md">
+                    PDF 안의 모든 이미지를 추출해 ZIP으로 묶어요. 텍스트 위주 PDF에선 이미지가 없을 수 있어요.
+                  </div>
+                )}
+
                 {/* PDF 암호 보호/해제 — 카탈로그에서 제거됨 */}
                 {selectedTask.id === 'qr-generate' && (
                   <div className="space-y-3">
@@ -1870,6 +2127,51 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                       다른 파일 변환
                     </button>
                   </div>
+
+                  {/* 다음 작업 체이닝 — 결과 blob 을 다음 도구의 입력으로 */}
+                  {(() => {
+                    const ext = result.fileName.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
+                    const acceptKey = `.${ext}`;
+                    const nextTools = TASKS.filter((t) =>
+                      t.id !== selectedTask?.id && t.accept.includes(acceptKey),
+                    ).slice(0, 4);
+                    if (nextTools.length === 0) return null;
+                    return (
+                      <div className="mt-5 pt-4 border-t border-[hsl(var(--hairline))]">
+                        <div className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground mb-2.5">
+                          이 결과로 다음 작업
+                        </div>
+                        <div className={cn('grid gap-2', isMobile() ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4')}>
+                          {nextTools.map((next) => (
+                            <button
+                              key={next.id}
+                              type="button"
+                              onClick={() => {
+                                // 결과 blob 을 File 로 변환 후 다음 도구로 진입
+                                const f = new File([result.blob], result.fileName, { type: result.blob.type });
+                                setSelectedTask(next);
+                                setFiles([f]);
+                                setResult(null);
+                                setMemoExported(false);
+                                setWikiExported(false);
+                                setStage('upload');
+                              }}
+                              className="group flex items-center gap-2 p-2.5 rounded-lg border border-[hsl(var(--hairline))] bg-card hover:bg-violet-50/40 dark:hover:bg-violet-500/10 hover:border-violet-300 transition-colors text-left"
+                            >
+                              <span className="text-[18px] shrink-0">{next.icon}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[12px] font-semibold text-foreground truncate">{next.label}</div>
+                                {next.io && (
+                                  <div className="text-[9.5px] font-mono text-muted-foreground/70 mt-0.5">{next.io.from} → {next.io.to}</div>
+                                )}
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-violet-500 transition-colors shrink-0" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -2010,6 +2312,13 @@ function TaskCard({
       </div>
       <div className="text-[13px] font-bold text-foreground mb-0.5 leading-tight">{task.label}</div>
       <div className="text-[10.5px] text-muted-foreground leading-snug">{task.description}</div>
+      {task.io && (
+        <div className="mt-2 inline-flex items-center gap-1 text-[9.5px] font-mono text-muted-foreground/70">
+          <span>{task.io.from}</span>
+          <ArrowRight className="w-2.5 h-2.5" />
+          <span>{task.io.to}</span>
+        </div>
+      )}
     </button>
   );
 }

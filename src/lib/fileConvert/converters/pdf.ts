@@ -653,3 +653,272 @@ export async function rotatePdf(
   const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
   return { blob, suggestedName: `${baseName(file.name)}-rotated.pdf` };
 }
+
+// ───── PDF 페이지 추출 (선택한 범위만 새 PDF로) ─────
+export async function extractPdfPages(
+  file: File,
+  rangesStr: string,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const { PDFDocument } = await loadPdfLib();
+  const src = await PDFDocument.load(await file.arrayBuffer());
+  const total = src.getPageCount();
+  const ranges = parseRanges(rangesStr, total);
+  if (ranges.length === 0) throw new Error('추출할 페이지 범위를 확인해주세요. 예: 1-3,5,7-9');
+  const out = await PDFDocument.create();
+  const indices: number[] = [];
+  for (const [from, to] of ranges) {
+    for (let i = from; i <= to; i++) indices.push(i);
+  }
+  const copied = await out.copyPages(src, indices);
+  copied.forEach((p) => out.addPage(p));
+  const bytes = await out.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-extracted.pdf` };
+}
+
+// ───── PDF 페이지 삭제 (지정 페이지만 빼고 나머지 유지) ─────
+export async function deletePdfPages(
+  file: File,
+  rangesStr: string,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const { PDFDocument } = await loadPdfLib();
+  const src = await PDFDocument.load(await file.arrayBuffer());
+  const total = src.getPageCount();
+  const ranges = parseRanges(rangesStr, total);
+  if (ranges.length === 0) throw new Error('삭제할 페이지 범위를 확인해주세요. 예: 1,3,5-7');
+  const removeSet = new Set<number>();
+  for (const [from, to] of ranges) {
+    for (let i = from; i <= to; i++) removeSet.add(i);
+  }
+  if (removeSet.size >= total) {
+    throw new Error('모든 페이지를 삭제할 수는 없어요. 적어도 1페이지는 남겨주세요.');
+  }
+  const keepIndices: number[] = [];
+  for (let i = 0; i < total; i++) {
+    if (!removeSet.has(i)) keepIndices.push(i);
+  }
+  const out = await PDFDocument.create();
+  const copied = await out.copyPages(src, keepIndices);
+  copied.forEach((p) => out.addPage(p));
+  const bytes = await out.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-trimmed.pdf` };
+}
+
+// ───── PDF 페이지 재배열 (사용자 정의 순서) ─────
+// orderStr: 쉼표로 구분된 1-based 페이지 번호 (예: "3,1,2,4")
+export async function reorderPdfPages(
+  file: File,
+  orderStr: string,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const { PDFDocument } = await loadPdfLib();
+  const src = await PDFDocument.load(await file.arrayBuffer());
+  const total = src.getPageCount();
+  const order = orderStr
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map((s) => parseInt(s, 10) - 1); // 0-based
+  if (order.length === 0) throw new Error('새 순서를 입력해주세요. 예: 3,1,2,4');
+  for (const i of order) {
+    if (Number.isNaN(i) || i < 0 || i >= total) {
+      throw new Error(`잘못된 페이지 번호. 1~${total} 사이여야 해요.`);
+    }
+  }
+  const out = await PDFDocument.create();
+  const copied = await out.copyPages(src, order);
+  copied.forEach((p) => out.addPage(p));
+  const bytes = await out.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-reordered.pdf` };
+}
+
+// ───── PDF에서 이미지 추출 (모든 이미지를 ZIP으로) ─────
+// pdfjs-dist 의 page.getOperatorList() 로 OP_paintImageXObject 를 찾아 이미지 stream 추출.
+export async function extractPdfImages(
+  file: File,
+  onProgress?: (msg: string) => void,
+): Promise<{ blob: Blob; suggestedName: string; imageCount: number }> {
+  const pdfjs = await loadPdfJs();
+  const JSZip = (await import('jszip')).default;
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  const zip = new JSZip();
+  let imageCount = 0;
+
+  for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+    onProgress?.(`페이지 ${pageNum}/${doc.numPages} 분석 중...`);
+    await yieldToMain();
+    const page = await doc.getPage(pageNum);
+    // page.getOperatorList() 로 이미지 객체 이름 수집
+    const opList = await page.getOperatorList();
+    const imgNames = new Set<string>();
+    for (let i = 0; i < opList.fnArray.length; i++) {
+      const op = opList.fnArray[i];
+      // pdfjs OP code: paintImageXObject = 85, paintInlineImageXObject = 86
+      if (op === pdfjs.OPS.paintImageXObject || op === pdfjs.OPS.paintImageXObjectRepeat) {
+        const args = opList.argsArray[i];
+        if (args && args[0]) imgNames.add(args[0]);
+      }
+    }
+    // 각 이미지 객체를 PNG로 변환
+    for (const name of imgNames) {
+      try {
+        const obj = await new Promise<unknown>((resolve) => {
+          // pdfjs commonObjs/objs 양쪽 시도
+          page.objs.get(name, (img: unknown) => resolve(img));
+        });
+        if (!obj) continue;
+        // obj 는 { width, height, kind, data, ... } 형태
+        const img = obj as { width?: number; height?: number; data?: Uint8Array | Uint8ClampedArray; bitmap?: ImageBitmap };
+        const w = img.width ?? 0;
+        const h = img.height ?? 0;
+        if (w === 0 || h === 0) continue;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) continue;
+        if (img.bitmap) {
+          ctx.drawImage(img.bitmap, 0, 0);
+        } else if (img.data) {
+          // RGBA / RGB raw data
+          const pixels = img.data;
+          const imageData = ctx.createImageData(w, h);
+          if (pixels.length === w * h * 4) {
+            imageData.data.set(pixels);
+          } else if (pixels.length === w * h * 3) {
+            // RGB → RGBA
+            for (let p = 0, q = 0; q < pixels.length; p += 4, q += 3) {
+              imageData.data[p] = pixels[q];
+              imageData.data[p + 1] = pixels[q + 1];
+              imageData.data[p + 2] = pixels[q + 2];
+              imageData.data[p + 3] = 255;
+            }
+          } else {
+            continue;
+          }
+          ctx.putImageData(imageData, 0, 0);
+        } else {
+          continue;
+        }
+        const pngBlob: Blob = await new Promise((resolve, reject) => {
+          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG 변환 실패'))), 'image/png');
+        });
+        imageCount++;
+        zip.file(`p${pageNum}-${imageCount}.png`, pngBlob);
+      } catch {
+        // 일부 이미지 객체는 건너뜀 (마스크·shading 등)
+        continue;
+      }
+    }
+  }
+
+  if (imageCount === 0) {
+    throw new Error('PDF 안에서 이미지를 찾지 못했어요. 텍스트 위주 PDF 일 수 있어요.');
+  }
+  onProgress?.(`이미지 ${imageCount}장 ZIP 묶는 중...`);
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  return { blob: zipBlob, suggestedName: `${baseName(file.name)}-images.zip`, imageCount };
+}
+
+// ───── PDF 헤더·푸터 추가 ─────
+export interface PdfHeaderFooterOptions {
+  headerText?: string;
+  footerText?: string;
+  position: 'left' | 'center' | 'right';
+  fontSize?: number;
+  /** {page} {total} {date} {filename} 변수 치환 지원 */
+}
+export async function addPdfHeaderFooter(
+  file: File,
+  opts: PdfHeaderFooterOptions,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
+  const doc = await PDFDocument.load(await file.arrayBuffer());
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const pages = doc.getPages();
+  const total = pages.length;
+  const today = new Date().toISOString().slice(0, 10);
+  const fontSize = opts.fontSize ?? 9;
+  const margin = 24;
+
+  const interpolate = (template: string, pageNum: number): string =>
+    template
+      .replace(/\{page\}/g, String(pageNum))
+      .replace(/\{total\}/g, String(total))
+      .replace(/\{date\}/g, today)
+      .replace(/\{filename\}/g, baseName(file.name));
+
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+    const { width, height } = page.getSize();
+
+    const drawText = (text: string, y: number) => {
+      const textWidth = font.widthOfTextAtSize(text, fontSize);
+      let x: number;
+      if (opts.position === 'left') x = margin;
+      else if (opts.position === 'right') x = width - margin - textWidth;
+      else x = (width - textWidth) / 2;
+      page.drawText(text, { x, y, size: fontSize, font, color: rgb(0.4, 0.4, 0.4) });
+    };
+
+    if (opts.headerText) drawText(interpolate(opts.headerText, i + 1), height - margin);
+    if (opts.footerText) drawText(interpolate(opts.footerText, i + 1), margin / 2);
+  }
+
+  const bytes = await doc.save();
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  return { blob, suggestedName: `${baseName(file.name)}-headfoot.pdf` };
+}
+
+// ───── PDF 흑백 변환 (RGB → 그레이스케일) ─────
+// 각 페이지를 canvas 에 렌더 → 그레이스케일 변환 → JPG → 새 PDF 생성.
+// 손실 변환이지만 색공간 축소로 인쇄 비용 절감.
+export async function grayscalePdf(
+  file: File,
+  onProgress?: (msg: string) => void,
+): Promise<{ blob: Blob; suggestedName: string }> {
+  const pdfjs = await loadPdfJs();
+  const { jsPDF } = await loadJsPdf();
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  const total = doc.numPages;
+  const out = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = out.internal.pageSize.getWidth();
+  const pageH = out.internal.pageSize.getHeight();
+
+  for (let pageNum = 1; pageNum <= total; pageNum++) {
+    onProgress?.(`페이지 ${pageNum}/${total} 흑백 변환 중...`);
+    await yieldToMain();
+    const page = await doc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas 생성 실패');
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    // 그레이스케일 변환 (luminosity 방식)
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+      data[i] = data[i + 1] = data[i + 2] = gray;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+    if (pageNum > 1) out.addPage();
+    // 페이지에 맞춰 fit
+    const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+    const w = canvas.width * ratio;
+    const h = canvas.height * ratio;
+    const x = (pageW - w) / 2;
+    const y = (pageH - h) / 2;
+    out.addImage(dataUrl, 'JPEG', x, y, w, h);
+  }
+
+  const blob = out.output('blob');
+  return { blob, suggestedName: `${baseName(file.name)}-grayscale.pdf` };
+}

@@ -20,6 +20,8 @@ export interface ConvertTask {
   estimatedTime: string;
   // Quick Actions 후보 여부
   quickAction?: boolean;
+  // 입출력 표시 — 카드 우하단 칩 ("PDF → JPG", "JPG → PDF" 등)
+  io?: { from: string; to: string };
 }
 
 export const TASKS: ConvertTask[] = [
@@ -35,6 +37,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '1초 이내',
     quickAction: true,
+    io: { from: '이미지', to: '이미지' },
   },
   {
     id: 'heic-to-jpg',
@@ -47,6 +50,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '2~3초',
     quickAction: true,
+    io: { from: 'HEIC', to: 'JPG' },
   },
   {
     id: 'image-compress',
@@ -59,6 +63,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'lossy',
     estimatedTime: '1~2초',
     quickAction: true,
+    io: { from: '이미지', to: '이미지' },
   },
   {
     id: 'image-resize',
@@ -71,6 +76,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '1초 이내',
     quickAction: true,
+    io: { from: '이미지', to: '이미지' },
   },
   {
     id: 'image-rotate',
@@ -94,6 +100,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '파일당 1~2초',
     quickAction: true,
+    io: { from: '이미지', to: 'ZIP' },
   },
   {
     id: 'image-to-pdf',
@@ -106,6 +113,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '2~3초',
     quickAction: true,
+    io: { from: '이미지', to: 'PDF' },
   },
   {
     id: 'image-to-text',
@@ -118,6 +126,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'ai-assisted',
     estimatedTime: '5~15초',
     quickAction: true,
+    io: { from: '이미지', to: '텍스트' },
   },
 
   // ───── PDF ─────
@@ -132,6 +141,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '2~5초',
     quickAction: true,
+    io: { from: 'PDF', to: 'PDF' },
   },
   {
     id: 'pdf-split',
@@ -143,6 +153,7 @@ export const TASKS: ConvertTask[] = [
     multiFile: false,
     tier: 'native',
     estimatedTime: '2~5초',
+    io: { from: 'PDF', to: 'PDF' },
   },
   {
     id: 'pdf-compress',
@@ -155,6 +166,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'lossy',
     estimatedTime: '5~15초',
     quickAction: true,
+    io: { from: 'PDF', to: 'PDF' },
   },
   {
     id: 'pdf-rotate',
@@ -167,6 +179,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '1~2초',
     quickAction: true,
+    io: { from: 'PDF', to: 'PDF' },
   },
   {
     id: 'pdf-watermark',
@@ -489,6 +502,81 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '1~2초',
   },
+  // ───── PDF 페이지 조작 (Tier S) ─────
+  {
+    id: 'pdf-extract-pages',
+    label: 'PDF 페이지 추출',
+    category: 'pdf',
+    icon: '📑',
+    description: '원하는 페이지만 골라 새 PDF로',
+    accept: ['.pdf'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '2~3초',
+    quickAction: true,
+    io: { from: 'PDF', to: 'PDF' },
+  },
+  {
+    id: 'pdf-delete-pages',
+    label: 'PDF 페이지 삭제',
+    category: 'pdf',
+    icon: '🗑️',
+    description: '특정 페이지만 빼고 저장',
+    accept: ['.pdf'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '2~3초',
+    io: { from: 'PDF', to: 'PDF' },
+  },
+  {
+    id: 'pdf-reorder-pages',
+    label: 'PDF 페이지 재배열',
+    category: 'pdf',
+    icon: '🔀',
+    description: '페이지 순서를 새로 지정',
+    accept: ['.pdf'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '2~3초',
+    io: { from: 'PDF', to: 'PDF' },
+  },
+  {
+    id: 'pdf-extract-images',
+    label: 'PDF에서 이미지 추출',
+    category: 'pdf',
+    icon: '🖼️',
+    description: 'PDF 안의 모든 이미지를 ZIP으로',
+    accept: ['.pdf'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '5~10초',
+    quickAction: true,
+    io: { from: 'PDF', to: 'ZIP' },
+  },
+  {
+    id: 'pdf-header-footer',
+    label: 'PDF 헤더·푸터 추가',
+    category: 'pdf',
+    icon: '📰',
+    description: '상단·하단에 자유 텍스트 (날짜·파일명 변수 지원)',
+    accept: ['.pdf'],
+    multiFile: false,
+    tier: 'native',
+    estimatedTime: '1~2초',
+    io: { from: 'PDF', to: 'PDF' },
+  },
+  {
+    id: 'pdf-grayscale',
+    label: 'PDF 흑백 변환',
+    category: 'pdf',
+    icon: '⚫',
+    description: '컬러 → 그레이스케일 (인쇄 비용 절약)',
+    accept: ['.pdf'],
+    multiFile: false,
+    tier: 'lossy',
+    estimatedTime: '5~10초',
+    io: { from: 'PDF', to: 'PDF' },
+  },
   // ───── 유틸 (생성·읽기) ─────
   {
     id: 'qr-generate',
@@ -501,6 +589,7 @@ export const TASKS: ConvertTask[] = [
     tier: 'native',
     estimatedTime: '1초 이내',
     quickAction: true,
+    io: { from: '텍스트', to: 'PNG' },
   },
 ];
 
