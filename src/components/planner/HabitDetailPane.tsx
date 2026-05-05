@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import { TASK_LIST_COLORS } from '@/types/planner';
 import type { Habit } from '@/types/habit';
 import { habitStore } from '@/services/planner/habitStore';
-import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { useHabitCheckins } from '@/hooks/planner/useHabitCheckins';
 import {
   currentStreak, maxStreak, monthCheckinCount, toDateKey,
@@ -39,19 +38,6 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
       monthCount: monthCheckinCount(habit, viewYear, viewMonth, allCheckins),
     };
   }, [habit, allCheckins, viewYear, viewMonth]);
-
-  // 메모 — 월 시작 row 의 note 사용 (단순화). 더 정교한 모델은 이후.
-  const monthFirstKey = `${viewYear}-${String(viewMonth).padStart(2, '0')}-01`;
-  const noteRow = allCheckins.find((c) => c.date === monthFirstKey);
-  const [noteDraft, setNoteDraft] = useState(noteRow?.note ?? '');
-  // habit/month 변경 시 동기화.
-  useMemo(() => {
-    setNoteDraft(noteRow?.note ?? '');
-  }, [noteRow?.note, monthFirstKey]);
-
-  const saveNote = () => {
-    habitCheckinStore.setNote(habit.id, monthFirstKey, noteDraft);
-  };
 
   return (
     <div className="h-full min-h-0 flex flex-col">
@@ -145,21 +131,6 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
           <HabitYearHeatmap habit={habit} checkins={allCheckins} />
         </section>
 
-        {/* 메모 */}
-        <div>
-          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-1.5">
-            이번 달 메모
-          </div>
-          <textarea
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            onBlur={saveNote}
-            placeholder="이번 달 기록 — 잘 된 점, 어려웠던 점, 다음 달 다짐"
-            rows={3}
-            className="w-full px-3 py-2 text-[13px] rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/40 focus:outline-none resize-none placeholder:text-foreground/45"
-          />
-          <div className="mt-1 text-[10.5px] text-foreground/45">자동 저장됨 · 포커스 해제 시</div>
-        </div>
       </div>
     </div>
   );
