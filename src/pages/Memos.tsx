@@ -8,7 +8,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight,
+  ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore,
+  ImagePlus,
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, Mic,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,11 +19,17 @@ import {
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
+  Dialog, DialogContent, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
+import { WikiBlockEditor } from '@/components/wiki/WikiBlockEditor';
+import {
   useMemos, addMemo, updateMemo, removeMemo, togglePin,
+  archiveMemo, unarchiveMemo, addMemoImage, removeMemoImage,
   memoTitle, extractMemoTags, memoTimeLabel,
   tagFrequencies,
-  useFolders, addFolder, renameFolder, removeFolder, moveMemoToFolder,
-  type Memo, type MemoFolder,
+  useFolders, addFolder, renameFolder, removeFolder, updateFolder, moveMemoToFolder,
+  MEMO_FOLDER_COLORS,
+  type Memo, type MemoFolder, type MemoFolderColor,
 } from '@/lib/memoStore';
 import { upsertPage } from '@/lib/wikiStore';
 import { newWikiId, type WikiPage, type WikiPageType, USER_FACING_TYPES, WIKI_TYPE_META } from '@/types/wiki';
@@ -61,6 +68,18 @@ const Memos = () => {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [editingFolder, setEditingFolder] = useState<MemoFolder | null>(null);
+  const [showArchive, setShowArchive] = useState(false);
+
+  // archived 메모는 일반 list 에서 제외 — 별도 view 에서만.
+  const activeMemos = useMemo(
+    () => memos.filter((m) => !m.archivedAt),
+    [memos],
+  );
+  const archivedMemos = useMemo(
+    () => memos.filter((m) => m.archivedAt).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
+    [memos],
+  );
 
   // ──── 정렬·필터 ────
   const sortPinTime = useCallback((list: Memo[]): Memo[] =>
@@ -69,21 +88,21 @@ const Memos = () => {
       return b.updatedAt - a.updatedAt;
     }), []);
 
-  // 폴더별 메모 (핀 우선, 시간 desc)
+  // 폴더별 메모 (핀 우선, 시간 desc) — archived 제외
   const memosOf = useCallback((folderId: string): Memo[] =>
-    sortPinTime(memos.filter((m) => m.folderId === folderId)),
-    [memos, sortPinTime]);
+    sortPinTime(activeMemos.filter((m) => m.folderId === folderId)),
+    [activeMemos, sortPinTime]);
 
-  // 미분류 — 핀 우선, 시간 desc
+  // 미분류 — 핀 우선, 시간 desc — archived 제외
   const unfiledMemos = useMemo(() =>
-    sortPinTime(memos.filter((m) => !m.folderId)),
-    [memos, sortPinTime]);
+    sortPinTime(activeMemos.filter((m) => !m.folderId)),
+    [activeMemos, sortPinTime]);
 
   // 검색·태그 활성 시 → 평면 필터 결과
   const isFiltered = !!query.trim() || !!activeTag;
   const filteredMemos = useMemo(() => {
     if (!isFiltered) return [];
-    let list = memos;
+    let list = activeMemos;
     if (activeTag) {
       const t = activeTag.toLowerCase();
       list = list.filter((m) => extractMemoTags(m).includes(t));
@@ -93,7 +112,7 @@ const Memos = () => {
       list = list.filter((m) => m.body.toLowerCase().includes(q));
     }
     return sortPinTime(list);
-  }, [isFiltered, memos, query, activeTag, sortPinTime]);
+  }, [isFiltered, activeMemos, query, activeTag, sortPinTime]);
 
   const tags = useMemo(() => tagFrequencies(memos), [memos]);
 
@@ -279,6 +298,7 @@ const Memos = () => {
                         if (!window.confirm(`"${f.name}" 폴더를 지울까요? 안에 있는 메모는 위쪽 메모 목록으로 이동합니다.`)) return;
                         removeFolder(f.id);
                       }}
+                      onEdit={() => setEditingFolder(f)}
                       onMemoPin={(m) => togglePin(m.id)}
                       onMemoMove={(m) => setMovingMemo(m)}
                       onMemoDelete={(m) => handleDelete(m.id)}
@@ -346,6 +366,48 @@ const Memos = () => {
                   </div>
                 </div>
               )}
+
+              {/* 보관함 — 항상 하단 */}
+              <button
+                type="button"
+                onClick={() => setShowArchive((v) => !v)}
+                className={cn(
+                  'mx-2 mt-2 mb-2 flex items-center gap-2 px-2.5 py-2 rounded-md text-[12.5px] transition-colors',
+                  showArchive
+                    ? 'bg-accent text-foreground font-semibold'
+                    : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+                )}
+              >
+                <Archive className="w-3.5 h-3.5" strokeWidth={1.75} />
+                <span>보관함</span>
+                <span className="ml-auto text-[10.5px] tabular-nums opacity-70">
+                  {archivedMemos.length}
+                </span>
+              </button>
+              {showArchive && (
+                archivedMemos.length === 0 ? (
+                  <p className="px-4 pb-3 text-[12px] text-muted-foreground text-center">
+                    보관된 메모 없음
+                  </p>
+                ) : (
+                  <ul className="px-2 pb-2">
+                    {archivedMemos.map((m) => (
+                      <MemoRow
+                        key={m.id}
+                        memo={m}
+                        active={activeId === m.id}
+                        onClick={() => setActiveId(m.id)}
+                        loose
+                        archived
+                        onPin={() => togglePin(m.id)}
+                        onMoveFolder={() => setMovingMemo(m)}
+                        onDelete={() => handleDelete(m.id)}
+                        onUnarchive={() => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); }}
+                      />
+                    ))}
+                  </ul>
+                )
+              )}
             </>
           )}
         </div>
@@ -382,6 +444,17 @@ const Memos = () => {
           onClose={() => setMovingMemo(null)}
         />
       )}
+      {editingFolder && (
+        <FolderEditModal
+          folder={editingFolder}
+          onClose={() => setEditingFolder(null)}
+          onDelete={() => {
+            if (!window.confirm(`"${editingFolder.name}" 폴더를 지울까요? 안의 메모는 미분류로 이동합니다.`)) return;
+            removeFolder(editingFolder.id);
+            setEditingFolder(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -392,7 +465,7 @@ export default Memos;
 // 폴더 = 펼침형 그룹 — 헤더 클릭 시 안 메모 인라인 노출
 function FolderGroup({
   folder, memos, expanded, renaming, activeId,
-  onToggle, onSelectMemo, onAddMemo, onStartRename, onFinishRename, onDelete,
+  onToggle, onSelectMemo, onAddMemo, onStartRename, onFinishRename, onDelete, onEdit,
   onMemoPin, onMemoMove, onMemoDelete,
 }: {
   folder: MemoFolder;
@@ -406,10 +479,12 @@ function FolderGroup({
   onStartRename: () => void;
   onFinishRename: (name: string) => void;
   onDelete: () => void;
+  onEdit: () => void;
   onMemoPin: (m: Memo) => void;
   onMemoMove: (m: Memo) => void;
   onMemoDelete: (m: Memo) => void;
 }) {
+  const folderColor = folder.color ? MEMO_FOLDER_COLORS[folder.color]?.stripe : undefined;
   const [draft, setDraft] = useState(folder.name);
   useEffect(() => { setDraft(folder.name); }, [folder.name, renaming]);
 
@@ -446,7 +521,12 @@ function FolderGroup({
           )}
           strokeWidth={2}
         />
-        <span className="text-[15px] leading-none shrink-0">{folder.emoji ?? '📁'}</span>
+        <span
+          className="inline-flex items-center justify-center h-5 w-5 rounded text-[14px] leading-none shrink-0"
+          style={folderColor ? { backgroundColor: `color-mix(in oklab, ${folderColor} 22%, hsl(var(--background)))` } : undefined}
+        >
+          {folder.emoji ?? '📁'}
+        </span>
         <span className="flex-1 text-[14px] font-medium truncate">{folder.name}</span>
         <span className="text-[12px] tabular-nums text-muted-foreground group-hover:hidden">{memos.length}</span>
         <div className="hidden group-hover:flex items-center gap-0.5">
@@ -460,19 +540,11 @@ function FolderGroup({
           </button>
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onStartRename(); }}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
             className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-background hover:text-foreground transition-colors"
-            title="이름 바꾸기"
+            title="폴더 편집 (이름·이모지·색)"
           >
             <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={1.75} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-            title="삭제"
-          >
-            <X className="w-3.5 h-3.5" strokeWidth={1.75} />
           </button>
         </div>
       </div>
@@ -540,6 +612,140 @@ function NewFolderInput({ onSubmit, onCancel }: { onSubmit: (name: string) => vo
   );
 }
 
+// ──────────────────────────────────────────
+// 폴더 편집 모달 — 이름 / 이모지 / 색
+const FOLDER_EMOJI_PRESETS = ['📁', '📒', '📚', '📝', '✨', '🚀', '💡', '🧠', '🎯', '🏷️', '⚡', '🔖'];
+const FOLDER_COLOR_OPTIONS: Array<MemoFolderColor | null> = [
+  null, 'blue', 'teal', 'green', 'amber', 'orange', 'rose', 'violet', 'cyan',
+];
+
+function FolderEditModal({
+  folder, onClose, onDelete,
+}: {
+  folder: MemoFolder;
+  onClose: () => void;
+  onDelete: () => void;
+}) {
+  const [name, setName] = useState(folder.name);
+  const [emoji, setEmoji] = useState(folder.emoji ?? '📁');
+  const [color, setColor] = useState<MemoFolderColor | undefined>(folder.color);
+
+  const save = () => {
+    updateFolder(folder.id, {
+      name: name.trim() || folder.name,
+      emoji,
+      color,
+    });
+    notify.success('폴더 저장됨', { duration: 1200 });
+    onClose();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md" hideClose>
+        <DialogTitle className="text-[15px] font-semibold">폴더 편집</DialogTitle>
+        <DialogDescription className="sr-only">폴더의 이름·이모지·색을 변경합니다.</DialogDescription>
+
+        <div className="flex flex-col gap-4 mt-1">
+          {/* 이름 + 미리보기 */}
+          <div className="flex items-center gap-2">
+            <span
+              className="h-10 w-10 inline-flex items-center justify-center rounded-md text-[20px] shrink-0"
+              style={color ? { backgroundColor: `color-mix(in oklab, ${MEMO_FOLDER_COLORS[color].stripe} 22%, hsl(var(--background)))` } : { backgroundColor: 'hsl(var(--accent))' }}
+            >
+              {emoji}
+            </span>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              placeholder="폴더 이름"
+              onKeyDown={(e) => { if (e.key === 'Enter') save(); }}
+              className="flex-1 px-3 py-2 text-[14px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none"
+            />
+          </div>
+
+          {/* 이모지 */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12.5px] font-semibold text-foreground/80 leading-none">이모지</label>
+            <div className="grid grid-cols-6 gap-1">
+              {FOLDER_EMOJI_PRESETS.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => setEmoji(e)}
+                  className={cn(
+                    'h-9 inline-flex items-center justify-center rounded-md text-[18px] hover:bg-accent transition-colors',
+                    e === emoji && 'bg-accent ring-1 ring-foreground/30',
+                  )}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 색 */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12.5px] font-semibold text-foreground/80 leading-none">색</label>
+            <div className="flex flex-wrap gap-1.5">
+              {FOLDER_COLOR_OPTIONS.map((c) => {
+                const stripe = c ? MEMO_FOLDER_COLORS[c].stripe : 'hsl(var(--muted-foreground))';
+                const active = color === c || (!color && c === null);
+                return (
+                  <button
+                    key={c ?? 'none'}
+                    type="button"
+                    onClick={() => setColor(c ?? undefined)}
+                    title={c ?? '색 없음'}
+                    className={cn(
+                      'h-7 w-7 inline-flex items-center justify-center rounded-full border transition-all',
+                      active ? 'border-foreground ring-2 ring-foreground/15' : 'border-foreground/15 hover:border-foreground/35',
+                    )}
+                    style={{ backgroundColor: c ? stripe : 'transparent' }}
+                  >
+                    {!c && <X className="h-3 w-3 text-foreground/55" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* footer */}
+          <div className="flex items-center justify-between pt-3 mt-1 border-t border-[hsl(var(--hairline))]">
+            <button
+              type="button"
+              onClick={onDelete}
+              className="flex items-center gap-1 px-3 py-1.5 text-[13px] rounded-md text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              삭제
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-[13px] rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={!name.trim()}
+                className="px-4 py-2 text-[13px] rounded-md bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-40"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function MoveToFolderModal({ memo, folders, onClose }: { memo: Memo; folders: MemoFolder[]; onClose: () => void }) {
   const handleMove = (folderId: string | null) => {
     moveMemoToFolder(memo.id, folderId);
@@ -595,18 +801,21 @@ function FolderOption({ label, active, onClick }: { label: string; active: boole
 
 // ──────────────────────────────────────────
 function MemoRow({
-  memo, active, onClick, loose = false, bare = false,
-  onPin, onMoveFolder, onDelete,
+  memo, active, onClick, loose = false, bare = false, archived = false,
+  onPin, onMoveFolder, onDelete, onArchive, onUnarchive,
 }: {
   memo: Memo; active: boolean; onClick: () => void;
   loose?: boolean;     // 최상위 미분류 — 폴더와 같은 크기(h-9 14px) + 작은 muted 점 prefix
   bare?: boolean;      // li 래퍼 없이 (FolderGroup 트리 안에서 li 직접 제공)
+  archived?: boolean;  // 보관함 row (옅게 + 복원 액션)
   onPin?: () => void;
   onMoveFolder?: () => void;
   onDelete?: () => void;
+  onArchive?: () => void;
+  onUnarchive?: () => void;
 }) {
   const title = memoTitle(memo);
-  const hasActions = !!(onPin || onMoveFolder || onDelete);
+  const hasActions = !!(onPin || onMoveFolder || onDelete || onArchive || onUnarchive);
   const inner = (
     <>
       <button
@@ -618,6 +827,7 @@ function MemoRow({
           active
             ? 'bg-primary/12 text-primary'
             : 'text-foreground hover:bg-accent',
+          archived && 'opacity-65',
         )}
       >
         {loose && !memo.pinned && (
@@ -689,7 +899,19 @@ function MemoRow({
                 폴더로 이동…
               </DropdownMenuItem>
             )}
-            {(onPin || onMoveFolder) && onDelete && <DropdownMenuSeparator />}
+            {onArchive && (
+              <DropdownMenuItem onClick={onArchive}>
+                <Archive className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                보관
+              </DropdownMenuItem>
+            )}
+            {onUnarchive && (
+              <DropdownMenuItem onClick={onUnarchive}>
+                <ArchiveRestore className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                복원
+              </DropdownMenuItem>
+            )}
+            {(onPin || onMoveFolder || onArchive || onUnarchive) && onDelete && <DropdownMenuSeparator />}
             {onDelete && (
               <DropdownMenuItem
                 onClick={onDelete}
@@ -727,6 +949,47 @@ function MemoEditor({
   const [draft, setDraft] = useState(memo.body);
   const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
   const debounceRef = useRef<number | null>(null);
+  const isArchived = !!memo.archivedAt;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 이미지 첨부 — 파일을 dataURL 로 변환해 store 에 추가. 1MB 제한.
+  const attachFiles = useCallback(async (files: FileList | File[]) => {
+    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (arr.length === 0) return;
+    for (const file of arr) {
+      if (file.size > 2 * 1024 * 1024) {
+        notify.warning(`"${file.name}" 너무 커요 (2MB 이하)`);
+        continue;
+      }
+      try {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(file);
+        });
+        addMemoImage(memo.id, dataUrl, file.name);
+      } catch {
+        notify.warning(`"${file.name}" 첨부 실패`);
+      }
+    }
+    notify.success(`이미지 ${arr.length}개 첨부됨`, { duration: 1200 });
+  }, [memo.id]);
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const imgs = items.filter((it) => it.type.startsWith('image/')).map((it) => it.getAsFile()).filter((f): f is File => !!f);
+    if (imgs.length > 0) {
+      e.preventDefault();
+      attachFiles(imgs);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    if (e.dataTransfer.files.length === 0) return;
+    e.preventDefault();
+    attachFiles(e.dataTransfer.files);
+  };
 
   // memo 변경 시 (다른 메모 선택) draft 동기화
   useEffect(() => {
@@ -812,7 +1075,33 @@ function MemoEditor({
             <span className="truncate">{memo.sourceRecordingTitle}</span>
           </span>
         )}
+        {isArchived && (
+          <span className="inline-flex items-center gap-1 px-2 h-7 rounded-md bg-foreground/10 text-foreground/70 text-[11px] font-medium">
+            <Archive className="w-3 h-3" strokeWidth={1.75} />
+            보관됨
+          </span>
+        )}
         <div className="flex-1" />
+        {/* 이미지 첨부 */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) attachFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          aria-label="이미지 첨부"
+          title="이미지 첨부 (paste / drop 도 가능)"
+        >
+          <ImagePlus className="w-4 h-4" strokeWidth={1.75} />
+        </button>
         {memo.wikiPageId ? (
           <button
             onClick={() => navigate('/wiki')}
@@ -879,6 +1168,17 @@ function MemoEditor({
               <Folder className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
               폴더로 이동…
             </DropdownMenuItem>
+            {isArchived ? (
+              <DropdownMenuItem onClick={() => { unarchiveMemo(memo.id); notify.success('복원됐어요', { duration: 1200 }); }}>
+                <ArchiveRestore className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                보관함에서 복원
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => { archiveMemo(memo.id); notify.info('보관함으로 옮겼어요', { duration: 1200 }); }}>
+                <Archive className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                보관함으로
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={onDelete}
@@ -891,22 +1191,48 @@ function MemoEditor({
         </DropdownMenu>
       </div>
 
-      {/* 본문 textarea — 첫 줄(제목) ::first-line 으로 살짝 크게 */}
-      <textarea
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        autoFocus
-        placeholder="첫 줄이 제목이에요. 여러 줄 쓰면 본문..."
-        className={cn(
-          'flex-1 w-full px-6 sm:px-10 py-6 bg-transparent resize-none',
-          'text-[16px] leading-[1.72] text-foreground placeholder:text-muted-foreground',
-          // focus 시 outline·border·ring 모두 제거
-          'border-0 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 shadow-none focus:shadow-none',
-          // 첫 줄 = 제목 — 24px semibold, leading 1.6 (본문과 1.5× 위계 + 숨통)
-          '[&::first-line]:text-[24px] [&::first-line]:font-semibold [&::first-line]:leading-[1.6]',
-        )}
-        style={{ fontFamily: 'var(--wiki-font-body, system-ui)' }}
-      />
+      {/* 첨부 이미지 grid — 본문 위에 */}
+      {(memo.images?.length ?? 0) > 0 && (
+        <div className="shrink-0 px-6 sm:px-10 pt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {memo.images!.map((img) => (
+              <div key={img.id} className="relative group/img rounded-md overflow-hidden border border-[hsl(var(--hairline))] aspect-video bg-foreground/5">
+                <img
+                  src={img.dataUrl}
+                  alt={img.name ?? 'attached'}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeMemoImage(memo.id, img.id)}
+                  aria-label="이미지 삭제"
+                  className="absolute top-1 right-1 w-6 h-6 inline-flex items-center justify-center rounded-md bg-black/60 text-white opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-black/80"
+                >
+                  <X className="w-3.5 h-3.5" strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 본문 — TipTap 블록 에디터 (위키 동일 툴바: 헤딩/볼드/이탤릭/리스트/체크박스/색·하이라이트 등) */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 sm:px-10 py-4">
+        <WikiBlockEditor
+          body={draft}
+          onChange={setDraft}
+          allPages={[]}
+          onUploadImage={async (file) => {
+            const dataUrl: string = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(file);
+            });
+            return dataUrl;
+          }}
+        />
+      </div>
 
       {/* 하단 메타 */}
       <div className="shrink-0 px-6 sm:px-10 py-2.5 border-t border-[hsl(var(--hairline))] flex items-center gap-3 text-[12px] text-muted-foreground">

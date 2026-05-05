@@ -7,6 +7,13 @@
 
 import { useSyncExternalStore } from 'react';
 
+export interface MemoImage {
+  id: string;
+  dataUrl: string;              // base64 (소형) — 향후 IDB blob URL 로 마이그 가능
+  name?: string;
+  addedAt: number;
+}
+
 export interface Memo {
   id: string;
   body: string;                 // 마크다운, 첫 줄 = 제목
@@ -14,6 +21,8 @@ export interface Memo {
   folderId?: string;            // optional — 없으면 미분류 (인박스)
   archivedAt?: number;          // 보관함
   wikiPageId?: string;          // 위키로 보낸 후 그 페이지 id
+  /** 첨부 이미지 — paste / drag-drop. 본문 위에 grid 로 표시. */
+  images?: MemoImage[];
   // 녹음 노트 → 메모 승격 시 출처 (단방향 단서 — 메모 → 부모 가리킴)
   sourceRecordingId?: string;   // 출처 녹음 id (Supabase voice_recording.id)
   sourceRecordingTitle?: string;// 표시용 스냅샷 (녹음 삭제 후에도 라벨 유지)
@@ -23,10 +32,26 @@ export interface Memo {
   version: 1;
 }
 
+/** 폴더 색 — TaskListColor 와 동일 팔레트 (시각 일관성). */
+export type MemoFolderColor =
+  | 'blue' | 'teal' | 'amber' | 'rose' | 'violet' | 'green' | 'orange' | 'cyan';
+
+export const MEMO_FOLDER_COLORS: Record<MemoFolderColor, { stripe: string; chipBg: string }> = {
+  blue:   { stripe: 'hsl(220 70% 55%)', chipBg: 'hsl(220 70% 95%)' },
+  teal:   { stripe: 'hsl(180 50% 45%)', chipBg: 'hsl(160 50% 92%)' },
+  amber:  { stripe: 'hsl(40 80% 50%)',  chipBg: 'hsl(45 80% 92%)' },
+  rose:   { stripe: 'hsl(0 70% 55%)',   chipBg: 'hsl(0 60% 94%)' },
+  violet: { stripe: 'hsl(270 50% 55%)', chipBg: 'hsl(270 50% 94%)' },
+  green:  { stripe: 'hsl(140 50% 45%)', chipBg: 'hsl(140 50% 92%)' },
+  orange: { stripe: 'hsl(15 80% 55%)',  chipBg: 'hsl(15 70% 93%)' },
+  cyan:   { stripe: 'hsl(195 60% 50%)', chipBg: 'hsl(195 60% 92%)' },
+};
+
 export interface MemoFolder {
   id: string;
   name: string;
   emoji?: string;               // 기본 📁
+  color?: MemoFolderColor;      // optional 색 — 없으면 회색 dot
   order: number;                // 정렬
   createdAt: number;
 }
@@ -155,6 +180,21 @@ export function renameFolder(id: string, name: string): void {
   );
 }
 
+/** 폴더 emoji / color 한 번에 갱신. */
+export function updateFolder(
+  id: string,
+  patch: Partial<Pick<MemoFolder, 'name' | 'emoji' | 'color'>>,
+): void {
+  commitFolders(
+    ensureFolders().map((f) => {
+      if (f.id !== id) return f;
+      const next = { ...f, ...patch };
+      if (patch.name !== undefined) next.name = patch.name.trim() || f.name;
+      return next;
+    }),
+  );
+}
+
 export function removeFolder(id: string): void {
   // 폴더 삭제 — 그 안 메모는 미분류로 cascade
   commitFolders(ensureFolders().filter((f) => f.id !== id));
@@ -237,11 +277,30 @@ export function addMemo(
 
 export function updateMemo(
   id: string,
-  patch: Partial<Pick<Memo, 'body' | 'pinned' | 'archivedAt' | 'wikiPageId' | 'sourceRecordingId' | 'sourceRecordingTitle' | 'sourceChapterIndex'>>,
+  patch: Partial<Pick<Memo, 'body' | 'pinned' | 'archivedAt' | 'wikiPageId' | 'images' | 'sourceRecordingId' | 'sourceRecordingTitle' | 'sourceChapterIndex'>>,
 ): void {
   commit(
     ensure().map((m) => (m.id === id ? { ...m, ...patch, updatedAt: Date.now() } : m)),
   );
+}
+
+/** 이미지 추가 (base64 dataUrl). 큰 이미지는 호출 측에서 압축 권장. */
+export function addMemoImage(memoId: string, dataUrl: string, name?: string): void {
+  const memo = getMemo(memoId);
+  if (!memo) return;
+  const img: MemoImage = {
+    id: `img_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    dataUrl,
+    name,
+    addedAt: Date.now(),
+  };
+  updateMemo(memoId, { images: [...(memo.images ?? []), img] });
+}
+
+export function removeMemoImage(memoId: string, imageId: string): void {
+  const memo = getMemo(memoId);
+  if (!memo) return;
+  updateMemo(memoId, { images: (memo.images ?? []).filter((i) => i.id !== imageId) });
 }
 
 /** 특정 녹음에서 만들어진 메모 모두 (녹음 디테일에서 "이 녹음에서 만든 메모" 표시용). */
