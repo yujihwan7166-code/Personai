@@ -76,13 +76,13 @@ const AI_MODEL_ORDER = [
 /** 빠른 응답 모델 (브랜드별 가장 빠른 1개) */
 export const FAST_MODEL_IDS = [
   'gpt-nano',
-  'gpt-mini',
   'gemini-flash-lite',
   'claude-haiku',
   'grok',
   'perplexity',
   'deepseek',
   'qwen',
+  'mistral-small',
 ] as const;
 
 /** 숨김 처리할 리서치 에이전트 (auto-gpt = 심층 리서치는 예외, AI 모델로 노출) */
