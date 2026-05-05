@@ -10,8 +10,8 @@ import { habitStore } from '@/services/planner/habitStore';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { useHabitCheckins } from '@/hooks/planner/useHabitCheckins';
 import {
-  currentStreak, isScheduledOn, maxStreak, monthCheckinCount, monthCompletionRate,
-  nextDue, totalCheckins, toDateKey,
+  currentStreak, isScheduledOn, maxStreak, monthCheckinCount,
+  nextDue, toDateKey,
 } from '@/lib/planner/habitStats';
 import { HabitYearHeatmap } from './HabitYearHeatmap';
 import {
@@ -38,8 +38,6 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
       streak: currentStreak(habit, allCheckins),
       max: maxStreak(habit, allCheckins),
       monthCount: monthCheckinCount(habit, viewYear, viewMonth, allCheckins),
-      monthRate: monthCompletionRate(habit, viewYear, viewMonth, allCheckins),
-      total: totalCheckins(habit, allCheckins),
     };
   }, [habit, allCheckins, viewYear, viewMonth]);
 
