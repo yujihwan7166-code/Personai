@@ -311,19 +311,23 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent
         className={cn(
-          'transition-all max-w-3xl md:max-w-4xl',
+          'journal-warm-theme transition-all max-w-3xl md:max-w-4xl',
           // 모달 자체 높이 제한 + 내부 스크롤 (헤더/푸터는 고정, 본문만 스크롤)
           'max-h-[90vh] flex flex-col p-0 gap-0',
+          'bg-card border-[hsl(var(--hairline))]',
         )}
         onKeyDown={handleKeyDownGlobal}
       >
-        <DialogHeader className="px-6 pt-5 pb-3 border-b border-[hsl(var(--hairline))] shrink-0">
+        <DialogHeader className="px-7 pt-6 pb-4 border-b border-[hsl(var(--hairline))] shrink-0">
           <DialogTitle className="flex items-center justify-between gap-3 pr-8">
             <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
-              <span className="text-[15px] font-semibold shrink-0">
+              <span
+                className="text-[18px] font-bold shrink-0"
+                style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.01em' }}
+              >
                 {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
               </span>
-              <span className="text-[11.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground shrink-0">
+              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground shrink-0">
                 {dateLabel}
               </span>
               {/* 프롬프트 카테고리 칩 + 회전 버튼 — create 모드만 */}
@@ -396,7 +400,10 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
                   placeholder={placeholder}
                   autoFocus
                   rows={10}
-                  className="w-full h-full min-h-[260px] px-4 py-3 font-serif text-[15px] leading-relaxed rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/50 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap"
+                  className="w-full h-full min-h-[280px] px-5 py-4 text-[16px] leading-[1.85] rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] focus:border-foreground/30 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap placeholder:text-muted-foreground/60"
+                  style={{
+                    fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                  }}
                 />
               ) : (
                 <div className="rounded-md border border-[hsl(var(--hairline))] bg-card overflow-hidden min-h-[320px]">

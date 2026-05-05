@@ -32,33 +32,37 @@ export const TodayCard = ({ todayEntries, onAdd }: TodayCardProps) => {
   });
 
   if (!hasEntries) {
-    // 작성 X — 큰 prompt 카드
+    // 작성 X — 큰 prompt 카드 (책 표지 톤)
     return (
       <article
         className={cn(
-          'relative rounded-2xl border-2 border-dashed border-[hsl(var(--hairline))] bg-card p-6',
-          'shadow-[0_4px_16px_-8px_hsl(var(--foreground)/0.08)]',
-          'flex flex-col gap-3',
+          'relative rounded-2xl border border-[hsl(var(--hairline))] bg-card p-7',
+          'shadow-[0_4px_18px_-8px_hsl(30_30%_8%/0.08)]',
+          'flex flex-col gap-4',
         )}
       >
-        <header className="flex items-baseline gap-2.5">
-          <span className="text-[10.5px] font-mono uppercase tracking-[0.2em] text-foreground/70 font-semibold">
+        <header className="flex items-baseline gap-3">
+          <span className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-foreground/70 font-semibold">
             오늘
           </span>
-          <span className="text-[10.5px] font-mono text-muted-foreground">
+          <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+          <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
             {dateLabel}
           </span>
         </header>
-        <div className="flex items-start gap-3">
-          <Sparkles className="h-5 w-5 text-muted-foreground shrink-0 mt-1" strokeWidth={1.5} />
+        <div className="flex items-start gap-4">
+          <Sparkles className="h-5 w-5 text-primary shrink-0 mt-1.5" strokeWidth={1.5} />
           <div className="flex-1">
             <p
-              className="font-serif text-[17px] text-foreground leading-relaxed"
-              style={{ fontFamily: 'var(--font-display, ui-serif, Georgia, serif)' }}
+              className="text-[20px] sm:text-[22px] text-foreground leading-[1.5]"
+              style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
             >
               {prompt}
             </p>
-            <p className="mt-1.5 text-[12px] text-muted-foreground">
+            <p
+              className="mt-2 text-[12.5px] text-muted-foreground italic"
+              style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+            >
               한 줄이라도 좋아요. 시간이 지나 다시 펼쳐 읽을 수 있어요.
             </p>
           </div>
@@ -66,7 +70,7 @@ export const TodayCard = ({ todayEntries, onAdd }: TodayCardProps) => {
         <button
           type="button"
           onClick={onAdd}
-          className="self-start inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg bg-foreground text-background hover:opacity-90 transition-opacity shadow-sm"
+          className="self-start inline-flex items-center gap-1.5 px-4 h-9 text-[13px] font-semibold rounded-md bg-foreground text-background hover:opacity-90 transition-opacity"
         >
           <Pencil className="h-3.5 w-3.5" />
           오늘 일기 쓰기
@@ -79,24 +83,24 @@ export const TodayCard = ({ todayEntries, onAdd }: TodayCardProps) => {
   return (
     <article
       className={cn(
-        'flex items-center gap-3 rounded-xl border border-[hsl(var(--hairline))] bg-card px-4 py-3',
+        'flex items-center gap-3.5 rounded-xl border border-[hsl(var(--hairline))] bg-card px-5 py-3.5',
       )}
     >
-      <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 text-[14px]">
+      <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shrink-0 text-[14px]">
         ✓
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] text-foreground font-medium">
+        <p className="text-[13.5px] text-foreground font-medium">
           오늘 일기 {todayEntries.length}개 작성됨
         </p>
-        <p className="text-[11.5px] text-muted-foreground mt-0.5">
+        <p className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground mt-1">
           {dateLabel}
         </p>
       </div>
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent text-foreground transition-colors shrink-0"
+        className="inline-flex items-center gap-1.5 px-3 h-8 text-[12px] font-semibold rounded-md border border-[hsl(var(--hairline))] bg-card hover:bg-accent text-foreground transition-colors shrink-0"
       >
         <Pencil className="h-3 w-3" />
         더 적기

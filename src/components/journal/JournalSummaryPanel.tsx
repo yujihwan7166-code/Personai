@@ -29,7 +29,10 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
     <aside className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3.5 flex flex-col gap-3">
       {/* 헤더 + 기간 토글 */}
       <header className="flex items-center justify-between">
-        <h3 className="text-[12.5px] font-semibold tracking-tight text-foreground">
+        <h3
+          className="text-[14px] font-bold tracking-tight text-foreground"
+          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
+        >
           요약
         </h3>
         <div
@@ -68,7 +71,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
           {/* 핵심 카운트 */}
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md bg-accent/40 px-2.5 py-2">
-              <p className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
                 작성
               </p>
               <p className="text-[18px] font-semibold tabular-nums text-foreground leading-tight mt-0.5">
@@ -77,7 +80,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
               </p>
             </div>
             <div className="rounded-md bg-accent/40 px-2.5 py-2">
-              <p className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
                 작성률
               </p>
               <p className="text-[18px] font-semibold tabular-nums text-foreground leading-tight mt-0.5">
@@ -92,7 +95,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
           {/* 평균 mood */}
           {avgMoodEmoji && (
             <div className="flex items-center justify-between rounded-md bg-accent/40 px-2.5 py-2">
-              <span className="text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
                 평균 기분
               </span>
               <span className="flex items-center gap-1.5">
@@ -107,7 +110,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
           {/* 일별 mood 미니 그래프 */}
           {stats.moodTrend.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
                 일별 기분
               </span>
               <div className="flex items-end gap-0.5 h-12">
@@ -139,7 +142,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
 
           {/* 글쓰기 통계 — 글자수 */}
           <div className="flex items-center justify-between rounded-md bg-accent/40 px-2.5 py-2">
-            <span className="inline-flex items-center gap-1 text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
               <FileText className="h-3 w-3" />
               글자
             </span>
@@ -156,7 +159,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
           {/* Top 활동 */}
           {stats.topActivities.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
                 자주 한 활동
               </span>
               <div className="flex flex-wrap gap-1">
@@ -181,7 +184,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
           {/* 활동 ↔ 기분 — 인사이트 (Daylio 핵심) */}
           {stats.activityMood.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
                 좋았던 활동 (평균 기분 순)
               </span>
               <ul className="flex flex-col gap-0.5">
@@ -209,7 +212,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
           {/* Top 태그 */}
           {stats.topTags.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
                 자주 쓴 태그
               </span>
               <div className="flex flex-wrap gap-1">

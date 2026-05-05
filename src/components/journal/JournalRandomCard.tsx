@@ -70,33 +70,44 @@ export const JournalRandomCard = ({ allEntries, excludeIds, onClickEntry }: Jour
   });
 
   return (
-    <section className="flex flex-col gap-2.5">
+    <section className="flex flex-col gap-3">
       <header className="flex items-baseline gap-2 px-1">
-        <Sparkles className="h-3.5 w-3.5 text-violet-500 dark:text-violet-400" />
-        <h3 className="text-[11px] font-mono uppercase tracking-[0.18em] text-foreground/85 font-semibold">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <h3 className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-foreground/85 font-semibold">
           묻혀있던 한 페이지
         </h3>
-        <span className="text-[10.5px] text-muted-foreground">매일 새롭게</span>
+        <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+          매일 새롭게
+        </span>
       </header>
       <button
         type="button"
         onClick={() => onClickEntry(picked)}
         className={cn(
-          'group flex items-start gap-3 rounded-xl border border-[hsl(var(--hairline))] bg-violet-50/30 dark:bg-violet-950/10 px-4 py-3 text-left',
-          'hover:border-violet-500/30 hover:shadow-[0_2px_8px_-4px_hsl(265_70%_55%_/_0.2)] transition-all',
+          'group flex items-start gap-3.5 rounded-xl border border-[hsl(var(--hairline))] bg-violet-50/40 dark:bg-violet-950/15 px-4 py-3.5 text-left',
+          'hover:border-primary/40 hover:shadow-[0_4px_14px_-6px_hsl(265_60%_55%_/_0.18)] transition-all',
         )}
       >
-        <span className="inline-flex flex-col items-center justify-center h-11 w-11 rounded-lg bg-violet-500/10 text-violet-700 dark:text-violet-300 shrink-0">
-          <span className="text-[11px] font-bold tabular-nums leading-none">{ago}</span>
+        <span className="inline-flex flex-col items-center justify-center h-12 w-12 rounded-lg bg-violet-500/15 text-violet-800 dark:text-violet-300 shrink-0">
+          <span
+            className="text-[11px] font-bold tabular-nums leading-none tracking-tight"
+            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+          >
+            {ago}
+          </span>
         </span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[11px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
               {dateLabel}
             </span>
             {moodEmoji && <span className="text-[14px] leading-none">{moodEmoji}</span>}
           </div>
-          <p className="font-serif text-[13.5px] text-foreground/90 leading-relaxed line-clamp-3">
+          <p
+            className="text-[14px] text-foreground/90 leading-[1.7] line-clamp-3"
+            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+          >
             {previewBody}
           </p>
         </div>
