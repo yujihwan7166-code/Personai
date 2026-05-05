@@ -180,8 +180,8 @@ export function WikiPagePickerModal({
               <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">↑↓ Enter Esc</span>
             </div>
 
-            {/* Type 필터 칩 row */}
-            <div className="flex items-center gap-1 px-3 py-2 border-b border-[hsl(var(--hairline))] overflow-x-auto">
+            {/* Type 필터 row 제거됨 — 사용자 '타입' 미사용 의견 반영. 검색은 제목/본문으로만. */}
+            <div className="hidden flex items-center gap-1 px-3 py-2 border-b border-[hsl(var(--hairline))] overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setTypeFilter('all')}
@@ -344,33 +344,7 @@ export function WikiPagePickerModal({
                 className="w-full px-3 py-2 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/50 wiki-trans-color"
               />
             </div>
-            <div>
-              <p className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 mb-1.5">
-                타입
-              </p>
-              <div className="grid grid-cols-3 gap-1">
-                {USER_FACING_TYPES.map((t) => {
-                  const m = WIKI_TYPE_META[t];
-                  const active = newType === t;
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setNewType(t)}
-                      className={cn(
-                        'inline-flex items-center gap-1 px-2 h-7 rounded text-[11px] wiki-trans-color',
-                        active
-                          ? 'bg-primary/10 text-primary font-semibold'
-                          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                      )}
-                    >
-                      <span className="text-[13px] leading-none" aria-hidden>{m.icon}</span>
-                      {m.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* 타입 선택 제거됨 — 자동 'concept' 으로 생성. 풍부한 템플릿은 /wiki 홈의 새 페이지 모달에서. */}
             <button
               type="button"
               onClick={handleCreate}

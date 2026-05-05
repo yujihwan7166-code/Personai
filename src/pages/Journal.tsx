@@ -16,7 +16,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Search, Flame, X, Hash, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, Plus, Search, Flame, X, Hash, SlidersHorizontal, LayoutGrid, List } from 'lucide-react';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
@@ -28,7 +28,9 @@ import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
 import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
-import { JournalWeekSpotlight } from '@/components/journal/JournalWeekSpotlight';
+import { JournalWeekBoard } from '@/components/journal/JournalWeekBoard';
+import { JournalWeekNav } from '@/components/journal/JournalWeekNav';
+import { normalizeWeekAnchor, shiftWeek, isAnchorCurrentWeek } from '@/lib/journalWeek';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
@@ -66,7 +68,29 @@ const Journal = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // 뷰 모드 — 주간 보드 / 시간순 목록. localStorage 영속.
+  const [viewMode, setViewModeState] = useState<'week' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'week';
+    const saved = window.localStorage.getItem('journal.viewMode.v1');
+    return saved === 'list' ? 'list' : 'week';
+  });
+  const setViewMode = (mode: 'week' | 'list') => {
+    setViewModeState(mode);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('journal.viewMode.v1', mode);
+    }
+  };
+
+  // 주간 보드 anchor — 현재 보고 있는 주의 ISO. 기본 = 이번 주.
+  const [weekAnchor, setWeekAnchor] = useState<string>(() =>
+    normalizeWeekAnchor(new Date().toISOString()),
+  );
+
   const hasActiveFilter = !!(activeTag || activeActivity || activeDate);
+
+  // 검색·필터·날짜 활성 시 → list 자동 전환 (week board 와 안 어울림).
+  const effectiveViewMode: 'week' | 'list' =
+    query.trim().length > 0 || hasActiveFilter ? 'list' : viewMode;
 
   // 자주 쓴 태그 5개.
   const topTags = useMemo(() => getTopTags(allEntries, 5), [allEntries]);
@@ -260,6 +284,50 @@ const Journal = () => {
                 </button>
               )}
             </div>
+            {/* 뷰 모드 토글 — 주간 보드 / 시간순 목록 */}
+            <div
+              role="tablist"
+              aria-label="뷰 모드"
+              className="inline-flex items-center p-0.5 rounded-md border border-[hsl(var(--hairline))] bg-card"
+              title={
+                query.trim().length > 0 || hasActiveFilter
+                  ? '검색·필터 시 자동 목록 뷰'
+                  : '주간 / 목록'
+              }
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveViewMode === 'week'}
+                onClick={() => setViewMode('week')}
+                disabled={query.trim().length > 0 || hasActiveFilter}
+                title="주간 보드"
+                className={cn(
+                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors',
+                  effectiveViewMode === 'week'
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
+                )}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveViewMode === 'list'}
+                onClick={() => setViewMode('list')}
+                title="시간순 목록"
+                className={cn(
+                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors',
+                  effectiveViewMode === 'list'
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <List className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
             {/* 필터 토글 — 활동·태그 패널 collapse */}
             {(topActivities.length > 0 || topTags.length > 0) && (
               <button
@@ -377,77 +445,98 @@ const Journal = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
           <div className="flex flex-col gap-5 min-w-0">
-            {/* 모바일 (lg 미만) — WeekSpotlight 만 헤더 직후 컴팩트 노출 */}
-            {query.trim().length === 0 && (
-              <div className="lg:hidden">
-                <JournalWeekSpotlight
+            {/* ── 주간 보드 뷰 ── */}
+            {effectiveViewMode === 'week' && (
+              <>
+                <JournalWeekNav
+                  anchorIso={weekAnchor}
+                  onPrev={() => setWeekAnchor(normalizeWeekAnchor(shiftWeek(weekAnchor, -1)))}
+                  onNext={() => setWeekAnchor(normalizeWeekAnchor(shiftWeek(weekAnchor, 1)))}
+                  onToday={() => setWeekAnchor(normalizeWeekAnchor(new Date().toISOString()))}
+                  isCurrentWeek={isAnchorCurrentWeek(weekAnchor)}
+                  shortcutsEnabled={editorMode === null}
+                />
+                <JournalWeekBoard
                   entries={allEntries}
+                  anchorIso={weekAnchor}
                   onClickEntry={handleWeekClickEntry}
                   onAddForDate={handleWeekAddForDate}
                 />
-              </div>
+              </>
             )}
 
-            {!hasResults && query.trim().length > 0 && (
-              <div className="rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-card/40 py-10 px-4 text-center">
-                <p className="text-[13px] text-muted-foreground">
-                  '<span className="text-foreground font-medium">{query}</span>' 으로 일치하는 일기가 없어요
-                </p>
-              </div>
-            )}
+            {/* ── 시간순 목록 뷰 ── */}
+            {effectiveViewMode === 'list' && (
+              <>
+                {!hasResults && query.trim().length > 0 && (
+                  <div className="rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-card/40 py-10 px-4 text-center">
+                    <p className="text-[13px] text-muted-foreground">
+                      '<span className="text-foreground font-medium">{query}</span>' 으로 일치하는 일기가 없어요
+                    </p>
+                  </div>
+                )}
 
-            {grouped.map((group) => (
-              <section
-                key={group.key}
-                id={`journal-month-${group.key}`}
-                className="flex flex-col gap-5 scroll-mt-24"
-              >
-                {/* 월 헤더 — 책 챕터 톤 */}
-                <div className="flex items-baseline gap-4 mb-1 px-1">
-                  <h2
-                    className="text-[24px] sm:text-[26px] font-bold tracking-tight text-foreground"
-                    style={{
-                      fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                      letterSpacing: '-0.015em',
-                    }}
+                {grouped.map((group) => (
+                  <section
+                    key={group.key}
+                    id={`journal-month-${group.key}`}
+                    className="flex flex-col gap-5 scroll-mt-24"
                   >
-                    {group.label}
-                  </h2>
-                  <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/70">
-                    {group.items.length} 페이지
-                  </span>
-                </div>
-                <div className="flex flex-col gap-5">
-                  {group.items.map((entry) => (
-                    <JournalCard
-                      key={entry.id}
-                      entry={entry}
-                      onEdit={() => setEditorMode({
-                        kind: 'edit',
-                        id: entry.id,
-                        initialBody: entry.body,
-                        initialMood: entry.mood,
-                        initialTags: entry.tags,
-                        initialFormat: entry.bodyFormat,
-                        initialImages: entry.images,
-                        initialActivities: entry.activities,
-                      })}
-                      onDelete={() => handleDelete(entry)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
+                    {/* 월 헤더 — 책 챕터 톤 */}
+                    <div className="flex items-baseline gap-4 mb-1 px-1">
+                      <h2
+                        className="text-[24px] sm:text-[26px] font-bold tracking-tight text-foreground"
+                        style={{
+                          fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                          letterSpacing: '-0.015em',
+                        }}
+                      >
+                        {group.label}
+                      </h2>
+                      <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+                      <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/70">
+                        {group.items.length} 페이지
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-5">
+                      {group.items.map((entry) => (
+                        <JournalCard
+                          key={entry.id}
+                          entry={entry}
+                          onEdit={() => setEditorMode({
+                            kind: 'edit',
+                            id: entry.id,
+                            initialBody: entry.body,
+                            initialMood: entry.mood,
+                            initialTags: entry.tags,
+                            initialFormat: entry.bodyFormat,
+                            initialImages: entry.images,
+                            initialActivities: entry.activities,
+                          })}
+                          onDelete={() => handleDelete(entry)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </>
+            )}
           </div>
           {/* 우측 사이드 — lg 이상에서만 노출. 정보 위계: 시각 앵커 → 회상 → 통계 */}
           <aside className="hidden lg:flex flex-col gap-5 sticky top-8 self-start max-h-[calc(100vh-4rem)] overflow-y-auto pr-1">
             <JournalCalendarMini
               entries={allEntries}
               selectedDate={activeDate}
-              onDayClick={(d) => setActiveDate(activeDate === d ? null : d)}
+              onDayClick={(d) => {
+                // week 뷰에선 그 날짜의 주로 anchor 이동, list 뷰에선 날짜 필터 토글
+                if (effectiveViewMode === 'week') {
+                  setWeekAnchor(normalizeWeekAnchor(`${d}T00:00:00`));
+                } else {
+                  setActiveDate(activeDate === d ? null : d);
+                }
+              }}
             />
-            {activeDate && (
+            {activeDate && effectiveViewMode === 'list' && (
               <button
                 type="button"
                 onClick={() => setActiveDate(null)}
@@ -459,11 +548,6 @@ const Journal = () => {
             )}
             {query.trim().length === 0 && (
               <>
-                <JournalWeekSpotlight
-                  entries={allEntries}
-                  onClickEntry={handleWeekClickEntry}
-                  onAddForDate={handleWeekAddForDate}
-                />
                 <OnThisDayCard
                   allEntries={allEntries}
                   onClickEntry={(entry) => setEditorMode({

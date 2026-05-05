@@ -14,6 +14,7 @@
 import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { weekLabel } from '@/lib/journalWeek';
 
 interface JournalWeekNavProps {
   /** 현재 보고 있는 주의 anchor ISO. */
@@ -25,40 +26,6 @@ interface JournalWeekNavProps {
   isCurrentWeek: boolean;
   /** 키보드 단축키 활성 여부 (모달·input 열림 시 false). */
   shortcutsEnabled?: boolean;
-}
-
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : String(n);
-}
-
-function ymd(d: Date): string {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-function getMondaySunday(anchorIso: string): { mon: Date; sun: Date } {
-  const anchor = new Date(anchorIso);
-  const day = anchor.getDay();
-  const monOffset = day === 0 ? -6 : 1 - day;
-  const mon = new Date(anchor);
-  mon.setHours(0, 0, 0, 0);
-  mon.setDate(anchor.getDate() + monOffset);
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6);
-  return { mon, sun };
-}
-
-function weekLabel(anchorIso: string): string {
-  const { mon, sun } = getMondaySunday(anchorIso);
-  const sameMonth = mon.getMonth() === sun.getMonth();
-  const sameYear = mon.getFullYear() === sun.getFullYear();
-  const yearStr = mon.getFullYear();
-  if (sameMonth) {
-    return `${mon.getMonth() + 1}월 ${mon.getDate()} ~ ${sun.getDate()}일 · ${yearStr}`;
-  }
-  if (sameYear) {
-    return `${mon.getMonth() + 1}월 ${mon.getDate()}일 ~ ${sun.getMonth() + 1}월 ${sun.getDate()}일 · ${yearStr}`;
-  }
-  return `${mon.getFullYear()}년 ${mon.getMonth() + 1}월 ${mon.getDate()}일 ~ ${sun.getFullYear()}년 ${sun.getMonth() + 1}월 ${sun.getDate()}일`;
 }
 
 export const JournalWeekNav = ({
@@ -151,24 +118,3 @@ export const JournalWeekNav = ({
   );
 };
 
-/** Anchor ISO 를 받아 해당 주의 월요일 ISO 반환 (정규화 — 같은 주 anchor 동일 처리). */
-export const normalizeWeekAnchor = (anchorIso: string): string => {
-  const { mon } = getMondaySunday(anchorIso);
-  return `${ymd(mon)}T00:00:00`;
-};
-
-/** 주 단위 이동 (offset 주). */
-export const shiftWeek = (anchorIso: string, weeks: number): string => {
-  const d = new Date(anchorIso);
-  d.setDate(d.getDate() + weeks * 7);
-  return d.toISOString();
-};
-
-/** anchor 가 오늘 포함 주인지. */
-export const isAnchorCurrentWeek = (anchorIso: string): boolean => {
-  const { mon, sun } = getMondaySunday(anchorIso);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const t = today.getTime();
-  return t >= mon.getTime() && t <= sun.getTime() + 23 * 3600 * 1000;
-};
