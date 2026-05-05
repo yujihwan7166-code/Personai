@@ -174,42 +174,60 @@ const Journal = () => {
   const hasResults = filteredEntries.length > 0;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8 max-w-5xl w-full mx-auto">
-        <header className="mb-5 sm:mb-6 flex flex-wrap items-end justify-between gap-3 pb-3 sm:pb-4 border-b-2 border-[hsl(var(--hairline))]">
-          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+    <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
+      <main className="flex-1 px-4 sm:px-8 py-8 sm:py-12 max-w-5xl w-full mx-auto">
+        {/* 출판물 톤 마스트헤드 — NYT/Bear/Newsreader 패턴 */}
+        <header className="mb-8 sm:mb-10 pb-5 sm:pb-7 border-b-2 border-[hsl(var(--hairline))]">
+          {/* 상단 micro nav — 신문 보조 라벨 */}
+          <div className="flex items-center justify-between mb-4 sm:mb-5">
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors font-mono uppercase tracking-[0.16em]"
+              className="flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground transition-colors font-mono uppercase tracking-[0.18em]"
               aria-label="메인으로"
             >
               <ChevronLeft className="h-3 w-3" />
               <span>메인</span>
             </button>
-            <h1
-              className="text-[24px] sm:text-[30px] font-semibold tracking-tight leading-none"
-              style={{ fontFamily: 'var(--font-display, ui-serif, Georgia, serif)' }}
-            >
-              일기
-            </h1>
-            {streak > 0 && (
-              <span
-                className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-semibold tabular-nums"
-                title={`${streak}일 연속 작성`}
-              >
-                <Flame className="h-3 w-3" />
-                {streak}일 연속
-              </span>
-            )}
+            <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80">
+              일기 · {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
+            </span>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+
+          {/* 마스트헤드 — 큰 serif H1 + meta */}
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex items-end gap-4 sm:gap-5 flex-wrap">
+              <h1
+                className="text-[40px] sm:text-[52px] font-bold tracking-tight leading-none text-foreground"
+                style={{
+                  fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                일기
+              </h1>
+              {streak > 0 && (
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11.5px] font-semibold tabular-nums mb-1.5"
+                  title={`${streak}일 연속 작성`}
+                >
+                  <Flame className="h-3 w-3" />
+                  {streak}일 연속
+                </span>
+              )}
+              <span
+                className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80 mb-2 hidden sm:inline"
+              >
+                {allEntries.length} 페이지
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
             {/* 검색 input */}
             <div
               className={cn(
-                'relative inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border transition-colors',
-                'border-[hsl(var(--hairline))] bg-card',
-                query.length > 0 ? 'w-48' : 'w-32 focus-within:w-48',
+                'relative inline-flex items-center gap-1.5 h-9 px-3 rounded-md border transition-all',
+                'border-[hsl(var(--hairline))] bg-card focus-within:border-foreground/30',
+                query.length > 0 ? 'w-52' : 'w-36 focus-within:w-52',
               )}
             >
               <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -237,11 +255,12 @@ const Journal = () => {
               type="button"
               onClick={() => setEditorMode({ kind: 'create' })}
               title="새 일기 (N)"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-semibold rounded-md bg-foreground text-background hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 px-4 h-9 text-[13px] font-semibold rounded-md bg-foreground text-background hover:opacity-90 transition-opacity"
             >
               <Plus className="h-3.5 w-3.5" />
               오늘 일기
             </button>
+          </div>
           </div>
         </header>
 
@@ -369,20 +388,24 @@ const Journal = () => {
             )}
 
             {grouped.map((group) => (
-              <section key={group.key} className="flex flex-col gap-3">
-                <div className="flex items-baseline gap-3 mb-1 px-1">
+              <section key={group.key} className="flex flex-col gap-4">
+                {/* 월 헤더 — 책 챕터 톤 */}
+                <div className="flex items-baseline gap-4 mb-1 px-1 pt-2">
                   <h2
-                    className="text-[18px] font-semibold tracking-tight text-foreground/85"
-                    style={{ fontFamily: 'var(--font-display, ui-serif, Georgia, serif)' }}
+                    className="text-[24px] sm:text-[26px] font-bold tracking-tight text-foreground"
+                    style={{
+                      fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+                      letterSpacing: '-0.015em',
+                    }}
                   >
                     {group.label}
                   </h2>
                   <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-                  <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground/70">
+                  <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/70">
                     {group.items.length} 페이지
                   </span>
                 </div>
-                <div className="flex flex-col gap-3.5">
+                <div className="flex flex-col gap-4">
                   {group.items.map((entry) => (
                     <JournalCard
                       key={entry.id}

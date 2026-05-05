@@ -21,6 +21,37 @@ export interface WikiTemplate {
 
 export const WIKI_TEMPLATES: WikiTemplate[] = [
   {
+    id: 'moc',
+    label: '메인 문서 만들기',
+    description: '여러 페이지를 묶는 길찾기 허브 — 추천 시작점',
+    emoji: '📖',
+    type: 'concept',  // type 은 일반 (개념). 역할만 메인.
+    isMain: true,     // ← 메인 문서 역할
+    defaultTitle: '새 메인 문서',
+    body: `## 개요
+
+이 메인 문서가 다루는 범위와 제외 범위를 한두 문장으로.
+
+## 핵심 페이지
+
+- [[ ]]
+
+## 하위 주제
+
+###${' '}
+- [[ ]]
+
+## 같이 보기
+
+- [[ ]]
+
+## 출처/참고
+
+- [[ ]]
+`,
+    tags: ['main'],
+  },
+  {
     id: 'blank',
     label: '빈 페이지',
     description: '아무것도 없는 깨끗한 시작',
@@ -52,37 +83,6 @@ export const WIKI_TEMPLATES: WikiTemplate[] = [
 
 - [[ ]]
 `,
-  },
-  {
-    id: 'moc',
-    label: '메인 문서 (주제 묶음)',
-    description: '여러 페이지를 묶는 길찾기 허브 — 어떤 type 든 메인 역할로',
-    emoji: '📖',
-    type: 'concept',  // type 은 일반 (개념). 역할만 메인.
-    isMain: true,     // ← 메인 문서 역할
-    defaultTitle: '새 메인 문서',
-    body: `## 개요
-
-이 메인 문서가 다루는 범위와 제외 범위를 한두 문장으로.
-
-## 핵심 페이지
-
-- [[ ]]
-
-## 하위 주제
-
-###${' '}
-- [[ ]]
-
-## 같이 보기
-
-- [[ ]]
-
-## 출처/참고
-
-- [[ ]]
-`,
-    tags: ['main'],
   },
   {
     id: 'source',

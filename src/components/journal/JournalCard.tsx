@@ -32,8 +32,11 @@ function BodyPreview({ text }: { text: string }) {
     <div className="relative">
       <p
         ref={ref}
-        className="font-serif text-[16px] leading-[1.85] text-foreground whitespace-pre-wrap line-clamp-7"
-        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+        className="text-[17px] leading-[1.85] text-foreground/95 whitespace-pre-wrap line-clamp-7"
+        style={{
+          fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+          fontWeight: 400,
+        }}
       >
         {text}
       </p>
@@ -42,11 +45,11 @@ function BodyPreview({ text }: { text: string }) {
           {/* 그라디언트 페이드 — 본문 자연스럽게 사라짐 */}
           <div
             aria-hidden
-            className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-b from-transparent to-card"
+            className="pointer-events-none absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-b from-transparent to-card"
           />
-          {/* "더" 시그널 — 우하단 작은 칩 */}
-          <span className="pointer-events-none absolute bottom-0 right-0 text-[10.5px] font-medium text-muted-foreground bg-card px-1.5 py-0.5 rounded">
-            … 더 보기
+          {/* "더" 시그널 */}
+          <span className="pointer-events-none absolute bottom-0 right-0 text-[10.5px] font-medium text-muted-foreground bg-card px-2 py-0.5 rounded font-mono uppercase tracking-[0.12em]">
+            … 더
           </span>
         </>
       )}
@@ -84,26 +87,33 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
   return (
     <article
       className={cn(
-        'group rounded-xl border border-[hsl(var(--hairline))] bg-card pl-4 pr-5 py-4',
-        'hover:border-foreground/20 hover:shadow-[0_2px_12px_-6px_hsl(var(--foreground)/0.08)]',
-        'transition-all',
+        'group rounded-xl border border-[hsl(var(--hairline))] bg-card',
+        'pl-5 pr-6 py-5',
+        'hover:border-foreground/25 hover:shadow-[0_4px_18px_-6px_hsl(30_30%_8%/0.08)]',
+        'transition-all duration-200',
       )}
     >
-      <div className="flex gap-4">
-        {/* ── 좌 날짜 컬럼 (Day One · Hobonichi 패턴) ── */}
-        <div className="w-14 shrink-0 flex flex-col items-start pr-4 border-r border-[hsl(var(--hairline))]">
+      <div className="flex gap-5">
+        {/* ── 좌 날짜 컬럼 — Hobonichi/NYT 톤 ── */}
+        <div className="w-16 shrink-0 flex flex-col items-start pr-5 border-r border-[hsl(var(--hairline))]">
           <span
-            className="text-[28px] font-bold tabular-nums leading-none text-foreground group-hover:text-primary transition-colors"
-            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.02em' }}
+            className="text-[36px] font-bold tabular-nums leading-none text-foreground group-hover:text-primary transition-colors"
+            style={{
+              fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
+              letterSpacing: '-0.04em',
+            }}
           >
             {day}
           </span>
-          <span className="mt-1.5 text-[10.5px] font-mono uppercase tracking-[0.12em] text-muted-foreground">
-            {month}월 · {weekday}
+          <span className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+            {month}월
+          </span>
+          <span className="mt-0.5 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80">
+            {weekday}요일
           </span>
           {moodKey && (
             <span
-              className={cn('mt-2.5 w-2 h-2 rounded-full', MOOD_TINT[moodKey])}
+              className={cn('mt-3 w-2.5 h-2.5 rounded-full', MOOD_TINT[moodKey])}
               title={`${moodLabel ?? ''} ${moodEmoji ?? ''}`.trim()}
               aria-label={moodLabel ?? ''}
             />
@@ -113,9 +123,9 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
         {/* ── 우 본문 컬럼 ── */}
         <div className="flex-1 min-w-0">
           {/* 상단 메타 — 시각 + 풍부 배지 (hover) + 액션 (hover) */}
-          <header className="flex items-center justify-between gap-2 mb-2">
+          <header className="flex items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[11.5px] tabular-nums text-muted-foreground">
+              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground">
                 {timeLabel}
               </span>
               {entry.bodyFormat === 'markdown' && (
@@ -150,15 +160,15 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
             </span>
           </header>
 
-          {/* 본문 — Bear 패턴: 큰 serif + 여유 leading */}
+          {/* 본문 — Bear/NYT 패턴: 큰 serif + 여유 leading */}
           {hasBody ? (
             <BodyPreview text={previewBody} />
           ) : (
             <p
-              className="font-serif text-[14.5px] italic text-muted-foreground/70"
+              className="text-[15px] italic text-muted-foreground/75"
               style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
             >
-              이 날은 한 줄도 없어요
+              이 날은 한 줄도 없어요.
             </p>
           )}
 
