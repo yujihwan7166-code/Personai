@@ -12,10 +12,11 @@ import { AIAbilityRadar } from './AIAbilityRadar';
 import {
   PanelLeft, House, Bot, Search,
   SlidersHorizontal, Pencil, Trash2, Pin, PinOff, Settings,
-  Sun, Moon, HelpCircle, MessageSquare, MessageSquarePlus, MoreHorizontal, Share2,
+  Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
   FolderOpen, ChevronRight, Plus, X,
   LogOut, Shield, User, ExternalLink, Command as CommandIcon, LayoutGrid,
   CalendarDays, Sparkles, FileText, Network,
+  Star, Bookmark, Palette, Compass, Inbox,
 } from 'lucide-react';
 
 interface Props {
@@ -363,6 +364,30 @@ export function AppSidebar({
   const [isMobile, setIsMobile] = useState(false);
 
   const navigate = useNavigate();
+
+  // 커스텀 nav 슬롯 — 8번째 자리에 사용자가 원하는 액션 핀.
+  type CustomSlotKey = 'favorites' | 'discover' | 'theme' | 'palette' | 'library' | 'inbox' | 'search';
+  const CUSTOM_SLOT_OPTIONS: Array<{ key: CustomSlotKey; label: string; icon: React.ComponentType<{ className?: string }>; }> = [
+    { key: 'search',    label: '검색',    icon: Search },
+    { key: 'favorites', label: '즐겨찾기', icon: Star },
+    { key: 'discover',  label: '탐색',    icon: Compass },
+    { key: 'inbox',     label: '인박스',  icon: Inbox },
+    { key: 'palette',   label: '테마',    icon: Palette },
+    { key: 'library',   label: '북마크',  icon: Bookmark },
+    { key: 'theme',     label: '다크모드', icon: Moon },
+  ];
+  const [customSlotKey, setCustomSlotKey] = useState<CustomSlotKey>(() => {
+    try {
+      const v = localStorage.getItem('sidebar-custom-nav-slot');
+      if (v && CUSTOM_SLOT_OPTIONS.some(o => o.key === v)) return v as CustomSlotKey;
+    } catch { /* noop */ }
+    return 'search';
+  });
+  const [customSlotPickerOpen, setCustomSlotPickerOpen] = useState(false);
+  const customSlotBtnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    try { localStorage.setItem('sidebar-custom-nav-slot', customSlotKey); } catch { /* noop */ }
+  }, [customSlotKey]);
 
   // Project state
   const [projects, setProjects] = useState<Project[]>(() => getProjects());
@@ -984,19 +1009,26 @@ export function AppSidebar({
           !isOpen && 'max-md:-translate-x-full',
         )}
       >
-        {/* ── 1. Header ── */}
-        <div className={cn("shrink-0 flex items-center py-2.5 transition-all duration-300", isOpen ? 'justify-between px-3' : 'justify-center px-0')}>
+        {/* ── 1. Header — mark 심볼 + 워드마크 + 토글 (밀도 통일 h-9) ── */}
+        <div className={cn("shrink-0 flex items-center h-9 transition-all duration-300", isOpen ? 'justify-between px-2.5' : 'justify-center px-0')}>
           {isOpen ? (
             <>
-              <img src="/logos/ancano/lockup_light.png" alt="ANCANO" className="h-8 object-contain dark:hidden" />
-              <img src="/logos/ancano/lockup_dark.png" alt="ANCANO" className="h-8 object-contain hidden dark:block" />
-              <button onClick={toggleSidebar} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <PanelLeft className="w-5 h-5" />
+              <button
+                onClick={handleGoHome}
+                className="flex items-center gap-1.5 h-7 px-1 -ml-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors group"
+                title="메인으로"
+              >
+                <img src="/logos/ancano/mark_128.png" alt="" className="h-5 w-5 object-contain dark:hidden" />
+                <img src="/logos/ancano/icon_dark_128.png" alt="" className="h-5 w-5 object-contain hidden dark:block" />
+                <span className="text-[12px] font-semibold tracking-[0.08em] text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">ANCANO</span>
+              </button>
+              <button onClick={toggleSidebar} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="사이드바 접기">
+                <PanelLeft className="w-4 h-4" />
               </button>
             </>
           ) : (
-            <button onClick={toggleSidebar} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-              <PanelLeft className="w-5 h-5" />
+            <button onClick={toggleSidebar} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="사이드바 펼치기">
+              <PanelLeft className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -1004,27 +1036,60 @@ export function AppSidebar({
         {/* ── 2. Navigation Menu — 4×2 그리드 (펼침) / 세로 나열 (접힘) ── */}
         <nav className={cn("shrink-0", isOpen ? 'px-2' : 'px-1')}>
           {(() => {
+            // 커스텀 슬롯 동작
+            const customSlotMeta = CUSTOM_SLOT_OPTIONS.find(o => o.key === customSlotKey)!;
+            const handleCustomSlot = () => {
+              switch (customSlotKey) {
+                case 'search':
+                  window.dispatchEvent(new CustomEvent('open-command-palette'));
+                  break;
+                case 'theme': {
+                  const root = document.documentElement;
+                  const isDark = root.classList.contains('dark');
+                  if (isDark) root.classList.remove('dark'); else root.classList.add('dark');
+                  try { localStorage.setItem('theme', isDark ? 'light' : 'dark'); } catch { /* noop */ }
+                  break;
+                }
+                case 'discover': navigate('/discover'); break;
+                case 'favorites':
+                case 'inbox':
+                case 'palette':
+                case 'library':
+                  // 미구현 액션 — 우클릭으로 다른 옵션 선택 안내
+                  setCustomSlotPickerOpen(true);
+                  break;
+              }
+            };
             const items = [
-              { icon: House, label: '메인',     onClick: handleGoHome },
-              { icon: MessageSquarePlus, label: '새 채팅', onClick: handleGoHome },
-              { icon: Bot, label: 'AI 봇',      onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
-              { icon: LayoutGrid, label: '모드', onClick: (e) => { const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect(); onOpenModePalette?.({ top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height }); } },
-              { icon: CalendarDays, label: '캘린더', onClick: () => navigate('/planner') },
-              { icon: FileText, label: '메모',   onClick: () => navigate('/memos') },
-              { icon: Network, label: '위키',    onClick: () => navigate('/wiki') },
-              { icon: Settings, label: '설정',   onClick: () => { setSettingsSection('general'); setSettingsOpen(true); } },
+              { icon: House,            label: '메인',     onClick: handleGoHome },
+              { icon: Bot,              label: 'AI 봇',    onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
+              { icon: LayoutGrid,       label: '모드',     onClick: (e: React.MouseEvent<HTMLButtonElement>) => { const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect(); onOpenModePalette?.({ top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height }); } },
+              { icon: CalendarDays,     label: '캘린더',   onClick: () => navigate('/planner') },
+              { icon: FileText,         label: '메모',     onClick: () => navigate('/memos') },
+              { icon: Network,          label: '위키',     onClick: () => navigate('/wiki') },
+              {
+                icon: customSlotMeta.icon,
+                label: customSlotMeta.label,
+                onClick: handleCustomSlot,
+                isCustom: true,
+                onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); setCustomSlotPickerOpen(true); },
+              },
+              { icon: Settings,         label: '설정',     onClick: () => { setSettingsSection('general'); setSettingsOpen(true); } },
             ];
             return isOpen ? (
               <div className="grid grid-cols-4 gap-0.5">
-                {items.map((item) => (
+                {items.map((item, idx) => (
                   <button
-                    key={item.label}
-                    onClick={item.onClick}
-                    title={item.label}
+                    key={`${item.label}-${idx}`}
+                    ref={item.isCustom ? customSlotBtnRef : undefined}
+                    onClick={item.onClick as React.MouseEventHandler<HTMLButtonElement>}
+                    onContextMenu={item.onContextMenu}
+                    title={item.isCustom ? `${item.label} (우클릭으로 변경)` : item.label}
                     aria-label={item.label}
                     className={cn(
-                      "group flex flex-col items-center justify-center gap-0.5 h-12 rounded-md transition-colors",
+                      "group flex flex-col items-center justify-center gap-0.5 h-12 rounded-md transition-colors relative",
                       "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800",
+                      item.isCustom && "ring-1 ring-dashed ring-slate-200 dark:ring-slate-700 hover:ring-slate-300 dark:hover:ring-slate-600",
                     )}
                   >
                     <item.icon className="w-[15px] h-[15px] shrink-0" />
@@ -1035,11 +1100,13 @@ export function AppSidebar({
             ) : (
               // 접힘 상태: 아이콘만 세로 나열
               <div className="space-y-0.5">
-                {items.map((item) => (
+                {items.map((item, idx) => (
                   <button
-                    key={item.label}
-                    onClick={item.onClick}
-                    title={item.label}
+                    key={`${item.label}-${idx}`}
+                    ref={item.isCustom ? customSlotBtnRef : undefined}
+                    onClick={item.onClick as React.MouseEventHandler<HTMLButtonElement>}
+                    onContextMenu={item.onContextMenu}
+                    title={item.isCustom ? `${item.label} (우클릭으로 변경)` : item.label}
                     className="font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center transition-colors w-full p-1.5 justify-center"
                   >
                     <item.icon className="w-4 h-4 shrink-0" />
@@ -1050,9 +1117,39 @@ export function AppSidebar({
           })()}
         </nav>
 
-        {/* Phase D-3 보정: 모드 섹션 — 상단 아이콘 행과 동일한 리듬(h-8, rounded-md, 슬레이트 톤).
-            label 과 pill 사이즈를 맞춰 위-아래 밀도 균일화. */}
-        {/* 모드 grid 섹션 제거됨 — 위 nav 의 LayoutGrid (모드) 아이콘으로 통합 진입. */}
+        {/* 커스텀 슬롯 picker — 우클릭 시 표시 */}
+        {customSlotPickerOpen && createPortal(
+          <>
+            <div className="fixed inset-0 z-[180]" onClick={() => setCustomSlotPickerOpen(false)} />
+            <div
+              className="fixed z-[181] w-44 p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl animate-in fade-in zoom-in-95 duration-100"
+              style={(() => {
+                const r = customSlotBtnRef.current?.getBoundingClientRect();
+                if (!r) return { top: 60, left: 60 };
+                return { top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - 188) };
+              })()}
+            >
+              <div className="px-2 py-1 text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">슬롯 변경</div>
+              {CUSTOM_SLOT_OPTIONS.map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => { setCustomSlotKey(opt.key); setCustomSlotPickerOpen(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] transition-colors",
+                    customSlotKey === opt.key
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70",
+                  )}
+                >
+                  <opt.icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="flex-1 text-left">{opt.label}</span>
+                  {customSlotKey === opt.key && <span className="text-blue-500 text-[10px]">●</span>}
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body
+        )}
 
         {/* ── Section Divider ── */}
         {isOpen && <div className="border-t border-slate-200 dark:border-slate-800 mt-2 mb-1" />}
@@ -1283,33 +1380,21 @@ export function AppSidebar({
           onClose={() => setShowIconPicker(null)}
         />
 
-        {/* ── 4. Conversation List Header — 검색 항상 노출 ── */}
-        {isOpen && <div className="shrink-0 px-2 pt-2 pb-1 space-y-1.5">
-          <div className="flex items-center gap-1">
-            <div className="flex-1 flex items-center gap-2 px-2.5 h-7 rounded-md bg-slate-100 dark:bg-slate-800/70 focus-within:ring-1 focus-within:ring-slate-300 dark:focus-within:ring-slate-600 transition-shadow">
-              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <input
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); refreshHistory(); }}
-                placeholder="대화 검색"
-                className="flex-1 min-w-0 bg-transparent text-[11px] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => { setSearchQuery(''); refreshHistory(); }}
-                  aria-label="검색 비우기"
-                  className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          </div>
+        {/* ── 4. Conversation List Header — 헤더 옆 돋보기 (⌘K 팔레트) ── */}
+        {isOpen && <div className="shrink-0 px-2 pt-2 pb-1">
           <div className="flex items-center justify-between px-1">
             <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               모든 대화{filteredHistory.length > 0 ? ` · ${filteredHistory.length}` : ''}
             </span>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+              title="대화 검색 (⌘K)"
+              aria-label="대화 검색"
+              className="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>}
 

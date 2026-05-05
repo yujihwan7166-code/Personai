@@ -95,7 +95,7 @@ export function CommandPalette({
   const [open, setOpen] = useState(false);
   const [history, setHistory] = useState<DiscussionRecord[]>([]);
 
-  // 전역 Cmd+K / Ctrl+K
+  // 전역 Cmd+K / Ctrl+K + 커스텀 트리거 이벤트
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
@@ -104,8 +104,13 @@ export function CommandPalette({
       }
       if (e.key === 'Escape' && open) setOpen(false);
     };
+    const onOpenEvent = () => setOpen(true);
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('open-command-palette', onOpenEvent as EventListener);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('open-command-palette', onOpenEvent as EventListener);
+    };
   }, [open]);
 
   // 팔레트 열릴 때만 히스토리 로드 (매번 파일 파싱 비용 회피)
