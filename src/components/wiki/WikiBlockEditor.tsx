@@ -40,6 +40,12 @@ interface Props {
   hideToolbar?: boolean;
   /** 에디터 인스턴스 노출 — 외부에서 툴바 따로 만들 때 사용. */
   onEditorReady?: (editor: ReturnType<typeof useEditor>) => void;
+  /** 첫 노드 (빈 문서) placeholder — 미지정 시 위키 default. 메모 페이지에선 "제목" 등. */
+  firstPlaceholder?: string;
+  /** 두 번째 이후 빈 노드 placeholder. */
+  restPlaceholder?: string;
+  /** 추가 className (본문 컨테이너용). 메모는 max-w 같은 거 적용 가능. */
+  className?: string;
 }
 
 interface MarkdownStorage {
@@ -65,7 +71,7 @@ function getEditorMarkdown(editor: { storage: unknown; getHTML: () => string }, 
  *
  * 저장 형식: markdown (tiptap-markdown 변환). 기존 IDB body 와 100% 호환.
  */
-export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPage, onUploadImage, onCreateAndLink, hideToolbar, onEditorReady }: Props) {
+export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPage, onUploadImage, onCreateAndLink, hideToolbar, onEditorReady, firstPlaceholder, restPlaceholder, className }: Props) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -80,10 +86,17 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
       }),
       Placeholder.configure({
         placeholder: ({ node, pos, editor: ed }) => {
+          // 첫 빈 paragraph (문서 전체가 비었을 때)
           if (pos === 0 && ed.state.doc.childCount === 1 && node.type.name === 'paragraph') {
-            return '여기에 적기 시작하거나 / 로 메뉴를 열어보세요';
+            return firstPlaceholder ?? '여기에 적기 시작하거나 / 로 메뉴를 열어보세요';
+          }
+          // 첫 빈 heading 도 같은 first 슬롯으로 취급
+          if (pos === 0 && node.type.name === 'heading' && firstPlaceholder) {
+            return firstPlaceholder;
           }
           if (node.type.name === 'heading') return `제목 ${node.attrs.level}`;
+          // 두 번째 이후 빈 paragraph
+          if (node.type.name === 'paragraph' && restPlaceholder) return restPlaceholder;
           return '';
         },
         showOnlyWhenEditable: true,
@@ -369,7 +382,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
   if (!editor) return null;
 
   return (
-    <div className="relative">
+    <div className={cn('relative', className)}>
       {/* 상단 고정 툴바 (네이버 블로그 톤) — hideToolbar 시 외부 렌더 */}
       {!hideToolbar && (
         <WikiEditorToolbar

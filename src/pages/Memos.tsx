@@ -22,8 +22,9 @@ import {
   Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { WikiBlockEditor } from '@/components/wiki/WikiBlockEditor';
-import { WikiEditorToolbar } from '@/components/wiki/WikiEditorToolbar';
+import { MemoToolbar } from '@/components/memo/MemoToolbar';
 import type { Editor } from '@tiptap/react';
+import '@/styles/memo.css';
 import {
   useMemos, addMemo, updateMemo, removeMemo, togglePin,
   archiveMemo, unarchiveMemo, addMemoImage, removeMemoImage,
@@ -1048,10 +1049,10 @@ function MemoEditor({
             <span className="truncate">{memo.sourceRecordingTitle}</span>
           </span>
         )}
-        {/* TipTap 툴바 — 가운데 flex-1 영역. editor 준비된 후에만 렌더 */}
+        {/* MemoToolbar — 2단 (인서트/포맷) 네이버 블로그 식. 가운데 flex-1 영역. */}
         <div className="flex-1 min-w-0 overflow-x-auto memo-toolbar-host">
           {tipTapEditor && (
-            <WikiEditorToolbar
+            <MemoToolbar
               editor={tipTapEditor}
               onPickImage={() => {
                 const input = document.createElement('input');
@@ -1187,24 +1188,28 @@ function MemoEditor({
         </div>
       )}
 
-      {/* 본문 — TipTap 블록 에디터 (툴바는 위 액션바에 외부 렌더) */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 sm:px-10 py-4">
-        <WikiBlockEditor
-          body={draft}
-          onChange={setDraft}
-          allPages={[]}
-          hideToolbar
-          onEditorReady={setTipTapEditor}
-          onUploadImage={async (file) => {
-            const dataUrl: string = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = () => reject(reader.error);
-              reader.readAsDataURL(file);
-            });
-            return dataUrl;
-          }}
-        />
+      {/* 본문 — TipTap. 760px 가운데 배치 (네이버 블로그 식 집중 글쓰기) */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="memo-prose max-w-[760px] mx-auto px-6 sm:px-10 py-8">
+          <WikiBlockEditor
+            body={draft}
+            onChange={setDraft}
+            allPages={[]}
+            hideToolbar
+            onEditorReady={setTipTapEditor}
+            firstPlaceholder="제목"
+            restPlaceholder="여기에 자유롭게 적어보세요. / 로 명령"
+            onUploadImage={async (file) => {
+              const dataUrl: string = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(file);
+              });
+              return dataUrl;
+            }}
+          />
+        </div>
       </div>
 
       {/* 하단 메타 */}
