@@ -807,6 +807,14 @@ function FolderOption({ label, active, onClick }: { label: string; active: boole
 }
 
 // ──────────────────────────────────────────
+/** 본문 시작에 있는 emoji 1자 추출 (Bear 패턴). 없으면 null. */
+const EMOJI_RE = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}](\u{FE0F})?/u;
+const extractLeadingEmoji = (body: string): string | null => {
+  const trimmed = body.replace(/^#+\s*/, '').trim();
+  const match = EMOJI_RE.exec(trimmed);
+  return match?.[0] ?? null;
+};
+
 function MemoRow({
   memo, active, onClick, loose = false, bare = false, archived = false,
   onPin, onMoveFolder, onDelete, onArchive, onUnarchive,
@@ -823,6 +831,8 @@ function MemoRow({
 }) {
   const title = memoTitle(memo);
   const preview = memoPreview(memo);
+  // 본문 첫 emoji 자동 추출 (Bear 패턴). 제목 prefix 로 사용.
+  const titleEmoji = extractLeadingEmoji(memo.body);
   const hasActions = !!(onPin || onMoveFolder || onDelete || onArchive || onUnarchive);
   // loose / bare: 2줄 카드 (제목 + 미리보기). 폴더 안 children: 1줄 컴팩트.
   const isCardMode = loose || bare;
@@ -831,27 +841,30 @@ function MemoRow({
       <button
         onClick={onClick}
         className={cn(
-          'relative w-full text-left transition-all',
+          'relative w-full text-left transition-all rounded-md',
           isCardMode
-            ? 'flex flex-col gap-0.5 px-3 py-2.5 rounded-md border-b border-foreground/8'
-            : 'flex items-center gap-2 h-8 px-3 rounded-md',
+            ? 'flex flex-col gap-1 px-3 py-3'
+            : 'flex items-center gap-2 h-8 px-3',
           hasActions && 'pr-9',
           active
-            ? 'bg-primary/12 text-foreground shadow-[inset_3px_0_0_0_hsl(var(--primary))]'
-            : 'text-foreground hover:bg-accent/70',
+            ? 'bg-primary/15 text-foreground shadow-[inset_4px_0_0_0_hsl(var(--primary))]'
+            : 'text-foreground hover:bg-accent',
           archived && 'opacity-70',
         )}
       >
         {isCardMode ? (
           <>
-            {/* row 1: pin + 제목 + 시간 */}
+            {/* row 1: emoji prefix + pin + 제목 + 시간 */}
             <div className="flex items-center gap-1.5 w-full">
+              {titleEmoji ? (
+                <span aria-hidden className="text-[14px] leading-none shrink-0">{titleEmoji}</span>
+              ) : null}
               {memo.pinned && (
-                <Pin className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
+                <Pin className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
               )}
               <span className={cn(
-                'truncate flex-1 text-[13.5px] leading-tight',
-                active ? 'font-semibold text-foreground' : 'font-medium text-foreground',
+                'truncate flex-1 text-[14px] leading-tight',
+                active ? 'font-bold text-foreground' : 'font-semibold text-foreground',
                 !memo.body.trim() && 'text-muted-foreground italic font-normal',
               )}>
                 {title}
@@ -860,8 +873,8 @@ function MemoRow({
                 <ExternalLink className="w-3 h-3 text-primary/70 shrink-0" strokeWidth={1.75} />
               )}
               <span className={cn(
-                'tabular-nums text-[10.5px] shrink-0',
-                active ? 'text-foreground/65' : 'text-muted-foreground/70',
+                'tabular-nums text-[10.5px] shrink-0 font-medium',
+                active ? 'text-primary' : 'text-muted-foreground',
                 hasActions && 'group-hover:invisible',
               )}>
                 {memoTimeLabel(memo.updatedAt)}
@@ -869,7 +882,7 @@ function MemoRow({
             </div>
             {/* row 2: 미리보기 (첫 본문 줄) */}
             {preview && (
-              <span className="block truncate text-[11.5px] text-muted-foreground/85 leading-tight">
+              <span className="block truncate text-[12px] text-muted-foreground leading-snug">
                 {preview}
               </span>
             )}
