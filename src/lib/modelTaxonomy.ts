@@ -171,16 +171,24 @@ export const MODEL_IS_OPENSOURCE: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
- * 추론(reasoning) 특화 모델.
+ * 추론(reasoning) 특화 모델 — 각 브랜드의 "생각하는 모델" 1개.
  *
- * 기준: 모델 카드 description 에 "추론 특화", "심층 리서치", thinking 명시가 있는 모델.
- * 일반 강력 모델(Claude Opus, GPT-5)은 제외 — overlap 줄이기 위해 보수적으로 선별.
+ * 기준:
+ * - 별도 thinking ID 가 등록된 브랜드: 그 thinking 변형 사용 (deepseek-r1, qwen-thinking, kimi-thinking)
+ * - thinking 변형이 없는 브랜드: 그 브랜드의 최상위 추론력 모델 (reasoning 점수 90+)
+ * - Perplexity 는 sonar-pro 가 심층 리서치 라인이라 포함
  */
 export const MODEL_IS_REASONING: ReadonlySet<string> = new Set<string>([
+  // 별도 thinking 변형
   'deepseek-r1',
   'qwen-thinking',
   'kimi-thinking',
   'perplexity-pro',
+  // 브랜드 최상위 추론 (thinking 변형이 별도 등록 안 된 브랜드)
+  'gpt',          // GPT-5.4 (reasoning 96)
+  'claude',       // Claude Opus 4.6 (reasoning 97)
+  'gemini-pro',   // Gemini 3.1 Pro (reasoning 94)
+  'grok',         // Grok 4.1 Fast (reasoning 86)
 ]);
 
 /**
@@ -190,14 +198,12 @@ export const MODEL_IS_REASONING: ReadonlySet<string> = new Set<string>([
  * 출시 후 사용 데이터 보고 조정 예정.
  */
 export const RECOMMENDED_MODEL_IDS: readonly string[] = [
-  'auto-gpt',          // 심층 리서치 (여러 AI 협업 인용 리포트)
-  'claude-sonnet',     // 균형 만능
-  'gpt',               // OpenAI 플래그십
-  'gemini-pro',        // Gemini 최상위
-  'grok',              // 위트
-  'deepseek-r1',       // 추론 무료급
-  'claude',            // Opus 최고 지능
-  'gemini',            // Flash 가성비
+  'gpt',                // GPT-5.4
+  'gemini-flash-lite',  // Gemini 2.5 Flash Lite
+  'claude-haiku',       // Claude Haiku 4.5
+  'grok',               // Grok 4.1 Fast
+  'perplexity',         // Perplexity Sonar
+  'deepseek',           // DeepSeek V3
 ] as const;
 
 /** 헬퍼 */

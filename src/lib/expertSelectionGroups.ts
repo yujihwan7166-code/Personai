@@ -75,8 +75,8 @@ const AI_MODEL_ORDER = [
 
 /** 빠른 응답 모델 (브랜드별 가장 빠른 1개) */
 export const FAST_MODEL_IDS = [
-  'auto-gpt',
   'gpt-nano',
+  'gpt-mini',
   'gemini-flash-lite',
   'claude-haiku',
   'grok',
