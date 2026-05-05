@@ -120,35 +120,14 @@ export const HabitListPane = ({
 
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
-      {/* 헤더 — 제목 + 7일 도트 + 검색/정렬/today/+ */}
-      <div className="shrink-0 flex items-center gap-2 px-4 h-12 border-b border-[hsl(var(--hairline))] bg-card">
-        <span className="text-[15px] font-bold tracking-tight text-foreground">습관</span>
-        <span className="text-[12px] text-foreground/55 tabular-nums">{visibleHabits.length}/{habits.length}</span>
+      {/* 헤더 — 카드 행과 동일한 grid 컬럼 (도트 세로선 정렬). */}
+      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-b border-[hsl(var(--hairline))] bg-card">
+        {/* col 1: 제목 + 액션 버튼들 */}
+        <div className="min-w-0 flex items-center gap-1.5">
+          <span className="text-[15px] font-bold tracking-tight text-foreground">습관</span>
+          <span className="text-[12px] text-foreground/55 tabular-nums">{visibleHabits.length}/{habits.length}</span>
 
-        {/* 주 진행률 도트 7개 + 30일 라벨 (가운데) */}
-        <div className="flex-1 flex items-center justify-center gap-1 min-w-0">
-          {weekDays.map((d, i) => {
-            const dk = toDateKey(d);
-            const isToday = dk === todayKey;
-            const isPast = dk < todayKey;
-            const prog = dayProgress[i];
-            return (
-              <div key={d.toISOString()} className="flex items-center justify-center w-[36px]">
-                <HabitDayProgress
-                  weekday={WEEKDAY_KO[d.getDay()]}
-                  day={d.getDate()}
-                  completed={prog.completed}
-                  scheduled={prog.scheduled}
-                  isToday={isToday}
-                  isPast={isPast}
-                />
-              </div>
-            );
-          })}
-          <div className="ml-1 text-[9.5px] font-mono uppercase tracking-wide text-foreground/45 whitespace-nowrap">최근 30일</div>
-        </div>
-
-        <div className="flex items-center gap-0.5">
+          <div className="ml-auto flex items-center gap-0.5">
           {/* 검색 */}
           {showSearch ? (
             <input
@@ -225,7 +204,34 @@ export const HabitListPane = ({
           >
             <Plus className="h-4 w-4" />
           </button>
+          </div>
         </div>
+
+        {/* col 2-8: 요일 헤더 (월4 화5 ...) — 카드 행 도트와 같은 컬럼 */}
+        {weekDays.map((d, i) => {
+          const dk = toDateKey(d);
+          const isToday = dk === todayKey;
+          const isPast = dk < todayKey;
+          const prog = dayProgress[i];
+          return (
+            <div key={d.toISOString()} className="flex items-center justify-center">
+              <HabitDayProgress
+                weekday={WEEKDAY_KO[d.getDay()]}
+                day={d.getDate()}
+                completed={prog.completed}
+                scheduled={prog.scheduled}
+                isToday={isToday}
+                isPast={isPast}
+              />
+            </div>
+          );
+        })}
+
+        {/* col 9: "최근 30일" — 카드 행의 heat strip 위 */}
+        <div className="text-[9.5px] font-mono uppercase tracking-wide text-foreground/45 text-center whitespace-nowrap">최근 30일</div>
+
+        {/* col 10: ⋯ 메뉴 자리 — 카드 행의 메뉴 컬럼과 정렬 */}
+        <div />
       </div>
 
       {/* 카드형 행 리스트 */}

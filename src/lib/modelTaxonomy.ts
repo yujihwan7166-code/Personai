@@ -220,6 +220,7 @@ export const RECOMMENDED_MODEL_IDS: readonly string[] = [
   'grok',               // Grok 4.1 Fast
   'perplexity',         // Perplexity Sonar
   'deepseek',           // DeepSeek V3
+  'qwen-9b',            // Qwen 3.5 9B (가성비 1위, 오픈소스)
 ] as const;
 
 /** 헬퍼 */
