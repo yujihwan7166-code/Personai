@@ -207,26 +207,14 @@ export const HabitListPane = ({
           </div>
         </div>
 
-        {/* col 2-8: 요일 헤더 (월4 화5 ...) — 카드 행 도트와 같은 컬럼.
-            오늘 컬럼은 옅은 bg + 상단 "오늘" pill 로 강조. */}
+        {/* col 2-8: 요일 헤더 (월4 화5 ...) — 카드 행 도트와 같은 컬럼 */}
         {weekDays.map((d, i) => {
           const dk = toDateKey(d);
           const isToday = dk === todayKey;
           const isPast = dk < todayKey;
           const prog = dayProgress[i];
           return (
-            <div
-              key={d.toISOString()}
-              className={cn(
-                'relative h-full flex items-center justify-center',
-                isToday && 'bg-blue-500/[0.06] rounded-md',
-              )}
-            >
-              {isToday && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-1.5 py-px rounded-full bg-blue-500 text-white text-[8px] font-semibold tracking-wide leading-none whitespace-nowrap">
-                  오늘
-                </span>
-              )}
+            <div key={d.toISOString()} className="flex items-center justify-center">
               <HabitDayProgress
                 weekday={WEEKDAY_KO[d.getDay()]}
                 day={d.getDate()}
