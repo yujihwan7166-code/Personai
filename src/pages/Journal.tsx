@@ -17,14 +17,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Search, Flame, X, Hash } from 'lucide-react';
-import { useJournal, useTodayJournal } from '@/hooks/useJournal';
+import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
 import { notify } from '@/lib/notify';
 import { JournalCard } from '@/components/journal/JournalCard';
 import { JournalEditor } from '@/components/journal/JournalEditor';
 import { JournalEmpty } from '@/components/journal/JournalEmpty';
-import { TodayCard } from '@/components/journal/TodayCard';
 import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
 import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
@@ -59,7 +58,6 @@ const monthKey = (iso: string): string => iso.slice(0, 7);
 const Journal = () => {
   const navigate = useNavigate();
   const allEntries = useJournal();
-  const todayEntries = useTodayJournal();
   const streak = useJournalStreak(allEntries);
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null);
   const [query, setQuery] = useState('');
@@ -225,29 +223,21 @@ const Journal = () => {
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-8 sm:py-12 max-w-5xl w-full mx-auto">
-        {/* 출판물 톤 마스트헤드 — NYT/Bear/Newsreader 패턴 */}
-        <header className="mb-8 sm:mb-10 pb-5 sm:pb-7 border-b-2 border-[hsl(var(--hairline))]">
-          {/* 상단 micro nav — 신문 보조 라벨 */}
-          <div className="flex items-center justify-between mb-4 sm:mb-5">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground transition-colors font-mono uppercase tracking-[0.18em]"
-              aria-label="메인으로"
-            >
-              <ChevronLeft className="h-3 w-3" />
-              <span>메인</span>
-            </button>
-            <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80">
-              일기 · {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
-            </span>
-          </div>
-
-          {/* 마스트헤드 — 큰 serif H1 + meta */}
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex items-end gap-4 sm:gap-5 flex-wrap">
+        {/* 마스트헤드 — 한 줄 압축, 책 표지 톤 */}
+        <header className="mb-6 sm:mb-8 pb-4 border-b border-[hsl(var(--hairline))]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-baseline gap-3 sm:gap-4 min-w-0">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                aria-label="메인으로"
+                title="메인으로"
+                className="self-center inline-flex items-center justify-center h-7 w-7 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
               <h1
-                className="text-[40px] sm:text-[52px] font-bold tracking-tight leading-none text-foreground"
+                className="text-[28px] sm:text-[34px] font-bold tracking-tight leading-none text-foreground"
                 style={{
                   fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
                   letterSpacing: '-0.02em',
@@ -257,16 +247,14 @@ const Journal = () => {
               </h1>
               {streak > 0 && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11.5px] font-semibold tabular-nums mb-1.5"
+                  className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] font-semibold tabular-nums"
                   title={`${streak}일 연속 작성`}
                 >
                   <Flame className="h-3 w-3" />
-                  {streak}일 연속
+                  {streak}
                 </span>
               )}
-              <span
-                className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80 mb-2 hidden sm:inline"
-              >
+              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/80 hidden sm:inline">
                 {allEntries.length} 페이지
               </span>
             </div>
@@ -318,13 +306,10 @@ const Journal = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6">
           <div className="flex flex-col gap-6 min-w-0">
-            {/* Today 카드 + On This Day — 검색 중이 아닐 때만 노출 */}
+            {/* WeekSpotlight + 회상 카드 — 검색 중이 아닐 때만 노출
+                (오늘 일기는 헤더의 '+ 오늘 일기' 버튼 + WeekSpotlight 의 오늘 셀로 충분) */}
             {query.trim().length === 0 && (
               <>
-                <TodayCard
-                  todayEntries={todayEntries}
-                  onAdd={() => setEditorMode({ kind: 'create' })}
-                />
                 <JournalWeekSpotlight
                   entries={allEntries}
                   onClickEntry={handleWeekClickEntry}
