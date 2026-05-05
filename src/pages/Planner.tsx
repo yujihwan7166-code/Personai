@@ -315,8 +315,7 @@ const Planner = () => {
   }, [anchorIso, view]);
 
   // 헤더 라벨 — day 뷰만 "오늘"/"내일" smart label + 보조 라벨, 그 외 periodLabel.
-  // compactPrimary: 단순 날짜 (오늘/내일 아님) — 보조 라벨 크기에 맞춰 작게.
-  const headerLabels = useMemo<{ primary: string; secondary?: string; compactPrimary?: boolean }>(() => {
+  const headerLabels = useMemo<{ primary: string; secondary?: string }>(() => {
     if (view !== 'day') return { primary: periodLabel };
     const d = new Date(anchorIso);
     const t = new Date();
@@ -324,8 +323,7 @@ const Planner = () => {
     const fullLabel = d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
     if (isSameDay(d, t)) return { primary: '오늘', secondary: fullLabel };
     if (isSameDay(d, tm)) return { primary: '내일', secondary: fullLabel };
-    // 오늘/내일 아닌 날짜 — 보조 라벨과 같은 크기로 (단순 정보, eye-catcher 아님).
-    return { primary: fullLabel, compactPrimary: true };
+    return { primary: fullLabel };
   }, [anchorIso, view, periodLabel]);
 
   // 키보드 단축키.
@@ -668,12 +666,7 @@ const Planner = () => {
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div className="min-w-0 flex items-baseline gap-3">
-                <h2 className={cn(
-                  'tracking-tight text-foreground leading-none truncate',
-                  headerLabels.compactPrimary
-                    ? 'text-[18px] sm:text-[20px] font-semibold'
-                    : 'text-[24px] sm:text-[28px] font-bold',
-                )}>
+                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-foreground leading-none truncate">
                   {headerLabels.primary}
                 </h2>
                 {headerLabels.secondary && (
