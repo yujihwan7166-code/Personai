@@ -190,6 +190,7 @@ export const MODEL_IS_REASONING: ReadonlySet<string> = new Set<string>([
  * 출시 후 사용 데이터 보고 조정 예정.
  */
 export const RECOMMENDED_MODEL_IDS: readonly string[] = [
+  'auto-gpt',          // 심층 리서치 (여러 AI 협업 인용 리포트)
   'claude-sonnet',     // 균형 만능
   'gpt',               // OpenAI 플래그십
   'gemini-pro',        // Gemini 최상위
