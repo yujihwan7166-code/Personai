@@ -13,11 +13,16 @@ interface PlannerSectionProps {
   action?: ReactNode;
   className?: string;
   children: ReactNode;
+  /** 헤더 아래 구분선 숨김. 기본 false. */
+  noBorder?: boolean;
 }
 
-export const PlannerSection = ({ label, count, action, className, children }: PlannerSectionProps) => (
+export const PlannerSection = ({ label, count, action, className, children, noBorder }: PlannerSectionProps) => (
   <section className={cn('flex flex-col min-h-0', className)}>
-    <header className="flex items-baseline gap-2.5 px-0.5 pb-2.5 mb-2 border-b border-foreground/20">
+    <header className={cn(
+      'flex items-baseline gap-2.5 px-0.5 pb-2.5 mb-2',
+      !noBorder && 'border-b border-foreground/20',
+    )}>
       <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-foreground font-semibold">
         {label}
       </span>

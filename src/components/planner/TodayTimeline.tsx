@@ -773,7 +773,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   }
 
   return (
-    <PlannerSection label="오늘" count={dateLabel} action={
+    <PlannerSection label="오늘" count={dateLabel} noBorder action={
       <span className="inline-flex items-center gap-2">
         {CompactToggle}
         {NowButton}
