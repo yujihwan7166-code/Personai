@@ -2605,6 +2605,14 @@ export function ExpertSelectionPanel({
                             {isMoreActive ? moreCats.find(g => effectiveCategory === g.cat)?.label : '더보기'} <ChevronDown className="w-3 h-3" />
                           </button>
                           <div className="absolute left-0 top-full mt-1 bg-[hsl(var(--card))] border border-[hsl(var(--hairline))] rounded-lg shadow-xl py-1.5 min-w-[120px] opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all duration-150 z-50">
+                            {/* 검색 — 카테고리 위에 액션 항목으로 */}
+                            <button type="button"
+                              onClick={() => setSearchMode(true)}
+                              className="w-full text-left px-4 py-2 text-[11px] font-medium transition-colors flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                              <Search className="w-3 h-3" />
+                              검색
+                            </button>
+                            <div className="my-1 border-t border-[hsl(var(--hairline))]" />
                             {moreCats.map(({ cat, label }) => (
                               <button key={cat} type="button"
                                 onClick={() => { setActiveCategory(cat); setActiveSubCategory('전체'); }}
@@ -2619,10 +2627,6 @@ export function ExpertSelectionPanel({
                       );
                     })()}
                   </div>
-                  <button onClick={() => setSearchMode(true)}
-                    className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors shrink-0">
-                    <Search className="w-3.5 h-3.5" />
-                  </button>
                 </>
               )}
             </div>
