@@ -234,8 +234,8 @@ export const HabitListPane = ({
         <div />
       </div>
 
-      {/* 테이블 행 리스트 — 행 간격 0, hairline divider 만으로 구분 */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* 테이블 행 리스트 — divide-y 로 행 사이에만 hairline. 마지막 행 아래엔 라인 없음. */}
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[hsl(var(--hairline))]">
         {habits.length === 0 ? (
           <div className="p-2">
             <div className="text-[13px] text-foreground/70 font-medium mb-2">
@@ -304,7 +304,7 @@ export const HabitListPane = ({
                 className={cn(
                   'group relative grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center',
                   'px-3.5 py-3 cursor-pointer transition-colors',
-                  'border-b border-b-[hsl(var(--hairline))] border-l-2',
+                  'border-l-2',
                   isSelected
                     ? 'bg-blue-500/5 border-l-blue-500'
                     : 'border-l-transparent hover:bg-accent/50',
