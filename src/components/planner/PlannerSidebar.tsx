@@ -28,13 +28,6 @@ export const PlannerSidebar = ({
 }: PlannerSidebarProps) => {
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* 제목 — 라벨만 */}
-      <div className="shrink-0 px-1">
-        <h1 className="text-[15px] font-semibold tracking-tight leading-none truncate">통합 플래너</h1>
-      </div>
-
-      <div className="border-t border-foreground/20 pt-3" />
-
       {/* 미니 월 캘린더 */}
       <PlannerMiniMonth anchorIso={anchorIso} onSelectDay={onSelectDay} />
 
