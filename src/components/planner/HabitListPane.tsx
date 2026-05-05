@@ -120,8 +120,8 @@ export const HabitListPane = ({
 
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
-      {/* 헤더 — 카드 행과 동일한 grid 컬럼 (도트 세로선 정렬). 좌측 2px border-l 보정으로 row 와 정렬. */}
-      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-l-2 border-l-transparent border-b border-b-[hsl(var(--hairline))] bg-card">
+      {/* 헤더 — 카드 행과 동일한 grid 컬럼. h-16 (64px) 으로 HabitDayProgress (60px) 가 안에 완전히 포함되도록. */}
+      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-16 border-l-2 border-l-transparent border-b border-b-[hsl(var(--hairline))] bg-card">
         {/* col 1: 제목 + 액션 버튼들 */}
         <div className="min-w-0 flex items-center gap-1.5">
           <span className="text-[15px] font-bold tracking-tight text-foreground">습관</span>
