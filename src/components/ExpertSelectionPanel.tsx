@@ -2783,11 +2783,8 @@ export function ExpertSelectionPanel({
               );
             };
 
-            /** IDs to hide from grid (individual agents).
-             *  ancano-pro 는 추천 탭에서는 노출되어야 하므로 추천 외에서만 숨김. */
-            const HIDDEN_AGENT_IDS = cat === 'ai_recommended'
-              ? [...RESEARCH_AGENT_IDS]
-              : [...RESEARCH_AGENT_IDS, 'ancano-pro'];
+            /** IDs to hide from grid (individual agents). */
+            const HIDDEN_AGENT_IDS = [...RESEARCH_AGENT_IDS, 'ancano-pro'];
             const visibleItems = displayItems.filter(e => !HIDDEN_AGENT_IDS.includes(e.id));
 
             return (

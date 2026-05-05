@@ -30,6 +30,12 @@ export const SEARCH_ENGINES: SearchEngine[] = [
     hint: '글로벌 종합', domain: 'google.com', category: 'web',
   },
   {
+    id: 'youtube', name: 'YouTube', emoji: '▶️',
+    iconUrl: 'https://www.youtube.com/favicon.ico',
+    urlTpl: 'https://www.youtube.com/results?search_query={Q}',
+    hint: '동영상', domain: 'youtube.com', category: 'video',
+  },
+  {
     id: 'daum', name: '다음', emoji: '🔵',
     iconUrl: 'https://www.daum.net/favicon.ico',
     urlTpl: 'https://search.daum.net/search?q={Q}',
@@ -41,29 +47,24 @@ export const SEARCH_ENGINES: SearchEngine[] = [
     urlTpl: 'https://www.bing.com/search?q={Q}',
     hint: '글로벌 + AI 검색', domain: 'bing.com', category: 'web',
   },
+  // 자주 사용하는 3개
+  {
+    id: 'wikipedia', name: '위키백과', emoji: '📖',
+    iconUrl: 'https://ko.wikipedia.org/static/favicon/wikipedia.ico',
+    urlTpl: 'https://ko.wikipedia.org/w/index.php?search={Q}',
+    hint: '한국어 지식 검색', domain: 'wikipedia.org', category: 'academic',
+  },
+  {
+    id: 'perplexity-search', name: 'Perplexity', emoji: '🔎',
+    iconUrl: 'https://www.perplexity.ai/favicon.ico',
+    urlTpl: 'https://www.perplexity.ai/search?q={Q}',
+    hint: 'AI 검색 + 인용', domain: 'perplexity.ai', category: 'ai',
+  },
   {
     id: 'ddg', name: 'DuckDuckGo', emoji: '🦆',
     iconUrl: 'https://duckduckgo.com/favicon.ico',
     urlTpl: 'https://duckduckgo.com/?q={Q}',
     hint: '사생활 보호', domain: 'duckduckgo.com', category: 'web',
-  },
-  {
-    id: 'youtube', name: 'YouTube', emoji: '▶️',
-    iconUrl: 'https://www.youtube.com/favicon.ico',
-    urlTpl: 'https://www.youtube.com/results?search_query={Q}',
-    hint: '동영상', domain: 'youtube.com', category: 'video',
-  },
-  {
-    id: 'github', name: 'GitHub', emoji: '🐙',
-    iconUrl: 'https://github.com/favicon.ico',
-    urlTpl: 'https://github.com/search?q={Q}',
-    hint: '코드 / 저장소', domain: 'github.com', category: 'dev',
-  },
-  {
-    id: 'arxiv', name: 'arXiv', emoji: '📚',
-    iconUrl: 'https://arxiv.org/favicon.ico',
-    urlTpl: 'https://arxiv.org/search/?query={Q}&searchtype=all',
-    hint: '학술 / 논문', domain: 'arxiv.org', category: 'academic',
   },
 ];
 

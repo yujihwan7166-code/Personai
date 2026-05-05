@@ -213,7 +213,7 @@ export const MODEL_IS_REASONING: ReadonlySet<string> = new Set<string>(REASONING
  * 출시 후 사용 데이터 보고 조정 예정.
  */
 export const RECOMMENDED_MODEL_IDS: readonly string[] = [
-  'ancano-pro',         // ANCANO Pro (자체 AI 어시스턴트 — 자동 라우팅)
+  'auto-gpt',           // 심층 리서치 (여러 AI 협업 인용 리포트)
   'gpt',                // GPT-5.4
   'gemini-flash-lite',  // Gemini 2.5 Flash Lite
   'claude-haiku',       // Claude Haiku 4.5
