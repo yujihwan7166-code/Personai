@@ -1,16 +1,23 @@
 /**
- * 시간 블록 드래그 wrapper — TodayTimeline 의 절대좌표 블록을 감쌈.
+ * 시간 블록 wrapper — TodayTimeline 의 절대좌표 블록을 감쌈.
  *
- * - 본체 드래그 = 시간 이동 (다른 슬롯 / 다른 day column / 인박스 으로)
- * - 하단 4px 핸들 = 길이 조정 (resize) — 별도 useDraggable 로 분리
+ * - 본체 드래그 = 시간 이동 (다른 슬롯 / 다른 day column / 인박스 으로) — dnd-kit 사용
+ * - 하단 6px 핸들 = 길이 조정 (resize) — **네이티브 pointer events** 사용
+ *   (Google Calendar / Apple Calendar 표준: 블록 자체가 실시간으로 늘어남)
  *
- * 가상 인스턴스 id (`master@iso`) 도 그대로 받음. onDragEnd 에서 detach 분기.
+ * 가상 인스턴스 id (`master@iso`) 도 그대로 받음. 부모 onResize/onDragEnd 에서 detach 분기.
  */
+import { useEffect, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import type { PlannerEvent, PlannerTask } from '@/types/planner';
 import type { PlannerDragData } from './plannerDndTypes';
+
+const HOUR_PX = 56;
+const SNAP_MIN = 15;
+const MIN_DURATION_MIN = 15;
+const SNAP_PX = (HOUR_PX / 60) * SNAP_MIN; // 14px
 
 interface DraggableBlockProps {
   item:
@@ -21,11 +28,24 @@ interface DraggableBlockProps {
   children: React.ReactNode;
   /** resize 핸들 활성화 여부 — 일정/할일 모두 지원. */
   enableResize?: boolean;
-  /** 길이 핸들 드래그 중에 화면에서 보이는 임시 height 변경값 (px). */
-  resizeDeltaPx?: number;
+  /** Resize 완료 시 호출 — 부모가 store 업데이트.
+   * 가상 인스턴스 id 들어오면 부모에서 detach 처리. */
+  onResize?: (newEndIso: string) => void;
 }
 
-export const DraggableBlock = ({ item, style, children, enableResize = true, resizeDeltaPx }: DraggableBlockProps) => {
+const formatHm = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+const formatDur = (mins: number): string => {
+  if (mins < 60) return `${mins}분`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+};
+
+export const DraggableBlock = ({
+  item, style, children, enableResize = true, onResize,
+}: DraggableBlockProps) => {
   const dragData: PlannerDragData =
     item.kind === 'task'
       ? { kind: 'scheduled-task', task: item.data }
@@ -36,21 +56,85 @@ export const DraggableBlock = ({ item, style, children, enableResize = true, res
     data: dragData,
   });
 
-  const resizeData: PlannerDragData =
-    item.kind === 'task'
-      ? { kind: 'resize-task', task: item.data }
-      : { kind: 'resize-event', event: item.data };
-  const resize = useDraggable({ id: `resize-${item.data.id}`, data: resizeData });
+  // ── 네이티브 pointer-event 기반 resize ──
+  const [resizeDeltaPx, setResizeDeltaPx] = useState<number | null>(null);
+  // 정리: 컴포넌트 언마운트 시 listener 강제 해제 + cursor 복구.
+  useEffect(() => () => {
+    document.body.style.cursor = '';
+  }, []);
+
+  const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!enableResize || !item.data.startAt || !item.data.endAt) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const startY = e.clientY;
+    const baseHeight = typeof style.height === 'number' ? (style.height as number) : 0;
+
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMove = (ev: PointerEvent) => {
+      const raw = ev.clientY - startY;
+      const snapped = Math.round(raw / SNAP_PX) * SNAP_PX;
+      // 최소 길이 enforce.
+      const minHeight = (MIN_DURATION_MIN / 60) * HOUR_PX;
+      const proposedHeight = baseHeight + snapped;
+      const clampedDelta = proposedHeight < minHeight ? minHeight - baseHeight : snapped;
+      setResizeDeltaPx(clampedDelta);
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      const raw = ev.clientY - startY;
+      const snapped = Math.round(raw / SNAP_PX) * SNAP_PX;
+      const deltaMin = (snapped / HOUR_PX) * 60;
+
+      const oldEnd = new Date(item.data.endAt!);
+      const start = new Date(item.data.startAt!);
+      const newEnd = new Date(oldEnd.getTime() + deltaMin * 60_000);
+      const minEnd = new Date(start.getTime() + MIN_DURATION_MIN * 60_000);
+      const finalEnd = newEnd.getTime() < minEnd.getTime() ? minEnd : newEnd;
+
+      // delta 0 면 호출 X (실수 클릭).
+      if (deltaMin !== 0) {
+        onResize?.(finalEnd.toISOString());
+      }
+      setResizeDeltaPx(null);
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  };
+
+  const isResizing = resizeDeltaPx !== null;
+  const baseHeight = typeof style.height === 'number' ? (style.height as number) : 0;
+  const liveHeight = isResizing ? Math.max(20, baseHeight + (resizeDeltaPx ?? 0)) : style.height;
+
+  // 라이브 종료 시각 — resize 중에만 inline chip 으로 표시.
+  const liveEndLabel = (() => {
+    if (!isResizing || !item.data.startAt || !item.data.endAt) return null;
+    const deltaMin = ((resizeDeltaPx ?? 0) / HOUR_PX) * 60;
+    const oldEnd = new Date(item.data.endAt);
+    const start = new Date(item.data.startAt);
+    const newEnd = new Date(oldEnd.getTime() + deltaMin * 60_000);
+    const minEnd = new Date(start.getTime() + MIN_DURATION_MIN * 60_000);
+    const finalEnd = newEnd.getTime() < minEnd.getTime() ? minEnd : newEnd;
+    const totalMin = Math.round((finalEnd.getTime() - start.getTime()) / 60_000);
+    return { time: formatHm(finalEnd.toISOString()), dur: formatDur(totalMin) };
+  })();
 
   const composedStyle: React.CSSProperties = {
     ...style,
-    transform: CSS.Translate.toString(transform),
+    transform: isDragging ? CSS.Translate.toString(transform) : undefined,
     opacity: isDragging ? 0.5 : 1,
-    height:
-      typeof style.height === 'number' && resize.isDragging && resizeDeltaPx
-        ? Math.max(20, (style.height as number) + resizeDeltaPx)
-        : style.height,
-    zIndex: isDragging || resize.isDragging ? 30 : 10,
+    height: liveHeight,
+    zIndex: isDragging || isResizing ? 30 : 10,
   };
 
   return (
@@ -63,22 +147,33 @@ export const DraggableBlock = ({ item, style, children, enableResize = true, res
       className={cn(
         'group touch-none absolute left-1 right-2 pointer-events-auto cursor-grab',
         isDragging && 'cursor-grabbing shadow-lg',
+        isResizing && 'shadow-lg ring-1 ring-foreground/30',
       )}
     >
       {children}
-      {/* 길이 조정 핸들 — 하단 6px. 블록 hover 시 살짝 보이고, 핸들 hover 시 진하게. */}
+
+      {/* 라이브 종료시각·길이 inline chip — resize 중에만 노출 (블록 우측 하단) */}
+      {liveEndLabel && (
+        <div
+          className="pointer-events-none absolute right-1.5 bottom-2 px-1.5 py-0.5 rounded bg-foreground text-background text-[10.5px] font-mono tabular-nums shadow-sm"
+          aria-hidden
+        >
+          → {liveEndLabel.time}  ·  {liveEndLabel.dur}
+        </div>
+      )}
+
+      {/* 길이 조정 핸들 — 하단 6px. 블록 hover 시 살짝 보이고, 핸들 hover/drag 시 진하게. */}
       {enableResize && (
         <div
-          ref={resize.setNodeRef}
-          {...resize.listeners}
-          {...resize.attributes}
           aria-label="길이 조정"
+          role="slider"
+          onPointerDown={handleResizePointerDown}
+          onClick={(e) => e.stopPropagation()}
           className={cn(
             'absolute left-0 right-0 bottom-0 h-1.5 cursor-ns-resize rounded-b transition-all',
             'bg-transparent group-hover:bg-foreground/15 hover:!bg-foreground/45',
-            resize.isDragging && '!bg-primary/55',
+            isResizing && '!bg-primary/55',
           )}
-          onClick={(e) => e.stopPropagation()}
         />
       )}
     </div>

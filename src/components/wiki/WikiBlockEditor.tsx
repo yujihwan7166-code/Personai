@@ -13,6 +13,10 @@ import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import { Markdown } from 'tiptap-markdown';
 import { WikiEditorToolbar } from './WikiEditorToolbar';
 import { WikiPagePickerModal } from './WikiPagePickerModal';
@@ -117,6 +121,10 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
       Underline,
       Superscript,
       Subscript,
+      Table.configure({ resizable: true, HTMLAttributes: { class: 'wiki-table' } }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Markdown.configure({
         html: false,
         tightLists: true,

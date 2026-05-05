@@ -48,26 +48,53 @@ interface Props {
 export function MemoToolbar({ editor, onPickImage }: Props) {
   if (!editor) return null;
 
+  /**
+   * 첫 노드(=제목) 가드 — 커서가 doc 의 첫 child 안에 있으면
+   * 구조 변경(헤딩/리스트/체크리스트/인용/코드블록/구분선/표) 차단.
+   * 인라인 포맷(B/I/U/S/code/색/하이라이트/정렬/링크)은 허용.
+   */
+  const isInFirstNode = (): boolean => {
+    const { from } = editor.state.selection;
+    const $pos = editor.state.doc.resolve(from);
+    return $pos.depth === 0 || $pos.before(1) === 0;
+  };
+
+  /** 가드 — 첫 노드 안이면 toast 띄우고 무시. */
+  const guarded = (fn: () => void) => () => {
+    if (isInFirstNode()) {
+      // 가벼운 hint — title 영역엔 텍스트만.
+      const editorEl = editor.view.dom as HTMLElement;
+      editorEl.style.transition = 'background 200ms';
+      editorEl.style.background = 'hsl(var(--accent) / 0.5)';
+      setTimeout(() => { editorEl.style.background = ''; }, 200);
+      return;
+    }
+    fn();
+  };
+
   const exec = {
+    // 인라인 — 어디서나 OK
     bold: () => editor.chain().focus().toggleBold().run(),
     italic: () => editor.chain().focus().toggleItalic().run(),
     underline: () => editor.chain().focus().toggleUnderline().run(),
     strike: () => editor.chain().focus().toggleStrike().run(),
     code: () => editor.chain().focus().toggleCode().run(),
-    h1: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
-    h2: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-    h3: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
-    para: () => editor.chain().focus().setParagraph().run(),
-    bullet: () => editor.chain().focus().toggleBulletList().run(),
-    ordered: () => editor.chain().focus().toggleOrderedList().run(),
-    task: () => editor.chain().focus().toggleTaskList().run(),
-    quote: () => editor.chain().focus().toggleBlockquote().run(),
-    codeblock: () => editor.chain().focus().toggleCodeBlock().run(),
-    hr: () => editor.chain().focus().setHorizontalRule().run(),
     alignLeft: () => editor.chain().focus().setTextAlign('left').run(),
     alignCenter: () => editor.chain().focus().setTextAlign('center').run(),
     alignRight: () => editor.chain().focus().setTextAlign('right').run(),
     alignJustify: () => editor.chain().focus().setTextAlign('justify').run(),
+    // 구조 변경 — 첫 노드(=제목)에선 차단
+    h1: guarded(() => editor.chain().focus().toggleHeading({ level: 1 }).run()),
+    h2: guarded(() => editor.chain().focus().toggleHeading({ level: 2 }).run()),
+    h3: guarded(() => editor.chain().focus().toggleHeading({ level: 3 }).run()),
+    para: guarded(() => editor.chain().focus().setParagraph().run()),
+    bullet: guarded(() => editor.chain().focus().toggleBulletList().run()),
+    ordered: guarded(() => editor.chain().focus().toggleOrderedList().run()),
+    task: guarded(() => editor.chain().focus().toggleTaskList().run()),
+    quote: guarded(() => editor.chain().focus().toggleBlockquote().run()),
+    codeblock: guarded(() => editor.chain().focus().toggleCodeBlock().run()),
+    hr: guarded(() => editor.chain().focus().setHorizontalRule().run()),
+    table: guarded(() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()),
   };
 
   return (
@@ -95,7 +122,7 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
           <Lab>체크리스트</Lab>
         </Btn>
         <Btn
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          onClick={exec.table}
           title="표"
         >
           <TableIcon className="w-3.5 h-3.5" />
@@ -247,17 +274,30 @@ const BlockTypeDropdown = ({ editor }: { editor: Editor }) => {
             { label: '제목 1', icon: Heading1, run: () => editor.chain().focus().toggleHeading({ level: 1 }).run() },
             { label: '제목 2', icon: Heading2, run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
             { label: '제목 3', icon: Heading3, run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
-          ].map((opt) => (
-            <button
-              key={opt.label}
-              type="button"
-              onMouseDown={(e) => { e.preventDefault(); opt.run(); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-2 h-7 rounded text-[12px] text-foreground/80 hover:bg-accent hover:text-foreground"
-            >
-              <opt.icon className="w-3.5 h-3.5" />
-              {opt.label}
-            </button>
-          ))}
+          ].map((opt) => {
+            const isFirst = (() => {
+              const { from } = editor.state.selection;
+              const $pos = editor.state.doc.resolve(from);
+              return $pos.depth === 0 || $pos.before(1) === 0;
+            })();
+            const disabled = isFirst;
+            return (
+              <button
+                key={opt.label}
+                type="button"
+                disabled={disabled}
+                onMouseDown={(e) => { e.preventDefault(); if (!disabled) { opt.run(); setOpen(false); } }}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2 h-7 rounded text-[12px] text-foreground/80 hover:bg-accent hover:text-foreground',
+                  disabled && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-foreground/80',
+                )}
+                title={disabled ? '제목(첫 줄)에선 변경 불가' : undefined}
+              >
+                <opt.icon className="w-3.5 h-3.5" />
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

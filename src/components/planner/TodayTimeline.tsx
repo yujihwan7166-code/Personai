@@ -39,6 +39,7 @@ import { SubtaskProgress } from './SubtaskList';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { computeStreakStats } from '@/lib/planner/streak';
 import { parseInstanceId, isInstanceId } from '@/lib/planner/recurrence';
+import { editThisOnly } from '@/lib/planner/seriesEdit';
 import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS, TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
 
@@ -534,6 +535,34 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                     left: `${laneIndex * laneWidth}%`,
                     right: 'auto',
                     width: `calc(${laneWidth}% - 4px)`,
+                  }}
+                  onResize={(newEndIso) => {
+                    // 가상 인스턴스면 detach (master 의 그 occurrence 만 분리).
+                    if (isInstanceId(item.data.id)) {
+                      const parsed = parseInstanceId(item.data.id);
+                      if (!parsed) return;
+                      if (item.kind === 'task') {
+                        const master = taskStore.findMaster(parsed.masterId);
+                        if (!master || !item.data.startAt) return;
+                        editThisOnly(taskStore, master, parsed.occurrenceIso, {
+                          startAt: item.data.startAt,
+                          endAt: newEndIso,
+                        });
+                      } else {
+                        const master = eventStore.findMaster(parsed.masterId);
+                        if (!master || !item.data.startAt) return;
+                        editThisOnly(eventStore, master, parsed.occurrenceIso, {
+                          startAt: item.data.startAt,
+                          endAt: newEndIso,
+                        });
+                      }
+                      return;
+                    }
+                    if (item.kind === 'task') {
+                      taskStore.update(item.data.id, { endAt: newEndIso });
+                    } else {
+                      eventStore.update(item.data.id, { endAt: newEndIso });
+                    }
                   }}
                 >
                 <div

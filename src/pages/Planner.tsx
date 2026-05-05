@@ -52,7 +52,6 @@ import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import {
   DRAG_ACTIVATION_DISTANCE,
-  MIN_BLOCK_MINUTES,
   transposeTimeToDate,
   type PlannerDragData,
   type PlannerDropData,
@@ -416,17 +415,8 @@ const Planner = () => {
       const newEnd = new Date(newStart.getTime() + dur);
       return `${fmtTime(newStart)} ~ ${fmtTime(newEnd)}`;
     }
-    if (data.kind === 'resize-task' || data.kind === 'resize-event') {
-      const item = data.kind === 'resize-task' ? data.task : data.event;
-      if (!item.startAt || !item.endAt) return null;
-      const oldEnd = new Date(item.endAt);
-      const deltaMin = Math.round((deltaY / HOUR_PX) * 60 / 15) * 15;
-      const newEnd = new Date(oldEnd.getTime() + deltaMin * 60_000);
-      const start = new Date(item.startAt);
-      const totalMin = Math.max(15, Math.round((newEnd.getTime() - start.getTime()) / 60_000));
-      const durLabel = totalMin < 60 ? `${totalMin}분` : `${Math.floor(totalMin / 60)}시간${totalMin % 60 ? ` ${totalMin % 60}분` : ''}`;
-      return `${fmtTime(start)} ~ ${fmtTime(newEnd)}  (${durLabel})`;
-    }
+    // resize 는 더 이상 dnd-kit 통과 X — DraggableBlock 안에서 네이티브 pointer event 로 처리.
+    // 블록 자체가 늘어나면서 안 inline chip 으로 시간/길이 노출 (Google Calendar 패턴).
     if (data.kind === 'inbox-task') {
       return `← ${data.task.title}`;
     }
@@ -487,29 +477,7 @@ const Planner = () => {
       return;
     }
 
-    // ─── resize: drop 영역 무관, delta 만 사용 ───
-    if (dragData.kind === 'resize-task' || dragData.kind === 'resize-event') {
-      const item = dragData.kind === 'resize-task' ? dragData.task : dragData.event;
-      if (!item.startAt || !item.endAt) return;
-      const HOUR_PX = 56;
-      const deltaMinutes = Math.round((e.delta.y / HOUR_PX) * 60 / 15) * 15; // 15분 스냅
-      const oldEnd = new Date(item.endAt);
-      const newEnd = new Date(oldEnd.getTime() + deltaMinutes * 60_000);
-      // 최소 길이 보장
-      const minEnd = new Date(new Date(item.startAt).getTime() + MIN_BLOCK_MINUTES * 60_000);
-      const finalEnd = newEnd.getTime() < minEnd.getTime() ? minEnd : newEnd;
-
-      if (dragData.kind === 'resize-task') {
-        if (!tryDetachInstance(item.id, 'task', item.startAt, finalEnd.toISOString())) {
-          taskStore.update(item.id, { endAt: finalEnd.toISOString() });
-        }
-      } else {
-        if (!tryDetachInstance(item.id, 'event', item.startAt, finalEnd.toISOString())) {
-          eventStore.update(item.id, { endAt: finalEnd.toISOString() });
-        }
-      }
-      return;
-    }
+    // resize 는 DraggableBlock 안 네이티브 pointer event 가 처리 — 여기서는 무시.
 
     if (!dropData) return;
 

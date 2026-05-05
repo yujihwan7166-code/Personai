@@ -224,7 +224,7 @@ const Journal = () => {
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-8 sm:py-12 max-w-5xl w-full mx-auto">
         {/* 마스트헤드 — 한 줄 압축, 책 표지 톤 */}
-        <header className="mb-6 sm:mb-8 pb-4 border-b border-[hsl(var(--hairline))]">
+        <header className="mb-6 sm:mb-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-baseline gap-3 sm:gap-4 min-w-0">
               <button

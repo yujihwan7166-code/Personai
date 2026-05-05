@@ -69,7 +69,7 @@ export const JournalWeekSpotlight = ({
     : `${monday.getMonth() + 1}월 ${monday.getDate()}일 ~ ${sunday.getMonth() + 1}월 ${sunday.getDate()}일`;
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-2">
       <header className="flex items-baseline gap-2 px-1">
         <h3 className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-foreground/85 font-semibold">
           이번 주
@@ -110,19 +110,19 @@ export const JournalWeekSpotlight = ({
                   : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
               }
               className={cn(
-                'flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border transition-all',
+                'flex flex-col items-center gap-1 py-2 px-1 rounded-lg border transition-all',
                 'border-[hsl(var(--hairline))] bg-card',
                 !isFuture && 'hover:border-foreground/25 hover:shadow-[0_2px_10px_-4px_hsl(30_30%_8%/0.08)] cursor-pointer',
                 isFuture && 'opacity-40 cursor-default',
                 isToday && 'ring-2 ring-primary/40 ring-offset-2 ring-offset-[hsl(var(--background))]',
               )}
             >
-              <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground leading-none">
                 {WEEKDAYS_KO[i]}
               </span>
               <span
                 className={cn(
-                  'text-[18px] tabular-nums leading-none',
+                  'text-[16px] tabular-nums leading-none',
                   isToday ? 'text-primary font-bold' : 'text-foreground font-medium',
                 )}
                 style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
@@ -130,13 +130,13 @@ export const JournalWeekSpotlight = ({
                 {d.getDate()}
               </span>
               {hasEntry ? (
-                <span className="flex items-center gap-0.5 mt-0.5">
+                <span className="flex items-center gap-0.5">
                   <span
                     className={cn('w-1.5 h-1.5 rounded-full', tintClass)}
                     aria-label={mood ? `mood ${mood}` : '작성됨'}
                   />
                   {dayEntries.length > 1 && (
-                    <span className="text-[8.5px] font-mono tabular-nums text-muted-foreground">
+                    <span className="text-[8.5px] font-mono tabular-nums text-muted-foreground leading-none">
                       {dayEntries.length}
                     </span>
                   )}
