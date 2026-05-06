@@ -44,7 +44,7 @@ export const HabitsView = () => {
   return (
     <>
       <div className="h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] gap-0 min-h-0">
-        <div className="min-h-0 lg:border-r lg:border-foreground/20">
+        <div className="min-h-0">
           <HabitListPane
             habits={habits}
             allCheckins={allCheckins}
