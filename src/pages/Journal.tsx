@@ -272,12 +272,12 @@ const Journal = () => {
               </div>
             )}
 
-            <div className="flex items-center gap-2.5 flex-wrap ml-auto">
-            {/* 검색 input — 폭 고정 (focus 시 크기 변화 X) */}
+            <div className="flex items-center gap-3 flex-wrap ml-auto">
+            {/* 검색 input — focus 시 외곽 변화 X (영역 침범 인상 방지) */}
             <div
               className={cn(
-                'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border transition-colors w-36',
-                'border-[hsl(var(--hairline))] bg-card/60 focus-within:bg-card focus-within:border-foreground/25',
+                'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border w-36',
+                'border-[hsl(var(--hairline))] bg-card/60',
               )}
             >
               <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -288,7 +288,8 @@ const Journal = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="검색"
                 aria-label="일기 검색"
-                className="flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-transparent text-[12.5px] outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
+                style={{ outline: 'none', boxShadow: 'none' }}
               />
               {query.length > 0 && (
                 <button
@@ -316,15 +317,17 @@ const Journal = () => {
                 type="button"
                 role="tab"
                 aria-selected={effectiveViewMode === 'week'}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setViewMode('week')}
                 disabled={query.trim().length > 0 || hasActiveFilter}
                 title="주간 보드"
                 className={cn(
-                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30',
+                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
                   effectiveViewMode === 'week'
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
                 )}
+                style={{ outline: 'none', boxShadow: 'none' }}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
               </button>
@@ -332,14 +335,16 @@ const Journal = () => {
                 type="button"
                 role="tab"
                 aria-selected={effectiveViewMode === 'list'}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setViewMode('list')}
                 title="시간순 목록"
                 className={cn(
-                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30',
+                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
                   effectiveViewMode === 'list'
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
+                style={{ outline: 'none', boxShadow: 'none' }}
               >
                 <List className="h-3.5 w-3.5" />
               </button>
@@ -349,16 +354,18 @@ const Journal = () => {
             {(topActivities.length > 0 || topTags.length > 0) && (
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setFilterOpen((v) => !v)}
                 aria-expanded={filterOpen}
                 aria-label="필터"
                 title={hasActiveFilter ? '필터 활성' : '필터'}
                 className={cn(
-                  'relative inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30',
+                  'relative inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors outline-none focus:outline-none focus-visible:outline-none',
                   filterOpen || hasActiveFilter
                     ? 'border-foreground/25 bg-accent text-foreground'
                     : 'border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card',
                 )}
+                style={{ outline: 'none', boxShadow: 'none' }}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 {hasActiveFilter && (
