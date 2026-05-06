@@ -165,17 +165,14 @@
   background: hsl(var(--foreground) / 0.06);
   font-weight: 600;
 }
-.memo-prose .ProseMirror td:hover { background: hsl(var(--accent) / 0.45); }
-/* selectedCell — ProseMirror 가 selection 으로 표시. 단일 커서 셀에도 강조 */
+/* 셀 hover/focus/selection 강조는 box-shadow 만 — 사용자가 셀에 칠한 배경색을 가리지 않게 */
+.memo-prose .ProseMirror td:hover { box-shadow: inset 0 0 0 1.5px hsl(var(--foreground) / 0.18); }
 .memo-prose .ProseMirror .selectedCell {
-  background: hsl(var(--primary) / 0.12);
-  box-shadow: inset 0 0 0 2px hsl(var(--primary) / 0.55);
+  box-shadow: inset 0 0 0 2px hsl(var(--primary) / 0.7);
 }
 .memo-prose .ProseMirror .selectedCell::after { content: none; }
-/* 현재 셀 — 커서가 들어있는 셀 하이라이트 (focus-within) */
 .memo-prose .ProseMirror td:focus-within,
 .memo-prose .ProseMirror th:focus-within {
-  background: hsl(var(--primary) / 0.07);
   box-shadow: inset 0 0 0 1.5px hsl(var(--primary) / 0.55);
 }
 /* 열 리사이즈 핸들 — 평소엔 옅게, hover 시 선명하게 (발견성) */
