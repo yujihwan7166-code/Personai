@@ -190,11 +190,11 @@ const Memos = () => {
       {/* 좌 사이드 */}
       <aside className={cn(
         'shrink-0 border-r border-foreground/25 bg-card flex flex-col',
-        isMobile ? 'w-full' : 'w-[320px]',
+        isMobile ? 'w-full' : 'w-[268px]',
         !showSidebar && 'hidden',
       )}>
         {/* 상단 — 뒤로 + 제목 + 새 메모 */}
-        <div className="shrink-0 px-3.5 py-3 border-b border-foreground/22 flex items-center gap-2">
+        <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22 flex items-center gap-1">
           <button
             onClick={() => navigate('/')}
             className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -226,7 +226,7 @@ const Memos = () => {
         </div>
 
         {/* 검색 */}
-        <div className="shrink-0 px-3.5 py-2.5 border-b border-foreground/22">
+        <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22">
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/50">
             <Search className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
             <input
@@ -284,7 +284,7 @@ const Memos = () => {
             <>
               {/* 폴더들 — 헤더 없이 바로 */}
               {(folders.length > 0 || creatingFolder) && (
-                <div className="px-2 pt-2 pb-1 space-y-0.5">
+                <div className="px-1.5 pt-1.5 pb-0.5 space-y-0.5">
                   {folders.map((f) => (
                     <FolderGroup
                       key={f.id}
@@ -328,7 +328,7 @@ const Memos = () => {
 
               {/* 미분류 메모 — 헤더·분리선 없이 폴더 바로 아래 (작은 점으로 "폴더 밖" 표시) */}
               {unfiledMemos.length > 0 ? (
-                <ul className="px-2 pb-1">
+                <ul className="px-1.5 pb-0.5">
                   {unfiledMemos.map((m) => (
                     <MemoRow
                       key={m.id}
@@ -522,7 +522,7 @@ function FolderGroup({
   return (
     <div>
       <div
-        className="group flex items-center gap-2 h-10 px-3 rounded-md cursor-pointer text-foreground hover:bg-foreground/5 transition-colors"
+        className="group flex items-center gap-2 h-9 px-2 rounded-md cursor-pointer text-foreground hover:bg-foreground/5 transition-colors"
         onClick={onToggle}
         onDoubleClick={onStartRename}
       >
@@ -547,7 +547,7 @@ function FolderGroup({
             type="button"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
             className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-background hover:text-foreground transition-colors"
-            title="폴더 편집 (이름·이모지·색)"
+            title="폴더 편집 (이름·색)"
           >
             <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={1.75} />
           </button>
@@ -818,8 +818,8 @@ function MemoRow({
         className={cn(
           'relative w-full text-left transition-all rounded-md',
           isCardMode
-            ? 'flex flex-col gap-1 px-3 py-3'
-            : 'flex items-center gap-2 h-8 px-3',
+            ? 'flex flex-col gap-0.5 px-2 py-2'
+            : 'flex items-center gap-1.5 h-7 px-2',
           hasActions && 'pr-9',
           active
             ? 'bg-foreground/14 ring-1 ring-inset ring-foreground/28 text-foreground'
