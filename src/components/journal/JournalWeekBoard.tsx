@@ -144,20 +144,21 @@ export const JournalWeekBoard = ({
               )}
             >
               <span className="inline-flex items-center gap-1">
+                {/* 오늘 = iOS Calendar 패턴 둥근 fill, 그 외 = 평이한 텍스트 */}
                 <span
                   className={cn(
-                    'text-[13px] sm:text-[14px] tracking-[-0.01em] transition-colors',
-                    isSelected
-                      ? 'font-semibold text-foreground'
-                      : isToday
-                        ? 'font-semibold text-primary'
-                        : 'font-medium text-muted-foreground group-hover/tab:text-foreground/85',
+                    'inline-flex items-center justify-center text-[13px] sm:text-[14px] tracking-[-0.01em] transition-colors',
+                    isToday && 'h-7 w-7 rounded-full font-semibold',
+                    isToday && isSelected && 'bg-primary text-primary-foreground',
+                    isToday && !isSelected && 'bg-primary/15 text-primary',
+                    !isToday && isSelected && 'font-semibold text-foreground',
+                    !isToday && !isSelected && 'font-medium text-muted-foreground group-hover/tab:text-foreground/85',
                   )}
                 >
                   {WEEKDAYS_KO[i]}
                 </span>
-                {/* 작성된 날 — 요일 글자 옆 작은 dot */}
-                {hasEntry && (
+                {/* 작성된 날 — 요일 옆 작은 dot (오늘이면 dot 자체 안 보여도 fill 으로 충분) */}
+                {hasEntry && !isToday && (
                   <span
                     className={cn(
                       'w-1 h-1 rounded-full',
