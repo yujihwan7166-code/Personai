@@ -316,7 +316,13 @@ const Planner = () => {
   }, [anchorIso, view]);
 
   // 헤더 라벨 — day 뷰만 "오늘"/"내일" smart label + 보조 라벨, 그 외 periodLabel.
+  // habits 뷰는 시간 네비 무관 — "오늘 + 날짜" 로 컨텍스트 명확화.
   const headerLabels = useMemo<{ primary: string; secondary?: string }>(() => {
+    if (view === 'habits') {
+      const t = new Date();
+      const fullLabel = t.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+      return { primary: '오늘', secondary: fullLabel };
+    }
     if (view !== 'day') return { primary: periodLabel };
     const d = new Date(anchorIso);
     const t = new Date();
@@ -675,18 +681,20 @@ const Planner = () => {
             [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
             ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}
         <div className="mb-3 flex items-center gap-3 px-1">
-          {/* 시간 네비 cluster — goals 외 모든 뷰. */}
+          {/* 시간 네비 cluster — goals 외 모든 뷰. habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
           {view !== 'goals' && (
             <div className="shrink-0 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={goPrev}
-                aria-label="이전"
-                title="이전 (←)"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
+              {view !== 'habits' && (
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="이전"
+                  title="이전 (←)"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              )}
               <div className="min-w-0 flex items-baseline gap-3">
                 <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-foreground leading-none truncate">
                   {headerLabels.primary}
@@ -697,30 +705,34 @@ const Planner = () => {
                   </span>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={goNext}
-                aria-label="다음"
-                title="다음 (→)"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={goToday}
-                disabled={anchorIsToday}
-                aria-label="오늘로"
-                title="오늘로 (T)"
-                className={cn(
-                  'ml-1 h-8 px-3 text-[13px] font-semibold rounded-md border border-foreground/20 transition-colors',
-                  anchorIsToday
-                    ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
-                    : 'bg-card text-foreground hover:bg-accent',
-                )}
-              >
-                오늘로
-              </button>
+              {view !== 'habits' && (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="다음"
+                  title="다음 (→)"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              )}
+              {view !== 'habits' && (
+                <button
+                  type="button"
+                  onClick={goToday}
+                  disabled={anchorIsToday}
+                  aria-label="오늘로"
+                  title="오늘로 (T)"
+                  className={cn(
+                    'ml-1 h-8 px-3 text-[13px] font-semibold rounded-md border border-foreground/20 transition-colors',
+                    anchorIsToday
+                      ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
+                      : 'bg-card text-foreground hover:bg-accent',
+                  )}
+                >
+                  오늘로
+                </button>
+              )}
             </div>
           )}
 
