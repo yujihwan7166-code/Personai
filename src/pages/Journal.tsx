@@ -272,7 +272,7 @@ const Journal = () => {
               </div>
             )}
 
-            <div className="flex items-center gap-2 flex-wrap ml-auto">
+            <div className="flex items-center gap-2.5 flex-wrap ml-auto">
             {/* 검색 input — 폭 고정 (focus 시 크기 변화 X) */}
             <div
               className={cn(
@@ -320,7 +320,7 @@ const Journal = () => {
                 disabled={query.trim().length > 0 || hasActiveFilter}
                 title="주간 보드"
                 className={cn(
-                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors',
+                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30',
                   effectiveViewMode === 'week'
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
@@ -335,7 +335,7 @@ const Journal = () => {
                 onClick={() => setViewMode('list')}
                 title="시간순 목록"
                 className={cn(
-                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors',
+                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30',
                   effectiveViewMode === 'list'
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:text-foreground',
@@ -354,7 +354,7 @@ const Journal = () => {
                 aria-label="필터"
                 title={hasActiveFilter ? '필터 활성' : '필터'}
                 className={cn(
-                  'relative inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors',
+                  'relative inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30',
                   filterOpen || hasActiveFilter
                     ? 'border-foreground/25 bg-accent text-foreground'
                     : 'border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card',
