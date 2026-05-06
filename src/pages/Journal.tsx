@@ -276,8 +276,8 @@ const Journal = () => {
             {/* 검색 input — 폭 고정 (focus 시 크기 변화 X) */}
             <div
               className={cn(
-                'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border transition-colors w-44',
-                'border-[hsl(var(--hairline))] bg-card/60 focus-within:bg-card focus-within:border-foreground/25 focus-within:shadow-[0_1px_4px_hsl(30_30%_8%/0.04)]',
+                'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border transition-colors w-36',
+                'border-[hsl(var(--hairline))] bg-card/60 focus-within:bg-card focus-within:border-foreground/25',
               )}
             >
               <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
