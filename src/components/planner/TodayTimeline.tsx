@@ -218,7 +218,13 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
 
   /** 빈 영역 mousedown → drag → mouseup 으로 시간 범위 그리기.
    *  자식 block 안이면 무시 (dnd-kit 처리). 5px 미만 이동은 click 으로 (slot button onClick).
-   *  드래그 중 마우스가 컨테이너 가장자리에 닿으면 자동 스크롤 (Google Calendar 패턴). */
+   *  드래그 중 마우스가 컨테이너 가장자리에 닿으면 자동 스크롤 (Google Calendar 패턴).
+   *
+   *  ghost 위치 갱신 트리거 — 셋 다:
+   *   1) pointermove (마우스 이동)
+   *   2) autoScroll onTick (마우스 정지 + 가장자리 자동 스크롤)
+   *   3) scroll 이벤트 (사용자 휠/터치/관성)
+   *  세 경로 모두 마지막 알려진 clientY 로 재계산해 좌표가 절대 stale 안 되게. */
   const handleGridPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
@@ -229,7 +235,10 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     const startMin = visibleStart * 60 + yToMin(y);
     dragStartRef.current = { clientY: e.clientY, startMin };
 
-    /** clientY 기준 ghost 위치 재계산 — pointermove + autoScroll onTick 공용. */
+    // 마지막 알려진 마우스 viewport y — pointermove 와 scroll 모두에서 참조.
+    let lastClientY = e.clientY;
+
+    /** clientY 기준 ghost 위치 재계산. */
     const recomputeRange = (clientY: number) => {
       if (!dragStartRef.current || !gridRef.current) return;
       const r = gridRef.current.getBoundingClientRect();
@@ -242,19 +251,26 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     };
 
     const autoScroller = createAutoScroller(scrollRef.current, {
-      // 자동 스크롤 매 프레임 — 마우스가 멈춰 있어도 grid 의 r.top 이
-      // 변하므로 ghost 좌표를 다시 계산해 마우스 위치를 따라가게 한다.
       onTick: (clientY) => recomputeRange(clientY),
     });
 
     const handleMove = (ev: PointerEvent) => {
+      lastClientY = ev.clientY;
       recomputeRange(ev.clientY);
       autoScroller.update(ev.clientY);
+    };
+
+    /** 어떤 종류든 스크롤이 발생하면 마지막 알려진 마우스 위치로 ghost 재계산.
+     *  자동 스크롤이 아닌 휠·터치 등도 잡힘. */
+    const handleScroll = () => {
+      recomputeRange(lastClientY);
     };
 
     const handleUp = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+      scrollRef.current?.removeEventListener('scroll', handleScroll);
       autoScroller.stop();
       const start = dragStartRef.current;
       dragStartRef.current = null;
@@ -264,7 +280,6 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       }
       const moved = Math.abs(ev.clientY - start.clientY);
       if (moved < 5) {
-        // click — slot button onClick 이 자동 fire.
         setDragRange(null);
         return;
       }
@@ -287,6 +302,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
 
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleUp);
+    window.addEventListener('pointercancel', handleUp);
+    scrollRef.current?.addEventListener('scroll', handleScroll, { passive: true });
   };
 
   const handleDeleteTask = (task: PlannerTask) => {

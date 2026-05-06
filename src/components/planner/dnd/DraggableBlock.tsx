@@ -77,11 +77,16 @@ export const DraggableBlock = ({
     );
 
     // 자동 스크롤로 컨테이너가 움직인 누적 픽셀 — raw delta 에 더해 보상.
-    let accScrollDelta = 0;
+    // 사용자 휠/터치 스크롤도 같이 잡혀야 하므로 scrollTop 변화량을 직접 추적.
+    const initialScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+    let lastClientY = e.clientY;
 
-    /** clientY 기준 resize delta 재계산 — pointermove + autoScroll onTick 공용. */
+    /** clientY 기준 resize delta 재계산. scrollTop 변화량 자동 보상. */
     const recomputeResize = (clientY: number) => {
-      const raw = clientY - startY + accScrollDelta;
+      const scrollAcc = scrollContainer
+        ? scrollContainer.scrollTop - initialScrollTop
+        : 0;
+      const raw = clientY - startY + scrollAcc;
       const snapped = Math.round(raw / SNAP_PX) * SNAP_PX;
       const minHeight = (MIN_DURATION_MIN / 60) * HOUR_PX;
       const proposedHeight = baseHeight + snapped;
@@ -90,16 +95,19 @@ export const DraggableBlock = ({
     };
 
     const autoScroller = createAutoScroller(scrollContainer, {
-      onTick: (clientY, scrollDelta) => {
-        accScrollDelta += scrollDelta;
-        recomputeResize(clientY);
-      },
+      onTick: (clientY) => recomputeResize(clientY),
     });
+
+    /** 사용자 휠/터치/관성 스크롤도 보상. */
+    const onScroll = () => {
+      recomputeResize(lastClientY);
+    };
 
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
 
     const onMove = (ev: PointerEvent) => {
+      lastClientY = ev.clientY;
       recomputeResize(ev.clientY);
       autoScroller.update(ev.clientY);
     };
@@ -108,11 +116,15 @@ export const DraggableBlock = ({
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onUp);
+      scrollContainer?.removeEventListener('scroll', onScroll);
       autoScroller.stop();
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
 
-      const raw = ev.clientY - startY + accScrollDelta;
+      const finalScrollAcc = scrollContainer
+        ? scrollContainer.scrollTop - initialScrollTop
+        : 0;
+      const raw = ev.clientY - startY + finalScrollAcc;
       const snapped = Math.round(raw / SNAP_PX) * SNAP_PX;
       const deltaMin = (snapped / HOUR_PX) * 60;
 
@@ -132,6 +144,7 @@ export const DraggableBlock = ({
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onUp);
+    scrollContainer?.addEventListener('scroll', onScroll, { passive: true });
   };
 
   const isResizing = resizeDeltaPx !== null;
