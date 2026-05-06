@@ -462,7 +462,10 @@ const Planner = () => {
       : undefined;
     setActiveDrag(null);
 
-    if (!dragData) return;
+    if (!dragData) {
+      dragInitialScrollTop.current = null;
+      return;
+    }
 
     // ─── List 트리에 드롭: 분류 변경 ───
     if (
@@ -506,7 +509,13 @@ const Planner = () => {
       const oldEnd = new Date(item.endAt);
       const dur = oldEnd.getTime() - oldStart.getTime();
       const snap = getSnapMin();
-      const deltaMinutes = Math.round((e.delta.y / HOUR_PX) * 60 / snap) * snap; // 사용자 스냅 단위
+      // 자동 스크롤 보상 — 드래그 중 컨테이너가 스크롤된 만큼 e.delta.y 에 더함.
+      const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
+      const scrollDelta = container && dragInitialScrollTop.current !== null
+        ? container.scrollTop - dragInitialScrollTop.current
+        : 0;
+      const adjustedDeltaY = e.delta.y + scrollDelta;
+      const deltaMinutes = Math.round((adjustedDeltaY / HOUR_PX) * 60 / snap) * snap; // 사용자 스냅 단위
       const newStartDate = new Date(oldStart.getTime() + deltaMinutes * 60_000);
       const newStart = newStartDate.toISOString();
       const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
@@ -645,6 +654,7 @@ const Planner = () => {
       }
       notify.success('할 일로 옮겼어요', { duration: 1500 });
     }
+    dragInitialScrollTop.current = null;
   }, [tryDetachInstance]);
 
   return (
