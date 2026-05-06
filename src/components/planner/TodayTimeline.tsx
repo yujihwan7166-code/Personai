@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useSnapMin } from '@/hooks/planner/useSnapMin';
 import { setSnapMin, SNAP_OPTIONS, type SnapMin } from '@/lib/planner/snapMin';
+import { createAutoScroller } from '@/lib/planner/timelineAutoScroll';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { computeStreakStats } from '@/lib/planner/streak';
 import { parseInstanceId, isInstanceId } from '@/lib/planner/recurrence';
@@ -216,7 +217,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   };
 
   /** 빈 영역 mousedown → drag → mouseup 으로 시간 범위 그리기.
-   *  자식 block 안이면 무시 (dnd-kit 처리). 5px 미만 이동은 click 으로 (slot button onClick). */
+   *  자식 block 안이면 무시 (dnd-kit 처리). 5px 미만 이동은 click 으로 (slot button onClick).
+   *  드래그 중 마우스가 컨테이너 가장자리에 닿으면 자동 스크롤 (Google Calendar 패턴). */
   const handleGridPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
@@ -227,6 +229,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     const startMin = visibleStart * 60 + yToMin(y);
     dragStartRef.current = { clientY: e.clientY, startMin };
 
+    const autoScroller = createAutoScroller(scrollRef.current);
+
     const handleMove = (ev: PointerEvent) => {
       if (!dragStartRef.current || !gridRef.current) return;
       const r = gridRef.current.getBoundingClientRect();
@@ -236,12 +240,14 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       const moved = Math.abs(ev.clientY - dragStartRef.current.clientY);
       if (moved >= 5) {
         setDragRange({ startMin: dragStartRef.current.startMin, currentMin: m });
+        autoScroller.update(ev.clientY);
       }
     };
 
     const handleUp = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
+      autoScroller.stop();
       const start = dragStartRef.current;
       dragStartRef.current = null;
       if (!start) {
@@ -477,7 +483,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   );
 
   const body = (
-    <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+    <div ref={scrollRef} data-timeline-scroll="true" className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
         {compact && hiddenByCompact.early > 0 && (
           <HiddenBanner where="early" count={hiddenByCompact.early} />
         )}

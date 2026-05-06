@@ -644,7 +644,13 @@ const Planner = () => {
   }, [tryDetachInstance]);
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+      autoScroll={{ threshold: { x: 0, y: 0.15 }, acceleration: 12 }}
+    >
     <div className="min-h-screen bg-[hsl(40_30%_97%)] flex">
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
       <aside className="shrink-0 w-12 border-r border-foreground/20 bg-card/40">

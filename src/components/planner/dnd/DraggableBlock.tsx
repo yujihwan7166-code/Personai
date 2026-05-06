@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import type { PlannerEvent, PlannerTask } from '@/types/planner';
 import type { PlannerDragData } from './plannerDndTypes';
 import { useSnapMin } from '@/hooks/planner/useSnapMin';
+import { createAutoScroller } from '@/lib/planner/timelineAutoScroll';
 
 const HOUR_PX = 56;
 const MIN_DURATION_MIN = 15;
@@ -70,6 +71,12 @@ export const DraggableBlock = ({
     const startY = e.clientY;
     const baseHeight = typeof style.height === 'number' ? (style.height as number) : 0;
 
+    // 부모 타임라인의 스크롤 컨테이너 찾아서 가장자리 자동 스크롤.
+    const scrollContainer = (e.currentTarget as HTMLElement).closest<HTMLElement>(
+      '[data-timeline-scroll="true"]',
+    );
+    const autoScroller = createAutoScroller(scrollContainer);
+
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
 
@@ -81,12 +88,14 @@ export const DraggableBlock = ({
       const proposedHeight = baseHeight + snapped;
       const clampedDelta = proposedHeight < minHeight ? minHeight - baseHeight : snapped;
       setResizeDeltaPx(clampedDelta);
+      autoScroller.update(ev.clientY);
     };
 
     const onUp = (ev: PointerEvent) => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onUp);
+      autoScroller.stop();
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
 

@@ -503,7 +503,7 @@ function FolderGroup({
   if (renaming) {
     return (
       <div className="flex items-center gap-2 h-9 px-3 rounded-md bg-accent/60">
-        <span className="text-[15px] leading-none">{folder.emoji ?? '📁'}</span>
+        <span className="text-[15px] leading-none">📁</span>
         <input
           autoFocus
           value={draft}
@@ -530,7 +530,7 @@ function FolderGroup({
           className="inline-flex items-center justify-center h-6 w-6 rounded-md text-[15px] leading-none shrink-0"
           style={folderColor ? { backgroundColor: `color-mix(in oklab, ${folderColor} 25%, hsl(var(--background)))` } : { backgroundColor: 'hsl(var(--accent))' }}
         >
-          {folder.emoji ?? '📁'}
+          📁
         </span>
         <span className="flex-1 text-[14.5px] font-bold truncate text-foreground">{folder.name}</span>
         <span className="text-[11.5px] tabular-nums text-foreground/55 font-medium group-hover:hidden px-1.5 rounded bg-foreground/8">{memos.length}</span>
@@ -618,8 +618,7 @@ function NewFolderInput({ onSubmit, onCancel }: { onSubmit: (name: string) => vo
 }
 
 // ──────────────────────────────────────────
-// 폴더 편집 모달 — 이름 / 이모지 / 색
-const FOLDER_EMOJI_PRESETS = ['📁', '📒', '📚', '📝', '✨', '🚀', '💡', '🧠', '🎯', '🏷️', '⚡', '🔖'];
+// 폴더 편집 모달 — 이름 / 색만 (폴더는 항상 📁 고정)
 const FOLDER_COLOR_OPTIONS: Array<MemoFolderColor | null> = [
   null, 'blue', 'teal', 'green', 'amber', 'orange', 'rose', 'violet', 'cyan',
 ];
@@ -632,13 +631,12 @@ function FolderEditModal({
   onDelete: () => void;
 }) {
   const [name, setName] = useState(folder.name);
-  const [emoji, setEmoji] = useState(folder.emoji ?? '📁');
   const [color, setColor] = useState<MemoFolderColor | undefined>(folder.color);
 
   const save = () => {
     updateFolder(folder.id, {
       name: name.trim() || folder.name,
-      emoji,
+      emoji: '📁',
       color,
     });
     notify.success('폴더 저장됨', { duration: 1200 });
@@ -649,7 +647,7 @@ function FolderEditModal({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md" hideClose>
         <DialogTitle className="text-[15px] font-semibold">폴더 편집</DialogTitle>
-        <DialogDescription className="sr-only">폴더의 이름·이모지·색을 변경합니다.</DialogDescription>
+        <DialogDescription className="sr-only">폴더의 이름과 색을 변경합니다.</DialogDescription>
 
         <div className="flex flex-col gap-4 mt-1">
           {/* 이름 + 미리보기 */}
@@ -658,7 +656,7 @@ function FolderEditModal({
               className="h-10 w-10 inline-flex items-center justify-center rounded-md text-[20px] shrink-0"
               style={color ? { backgroundColor: `color-mix(in oklab, ${MEMO_FOLDER_COLORS[color].stripe} 22%, hsl(var(--background)))` } : { backgroundColor: 'hsl(var(--accent))' }}
             >
-              {emoji}
+              📁
             </span>
             <input
               type="text"
@@ -669,26 +667,6 @@ function FolderEditModal({
               onKeyDown={(e) => { if (e.key === 'Enter') save(); }}
               className="flex-1 px-3 py-2 text-[14px] rounded-md border border-foreground/15 bg-card focus:border-foreground/40 focus:outline-none"
             />
-          </div>
-
-          {/* 이모지 */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[12.5px] font-semibold text-foreground/80 leading-none">이모지</label>
-            <div className="grid grid-cols-6 gap-1">
-              {FOLDER_EMOJI_PRESETS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setEmoji(e)}
-                  className={cn(
-                    'h-9 inline-flex items-center justify-center rounded-md text-[18px] hover:bg-accent transition-colors',
-                    e === emoji && 'bg-accent ring-1 ring-foreground/30',
-                  )}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* 색 */}

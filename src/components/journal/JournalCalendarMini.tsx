@@ -28,20 +28,27 @@ const monthLabelOf = (d: Date): string =>
 
 export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: JournalCalendarMiniProps) => {
   const [anchorDate, setAnchorDate] = useState(() => new Date());
+  const [hoverDate, setHoverDate] = useState<string | null>(null);
   const today = useMemo(() => {
     const t = new Date();
     t.setHours(0, 0, 0, 0);
     return t;
   }, []);
 
-  // 일별 카운트 — 그 달 + 오버플로우 셀 포함.
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    entries.forEach((e) => {
-      map.set(e.date, (map.get(e.date) ?? 0) + 1);
+  // 일별 카운트 + 첫 entry — 그 달 + 오버플로우 셀 포함.
+  const { counts, firstEntries } = useMemo(() => {
+    const cnt = new Map<string, number>();
+    const first = new Map<string, JournalEntry>();
+    // 시간순 정렬 후 처음 발견되는 entry 가 첫 entry 가 되도록
+    const sorted = [...entries].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    sorted.forEach((e) => {
+      cnt.set(e.date, (cnt.get(e.date) ?? 0) + 1);
+      if (!first.has(e.date)) first.set(e.date, e);
     });
-    return map;
+    return { counts: cnt, firstEntries: first };
   }, [entries]);
+
+  const hoverEntry = hoverDate ? firstEntries.get(hoverDate) : null;
 
   const { weeks, monthLabel } = useMemo(() => {
     const year = anchorDate.getFullYear();
@@ -165,6 +172,8 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
                 key={`${cell.iso}-${ci}`}
                 type="button"
                 onClick={() => cell.busyCount > 0 && onDayClick?.(cell.iso)}
+                onMouseEnter={() => cell.busyCount > 0 && setHoverDate(cell.iso)}
+                onMouseLeave={() => setHoverDate((cur) => (cur === cell.iso ? null : cur))}
                 disabled={cell.busyCount === 0 && !cell.isToday}
                 className={cn(
                   'relative aspect-square flex items-center justify-center text-[10.5px] tabular-nums rounded transition-colors',
