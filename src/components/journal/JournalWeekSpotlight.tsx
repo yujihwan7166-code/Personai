@@ -71,11 +71,11 @@ export const JournalWeekSpotlight = ({
   return (
     <section className="flex flex-col gap-2">
       <header className="flex items-baseline gap-2 px-1">
-        <h3 className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-foreground/85 font-semibold">
+        <h3 className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground/85 font-semibold">
           이번 주
         </h3>
         <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="text-[11px] font-medium tracking-[-0.005em] text-muted-foreground">
           {rangeLabel}
         </span>
       </header>
@@ -117,7 +117,7 @@ export const JournalWeekSpotlight = ({
                 isToday && 'ring-2 ring-primary/40 ring-offset-2 ring-offset-[hsl(var(--background))]',
               )}
             >
-              <span className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground leading-none">
+              <span className="text-[11px] font-medium tracking-[-0.005em] text-muted-foreground leading-none">
                 {WEEKDAYS_KO[i]}
               </span>
               <span
@@ -125,7 +125,7 @@ export const JournalWeekSpotlight = ({
                   'text-[16px] tabular-nums leading-none',
                   isToday ? 'text-primary font-bold' : 'text-foreground font-medium',
                 )}
-                style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+                
               >
                 {d.getDate()}
               </span>

@@ -42,11 +42,11 @@ export const TodayCard = ({ todayEntries, onAdd }: TodayCardProps) => {
         )}
       >
         <header className="flex items-baseline gap-3">
-          <span className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-foreground/70 font-semibold">
+          <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground/70 font-semibold">
             오늘
           </span>
           <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-          <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground">
             {dateLabel}
           </span>
         </header>
@@ -55,13 +55,13 @@ export const TodayCard = ({ todayEntries, onAdd }: TodayCardProps) => {
           <div className="flex-1">
             <p
               className="text-[20px] sm:text-[22px] text-foreground leading-[1.5]"
-              style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
+              style={{ letterSpacing: '-0.005em' }}
             >
               {prompt}
             </p>
             <p
               className="mt-2 text-[12.5px] text-muted-foreground italic"
-              style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+              
             >
               한 줄이라도 좋아요. 시간이 지나 다시 펼쳐 읽을 수 있어요.
             </p>
@@ -93,7 +93,7 @@ export const TodayCard = ({ todayEntries, onAdd }: TodayCardProps) => {
         <p className="text-[13.5px] text-foreground font-medium">
           오늘 일기 {todayEntries.length}개 작성됨
         </p>
-        <p className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground mt-1">
+        <p className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground mt-1">
           {dateLabel}
         </p>
       </div>

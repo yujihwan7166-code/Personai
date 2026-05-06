@@ -48,32 +48,20 @@ export const JournalEmpty = ({ onAdd, className }: JournalEmptyProps) => {
         <BookOpen className="h-8 w-8" strokeWidth={1.5} />
       </div>
 
-      <h2
-        className="text-[28px] sm:text-[32px] font-bold tracking-tight text-foreground"
-        style={{
-          fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-          letterSpacing: '-0.015em',
-        }}
-      >
+      <h2 className="text-[24px] sm:text-[28px] font-bold tracking-[-0.022em] text-foreground">
         오늘의 첫 페이지
       </h2>
-      <p
-        className="mt-3 text-[15px] text-muted-foreground leading-[1.75] max-w-[380px]"
-        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-      >
+      <p className="mt-3 text-[14px] text-muted-foreground leading-[1.7] max-w-[360px] tracking-[-0.005em]">
         한 순간, 한 기분, 한 생각.<br />
         시간이 지나 다시 펼쳐 읽을 수 있도록.
       </p>
 
-      {/* 인용 — 책 챕터 인용 패턴 */}
-      <blockquote className="mt-9 max-w-[400px] border-l-2 border-[hsl(var(--hairline))] pl-5 text-left">
-        <p
-          className="text-[15px] text-foreground/85 italic leading-[1.7]"
-          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-        >
+      {/* 인용 */}
+      <blockquote className="mt-8 max-w-[400px] border-l-2 border-[hsl(var(--hairline))] pl-5 text-left">
+        <p className="text-[14px] text-foreground/80 leading-[1.65] tracking-[-0.005em]">
           "{quote.text}"
         </p>
-        <footer className="mt-2 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground">
+        <footer className="mt-2 text-[11px] font-medium tracking-[-0.005em] text-muted-foreground">
           — {quote.author}
         </footer>
       </blockquote>
@@ -81,7 +69,7 @@ export const JournalEmpty = ({ onAdd, className }: JournalEmptyProps) => {
       <button
         type="button"
         onClick={onAdd}
-        className="mt-9 inline-flex items-center gap-1.5 px-5 h-10 text-[13px] font-semibold rounded-md bg-foreground text-background hover:opacity-90 transition-opacity"
+        className="mt-8 inline-flex items-center gap-1.5 px-4 h-9 text-[12.5px] font-semibold rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-colors shadow-[0_1px_2px_hsl(30_30%_8%/0.08)]"
       >
         <Pencil className="h-3.5 w-3.5" />
         오늘 일기 쓰기

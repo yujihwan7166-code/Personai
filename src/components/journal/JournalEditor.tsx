@@ -329,11 +329,11 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
             <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
               <span
                 className="text-[18px] font-bold shrink-0"
-                style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.01em' }}
+                style={{ letterSpacing: '-0.01em' }}
               >
                 {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
               </span>
-              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground shrink-0">
+              <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground shrink-0">
                 {dateLabel}
               </span>
               {/* 프롬프트 카테고리 칩 + 회전 버튼 — create 모드만 */}
@@ -407,9 +407,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
                   autoFocus
                   rows={10}
                   className="w-full h-full min-h-[280px] px-5 py-4 text-[16px] leading-[1.85] rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] focus:border-foreground/30 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap placeholder:text-muted-foreground/60"
-                  style={{
-                    fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                  }}
+                  
                 />
               ) : (
                 <div className="rounded-md border border-[hsl(var(--hairline))] bg-card overflow-hidden min-h-[320px]">
@@ -425,28 +423,28 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
             {/* 우측: 메타 (기분 / 태그 / 사진) */}
             <aside className="flex flex-col gap-4 md:border-l md:border-[hsl(var(--hairline))] md:pl-5">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground font-semibold">
                   기분
                 </span>
                 <MoodPicker value={mood} onChange={setMood} />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground font-semibold">
                   활동
                 </span>
                 <ActivityPicker value={activities} onChange={setActivities} />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground font-semibold">
                   태그
                 </span>
                 <TagInput value={manualTags} onChange={setManualTags} suggestions={suggestions} />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-foreground font-semibold">
+                <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground font-semibold">
                   사진
                 </span>
                 <JournalImagePicker value={images} onChange={setImages} />

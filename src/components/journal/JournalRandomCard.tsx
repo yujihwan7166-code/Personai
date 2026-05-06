@@ -71,12 +71,12 @@ export const JournalRandomCard = ({ allEntries, excludeIds, onClickEntry }: Jour
 
   return (
     <section className="flex flex-col gap-2">
-      <header className="flex items-baseline gap-2 px-1">
-        <Sparkles className="h-3 w-3 text-foreground/60" />
-        <h3 className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-foreground/85 font-semibold">
+      <header className="flex items-center gap-2 px-1">
+        <Sparkles className="h-3.5 w-3.5 text-foreground/55" strokeWidth={1.8} />
+        <h3 className="text-[12px] font-semibold tracking-[-0.005em] text-foreground/80">
           묻혀있던 한 페이지
         </h3>
-        <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+        <span className="flex-1" aria-hidden />
       </header>
       <button
         type="button"
@@ -87,23 +87,17 @@ export const JournalRandomCard = ({ allEntries, excludeIds, onClickEntry }: Jour
           'hover:border-foreground/22 hover:shadow-[0_3px_12px_-6px_hsl(30_30%_8%/0.1)] transition-all',
         )}
       >
-        <div className="flex items-center gap-2">
-          <span
-            className="text-[11.5px] font-bold tabular-nums text-foreground/90 tracking-tight"
-            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-          >
+        <div className="flex items-center gap-1.5">
+          <span className="text-[12px] font-semibold tabular-nums text-foreground/85 tracking-[-0.005em]">
             {ago}
           </span>
-          <span className="w-1 h-1 rounded-full bg-foreground/30" aria-hidden />
-          <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground truncate">
+          <span className="w-0.5 h-0.5 rounded-full bg-foreground/25" aria-hidden />
+          <span className="text-[11px] font-medium tabular-nums text-muted-foreground/75 truncate">
             {dateLabel}
           </span>
-          {moodEmoji && <span className="text-[12px] leading-none ml-auto">{moodEmoji}</span>}
+          {moodEmoji && <span className="text-[13px] leading-none ml-auto">{moodEmoji}</span>}
         </div>
-        <p
-          className="text-[12.5px] text-foreground/85 leading-[1.65] line-clamp-3"
-          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-        >
+        <p className="text-[12.5px] text-foreground/80 leading-[1.55] line-clamp-3 tracking-[-0.005em]">
           {previewBody}
         </p>
       </button>

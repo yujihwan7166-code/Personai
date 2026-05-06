@@ -32,11 +32,7 @@ function BodyPreview({ text }: { text: string }) {
     <div className="relative">
       <p
         ref={ref}
-        className="text-[18px] leading-[1.85] text-foreground/95 whitespace-pre-wrap line-clamp-7"
-        style={{
-          fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-          fontWeight: 400,
-        }}
+        className="text-[15.5px] leading-[1.75] text-foreground/90 whitespace-pre-wrap line-clamp-7 tracking-[-0.005em]"
       >
         {text}
       </p>
@@ -48,7 +44,7 @@ function BodyPreview({ text }: { text: string }) {
             className="pointer-events-none absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-b from-transparent to-card"
           />
           {/* "더" 시그널 */}
-          <span className="pointer-events-none absolute bottom-0 right-0 text-[10.5px] font-medium text-muted-foreground bg-card px-2 py-0.5 rounded font-mono uppercase tracking-[0.12em]">
+          <span className="pointer-events-none absolute bottom-0 right-0 text-[11px] font-medium text-muted-foreground bg-card px-2 py-0.5 rounded">
             … 더
           </span>
         </>
@@ -94,27 +90,21 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
         'transition-all duration-200',
       )}
     >
-      <div className="flex gap-6">
-        {/* ── 좌 날짜 컬럼 — Hobonichi/NYT 톤 ── */}
-        <div className="w-16 shrink-0 flex flex-col items-start pr-6 border-r border-[hsl(var(--hairline))]">
-          <span
-            className="text-[40px] font-bold tabular-nums leading-none text-foreground group-hover:text-primary transition-colors"
-            style={{
-              fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-              letterSpacing: '-0.04em',
-            }}
-          >
+      <div className="flex gap-5">
+        {/* ── 좌 날짜 컬럼 ── */}
+        <div className="w-14 shrink-0 flex flex-col items-start pr-5 border-r border-[hsl(var(--hairline))]">
+          <span className="text-[34px] font-bold tabular-nums leading-none tracking-[-0.03em] text-foreground group-hover:text-primary transition-colors">
             {day}
           </span>
-          <span className="mt-2 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="mt-2 text-[11px] font-medium tabular-nums text-muted-foreground">
             {month}월
           </span>
-          <span className="mt-0.5 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground/80">
+          <span className="mt-0.5 text-[11px] font-medium text-muted-foreground/75">
             {weekday}요일
           </span>
           {moodKey && (
             <span
-              className={cn('mt-3 w-2.5 h-2.5 rounded-full', MOOD_TINT[moodKey])}
+              className={cn('mt-3 w-2 h-2 rounded-full', MOOD_TINT[moodKey])}
               title={`${moodLabel ?? ''} ${moodEmoji ?? ''}`.trim()}
               aria-label={moodLabel ?? ''}
             />
@@ -126,12 +116,12 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
           {/* 상단 메타 — 시각 + 풍부 배지 (hover) + 액션 (hover) */}
           <header className="flex items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground">
+              <span className="text-[12px] font-medium tabular-nums text-muted-foreground">
                 {timeLabel}
               </span>
               {entry.bodyFormat === 'markdown' && (
                 <span
-                  className="inline-flex items-center gap-0.5 px-1.5 h-4 rounded text-[9px] font-mono uppercase tracking-[0.12em] text-muted-foreground bg-accent/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                  className="inline-flex items-center gap-0.5 px-1.5 h-4 rounded text-[10px] font-medium text-muted-foreground bg-accent/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
                   title="풍부한 편집"
                 >
                   <Wand2 className="h-2 w-2" />
@@ -161,14 +151,11 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
             </span>
           </header>
 
-          {/* 본문 — Bear/NYT 패턴: 큰 serif + 여유 leading */}
+          {/* 본문 — Pretendard sans 톤 */}
           {hasBody ? (
             <BodyPreview text={previewBody} />
           ) : (
-            <p
-              className="text-[15px] italic text-muted-foreground/75"
-              style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-            >
+            <p className="text-[14px] text-muted-foreground/65">
               이 날은 한 줄도 없어요.
             </p>
           )}

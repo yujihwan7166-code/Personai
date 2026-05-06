@@ -232,26 +232,20 @@ const Journal = () => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h1
-                className="text-[28px] sm:text-[34px] font-bold tracking-tight leading-none text-foreground"
-                style={{
-                  fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                  letterSpacing: '-0.02em',
-                }}
-              >
+              <h1 className="text-[26px] sm:text-[30px] font-bold tracking-[-0.025em] leading-none text-foreground">
                 일기
               </h1>
               {streak > 0 && (
                 <span
-                  className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-foreground/[0.04] text-foreground/70 text-[11px] font-semibold tabular-nums border border-[hsl(var(--hairline))]"
+                  className="inline-flex items-center gap-1 text-[12px] font-medium tabular-nums text-muted-foreground"
                   title={`${streak}일 연속 작성`}
                 >
-                  <Flame className="h-3 w-3 text-amber-600/80 dark:text-amber-400/80" />
-                  {streak}
+                  <Flame className="h-3 w-3 text-amber-500/85" strokeWidth={2.2} />
+                  {streak}일
                 </span>
               )}
-              <span className="text-[10px] font-mono uppercase tracking-[0.22em] tabular-nums text-muted-foreground/70 hidden sm:inline">
-                {allEntries.length} 페이지
+              <span className="text-[12px] font-medium tabular-nums text-muted-foreground/65 hidden sm:inline">
+                {allEntries.length}개
               </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -366,7 +360,7 @@ const Journal = () => {
             <div className="mt-4 pt-4 border-t border-[hsl(var(--hairline))] flex flex-col gap-3">
               {topActivities.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold mr-1 w-10">
+                  <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground font-semibold mr-1 w-10">
                     활동
                   </span>
                   {topActivities.map((a) => {
@@ -404,7 +398,7 @@ const Journal = () => {
               )}
               {topTags.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold mr-1 w-10">
+                  <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground font-semibold mr-1 w-10">
                     태그
                   </span>
                   {topTags.map((t) => (
@@ -483,19 +477,13 @@ const Journal = () => {
                     className="flex flex-col gap-5 scroll-mt-24"
                   >
                     {/* 월 헤더 — 책 챕터 톤 */}
-                    <div className="flex items-baseline gap-4 mb-1 px-1">
-                      <h2
-                        className="text-[24px] sm:text-[26px] font-bold tracking-tight text-foreground"
-                        style={{
-                          fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                          letterSpacing: '-0.015em',
-                        }}
-                      >
+                    <div className="flex items-baseline gap-3 mb-1 px-1">
+                      <h2 className="text-[20px] sm:text-[22px] font-bold tracking-[-0.022em] text-foreground">
                         {group.label}
                       </h2>
                       <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-                      <span className="text-[10.5px] font-mono uppercase tracking-[0.18em] tabular-nums text-muted-foreground/70">
-                        {group.items.length} 페이지
+                      <span className="text-[12px] font-medium tabular-nums text-muted-foreground/70">
+                        {group.items.length}개
                       </span>
                     </div>
                     <div className="flex flex-col gap-5">

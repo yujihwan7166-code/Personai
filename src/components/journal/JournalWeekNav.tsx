@@ -80,13 +80,7 @@ export const JournalWeekNav = ({
         <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={1.75} />
       </button>
 
-      <h2
-        className="text-[16px] sm:text-[18px] font-bold tracking-tight text-foreground text-center min-w-0 truncate tabular-nums"
-        style={{
-          fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-          letterSpacing: '-0.015em',
-        }}
-      >
+      <h2 className="text-[14px] sm:text-[15px] font-semibold tracking-[-0.012em] text-foreground/85 text-center min-w-0 truncate tabular-nums">
         {label}
       </h2>
 

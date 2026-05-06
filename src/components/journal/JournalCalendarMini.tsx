@@ -124,7 +124,7 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
           <button
             type="button"
             onClick={() => setAnchorDate(new Date())}
-            className="px-1.5 h-6 text-[10px] font-mono uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+            className="px-1.5 h-6 text-[11px] font-medium tracking-[-0.005em] text-muted-foreground hover:text-foreground transition-colors"
           >
             오늘
           </button>
@@ -145,7 +145,7 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
           <span
             key={d}
             className={cn(
-              'text-[9px] font-mono uppercase font-semibold text-center',
+              'text-[10.5px] font-semibold text-center tracking-[-0.005em]',
               i === 0 && 'text-rose-500',
               i === 6 && 'text-blue-500',
               i !== 0 && i !== 6 && 'text-muted-foreground',
@@ -194,7 +194,7 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
 
       {/* 이번 달 통계 */}
       <footer className="mt-3 pt-2.5 border-t border-[hsl(var(--hairline))] flex items-center justify-between">
-        <span className="text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="text-[11.5px] font-medium text-muted-foreground tracking-[-0.005em]">
           이번 달
         </span>
         <span className="text-[11px] tabular-nums text-foreground font-semibold">

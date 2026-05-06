@@ -145,17 +145,13 @@ export const JournalWeekBoard = ({
             >
               <span
                 className={cn(
-                  'text-[18px] sm:text-[20px] tracking-tight transition-colors',
+                  'text-[15px] sm:text-[16px] tracking-[-0.01em] transition-colors',
                   isSelected
-                    ? 'font-bold text-foreground'
+                    ? 'font-semibold text-foreground'
                     : isToday
-                      ? 'font-bold text-primary'
-                      : 'font-medium text-muted-foreground group-hover/tab:text-foreground/80',
+                      ? 'font-semibold text-primary'
+                      : 'font-medium text-muted-foreground group-hover/tab:text-foreground/85',
                 )}
-                style={{
-                  fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                  letterSpacing: '-0.012em',
-                }}
               >
                 {WEEKDAYS_KO[i]}
               </span>
@@ -187,25 +183,23 @@ export const JournalWeekBoard = ({
       <div className="px-6 sm:px-8 pt-6 pb-7 sm:pb-8">
         {/* panel 헤더 — "5월 5일 화요일" 한 줄 좌상단 */}
         <header className="flex items-baseline justify-between gap-3 mb-5 sm:mb-6">
-          <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
+          <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">
             <h3
-              className={cn(
-                'text-[20px] sm:text-[24px] font-bold tracking-tight tabular-nums',
-                isSelectedToday ? 'text-primary' : 'text-foreground',
-              )}
-              style={{
-                fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                letterSpacing: '-0.018em',
-              }}
+              className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] tabular-nums text-foreground"
             >
               {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일{' '}
-              <span className="font-medium text-foreground/65">
+              <span className="font-medium text-muted-foreground tracking-[-0.01em]">
                 {selectedDate.toLocaleDateString('ko-KR', { weekday: 'long' })}
               </span>
             </h3>
+            {isSelectedToday && (
+              <span className="inline-flex items-center px-1.5 h-5 rounded-full bg-primary/10 text-primary text-[10.5px] font-semibold tracking-[-0.01em]">
+                오늘
+              </span>
+            )}
             {selectedEntries.length > 1 && (
-              <span className="text-[10px] font-mono uppercase tracking-[0.22em] tabular-nums text-muted-foreground/70">
-                {selectedEntries.length} 페이지
+              <span className="text-[11.5px] font-medium tabular-nums text-muted-foreground/80">
+                {selectedEntries.length}개
               </span>
             )}
           </div>
@@ -235,23 +229,17 @@ export const JournalWeekBoard = ({
               onClick={() => onAddForDate(selectedDay)}
               className="w-full flex flex-col items-center justify-center py-16 sm:py-24 gap-4 group/empty transition-opacity hover:opacity-100 opacity-90"
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-accent/40 text-foreground/45 group-hover/empty:bg-accent/70 group-hover/empty:text-foreground/65 transition-colors">
-                <Pencil className="h-[18px] w-[18px]" strokeWidth={1.4} />
+              <span className="inline-flex items-center justify-center h-11 w-11 rounded-2xl bg-foreground/5 text-foreground/40 group-hover/empty:bg-foreground/8 group-hover/empty:text-foreground/60 transition-colors">
+                <Pencil className="h-[17px] w-[17px]" strokeWidth={1.6} />
               </span>
-              <p
-                className="text-[17px] sm:text-[19px] text-foreground/65 italic group-hover/empty:text-foreground/80 transition-colors"
-                style={{
-                  fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                  letterSpacing: '-0.005em',
-                }}
-              >
+              <p className="text-[15px] sm:text-[16px] font-medium text-muted-foreground tracking-[-0.005em] group-hover/empty:text-foreground/75 transition-colors">
                 {isSelectedFuture
                   ? '예정 일기를 미리 적어볼까요'
                   : isSelectedToday
                     ? '오늘 어떤 하루였나요'
                     : '이 날의 한 페이지를 채워보세요'}
               </p>
-              <span className="text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground/60 group-hover/empty:text-muted-foreground transition-colors">
+              <span className="text-[11px] font-medium text-muted-foreground/55 tracking-[-0.005em] group-hover/empty:text-muted-foreground transition-colors">
                 클릭해서 시작
               </span>
             </button>
@@ -274,8 +262,8 @@ export const JournalWeekBoard = ({
                   >
                     {/* entry 헤더 — 시각 + mood + 편집 (hover) */}
                     <header className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10.5px] font-mono uppercase tracking-[0.22em] tabular-nums text-muted-foreground/85">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[12px] font-medium tabular-nums text-muted-foreground">
                           {time}
                         </span>
                         {moodEmoji && (
@@ -299,22 +287,11 @@ export const JournalWeekBoard = ({
                       className="text-left"
                     >
                       {hasBody ? (
-                        <p
-                          className="text-[17px] sm:text-[18px] leading-[1.85] text-foreground/95 whitespace-pre-wrap"
-                          style={{
-                            fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                            letterSpacing: '-0.003em',
-                          }}
-                        >
+                        <p className="text-[15.5px] sm:text-[16px] leading-[1.75] text-foreground/90 whitespace-pre-wrap tracking-[-0.005em]">
                           {previewBody}
                         </p>
                       ) : (
-                        <p
-                          className="text-[14.5px] italic text-muted-foreground/65"
-                          style={{
-                            fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif',
-                          }}
-                        >
+                        <p className="text-[14px] text-muted-foreground/65">
                           (빈 본문)
                         </p>
                       )}
