@@ -24,9 +24,9 @@ import type { WikiPage as WikiPageT } from '@/types/wiki';
 import {
   Bold, Italic, Strikethrough, Code, Link as LinkIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code2, Minus, ImagePlus, CheckSquare, BookOpen, Lightbulb,
-  Plus, Trash2, ArrowUpToLine, ArrowDownToLine, ArrowLeftToLine, ArrowRightToLine,
-  Columns3, Rows3,
+  Trash2, ChevronDown,
 } from 'lucide-react';
+import type { Editor as TipTapEditor } from '@tiptap/react';
 import type { WikiPage } from '@/types/wiki';
 import { cn } from '@/lib/utils';
 
@@ -468,44 +468,13 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
         </div>
       </BubbleMenu>
 
-      {/* 표 BubbleMenu — 표 안 커서일 때 위쪽 floating */}
+      {/* 표 메뉴 — 표 안 커서일 때 위쪽 floating, 노션 식 텍스트 레이블 + 그룹 */}
       <BubbleMenu
         editor={editor}
         shouldShow={({ editor: ed }) => ed.isActive('table')}
-        options={{ placement: 'top' }}
+        options={{ placement: 'top-start', offset: 8 }}
       >
-        <div className="flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg">
-          <ToolbarBtn onClick={() => editor.chain().focus().addColumnBefore().run()} title="왼쪽 열 추가">
-            <ArrowLeftToLine className="w-3.5 h-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn onClick={() => editor.chain().focus().addColumnAfter().run()} title="오른쪽 열 추가">
-            <ArrowRightToLine className="w-3.5 h-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn onClick={() => editor.chain().focus().deleteColumn().run()} title="현재 열 삭제">
-            <Columns3 className="w-3.5 h-3.5" />
-          </ToolbarBtn>
-          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
-          <ToolbarBtn onClick={() => editor.chain().focus().addRowBefore().run()} title="위 행 추가">
-            <ArrowUpToLine className="w-3.5 h-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn onClick={() => editor.chain().focus().addRowAfter().run()} title="아래 행 추가">
-            <ArrowDownToLine className="w-3.5 h-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn onClick={() => editor.chain().focus().deleteRow().run()} title="현재 행 삭제">
-            <Rows3 className="w-3.5 h-3.5" />
-          </ToolbarBtn>
-          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
-          <ToolbarBtn onClick={() => editor.chain().focus().toggleHeaderRow().run()} title="머리 행 토글">
-            <Plus className="w-3.5 h-3.5" />
-          </ToolbarBtn>
-          <ToolbarBtn onClick={() => editor.chain().focus().mergeOrSplit().run()} title="셀 병합/분할">
-            <Plus className="w-3.5 h-3.5 rotate-45" />
-          </ToolbarBtn>
-          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
-          <ToolbarBtn onClick={() => editor.chain().focus().deleteTable().run()} title="표 삭제">
-            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-          </ToolbarBtn>
-        </div>
+        <TableMenu editor={editor} />
       </BubbleMenu>
 
       {/* 본문 영역 */}
@@ -554,6 +523,117 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
       />
     </div>
   );
+}
+
+/**
+ * TableMenu — 표 안 커서일 때 떠오르는 액션 바.
+ * 노션 식: 텍스트 레이블 + "행 ▾ / 열 ▾" 드롭다운 + 표 삭제 단축.
+ */
+function TableMenu({ editor }: { editor: TipTapEditor }) {
+  const [open, setOpen] = useState<null | 'row' | 'col'>(null);
+  const close = () => setOpen(null);
+  const run = (fn: () => void) => () => { fn(); close(); };
+
+  return (
+    <div
+      className="flex items-center gap-1 p-1 rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-lg text-[12.5px]"
+      onMouseLeave={close}
+    >
+      {/* 행 드롭다운 */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(open === 'row' ? null : 'row')}
+          className={cn(
+            'inline-flex items-center gap-1 h-7 px-2.5 rounded-md font-medium wiki-trans-color',
+            open === 'row' ? 'bg-accent text-foreground' : 'text-foreground/80 hover:bg-accent hover:text-foreground',
+          )}
+        >
+          행
+          <ChevronDown className="w-3 h-3 opacity-60" />
+        </button>
+        {open === 'row' && (
+          <div className="absolute left-0 top-full mt-1 z-50 w-44 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md p-0.5">
+            <MenuItem onClick={run(() => editor.chain().focus().addRowBefore().run())}>↑ 위에 행 추가</MenuItem>
+            <MenuItem onClick={run(() => editor.chain().focus().addRowAfter().run())}>↓ 아래에 행 추가</MenuItem>
+            <MenuItem onClick={run(() => editor.chain().focus().deleteRow().run())} danger>이 행 삭제</MenuItem>
+            <MenuSep />
+            <MenuItem onClick={run(() => editor.chain().focus().toggleHeaderRow().run())}>머리 행 토글</MenuItem>
+          </div>
+        )}
+      </div>
+
+      {/* 열 드롭다운 */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(open === 'col' ? null : 'col')}
+          className={cn(
+            'inline-flex items-center gap-1 h-7 px-2.5 rounded-md font-medium wiki-trans-color',
+            open === 'col' ? 'bg-accent text-foreground' : 'text-foreground/80 hover:bg-accent hover:text-foreground',
+          )}
+        >
+          열
+          <ChevronDown className="w-3 h-3 opacity-60" />
+        </button>
+        {open === 'col' && (
+          <div className="absolute left-0 top-full mt-1 z-50 w-44 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md p-0.5">
+            <MenuItem onClick={run(() => editor.chain().focus().addColumnBefore().run())}>← 왼쪽에 열 추가</MenuItem>
+            <MenuItem onClick={run(() => editor.chain().focus().addColumnAfter().run())}>→ 오른쪽에 열 추가</MenuItem>
+            <MenuItem onClick={run(() => editor.chain().focus().deleteColumn().run())} danger>이 열 삭제</MenuItem>
+            <MenuSep />
+            <MenuItem onClick={run(() => editor.chain().focus().toggleHeaderColumn().run())}>머리 열 토글</MenuItem>
+          </div>
+        )}
+      </div>
+
+      <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().mergeOrSplit().run()}
+        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md font-medium text-foreground/80 hover:bg-accent hover:text-foreground wiki-trans-color"
+        title="셀 병합 (선택 후) / 분할"
+      >
+        병합·분할
+      </button>
+
+      <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().deleteTable().run()}
+        className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md font-medium text-destructive hover:bg-destructive/10 wiki-trans-color"
+        title="표 삭제"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+        표 삭제
+      </button>
+    </div>
+  );
+}
+
+function MenuItem({
+  onClick, children, danger,
+}: { onClick: () => void; children: React.ReactNode; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      className={cn(
+        'w-full flex items-center px-2.5 h-7 rounded text-[12.5px] text-left wiki-trans-color',
+        danger
+          ? 'text-destructive hover:bg-destructive/10'
+          : 'text-foreground/85 hover:bg-accent hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function MenuSep() {
+  return <div className="my-0.5 border-t border-[hsl(var(--hairline))]" />;
 }
 
 function ToolbarBtn({
