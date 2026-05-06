@@ -59,6 +59,16 @@ const normalizeEntry = (value: unknown, index: number): JournalEntry | null => {
   const updatedAt = normalizeIso(value.updatedAt, createdAt);
   const body = typeof value.body === 'string' ? value.body : '';
 
+  // v4 fields — 모두 optional, undefined 면 결과에서도 누락
+  const isWeather = (v: unknown): v is JournalEntry['weather'] =>
+    v === 'sunny' || v === 'cloudy' || v === 'overcast' || v === 'rainy' || v === 'stormy' || v === 'snowy';
+  const isEnergy = (v: unknown): v is 1 | 2 | 3 | 4 | 5 =>
+    typeof v === 'number' && v >= 1 && v <= 5 && Number.isInteger(v);
+  const sleep =
+    typeof value.sleepHours === 'number' && value.sleepHours >= 0 && value.sleepHours <= 24
+      ? value.sleepHours
+      : undefined;
+
   return {
     id: typeof value.id === 'string' && value.id ? value.id : `jr_recovered_${index}`,
     date: normalizeDate(value.date, createdAt),
@@ -68,6 +78,9 @@ const normalizeEntry = (value: unknown, index: number): JournalEntry | null => {
     tags: normalizeStringArray(value.tags),
     images: normalizeImages(value.images, createdAt),
     activities: normalizeStringArray(value.activities),
+    weather: isWeather(value.weather) ? value.weather : undefined,
+    sleepHours: sleep,
+    energy: isEnergy(value.energy) ? value.energy : undefined,
     createdAt,
     updatedAt,
   };
@@ -129,6 +142,10 @@ export const journalStore = {
     tags?: string[];
     bodyFormat?: BodyFormat;
     images?: JournalImage[];
+    activities?: string[];
+    weather?: JournalEntry['weather'];
+    sleepHours?: number;
+    energy?: 1 | 2 | 3 | 4 | 5;
   }): JournalEntry {
     const now = new Date().toISOString();
     const entry: JournalEntry = {
@@ -139,6 +156,10 @@ export const journalStore = {
       tags: input.tags,
       bodyFormat: input.bodyFormat,
       images: input.images,
+      activities: input.activities,
+      weather: input.weather,
+      sleepHours: input.sleepHours,
+      energy: input.energy,
       createdAt: now,
       updatedAt: now,
     };

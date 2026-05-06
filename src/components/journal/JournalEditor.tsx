@@ -12,7 +12,6 @@
  * - placeholder = AI 가이드 정적 질문 3종 랜덤
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Type, Wand2, Shuffle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,17 +24,18 @@ import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { MoodPicker } from './MoodPicker';
 import { TagInput } from './TagInput';
-import { JournalImagePicker } from './JournalImagePicker';
 import { ActivityPicker } from './ActivityPicker';
 import { WikiBlockEditor } from '@/components/wiki/WikiBlockEditor';
 import { extractTagsFromBody, mergeTags, getTopTags } from '@/lib/journalTags';
+import { pickPrompt, type JournalPrompt } from '@/lib/journalPrompts';
 import {
-  pickPrompt,
-  PROMPT_CATEGORY_LABEL,
-  PROMPT_CATEGORY_EMOJI,
-  type JournalPrompt,
-} from '@/lib/journalPrompts';
-import type { Mood, JournalEntry, BodyFormat, JournalImage } from '@/types/journal';
+  WEATHER_META,
+  type Mood,
+  type JournalEntry,
+  type BodyFormat,
+  type JournalImage,
+  type Weather,
+} from '@/types/journal';
 
 type Mode =
   | { kind: 'create'; date?: string /* YYYY-MM-DD — 미지정 시 오늘 */ }
@@ -48,6 +48,9 @@ type Mode =
       initialFormat?: BodyFormat;
       initialImages?: JournalImage[];
       initialActivities?: string[];
+      initialWeather?: Weather;
+      initialSleepHours?: number;
+      initialEnergy?: 1 | 2 | 3 | 4 | 5;
     };
 
 interface JournalEditorProps {
@@ -124,10 +127,15 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
   const [body, setBody] = useState('');
   const [mood, setMood] = useState<Mood | undefined>(undefined);
   const [manualTags, setManualTags] = useState<string[]>([]);
-  const [format, setFormat] = useState<BodyFormat>('plain');
+  // 본문 형식은 항상 markdown (풍부) — 사용자 요청. 토글 제거.
+  const format: BodyFormat = 'markdown';
   const [images, setImages] = useState<JournalImage[]>([]);
   const [activities, setActivities] = useState<string[]>([]);
-  // 현재 프롬프트 (랜덤 회전 — 같은 세션 안에서 본 것 제외)
+  // v4 새 사이드 기능
+  const [weather, setWeather] = useState<Weather | undefined>(undefined);
+  const [sleepHours, setSleepHours] = useState<number | undefined>(undefined);
+  const [energy, setEnergy] = useState<1 | 2 | 3 | 4 | 5 | undefined>(undefined);
+  // 현재 프롬프트 (랜덤 회전 — placeholder 에만 사용, 헤더 chip 제거)
   const [currentPrompt, setCurrentPrompt] = useState<JournalPrompt | null>(null);
   const [seenPromptIds, setSeenPromptIds] = useState<string[]>([]);
   // 자동 저장 — 마지막 저장 시각
@@ -147,9 +155,11 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
       setBody(mode.initialBody);
       setMood(mode.initialMood);
       setManualTags(mode.initialTags ?? []);
-      setFormat(mode.initialFormat ?? 'plain');
       setImages(mode.initialImages ?? []);
       setActivities(mode.initialActivities ?? []);
+      setWeather(mode.initialWeather);
+      setSleepHours(mode.initialSleepHours);
+      setEnergy(mode.initialEnergy);
       setCurrentPrompt(null);
       setDraftSavedAt(null);
     } else {
@@ -159,21 +169,25 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         setBody(draft.body);
         setMood(draft.mood);
         setManualTags(draft.manualTags ?? []);
-        setFormat(draft.format ?? 'markdown');
         setActivities(draft.activities ?? []);
         setImages([]);
+        setWeather(undefined);
+        setSleepHours(undefined);
+        setEnergy(undefined);
         setDraftSavedAt(draft.savedAt);
         notify.info('이전 작성 중 내용을 복구했어요', { duration: 2200 });
       } else {
         setBody('');
         setMood(undefined);
         setManualTags([]);
-        setFormat('markdown'); // 기본 = 풍부 (사용자 요청)
         setImages([]);
         setActivities([]);
+        setWeather(undefined);
+        setSleepHours(undefined);
+        setEnergy(undefined);
         setDraftSavedAt(null);
       }
-      // 새 모달 진입 시 시간대 자동 감지 + 카테고리 회전
+      // 새 모달 진입 시 시간대 자동 감지 + 카테고리 회전 (placeholder 용)
       const fresh = pickPrompt({ excludeIds: seenPromptIds });
       setCurrentPrompt(fresh);
       setSeenPromptIds((prev) => [...prev, fresh.id].slice(-15)); // 최근 15개만 기억
@@ -217,13 +231,6 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
       notify.info('작성 중 내용 임시 저장됨', { duration: 1800 });
     }
     onClose();
-  };
-
-  // 다른 질문으로 회전
-  const rotatePrompt = () => {
-    const next = pickPrompt({ excludeIds: seenPromptIds });
-    setCurrentPrompt(next);
-    setSeenPromptIds((prev) => [...prev, next.id].slice(-15));
   };
 
   // placeholder 텍스트
@@ -275,6 +282,9 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         bodyFormat: formatToSave,
         images: imagesToSave,
         activities: activitiesToSave,
+        weather,
+        sleepHours,
+        energy,
       });
       notify.success('수정됐어요', { duration: 1500 });
     } else {
@@ -285,6 +295,9 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         bodyFormat: formatToSave,
         images: imagesToSave,
         activities: activitiesToSave,
+        weather,
+        sleepHours,
+        energy,
         // create 모드에서 date 지정된 경우 그 날짜로 저장 (WeekSpotlight 과거 빈 날 채우기)
         date: mode.kind === 'create' ? mode.date : undefined,
       });
@@ -325,129 +338,142 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         onKeyDown={handleKeyDownGlobal}
       >
         <DialogHeader className="px-7 pt-6 pb-4 border-b border-[hsl(var(--hairline))] shrink-0">
-          <DialogTitle className="flex items-center justify-between gap-3 pr-8">
-            <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
-              <span
-                className="text-[18px] font-bold shrink-0"
-                style={{ letterSpacing: '-0.01em' }}
-              >
-                {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
-              </span>
-              <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground shrink-0">
-                {dateLabel}
-              </span>
-              {/* 프롬프트 카테고리 칩 + 회전 버튼 — create 모드만 */}
-              {mode.kind === 'create' && currentPrompt && (
-                <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-muted-foreground">
-                  <span aria-hidden>{PROMPT_CATEGORY_EMOJI[currentPrompt.category]}</span>
-                  <span>{PROMPT_CATEGORY_LABEL[currentPrompt.category]}</span>
-                  <button
-                    type="button"
-                    onClick={rotatePrompt}
-                    className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                    aria-label="다른 질문"
-                    title="다른 질문 (랜덤)"
-                  >
-                    <Shuffle className="h-2.5 w-2.5" />
-                  </button>
-                </span>
-              )}
-            </div>
-            {/* 형식 토글 (Linear 패턴) */}
-            <div
-              role="tablist"
-              className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-accent/40 border border-[hsl(var(--hairline))]"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={format === 'plain'}
-                onClick={() => setFormat('plain')}
-                title="간편 텍스트"
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 h-6 rounded text-[10.5px] font-semibold transition-colors',
-                  format === 'plain'
-                    ? 'bg-card text-foreground shadow-sm ring-1 ring-[hsl(var(--hairline))]'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <Type className="h-3 w-3" />
-                간편
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={format === 'markdown'}
-                onClick={() => setFormat('markdown')}
-                title="풍부한 편집 (마크다운/리스트/헤딩)"
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 h-6 rounded text-[10.5px] font-semibold transition-colors',
-                  format === 'markdown'
-                    ? 'bg-card text-foreground shadow-sm ring-1 ring-[hsl(var(--hairline))]'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <Wand2 className="h-3 w-3" />
-                풍부
-              </button>
-            </div>
+          <DialogTitle className="flex items-baseline gap-3 pr-8 min-w-0 flex-wrap">
+            <span className="text-[18px] font-bold shrink-0 tracking-[-0.01em]">
+              {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
+            </span>
+            <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground shrink-0">
+              {dateLabel}
+            </span>
           </DialogTitle>
         </DialogHeader>
 
         {/* 본문 + 메타 — 2 컬럼 (가로로 길게, 세로 압축) */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-4 md:gap-5">
-            {/* 좌측: 본문 */}
+            {/* 좌측: 본문 — 항상 풍부 (markdown) */}
             <div className="min-w-0 flex flex-col">
-              {format === 'plain' ? (
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder={placeholder}
-                  autoFocus
-                  rows={10}
-                  className="w-full h-full min-h-[280px] px-5 py-4 text-[16px] leading-[1.85] rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] focus:border-foreground/30 focus:outline-none transition-colors text-foreground resize-none whitespace-pre-wrap placeholder:text-muted-foreground/60"
-                  
+              <div className="rounded-md border border-[hsl(var(--hairline))] bg-card overflow-hidden min-h-[320px]">
+                <WikiBlockEditor
+                  body={body}
+                  onChange={setBody}
+                  allPages={[]}
+                  firstPlaceholder={placeholder}
+                  restPlaceholder={placeholder}
                 />
-              ) : (
-                <div className="rounded-md border border-[hsl(var(--hairline))] bg-card overflow-hidden min-h-[320px]">
-                  <WikiBlockEditor
-                    body={body}
-                    onChange={setBody}
-                    allPages={[]}
-                  />
-                </div>
-              )}
+              </div>
             </div>
 
-            {/* 우측: 메타 (기분 / 태그 / 사진) */}
-            <aside className="flex flex-col gap-4 md:border-l md:border-[hsl(var(--hairline))] md:pl-5">
+            {/* 우측: 메타 — 기분 / 날씨 / 컨디션 / 수면 / 활동 / 태그 */}
+            <aside className="flex flex-col gap-3.5 md:border-l md:border-[hsl(var(--hairline))] md:pl-5">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground font-semibold">
+                <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
                   기분
                 </span>
                 <MoodPicker value={mood} onChange={setMood} />
               </div>
 
+              {/* 날씨 — 6 emoji chip */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground font-semibold">
+                <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
+                  날씨
+                </span>
+                <div className="grid grid-cols-6 gap-1">
+                  {(Object.keys(WEATHER_META) as Weather[]).map((key) => {
+                    const meta = WEATHER_META[key];
+                    const active = weather === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setWeather(active ? undefined : key)}
+                        title={meta.label}
+                        aria-pressed={active}
+                        className={cn(
+                          'inline-flex items-center justify-center h-8 rounded-md border text-[16px] transition-colors',
+                          active
+                            ? 'border-foreground/40 bg-foreground/5'
+                            : 'border-[hsl(var(--hairline))] bg-card hover:border-foreground/20',
+                        )}
+                      >
+                        <span aria-hidden>{meta.emoji}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 컨디션 (energy) + 수면 — 2 컬럼 한 줄 */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1.5 min-w-0">
+                  <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
+                    컨디션
+                  </span>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((n) => {
+                      const active = energy === n;
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setEnergy(active ? undefined : (n as 1 | 2 | 3 | 4 | 5))}
+                          title={`컨디션 ${n}`}
+                          aria-pressed={active}
+                          className={cn(
+                            'flex-1 h-8 rounded-md border text-[11px] font-semibold tabular-nums transition-colors',
+                            active
+                              ? 'border-foreground/40 bg-foreground text-background'
+                              : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
+                          )}
+                        >
+                          {n}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5 min-w-0">
+                  <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
+                    수면
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      max={24}
+                      step={0.5}
+                      value={sleepHours ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '') {
+                          setSleepHours(undefined);
+                          return;
+                        }
+                        const n = parseFloat(v);
+                        if (Number.isFinite(n) && n >= 0 && n <= 24) setSleepHours(n);
+                      }}
+                      placeholder="–"
+                      className="w-full h-8 pl-2 pr-8 text-[12px] tabular-nums rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-muted-foreground/60"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10.5px] text-muted-foreground pointer-events-none">
+                      시간
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
                   활동
                 </span>
                 <ActivityPicker value={activities} onChange={setActivities} />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground font-semibold">
+                <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
                   태그
                 </span>
                 <TagInput value={manualTags} onChange={setManualTags} suggestions={suggestions} />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11.5px] font-medium tracking-[-0.005em] text-foreground font-semibold">
-                  사진
-                </span>
-                <JournalImagePicker value={images} onChange={setImages} />
               </div>
             </aside>
           </div>

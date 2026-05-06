@@ -23,7 +23,7 @@ export const ActivityPicker = ({ value, onChange }: Props) => {
   };
 
   return (
-    <div className="grid grid-cols-3 gap-1">
+    <div className="grid grid-cols-4 gap-1">
       {DEFAULT_ACTIVITIES.map((a) => {
         const active = selected.has(a.key);
         return (
@@ -32,15 +32,16 @@ export const ActivityPicker = ({ value, onChange }: Props) => {
             type="button"
             onClick={() => toggle(a.key)}
             aria-pressed={active}
+            title={a.label}
             className={cn(
-              'inline-flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 rounded-md border transition-colors',
+              'inline-flex flex-col items-center justify-center gap-0.5 h-12 px-0.5 rounded-md border transition-colors',
               active
                 ? 'border-foreground/40 bg-foreground/5 text-foreground'
                 : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
             )}
           >
-            <span className="text-[14px] leading-none" aria-hidden>{a.emoji}</span>
-            <span className="text-[10px] leading-none">{a.label}</span>
+            <span className="text-[15px] leading-none" aria-hidden>{a.emoji}</span>
+            <span className="text-[9.5px] leading-none">{a.label}</span>
           </button>
         );
       })}

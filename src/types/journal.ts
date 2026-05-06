@@ -38,7 +38,7 @@ export const MOOD_TINT: Record<Mood, string> = {
 
 /* ── 활동 (Activity) — Daylio 패턴 ── */
 
-/** 12종 디폴트 활동 — 사용자가 자주 추가할 만한 일상 카테고리. */
+/** 16종 디폴트 활동 — 사용자가 자주 추가할 만한 일상 카테고리. */
 export const DEFAULT_ACTIVITIES = [
   { key: 'work',     label: '일',     emoji: '💼' },
   { key: 'exercise', label: '운동',   emoji: '🏃' },
@@ -52,6 +52,10 @@ export const DEFAULT_ACTIVITIES = [
   { key: 'meditate', label: '명상',   emoji: '🧘' },
   { key: 'sleep',    label: '잘 잠',  emoji: '😴' },
   { key: 'study',    label: '공부',   emoji: '📚' },
+  { key: 'cafe',     label: '카페',   emoji: '☕' },
+  { key: 'music',    label: '음악',   emoji: '🎵' },
+  { key: 'game',     label: '게임',   emoji: '🎮' },
+  { key: 'cleaning', label: '정리',   emoji: '🧹' },
 ] as const;
 
 export type DefaultActivityKey = typeof DEFAULT_ACTIVITIES[number]['key'];
@@ -63,6 +67,18 @@ export const ACTIVITY_META: Record<string, { label: string; emoji: string }> = O
 
 /** 본문 형식 — v2 에서 도입. */
 export type BodyFormat = 'plain' | 'markdown';
+
+/** 날씨 — v4 emoji 6종. */
+export type Weather = 'sunny' | 'cloudy' | 'overcast' | 'rainy' | 'stormy' | 'snowy';
+
+export const WEATHER_META: Record<Weather, { label: string; emoji: string }> = {
+  sunny:    { label: '맑음',   emoji: '☀️' },
+  cloudy:   { label: '구름',   emoji: '⛅' },
+  overcast: { label: '흐림',   emoji: '☁️' },
+  rainy:    { label: '비',     emoji: '🌧' },
+  stormy:   { label: '폭풍',   emoji: '⛈' },
+  snowy:    { label: '눈',     emoji: '❄️' },
+};
 
 /** 일기 한 항목. */
 export interface JournalEntry {
@@ -80,6 +96,12 @@ export interface JournalEntry {
   images?: JournalImage[];
   /** v3 활동 키 배열 — DEFAULT_ACTIVITIES key 또는 사용자 정의 문자열. */
   activities?: string[];
+  /** v4 날씨. */
+  weather?: Weather;
+  /** v4 수면 시간 (시간 단위, 0 ~ 24). */
+  sleepHours?: number;
+  /** v4 에너지 / 컨디션 1-5 (mood 와 별도 — 정신적 vs 신체적). */
+  energy?: 1 | 2 | 3 | 4 | 5;
   createdAt: string;
   updatedAt: string;
 }

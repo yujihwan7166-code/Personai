@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
 import { ACTIVITY_META } from '@/types/journal';
 
-import type { JournalImage } from '@/types/journal';
+import type { JournalImage, Weather } from '@/types/journal';
 
 type EditorMode =
   | { kind: 'create'; date?: string }
@@ -50,6 +50,9 @@ type EditorMode =
       initialFormat?: 'plain' | 'markdown';
       initialImages?: JournalImage[];
       initialActivities?: string[];
+      initialWeather?: Weather;
+      initialSleepHours?: number;
+      initialEnergy?: 1 | 2 | 3 | 4 | 5;
     };
 
 const monthLabel = (date: Date): string =>
@@ -211,6 +214,9 @@ const Journal = () => {
       initialFormat: entry.bodyFormat,
       initialImages: entry.images,
       initialActivities: entry.activities,
+                    initialWeather: entry.weather,
+                    initialSleepHours: entry.sleepHours,
+                    initialEnergy: entry.energy,
     });
   };
   const handleWeekAddForDate = (dateIso: string) => {
@@ -257,6 +263,9 @@ const Journal = () => {
                       initialFormat: entry.bodyFormat,
                       initialImages: entry.images,
                       initialActivities: entry.activities,
+                    initialWeather: entry.weather,
+                    initialSleepHours: entry.sleepHours,
+                    initialEnergy: entry.energy,
                     })}
                   />
                 </div>
@@ -468,6 +477,9 @@ const Journal = () => {
                     initialFormat: entry.bodyFormat,
                     initialImages: entry.images,
                     initialActivities: entry.activities,
+                    initialWeather: entry.weather,
+                    initialSleepHours: entry.sleepHours,
+                    initialEnergy: entry.energy,
                   })}
                 />
               </div>
@@ -524,6 +536,9 @@ const Journal = () => {
                             initialFormat: entry.bodyFormat,
                             initialImages: entry.images,
                             initialActivities: entry.activities,
+                    initialWeather: entry.weather,
+                    initialSleepHours: entry.sleepHours,
+                    initialEnergy: entry.energy,
                           })}
                           onDelete={() => handleDelete(entry)}
                         />
@@ -571,6 +586,9 @@ const Journal = () => {
                     initialTags: entry.tags,
                     initialFormat: entry.bodyFormat,
                     initialActivities: entry.activities,
+                    initialWeather: entry.weather,
+                    initialSleepHours: entry.sleepHours,
+                    initialEnergy: entry.energy,
                   })}
                 />
                 <JournalRandomCard
@@ -583,6 +601,9 @@ const Journal = () => {
                     initialTags: entry.tags,
                     initialFormat: entry.bodyFormat,
                     initialActivities: entry.activities,
+                    initialWeather: entry.weather,
+                    initialSleepHours: entry.sleepHours,
+                    initialEnergy: entry.energy,
                     initialImages: entry.images,
                   })}
                 />
@@ -599,6 +620,9 @@ const Journal = () => {
                         initialFormat: entry.bodyFormat,
                         initialImages: entry.images,
                         initialActivities: entry.activities,
+                    initialWeather: entry.weather,
+                    initialSleepHours: entry.sleepHours,
+                    initialEnergy: entry.energy,
                       });
                     } else {
                       setEditorMode({ kind: 'create', date: dateIso });
