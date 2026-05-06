@@ -110,9 +110,9 @@ function ResizableImageView({ node, updateAttributes, selected, deleteNode, edit
           />
         )}
 
-        {/* 인라인 편집 바 — selected 시 위쪽 띄움. 정렬 + 사이즈 preset + 삭제 */}
+        {/* 인라인 편집 바 — 이미지 안 상단 overlay (Notion/Slack 패턴, 어디서나 안 잘림) */}
         {isEditable && selected && (
-          <div className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md z-10">
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover/95 backdrop-blur-sm shadow-md z-10">
             {/* 정렬 */}
             <AlignBtn active={align === 'left'} onClick={() => updateAttributes({ align: 'left' })} title="왼쪽">
               <AlignLeft className="w-3.5 h-3.5" />

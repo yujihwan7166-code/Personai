@@ -354,7 +354,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
           <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-4 md:gap-5">
             {/* 좌측: 본문 — 항상 풍부 (markdown) */}
             <div className="min-w-0 flex flex-col">
-              <div className="rounded-md border border-[hsl(var(--hairline))] bg-card overflow-hidden min-h-[320px]">
+              <div className="rounded-md border border-[hsl(var(--hairline))] bg-card min-h-[320px]">
                 <WikiBlockEditor
                   body={body}
                   onChange={setBody}
