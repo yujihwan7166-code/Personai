@@ -15,8 +15,29 @@ import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
 import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
+import TableCellBase from '@tiptap/extension-table-cell';
+import TableHeaderBase from '@tiptap/extension-table-header';
+
+/**
+ * TableCell / TableHeader 에 backgroundColor attribute 부착.
+ * setCellAttribute('backgroundColor', ...) 로 셀 단위 색상 적용 — 표 메뉴 색 picker 와 연결.
+ */
+const cellBg = {
+  backgroundColor: {
+    default: null as string | null,
+    parseHTML: (el: HTMLElement) => el.getAttribute('data-bg') || el.style.backgroundColor || null,
+    renderHTML: (attrs: { backgroundColor?: string | null }) =>
+      attrs.backgroundColor
+        ? { style: `background-color: ${attrs.backgroundColor}`, 'data-bg': attrs.backgroundColor }
+        : {},
+  },
+};
+const TableCell = TableCellBase.extend({
+  addAttributes() { return { ...this.parent?.(), ...cellBg }; },
+});
+const TableHeader = TableHeaderBase.extend({
+  addAttributes() { return { ...this.parent?.(), ...cellBg }; },
+});
 import { Markdown } from 'tiptap-markdown';
 import { WikiEditorToolbar } from './WikiEditorToolbar';
 import { WikiPagePickerModal } from './WikiPagePickerModal';
@@ -24,7 +45,7 @@ import type { WikiPage as WikiPageT } from '@/types/wiki';
 import {
   Bold, Italic, Strikethrough, Code, Link as LinkIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code2, Minus, ImagePlus, CheckSquare, BookOpen, Lightbulb,
-  Trash2, ChevronDown,
+  Trash2, ChevronDown, Palette,
 } from 'lucide-react';
 import type { Editor as TipTapEditor } from '@tiptap/react';
 import type { WikiPage } from '@/types/wiki';
@@ -537,8 +558,22 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
  * TableMenu — 표 안 커서일 때 떠오르는 액션 바.
  * 노션 식: 텍스트 레이블 + "행 ▾ / 열 ▾" 드롭다운 + 표 삭제 단축.
  */
+// 셀 배경 팔레트 — 옅은 톤 위주 (가독성 위해)
+const CELL_COLORS: Array<{ name: string; value: string | null }> = [
+  { name: '없음',  value: null },
+  { name: '회색',  value: 'hsl(0 0% 92%)' },
+  { name: '빨강',  value: 'hsl(0 75% 92%)' },
+  { name: '주황',  value: 'hsl(28 90% 90%)' },
+  { name: '노랑',  value: 'hsl(48 95% 88%)' },
+  { name: '초록',  value: 'hsl(142 60% 88%)' },
+  { name: '청록',  value: 'hsl(178 55% 86%)' },
+  { name: '파랑',  value: 'hsl(212 80% 90%)' },
+  { name: '보라',  value: 'hsl(265 70% 92%)' },
+  { name: '분홍',  value: 'hsl(330 80% 92%)' },
+];
+
 function TableMenu({ editor }: { editor: TipTapEditor }) {
-  const [open, setOpen] = useState<null | 'row' | 'col'>(null);
+  const [open, setOpen] = useState<null | 'row' | 'col' | 'color'>(null);
   const close = () => setOpen(null);
   const run = (fn: () => void) => () => { fn(); close(); };
 
@@ -591,6 +626,45 @@ function TableMenu({ editor }: { editor: TipTapEditor }) {
             <MenuItem onClick={run(() => editor.chain().focus().deleteColumn().run())} danger>이 열 삭제</MenuItem>
             <MenuSep />
             <MenuItem onClick={run(() => editor.chain().focus().toggleHeaderColumn().run())}>머리 열 토글</MenuItem>
+          </div>
+        )}
+      </div>
+
+      <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
+
+      {/* 셀 색 — 선택된 셀(들) 배경 적용. 단일 셀 커서만 있어도 그 셀 적용. */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(open === 'color' ? null : 'color')}
+          className={cn(
+            'inline-flex items-center gap-1 h-7 px-2.5 rounded-md font-medium wiki-trans-color',
+            open === 'color' ? 'bg-accent text-foreground' : 'text-foreground/80 hover:bg-accent hover:text-foreground',
+          )}
+          title="셀 색"
+        >
+          <Palette className="w-3.5 h-3.5" />
+          색
+          <ChevronDown className="w-3 h-3 opacity-60" />
+        </button>
+        {open === 'color' && (
+          <div className="absolute left-0 top-full mt-1 z-50 grid grid-cols-5 gap-1 p-1.5 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md w-[180px]">
+            {CELL_COLORS.map((c) => (
+              <button
+                key={c.name}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  editor.chain().focus().setCellAttribute('backgroundColor', c.value).run();
+                  close();
+                }}
+                title={c.name}
+                className="h-6 w-6 rounded border border-foreground/15 hover:scale-110 transition-transform inline-flex items-center justify-center"
+                style={{ backgroundColor: c.value ?? 'transparent' }}
+              >
+                {c.value === null && <span className="text-[10px] text-foreground/50">×</span>}
+              </button>
+            ))}
           </div>
         )}
       </div>
