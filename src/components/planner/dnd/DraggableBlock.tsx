@@ -75,19 +75,32 @@ export const DraggableBlock = ({
     const scrollContainer = (e.currentTarget as HTMLElement).closest<HTMLElement>(
       '[data-timeline-scroll="true"]',
     );
-    const autoScroller = createAutoScroller(scrollContainer);
+
+    // 자동 스크롤로 컨테이너가 움직인 누적 픽셀 — raw delta 에 더해 보상.
+    let accScrollDelta = 0;
+
+    /** clientY 기준 resize delta 재계산 — pointermove + autoScroll onTick 공용. */
+    const recomputeResize = (clientY: number) => {
+      const raw = clientY - startY + accScrollDelta;
+      const snapped = Math.round(raw / SNAP_PX) * SNAP_PX;
+      const minHeight = (MIN_DURATION_MIN / 60) * HOUR_PX;
+      const proposedHeight = baseHeight + snapped;
+      const clampedDelta = proposedHeight < minHeight ? minHeight - baseHeight : snapped;
+      setResizeDeltaPx(clampedDelta);
+    };
+
+    const autoScroller = createAutoScroller(scrollContainer, {
+      onTick: (clientY, scrollDelta) => {
+        accScrollDelta += scrollDelta;
+        recomputeResize(clientY);
+      },
+    });
 
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
 
     const onMove = (ev: PointerEvent) => {
-      const raw = ev.clientY - startY;
-      const snapped = Math.round(raw / SNAP_PX) * SNAP_PX;
-      // 최소 길이 enforce.
-      const minHeight = (MIN_DURATION_MIN / 60) * HOUR_PX;
-      const proposedHeight = baseHeight + snapped;
-      const clampedDelta = proposedHeight < minHeight ? minHeight - baseHeight : snapped;
-      setResizeDeltaPx(clampedDelta);
+      recomputeResize(ev.clientY);
       autoScroller.update(ev.clientY);
     };
 
@@ -99,7 +112,7 @@ export const DraggableBlock = ({
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
 
-      const raw = ev.clientY - startY;
+      const raw = ev.clientY - startY + accScrollDelta;
       const snapped = Math.round(raw / SNAP_PX) * SNAP_PX;
       const deltaMin = (snapped / HOUR_PX) * 60;
 

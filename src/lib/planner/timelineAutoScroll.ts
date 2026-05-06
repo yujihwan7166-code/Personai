@@ -22,8 +22,21 @@ export interface TimelineAutoScroller {
   stop(): void;
 }
 
+export interface AutoScrollerOptions {
+  /**
+   * 매 프레임 호출되는 콜백. 마지막 clientY 와 직전 프레임 대비 scrollTop
+   * 변화량(scrollDelta) 을 받는다. 호출자가 이를 이용해 ghost·resize 좌표를
+   * viewport 기준으로 재계산할 수 있다.
+   *
+   * 마우스가 안 움직여도 자동 스크롤이 발생하면 매 프레임 호출됨 —
+   * pointermove 만으로는 좌표 갱신이 멈추는 문제 해결.
+   */
+  onTick?: (clientY: number, scrollDelta: number) => void;
+}
+
 export const createAutoScroller = (
   container: HTMLElement | null,
+  options: AutoScrollerOptions = {},
 ): TimelineAutoScroller => {
   if (!container) {
     return { update: () => {}, stop: () => {} };
@@ -42,17 +55,19 @@ export const createAutoScroller = (
     const distFromTop = lastY - rect.top;
     const distFromBottom = rect.bottom - lastY;
     if (distFromTop < EDGE_PX) {
-      // 위쪽 가장자리 — 음의 속도 (스크롤 위로).
       const ratio = Math.max(0, Math.min(1, 1 - distFromTop / EDGE_PX));
       velocity = -MAX_SPEED_PX_PER_FRAME * ratio;
     } else if (distFromBottom < EDGE_PX) {
-      // 아래쪽 가장자리 — 양의 속도 (스크롤 아래로).
       const ratio = Math.max(0, Math.min(1, 1 - distFromBottom / EDGE_PX));
       velocity = MAX_SPEED_PX_PER_FRAME * ratio;
     }
+    let scrollDelta = 0;
     if (velocity !== 0) {
+      const before = container.scrollTop;
       container.scrollTop += velocity;
+      scrollDelta = container.scrollTop - before;
     }
+    options.onTick?.(lastY, scrollDelta);
     rafId = requestAnimationFrame(tick);
   };
 

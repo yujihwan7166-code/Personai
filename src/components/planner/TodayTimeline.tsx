@@ -229,19 +229,27 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     const startMin = visibleStart * 60 + yToMin(y);
     dragStartRef.current = { clientY: e.clientY, startMin };
 
-    const autoScroller = createAutoScroller(scrollRef.current);
-
-    const handleMove = (ev: PointerEvent) => {
+    /** clientY 기준 ghost 위치 재계산 — pointermove + autoScroll onTick 공용. */
+    const recomputeRange = (clientY: number) => {
       if (!dragStartRef.current || !gridRef.current) return;
       const r = gridRef.current.getBoundingClientRect();
-      const y2 = ev.clientY - r.top;
+      const y2 = clientY - r.top;
       const m = visibleStart * 60 + yToMin(y2);
-      // 5px 이상 이동했을 때만 ghost 표시 (click 과 분리).
-      const moved = Math.abs(ev.clientY - dragStartRef.current.clientY);
+      const moved = Math.abs(clientY - dragStartRef.current.clientY);
       if (moved >= 5) {
         setDragRange({ startMin: dragStartRef.current.startMin, currentMin: m });
-        autoScroller.update(ev.clientY);
       }
+    };
+
+    const autoScroller = createAutoScroller(scrollRef.current, {
+      // 자동 스크롤 매 프레임 — 마우스가 멈춰 있어도 grid 의 r.top 이
+      // 변하므로 ghost 좌표를 다시 계산해 마우스 위치를 따라가게 한다.
+      onTick: (clientY) => recomputeRange(clientY),
+    });
+
+    const handleMove = (ev: PointerEvent) => {
+      recomputeRange(ev.clientY);
+      autoScroller.update(ev.clientY);
     };
 
     const handleUp = (ev: PointerEvent) => {
