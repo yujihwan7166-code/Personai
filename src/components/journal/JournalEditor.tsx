@@ -26,6 +26,7 @@ import { MoodPicker } from './MoodPicker';
 import { TagInput } from './TagInput';
 import { ActivityPicker } from './ActivityPicker';
 import { WikiBlockEditor } from '@/components/wiki/WikiBlockEditor';
+import { compressImage } from '@/lib/journalImage';
 import { extractTagsFromBody, mergeTags, getTopTags } from '@/lib/journalTags';
 import { pickPrompt, type JournalPrompt } from '@/lib/journalPrompts';
 import {
@@ -360,6 +361,17 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
                   allPages={[]}
                   firstPlaceholder={placeholder}
                   restPlaceholder={placeholder}
+                  onUploadImage={async (file: File) => {
+                    // 클라이언트 압축 (~1280px max, JPEG quality 0.8) 후 base64 반환
+                    try {
+                      const { src } = await compressImage(file);
+                      return src;
+                    } catch (err) {
+                      console.error('이미지 압축 실패', err);
+                      notify.error('이미지 압축 실패', { duration: 2000 });
+                      throw err;
+                    }
+                  }}
                 />
               </div>
             </div>

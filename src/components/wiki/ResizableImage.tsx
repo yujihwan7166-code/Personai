@@ -110,9 +110,10 @@ function ResizableImageView({ node, updateAttributes, selected, deleteNode, edit
           />
         )}
 
-        {/* 인라인 정렬 + 삭제 바 — selected 시 위쪽 띄움 */}
+        {/* 인라인 편집 바 — selected 시 위쪽 띄움. 정렬 + 사이즈 preset + 삭제 */}
         {isEditable && selected && (
           <div className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md z-10">
+            {/* 정렬 */}
             <AlignBtn active={align === 'left'} onClick={() => updateAttributes({ align: 'left' })} title="왼쪽">
               <AlignLeft className="w-3.5 h-3.5" />
             </AlignBtn>
@@ -122,6 +123,14 @@ function ResizableImageView({ node, updateAttributes, selected, deleteNode, edit
             <AlignBtn active={align === 'right'} onClick={() => updateAttributes({ align: 'right' })} title="오른쪽">
               <AlignRight className="w-3.5 h-3.5" />
             </AlignBtn>
+            <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
+            {/* 사이즈 preset — Notion 패턴 (S/M/L/Full) */}
+            <SizeBtn active={width === 240} onClick={() => updateAttributes({ width: 240 })} title="작게 (240px)">S</SizeBtn>
+            <SizeBtn active={width === 480} onClick={() => updateAttributes({ width: 480 })} title="중간 (480px)">M</SizeBtn>
+            <SizeBtn active={width === 720} onClick={() => updateAttributes({ width: 720 })} title="크게 (720px)">L</SizeBtn>
+            <SizeBtn active={width === null} onClick={() => updateAttributes({ width: null })} title="원본 폭 (auto)">
+              <span className="text-[10px] font-semibold tracking-tight">Full</span>
+            </SizeBtn>
             <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
             <AlignBtn onClick={() => deleteNode()} title="이미지 삭제">
               <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -143,6 +152,24 @@ function AlignBtn({
       title={title}
       className={cn(
         'h-7 w-7 inline-flex items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors',
+        active && 'bg-accent text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SizeBtn({
+  active, onClick, title, children,
+}: { active?: boolean; onClick: () => void; title: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      title={title}
+      className={cn(
+        'h-7 min-w-[24px] px-1.5 inline-flex items-center justify-center rounded text-[11px] font-semibold tabular-nums text-foreground/65 hover:text-foreground hover:bg-accent transition-colors',
         active && 'bg-accent text-foreground',
       )}
     >
