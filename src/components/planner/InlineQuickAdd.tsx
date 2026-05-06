@@ -4,16 +4,15 @@
  * 빈 슬롯 클릭 → 그 자리에 input 등장 → 제목만 받음 → Enter 시 즉시 생성.
  * 시간 / 길이 / 우선순위 등 깊은 편집은 더블클릭 / 우클릭 → 모달.
  *
+ * 타임라인은 시간 블록 = "일정" 으로 고정 (할 일은 좌측 컬럼에서 생성).
  * 자연어 동시 지원: "회의 1시간" 입력 시 자동 길이 60분.
  */
 import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { CalendarDays, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { notify } from '@/lib/notify';
 import { parseNaturalLanguage } from '@/lib/planner/parseNaturalLanguage';
-import type { PlannerTask } from '@/types/planner';
 
 interface InlineQuickAddProps {
   /** 슬롯의 시작 ISO. */
@@ -29,9 +28,11 @@ interface InlineQuickAddProps {
 /** 기본 길이 — 30분. 자연어로 다른 길이 지정 가능. */
 const DEFAULT_DURATION_MIN = 30;
 
+const formatHm = (iso: string) =>
+  new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
 export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: InlineQuickAddProps) => {
   const [value, setValue] = useState('');
-  const [asEvent, setAsEvent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       onClose();
       return;
     }
-    // 자연어 파싱 — 시간/길이/반복/태그/우선순위 추출.
+    // 자연어 파싱 — 시간/길이/반복/태그 추출.
     const slotBase = new Date(startIso);
     const parsed = parseNaturalLanguage(trimmed, slotBase);
 
@@ -72,34 +73,28 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       parsed.endAt ??
       new Date(new Date(startAt).getTime() + fallbackDuration * 60_000).toISOString();
 
-    if (asEvent) {
-      eventStore.add({
-        title: parsed.cleanTitle || trimmed,
-        startAt,
-        endAt,
-        source: 'user',
-        recurrence: parsed.recurrence,
-      });
-    } else {
-      const task: Omit<PlannerTask, 'id' | 'createdAt' | 'done'> = {
-        title: parsed.cleanTitle || trimmed,
-        startAt,
-        endAt,
-        priority: parsed.priority,
-        recurrence: parsed.recurrence,
-        tags: parsed.tags,
-      };
-      taskStore.add(task);
-    }
-    notify.success(asEvent ? '일정 추가됐어요' : '할 일 추가됐어요', { duration: 1200 });
+    eventStore.add({
+      title: parsed.cleanTitle || trimmed,
+      startAt,
+      endAt,
+      source: 'user',
+      recurrence: parsed.recurrence,
+    });
+    notify.success('일정 추가됐어요', { duration: 1200 });
     onClose();
   };
+
+  // 종료 시각 — 라벨 표시용 (자연어에 길이 명시 없으면 fallback).
+  const endIsoPreview = (() => {
+    const fallbackDuration = durationMin ?? DEFAULT_DURATION_MIN;
+    return new Date(new Date(startIso).getTime() + fallbackDuration * 60_000).toISOString();
+  })();
 
   return (
     <div
       className={cn(
         'absolute left-2 z-30 w-[calc(100%_-_16px)] max-w-[420px] rounded-md overflow-hidden',
-        'border border-foreground/20 bg-card shadow-xl',
+        'border border-primary/30 bg-card shadow-xl ring-1 ring-primary/15',
         'flex flex-col',
       )}
       style={style}
@@ -107,37 +102,21 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-stretch h-full">
-        <span className="w-[3px] shrink-0 bg-foreground" aria-hidden />
-        <div className="flex-1 min-w-0 flex flex-col py-2 pr-2 pl-2">
-          <div className="flex items-center gap-1.5 mb-1">
-            <button
-              type="button"
-              onClick={() => setAsEvent(false)}
-              className={cn(
-                'h-5 px-1.5 text-[10px] font-mono uppercase tracking-wide rounded transition-colors',
-                !asEvent ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              할 일
-            </button>
-            <button
-              type="button"
-              onClick={() => setAsEvent(true)}
-              className={cn(
-                'h-5 px-1.5 text-[10px] font-mono uppercase tracking-wide rounded transition-colors',
-                asEvent ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              일정
-            </button>
-            <span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
-              {new Date(startIso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+        {/* 좌측 색 stripe — 일정 시각화. */}
+        <span className="w-[3px] shrink-0 bg-primary" aria-hidden />
+        <div className="flex-1 min-w-0 flex flex-col py-1.5 pr-2 pl-2.5">
+          {/* 헤더 — 일정 라벨 + 시간 범위 + 닫기 */}
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <CalendarDays className="h-3 w-3 text-primary shrink-0" strokeWidth={2.25} aria-hidden />
+            <span className="text-[10.5px] font-mono tabular-nums tracking-wide text-foreground/70 font-semibold">
+              {formatHm(startIso)} ~ {formatHm(endIsoPreview)}
             </span>
             <button
               type="button"
               onClick={onClose}
               aria-label="취소"
-              className="text-muted-foreground hover:text-foreground"
+              title="취소 (Esc)"
+              className="ml-auto h-5 w-5 inline-flex items-center justify-center rounded text-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
             >
               <X className="h-3 w-3" />
             </button>
@@ -156,8 +135,8 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
                 onClose();
               }
             }}
-            placeholder="제목  (예: 회의 1시간)"
-            className="w-full min-w-0 bg-transparent text-[13px] leading-tight text-foreground placeholder:text-muted-foreground/70 outline-none focus:outline-none focus:ring-0"
+            placeholder="일정 제목  (예: 회의 1시간)"
+            className="w-full min-w-0 bg-transparent text-[13px] leading-tight text-foreground placeholder:text-foreground/40 outline-none focus:outline-none focus:ring-0"
           />
         </div>
       </div>
