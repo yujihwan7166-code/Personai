@@ -207,14 +207,21 @@ export const HabitListPane = ({
           </div>
         </div>
 
-        {/* col 2-8: 요일 헤더 (월4 화5 ...) — 카드 행 도트와 같은 컬럼 */}
+        {/* col 2-8: 요일 헤더 (월4 화5 ...) — 카드 행 도트와 같은 컬럼.
+            오늘 칸은 self-stretch + amber tint 로 column band 시작. */}
         {weekDays.map((d, i) => {
           const dk = toDateKey(d);
           const isToday = dk === todayKey;
           const isPast = dk < todayKey;
           const prog = dayProgress[i];
           return (
-            <div key={d.toISOString()} className="flex items-center justify-center">
+            <div
+              key={d.toISOString()}
+              className={cn(
+                'self-stretch flex items-center justify-center',
+                isToday && 'bg-amber-400/[0.09]',
+              )}
+            >
               <HabitDayProgress
                 weekday={WEEKDAY_KO[d.getDay()]}
                 day={d.getDate()}
@@ -345,7 +352,7 @@ export const HabitListPane = ({
                   </div>
                 </div>
 
-                {/* 7개 dot */}
+                {/* 7개 dot — 오늘 칸은 self-stretch + amber tint 로 column band 연속 */}
                 {weekDays.map((d) => {
                   const dk = toDateKey(d);
                   const sched = isScheduledOn(habit, dk);
@@ -353,7 +360,14 @@ export const HabitListPane = ({
                   const isToday = dk === todayKey;
                   const isFuture = dk > todayKey;
                   return (
-                    <div key={dk} className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      key={dk}
+                      onClick={(e) => e.stopPropagation()}
+                      className={cn(
+                        'self-stretch flex items-center justify-center -my-3 py-3',
+                        isToday && 'bg-amber-400/[0.09]',
+                      )}
+                    >
                       <HabitDayDot
                         scheduled={sched}
                         count={ci?.count ?? 0}
