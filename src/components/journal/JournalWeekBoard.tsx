@@ -138,34 +138,35 @@ export const JournalWeekBoard = ({
                     : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
               }
               className={cn(
-                'group/tab relative flex items-center justify-center h-14 sm:h-16 transition-all',
+                'group/tab relative flex items-center justify-center h-9 sm:h-10 transition-all',
                 !isSelected && 'hover:bg-accent/40',
                 isFuture && !isSelected && 'opacity-50',
               )}
             >
-              <span
-                className={cn(
-                  'text-[15px] sm:text-[16px] tracking-[-0.01em] transition-colors',
-                  isSelected
-                    ? 'font-semibold text-foreground'
-                    : isToday
-                      ? 'font-semibold text-primary'
-                      : 'font-medium text-muted-foreground group-hover/tab:text-foreground/85',
-                )}
-              >
-                {WEEKDAYS_KO[i]}
-              </span>
-
-              {/* 작성된 날 — 요일 글자 옆 작은 dot (mood 색 빼고 단순) */}
-              {hasEntry && (
+              <span className="inline-flex items-center gap-1">
                 <span
                   className={cn(
-                    'absolute bottom-3 left-1/2 -translate-x-1/2 translate-x-[18px] w-1 h-1 rounded-full',
-                    isSelected ? 'bg-foreground/70' : 'bg-foreground/35',
+                    'text-[13px] sm:text-[14px] tracking-[-0.01em] transition-colors',
+                    isSelected
+                      ? 'font-semibold text-foreground'
+                      : isToday
+                        ? 'font-semibold text-primary'
+                        : 'font-medium text-muted-foreground group-hover/tab:text-foreground/85',
                   )}
-                  aria-hidden
-                />
-              )}
+                >
+                  {WEEKDAYS_KO[i]}
+                </span>
+                {/* 작성된 날 — 요일 글자 옆 작은 dot */}
+                {hasEntry && (
+                  <span
+                    className={cn(
+                      'w-1 h-1 rounded-full',
+                      isSelected ? 'bg-foreground/70' : 'bg-foreground/35',
+                    )}
+                    aria-hidden
+                  />
+                )}
+              </span>
 
               {/* 선택된 탭 underline indicator — Apple Calendar 패턴 */}
               {isSelected && (
