@@ -41,9 +41,8 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
 
   return (
     <div className="h-full min-h-0 flex flex-col">
-      {/* 본문 — 스크롤. 헤더와 통계가 한 카드로 묶여 시각적 분리 제거. */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-3">
-        {/* 헤더 + 통계 통합 카드 — 제목 바로 아래 통계가 자연스럽게 이어짐. */}
+      {/* 본문 — 우측 패널 전체를 하나의 카드로 묶음. 안에서 섹션은 divider 로만 구분. */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-3">
         <div className="rounded-lg border border-foreground/20 bg-card overflow-hidden">
           {/* 헤더 — 컴팩트 한 줄: 이모지 + 제목 + 편집·메뉴 */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-foreground/15">
@@ -94,8 +93,8 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
             </div>
           )}
 
-          {/* Stats — 3분할 (연속·이번 달·베스트). 헤더와 한 카드 안에서 divider 로 구분. */}
-          <div className="grid grid-cols-3 divide-x divide-foreground/15">
+          {/* Stats — 3분할 (연속·이번 달·베스트) */}
+          <div className="grid grid-cols-3 divide-x divide-foreground/15 border-b border-foreground/15">
             {[
               { Icon: Flame, label: '연속', value: stats.streak, unit: '일', accent: stats.streak >= 3 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground/60' },
               { Icon: Calendar, label: '이번 달', value: stats.monthCount, unit: '일', accent: 'text-blue-600 dark:text-blue-400' },
@@ -113,29 +112,28 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
               </div>
             ))}
           </div>
+
+          {/* 월 캘린더 섹션 */}
+          <section className="px-3 py-3 border-b border-foreground/15">
+            <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
+              이번 달
+            </div>
+            <HabitMonthGrid
+              habit={habit}
+              year={viewYear}
+              month1Indexed={viewMonth}
+              onChangeMonth={(y, m) => { setViewYear(y); setViewMonth(m); }}
+            />
+          </section>
+
+          {/* 365일 히트맵 섹션 */}
+          <section className="px-3 py-3">
+            <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
+              연간 패턴
+            </div>
+            <HabitYearHeatmap habit={habit} checkins={allCheckins} />
+          </section>
         </div>
-
-        {/* 월 캘린더 — 섹션 패턴 (border-t 위, 라벨 + 내용, 카드 wrapper 없음) */}
-        <section className="pt-3 border-t border-foreground/20">
-          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
-            이번 달
-          </div>
-          <HabitMonthGrid
-            habit={habit}
-            year={viewYear}
-            month1Indexed={viewMonth}
-            onChangeMonth={(y, m) => { setViewYear(y); setViewMonth(m); }}
-          />
-        </section>
-
-        {/* 365일 히트맵 — 섹션 패턴 */}
-        <section className="pt-3 border-t border-foreground/20">
-          <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
-            연간 패턴
-          </div>
-          <HabitYearHeatmap habit={habit} checkins={allCheckins} />
-        </section>
-
       </div>
     </div>
   );
