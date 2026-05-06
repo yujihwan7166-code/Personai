@@ -50,6 +50,7 @@ import { eventStore } from '@/services/planner/eventStore';
 import { notify } from '@/lib/notify';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
+import { getSnapMin } from '@/lib/planner/snapMin';
 import {
   DRAG_ACTIVATION_DISTANCE,
   transposeTimeToDate,
@@ -500,7 +501,8 @@ const Planner = () => {
       const oldStart = new Date(item.startAt);
       const oldEnd = new Date(item.endAt);
       const dur = oldEnd.getTime() - oldStart.getTime();
-      const deltaMinutes = Math.round((e.delta.y / HOUR_PX) * 60 / 15) * 15; // 15분 스냅
+      const snap = getSnapMin();
+      const deltaMinutes = Math.round((e.delta.y / HOUR_PX) * 60 / snap) * snap; // 사용자 스냅 단위
       const newStartDate = new Date(oldStart.getTime() + deltaMinutes * 60_000);
       const newStart = newStartDate.toISOString();
       const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
