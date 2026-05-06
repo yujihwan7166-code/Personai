@@ -13,7 +13,7 @@ import {
 } from '@/lib/planner/habitStats';
 import { HabitYearHeatmap } from './HabitYearHeatmap';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HabitMonthGrid } from './HabitMonthGrid';
@@ -21,10 +21,9 @@ import { HabitMonthGrid } from './HabitMonthGrid';
 interface HabitDetailPaneProps {
   habit: Habit;
   onEdit: () => void;
-  onArchive: () => void;
 }
 
-export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPaneProps) => {
+export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth() + 1);
@@ -77,12 +76,10 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuContent align="end" className="w-32">
                 <DropdownMenuItem onSelect={() => habitStore.togglePinned(habit.id)}>
                   {habit.pinned ? '핀 해제' : '핀 고정'}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={onArchive}>보관함으로</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

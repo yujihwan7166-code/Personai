@@ -5,10 +5,8 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
-import { habitStore } from '@/services/planner/habitStore';
 import { useHabits } from '@/hooks/planner/useHabits';
 import { HABIT_CHECKIN_CHANGED, type Habit, type HabitCheckin } from '@/types/habit';
-import { notify } from '@/lib/notify';
 import { HabitListPane } from './HabitListPane';
 import { HabitDetailPane } from './HabitDetailPane';
 import { NewHabitDialog } from './NewHabitDialog';
@@ -36,6 +34,13 @@ export const HabitsView = () => {
     setSelectedId(habits[0]?.id ?? null);
   }, [habits, selectedId]);
 
+  // Planner topbar "+ 새 습관" 버튼에서 dispatch — 외부 트리거로 dialog 오픈.
+  useEffect(() => {
+    const open = () => setDialogMode({ kind: 'create' });
+    window.addEventListener('planner-habit-new', open);
+    return () => window.removeEventListener('planner-habit-new', open);
+  }, []);
+
   const selected = useMemo(
     () => habits.find((h) => h.id === selectedId) ?? null,
     [habits, selectedId],
@@ -59,11 +64,6 @@ export const HabitsView = () => {
             <HabitDetailPane
               habit={selected}
               onEdit={() => setDialogMode({ kind: 'edit', habit: selected })}
-              onArchive={() => {
-                habitStore.archive(selected.id);
-                notify.info('보관함으로 옮겼어요', { duration: 1200 });
-                setSelectedId(null);
-              }}
             />
           ) : (
             <div className="h-full flex items-center justify-center text-center p-6">
