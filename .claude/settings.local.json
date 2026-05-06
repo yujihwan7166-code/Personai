@@ -15,7 +15,11 @@
       "PowerShell(Stop-Process -Id 1204 -Force)",
       "PowerShell(netstat -ano)",
       "Skill(목록)",
-      "Skill(목록:*)"
+      "Skill(목록:*)",
+      "WebFetch(domain:journey.cloud)",
+      "WebFetch(domain:dayoneapp.com)",
+      "WebFetch(domain:blog.journey.cloud)",
+      "WebFetch(domain:goodiary.interrobangsoft.com)"
     ]
   }
 }

@@ -522,17 +522,10 @@ function FolderGroup({
   return (
     <div>
       <div
-        className="group flex items-center gap-2 h-10 px-3 rounded-md cursor-pointer text-foreground bg-foreground/[0.04] hover:bg-accent transition-colors"
+        className="group flex items-center gap-2 h-10 px-3 rounded-md cursor-pointer text-foreground hover:bg-foreground/5 transition-colors"
         onClick={onToggle}
         onDoubleClick={onStartRename}
       >
-        <ChevronRight
-          className={cn(
-            'w-4 h-4 text-foreground/65 transition-transform shrink-0',
-            expanded && 'rotate-90',
-          )}
-          strokeWidth={2.25}
-        />
         <span
           className="inline-flex items-center justify-center h-6 w-6 rounded-md text-[15px] leading-none shrink-0"
           style={folderColor ? { backgroundColor: `color-mix(in oklab, ${folderColor} 25%, hsl(var(--background)))` } : { backgroundColor: 'hsl(var(--accent))' }}
@@ -860,13 +853,10 @@ function MemoRow({
           <>
             {/* 1줄 — emoji + pin + 제목 + 시간 */}
             <div className="flex items-center gap-1.5 w-full">
-              {titleEmoji ? (
-                <span aria-hidden className="text-[14px] leading-none shrink-0">{titleEmoji}</span>
-              ) : (
-                /* 미분류(loose) 메모는 작은 muted dot prefix 로 폴더 children 과 구분 */
-                loose && !memo.pinned && (
-                  <span aria-hidden className="w-1 h-1 rounded-full bg-muted-foreground/45 shrink-0" />
-                )
+              {!memo.pinned && (
+                <span aria-hidden className="text-[13px] leading-none shrink-0 opacity-75">
+                  {titleEmoji ?? '📝'}
+                </span>
               )}
               {memo.pinned && (
                 <Pin className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1.5} />
