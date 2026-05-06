@@ -5,7 +5,8 @@
  *
  * 첫 노드(=제목) 가드 — 구조 변경 차단, 인라인 포맷은 허용.
  */
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Editor } from '@tiptap/react';
 import {
   ImagePlus, Minus, Quote, Code2, CheckSquare, Table as TableIcon,
@@ -163,188 +164,271 @@ const IconBtn = ({
   </button>
 );
 
+/**
+ * Popover — 트리거 버튼 + body 로 portal 된 dropdown.
+ * 툴바 호스트가 `overflow-x-auto` 라 dropdown 이 잘리는 문제를 회피하기 위해
+ * fixed 좌표로 body 직속 렌더한다. 트리거 위치는 anchor rect 기준 자동 계산.
+ */
+function Popover({
+  align = 'left',
+  trigger,
+  children,
+  width,
+}: {
+  align?: 'left' | 'right';
+  trigger: (open: boolean, onToggle: () => void) => React.ReactNode;
+  children: (close: () => void) => React.ReactNode;
+  /** 옵션 — 메뉴 너비 (없으면 auto). */
+  width?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerWrapRef = useRef<HTMLDivElement | null>(null);
+  const popRef = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+
+  const close = () => setOpen(false);
+  const toggle = () => setOpen((v) => !v);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerWrapRef.current) return;
+    const update = () => {
+      const r = triggerWrapRef.current!.getBoundingClientRect();
+      const popW = popRef.current?.offsetWidth ?? width ?? 128;
+      const left = align === 'right'
+        ? Math.max(8, r.right - popW)
+        : Math.min(window.innerWidth - popW - 8, r.left);
+      setPos({ left, top: r.bottom + 4 });
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [open, align, width]);
+
+  // 외부 클릭 — 트리거나 팝업 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (triggerWrapRef.current?.contains(t)) return;
+      if (popRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={triggerWrapRef} className="relative shrink-0">
+      {trigger(open, toggle)}
+      {open && pos && createPortal(
+        <div
+          ref={popRef}
+          style={{ position: 'fixed', left: pos.left, top: pos.top, width }}
+          className="z-[100] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md p-0.5"
+        >
+          {children(close)}
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
 // 본문/H1·H2·H3 dropdown
 const BlockTypeDropdown = ({ editor }: { editor: Editor }) => {
-  const [open, setOpen] = useState(false);
   const current = editor.isActive('heading', { level: 1 }) ? 'H1'
     : editor.isActive('heading', { level: 2 }) ? 'H2'
     : editor.isActive('heading', { level: 3 }) ? 'H3'
     : '본문';
-
   return (
-    <div className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        onBlur={() => setTimeout(() => setOpen(false), 100)}
-        className="inline-flex items-center gap-1 h-7 px-2 rounded text-[12px] text-foreground/75 hover:bg-accent hover:text-foreground transition-colors min-w-[60px]"
-        title="단락 종류"
-      >
-        <Type className="w-3 h-3 shrink-0" />
-        <span>{current}</span>
-        <ChevronDown className="w-3 h-3 opacity-60" />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-32 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md p-0.5">
-          {[
-            { label: '본문', icon: Type, run: () => editor.chain().focus().setParagraph().run() },
-            { label: '제목 1', icon: Heading1, run: () => editor.chain().focus().toggleHeading({ level: 1 }).run() },
-            { label: '제목 2', icon: Heading2, run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
-            { label: '제목 3', icon: Heading3, run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
-          ].map((opt) => {
-            const isFirst = (() => {
-              const { from } = editor.state.selection;
-              const $pos = editor.state.doc.resolve(from);
-              return $pos.depth === 0 || $pos.before(1) === 0;
-            })();
-            const disabled = isFirst;
-            return (
-              <button
-                key={opt.label}
-                type="button"
-                disabled={disabled}
-                onMouseDown={(e) => { e.preventDefault(); if (!disabled) { opt.run(); setOpen(false); } }}
-                className={cn(
-                  'w-full flex items-center gap-2 px-2 h-7 rounded text-[12px] text-foreground/80 hover:bg-accent hover:text-foreground',
-                  disabled && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-foreground/80',
-                )}
-                title={disabled ? '제목(첫 줄)에선 변경 불가' : undefined}
-              >
-                <opt.icon className="w-3.5 h-3.5" />
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+    <Popover
+      width={128}
+      trigger={(open, onToggle) => (
+        <button
+          type="button"
+          onClick={onToggle}
+          className={cn(
+            'inline-flex items-center gap-1 h-7 px-2 rounded text-[12px] text-foreground/75 hover:bg-accent hover:text-foreground transition-colors min-w-[60px]',
+            open && 'bg-accent text-foreground',
+          )}
+          title="단락 종류"
+        >
+          <Type className="w-3 h-3 shrink-0" />
+          <span>{current}</span>
+          <ChevronDown className="w-3 h-3 opacity-60" />
+        </button>
       )}
-    </div>
+    >
+      {(close) => {
+        const isFirst = (() => {
+          const { from } = editor.state.selection;
+          const $pos = editor.state.doc.resolve(from);
+          return $pos.depth === 0 || $pos.before(1) === 0;
+        })();
+        return [
+          { label: '본문', icon: Type, run: () => editor.chain().focus().setParagraph().run() },
+          { label: '제목 1', icon: Heading1, run: () => editor.chain().focus().toggleHeading({ level: 1 }).run() },
+          { label: '제목 2', icon: Heading2, run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
+          { label: '제목 3', icon: Heading3, run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
+        ].map((opt) => (
+          <button
+            key={opt.label}
+            type="button"
+            disabled={isFirst}
+            onMouseDown={(e) => { e.preventDefault(); if (!isFirst) { opt.run(); close(); } }}
+            className={cn(
+              'w-full flex items-center gap-2 px-2 h-7 rounded text-[12px] text-foreground/80 hover:bg-accent hover:text-foreground',
+              isFirst && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-foreground/80',
+            )}
+            title={isFirst ? '제목(첫 줄)에선 변경 불가' : undefined}
+          >
+            <opt.icon className="w-3.5 h-3.5" />
+            {opt.label}
+          </button>
+        ));
+      }}
+    </Popover>
   );
 };
 
 // 정렬 dropdown
 const AlignDropdown = ({ editor }: { editor: Editor }) => {
-  const [open, setOpen] = useState(false);
   const ActiveIcon = editor.isActive({ textAlign: 'center' }) ? AlignCenter
     : editor.isActive({ textAlign: 'right' }) ? AlignRight
     : editor.isActive({ textAlign: 'justify' }) ? AlignJustify
     : AlignLeft;
-
   return (
-    <div className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        onBlur={() => setTimeout(() => setOpen(false), 100)}
-        className="inline-flex items-center gap-0.5 h-7 px-1.5 rounded text-foreground/65 hover:bg-accent hover:text-foreground transition-colors"
-        title="정렬"
-      >
-        <ActiveIcon className="w-3.5 h-3.5" />
-        <ChevronDown className="w-3 h-3 opacity-60" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 w-32 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md p-0.5">
-          {[
-            { label: '왼쪽',     icon: AlignLeft,    val: 'left' as const  },
-            { label: '가운데',   icon: AlignCenter,  val: 'center' as const },
-            { label: '오른쪽',   icon: AlignRight,   val: 'right' as const  },
-            { label: '양쪽',     icon: AlignJustify, val: 'justify' as const },
-          ].map((opt) => {
-            const active = editor.isActive({ textAlign: opt.val });
-            return (
-              <button
-                key={opt.val}
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign(opt.val).run(); setOpen(false); }}
-                className={cn(
-                  'w-full flex items-center gap-2 px-2 h-7 rounded text-[12px] text-foreground/80 hover:bg-accent hover:text-foreground',
-                  active && 'bg-accent text-foreground',
-                )}
-              >
-                <opt.icon className="w-3.5 h-3.5" />
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+    <Popover
+      align="right"
+      width={128}
+      trigger={(open, onToggle) => (
+        <button
+          type="button"
+          onClick={onToggle}
+          className={cn(
+            'inline-flex items-center gap-0.5 h-7 px-1.5 rounded text-foreground/65 hover:bg-accent hover:text-foreground transition-colors',
+            open && 'bg-accent text-foreground',
+          )}
+          title="정렬"
+        >
+          <ActiveIcon className="w-3.5 h-3.5" />
+          <ChevronDown className="w-3 h-3 opacity-60" />
+        </button>
       )}
-    </div>
+    >
+      {(close) => [
+        { label: '왼쪽',     icon: AlignLeft,    val: 'left' as const  },
+        { label: '가운데',   icon: AlignCenter,  val: 'center' as const },
+        { label: '오른쪽',   icon: AlignRight,   val: 'right' as const  },
+        { label: '양쪽',     icon: AlignJustify, val: 'justify' as const },
+      ].map((opt) => {
+        const active = editor.isActive({ textAlign: opt.val });
+        return (
+          <button
+            key={opt.val}
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign(opt.val).run(); close(); }}
+            className={cn(
+              'w-full flex items-center gap-2 px-2 h-7 rounded text-[12px] text-foreground/80 hover:bg-accent hover:text-foreground',
+              active && 'bg-accent text-foreground',
+            )}
+          >
+            <opt.icon className="w-3.5 h-3.5" />
+            {opt.label}
+          </button>
+        );
+      })}
+    </Popover>
   );
 };
 
 // 글자색 dropdown
-const ColorDropdown = ({ editor }: { editor: Editor }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative shrink-0">
+const ColorDropdown = ({ editor }: { editor: Editor }) => (
+  <Popover
+    trigger={(open, onToggle) => (
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        onBlur={() => setTimeout(() => setOpen(false), 100)}
-        className="inline-flex items-center justify-center h-7 w-7 rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+        onClick={onToggle}
+        className={cn(
+          'inline-flex items-center justify-center h-7 w-7 rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors',
+          open && 'bg-accent text-foreground',
+        )}
         title="글자색"
       >
         <Palette className="w-3.5 h-3.5" />
       </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 grid grid-cols-5 gap-1 p-1.5 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md">
-          {TEXT_COLORS.map((c) => (
-            <button
-              key={c.name}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (c.value) editor.chain().focus().setColor(c.value).run();
-                else editor.chain().focus().unsetColor().run();
-                setOpen(false);
-              }}
-              title={c.name}
-              className="h-5 w-5 rounded border border-foreground/15 hover:scale-110 transition-transform"
-              style={{ backgroundColor: c.value || 'transparent' }}
-            >
-              {!c.value && <span className="text-[9px]">×</span>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+    )}
+  >
+    {(close) => (
+      <div className="grid grid-cols-5 gap-1 p-1">
+        {TEXT_COLORS.map((c) => (
+          <button
+            key={c.name}
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (c.value) editor.chain().focus().setColor(c.value).run();
+              else editor.chain().focus().unsetColor().run();
+              close();
+            }}
+            title={c.name}
+            className="h-5 w-5 rounded border border-foreground/15 hover:scale-110 transition-transform inline-flex items-center justify-center"
+            style={{ backgroundColor: c.value || 'transparent' }}
+          >
+            {!c.value && <span className="text-[9px]">×</span>}
+          </button>
+        ))}
+      </div>
+    )}
+  </Popover>
+);
 
 // 하이라이트 dropdown
-const HighlightDropdown = ({ editor }: { editor: Editor }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative shrink-0">
+const HighlightDropdown = ({ editor }: { editor: Editor }) => (
+  <Popover
+    trigger={(open, onToggle) => (
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        onBlur={() => setTimeout(() => setOpen(false), 100)}
-        className="inline-flex items-center justify-center h-7 w-7 rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+        onClick={onToggle}
+        className={cn(
+          'inline-flex items-center justify-center h-7 w-7 rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors',
+          open && 'bg-accent text-foreground',
+        )}
         title="하이라이트"
       >
         <Highlighter className="w-3.5 h-3.5" />
       </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 grid grid-cols-3 gap-1 p-1.5 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md">
-          {HIGHLIGHTS.map((h) => (
-            <button
-              key={h.name}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (h.value) editor.chain().focus().toggleHighlight({ color: h.value }).run();
-                else editor.chain().focus().unsetHighlight().run();
-                setOpen(false);
-              }}
-              title={h.name}
-              className="h-5 w-7 rounded border border-foreground/15 hover:scale-105 transition-transform text-[9px]"
-              style={{ backgroundColor: h.value || 'transparent' }}
-            >
-              {!h.value && '×'}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+    )}
+  >
+    {(close) => (
+      <div className="grid grid-cols-3 gap-1 p-1">
+        {HIGHLIGHTS.map((h) => (
+          <button
+            key={h.name}
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (h.value) editor.chain().focus().toggleHighlight({ color: h.value }).run();
+              else editor.chain().focus().unsetHighlight().run();
+              close();
+            }}
+            title={h.name}
+            className="h-5 w-7 rounded border border-foreground/15 hover:scale-105 transition-transform text-[9px] inline-flex items-center justify-center"
+            style={{ backgroundColor: h.value || 'transparent' }}
+          >
+            {!h.value && '×'}
+          </button>
+        ))}
+      </div>
+    )}
+  </Popover>
+);
