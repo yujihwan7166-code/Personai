@@ -29,10 +29,9 @@ import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalWeekBoard } from '@/components/journal/JournalWeekBoard';
-import { JournalWeekNav } from '@/components/journal/JournalWeekNav';
 import { JournalYearPixels } from '@/components/journal/JournalYearPixels';
 import { JournalDailyCarousel } from '@/components/journal/JournalDailyCarousel';
-import { normalizeWeekAnchor, shiftWeek, isAnchorCurrentWeek } from '@/lib/journalWeek';
+import { normalizeWeekAnchor } from '@/lib/journalWeek';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
@@ -451,24 +450,14 @@ const Journal = () => {
               />
             )}
 
-            {/* ── 주간 보드 뷰 ── */}
+            {/* ── 주간 보드 뷰 — WeekNav 제거 (사용자 요청), 주 이동은 캘린더로 ── */}
             {effectiveViewMode === 'week' && (
-              <>
-                <JournalWeekNav
-                  anchorIso={weekAnchor}
-                  onPrev={() => setWeekAnchor(normalizeWeekAnchor(shiftWeek(weekAnchor, -1)))}
-                  onNext={() => setWeekAnchor(normalizeWeekAnchor(shiftWeek(weekAnchor, 1)))}
-                  onToday={() => setWeekAnchor(normalizeWeekAnchor(new Date().toISOString()))}
-                  isCurrentWeek={isAnchorCurrentWeek(weekAnchor)}
-                  shortcutsEnabled={editorMode === null}
-                />
-                <JournalWeekBoard
-                  entries={allEntries}
-                  anchorIso={weekAnchor}
-                  onClickEntry={handleWeekClickEntry}
-                  onAddForDate={handleWeekAddForDate}
-                />
-              </>
+              <JournalWeekBoard
+                entries={allEntries}
+                anchorIso={weekAnchor}
+                onClickEntry={handleWeekClickEntry}
+                onAddForDate={handleWeekAddForDate}
+              />
             )}
 
             {/* ── 시간순 목록 뷰 ── */}
