@@ -413,10 +413,16 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
         />
       )}
 
-      {/* 인라인 툴바 — 텍스트 선택 시 떠오름 */}
+      {/* 인라인 툴바 — 텍스트 선택 시 떠오름. 표 셀 드래그 (CellSelection) 일 땐 숨김 — 표 메뉴가 그 자리. */}
       <BubbleMenu
         editor={editor}
-        shouldShow={({ from, to }) => from !== to}
+        shouldShow={({ editor: ed, from, to }) => {
+          if (from === to) return false;
+          // 표 안 셀 드래그 선택: ProseMirror CellSelection — constructor 이름으로 식별 (import 안 해도 안전).
+          const selName = ed.state.selection.constructor?.name;
+          if (selName === 'CellSelection') return false;
+          return true;
+        }}
       >
         <div className="flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg">
           <ToolbarBtn active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="굵게 (Ctrl+B)"><Bold className="w-3.5 h-3.5" /></ToolbarBtn>

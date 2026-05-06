@@ -252,7 +252,7 @@ export const JournalDailyCarousel = ({
   const card = renderCard();
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-[hsl(var(--hairline))] bg-card px-4 sm:px-5 py-3.5 min-w-0 shadow-[0_1px_2px_hsl(30_30%_8%/0.04)]">
+    <div className="flex items-center gap-2.5 w-full rounded-xl border border-[hsl(var(--hairline))] bg-card/60 px-3 sm:px-3.5 h-10 min-w-0 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)]">
       {/* 좌측: 회전 이전 화살표 */}
       {cards.length > 1 && (
         <button

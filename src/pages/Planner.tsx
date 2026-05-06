@@ -399,10 +399,14 @@ const Planner = () => {
 
   // 드래그 중 미리보기 상태 — DragOverlay 가 사용.
   const [activeDrag, setActiveDrag] = useState<{ data: PlannerDragData; deltaY: number } | null>(null);
+  // 드래그 시작 시점 타임라인 scrollTop — handleDragEnd 에서 자동 스크롤만큼 보상하기 위해.
+  const dragInitialScrollTop = useRef<number | null>(null);
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
     const data = e.active.data.current as PlannerDragData | undefined;
     if (data) setActiveDrag({ data, deltaY: 0 });
+    const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
+    dragInitialScrollTop.current = container ? container.scrollTop : null;
   }, []);
 
   const handleDragMove = useCallback((e: DragMoveEvent) => {

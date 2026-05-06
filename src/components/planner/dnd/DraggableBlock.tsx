@@ -64,6 +64,25 @@ export const DraggableBlock = ({
     document.body.style.cursor = '';
   }, []);
 
+  // ── 드래그 중 컨테이너 자동 스크롤 보상 ──
+  // dnd-kit transform 은 마우스 viewport 이동량 기반. 컨테이너가 자동 스크롤
+  // 되어도 transform 이 그만큼 따라가지 않아서 블록이 원래 자리에 박혀 보이는
+  // 문제 → 컨테이너 scrollTop 변화량을 transform.y 에 직접 보상.
+  const [dragScrollOffset, setDragScrollOffset] = useState(0);
+  useEffect(() => {
+    if (!isDragging) {
+      if (dragScrollOffset !== 0) setDragScrollOffset(0);
+      return;
+    }
+    const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
+    if (!container) return;
+    const initial = container.scrollTop;
+    const onScroll = () => setDragScrollOffset(container.scrollTop - initial);
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDragging]);
+
   const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!enableResize || !item.data.startAt || !item.data.endAt) return;
     e.preventDefault();
@@ -164,12 +183,17 @@ export const DraggableBlock = ({
     return { time: formatHm(finalEnd.toISOString()), dur: formatDur(totalMin) };
   })();
 
+  // 자동 스크롤 보상한 transform — 시각적 위치·라벨 모두 이걸 사용.
+  const adjustedTransform = transform
+    ? { ...transform, y: transform.y + dragScrollOffset }
+    : transform;
+
   // 라이브 이동 라벨 — 본체 드래그 중 새 시작/종료 시각 (Google Calendar 패턴).
   const liveMoveLabel = (() => {
-    if (!isDragging || !transform || !item.data.startAt || !item.data.endAt) return null;
+    if (!isDragging || !adjustedTransform || !item.data.startAt || !item.data.endAt) return null;
     const oldStart = new Date(item.data.startAt);
     const oldEnd = new Date(item.data.endAt);
-    const deltaMin = Math.round((transform.y / HOUR_PX) * 60 / snapMin) * snapMin;
+    const deltaMin = Math.round((adjustedTransform.y / HOUR_PX) * 60 / snapMin) * snapMin;
     if (deltaMin === 0) return null;
     const newStart = new Date(oldStart.getTime() + deltaMin * 60_000);
     const newEnd = new Date(oldEnd.getTime() + deltaMin * 60_000);
@@ -178,7 +202,7 @@ export const DraggableBlock = ({
 
   const composedStyle: React.CSSProperties = {
     ...style,
-    transform: isDragging ? CSS.Translate.toString(transform) : undefined,
+    transform: isDragging ? CSS.Translate.toString(adjustedTransform) : undefined,
     // 블록 자체가 따라오게 — opacity 0.5(반투명 ghost) → 0.92 (블록이 그대로 옮겨가는 느낌)
     opacity: isDragging ? 0.92 : 1,
     height: liveHeight,

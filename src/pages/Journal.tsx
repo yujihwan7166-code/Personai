@@ -222,8 +222,8 @@ const Journal = () => {
       <main className="flex-1 px-4 sm:px-8 py-8 sm:py-12 max-w-5xl w-full mx-auto">
         {/* 마스트헤드 — 한 줄 압축, 책 표지 톤 */}
         <header className="mb-6 sm:mb-8">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-baseline gap-3 sm:gap-4 min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-baseline gap-3 sm:gap-4 shrink-0">
               <button
                 type="button"
                 onClick={() => navigate('/')}
@@ -241,7 +241,29 @@ const Journal = () => {
               </span>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* 가운데 — 오늘의 일기 carousel (lg+, 일기 제목 옆) */}
+            {!isEmpty && query.trim().length === 0 && !hasActiveFilter && (
+              <div className="hidden lg:flex flex-1 min-w-0 max-w-2xl">
+                <div className="flex-1 min-w-0">
+                  <JournalDailyCarousel
+                    allEntries={allEntries}
+                    onStartEntry={() => setEditorMode({ kind: 'create' })}
+                    onClickEntry={(entry) => setEditorMode({
+                      kind: 'edit',
+                      id: entry.id,
+                      initialBody: entry.body,
+                      initialMood: entry.mood,
+                      initialTags: entry.tags,
+                      initialFormat: entry.bodyFormat,
+                      initialImages: entry.images,
+                      initialActivities: entry.activities,
+                    })}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 flex-wrap ml-auto">
             {/* 검색 input */}
             <div
               className={cn(
@@ -432,22 +454,24 @@ const Journal = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
           <div className="flex flex-col gap-5 min-w-0">
-            {/* ── 큰 가로 banner — 오늘의 일기 carousel (사용자 mockup 양식) ── */}
+            {/* 모바일 (lg 미만) — carousel 메인 컬럼 상단 노출 */}
             {query.trim().length === 0 && !hasActiveFilter && (
-              <JournalDailyCarousel
-                allEntries={allEntries}
-                onStartEntry={() => setEditorMode({ kind: 'create' })}
-                onClickEntry={(entry) => setEditorMode({
-                  kind: 'edit',
-                  id: entry.id,
-                  initialBody: entry.body,
-                  initialMood: entry.mood,
-                  initialTags: entry.tags,
-                  initialFormat: entry.bodyFormat,
-                  initialImages: entry.images,
-                  initialActivities: entry.activities,
-                })}
-              />
+              <div className="lg:hidden">
+                <JournalDailyCarousel
+                  allEntries={allEntries}
+                  onStartEntry={() => setEditorMode({ kind: 'create' })}
+                  onClickEntry={(entry) => setEditorMode({
+                    kind: 'edit',
+                    id: entry.id,
+                    initialBody: entry.body,
+                    initialMood: entry.mood,
+                    initialTags: entry.tags,
+                    initialFormat: entry.bodyFormat,
+                    initialImages: entry.images,
+                    initialActivities: entry.activities,
+                  })}
+                />
+              </div>
             )}
 
             {/* ── 주간 보드 뷰 — WeekNav 제거 (사용자 요청), 주 이동은 캘린더로 ── */}
