@@ -745,7 +745,7 @@ const Planner = () => {
             {view === 'habits' && <HabitsView />}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[950px]">
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[720px]">
             <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto">
               <PlannerSidebar
                 anchorIso={anchorIso}
