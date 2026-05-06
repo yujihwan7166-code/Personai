@@ -201,14 +201,27 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
         ))}
       </div>
 
-      {/* 이번 달 통계 */}
-      <footer className="mt-3 pt-2.5 border-t border-[hsl(var(--hairline))] flex items-center justify-between">
-        <span className="text-[11.5px] font-medium text-muted-foreground tracking-[-0.005em]">
-          이번 달
-        </span>
-        <span className="text-[11px] tabular-nums text-foreground font-semibold">
-          {monthStats.written} / {monthStats.total}
-        </span>
+      {/* 이번 달 통계 — hover 시 그 날 entry 미리보기로 swap (Day One 패턴) */}
+      <footer className="mt-3 pt-2.5 border-t border-[hsl(var(--hairline))]">
+        {hoverEntry && hoverDate ? (
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="text-[11px] font-semibold tabular-nums text-foreground/85 shrink-0">
+              {parseInt(hoverDate.slice(5, 7), 10)}/{parseInt(hoverDate.slice(8, 10), 10)}
+            </span>
+            <span className="text-[11px] text-muted-foreground/85 truncate min-w-0 tracking-[-0.005em]">
+              {hoverEntry.body.trim().slice(0, 50) || '(빈 본문)'}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className="text-[11.5px] font-medium text-muted-foreground tracking-[-0.005em]">
+              이번 달
+            </span>
+            <span className="text-[11px] tabular-nums text-foreground font-semibold">
+              {monthStats.written} / {monthStats.total}
+            </span>
+          </div>
+        )}
       </footer>
     </aside>
   );

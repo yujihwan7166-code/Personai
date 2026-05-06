@@ -30,6 +30,8 @@ import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalWeekBoard } from '@/components/journal/JournalWeekBoard';
 import { JournalWeekNav } from '@/components/journal/JournalWeekNav';
+import { JournalYearPixels } from '@/components/journal/JournalYearPixels';
+import { JournalTodayRibbon } from '@/components/journal/JournalTodayRibbon';
 import { normalizeWeekAnchor, shiftWeek, isAnchorCurrentWeek } from '@/lib/journalWeek';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
@@ -439,6 +441,24 @@ const Journal = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
           <div className="flex flex-col gap-5 min-w-0">
+            {/* ── 오늘 요약 ribbon — 검색·필터 없을 때 (Day One Today summary 패턴) ── */}
+            {query.trim().length === 0 && !hasActiveFilter && (
+              <JournalTodayRibbon
+                entries={allEntries}
+                onAdd={() => setEditorMode({ kind: 'create' })}
+                onClickToday={(entry) => setEditorMode({
+                  kind: 'edit',
+                  id: entry.id,
+                  initialBody: entry.body,
+                  initialMood: entry.mood,
+                  initialTags: entry.tags,
+                  initialFormat: entry.bodyFormat,
+                  initialImages: entry.images,
+                  initialActivities: entry.activities,
+                })}
+              />
+            )}
+
             {/* ── 주간 보드 뷰 ── */}
             {effectiveViewMode === 'week' && (
               <>
@@ -560,6 +580,25 @@ const Journal = () => {
                     initialActivities: entry.activities,
                     initialImages: entry.images,
                   })}
+                />
+                <JournalYearPixels
+                  entries={allEntries}
+                  onDayClick={(dateIso, entry) => {
+                    if (entry) {
+                      setEditorMode({
+                        kind: 'edit',
+                        id: entry.id,
+                        initialBody: entry.body,
+                        initialMood: entry.mood,
+                        initialTags: entry.tags,
+                        initialFormat: entry.bodyFormat,
+                        initialImages: entry.images,
+                        initialActivities: entry.activities,
+                      });
+                    } else {
+                      setEditorMode({ kind: 'create', date: dateIso });
+                    }
+                  }}
                 />
               </>
             )}
