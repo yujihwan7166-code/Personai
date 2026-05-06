@@ -41,8 +41,9 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
 
   return (
     <div className="h-full min-h-0 flex flex-col">
-      {/* 본문 — 우측 패널 전체를 하나의 카드로 묶음. 안에서 섹션은 divider 로만 구분. */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3">
+      {/* 본문 — 우측 패널 전체를 하나의 카드로 묶음. 안에서 섹션은 divider 로만 구분.
+          상단 여백은 좌측 콘텐츠와 시작점 맞추기 위해 컴팩트(pt-1). */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-1 pb-3">
         <div className="rounded-lg border border-foreground/20 bg-card overflow-hidden">
           {/* 헤더 — 컴팩트 한 줄: 이모지 + 제목 + 편집·메뉴 */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-foreground/15">
@@ -53,7 +54,7 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
               {habit.emoji}
             </span>
             <div className="min-w-0 flex-1 flex items-center gap-1.5">
-              <span className="text-[14px] font-semibold tracking-tight text-foreground truncate">
+              <span className="text-[16px] font-bold tracking-tight text-foreground truncate">
                 {habit.title}
               </span>
               {habit.pinned && <Pin className="h-3 w-3 text-foreground/55 shrink-0" />}
@@ -98,7 +99,7 @@ export const HabitDetailPane = ({ habit, onEdit, onArchive }: HabitDetailPanePro
             {[
               { Icon: Flame, label: '연속', value: stats.streak, unit: '일', accent: stats.streak >= 3 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground/60' },
               { Icon: Calendar, label: '이번 달', value: stats.monthCount, unit: '일', accent: 'text-blue-600 dark:text-blue-400' },
-              { Icon: Trophy, label: '베스트', value: stats.max, unit: '일', accent: 'text-amber-600 dark:text-amber-400' },
+              { Icon: Trophy, label: '최고기록', value: stats.max, unit: '일', accent: 'text-amber-600 dark:text-amber-400' },
             ].map(({ Icon, label, value, unit, accent }) => (
               <div key={label} className="flex flex-col items-center justify-center gap-0.5 px-2 py-2.5 text-center">
                 <div className={cn('flex items-center gap-1', accent)}>
