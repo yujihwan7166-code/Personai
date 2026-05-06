@@ -440,7 +440,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  step={1800}
+                  step={60}
                   className="px-3 py-2 text-[14px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none"
                 />
               </div>

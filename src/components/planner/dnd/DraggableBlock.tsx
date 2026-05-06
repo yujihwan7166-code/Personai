@@ -13,11 +13,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import type { PlannerEvent, PlannerTask } from '@/types/planner';
 import type { PlannerDragData } from './plannerDndTypes';
+import { useSnapMin } from '@/hooks/planner/useSnapMin';
 
 const HOUR_PX = 56;
-const SNAP_MIN = 15;
 const MIN_DURATION_MIN = 15;
-const SNAP_PX = (HOUR_PX / 60) * SNAP_MIN; // 14px
 
 interface DraggableBlockProps {
   item:
@@ -45,6 +44,8 @@ const formatDur = (mins: number): string => {
 export const DraggableBlock = ({
   item, style, children, enableResize = true, onResize,
 }: DraggableBlockProps) => {
+  const snapMin = useSnapMin();
+  const SNAP_PX = (HOUR_PX / 60) * snapMin;
   const dragData: PlannerDragData =
     item.kind === 'task'
       ? { kind: 'scheduled-task', task: item.data }
@@ -133,7 +134,7 @@ export const DraggableBlock = ({
     if (!isDragging || !transform || !item.data.startAt || !item.data.endAt) return null;
     const oldStart = new Date(item.data.startAt);
     const oldEnd = new Date(item.data.endAt);
-    const deltaMin = Math.round((transform.y / HOUR_PX) * 60 / 15) * 15;
+    const deltaMin = Math.round((transform.y / HOUR_PX) * 60 / snapMin) * snapMin;
     if (deltaMin === 0) return null;
     const newStart = new Date(oldStart.getTime() + deltaMin * 60_000);
     const newEnd = new Date(oldEnd.getTime() + deltaMin * 60_000);

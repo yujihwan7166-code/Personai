@@ -36,6 +36,16 @@ import { DroppableTimeSlot } from './dnd/DroppableTimeSlot';
 import { DraggableBlock } from './dnd/DraggableBlock';
 import { InlineQuickAdd } from './InlineQuickAdd';
 import { SubtaskProgress } from './SubtaskList';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { useSnapMin } from '@/hooks/planner/useSnapMin';
+import { setSnapMin, SNAP_OPTIONS, type SnapMin } from '@/lib/planner/snapMin';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { computeStreakStats } from '@/lib/planner/streak';
 import { parseInstanceId, isInstanceId } from '@/lib/planner/recurrence';
@@ -113,6 +123,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   const visibleStart = compact ? COMPACT_START : START_HOUR;
   const visibleEnd = compact ? COMPACT_END : START_HOUR + TOTAL_HOURS;
   const visibleHours = visibleEnd - visibleStart;
+  /** 드래그·리사이즈 스냅 단위(분). 1·5·15·30 중 선택. */
+  const snapMin = useSnapMin();
   /** 사용자 lists — task 의 listId → list.color 매핑 + hidden 필터링. */
   const [lists, setLists] = useState(() => taskListStore.list());
   useEffect(() => {
@@ -134,6 +146,22 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     }),
     [itemsRaw, hiddenListIds],
   );
+
+  /** 압축 모드에서 visible 범위 밖에 있는 항목 카운트 (위/아래) — 사용자에게 안내. */
+  const hiddenByCompact = useMemo(() => {
+    if (!compact) return { early: 0, late: 0 };
+    let early = 0, late = 0;
+    for (const item of items) {
+      const startAt = item.data.startAt;
+      const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt;
+      if (!startAt || !endAt) continue;
+      const startHour = new Date(startAt).getHours();
+      const endHour = new Date(endAt).getHours() + (new Date(endAt).getMinutes() > 0 ? 1 : 0);
+      if (endHour <= visibleStart) early += 1;
+      else if (startHour >= visibleEnd) late += 1;
+    }
+    return { early, late };
+  }, [items, compact, visibleStart, visibleEnd]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
@@ -181,10 +209,10 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     setCustomDuration(undefined); // 단순 click = 기본 30분
   };
 
-  /** y 좌표(grid 내) → 분 단위 (15분 snap). */
+  /** y 좌표(grid 내) → 분 단위 (사용자 스냅 단위). */
   const yToMin = (y: number): number => {
     const m = (y / HOUR_PX) * 60;
-    return Math.max(0, Math.round(m / 15) * 15);
+    return Math.max(0, Math.round(m / snapMin) * snapMin);
   };
 
   /** 빈 영역 mousedown → drag → mouseup 으로 시간 범위 그리기.
@@ -308,6 +336,45 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     </button>
   );
 
+  const SnapDropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={`드래그·리사이즈 스냅 단위 — 현재 ${snapMin}분`}
+          aria-label={`스냅 ${snapMin}분`}
+          className="inline-flex items-center gap-0.5 px-1.5 h-6 rounded text-[11px] tabular-nums text-foreground/65 hover:text-foreground hover:bg-accent transition-colors font-semibold"
+        >
+          ⊞ {snapMin}분
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuLabel className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55">
+          드래그 스냅 단위
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {SNAP_OPTIONS.map((opt) => (
+          <DropdownMenuItem
+            key={opt}
+            onSelect={() => setSnapMin(opt as SnapMin)}
+            className={cn(
+              'text-[12.5px] tabular-nums',
+              snapMin === opt && 'bg-accent font-semibold',
+            )}
+          >
+            <span className="w-10 inline-block">{opt}분</span>
+            <span className="text-[11px] text-foreground/55">
+              {opt === 1 && '— 정밀'}
+              {opt === 5 && '— 세밀'}
+              {opt === 15 && '— 기본'}
+              {opt === 30 && '— 큼'}
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   /**
    * 겹침 lane 할당 — 시간 충돌하는 그룹별로 lane 분배 (Google Calendar 패턴).
    * 1분이라도 겹치면 동등 폭으로 옆에 나란히 배치한다.
@@ -393,8 +460,27 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     return result;
   }, [items]);
 
+  const HiddenBanner = ({ where, count }: { where: 'early' | 'late'; count: number }) => (
+    <button
+      type="button"
+      onClick={() => setCompact(false)}
+      title="압축 해제하고 모두 보기"
+      className={cn(
+        'sticky z-10 mx-2 my-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-md',
+        'bg-amber-500/10 border border-amber-500/30 text-[11px] tabular-nums',
+        'text-amber-700 hover:bg-amber-500/20 transition-colors font-semibold',
+        where === 'early' ? 'top-0' : 'bottom-0',
+      )}
+    >
+      {where === 'early' ? '▲' : '▼'} {where === 'early' ? '0–7시' : '23–24시'}에 {count}개 — 압축 해제
+    </button>
+  );
+
   const body = (
     <div ref={scrollRef} className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+        {compact && hiddenByCompact.early > 0 && (
+          <HiddenBanner where="early" count={hiddenByCompact.early} />
+        )}
         <div ref={gridRef} onPointerDown={handleGridPointerDown} className="relative" style={{ height: visibleHours * HOUR_PX }}>
           {/* 시간 격자 */}
           {Array.from({ length: visibleHours }, (_, i) => {
@@ -776,6 +862,9 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
             })()}
           </div>
         </div>
+        {compact && hiddenByCompact.late > 0 && (
+          <HiddenBanner where="late" count={hiddenByCompact.late} />
+        )}
       </div>
   );
 
@@ -789,6 +878,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
             타임라인
           </span>
           <span className="ml-auto inline-flex items-center gap-1.5">
+            {SnapDropdown}
             {CompactToggle}
             {NowButton}
           </span>
@@ -801,6 +891,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   return (
     <PlannerSection label="오늘" count={dateLabel} noBorder action={
       <span className="inline-flex items-center gap-2">
+        {SnapDropdown}
         {CompactToggle}
         {NowButton}
       </span>

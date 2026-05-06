@@ -374,40 +374,34 @@ const Memos = () => {
                 </div>
               )}
 
-              {/* 보관함 — 분리된 영역 (시각 강화) */}
-              <div className={cn(
-                'mt-4 mx-2 rounded-lg border border-foreground/15 bg-foreground/[0.025]',
-                showArchive && 'pb-1.5',
-              )}>
+              {/* 보관함 — Apple Notes 식 사이드바 하단 nav row */}
+              <div className="mt-3 pt-2 border-t border-foreground/12">
                 <button
                   type="button"
                   onClick={() => setShowArchive((v) => !v)}
                   className={cn(
-                    'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors',
-                    showArchive
-                      ? 'text-foreground'
-                      : 'text-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground',
+                    'mx-2 w-[calc(100%-1rem)] flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-colors',
+                    'text-foreground/55 hover:text-foreground hover:bg-foreground/5',
+                    showArchive && 'text-foreground',
                   )}
                 >
-                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-foreground/10 shrink-0">
-                    <Archive className="w-3.5 h-3.5 text-foreground/70" strokeWidth={2} />
-                  </span>
-                  <span className="text-[13.5px] font-bold tracking-tight">보관함</span>
-                  <span className="ml-auto text-[11px] tabular-nums font-semibold text-foreground/55 px-1.5 rounded bg-foreground/10">
+                  <Archive className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                  <span className="text-[12.5px] font-medium">보관함</span>
+                  <span className="ml-auto text-[10.5px] tabular-nums">
                     {archivedMemos.length}
                   </span>
                   <ChevronRight className={cn(
-                    'w-3.5 h-3.5 text-foreground/45 transition-transform shrink-0',
+                    'w-3 h-3 transition-transform shrink-0 opacity-60',
                     showArchive && 'rotate-90',
                   )} strokeWidth={2} />
                 </button>
                 {showArchive && (
                   archivedMemos.length === 0 ? (
-                    <p className="px-4 pb-2 text-[11.5px] text-muted-foreground text-center italic">
+                    <p className="px-5 py-1.5 text-[11px] text-muted-foreground italic">
                       보관된 메모 없음
                     </p>
                   ) : (
-                    <ul className="px-1.5">
+                    <ul className="pl-3 pr-2 pb-1">
                       {archivedMemos.map((m) => (
                         <MemoRow
                           key={m.id}
@@ -857,8 +851,8 @@ function MemoRow({
             : 'flex items-center gap-2 h-8 px-3',
           hasActions && 'pr-9',
           active
-            ? 'bg-foreground/8 ring-1 ring-inset ring-foreground/15 text-foreground'
-            : 'text-foreground hover:bg-accent',
+            ? 'bg-foreground/14 ring-1 ring-inset ring-foreground/28 text-foreground'
+            : 'text-foreground hover:bg-foreground/5',
           archived && 'opacity-70',
         )}
       >
