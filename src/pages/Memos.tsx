@@ -1066,7 +1066,7 @@ function MemoEditor({
             <span className="truncate">{memo.sourceRecordingTitle}</span>
           </span>
         )}
-        {/* MemoToolbar — 2단 (인서트/포맷) 네이버 블로그 식. 가운데 flex-1 영역. */}
+        {/* MemoToolbar — 단일 행, 위키/⋯ 와 같은 줄. 가운데 flex-1 영역. */}
         <div className="flex-1 min-w-0 overflow-x-auto memo-toolbar-host">
           {tipTapEditor && (
             <MemoToolbar

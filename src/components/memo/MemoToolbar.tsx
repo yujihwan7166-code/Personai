@@ -1,15 +1,14 @@
 /**
- * 메모 전용 2단 툴바 — 네이버 블로그 글쓰기 식 위계.
+ * 메모 전용 단일 행 툴바 — 위키/⋯ 버튼과 같은 줄에 합쳐 컴팩트하게.
  *
- * Row 1 — 인서트 (라벨 작은 컬러 아이콘): 이미지 / 구분선 / 인용 / 코드블록 / 체크리스트 / 표 / 링크
- * Row 2 — 포맷 (작은 텍스트 변형): 본문/H1·H2·H3 + B I U S code + 색·하이라이트 + 정렬 + 리스트
+ * 레이아웃: [블록타입] | 인서트 (icon-only: 이미지/구분선/인용/코드/체크/표) | B I U S code | 색·하이라이트 | 정렬▾ | 글머리·번호
  *
- * 액션바 안에서 한 번만 그려지므로 sticky 필요 없음.
+ * 첫 노드(=제목) 가드 — 구조 변경 차단, 인라인 포맷은 허용.
  */
 import { useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import {
-  ImagePlus, Minus, Quote, Code2, CheckSquare, Table as TableIcon, Link as LinkIcon,
+  ImagePlus, Minus, Quote, Code2, CheckSquare, Table as TableIcon,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
   Heading1, Heading2, Heading3, Type,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
@@ -48,21 +47,14 @@ interface Props {
 export function MemoToolbar({ editor, onPickImage }: Props) {
   if (!editor) return null;
 
-  /**
-   * 첫 노드(=제목) 가드 — 커서가 doc 의 첫 child 안에 있으면
-   * 구조 변경(헤딩/리스트/체크리스트/인용/코드블록/구분선/표) 차단.
-   * 인라인 포맷(B/I/U/S/code/색/하이라이트/정렬/링크)은 허용.
-   */
   const isInFirstNode = (): boolean => {
     const { from } = editor.state.selection;
     const $pos = editor.state.doc.resolve(from);
     return $pos.depth === 0 || $pos.before(1) === 0;
   };
 
-  /** 가드 — 첫 노드 안이면 toast 띄우고 무시. */
   const guarded = (fn: () => void) => () => {
     if (isInFirstNode()) {
-      // 가벼운 hint — title 영역엔 텍스트만.
       const editorEl = editor.view.dom as HTMLElement;
       editorEl.style.transition = 'background 200ms';
       editorEl.style.background = 'hsl(var(--accent) / 0.5)';
@@ -73,21 +65,11 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
   };
 
   const exec = {
-    // 인라인 — 어디서나 OK
     bold: () => editor.chain().focus().toggleBold().run(),
     italic: () => editor.chain().focus().toggleItalic().run(),
     underline: () => editor.chain().focus().toggleUnderline().run(),
     strike: () => editor.chain().focus().toggleStrike().run(),
     code: () => editor.chain().focus().toggleCode().run(),
-    alignLeft: () => editor.chain().focus().setTextAlign('left').run(),
-    alignCenter: () => editor.chain().focus().setTextAlign('center').run(),
-    alignRight: () => editor.chain().focus().setTextAlign('right').run(),
-    alignJustify: () => editor.chain().focus().setTextAlign('justify').run(),
-    // 구조 변경 — 첫 노드(=제목)에선 차단
-    h1: guarded(() => editor.chain().focus().toggleHeading({ level: 1 }).run()),
-    h2: guarded(() => editor.chain().focus().toggleHeading({ level: 2 }).run()),
-    h3: guarded(() => editor.chain().focus().toggleHeading({ level: 3 }).run()),
-    para: guarded(() => editor.chain().focus().setParagraph().run()),
     bullet: guarded(() => editor.chain().focus().toggleBulletList().run()),
     ordered: guarded(() => editor.chain().focus().toggleOrderedList().run()),
     task: guarded(() => editor.chain().focus().toggleTaskList().run()),
@@ -98,96 +80,57 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-0.5 w-full">
-      {/* Row 1 — 인서트 */}
-      <div className="flex items-center flex-wrap gap-0.5">
-        <Btn onClick={onPickImage} title="이미지">
-          <ImagePlus className="w-3.5 h-3.5" />
-          <Lab>이미지</Lab>
-        </Btn>
-        <Btn onClick={exec.hr} title="구분선">
-          <Minus className="w-3.5 h-3.5" />
-          <Lab>구분선</Lab>
-        </Btn>
-        <Btn onClick={exec.quote} active={editor.isActive('blockquote')} title="인용">
-          <Quote className="w-3.5 h-3.5" />
-          <Lab>인용</Lab>
-        </Btn>
-        <Btn onClick={exec.codeblock} active={editor.isActive('codeBlock')} title="코드 블록">
-          <Code2 className="w-3.5 h-3.5" />
-          <Lab>코드</Lab>
-        </Btn>
-        <Btn onClick={exec.task} active={editor.isActive('taskList')} title="체크리스트">
-          <CheckSquare className="w-3.5 h-3.5" />
-          <Lab>체크리스트</Lab>
-        </Btn>
-        <Btn
-          onClick={exec.table}
-          title="표"
-        >
-          <TableIcon className="w-3.5 h-3.5" />
-          <Lab>표</Lab>
-        </Btn>
-        <Btn
-          onClick={() => {
-            const url = window.prompt('링크 URL:');
-            if (!url) return;
-            editor.chain().focus().setLink({ href: url }).run();
-          }}
-          active={editor.isActive('link')}
-          title="링크"
-        >
-          <LinkIcon className="w-3.5 h-3.5" />
-          <Lab>링크</Lab>
-        </Btn>
-      </div>
-
-      {/* divider */}
-      <div className="border-t border-[hsl(var(--hairline))] my-0.5" />
-
-      {/* Row 2 — 포맷 */}
-      <div className="flex items-center flex-wrap gap-0.5">
-        <BlockTypeDropdown editor={editor} />
-        <Sep />
-        <IconBtn onClick={exec.bold} active={editor.isActive('bold')} title="굵게 (⌘B)">
-          <Bold className="w-3.5 h-3.5" />
-        </IconBtn>
-        <IconBtn onClick={exec.italic} active={editor.isActive('italic')} title="이탤릭 (⌘I)">
-          <Italic className="w-3.5 h-3.5" />
-        </IconBtn>
-        <IconBtn onClick={exec.underline} active={editor.isActive('underline')} title="밑줄">
-          <UnderlineIcon className="w-3.5 h-3.5" />
-        </IconBtn>
-        <IconBtn onClick={exec.strike} active={editor.isActive('strike')} title="취소선">
-          <Strikethrough className="w-3.5 h-3.5" />
-        </IconBtn>
-        <IconBtn onClick={exec.code} active={editor.isActive('code')} title="인라인 코드">
-          <Code className="w-3.5 h-3.5" />
-        </IconBtn>
-        <Sep />
-        <ColorDropdown editor={editor} />
-        <HighlightDropdown editor={editor} />
-        <Sep />
-        <IconBtn onClick={exec.alignLeft} active={editor.isActive({ textAlign: 'left' })} title="왼쪽 정렬">
-          <AlignLeft className="w-3.5 h-3.5" />
-        </IconBtn>
-        <IconBtn onClick={exec.alignCenter} active={editor.isActive({ textAlign: 'center' })} title="가운데 정렬">
-          <AlignCenter className="w-3.5 h-3.5" />
-        </IconBtn>
-        <IconBtn onClick={exec.alignRight} active={editor.isActive({ textAlign: 'right' })} title="오른쪽 정렬">
-          <AlignRight className="w-3.5 h-3.5" />
-        </IconBtn>
-        <IconBtn onClick={exec.alignJustify} active={editor.isActive({ textAlign: 'justify' })} title="양쪽 정렬">
-          <AlignJustify className="w-3.5 h-3.5" />
-        </IconBtn>
-        <Sep />
-        <IconBtn onClick={exec.bullet} active={editor.isActive('bulletList')} title="글머리 기호">
-          <List className="w-3.5 h-3.5" />
-        </IconBtn>
-        <IconBtn onClick={exec.ordered} active={editor.isActive('orderedList')} title="번호 매기기">
-          <ListOrdered className="w-3.5 h-3.5" />
-        </IconBtn>
-      </div>
+    <div className="flex items-center flex-nowrap gap-0.5 w-full">
+      <BlockTypeDropdown editor={editor} />
+      <Sep />
+      {/* 인서트 — icon-only */}
+      <IconBtn onClick={onPickImage} title="이미지">
+        <ImagePlus className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.hr} title="구분선">
+        <Minus className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.quote} active={editor.isActive('blockquote')} title="인용">
+        <Quote className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.codeblock} active={editor.isActive('codeBlock')} title="코드 블록">
+        <Code2 className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.task} active={editor.isActive('taskList')} title="체크리스트">
+        <CheckSquare className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.table} title="표">
+        <TableIcon className="w-3.5 h-3.5" />
+      </IconBtn>
+      <Sep />
+      {/* 인라인 포맷 */}
+      <IconBtn onClick={exec.bold} active={editor.isActive('bold')} title="굵게 (⌘B)">
+        <Bold className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.italic} active={editor.isActive('italic')} title="이탤릭 (⌘I)">
+        <Italic className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.underline} active={editor.isActive('underline')} title="밑줄">
+        <UnderlineIcon className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.strike} active={editor.isActive('strike')} title="취소선">
+        <Strikethrough className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.code} active={editor.isActive('code')} title="인라인 코드">
+        <Code className="w-3.5 h-3.5" />
+      </IconBtn>
+      <Sep />
+      <ColorDropdown editor={editor} />
+      <HighlightDropdown editor={editor} />
+      <Sep />
+      <AlignDropdown editor={editor} />
+      <Sep />
+      <IconBtn onClick={exec.bullet} active={editor.isActive('bulletList')} title="글머리 기호">
+        <List className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.ordered} active={editor.isActive('orderedList')} title="번호 매기기">
+        <ListOrdered className="w-3.5 h-3.5" />
+      </IconBtn>
     </div>
   );
 }
@@ -195,33 +138,7 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
 // ─── 작은 빌딩 블록 ──────────────────────────────
 
 const Sep = () => (
-  <span className="inline-block w-px h-4 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
-);
-
-const Lab = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[10.5px] font-medium leading-none">{children}</span>
-);
-
-const Btn = ({
-  onClick, active, title, children,
-}: {
-  onClick?: () => void;
-  active?: boolean;
-  title: string;
-  children: React.ReactNode;
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    title={title}
-    className={cn(
-      'inline-flex items-center gap-1 h-7 px-1.5 rounded transition-colors',
-      'text-foreground/65 hover:text-foreground hover:bg-accent',
-      active && 'bg-accent text-foreground',
-    )}
-  >
-    {children}
-  </button>
+  <span className="inline-block w-px h-4 bg-[hsl(var(--hairline))] mx-1 shrink-0" aria-hidden />
 );
 
 const IconBtn = ({
@@ -237,7 +154,7 @@ const IconBtn = ({
     onClick={onClick}
     title={title}
     className={cn(
-      'inline-flex items-center justify-center h-7 w-7 rounded transition-colors',
+      'inline-flex items-center justify-center h-7 w-7 rounded transition-colors shrink-0',
       'text-foreground/65 hover:text-foreground hover:bg-accent',
       active && 'bg-accent text-foreground',
     )}
@@ -255,7 +172,7 @@ const BlockTypeDropdown = ({ editor }: { editor: Editor }) => {
     : '본문';
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -304,11 +221,61 @@ const BlockTypeDropdown = ({ editor }: { editor: Editor }) => {
   );
 };
 
+// 정렬 dropdown
+const AlignDropdown = ({ editor }: { editor: Editor }) => {
+  const [open, setOpen] = useState(false);
+  const ActiveIcon = editor.isActive({ textAlign: 'center' }) ? AlignCenter
+    : editor.isActive({ textAlign: 'right' }) ? AlignRight
+    : editor.isActive({ textAlign: 'justify' }) ? AlignJustify
+    : AlignLeft;
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        onBlur={() => setTimeout(() => setOpen(false), 100)}
+        className="inline-flex items-center gap-0.5 h-7 px-1.5 rounded text-foreground/65 hover:bg-accent hover:text-foreground transition-colors"
+        title="정렬"
+      >
+        <ActiveIcon className="w-3.5 h-3.5" />
+        <ChevronDown className="w-3 h-3 opacity-60" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 w-32 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-md p-0.5">
+          {[
+            { label: '왼쪽',     icon: AlignLeft,    val: 'left' as const  },
+            { label: '가운데',   icon: AlignCenter,  val: 'center' as const },
+            { label: '오른쪽',   icon: AlignRight,   val: 'right' as const  },
+            { label: '양쪽',     icon: AlignJustify, val: 'justify' as const },
+          ].map((opt) => {
+            const active = editor.isActive({ textAlign: opt.val });
+            return (
+              <button
+                key={opt.val}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign(opt.val).run(); setOpen(false); }}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2 h-7 rounded text-[12px] text-foreground/80 hover:bg-accent hover:text-foreground',
+                  active && 'bg-accent text-foreground',
+                )}
+              >
+                <opt.icon className="w-3.5 h-3.5" />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // 글자색 dropdown
 const ColorDropdown = ({ editor }: { editor: Editor }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -347,7 +314,7 @@ const ColorDropdown = ({ editor }: { editor: Editor }) => {
 const HighlightDropdown = ({ editor }: { editor: Editor }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

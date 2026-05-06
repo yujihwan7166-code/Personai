@@ -6,7 +6,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import Image from '@tiptap/extension-image';
+import { ResizableImage } from './ResizableImage';
 import { TextStyleKit } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
@@ -24,6 +24,8 @@ import type { WikiPage as WikiPageT } from '@/types/wiki';
 import {
   Bold, Italic, Strikethrough, Code, Link as LinkIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code2, Minus, ImagePlus, CheckSquare, BookOpen, Lightbulb,
+  Plus, Trash2, ArrowUpToLine, ArrowDownToLine, ArrowLeftToLine, ArrowRightToLine,
+  Columns3, Rows3,
 } from 'lucide-react';
 import type { WikiPage } from '@/types/wiki';
 import { cn } from '@/lib/utils';
@@ -114,7 +116,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Image.configure({ HTMLAttributes: { class: 'wiki-image' } }),
+      ResizableImage.configure({ HTMLAttributes: { class: 'wiki-image' } }),
       TextStyleKit.configure({ lineHeight: false, fontFamily: false }),
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -462,6 +464,46 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
             title="페이지 첨부 (검색·ID·새로 만들기)"
           >
             <BookOpen className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+        </div>
+      </BubbleMenu>
+
+      {/* 표 BubbleMenu — 표 안 커서일 때 위쪽 floating */}
+      <BubbleMenu
+        editor={editor}
+        shouldShow={({ editor: ed }) => ed.isActive('table')}
+        options={{ placement: 'top' }}
+      >
+        <div className="flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg">
+          <ToolbarBtn onClick={() => editor.chain().focus().addColumnBefore().run()} title="왼쪽 열 추가">
+            <ArrowLeftToLine className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <ToolbarBtn onClick={() => editor.chain().focus().addColumnAfter().run()} title="오른쪽 열 추가">
+            <ArrowRightToLine className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <ToolbarBtn onClick={() => editor.chain().focus().deleteColumn().run()} title="현재 열 삭제">
+            <Columns3 className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
+          <ToolbarBtn onClick={() => editor.chain().focus().addRowBefore().run()} title="위 행 추가">
+            <ArrowUpToLine className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <ToolbarBtn onClick={() => editor.chain().focus().addRowAfter().run()} title="아래 행 추가">
+            <ArrowDownToLine className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <ToolbarBtn onClick={() => editor.chain().focus().deleteRow().run()} title="현재 행 삭제">
+            <Rows3 className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
+          <ToolbarBtn onClick={() => editor.chain().focus().toggleHeaderRow().run()} title="머리 행 토글">
+            <Plus className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <ToolbarBtn onClick={() => editor.chain().focus().mergeOrSplit().run()} title="셀 병합/분할">
+            <Plus className="w-3.5 h-3.5 rotate-45" />
+          </ToolbarBtn>
+          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" />
+          <ToolbarBtn onClick={() => editor.chain().focus().deleteTable().run()} title="표 삭제">
+            <Trash2 className="w-3.5 h-3.5 text-destructive" />
           </ToolbarBtn>
         </div>
       </BubbleMenu>
