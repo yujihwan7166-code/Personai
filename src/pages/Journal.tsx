@@ -16,7 +16,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Search, Flame, X, Hash, SlidersHorizontal, LayoutGrid, List } from 'lucide-react';
+import { ChevronLeft, Plus, Search, X, Hash, SlidersHorizontal, LayoutGrid, List } from 'lucide-react';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
@@ -31,6 +31,7 @@ import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalWeekBoard } from '@/components/journal/JournalWeekBoard';
 import { JournalWeekNav } from '@/components/journal/JournalWeekNav';
 import { JournalYearPixels } from '@/components/journal/JournalYearPixels';
+import { JournalDailyCarousel } from '@/components/journal/JournalDailyCarousel';
 import { normalizeWeekAnchor, shiftWeek, isAnchorCurrentWeek } from '@/lib/journalWeek';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
@@ -236,19 +237,11 @@ const Journal = () => {
               <h1 className="text-[26px] sm:text-[30px] font-bold tracking-[-0.025em] leading-none text-foreground">
                 일기
               </h1>
-              {streak > 0 && (
-                <span
-                  className="inline-flex items-center gap-1 text-[12px] font-medium tabular-nums text-muted-foreground"
-                  title={`${streak}일 연속 작성`}
-                >
-                  <Flame className="h-3 w-3 text-amber-500/85" strokeWidth={2.2} />
-                  {streak}일
-                </span>
-              )}
               <span className="text-[12px] font-medium tabular-nums text-muted-foreground/65 hidden sm:inline">
                 {allEntries.length}개
               </span>
             </div>
+
             <div className="flex items-center gap-2 flex-wrap">
             {/* 검색 input */}
             <div
@@ -440,6 +433,24 @@ const Journal = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
           <div className="flex flex-col gap-5 min-w-0">
+            {/* ── 큰 가로 banner — 오늘의 일기 carousel (사용자 mockup 양식) ── */}
+            {query.trim().length === 0 && !hasActiveFilter && (
+              <JournalDailyCarousel
+                allEntries={allEntries}
+                onStartEntry={() => setEditorMode({ kind: 'create' })}
+                onClickEntry={(entry) => setEditorMode({
+                  kind: 'edit',
+                  id: entry.id,
+                  initialBody: entry.body,
+                  initialMood: entry.mood,
+                  initialTags: entry.tags,
+                  initialFormat: entry.bodyFormat,
+                  initialImages: entry.images,
+                  initialActivities: entry.activities,
+                })}
+              />
+            )}
+
             {/* ── 주간 보드 뷰 ── */}
             {effectiveViewMode === 'week' && (
               <>
@@ -516,6 +527,7 @@ const Journal = () => {
             <JournalCalendarMini
               entries={allEntries}
               selectedDate={activeDate}
+              currentWeekAnchor={effectiveViewMode === 'week' ? weekAnchor : null}
               onDayClick={(d) => {
                 // week 뷰에선 그 날짜의 주로 anchor 이동, list 뷰에선 날짜 필터 토글
                 if (effectiveViewMode === 'week') {

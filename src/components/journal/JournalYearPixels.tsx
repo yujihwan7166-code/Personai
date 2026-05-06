@@ -1,15 +1,17 @@
 /**
- * Year in Pixels — 1년치 mood dot grid (Daylio · Camille de Passion Carnets 시그니처).
+ * Year Stripe — 1년 mood 컨트리뷰션 그래프 (Github contribution 패턴).
  *
- * 가로 12 column (월) × 세로 31 row (일) — 가로형 grid.
+ * 7 row (월~일) × ~53 col (주). 컴팩트 가로형 strip.
+ * 사이드바 280px 폭에 적합 (이전 12×31 길쭉한 grid 대체).
+ *
  * 각 cell:
- *   - 작성됨 + mood 있음 = mood 색
- *   - 작성됨 + mood 없음 = foreground/30 회색
- *   - 안 작성 = 빈 hairline ring
- *   - 미래 = 투명
- * 클릭 → 그 날 entry 편집 (있으면) 또는 새 entry 시작.
+ *   - 작성됨 + mood = mood 색
+ *   - 작성됨 + mood 없음 = foreground/40
+ *   - 빈 날 = foreground/[0.06]
+ *   - 미래 = transparent
+ *   - 오늘 = primary ring
  *
- * 1년 흐름이 한눈에 보이는 미니멀한 시각화 — 사이드바 또는 메인 영역.
+ * 클릭 → 그 날 entry 편집 / 새 entry. 호버 → 푸터 preview.
  */
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -24,7 +26,9 @@ interface JournalYearPixelsProps {
   onDayClick?: (dateIso: string, entry: JournalEntry | null) => void;
 }
 
-const MONTHS_KO = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+const WEEKDAYS_SHORT = ['월', '화', '수', '목', '금', '토', '일'];
+const WEEKDAY_LABELS_SPARSE = ['월', '', '수', '', '금', '', '']; // 월·수·금만 sparse 라벨
+const MONTH_LABELS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
@@ -34,8 +38,9 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-function daysInMonth(year: number, month0: number): number {
-  return new Date(year, month0 + 1, 0).getDate();
+/** 월요일=0, 일요일=6 으로 매핑. */
+function dowMonStart(d: Date): number {
+  return (d.getDay() + 6) % 7;
 }
 
 export const JournalYearPixels = ({
@@ -54,7 +59,6 @@ export const JournalYearPixels = ({
       const existing = m.get(e.date);
       if (existing) {
         existing.count += 1;
-        // mood 가 없던 entry 인데 새 entry 에 mood 있으면 갱신
         if (existing.mood === null && e.mood !== undefined) existing.mood = e.mood;
       } else {
         m.set(e.date, {
@@ -67,9 +71,78 @@ export const JournalYearPixels = ({
     return m;
   }, [entries, year]);
 
+  /**
+   * 1월 1일이 속한 주의 월요일을 시작점으로 하여 매주 7 cell × N col 생성.
+   * 각 cell = 그 주의 월~일 1일.
+   * Github 패턴: col = week, row = 요일.
+   */
+  const { columns, monthHeaderCells } = useMemo(() => {
+    const jan1 = new Date(year, 0, 1);
+    const startMon = new Date(jan1);
+    startMon.setHours(0, 0, 0, 0);
+    startMon.setDate(jan1.getDate() - dowMonStart(jan1)); // 1월 1일이 속한 주의 월요일
+
+    const dec31 = new Date(year, 11, 31);
+    dec31.setHours(0, 0, 0, 0);
+
+    // 12월 31일이 속한 주의 일요일까지 채움
+    const endSun = new Date(dec31);
+    endSun.setDate(dec31.getDate() + (6 - dowMonStart(dec31)));
+
+    const totalDays = Math.floor((endSun.getTime() - startMon.getTime()) / 86400000) + 1;
+    const weekCount = totalDays / 7;
+
+    const cols: Array<{
+      weekIdx: number;
+      cells: Array<{
+        iso: string;
+        inYear: boolean;
+        isToday: boolean;
+        isFuture: boolean;
+      }>;
+      firstMonth0: number; // 그 주 첫 일의 month
+    }> = [];
+
+    for (let w = 0; w < weekCount; w++) {
+      const weekCells: typeof cols[number]['cells'] = [];
+      let firstMonth0 = -1;
+      for (let r = 0; r < 7; r++) {
+        const d = new Date(startMon);
+        d.setDate(startMon.getDate() + w * 7 + r);
+        const inYear = d.getFullYear() === year;
+        if (inYear && firstMonth0 === -1) firstMonth0 = d.getMonth();
+        const iso = ymd(d);
+        weekCells.push({
+          iso,
+          inYear,
+          isToday: iso === today,
+          isFuture: iso > today,
+        });
+      }
+      cols.push({
+        weekIdx: w,
+        cells: weekCells,
+        firstMonth0,
+      });
+    }
+
+    // 월 라벨 위치 — 각 달의 첫 등장 col 만 라벨 표시
+    const monthFirstCol = new Array(12).fill(-1);
+    cols.forEach((c) => {
+      if (c.firstMonth0 >= 0 && monthFirstCol[c.firstMonth0] === -1) {
+        monthFirstCol[c.firstMonth0] = c.weekIdx;
+      }
+    });
+    const headerCells = cols.map((c) => {
+      const m0 = monthFirstCol.indexOf(c.weekIdx);
+      return m0 >= 0 ? MONTH_LABELS_EN[m0] : '';
+    });
+
+    return { columns: cols, monthHeaderCells: headerCells };
+  }, [year, today]);
+
   const writtenDays = byDate.size;
   const yearTotal = (() => {
-    // 올해 = 오늘까지의 일수, 과거 연도 = 365/366
     if (year === new Date().getFullYear()) {
       const start = new Date(year, 0, 1);
       const now = new Date();
@@ -96,82 +169,111 @@ export const JournalYearPixels = ({
       </header>
 
       <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-card px-3 py-3 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)]">
-        {/* 12-col × 31-row grid — 각 col = month, row = day */}
-        <div className="grid grid-cols-12 gap-[3px]">
-          {MONTHS_KO.map((monthLabel, m0) => {
-            const dim = daysInMonth(year, m0);
-            return (
-              <div key={m0} className="flex flex-col gap-[3px]">
-                {/* 월 라벨 — 매우 작게 */}
-                <span className="text-[8.5px] font-medium tabular-nums text-muted-foreground/60 text-center mb-0.5 leading-none">
-                  {m0 + 1}
-                </span>
-                {/* 일 dots — 31 row (월별 일수 < 31 이면 빈 자리는 invisible) */}
-                {Array.from({ length: 31 }, (_, d0) => {
-                  const day = d0 + 1;
-                  // 그 월에 없는 날 (예: 2월 30/31일) — invisible placeholder
-                  if (day > dim) {
-                    return <span key={day} className="aspect-square w-full" aria-hidden />;
-                  }
-                  const key = `${year}-${pad2(m0 + 1)}-${pad2(day)}`;
-                  const isToday = key === today;
-                  const isFuture = key > today;
-                  const info = byDate.get(key);
-                  const hasEntry = !!info;
-                  const moodTint = info?.mood !== undefined && info?.mood !== null ? MOOD_TINT[info.mood] : null;
-                  const isHover = hoverDate === key;
-
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      disabled={!onDayClick || isFuture}
-                      onClick={() => {
-                        if (isFuture) return;
-                        onDayClick?.(key, info?.entry ?? null);
-                      }}
-                      onMouseEnter={() => setHoverDate(key)}
-                      onMouseLeave={() => setHoverDate((cur) => (cur === key ? null : cur))}
-                      title={
-                        isFuture
-                          ? `${m0 + 1}월 ${day}일`
-                          : hasEntry
-                            ? `${m0 + 1}월 ${day}일 · ${info!.count}개${info!.mood ? ' ' + MOOD_EMOJI[info!.mood] : ''}`
-                            : `${m0 + 1}월 ${day}일 · 비어있음`
-                      }
-                      aria-label={`${m0 + 1}월 ${day}일`}
-                      className={cn(
-                        'aspect-square w-full rounded-[2px] transition-all',
-                        hasEntry
-                          ? cn(
-                              moodTint ?? 'bg-foreground/40',
-                              isHover && 'ring-1 ring-offset-1 ring-foreground/40 ring-offset-card',
-                            )
-                          : isFuture
-                            ? 'bg-transparent'
-                            : 'bg-foreground/[0.06] hover:bg-foreground/15',
-                        isToday && 'ring-1 ring-primary/60 ring-offset-[1px] ring-offset-card',
-                        !onDayClick && 'cursor-default',
-                      )}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
+        {/* 월 라벨 row — sparse */}
+        <div
+          className="grid gap-[2px] mb-1 pl-[18px]"
+          style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+        >
+          {monthHeaderCells.map((label, i) => (
+            <span
+              key={i}
+              className="text-[8.5px] font-medium text-muted-foreground/60 leading-none h-3 flex items-center"
+            >
+              {label}
+            </span>
+          ))}
         </div>
 
-        {/* hover 시 그 날짜 미리보기 — 그리드 아래 */}
+        {/* 메인 grid — 좌측 요일 sparse 라벨 + 7×N cells */}
+        <div className="flex gap-1.5">
+          {/* 요일 라벨 — 월/수/금만 sparse */}
+          <div className="flex flex-col gap-[2px] shrink-0">
+            {WEEKDAY_LABELS_SPARSE.map((d, i) => (
+              <span
+                key={i}
+                className="text-[8.5px] font-medium text-muted-foreground/60 leading-none h-[10px] flex items-center"
+                aria-hidden={!d}
+              >
+                {d}
+              </span>
+            ))}
+          </div>
+
+          {/* 7 row × N col cell grid */}
+          <div
+            className="grid gap-[2px] flex-1"
+            style={{
+              gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+              gridAutoFlow: 'column',
+              gridTemplateRows: 'repeat(7, 10px)',
+            }}
+          >
+            {columns.flatMap((c) =>
+              c.cells.map((cell) => {
+                if (!cell.inYear) {
+                  return <span key={cell.iso} className="rounded-[2px]" aria-hidden />;
+                }
+                const info = byDate.get(cell.iso);
+                const hasEntry = !!info;
+                const moodTint =
+                  info?.mood !== undefined && info?.mood !== null ? MOOD_TINT[info.mood] : null;
+                const isHover = hoverDate === cell.iso;
+
+                return (
+                  <button
+                    key={cell.iso}
+                    type="button"
+                    disabled={!onDayClick || cell.isFuture}
+                    onClick={() => {
+                      if (cell.isFuture) return;
+                      onDayClick?.(cell.iso, info?.entry ?? null);
+                    }}
+                    onMouseEnter={() => setHoverDate(cell.iso)}
+                    onMouseLeave={() =>
+                      setHoverDate((cur) => (cur === cell.iso ? null : cur))
+                    }
+                    title={
+                      cell.isFuture
+                        ? cell.iso
+                        : hasEntry
+                          ? `${cell.iso} · ${info!.count}개${info!.mood ? ' ' + MOOD_EMOJI[info!.mood] : ''}`
+                          : `${cell.iso} · 비어있음`
+                    }
+                    aria-label={cell.iso}
+                    className={cn(
+                      'rounded-[2px] transition-all',
+                      hasEntry
+                        ? cn(
+                            moodTint ?? 'bg-foreground/40',
+                            isHover && 'ring-1 ring-offset-[1px] ring-foreground/40 ring-offset-card',
+                          )
+                        : cell.isFuture
+                          ? 'bg-transparent'
+                          : 'bg-foreground/[0.06] hover:bg-foreground/15',
+                      cell.isToday && 'ring-1 ring-primary/60 ring-offset-[1px] ring-offset-card',
+                      !onDayClick && 'cursor-default',
+                    )}
+                  />
+                );
+              }),
+            )}
+          </div>
+        </div>
+
+        {/* 호버 미리보기 */}
         {hoverInfo && hoverDate && (
           <div className="mt-2.5 pt-2.5 border-t border-[hsl(var(--hairline))] flex items-baseline gap-2 min-w-0">
             <span className="text-[11px] font-semibold tabular-nums text-foreground/85 shrink-0">
-              {parseInt(hoverDate.slice(5, 7), 10)}월 {parseInt(hoverDate.slice(8, 10), 10)}일
+              {parseInt(hoverDate.slice(5, 7), 10)}/{parseInt(hoverDate.slice(8, 10), 10)}
+              <span className="ml-1 text-muted-foreground/70 text-[10px] font-medium">
+                {WEEKDAYS_SHORT[dowMonStart(new Date(`${hoverDate}T00:00:00`))]}
+              </span>
             </span>
             {hoverInfo.mood !== null && (
               <span className="text-[12px] leading-none shrink-0">{MOOD_EMOJI[hoverInfo.mood]}</span>
             )}
             <span className="text-[11px] text-muted-foreground/85 truncate min-w-0 tracking-[-0.005em]">
-              {hoverInfo.entry.body.trim().slice(0, 60) || '(빈 본문)'}
+              {hoverInfo.entry.body.trim().slice(0, 50) || '(빈 본문)'}
             </span>
           </div>
         )}

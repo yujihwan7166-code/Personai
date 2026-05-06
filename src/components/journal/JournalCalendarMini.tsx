@@ -13,7 +13,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { JournalEntry } from '@/types/journal';
 
-const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
+// 월요일 시작 — 일기는 월~일 한 주 단위 (lib/journalWeek 와 일관)
+const DAYS_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
 interface JournalCalendarMiniProps {
   entries: JournalEntry[];
@@ -21,12 +22,28 @@ interface JournalCalendarMiniProps {
   onDayClick?: (dateYYYYMMDD: string) => void;
   /** 선택된 날 강조 (페이지에서 set). */
   selectedDate?: string | null;
+  /** WeekBoard 가 보고 있는 주의 anchor — 그 주 row 박스로 강조 (양 동기화). */
+  currentWeekAnchor?: string | null;
 }
 
 const monthLabelOf = (d: Date): string =>
   d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
 
-export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: JournalCalendarMiniProps) => {
+/** 주어진 ISO 날짜의 월요일 ISO (YYYY-MM-DD). */
+const mondayOf = (iso: string): string => {
+  const d = new Date(`${iso}T00:00:00`);
+  const day = d.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+export const JournalCalendarMini = ({
+  entries,
+  onDayClick,
+  selectedDate,
+  currentWeekAnchor,
+}: JournalCalendarMiniProps) => {
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [hoverDate, setHoverDate] = useState<string | null>(null);
   const today = useMemo(() => {
@@ -50,12 +67,19 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
 
   const hoverEntry = hoverDate ? firstEntries.get(hoverDate) : null;
 
+  // 현재 보는 주의 월요일 — 강조 row 매칭에 사용
+  const currentMondayKey = useMemo(() => {
+    if (!currentWeekAnchor) return null;
+    return mondayOf(currentWeekAnchor.slice(0, 10));
+  }, [currentWeekAnchor]);
+
   const { weeks, monthLabel } = useMemo(() => {
     const year = anchorDate.getFullYear();
     const month = anchorDate.getMonth();
     const firstOfMonth = new Date(year, month, 1);
     const lastOfMonth = new Date(year, month + 1, 0);
-    const startOffset = firstOfMonth.getDay();
+    // 월요일=0, 일요일=6 변환 (한국식)
+    const startOffset = (firstOfMonth.getDay() + 6) % 7;
     const totalDays = startOffset + lastOfMonth.getDate();
     const totalCells = Math.ceil(totalDays / 7) * 7;
 
@@ -146,16 +170,16 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
         </div>
       </header>
 
-      {/* 요일 헤더 */}
+      {/* 요일 헤더 — 월요일 시작, 토(파랑) / 일(분홍) */}
       <div className="grid grid-cols-7 mb-1">
         {DAYS_KO.map((d, i) => (
           <span
             key={d}
             className={cn(
               'text-[10.5px] font-semibold text-center tracking-[-0.005em]',
-              i === 0 && 'text-rose-500',
-              i === 6 && 'text-blue-500',
-              i !== 0 && i !== 6 && 'text-muted-foreground',
+              i === 5 && 'text-blue-500', // 토
+              i === 6 && 'text-rose-500', // 일
+              i < 5 && 'text-muted-foreground',
             )}
           >
             {d}
@@ -163,10 +187,19 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
         ))}
       </div>
 
-      {/* 6주 격자 */}
+      {/* 6주 격자 — 현재 보는 주(WeekBoard 와 동기화) row 박스 강조 */}
       <div className="grid grid-rows-6 gap-px">
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 gap-px">
+        {weeks.map((week, wi) => {
+          const rowMon = week[0]?.iso ? mondayOf(week[0].iso) : null;
+          const isCurrentRow = !!currentMondayKey && rowMon === currentMondayKey;
+          return (
+          <div
+            key={wi}
+            className={cn(
+              'grid grid-cols-7 gap-px rounded-md transition-colors',
+              isCurrentRow && 'ring-1 ring-foreground/20 bg-foreground/[0.025]',
+            )}
+          >
             {week.map((cell, ci) => (
               <button
                 key={`${cell.iso}-${ci}`}
@@ -198,7 +231,8 @@ export const JournalCalendarMini = ({ entries, onDayClick, selectedDate }: Journ
               </button>
             ))}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* 이번 달 통계 — hover 시 그 날 entry 미리보기로 swap (Day One 패턴) */}
