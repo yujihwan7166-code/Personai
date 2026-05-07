@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -703,6 +703,17 @@ const Planner = () => {
                   <span className="hidden sm:inline text-[18px] sm:text-[20px] text-foreground/70 tabular-nums font-semibold leading-none">
                     {headerLabels.secondary}
                   </span>
+                )}
+                {view === 'habits' && (
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new Event('planner-habit-new'))}
+                    title="새 습관 추가"
+                    className="ml-1 inline-flex items-center gap-1 h-8 px-2.5 rounded-md border border-foreground/20 bg-card text-[13px] font-semibold text-foreground hover:bg-accent transition-colors self-center"
+                  >
+                    <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    새 습관
+                  </button>
                 )}
               </div>
               {view !== 'habits' && (
