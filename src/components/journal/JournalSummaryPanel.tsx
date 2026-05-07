@@ -9,7 +9,7 @@ import { Sparkles, Hash, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { computeStats, type StatsPeriod } from '@/lib/journalStats';
 import type { JournalEntry, Mood } from '@/types/journal';
-import { MOOD_EMOJI, ACTIVITY_META } from '@/types/journal';
+import { MOOD_EMOJI } from '@/types/journal';
 
 interface JournalSummaryPanelProps {
   entries: JournalEntry[];
@@ -153,58 +153,7 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
             </span>
           </div>
 
-          {/* Top 활동 */}
-          {stats.topActivities.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-medium tracking-[-0.005em] text-muted-foreground">
-                자주 한 활동
-              </span>
-              <div className="flex flex-wrap gap-1">
-                {stats.topActivities.map((a) => {
-                  const meta = ACTIVITY_META[a.key];
-                  return (
-                    <span
-                      key={a.key}
-                      className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10.5px] font-medium bg-accent text-foreground"
-                      title={meta?.label ?? a.key}
-                    >
-                      <span aria-hidden>{meta?.emoji ?? '·'}</span>
-                      {meta?.label ?? a.key}
-                      <span className="opacity-60 tabular-nums ml-0.5">{a.count}</span>
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 활동 ↔ 기분 — 인사이트 (Daylio 핵심) */}
-          {stats.activityMood.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-medium tracking-[-0.005em] text-muted-foreground">
-                좋았던 활동 (평균 기분 순)
-              </span>
-              <ul className="flex flex-col gap-0.5">
-                {stats.activityMood.slice(0, 3).map((a) => {
-                  const meta = ACTIVITY_META[a.key];
-                  const moodEmoji = MOOD_EMOJI[Math.round(a.avgMood) as Mood] ?? '😐';
-                  return (
-                    <li
-                      key={a.key}
-                      className="flex items-center gap-2 px-1.5 py-1 rounded text-[11px]"
-                    >
-                      <span className="text-[12px]" aria-hidden>{meta?.emoji ?? '·'}</span>
-                      <span className="flex-1 text-foreground/85 truncate">{meta?.label ?? a.key}</span>
-                      <span className="text-[12px]">{moodEmoji}</span>
-                      <span className="text-[10px] tabular-nums text-muted-foreground/80">
-                        {a.avgMood.toFixed(1)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
+          {/* 자주 한 활동 / 좋았던 활동은 JournalActivityInsights 카드로 분리 (중복 X) */}
 
           {/* Top 태그 */}
           {stats.topTags.length > 0 && (

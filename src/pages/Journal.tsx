@@ -29,7 +29,7 @@ import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalWeekBoard } from '@/components/journal/JournalWeekBoard';
-import { JournalYearPixels } from '@/components/journal/JournalYearPixels';
+import { JournalActivityInsights } from '@/components/journal/JournalActivityInsights';
 import { JournalDailyCarousel } from '@/components/journal/JournalDailyCarousel';
 import { normalizeWeekAnchor } from '@/lib/journalWeek';
 import { getTopTags } from '@/lib/journalTags';
@@ -614,28 +614,7 @@ const Journal = () => {
                     initialImages: entry.images,
                   })}
                 />
-                <JournalYearPixels
-                  entries={allEntries}
-                  onDayClick={(dateIso, entry) => {
-                    if (entry) {
-                      setEditorMode({
-                        kind: 'edit',
-                        id: entry.id,
-                        initialBody: entry.body,
-                        initialMood: entry.mood,
-                        initialTags: entry.tags,
-                        initialFormat: entry.bodyFormat,
-                        initialImages: entry.images,
-                        initialActivities: entry.activities,
-                    initialWeather: entry.weather,
-                    initialSleepHours: entry.sleepHours,
-                    initialEnergy: entry.energy,
-                      });
-                    } else {
-                      setEditorMode({ kind: 'create', date: dateIso });
-                    }
-                  }}
-                />
+                <JournalActivityInsights entries={allEntries} />
               </>
             )}
             <JournalSummaryPanel entries={allEntries} />
