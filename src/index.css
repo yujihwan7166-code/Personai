@@ -201,6 +201,17 @@
     --focus-ring: 265 70% 70%;
     --focus-offset: 30 10% 11%;
   }
+
+  /* journal 본문 에디터 — 문단 간 간격 컴팩트 (사용자 피드백: 너무 김) */
+  .journal-warm-theme .wiki-prose p {
+    margin: 0.35rem 0;
+  }
+  .journal-warm-theme .wiki-prose p:first-child {
+    margin-top: 0;
+  }
+  .journal-warm-theme .wiki-prose p:last-child {
+    margin-bottom: 0;
+  }
 }
 
 @layer base {
