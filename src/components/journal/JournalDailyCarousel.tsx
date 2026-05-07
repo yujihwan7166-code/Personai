@@ -288,12 +288,21 @@ export const JournalDailyCarousel = ({
         </span>
       </button>
 
-      {/* 우측: 회전 다음 화살표 + 카드 위치 인디케이터 */}
+      {/* 우측: dot 인디케이터 + 다음 화살표 */}
       {cards.length > 1 && (
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10.5px] font-medium tabular-nums text-muted-foreground/60 hidden sm:inline">
-            {safeIdx + 1}/{cards.length}
-          </span>
+          {/* dot 인디케이터 — 카드 종류 시각 표시 (active 진하게) */}
+          <div className="hidden sm:flex items-center gap-1" aria-hidden>
+            {cards.map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'rounded-full transition-all',
+                  i === safeIdx ? 'w-3 h-1 bg-foreground/70' : 'w-1 h-1 bg-foreground/25',
+                )}
+              />
+            ))}
+          </div>
           <button
             type="button"
             onClick={next}

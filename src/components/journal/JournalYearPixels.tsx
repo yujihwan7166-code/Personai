@@ -28,7 +28,7 @@ interface JournalYearPixelsProps {
 
 const WEEKDAYS_SHORT = ['월', '화', '수', '목', '금', '토', '일'];
 const WEEKDAY_LABELS_SPARSE = ['월', '', '수', '', '금', '', '']; // 월·수·금만 sparse 라벨
-const MONTH_LABELS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_LABELS_KO = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
@@ -135,7 +135,7 @@ export const JournalYearPixels = ({
     });
     const headerCells = cols.map((c) => {
       const m0 = monthFirstCol.indexOf(c.weekIdx);
-      return m0 >= 0 ? MONTH_LABELS_EN[m0] : '';
+      return m0 >= 0 ? MONTH_LABELS_KO[m0] : '';
     });
 
     return { columns: cols, monthHeaderCells: headerCells };

@@ -16,7 +16,7 @@ import { Pencil, Plus, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { stripMarkdown } from '@/lib/journalMarkdown';
 import type { JournalEntry, Mood } from '@/types/journal';
-import { MOOD_EMOJI, ACTIVITY_META } from '@/types/journal';
+import { MOOD_EMOJI, MOOD_TINT, ACTIVITY_META } from '@/types/journal';
 
 interface JournalWeekBoardProps {
   entries: JournalEntry[];
@@ -182,7 +182,7 @@ export const JournalWeekBoard = ({
       </div>
 
       {/* ── 하단 본문 panel ── */}
-      <div className="px-6 sm:px-8 pt-6 pb-7 sm:pb-8">
+      <div className="px-6 sm:px-8 pt-6 pb-7 sm:pb-8 min-h-[360px] sm:min-h-[420px]">
         {/* panel 헤더 — "5월 5일 화요일" 한 줄 좌상단 */}
         <header className="flex items-baseline justify-between gap-3 mb-5 sm:mb-6">
           <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">
@@ -255,13 +255,23 @@ export const JournalWeekBoard = ({
                 const previewBody =
                   entry.bodyFormat === 'markdown' ? stripMarkdown(entry.body) : entry.body;
                 const hasBody = previewBody.trim().length > 0;
+                const moodBarClass = moodKey ? MOOD_TINT[moodKey] : 'bg-foreground/10';
                 return (
                   <article
                     key={entry.id}
                     className={cn(
-                      'group/entry flex flex-col gap-3.5 py-6 first:pt-0 last:pb-0',
+                      'group/entry relative flex flex-col gap-3.5 py-6 first:pt-0 last:pb-0 pl-4',
                     )}
                   >
+                    {/* mood 좌측 컬러 bar — entry 의 시각 앵커 */}
+                    <span
+                      className={cn(
+                        'absolute left-0 top-6 bottom-6 first:top-0 last:bottom-0 w-[3px] rounded-full',
+                        moodBarClass,
+                      )}
+                      aria-hidden
+                    />
+
                     {/* entry 헤더 — 시각 + mood + 편집 (hover) */}
                     <header className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
