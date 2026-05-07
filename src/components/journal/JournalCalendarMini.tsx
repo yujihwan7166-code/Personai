@@ -187,8 +187,8 @@ export const JournalCalendarMini = ({
         ))}
       </div>
 
-      {/* 6주 격자 — 현재 보는 주(WeekBoard 와 동기화) row 박스 강조 */}
-      <div className="grid grid-rows-6 gap-px">
+      {/* 6주 격자 — 현재 보는 주 row = 옅은 primary tint fill (WeekBoard 와 동기화) */}
+      <div className="grid grid-rows-6 gap-0.5">
         {weeks.map((week, wi) => {
           const rowMon = week[0]?.iso ? mondayOf(week[0].iso) : null;
           const isCurrentRow = !!currentMondayKey && rowMon === currentMondayKey;
@@ -196,8 +196,8 @@ export const JournalCalendarMini = ({
           <div
             key={wi}
             className={cn(
-              'grid grid-cols-7 gap-px rounded-md transition-colors',
-              isCurrentRow && 'ring-1 ring-foreground/20 bg-foreground/[0.025]',
+              'grid grid-cols-7 gap-px rounded-lg transition-colors',
+              isCurrentRow && 'bg-primary/[0.07]',
             )}
           >
             {week.map((cell, ci) => (
@@ -209,17 +209,25 @@ export const JournalCalendarMini = ({
                 onMouseLeave={() => setHoverDate((cur) => (cur === cell.iso ? null : cur))}
                 disabled={cell.busyCount === 0 && !cell.isToday}
                 className={cn(
-                  'relative aspect-square flex items-center justify-center text-[10.5px] tabular-nums rounded transition-colors',
-                  cell.busyCount > 0 ? 'cursor-pointer hover:bg-accent' : 'cursor-default',
-                  cell.isToday && 'ring-1 ring-foreground/30',
-                  cell.isSelected && 'bg-foreground text-background font-semibold',
-                  !cell.isSelected && cell.isOtherMonth && 'text-muted-foreground/40',
-                  !cell.isSelected && !cell.isOtherMonth && cell.busyCount === 0 && 'text-foreground/60',
-                  !cell.isSelected && !cell.isOtherMonth && cell.busyCount > 0 && 'text-foreground font-medium',
+                  'relative aspect-square flex items-center justify-center text-[10.5px] tabular-nums transition-colors',
+                  // 오늘 = primary 보라 둥근 fill (Apple iOS 패턴) — 가장 강한 신호
+                  cell.isToday && !cell.isSelected && 'bg-primary text-primary-foreground rounded-full font-semibold shadow-[0_1px_2px_hsl(265_50%_52%/0.25)]',
+                  // 선택된 cell (오늘 X) = 검은 fill
+                  cell.isSelected && !cell.isToday && 'bg-foreground text-background rounded-full font-semibold',
+                  // 오늘 + 선택 = primary 진한 fill (오늘 색 우선)
+                  cell.isToday && cell.isSelected && 'bg-primary text-primary-foreground rounded-full font-semibold ring-2 ring-primary/30 ring-offset-1 ring-offset-card',
+                  // 평범한 cell — rounded-md, hover bg-accent
+                  !cell.isToday && !cell.isSelected && 'rounded-md',
+                  !cell.isToday && !cell.isSelected && cell.busyCount > 0 && 'cursor-pointer hover:bg-accent',
+                  !cell.isToday && !cell.isSelected && cell.busyCount === 0 && 'cursor-default',
+                  // 색 위계 (selected/today 가 아닐 때)
+                  !cell.isSelected && !cell.isToday && cell.isOtherMonth && 'text-muted-foreground/40',
+                  !cell.isSelected && !cell.isToday && !cell.isOtherMonth && cell.busyCount === 0 && 'text-foreground/60',
+                  !cell.isSelected && !cell.isToday && !cell.isOtherMonth && cell.busyCount > 0 && 'text-foreground font-medium',
                 )}
               >
                 {cell.date}
-                {cell.busyCount > 0 && !cell.isSelected && (
+                {cell.busyCount > 0 && !cell.isSelected && !cell.isToday && (
                   <span
                     className={cn(
                       'absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full',
