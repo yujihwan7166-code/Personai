@@ -112,9 +112,11 @@ export const HabitMonthGrid = ({ habit, year, month1Indexed, onChangeMonth }: Ha
             <button
               key={dk}
               type="button"
-              onClick={() => habitCheckinStore.toggle(habit.id, dk, tpd)}
-              disabled={dk < habit.startDate || (habit.endDate ? dk > habit.endDate : false)}
-              aria-label={`${dk} ${completed ? '체크 해제' : '체크'}`}
+              onClick={isFuture ? undefined : () => habitCheckinStore.toggle(habit.id, dk, tpd)}
+              disabled={isFuture || dk < habit.startDate || (habit.endDate ? dk > habit.endDate : false)}
+              aria-disabled={isFuture}
+              title={isFuture ? '미래 날짜는 체크할 수 없어요' : undefined}
+              aria-label={isFuture ? `${dk} 미래 — 체크 불가` : `${dk} ${completed ? '체크 해제' : '체크'}`}
               style={
                 completed
                   ? { backgroundColor: stripe, borderColor: stripe }
@@ -124,11 +126,13 @@ export const HabitMonthGrid = ({ habit, year, month1Indexed, onChangeMonth }: Ha
               }
               className={cn(
                 'h-8 inline-flex items-center justify-center rounded-full text-[11.5px] font-medium tabular-nums transition-all',
-                'border-[1.5px] hover:scale-105 active:scale-95',
+                'border-[1.5px]',
+                !isFuture && 'hover:scale-105 active:scale-95',
                 !sched && !completed && !partial && 'border-transparent',
-                sched && !completed && !partial && 'border-foreground/25 hover:border-foreground/35',
+                sched && !completed && !partial && 'border-foreground/25',
+                sched && !completed && !partial && !isFuture && 'hover:border-foreground/35',
                 isToday && !completed && 'ring-2 ring-foreground/25 ring-offset-1 ring-offset-background',
-                isFuture && 'opacity-55',
+                isFuture && 'opacity-55 cursor-not-allowed',
                 completed && 'text-white font-semibold',
                 !completed && (
                   isToday ? 'text-foreground font-bold'
@@ -136,7 +140,7 @@ export const HabitMonthGrid = ({ habit, year, month1Indexed, onChangeMonth }: Ha
                   : dow === 6 ? 'text-blue-500/65'
                   : 'text-foreground/65'
                 ),
-                'disabled:opacity-30 disabled:cursor-not-allowed',
+                'disabled:opacity-30',
               )}
             >
               {d.getDate()}

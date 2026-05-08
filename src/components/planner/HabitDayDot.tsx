@@ -56,8 +56,11 @@ export const HabitDayDot = ({
   return (
     <button
       type="button"
-      aria-label={ariaLabel ?? (completed ? '체크 해제' : '체크')}
-      onClick={(e) => {
+      disabled={isFuture}
+      aria-disabled={isFuture}
+      aria-label={ariaLabel ?? (isFuture ? '미래 — 체크 불가' : completed ? '체크 해제' : '체크')}
+      title={isFuture ? '미래 날짜는 체크할 수 없어요' : undefined}
+      onClick={isFuture ? undefined : (e) => {
         if (e.shiftKey && onShiftClick) onShiftClick();
         else onClick?.();
       }}
@@ -70,10 +73,12 @@ export const HabitDayDot = ({
       className={cn(
         sz.box,
         'inline-flex items-center justify-center rounded-full transition-all',
-        'border-[1.5px] hover:scale-110 active:scale-95',
-        !completed && !partial && 'border-foreground/25 hover:border-foreground/50 bg-transparent',
+        'border-[1.5px]',
+        !isFuture && 'hover:scale-110 active:scale-95',
+        !completed && !partial && 'border-foreground/25 bg-transparent',
+        !completed && !partial && !isFuture && 'hover:border-foreground/50',
         isToday && !completed && 'ring-2 ring-foreground/20 ring-offset-1 ring-offset-background',
-        isFuture && 'opacity-50',
+        isFuture && 'opacity-50 cursor-not-allowed',
       )}
     >
       {completed && (

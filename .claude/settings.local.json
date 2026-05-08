@@ -19,7 +19,8 @@
       "WebFetch(domain:journey.cloud)",
       "WebFetch(domain:dayoneapp.com)",
       "WebFetch(domain:blog.journey.cloud)",
-      "WebFetch(domain:goodiary.interrobangsoft.com)"
+      "WebFetch(domain:goodiary.interrobangsoft.com)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
