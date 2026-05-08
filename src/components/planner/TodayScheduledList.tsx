@@ -49,14 +49,14 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
   );
 
   return (
-    <section className="h-full min-h-0 flex flex-col rounded-lg border border-foreground/20 bg-card p-3">
-      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-foreground/20">
-        <ListChecks className="h-4 w-4 text-foreground" />
-        <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">
+    <section className="h-full min-h-0 flex flex-col rounded-2xl border hairline bg-card p-4 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2.5 mb-2 border-b hairline">
+        <ListChecks className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+        <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
           일정
         </span>
         {scheduled.length > 0 && (
-          <span className="text-[11.5px] tabular-nums text-foreground/60 font-medium">{scheduled.length}</span>
+          <span className="text-[11px] tabular-nums text-muted-foreground/80 font-medium">{scheduled.length}</span>
         )}
         {onAdd && (
           <button
@@ -64,9 +64,9 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
             onClick={onAdd}
             aria-label="일정 추가"
             title="일정 추가 (시간 정해서)"
-            className="ml-auto h-6 w-6 inline-flex items-center justify-center rounded text-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
+            className="ml-auto h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
-            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.25} />
           </button>
         )}
       </div>

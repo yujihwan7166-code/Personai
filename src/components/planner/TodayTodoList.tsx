@@ -65,26 +65,26 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListPr
     <section
       ref={setDropRef}
       className={cn(
-        'h-full min-h-0 flex flex-col rounded-lg border bg-card p-3 transition-colors',
-        isOver ? 'border-primary/50 bg-primary/5' : 'border-foreground/20',
+        'h-full min-h-0 flex flex-col rounded-2xl border bg-card p-4 transition-colors shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
+        isOver ? 'border-primary/50 bg-primary/5' : 'hairline',
       )}
     >
-      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2 mb-2 border-b border-foreground/20">
-        <ListTodo className="h-4 w-4 text-foreground" />
-        <span className="text-[14px] font-semibold tracking-tight text-foreground leading-none">
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-2.5 mb-2 border-b hairline">
+        <ListTodo className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+        <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
           할 일
         </span>
         {planned.length > 0 && (
-          <span className="text-[11.5px] tabular-nums text-foreground/60 font-medium">{planned.length}</span>
+          <span className="text-[11px] tabular-nums text-muted-foreground/80 font-medium">{planned.length}</span>
         )}
         <button
           type="button"
           onClick={onAdd}
           aria-label="할 일 추가"
           title="할 일 추가"
-          className="ml-auto h-6 w-6 inline-flex items-center justify-center rounded text-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
+          className="ml-auto h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
-          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.25} />
         </button>
       </div>
 

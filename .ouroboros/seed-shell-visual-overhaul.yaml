@@ -1,0 +1,155 @@
+# Seed: Personai Shell Visual Overhaul (Pilot)
+# Generated via Path B (plugin fallback) — MCP turn-limit bug prevented Path A.
+# Source: /ouroboros:interview session in conversation history (interview_20260508_163804).
+
+goal: >
+  Personai 의 글로벌 셸(사이드바 + 모드 탭 + 커맨드 팔레트 + 글로벌 토큰)을
+  Linear / Vercel / Arc 수준의 비주얼 퀄리티로 끌어올린다.
+  여기서 잡은 패턴을 이후 다른 모드 화면으로 점진 전파하는 것이 후속 작업.
+
+scope:
+  pilot_files:
+    - src/components/AppSidebar.tsx
+    - src/components/MainModeTabs.tsx
+    - src/components/CommandPalette.tsx
+  global_tokens:
+    - src/index.css           # CSS 변수 (컬러, surface, radius)
+    - tailwind.config.ts      # 토큰 매핑
+  out_of_scope_for_pilot:
+    - 모드별 내부 화면 (ExpertPanel, DiscussionMessage, MediaGen 등) — 후속 PR
+    - 1,500+ bespoke text-[Npx] 전체 마이그레이션 — 파일럿 영역만 우선
+    - 기능 동작/라우팅/상태 로직
+
+constraints:
+  - 라이트/다크 모드 둘 다 대응
+  - 기존 기능 무결성 최우선 (라우팅, 클릭, 키보드 단축키, 포커스 트랩, ARIA)
+  - 점진적 마이그레이션 — 빅뱅 리팩터 금지
+  - 디자인 토큰 시스템 유지 (HSL CSS vars). 하드코딩 컬러 도입 금지
+  - shadcn/Radix 프리미티브 기반 유지 (호환성)
+  - Pretendard Variable + Inter 폰트 유지
+  - 신규 라이브러리 도입은 최소화 (framer-motion 이미 있음)
+
+design_targets:
+  north_star_apps:
+    - Linear
+    - Vercel
+    - Arc
+  axes:
+    color_system:
+      current: 17 (8 expert + 9 mode signature) → 시각적 노이즈
+      target: 베이스 무채색(neutral) + 1 primary accent + 의미용 destructive/success
+      expert_mode_colors_handling: >
+        프로필/아이덴티티 식별용으로만 사용. 셸 chrome(사이드바·탭·팔레트)에서는
+        사용 금지. 컨텐츠 영역으로 격리.
+      max_palette_in_shell: 5
+    radius:
+      current: 0.75rem (12px) — 라운드 과다
+      target: 0.5rem (8px) base, 0.375rem (6px) compact, 0.25rem (4px) inputs
+      rationale: Linear/Vercel 톤은 6-8px. 0.75rem 은 SaaS 기준 과도함
+    typography:
+      current: 6단 토큰 정의 + bespoke text-[Npx] 1,500+ 잔존
+      pilot_target: 파일럿 3개 컴포넌트 내 모든 픽셀 클래스 → 토큰(nano/caption/body/subhead/title/display)으로 100% 마이그레이션
+      enforcement: ESLint 룰 추가 (파일럿 디렉터리 한정) — 후속 작업 항목
+    motion:
+      current: accordion + shimmer 만 정의
+      target: |
+        - 모든 hover/focus 상태에 transition (150-200ms, ease-out)
+        - 사이드바 열고닫기에 spring 모션 (framer-motion)
+        - 모드 탭 전환에 underline/indicator 슬라이드
+        - 커맨드 팔레트 등장에 scale + fade (200ms)
+      easing_tokens: ease-out (default), spring (interactive)
+
+ontology_schema:
+  name: ShellDesignSystem
+  description: 글로벌 셸의 비주얼 토큰과 컴포넌트 스펙
+  fields:
+    - name: tokens.color
+      type: object
+      description: 셸에서 허용된 색상 (≤5)
+    - name: tokens.radius
+      type: object
+      description: radius 스케일 (sm/md/lg = 4/6/8px)
+    - name: tokens.motion
+      type: object
+      description: duration + easing 표준
+    - name: tokens.typography
+      type: object
+      description: 6단 폰트 사이즈 토큰 (기존 유지)
+    - name: components.AppSidebar
+      type: component_spec
+      description: 사이드바 시각 사양 (간격, 호버, 활성 상태, 컬랩스)
+    - name: components.MainModeTabs
+      type: component_spec
+      description: 모드 탭 (인디케이터, 트랜지션, 호버)
+    - name: components.CommandPalette
+      type: component_spec
+      description: 커맨드 팔레트 (등장 모션, 결과 행 스타일)
+
+acceptance_criteria:
+  subjective:
+    - 작업 후 스크린샷이 Linear/Vercel 톤으로 "올라왔다"고 사용자가 만족
+  objective_metrics:
+    - 파일럿 3개 컴포넌트에서 사용된 색상 토큰 ≤ 5
+    - 파일럿 3개 컴포넌트에서 radius 값이 토큰만 사용 (rounded-[Npx] 0건)
+    - 파일럿 3개 컴포넌트에서 text-[Npx] / leading-[Npx] 픽셀 클래스 0건 (text-{nano|caption|body|subhead|title|display}만)
+    - 모든 interactive 요소(button, link, tab, palette item)에 transition 존재
+    - 라이트/다크 모드에서 contrast ratio AA 충족 (본문 4.5:1, 큰 텍스트 3:1)
+  visual_validation:
+    - before/after 스크린샷 (라이트 + 다크, 데스크톱 1440px 기준)을 docs/visual/ 에 보존
+    - 사이드바 collapsed/expanded, 모드 탭 active/hover, 팔레트 open 각각 캡처
+  functional_integrity:
+    - npm run lint, typecheck, test, build 모두 통과
+    - smoke:core (홈/일반채팅/토론/공부/플래너/위키 진입) 통과
+    - 키보드 네비게이션 무결: Tab 순서, Esc 닫힘, ⌘K 팔레트 토글 정상
+    - ARIA 속성 보존 (Radix 프리미티브 기본값 무손상)
+
+evaluation_principles:
+  - principle: visual_quality_against_north_star
+    weight: 0.30
+    description: Linear/Vercel/Arc 와 비교했을 때 시각적 일치도 (사용자 주관 + 메트릭)
+  - principle: token_discipline
+    weight: 0.25
+    description: 하드코딩 0, 토큰 100% — 마이그레이션 깔끔함
+  - principle: motion_polish
+    weight: 0.15
+    description: 모든 인터랙션이 자연스럽고 일관된 easing/duration
+  - principle: functional_integrity
+    weight: 0.20
+    description: 기능·접근성·키보드 네비 무결
+  - principle: scope_discipline
+    weight: 0.10
+    description: 파일럿 영역 외 손대지 않음 (다른 모드 디자인 변경 금지)
+
+exit_conditions:
+  done_when:
+    - 위 acceptance_criteria 의 objective_metrics 4개 모두 충족
+    - functional_integrity 4개 항목 모두 통과
+    - before/after 스크린샷 4세트(라이트/다크 × 사이드바/탭/팔레트) 저장
+    - 사용자가 주관적 만족 OK
+  abort_when:
+    - 파일럿 진행 중 기존 기능 회귀가 2회 이상 발생 → 스코프 재검토
+    - acceptance_criteria 메트릭 충족했으나 사용자 주관 만족 실패 → 디자인 방향 재인터뷰
+
+open_questions_for_execute_phase:
+  - radius 베이스를 정확히 6px vs 8px 중 어느 쪽으로 시작할지 (시각 비교 필요)
+  - primary accent 컬러 — 현재 indigo (221 83% 50%) 유지 vs 더 중립적인 톤으로 교체
+  - 사이드바 컬랩스 동작이 현재 spec 인지 — 코드 확인 후 모션 spec 확정
+
+metadata:
+  version: "1.0.0"
+  generated_at: "2026-05-09T02:01:54+0900"
+  generator: "ouroboros plugin (path-b fallback, manual seed-architect role)"
+  interview_session_id: "interview_20260508_163804"
+  ambiguity_score_estimate: 0.18
+  ambiguity_notes: >
+    Goal/scope/success criteria 모두 명확. open_questions 3건은 execute 단계
+    초반에 시각 비교로 결정 가능한 마이크로 결정이라 0.2 이하로 평가.
+  project: "Personai (expert-chat-forum)"
+  stack:
+    - React 18
+    - Vite 5
+    - TypeScript
+    - Tailwind CSS
+    - shadcn/Radix UI
+    - framer-motion
+    - next-themes

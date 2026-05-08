@@ -85,12 +85,12 @@ export const PlannerInput = ({
           'w-full text-foreground rounded-md transition-colors',
           isProminent
             ? [
-                onPlus ? 'pl-8' : 'pl-3',
-                'pr-3 py-2 text-[14px] leading-tight font-medium',
-                'bg-accent/40 border border-foreground/20',
-                'placeholder:text-foreground/55 placeholder:font-normal',
-                'hover:bg-accent/60 hover:border-foreground/30',
-                'focus:bg-background focus:border-foreground/55 focus:outline-none focus:ring-2 focus:ring-foreground/10',
+                onPlus ? 'pl-9' : 'pl-4',
+                'pr-4 py-2.5 text-[14px] leading-tight font-medium',
+                'bg-card border hairline rounded-full shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
+                'placeholder:text-muted-foreground/80 placeholder:font-normal',
+                'hover:border-foreground/25',
+                'focus:border-primary/45 focus:outline-none focus:ring-4 focus:ring-primary/10',
               ]
             : [
                 'px-2.5 py-2 text-[13.5px] leading-tight',

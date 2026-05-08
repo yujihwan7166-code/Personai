@@ -73,14 +73,14 @@ export const PlannerLeftRail = () => {
                   onClick={onClick}
                   aria-label={item.label}
                   className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-md transition-colors',
+                    'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
                     isActive
-                      ? 'bg-accent text-foreground'
-                      : 'text-foreground/55 hover:text-foreground hover:bg-accent/60',
-                    item.kind === 'soon' && 'opacity-55',
+                      ? 'bg-card text-primary shadow-[0_1px_2px_hsl(30_15%_8%/0.06)]'
+                      : 'text-foreground/50 hover:text-foreground hover:bg-accent/70',
+                    item.kind === 'soon' && 'opacity-45',
                   )}
                 >
-                  <item.Icon className="h-[17px] w-[17px]" />
+                  <item.Icon className="h-[16px] w-[16px]" strokeWidth={1.75} />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="text-[11.5px]">

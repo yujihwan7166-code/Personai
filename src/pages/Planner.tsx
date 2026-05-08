@@ -671,16 +671,16 @@ const Planner = () => {
       onDragEnd={handleDragEnd}
       autoScroll={{ threshold: { x: 0, y: 0.15 }, acceleration: 12 }}
     >
-    <div className="min-h-screen bg-[hsl(40_30%_97%)] flex">
+    <div className="planner-theme min-h-screen bg-background flex">
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
-      <aside className="shrink-0 w-12 border-r border-foreground/20 bg-card/40">
+      <aside className="shrink-0 w-12 border-r hairline bg-card/30">
         <PlannerLeftRail />
       </aside>
-      <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 sm:py-5 max-w-[1280px] w-full mx-auto">
+      <main className="flex-1 min-w-0 px-5 sm:px-8 py-5 sm:py-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
             ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}
-        <div className="mb-3 flex items-center gap-3 px-1">
+        <div className="mb-5 flex items-center gap-4 px-0.5">
           {/* 시간 네비 cluster — goals 외 모든 뷰. habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
           {view !== 'goals' && (
             <div className="shrink-0 flex items-center gap-2">
@@ -690,17 +690,17 @@ const Planner = () => {
                   onClick={goPrev}
                   aria-label="이전"
                   title="이전 (←)"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-[18px] w-[18px]" />
                 </button>
               )}
               <div className="min-w-0 flex items-baseline gap-3">
-                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-foreground leading-none truncate">
+                <h2 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-foreground leading-none truncate">
                   {headerLabels.primary}
                 </h2>
                 {headerLabels.secondary && (
-                  <span className="hidden sm:inline text-[18px] sm:text-[20px] text-foreground/70 tabular-nums font-semibold leading-none">
+                  <span className="hidden sm:inline text-[15px] sm:text-[16px] text-muted-foreground tabular-nums font-medium leading-none">
                     {headerLabels.secondary}
                   </span>
                 )}
@@ -709,7 +709,7 @@ const Planner = () => {
                     type="button"
                     onClick={() => window.dispatchEvent(new Event('planner-habit-new'))}
                     title="새 습관 추가"
-                    className="ml-1 inline-flex items-center gap-1 h-8 px-2.5 rounded-md border border-foreground/20 bg-card text-[13px] font-semibold text-foreground hover:bg-accent transition-colors self-center"
+                    className="ml-1 inline-flex items-center gap-1 h-8 px-3 rounded-full border hairline bg-card text-[12.5px] font-semibold text-foreground hover:bg-accent transition-colors self-center"
                   >
                     <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
                     새 습관
@@ -722,9 +722,9 @@ const Planner = () => {
                   onClick={goNext}
                   aria-label="다음"
                   title="다음 (→)"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-[18px] w-[18px]" />
                 </button>
               )}
               {view !== 'habits' && (
@@ -735,10 +735,10 @@ const Planner = () => {
                   aria-label="오늘로"
                   title="오늘로 (T)"
                   className={cn(
-                    'ml-1 h-8 px-3 text-[13px] font-semibold rounded-md border border-foreground/20 transition-colors',
+                    'ml-1.5 h-8 px-3.5 text-[12.5px] font-semibold rounded-full transition-all',
                     anchorIsToday
-                      ? 'bg-card text-muted-foreground/40 cursor-default border-transparent'
-                      : 'bg-card text-foreground hover:bg-accent',
+                      ? 'text-muted-foreground/40 cursor-default'
+                      : 'border hairline bg-card text-foreground hover:bg-accent hover:border-foreground/30',
                   )}
                 >
                   오늘로
@@ -767,7 +767,7 @@ const Planner = () => {
         </div>
 
         {isFullscreen ? (
-          <div className="rounded-xl border border-foreground/20 bg-card p-3 sm:p-4 min-h-[600px] h-[calc(100vh-160px)]">
+          <div className="rounded-2xl border hairline bg-card p-4 sm:p-5 min-h-[600px] h-[calc(100vh-180px)] shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
             {view === 'month' && (
               <MonthView
                 anchorIso={anchorIso}
@@ -790,7 +790,7 @@ const Planner = () => {
             {view === 'habits' && <HabitsView />}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 sm:gap-4 h-[600px]">
+          <div className="grid grid-cols-1 md:grid-cols-[228px_minmax(0,1fr)] gap-4 sm:gap-5 h-[calc(100vh-180px)] min-h-[600px]">
             <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto">
               <PlannerSidebar
                 anchorIso={anchorIso}
@@ -845,7 +845,7 @@ const Planner = () => {
                 </div>
               </div>
             ) : view === 'week' ? (
-              <div className="rounded-lg border border-foreground/20 bg-card p-3 sm:p-4 min-h-0">
+              <div className="rounded-2xl border hairline bg-card p-4 sm:p-5 min-h-0 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
                 <WeekView
                   anchorIso={anchorIso}
                   onDayClick={handleDayClick}

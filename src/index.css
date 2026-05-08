@@ -212,6 +212,86 @@
   .journal-warm-theme .wiki-prose p:last-child {
     margin-bottom: 0;
   }
+
+  /* ──────────────────────────────────────────────────────────────────
+   * planner-theme — 통합 플래너 전용 Sunsama-inspired warm sage 톤.
+   * 기존 hard-coded `bg-[hsl(40_30%_97%)]` 한 곳을 토큰으로 수렴.
+   * 철학: Things3 따뜻함 유지하되 정보 밀도와 공존하도록
+   *   채도 한 단계 낮추고, sage/teal 액센트로 차분함 강조.
+   * ────────────────────────────────────────────────────────────────── */
+  .planner-theme {
+    /* Page background — 따뜻한 sage-cream, 현재보다 살짝 차분 */
+    --background: 42 28% 96%;
+    --foreground: 30 12% 16%;          /* 따뜻한 진한 차콜 */
+
+    --card: 40 35% 99%;                 /* 카드 — 배경보다 살짝 밝음 */
+    --card-foreground: 30 12% 16%;
+
+    --popover: 40 35% 99%;
+    --popover-foreground: 30 12% 16%;
+
+    --muted: 40 18% 92%;
+    --muted-foreground: 30 8% 42%;
+
+    --accent: 40 22% 91%;               /* hover bg */
+    --accent-foreground: 30 12% 16%;
+
+    --secondary: 40 22% 91%;
+    --secondary-foreground: 30 8% 36%;
+
+    --border: 35 14% 84%;
+    --input: 35 14% 84%;
+
+    /* Sunsama-ish sage·teal 액센트 — indigo 대신 차분한 톤 */
+    --primary: 175 38% 36%;
+    --primary-foreground: 40 35% 99%;
+
+    --ring: 175 38% 42%;
+    --focus-ring: 175 45% 45%;
+    --focus-offset: 42 28% 96%;
+
+    /* Surface — 카드/리스트/패널 3계층 */
+    --hairline:  35 14% 86%;
+    --surface-1: 40 35% 99%;            /* card top */
+    --surface-2: 42 28% 96%;            /* page */
+    --surface-3: 40 22% 93%;            /* sunken */
+  }
+
+  .dark .planner-theme {
+    /* 다크 — sage-charcoal, 따뜻함 유지 */
+    --background: 35 8% 10%;
+    --foreground: 40 16% 90%;
+
+    --card: 35 8% 13%;
+    --card-foreground: 40 16% 90%;
+
+    --popover: 35 8% 14%;
+    --popover-foreground: 40 16% 90%;
+
+    --muted: 35 7% 17%;
+    --muted-foreground: 35 8% 62%;
+
+    --accent: 35 7% 19%;
+    --accent-foreground: 40 16% 90%;
+
+    --secondary: 35 7% 17%;
+    --secondary-foreground: 35 10% 75%;
+
+    --border: 35 7% 22%;
+    --input: 35 7% 22%;
+
+    --primary: 175 50% 58%;
+    --primary-foreground: 35 8% 10%;
+
+    --ring: 175 50% 58%;
+    --focus-ring: 175 55% 60%;
+    --focus-offset: 35 8% 10%;
+
+    --hairline:  35 7% 22%;
+    --surface-1: 35 8% 13%;
+    --surface-2: 35 8% 10%;
+    --surface-3: 35 7% 17%;
+  }
 }
 
 @layer base {
