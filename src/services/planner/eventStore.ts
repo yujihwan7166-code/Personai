@@ -45,11 +45,16 @@ export const eventStore = {
     );
   },
 
-  /** 특정 날짜(YYYY-MM-DD)의 이벤트만 (시작 시각 오름차순).
-   * 반복 시리즈는 해당 날짜에 떨어지는 가상 인스턴스를 합성해 반환. */
+  /** 특정 날짜(로컬)의 이벤트만 (시작 시각 오름차순).
+   * 반복 시리즈는 해당 날짜에 떨어지는 가상 인스턴스를 합성해 반환.
+   *
+   * 비교는 로컬 시각 기준 — 사용자가 보는 "그 날" (예: KST 5/9 06:00 이벤트는 KST anchor 5/9 와 매치).
+   * 과거: ISO prefix 문자열 비교를 썼지만 UTC 날짜라 KST 00~08시 이벤트가 전날로 분류돼 누락되는 버그.
+   * 수정: timestamp 비교로 통일 (taskStore.listScheduled 와 동일 패턴). */
   listByDate(dateIso: string): PlannerEvent[] {
-    const dayPrefix = dateIso.slice(0, 10);
-    const rangeStart = new Date(`${dayPrefix}T00:00:00`);
+    const day = new Date(dateIso);
+    const rangeStart = new Date(day);
+    rangeStart.setHours(0, 0, 0, 0);
     const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
 
     const all = safeRead();
@@ -68,8 +73,11 @@ export const eventStore = {
             // recurrence 는 보존 — UI 에서 🔁 표시 위해 필요. 마스터 id 는 parseInstanceId 로 복원.
           });
         }
-      } else if (e.startAt.slice(0, 10) === dayPrefix) {
-        result.push(e);
+      } else {
+        const ts = new Date(e.startAt).getTime();
+        if (ts >= rangeStart.getTime() && ts < rangeEnd.getTime()) {
+          result.push(e);
+        }
       }
     }
 
