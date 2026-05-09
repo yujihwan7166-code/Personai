@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search, Star, Clock, BookOpen, Plus } from 'lucide-react';
+import { Search, Star, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, isMainDoc } from '@/types/wiki';
 
@@ -8,13 +8,10 @@ interface Props {
   loading: boolean;
   activeId: string | null;
   favorites: string[];
-  recent: string[];
   /** 외부에서 검색어 주입 — 태그 클릭 등 (선택). undefined 면 internal state. */
   externalQuery?: string;
   onQueryChange?: (q: string) => void;
   onSelect: (id: string) => void;
-  /** + 버튼 — 새 페이지 (템플릿 픽커 또는 즉시 생성). 부모가 결정. */
-  onCreate?: () => void;
 }
 
 type Filter = 'all' | 'moc' | 'source' | 'draft';
@@ -27,8 +24,8 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
 ];
 
 export function WikiSidebar({
-  pages, loading, activeId, favorites, recent,
-  externalQuery, onQueryChange, onSelect, onCreate,
+  pages, loading, activeId, favorites,
+  externalQuery, onQueryChange, onSelect,
 }: Props) {
   const [internalQuery, setInternalQuery] = useState('');
   const query = externalQuery ?? internalQuery;
@@ -43,19 +40,13 @@ export function WikiSidebar({
     () => favorites.map((id) => pageById.get(id)).filter((p): p is WikiPage => !!p),
     [favorites, pageById]
   );
-  const recentPages = useMemo(
-    () => recent.map((id) => pageById.get(id)).filter((p): p is WikiPage => !!p)
-      .filter((p) => !favorites.includes(p.id))  // 즐겨찾기와 중복 제거
-      .slice(0, 5),
-    [recent, pageById, favorites]
-  );
-  // 메인 문서 — 즐겨찾기/최근에 없는 메인 5개 (대문 진입 없이 빠른 pivot)
+  // 메인 문서 — 즐겨찾기에 없는 메인 5개 (대문 진입 없이 빠른 pivot)
   const mainDocs = useMemo(
     () => pages
       .filter((p) => isMainDoc(p) && p.type !== 'index')
-      .filter((p) => !favorites.includes(p.id) && !recent.includes(p.id))
+      .filter((p) => !favorites.includes(p.id))
       .slice(0, 5),
-    [pages, favorites, recent]
+    [pages, favorites]
   );
   // 인기 태그 — 사용 빈도 top 10
   const topTags = useMemo(() => {
@@ -125,17 +116,6 @@ export function WikiSidebar({
             </button>
           )}
         </div>
-        {onCreate && (
-          <button
-            type="button"
-            onClick={onCreate}
-            aria-label="새 페이지"
-            title="새 페이지"
-            className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-primary/35 bg-card text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" strokeWidth={2.25} />
-          </button>
-        )}
       </div>
 
       {/* 필터 — pill segmented */}
@@ -169,15 +149,6 @@ export function WikiSidebar({
             onSelect={onSelect}
           />
         )}
-        {showQuickSections && recentPages.length > 0 && (
-          <QuickSection
-            icon={<Clock className="w-3 h-3" />}
-            label="최근 본"
-            pages={recentPages}
-            activeId={activeId}
-            onSelect={onSelect}
-          />
-        )}
         {showQuickSections && mainDocs.length > 0 && (
           <QuickSection
             icon={<BookOpen className="w-3 h-3 text-primary" />}
@@ -187,7 +158,7 @@ export function WikiSidebar({
             onSelect={onSelect}
           />
         )}
-        {showQuickSections && (favoritePages.length > 0 || recentPages.length > 0 || mainDocs.length > 0) && (
+        {showQuickSections && (favoritePages.length > 0 || mainDocs.length > 0) && (
           <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             모든 페이지 · {pages.length}
           </p>
