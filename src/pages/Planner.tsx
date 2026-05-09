@@ -833,6 +833,28 @@ const Planner = () => {
                     <TodayScheduledList
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                      onAdd={() => {
+                        // 일정 추가 — 모달. anchor 가 오늘이면 다음 30분 슬롯, 아니면 anchor 09:00.
+                        const anchor = new Date(anchorIso);
+                        const today = new Date();
+                        const isToday = anchor.toDateString() === today.toDateString();
+                        let preset: Date;
+                        if (isToday) {
+                          preset = new Date();
+                          const mins = preset.getMinutes();
+                          if (mins === 0) preset.setSeconds(0, 0);
+                          else if (mins < 30) preset.setMinutes(30, 0, 0);
+                          else preset.setHours(preset.getHours() + 1, 0, 0, 0);
+                        } else {
+                          preset = new Date(anchor);
+                          preset.setHours(9, 0, 0, 0);
+                        }
+                        setDialogMode({
+                          kind: 'create',
+                          presetStartIso: preset.toISOString(),
+                          presetIsEvent: true,
+                        });
+                      }}
                     />
                     <TodayTodoList
                       anchorIso={anchorIso}
