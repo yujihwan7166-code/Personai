@@ -10,7 +10,7 @@
  * Hover 액션: 편집 / 미루기 / 삭제 (반복 시리즈 인스턴스는 detach 처리).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Clock, Flag, ListChecks, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { CalendarDays, Clock, Flag, ListChecks, Palette, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
@@ -25,7 +25,18 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { PRIORITY_COLORS, TASK_LIST_COLORS, type PlannerEvent, type PlannerTask, type PlannerTimelineItem } from '@/types/planner';
+import { PRIORITY_COLORS, TASK_LIST_COLORS, type PlannerEvent, type PlannerTask, type PlannerTimelineItem, type TaskListColor } from '@/types/planner';
+
+const COLOR_OPTIONS: ReadonlyArray<{ value: TaskListColor; label: string }> = [
+  { value: 'blue',   label: '파랑' },
+  { value: 'teal',   label: '청록' },
+  { value: 'green',  label: '초록' },
+  { value: 'amber',  label: '노랑' },
+  { value: 'orange', label: '주황' },
+  { value: 'rose',   label: '빨강' },
+  { value: 'violet', label: '보라' },
+  { value: 'cyan',   label: '하늘' },
+];
 
 interface TodayScheduledListProps {
   anchorIso: string;
@@ -289,7 +300,65 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick }: TodayScheduledLis
   );
 };
 
-/** Hover 시 우측에 슬라이드 — 편집 / 미루기 / 삭제. 점·우선순위와 한 행에 배치. */
+/** task 색 변경 — DropdownMenu 안 swatch grid. event 는 색 옵션 미지원 (legacy). */
+const ColorPickerMenu = ({ task }: { task: PlannerTask }) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <button
+        type="button"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="색 변경"
+        title="색 변경"
+        className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      >
+        <Palette className="h-3 w-3" />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" className="min-w-[160px] p-1.5">
+      <div className="grid grid-cols-4 gap-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            taskStore.update(task.id, { color: undefined });
+          }}
+          aria-label="기본"
+          title="기본"
+          className={cn(
+            'h-7 w-7 rounded-md border flex items-center justify-center transition-colors',
+            !task.color ? 'border-foreground/50 bg-accent' : 'border-foreground/15 hover:border-foreground/35',
+          )}
+        >
+          <span className="h-3 w-3 rounded-full bg-muted-foreground/30" aria-hidden />
+        </button>
+        {COLOR_OPTIONS.map((opt) => {
+          const active = task.color === opt.value;
+          const stripe = TASK_LIST_COLORS[opt.value].stripe;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                taskStore.update(task.id, { color: opt.value });
+              }}
+              aria-label={opt.label}
+              title={opt.label}
+              className={cn(
+                'h-7 w-7 rounded-md border flex items-center justify-center transition-colors',
+                active ? 'border-foreground/50 bg-accent' : 'border-foreground/15 hover:border-foreground/35',
+              )}
+            >
+              <span className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: stripe }} aria-hidden />
+            </button>
+          );
+        })}
+      </div>
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
+
+/** Hover 시 우측에 슬라이드 — 편집 / 색 / 미루기 / 삭제. 점·우선순위와 한 행에 배치. */
 const RowActions = ({
   kind,
   item,
@@ -309,6 +378,7 @@ const RowActions = ({
     >
       <Pencil className="h-3 w-3" />
     </button>
+    {kind === 'task' && <ColorPickerMenu task={item as PlannerTask} />}
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
