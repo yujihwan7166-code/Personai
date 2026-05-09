@@ -458,6 +458,24 @@ const Wiki = () => {
           >
             <Network className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            onClick={openTemplatePicker}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+            title="새 페이지 (Ctrl/Cmd+N)"
+            aria-label="새 페이지"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={openRandomPage}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+            title="무작위 페이지"
+            aria-label="무작위 페이지"
+          >
+            <Shuffle className="h-4 w-4" />
+          </button>
 
           {/* 하단: 설정 */}
           <div className="flex-1" aria-hidden />
