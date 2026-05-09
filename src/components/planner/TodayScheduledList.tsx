@@ -324,16 +324,6 @@ const RowActions = ({
   </div>
 );
 
-/** "지금" 라벨 — 진행 중 행 옆에 작은 pill. */
-const NowBadge = () => (
-  <span
-    aria-label="진행 중"
-    className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-rose-500 bg-rose-500/10 border border-rose-500/25 px-1.5 py-0.5 rounded-full leading-none tabular-nums"
-  >
-    <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" aria-hidden />
-    지금
-  </span>
-);
 
 /** 시간 잡힌 task 단일 행 — event 와 시각적으로 통일. 점 + 시간 prefix + 제목 + 우선순위 + done line-through. */
 const ScheduledTaskRow = ({
@@ -350,8 +340,11 @@ const ScheduledTaskRow = ({
     <div
       className={cn(
         'group flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors',
-        status === 'past' ? 'opacity-50 hover:opacity-90' : 'hover:bg-accent',
+        status === 'past' && 'opacity-50 hover:opacity-90',
+        status === 'now' && 'bg-amber-200/45 hover:bg-amber-200/60',
+        status === 'upcoming' && 'hover:bg-accent',
       )}
+      aria-label={status === 'now' ? '진행 중' : undefined}
     >
       <button
         type="button"
@@ -364,7 +357,6 @@ const ScheduledTaskRow = ({
           className={cn(
             'h-2 w-2 rounded-full transition-all',
             task.done && 'opacity-30 ring-1 ring-foreground/40',
-            status === 'now' && !task.done && 'ring-2 ring-rose-500/40',
           )}
           style={{ backgroundColor: dotColor }}
         />
@@ -383,7 +375,6 @@ const ScheduledTaskRow = ({
       >
         {task.title}
       </button>
-      {status === 'now' && !task.done && <NowBadge />}
       {(task.priority ?? 0) > 0 && (
         <Flag
           className="h-3 w-3 shrink-0"
@@ -410,18 +401,18 @@ const ScheduledEventRow = ({
     <div
       className={cn(
         'group flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors',
-        status === 'past' ? 'opacity-50 hover:opacity-90' : 'hover:bg-accent',
+        status === 'past' && 'opacity-50 hover:opacity-90',
+        status === 'now' && 'bg-amber-200/45 hover:bg-amber-200/60',
+        status === 'upcoming' && 'hover:bg-accent',
       )}
+      aria-label={status === 'now' ? '진행 중' : undefined}
     >
       <span
         className="flex h-[18px] w-4 shrink-0 items-center justify-center"
         aria-label="일정"
       >
         <span
-          className={cn(
-            'h-2 w-2 rounded-full',
-            status === 'now' && 'ring-2 ring-rose-500/40',
-          )}
+          className="h-2 w-2 rounded-full"
           style={{ backgroundColor: event.color ?? 'hsl(var(--primary))' }}
         />
       </span>
@@ -436,7 +427,6 @@ const ScheduledEventRow = ({
       >
         {event.title}
       </button>
-      {status === 'now' && <NowBadge />}
       <RowActions kind="event" item={event} onEdit={onClick} />
     </div>
   );
