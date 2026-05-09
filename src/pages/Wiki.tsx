@@ -378,6 +378,7 @@ const Wiki = () => {
             externalQuery={sidebarQuery}
             onQueryChange={setSidebarQuery}
             onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
+            onCreate={openTemplatePicker}
           />
           {/* 사이드바 footer — 좌측: 페이지 카운트 / 우측: 설정 (같은 줄) */}
           <div className="px-3 h-9 border-t border-[hsl(var(--hairline))] flex items-center justify-between shrink-0">
