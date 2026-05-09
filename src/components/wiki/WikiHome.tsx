@@ -249,30 +249,30 @@ export function WikiHome({
 
   return (
     <div className="max-w-4xl mx-auto px-6 sm:px-8 py-8">
-      {/* 헤더 — serif 대문 + mono 메타 */}
-      <header className="mb-7 flex items-end justify-between gap-3 pb-4 border-b-2 border-[hsl(var(--wiki-hairline-strong))]">
+      {/* 헤더 — 큰 serif 타이틀 + 자연어 stats */}
+      <header className="mb-7 flex items-end justify-between gap-3 pb-4 border-b border-[hsl(var(--hairline))]">
         <div>
-          <p className="text-[10.5px] font-mono uppercase tracking-[0.22em] text-muted-foreground mb-1.5">
-            MY WIKI · HOME
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 mb-1.5">
+            내 위키
           </p>
           <h1
-            className="text-[34px] leading-none font-bold text-foreground"
-            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.01em' }}
+            className="text-[40px] sm:text-[44px] leading-none font-semibold text-foreground tracking-tight"
+            style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
           >
             {stats.indexPage ? stats.indexPage.title : '대문'}
           </h1>
         </div>
-        <p className="text-[11px] text-muted-foreground pb-1 font-mono inline-flex items-center gap-2">
-          <span><span className="font-bold text-foreground">{pages.length}</span><span className="text-muted-foreground/70"> pages</span></span>
+        <p className="text-[11.5px] text-muted-foreground pb-1 inline-flex items-center gap-2 font-medium">
+          <span><span className="font-semibold text-foreground tabular-nums">{pages.length}</span><span className="text-muted-foreground/70">개 페이지</span></span>
           <span className="text-muted-foreground/40">·</span>
-          <span><span className="font-bold text-foreground/85">{stats.recentEdits}</span><span className="text-muted-foreground/70"> active</span></span>
+          <span><span className="font-semibold text-foreground/85 tabular-nums">{stats.recentEdits}</span><span className="text-muted-foreground/70">개 활동</span></span>
           {totalQueue > 0 && (
             <>
               <span className="text-muted-foreground/40">·</span>
               <span className="inline-flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="text-primary font-bold">{totalQueue}</span>
-                <span className="text-primary/70">queue</span>
+                <span className="text-primary font-semibold tabular-nums">{totalQueue}</span>
+                <span className="text-primary/70">개 검토</span>
               </span>
             </>
           )}
@@ -407,7 +407,7 @@ export function WikiHome({
       {/* 인기 태그 */}
       {stats.topTags.length > 0 && (
         <div className="mt-7">
-          <h2 className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground mb-2">
+          <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
             🏷 자주 쓰는 태그
           </h2>
           <div className="flex flex-wrap gap-1.5">
@@ -432,7 +432,7 @@ export function WikiHome({
             key={k}
             className="rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 py-2"
           >
-            <p className="text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground">
+            <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               {k}
             </p>
             <p className="text-[18px] font-mono font-bold text-foreground mt-0.5">{n}</p>
@@ -468,7 +468,7 @@ function Section({
   const isEmpty = arr.length === 0 || arr.every((c) => !c);
   return (
     <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3.5">
-      <h2 className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground mb-2">
+      <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
         {title}
       </h2>
       {isEmpty ? (
@@ -781,7 +781,7 @@ function MainDocCard({
         <div className="flex items-center gap-1.5 mb-2">
           {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />}
           {!isRoot && (
-            <span className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
               하위
             </span>
           )}
@@ -837,7 +837,7 @@ function EmptyMocCard({
       </p>
       {onMakeFromTag && topTags.length > 0 && (
         <>
-          <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 mb-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1.5">
             태그로 자동 만들기
           </p>
           <div className="flex flex-wrap justify-center gap-1.5 mb-4">
