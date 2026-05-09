@@ -5,7 +5,7 @@
  * 새 항목 추가는 day 뷰 공통 입력 또는 타임라인 슬롯 클릭으로 — 여기는 read-only.
  */
 import { useMemo } from 'react';
-import { Check, Flag, ListChecks, Plus } from 'lucide-react';
+import { Flag, ListChecks, Plus } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { cn } from '@/lib/utils';
@@ -103,34 +103,30 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
   );
 };
 
-/** 시간 잡힌 task 단일 행 — 체크박스 + 시간 prefix + 색 stripe + 제목 + 우선순위. */
+/** 시간 잡힌 task 단일 행 — event 와 시각적으로 통일. 점 + 시간 prefix + 제목 + 우선순위 + done line-through.
+ *  점 클릭 = 완료 토글 (체크박스 대신). 본문 클릭 = 모달. */
 const ScheduledTaskRow = ({ task, onClick }: { task: PlannerTask; onClick: () => void }) => {
-  const stripe = task.color ? TASK_LIST_COLORS[task.color].stripe : undefined;
+  const dotColor = task.color ? TASK_LIST_COLORS[task.color].stripe : 'hsl(var(--primary))';
   return (
     <div className="group flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-accent transition-colors">
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); taskStore.toggleDone(task.id); }}
         aria-label={task.done ? '완료 취소' : '완료'}
-        className={cn(
-          'flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors',
-          task.done
-            ? 'bg-foreground border-foreground text-background'
-            : 'border-foreground/30 hover:border-foreground/60',
-        )}
+        title={task.done ? '완료 취소 (점 클릭)' : '완료 (점 클릭)'}
+        className="flex h-4 w-4 shrink-0 items-center justify-center"
       >
-        {task.done && <Check className="h-3 w-3" strokeWidth={3} />}
+        <span
+          className={cn(
+            'h-2 w-2 rounded-full transition-all',
+            task.done && 'opacity-30 ring-1 ring-foreground/40',
+          )}
+          style={{ backgroundColor: dotColor }}
+        />
       </button>
       <span className="text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 w-10" aria-label="시작 시각">
         {formatTime(task.startAt)}
       </span>
-      {stripe && (
-        <span
-          className="h-3.5 w-0.5 rounded-full shrink-0"
-          style={{ backgroundColor: stripe }}
-          aria-hidden
-        />
-      )}
       <button
         type="button"
         onClick={onClick}
@@ -152,11 +148,10 @@ const ScheduledTaskRow = ({ task, onClick }: { task: PlannerTask; onClick: () =>
   );
 };
 
-/** 시간 잡힌 event 단일 행 — task 와 다르게 체크박스/완료/우선순위 없음. 시간 prefix + 색 dot + 제목. */
+/** 시간 잡힌 event 단일 행 — 점 + 시간 prefix + 제목. 체크박스/완료/우선순위 개념 없음. */
 const ScheduledEventRow = ({ event, onClick }: { event: PlannerEvent; onClick: () => void }) => {
   return (
     <div className="group flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-accent transition-colors">
-      {/* event 표시용 dot — task 의 체크박스 자리. 채워진 원으로 "약속/일정"임을 알림. */}
       <span
         className="flex h-4 w-4 shrink-0 items-center justify-center"
         aria-label="일정"
