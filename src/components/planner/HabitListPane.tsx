@@ -121,11 +121,11 @@ export const HabitListPane = ({
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
       {/* 헤더 — 카드 행과 동일한 grid 컬럼. h-16 (64px) 으로 HabitDayProgress (60px) 가 안에 완전히 포함되도록. */}
-      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-16 border-l-2 border-l-transparent border-b border-b-foreground/20 bg-card">
+      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-16 border-l-2 border-l-transparent border-b hairline bg-card">
         {/* col 1: 제목 + 액션 버튼들 */}
-        <div className="min-w-0 flex items-center gap-1.5">
-          <span className="text-[15px] font-bold tracking-tight text-foreground">습관</span>
-          <span className="text-[12px] text-foreground/55 tabular-nums">{visibleHabits.length}/{habits.length}</span>
+        <div className="min-w-0 flex items-baseline gap-2">
+          <span className="font-display text-[20px] font-semibold tracking-tight text-foreground leading-none">습관</span>
+          <span className="text-[12px] text-muted-foreground tabular-nums">{visibleHabits.length}/{habits.length}</span>
 
           <div className="ml-auto flex items-center gap-0.5">
           {/* 검색 */}
@@ -137,7 +137,7 @@ export const HabitListPane = ({
               onChange={(e) => setQuery(e.target.value)}
               onBlur={() => { if (!query) setShowSearch(false); }}
               placeholder="검색"
-              className="h-7 w-32 px-2 text-[12px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none"
+              className="h-7 w-32 px-2 text-[12px] rounded-md border hairline bg-card focus:border-primary/45 focus:outline-none focus:ring-2 focus:ring-primary/15"
             />
           ) : (
             <button
@@ -180,7 +180,7 @@ export const HabitListPane = ({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuLabel className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55">정렬</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">정렬</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
                 <DropdownMenuItem
@@ -235,14 +235,14 @@ export const HabitListPane = ({
         })}
 
         {/* col 9: "최근 30일" — 카드 행의 heat strip 위 */}
-        <div className="text-[9.5px] font-mono uppercase tracking-wide text-foreground/45 text-center whitespace-nowrap">최근 30일</div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 text-center whitespace-nowrap">최근 30일</div>
 
         {/* col 10: ⋯ 메뉴 자리 — 카드 행의 메뉴 컬럼과 정렬 */}
         <div />
       </div>
 
       {/* 테이블 행 리스트 — divide-y 로 행 사이에만 hairline. 마지막 행 아래엔 라인 없음. */}
-      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-foreground/20">
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[hsl(var(--hairline))]">
         {habits.length === 0 ? (
           <div className="p-2">
             <div className="text-[13px] text-foreground/70 font-medium mb-2">
@@ -276,7 +276,7 @@ export const HabitListPane = ({
             <button
               type="button"
               onClick={onAdd}
-              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-foreground/20 text-[12.5px] text-foreground/65 hover:text-foreground hover:border-foreground/40 transition-colors"
+              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-[hsl(var(--hairline))] text-[12.5px] text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
               직접 만들기
@@ -313,7 +313,7 @@ export const HabitListPane = ({
                   'px-3.5 py-3 cursor-pointer transition-colors',
                   'border-l-2',
                   isSelected
-                    ? 'bg-blue-500/5 border-l-blue-500'
+                    ? 'bg-primary/5 border-l-primary'
                     : 'border-l-transparent hover:bg-accent/50',
                 )}
               >
@@ -334,12 +334,12 @@ export const HabitListPane = ({
                       </span>
                       {habit.pinned && <Pin className="h-3 w-3 text-foreground/55" />}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5 text-[11px] tabular-nums text-foreground/55">
-                      <span className="inline-flex items-center gap-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                      <span className="inline-flex items-center gap-0.5" title="현재 연속">
                         <Zap className="h-3 w-3" />
-                        {streak}일들
+                        {streak}일
                       </span>
-                      <span className="inline-flex items-center gap-0.5">
+                      <span className="inline-flex items-center gap-0.5" title="최고 연속">
                         <Flame className="h-3 w-3" />
                         {max}일
                       </span>

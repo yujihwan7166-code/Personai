@@ -113,7 +113,7 @@ export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
 
           {/* 월 캘린더 섹션 */}
           <section className="px-3 py-3 border-b border-foreground/15">
-            <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-2 px-0.5">
               이번 달
             </div>
             <HabitMonthGrid
@@ -126,7 +126,7 @@ export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
 
           {/* 365일 히트맵 섹션 */}
           <section className="px-3 py-3">
-            <div className="text-[10.5px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-2 px-0.5">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-2 px-0.5">
               연간 패턴
             </div>
             <HabitYearHeatmap habit={habit} checkins={allCheckins} />
