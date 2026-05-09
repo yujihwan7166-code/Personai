@@ -101,7 +101,7 @@ export function WikiHistoryPanel({ open, page, onClose, onRestore }: Props) {
                         : 'hover:bg-accent text-foreground/85',
                     )}
                   >
-                    <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                       현재 버전
                     </p>
                     <p className="text-[12.5px] font-medium mt-0.5">{formatTime(page.updatedAt)}</p>
@@ -166,7 +166,7 @@ function RevPreview({
     <div>
       <div className="flex items-start justify-between gap-3 mb-3 pb-3 border-b border-[hsl(var(--hairline))]">
         <div>
-          <p className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-1">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">
             {isCurrent ? '현재 버전' : '이전 버전'} · {formatTime(page.updatedAt)}
           </p>
           <h3 className="text-lg font-serif font-bold"

@@ -199,7 +199,7 @@ export function WikiPageView({
   return (
     <div className="px-6 lg:px-10 py-8">
       {/* 카테고리/유형 brebrumb — 위키 페이지 상단 */}
-      <div className="max-w-6xl mx-auto mb-3 flex items-center gap-2 text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="max-w-6xl mx-auto mb-3 flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         <span aria-hidden>{typeMeta.icon}</span>
         <span style={{ color: typeMeta.tint }}>{typeMeta.label}</span>
         {page.category && (
@@ -450,18 +450,18 @@ function MetaChips({
     return (
       <div className="flex items-center gap-1.5 flex-wrap">
         {isMainDoc(page) && (
-          <span className="text-[10.5px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-primary/15 text-primary inline-flex items-center gap-1">
+          <span className="text-[10.5px] px-2 h-5 rounded-full font-semibold tracking-[0.04em] bg-primary/10 text-primary inline-flex items-center gap-1">
             📖 메인
           </span>
         )}
-        <span className="text-[10.5px] px-2 py-0.5 rounded font-medium" style={{ backgroundColor: `${typeMeta.tint}1A`, color: typeMeta.tint }}>
+        <span className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full font-medium border" style={{ borderColor: `${typeMeta.tint}40`, color: typeMeta.tint, backgroundColor: `${typeMeta.tint}0D` }}>
           {typeMeta.icon} {typeMeta.label}
         </span>
-        <span className="text-[10.5px] px-2 py-0.5 rounded font-medium" style={{ backgroundColor: `${statusMeta.tint}1A`, color: statusMeta.tint }}>
+        <span className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full font-medium border" style={{ borderColor: `${statusMeta.tint}40`, color: statusMeta.tint, backgroundColor: `${statusMeta.tint}0D` }}>
           {statusMeta.label}
         </span>
         {page.tags.map((t) => (
-          <span key={t} className="text-[10.5px] px-1.5 py-0.5 rounded bg-accent text-muted-foreground">
+          <span key={t} className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full bg-accent/60 text-muted-foreground font-medium">
             #{t}
           </span>
         ))}
@@ -499,7 +499,7 @@ function MetaChips({
       <select
         value={draft.status}
         onChange={(e) => onChange({ ...draft, status: e.target.value as WikiPageStatus })}
-        className="h-7 px-2 rounded-md border border-[hsl(var(--hairline))] bg-card text-[11.5px] font-medium text-foreground focus:outline-none focus:border-primary/40"
+        className="h-7 px-2 rounded-md border border-[hsl(var(--hairline))] bg-card text-[11.5px] font-medium text-foreground focus:outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
       >
         {VISIBLE_WIKI_STATUSES.map((k) => (
           <option key={k} value={k}>{WIKI_STATUS_META[k].label}</option>
@@ -616,7 +616,7 @@ function WikiTagChipInput({
       {/* 자동완성 popover */}
       {focused && suggestions.length > 0 && (
         <div className="absolute z-30 left-0 top-full mt-1 min-w-[200px] rounded-md border border-[hsl(var(--hairline))] bg-card shadow-md py-1">
-          <div className="px-2 py-0.5 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70">
+          <div className="px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             {input.trim() ? '검색' : '자주 쓰는 태그'}
           </div>
           {suggestions.map((s) => (
@@ -776,7 +776,7 @@ function DownloadMenu({ page, exportMd }: { page: WikiPage; exportMd: () => void
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 wiki-z-popover w-[180px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
-          <p className="px-3 py-1 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+          <p className="px-3 py-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             다운로드 양식
           </p>
           <DownloadOption icon={<FileText className="w-3.5 h-3.5" />} label="Markdown (.md)" onClick={() => { exportMd(); setOpen(false); }} hint="원본·옵시디언 호환" />

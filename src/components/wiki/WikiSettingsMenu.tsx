@@ -144,7 +144,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
           style={{ left: pos.left, top: pos.top }}
           role="menu"
         >
-          <p className="px-3 py-1.5 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+          <p className="px-3 py-1.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             ⚙ 위키 설정
           </p>
           <MenuItem icon={<Download className="w-3.5 h-3.5" />} onClick={handleExport} label="전체 백업 (.json)" />

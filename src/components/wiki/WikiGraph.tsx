@@ -808,7 +808,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
 
       {/* 범례 + 타입 필터 */}
       <div className="px-3 py-1.5 border-b border-[hsl(var(--hairline))] flex flex-wrap items-center gap-x-3 gap-y-1 bg-muted/10">
-        <span className="text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/80 inline-flex items-center gap-1">
+        <span className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80 inline-flex items-center gap-1">
           <FilterIcon className="w-2.5 h-2.5" /> 타입
         </span>
         {types.map((k) => {
@@ -837,7 +837,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
           <button type="button" onClick={() => setActiveTypes(new Set())}
             className="text-[10px] text-muted-foreground hover:text-foreground underline">전체</button>
         )}
-        <span className="hidden md:inline text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/80 ml-2">엣지</span>
+        <span className="hidden md:inline text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80 ml-2">엣지</span>
         <span className="hidden md:inline-flex items-center gap-2">
           <EdgeLegend kind="refersTo" label="참조" />
           <EdgeLegend kind="cites" label="인용" />
@@ -1060,7 +1060,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
           const preview = p.body.replace(/^[#>\s\n]+/g, '').replace(/\n+/g, ' ').slice(0, 80);
           return (
             <div className="absolute bottom-3 left-3 px-3 py-2 rounded-lg bg-popover border border-[hsl(var(--hairline))] shadow-lg max-w-xs z-10">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-0.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-0.5">
                 {tMeta.icon} {tMeta.label} · 연결 {n.degree}
                 <span className="ml-1.5" style={{ color: sMeta.tint }}>{sMeta.label}</span>
               </p>

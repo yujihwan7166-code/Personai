@@ -11,11 +11,13 @@
   --wiki-z-palette-backdrop: 200;
   --wiki-z-palette: 201;
 
-  /* ── 타이포 패밀리 ──
-     본문도 serif 로 — 위키 톤 일관 + 한국어 가독성(Noto Serif KR 우선). */
+  /* ── 타이포 패밀리 (Notion / Bear hybrid 패턴) ──
+     - 헤더(display/heading): Newsreader serif — 서재 톤, 큰 글자에서 우아함
+     - 본문(body): Pretendard sans — 빠른 스캔·참조에 유리 (위키는 읽기보다 탐색)
+     - 메타/모노: 그대로 */
   --wiki-font-display: "Newsreader", "Noto Serif KR", Georgia, serif;
   --wiki-font-heading: "Newsreader", "Noto Serif KR", Georgia, serif;
-  --wiki-font-body:    "Noto Serif KR", "Newsreader", Georgia, serif;
+  --wiki-font-body:    "Pretendard", "Pretendard Variable", system-ui, sans-serif;
   --wiki-font-meta:    "Pretendard", system-ui, sans-serif;
   --wiki-font-mono:    "JetBrains Mono", ui-monospace, monospace;
 

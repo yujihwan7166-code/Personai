@@ -245,13 +245,13 @@ function ColorDropdown({ editor }: { editor: Editor }) {
       >
         <Palette className="w-3.5 h-3.5" />
         <span
-          className="w-2 h-2 rounded-full border border-foreground/20"
+          className="w-2 h-2 rounded-full border border-[hsl(var(--hairline))]"
           style={{ background: current || 'currentColor' }}
         />
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 wiki-z-popover w-[180px] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg p-2">
-          <p className="text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70 mb-1">글씨 색</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1">글씨 색</p>
           <div className="grid grid-cols-6 gap-1">
             {TEXT_COLORS.map((c) => (
               <button
@@ -303,13 +303,13 @@ function HighlightDropdown({ editor }: { editor: Editor }) {
       >
         <Highlighter className="w-3.5 h-3.5" />
         <span
-          className="w-2 h-2 rounded-sm border border-foreground/20"
+          className="w-2 h-2 rounded-sm border border-[hsl(var(--hairline))]"
           style={{ background: current || 'rgb(254 240 138)' }}
         />
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 wiki-z-popover w-[140px] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg p-2">
-          <p className="text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70 mb-1">형광</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1">형광</p>
           <div className="grid grid-cols-6 gap-1">
             {HIGHLIGHTS.map((h) => (
               <button

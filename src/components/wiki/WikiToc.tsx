@@ -46,7 +46,7 @@ export function WikiToc({ body }: Props) {
       aria-label="목차"
       className="sticky top-6 rounded-lg border border-[hsl(var(--hairline))] bg-card/80 backdrop-blur p-3 max-h-[70vh] overflow-y-auto"
     >
-      <p className="text-[9.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">
+      <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
         목차
       </p>
       <ol className="space-y-0.5 text-[11.5px]">

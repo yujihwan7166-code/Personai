@@ -122,7 +122,7 @@ function WikiLink({ title, onOpen, findByTitle, visitedIds, children }: WikiLink
           className="fixed z-50 pointer-events-none rounded-lg border border-[hsl(var(--hairline))] bg-popover text-popover-foreground shadow-xl px-3 py-2 max-w-xs animate-in fade-in slide-in-from-top-1 duration-150"
           style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
         >
-          <span className="flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+          <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">
             <span aria-hidden>{WIKI_TYPE_META[target.type].icon}</span>
             {WIKI_TYPE_META[target.type].label}
           </span>

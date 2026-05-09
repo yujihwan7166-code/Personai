@@ -515,7 +515,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
           className="absolute wiki-z-popover w-[260px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1 max-h-[320px] overflow-y-auto"
           style={{ left: slashCoords.left, top: slashCoords.top }}
         >
-          <p className="px-3 pt-1.5 pb-1 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70">
+          <p className="px-3 pt-1.5 pb-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             블록 추가
           </p>
           {filteredCommands.map((cmd, i) => (

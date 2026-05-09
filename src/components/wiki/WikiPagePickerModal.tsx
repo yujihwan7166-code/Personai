@@ -249,7 +249,7 @@ export function WikiPagePickerModal({
                   <p className="px-4 py-3 text-center text-[11.5px] text-muted-foreground">
                     "<span className="text-foreground/80">{query.trim()}</span>" 와 일치하는 페이지 없음 — 아래에서 골라보세요
                   </p>
-                  <div className="px-3 py-1 text-[9.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 border-t border-[hsl(var(--hairline))]">
+                  <div className="px-3 py-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 border-t border-[hsl(var(--hairline))]">
                     {typeFilter === 'all' ? '전체 페이지' : `${WIKI_TYPE_META[typeFilter].label} 페이지`}
                   </div>
                   {typeFiltered.map((p) => {
@@ -284,7 +284,7 @@ export function WikiPagePickerModal({
 
         {mode === 'id' && (
           <div className="p-4">
-            <p className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 mb-1.5">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1.5">
               페이지 ID 입력
             </p>
             <input
@@ -329,7 +329,7 @@ export function WikiPagePickerModal({
         {mode === 'new' && (
           <div className="p-4 space-y-3">
             <div>
-              <p className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 mb-1.5">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1.5">
                 새 페이지 제목
               </p>
               <input

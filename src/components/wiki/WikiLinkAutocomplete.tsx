@@ -121,7 +121,7 @@ export function WikiLinkAutocomplete({ pages, currentId, textareaRef, value, onC
       style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
       role="listbox"
     >
-      <p className="px-3 pt-1 pb-1 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground border-b border-[hsl(var(--hairline))] mb-1">
+      <p className="px-3 pt-1 pb-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground border-b border-[hsl(var(--hairline))] mb-1">
         위키링크 — {trigger.query || '(검색어 입력)'}
       </p>
       {matches.map((p, i) => {

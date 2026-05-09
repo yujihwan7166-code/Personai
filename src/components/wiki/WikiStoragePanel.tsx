@@ -90,7 +90,7 @@ export function WikiStoragePanel({ open, onClose }: Props) {
 
               {stats.topImages.length > 0 && (
                 <div className="mb-5">
-                  <p className="text-[10.5px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">
                     가장 큰 이미지 Top {stats.topImages.length}
                   </p>
                   <ul className="space-y-1">
@@ -141,7 +141,7 @@ function Stat({
 }) {
   return (
     <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 py-2">
-      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
       <p className={`text-[20px] font-bold mt-0.5 ${highlight ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
