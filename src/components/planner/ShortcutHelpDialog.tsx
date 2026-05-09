@@ -64,7 +64,7 @@ const GROUPS: ShortcutGroup[] = [
 ];
 
 const Key = ({ children }: { children: React.ReactNode }) => (
-  <kbd className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded bg-accent border border-foreground/20 text-[11px] font-mono font-semibold text-foreground">
+  <kbd className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-md bg-card border hairline shadow-[0_1px_0_hsl(30_15%_8%/0.06)] text-[11px] font-mono font-semibold text-foreground">
     {children}
   </kbd>
 );

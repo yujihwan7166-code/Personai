@@ -131,7 +131,7 @@ export const GoalProgressView = ({ onTaskClick }: GoalProgressViewProps) => {
           </div>
         </div>
 
-        <div className="rounded-lg border border-foreground/20 bg-card px-3 py-3">
+        <div className="rounded-2xl border hairline bg-card px-4 py-3.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
           <div className="grid gap-2 lg:grid-cols-[minmax(220px,1fr)_160px_220px_auto]">
             <input
               value={title}
@@ -182,7 +182,7 @@ export const GoalProgressView = ({ onTaskClick }: GoalProgressViewProps) => {
         </div>
 
         {activeProgress.length === 0 ? (
-          <div className="min-h-[320px] rounded-lg border border-dashed border-foreground/20 bg-card/60 flex flex-col items-center justify-center text-center px-6">
+          <div className="min-h-[320px] rounded-2xl border border-dashed border-[hsl(var(--hairline))] bg-card/40 flex flex-col items-center justify-center text-center px-6">
             <Target className="h-8 w-8 text-muted-foreground mb-3" />
             <p className="text-[15px] font-semibold text-foreground">아직 진행 중인 목표가 없어요</p>
             <p className="mt-1 text-[12.5px] text-muted-foreground">
@@ -271,7 +271,7 @@ const GoalCard = ({
     .slice(0, 5);
 
   return (
-    <section className="rounded-lg border border-foreground/20 bg-card overflow-hidden">
+    <section className="rounded-2xl border hairline bg-card overflow-hidden shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
       <div className="h-1" style={{ backgroundColor: color.stripe }} />
       <div className="p-4 space-y-4">
         <div className="flex items-start gap-3">

@@ -72,11 +72,20 @@ export const pomodoroSessionLog = {
     return next;
   },
 
-  /** 특정 일자 (YYYY-MM-DD) 의 세션들. */
+  /** 특정 일자 (로컬) 의 세션들. ISO prefix 비교는 UTC 기준이라 KST 새벽 시간대가
+   *  전날로 분류되는 버그가 있어, timestamp 범위 비교로 통일 (eventStore.listByDate 와 동일 패턴). */
   listByDay(dateIso: string): PomodoroSessionRecord[] {
-    const dayPrefix = dateIso.slice(0, 10);
+    const day = new Date(dateIso);
+    const rangeStart = new Date(day);
+    rangeStart.setHours(0, 0, 0, 0);
+    const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
+    const startMs = rangeStart.getTime();
+    const endMs = rangeEnd.getTime();
     return safeRead()
-      .filter((r) => r.startedAt.slice(0, 10) === dayPrefix)
+      .filter((r) => {
+        const t = new Date(r.startedAt).getTime();
+        return t >= startMs && t < endMs;
+      })
       .sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   },
 

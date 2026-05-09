@@ -111,7 +111,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
   const ModeToggle = (
     <div
       role="tablist"
-      className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-accent/40 border border-foreground/20"
+      className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-secondary/60 border hairline"
     >
       {([
         ['months', '월 보기'],
@@ -126,10 +126,10 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             aria-selected={active}
             onClick={() => setMode(id)}
             className={cn(
-              'px-2.5 h-5 rounded text-[10.5px] font-semibold transition-colors',
+              'px-3 h-6 rounded-full text-[11px] font-semibold transition-all',
               active
-                ? 'bg-card text-foreground shadow-sm ring-1 ring-foreground/30'
-                : 'text-foreground/70 hover:text-foreground',
+                ? 'bg-card text-foreground shadow-[0_1px_2px_hsl(30_15%_8%/0.06)]'
+                : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {label}
@@ -156,11 +156,11 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             type="button"
             onClick={() => onMonthClick?.(mo.firstIso)}
             className={cn(
-              'flex flex-col items-stretch p-3 rounded-lg text-left',
-              'border border-foreground/20 bg-card',
-              'hover:border-foreground/30 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)]',
+              'flex flex-col items-stretch p-3 rounded-2xl text-left',
+              'border hairline bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
+              'hover:border-foreground/25 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)]',
               'transition-all',
-              mo.isCurrentMonth && 'ring-1 ring-foreground/30',
+              mo.isCurrentMonth && 'ring-1 ring-primary/35',
             )}
           >
             <header className="flex items-baseline justify-between mb-2">

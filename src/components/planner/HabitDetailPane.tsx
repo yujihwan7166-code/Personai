@@ -43,7 +43,7 @@ export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
       {/* 본문 — 우측 패널 전체를 하나의 카드로 묶음. 안에서 섹션은 divider 로만 구분.
           상단 여백은 좌측 콘텐츠와 시작점 맞추기 위해 컴팩트(pt-1). */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-1 pb-3">
-        <div className="rounded-lg border border-foreground/20 bg-card overflow-hidden">
+        <div className="rounded-2xl border hairline bg-card overflow-hidden shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
           {/* 헤더 — 컴팩트 한 줄: 이모지 + 제목 + 편집·메뉴 */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-foreground/15">
             <span
