@@ -792,8 +792,8 @@ const Planner = () => {
         {isFullscreen ? (
           <div className={cn(
             'rounded-2xl border hairline bg-card min-h-[600px] h-[calc(100vh-180px)] shadow-[0_1px_2px_hsl(30_15%_8%/0.04)] overflow-hidden',
-            // habits 는 자체 헤더·배경이 있어 wrapper 의 외곽 패딩이 시각 노이즈가 됨 — 패딩 0
-            view === 'habits' ? '' : 'p-4 sm:p-5',
+            // habits 는 자체 헤더·배경이 있어 외곽 패딩 줄임 (다른 풀뷰 p-4/p-5 보다 슬림)
+            view === 'habits' ? 'p-2 sm:p-2.5' : 'p-4 sm:p-5',
           )}>
             {view === 'month' && (
               <MonthView
