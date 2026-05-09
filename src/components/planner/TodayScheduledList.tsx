@@ -4,11 +4,12 @@
  *
  * 새 항목 추가는 day 뷰 공통 입력 또는 타임라인 슬롯 클릭으로 — 여기는 read-only.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Check, Flag, ListChecks, Plus } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
+import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { cn } from '@/lib/utils';
-import { PLANNER_TASK_CHANGED, PRIORITY_COLORS, TASK_LIST_COLORS, type PlannerTask } from '@/types/planner';
+import { PRIORITY_COLORS, TASK_LIST_COLORS, type PlannerEvent, type PlannerTask, type PlannerTimelineItem } from '@/types/planner';
 
 interface TodayScheduledListProps {
   anchorIso: string;
@@ -27,25 +28,27 @@ const formatTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 
 export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodayScheduledListProps) => {
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    const refresh = () => setTick((t) => t + 1);
-    refresh();
-    if (typeof window === 'undefined') return;
-    window.addEventListener(PLANNER_TASK_CHANGED, refresh);
-    return () => window.removeEventListener(PLANNER_TASK_CHANGED, refresh);
-  }, []);
-
+  // 시간 배정된 task + event 둘 다 보여줌. usePlannerToday 가 PLANNER_TASK/EVENT_CHANGED 양쪽 listen.
+  const items = usePlannerToday(anchorIso);
   const day = useMemo(() => new Date(anchorIso), [anchorIso]);
 
-  const scheduled = useMemo(
+  const scheduled = useMemo<PlannerTimelineItem[]>(
     () =>
-      taskStore
-        .listScheduled(anchorIso)
-        .filter((task) => !task.done && !task.canceled && !task.someday && isSameLocalDay(task.startAt, day))
-        .sort((a, b) => (a.startAt ?? '').localeCompare(b.startAt ?? '')),
-    [anchorIso, day, tick],
+      items
+        .filter((item) => {
+          if (item.kind === 'task') {
+            const t = item.data;
+            return !t.done && !t.canceled && !t.someday && isSameLocalDay(t.startAt, day);
+          }
+          // event 는 done/canceled 개념 없음 — 같은 날인지만 확인
+          return isSameLocalDay(item.data.startAt, day);
+        })
+        .sort((a, b) => {
+          const aStart = a.kind === 'event' ? a.data.startAt : a.data.startAt ?? '';
+          const bStart = b.kind === 'event' ? b.data.startAt : b.data.startAt ?? '';
+          return aStart.localeCompare(bStart);
+        }),
+    [items, day],
   );
 
   return (
@@ -78,13 +81,21 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
           </p>
         ) : (
           <div className="space-y-0.5 pb-1">
-            {scheduled.map((task) => (
-              <ScheduledRow
-                key={task.id}
-                task={task}
-                onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
-              />
-            ))}
+            {scheduled.map((item) =>
+              item.kind === 'task' ? (
+                <ScheduledTaskRow
+                  key={item.data.id}
+                  task={item.data}
+                  onClick={() => onTaskClick?.({ id: item.data.id, title: item.data.title })}
+                />
+              ) : (
+                <ScheduledEventRow
+                  key={item.data.id}
+                  event={item.data}
+                  onClick={() => onTaskClick?.({ id: item.data.id, title: item.data.title })}
+                />
+              ),
+            )}
           </div>
         )}
       </div>
@@ -93,7 +104,7 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
 };
 
 /** 시간 잡힌 task 단일 행 — 체크박스 + 시간 prefix + 색 stripe + 제목 + 우선순위. */
-const ScheduledRow = ({ task, onClick }: { task: PlannerTask; onClick: () => void }) => {
+const ScheduledTaskRow = ({ task, onClick }: { task: PlannerTask; onClick: () => void }) => {
   const stripe = task.color ? TASK_LIST_COLORS[task.color].stripe : undefined;
   return (
     <div className="group flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-accent transition-colors">
@@ -137,6 +148,34 @@ const ScheduledRow = ({ task, onClick }: { task: PlannerTask; onClick: () => voi
           aria-label={`우선순위 P${task.priority}`}
         />
       )}
+    </div>
+  );
+};
+
+/** 시간 잡힌 event 단일 행 — task 와 다르게 체크박스/완료/우선순위 없음. 시간 prefix + 색 dot + 제목. */
+const ScheduledEventRow = ({ event, onClick }: { event: PlannerEvent; onClick: () => void }) => {
+  return (
+    <div className="group flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-accent transition-colors">
+      {/* event 표시용 dot — task 의 체크박스 자리. 채워진 원으로 "약속/일정"임을 알림. */}
+      <span
+        className="flex h-4 w-4 shrink-0 items-center justify-center"
+        aria-label="일정"
+      >
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ backgroundColor: event.color ?? 'hsl(var(--primary))' }}
+        />
+      </span>
+      <span className="text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 w-10" aria-label="시작 시각">
+        {formatTime(event.startAt)}
+      </span>
+      <button
+        type="button"
+        onClick={onClick}
+        className="min-w-0 flex-1 truncate text-left text-[13px] leading-tight text-foreground"
+      >
+        {event.title}
+      </button>
     </div>
   );
 };
