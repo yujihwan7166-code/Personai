@@ -14,13 +14,12 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-type Filter = 'all' | 'moc' | 'source' | 'draft';
+type Filter = 'all' | 'moc' | 'active';
 
 const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: 'all',    label: '전체' },
-  { id: 'moc',    label: '📖 메인' },
-  { id: 'source', label: '📚 출처' },
-  { id: 'draft',  label: '🚧 초안' },
+  { id: 'moc',    label: '메인' },
+  { id: 'active', label: '작업중' },
 ];
 
 export function WikiSidebar({
@@ -64,9 +63,8 @@ export function WikiSidebar({
     const q = query.trim().toLowerCase();
     const out: FilteredPage[] = [];
     for (const p of pages) {
-      if (filter === 'moc'    && p.type !== 'moc') continue;
-      if (filter === 'source' && p.type !== 'source') continue;
-      if (filter === 'draft'  && p.status !== 'draft') continue;
+      if (filter === 'moc'    && !(p.isMain || p.type === 'moc')) continue;
+      if (filter === 'active' && p.status !== 'active') continue;
       if (!q) { out.push({ page: p, hit: 'none' }); continue; }
       if (p.title.toLowerCase().includes(q)) { out.push({ page: p, hit: 'title' }); continue; }
       const aHit = p.aliases.find((a) => a.toLowerCase().includes(q));
