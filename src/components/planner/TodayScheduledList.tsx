@@ -376,7 +376,7 @@ const ScheduledTaskRow = ({
         type="button"
         onClick={onClick}
         className={cn(
-          'min-w-0 flex-1 text-left text-[13px] leading-snug line-clamp-2 break-words',
+          'min-w-0 flex-1 text-left text-[13px] leading-snug line-clamp-2 break-keep break-words',
           task.done ? 'text-foreground/40 line-through' : 'text-foreground',
         )}
         title={task.title}
@@ -431,7 +431,7 @@ const ScheduledEventRow = ({
       <button
         type="button"
         onClick={onClick}
-        className="min-w-0 flex-1 text-left text-[13px] leading-snug line-clamp-2 break-words text-foreground"
+        className="min-w-0 flex-1 text-left text-[13px] leading-snug line-clamp-2 break-keep break-words text-foreground"
         title={event.title}
       >
         {event.title}
