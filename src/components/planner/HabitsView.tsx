@@ -14,7 +14,8 @@ import { NewHabitDialog } from './NewHabitDialog';
 type DialogMode = { kind: 'create' } | { kind: 'edit'; habit: Habit };
 
 export const HabitsView = () => {
-  const habits = useHabits();
+  // includeArchived=true 로 모든 습관 가져온 뒤 List 안에서 viewMode 로 분기.
+  const habits = useHabits(true);
   const [allCheckins, setAllCheckins] = useState<HabitCheckin[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);

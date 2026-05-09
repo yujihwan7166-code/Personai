@@ -45,6 +45,8 @@ export interface Habit {
   endDate?: string;
 
   archived: boolean;
+  /** 보관함으로 옮긴 시각 (ISO). archived = true 일 때만 의미. UI 에 "보관 시점" 표시용. */
+  archivedAt?: string;
   pinned: boolean;
   /** drag 정렬용. 작을수록 위. */
   sortOrder: number;

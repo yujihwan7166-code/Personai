@@ -114,11 +114,18 @@ export const habitStore = {
   },
 
   archive(id: string): void {
-    this.update(id, { archived: true });
+    this.update(id, { archived: true, archivedAt: new Date().toISOString() });
   },
 
   unarchive(id: string): void {
-    this.update(id, { archived: false });
+    this.update(id, { archived: false, archivedAt: undefined });
+  },
+
+  /** 보관함 (archived = true) 만. 보관 시점 최신순. */
+  listArchived(): Habit[] {
+    return safeRead()
+      .filter((h) => h.archived)
+      .sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''));
   },
 
   /** drag 재정렬 — orderedIds 순서대로 sortOrder 재할당. */

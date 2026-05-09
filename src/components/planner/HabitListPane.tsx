@@ -8,7 +8,7 @@
  */
 import { useMemo, useState } from 'react';
 import {
-  ArrowUpDown, Flame, MoreHorizontal, Pin, Plus, Search, Zap,
+  Archive, ArchiveRestore, ArrowUpDown, Flame, MoreHorizontal, Pin, Plus, Search, Trash2, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TASK_LIST_COLORS, type TaskListColor } from '@/types/planner';
@@ -62,6 +62,8 @@ export const HabitListPane = ({
   const [showSearch, setShowSearch] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('order');
   const [todayOnly, setTodayOnly] = useState(false);
+  /** 'active' (활성 습관 list) / 'archived' (습관 보관함). */
+  const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
 
   // 이번 주 (월~일) 7일 dateKeys.
   const weekDays = useMemo(() => {
@@ -77,12 +79,20 @@ export const HabitListPane = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayKey]);
 
+  // viewMode 로 active/archived 먼저 분기. 같은 source 에서 필터.
+  const baseHabits = useMemo(
+    () => habits.filter((h) => (viewMode === 'archived' ? h.archived : !h.archived)),
+    [habits, viewMode],
+  );
+  const archivedCount = useMemo(() => habits.filter((h) => h.archived).length, [habits]);
+
   // 검색·필터·정렬 적용된 list
   const visibleHabits = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let arr = habits;
+    let arr = baseHabits;
     if (q) arr = arr.filter((h) => h.title.toLowerCase().includes(q));
-    if (todayOnly) arr = arr.filter((h) => isScheduledOn(h, todayKey));
+    // 보관함 모드에선 '오늘만' 필터 무의미 — 무시
+    if (todayOnly && viewMode === 'active') arr = arr.filter((h) => isScheduledOn(h, todayKey));
     if (sortKey === 'name') {
       arr = [...arr].sort((a, b) => a.title.localeCompare(b.title, 'ko'));
     } else if (sortKey === 'streak') {
@@ -94,10 +104,13 @@ export const HabitListPane = ({
         return cs;
       };
       arr = [...arr].sort((a, b) => streakOf(b) - streakOf(a));
+    } else if (viewMode === 'archived') {
+      // 보관함 'order' = archivedAt 최신순 (방금 보관한 습관이 위)
+      arr = [...arr].sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''));
     }
-    // 'order' = 기본 sortOrder (이미 store 에서 sort)
+    // 'order' active = 기본 sortOrder (이미 store 에서 sort)
     return arr;
-  }, [habits, query, todayOnly, sortKey, allCheckins, todayKey]);
+  }, [baseHabits, query, todayOnly, sortKey, allCheckins, todayKey, viewMode]);
 
   // 각 날의 (스케줄, 완료) — 진행률 링.
   const dayProgress = useMemo(() => {
@@ -124,8 +137,12 @@ export const HabitListPane = ({
       <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-16 border-l-2 border-l-transparent border-b hairline bg-card">
         {/* col 1: 제목 + 액션 버튼들 */}
         <div className="min-w-0 flex items-baseline gap-2">
-          <span className="font-display text-[20px] font-semibold tracking-tight text-foreground leading-none">습관</span>
-          <span className="text-[12px] text-muted-foreground tabular-nums">{visibleHabits.length}/{habits.length}</span>
+          <span className="font-display text-[20px] font-semibold tracking-tight text-foreground leading-none">
+            {viewMode === 'archived' ? '습관 보관함' : '습관'}
+          </span>
+          <span className="text-[12px] text-muted-foreground tabular-nums">
+            {visibleHabits.length}{viewMode === 'active' ? `/${baseHabits.length}` : ''}
+          </span>
 
           <div className="ml-auto flex items-center gap-0.5">
           {/* 검색 */}
@@ -151,20 +168,42 @@ export const HabitListPane = ({
             </button>
           )}
 
-          {/* 오늘만 */}
+          {/* 오늘만 — active 뷰에서만 의미 있음 */}
+          {viewMode === 'active' && (
+            <button
+              type="button"
+              onClick={() => setTodayOnly((v) => !v)}
+              aria-pressed={todayOnly}
+              title="오늘 스케줄만"
+              className={cn(
+                'inline-flex h-7 px-2 items-center justify-center rounded text-[11px] font-semibold transition-colors',
+                todayOnly
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+              )}
+            >
+              오늘만
+            </button>
+          )}
+
+          {/* 보관함 토글 — 활성/보관함 view 전환 */}
           <button
             type="button"
-            onClick={() => setTodayOnly((v) => !v)}
-            aria-pressed={todayOnly}
-            title="오늘 스케줄만"
+            onClick={() => setViewMode((v) => (v === 'active' ? 'archived' : 'active'))}
+            aria-pressed={viewMode === 'archived'}
+            title={viewMode === 'archived' ? '활성 습관으로 돌아가기' : '습관 보관함 보기'}
             className={cn(
-              'inline-flex h-7 px-2 items-center justify-center rounded text-[11px] font-semibold transition-colors',
-              todayOnly
-                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                : 'text-foreground/65 hover:text-foreground hover:bg-accent',
+              'inline-flex h-7 px-2 items-center justify-center gap-1 rounded text-[11px] font-semibold transition-colors',
+              viewMode === 'archived'
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent',
             )}
           >
-            오늘만
+            <Archive className="h-3 w-3" />
+            보관함
+            {archivedCount > 0 && viewMode === 'active' && (
+              <span className="text-[10.5px] tabular-nums opacity-70">{archivedCount}</span>
+            )}
           </button>
 
           {/* 정렬 */}
@@ -243,7 +282,15 @@ export const HabitListPane = ({
 
       {/* 테이블 행 리스트 — divide-y 로 행 사이에만 hairline. 마지막 행 아래엔 라인 없음. */}
       <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[hsl(var(--hairline))]">
-        {habits.length === 0 ? (
+        {viewMode === 'archived' && baseHabits.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center px-6 py-12">
+            <Archive className="h-7 w-7 text-muted-foreground/50 mb-2.5" strokeWidth={1.5} />
+            <p className="text-[13px] font-medium text-foreground/80">보관된 습관이 없어요</p>
+            <p className="mt-1 text-[11.5px] text-muted-foreground max-w-[220px] leading-snug">
+              잠시 쉬는 습관·끝낸 습관은 ⋯ 메뉴에서 보관함으로 옮기면 기록은 보존돼요.
+            </p>
+          </div>
+        ) : habits.filter((h) => !h.archived).length === 0 && viewMode === 'active' ? (
           <div className="p-2">
             <div className="text-[13px] text-foreground/70 font-medium mb-2">
               한 번에 시작하기 — 스타터 팩
@@ -315,6 +362,7 @@ export const HabitListPane = ({
                   isSelected
                     ? 'bg-primary/5 border-l-primary'
                     : 'border-l-transparent hover:bg-accent/50',
+                  habit.archived && 'opacity-75',
                 )}
               >
                 {/* 좌: emoji + 제목 + meta */}
@@ -335,18 +383,36 @@ export const HabitListPane = ({
                       {habit.pinned && <Pin className="h-3 w-3 text-foreground/55" />}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 text-[11px] tabular-nums text-muted-foreground">
-                      <span className="inline-flex items-center gap-0.5" title="현재 연속">
-                        <Zap className="h-3 w-3" />
-                        {streak}일
-                      </span>
-                      <span className="inline-flex items-center gap-0.5" title="최고 연속">
-                        <Flame className="h-3 w-3" />
-                        {max}일
-                      </span>
-                      {timesPerDay > 1 && habit.unit && (
-                        <span className="text-foreground/45">
-                          {timesPerDay}{habit.unit}/일
-                        </span>
+                      {habit.archived ? (
+                        <>
+                          <span className="inline-flex items-center gap-0.5" title="최고 연속">
+                            <Flame className="h-3 w-3" />
+                            {max}일
+                          </span>
+                          {habit.archivedAt && (
+                            <span className="text-muted-foreground/70" title="보관 시점">
+                              {new Date(habit.archivedAt).toLocaleDateString('ko-KR', {
+                                year: '2-digit', month: 'numeric', day: 'numeric',
+                              })} 보관
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center gap-0.5" title="현재 연속">
+                            <Zap className="h-3 w-3" />
+                            {streak}일
+                          </span>
+                          <span className="inline-flex items-center gap-0.5" title="최고 연속">
+                            <Flame className="h-3 w-3" />
+                            {max}일
+                          </span>
+                          {timesPerDay > 1 && habit.unit && (
+                            <span className="text-foreground/45">
+                              {timesPerDay}{habit.unit}/일
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -400,15 +466,42 @@ export const HabitListPane = ({
                         <MoreHorizontal className="h-3.5 w-3.5" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-36">
-                      <DropdownMenuItem onSelect={() => onEdit(habit)}>편집</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => habitStore.togglePinned(habit.id)}>
-                        {habit.pinned ? '핀 해제' : '핀 고정'}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => habitStore.archive(habit.id)}>
-                        보관함으로
-                      </DropdownMenuItem>
+                    <DropdownMenuContent align="end" className="w-40">
+                      {!habit.archived && (
+                        <>
+                          <DropdownMenuItem onSelect={() => onEdit(habit)}>편집</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => habitStore.togglePinned(habit.id)}>
+                            {habit.pinned ? '핀 해제' : '핀 고정'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => habitStore.archive(habit.id)}>
+                            <Archive className="h-3.5 w-3.5 mr-2" />
+                            보관함으로
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {habit.archived && (
+                        <>
+                          <DropdownMenuItem onSelect={() => habitStore.unarchive(habit.id)}>
+                            <ArchiveRestore className="h-3.5 w-3.5 mr-2" />
+                            다시 시작
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => {
+                              if (typeof window !== 'undefined' && window.confirm(
+                                `"${habit.title}" 을(를) 영구 삭제할까요?\n체크인 기록도 함께 사라져 복구할 수 없어요.`,
+                              )) {
+                                habitStore.remove(habit.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" />
+                            영구 삭제
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
