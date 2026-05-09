@@ -134,7 +134,7 @@ export const HabitListPane = ({
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
       {/* 헤더 — 카드 행과 동일한 grid 컬럼. h-16 (64px) 으로 HabitDayProgress (60px) 가 안에 완전히 포함되도록. */}
-      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-l-2 border-l-transparent border-b hairline bg-card">
+      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-b hairline bg-card">
         {/* col 1: 제목 + 액션 버튼들 */}
         <div className="min-w-0 flex items-baseline gap-2">
           <span className="font-display text-[20px] font-semibold tracking-tight text-foreground leading-none">
@@ -358,10 +358,9 @@ export const HabitListPane = ({
                 className={cn(
                   'group relative grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center',
                   'px-3.5 py-3 cursor-pointer transition-colors',
-                  'border-l-2',
                   isSelected
-                    ? 'bg-primary/5 border-l-primary'
-                    : 'border-l-transparent hover:bg-accent/50',
+                    ? 'bg-primary/5'
+                    : 'hover:bg-accent/50',
                   habit.archived && 'opacity-75',
                 )}
               >
