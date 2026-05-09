@@ -800,6 +800,16 @@ const Planner = () => {
                 anchorIso={anchorIso}
                 onDayClick={handleDayClick}
                 onItemClick={handleItemClick}
+                onAddForDate={(dayIso) => {
+                  // 그 날짜 09:00 default + 일정 모달
+                  const day = new Date(dayIso);
+                  day.setHours(9, 0, 0, 0);
+                  setDialogMode({
+                    kind: 'create',
+                    presetStartIso: day.toISOString(),
+                    presetIsEvent: true,
+                  });
+                }}
               />
             )}
             {view === 'year' && (
