@@ -22,6 +22,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HabitDayDot } from './HabitDayDot';
 import { HabitDayProgress } from './HabitDayProgress';
 import { HabitHeatStrip } from './HabitHeatStrip';
@@ -62,8 +63,6 @@ export const HabitListPane = ({
   const [showSearch, setShowSearch] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('order');
   const [todayOnly, setTodayOnly] = useState(false);
-  /** 'active' (활성 습관 list) / 'archived' (습관 보관함). */
-  const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
 
   // 이번 주 (월~일) 7일 dateKeys.
   const weekDays = useMemo(() => {
@@ -79,20 +78,19 @@ export const HabitListPane = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayKey]);
 
-  // viewMode 로 active/archived 먼저 분기. 같은 source 에서 필터.
-  const baseHabits = useMemo(
-    () => habits.filter((h) => (viewMode === 'archived' ? h.archived : !h.archived)),
-    [habits, viewMode],
+  // 활성 / 보관 분리 — 활성만 메인 list 에 표시, 보관 habits 는 popover 에서.
+  const activeHabits = useMemo(() => habits.filter((h) => !h.archived), [habits]);
+  const archivedHabits = useMemo(
+    () => habits.filter((h) => h.archived).sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? '')),
+    [habits],
   );
-  const archivedCount = useMemo(() => habits.filter((h) => h.archived).length, [habits]);
 
   // 검색·필터·정렬 적용된 list
   const visibleHabits = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let arr = baseHabits;
+    let arr = activeHabits;
     if (q) arr = arr.filter((h) => h.title.toLowerCase().includes(q));
-    // 보관함 모드에선 '오늘만' 필터 무의미 — 무시
-    if (todayOnly && viewMode === 'active') arr = arr.filter((h) => isScheduledOn(h, todayKey));
+    if (todayOnly) arr = arr.filter((h) => isScheduledOn(h, todayKey));
     if (sortKey === 'name') {
       arr = [...arr].sort((a, b) => a.title.localeCompare(b.title, 'ko'));
     } else if (sortKey === 'streak') {
@@ -104,13 +102,10 @@ export const HabitListPane = ({
         return cs;
       };
       arr = [...arr].sort((a, b) => streakOf(b) - streakOf(a));
-    } else if (viewMode === 'archived') {
-      // 보관함 'order' = archivedAt 최신순 (방금 보관한 습관이 위)
-      arr = [...arr].sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''));
     }
-    // 'order' active = 기본 sortOrder (이미 store 에서 sort)
+    // 'order' = 기본 sortOrder (이미 store 에서 sort)
     return arr;
-  }, [baseHabits, query, todayOnly, sortKey, allCheckins, todayKey, viewMode]);
+  }, [activeHabits, query, todayOnly, sortKey, allCheckins, todayKey]);
 
   // 각 날의 (스케줄, 완료) — 진행률 링.
   const dayProgress = useMemo(() => {
@@ -138,10 +133,10 @@ export const HabitListPane = ({
         {/* col 1: 제목 + 액션 버튼들 */}
         <div className="min-w-0 flex items-baseline gap-2">
           <span className="font-display text-[20px] font-semibold tracking-tight text-foreground leading-none">
-            {viewMode === 'archived' ? '습관 보관함' : '습관'}
+            습관
           </span>
           <span className="text-[12px] text-muted-foreground tabular-nums">
-            {visibleHabits.length}{viewMode === 'active' ? `/${baseHabits.length}` : ''}
+            {visibleHabits.length}/{activeHabits.length}
           </span>
 
           <div className="ml-auto flex items-center gap-0.5">
@@ -168,43 +163,41 @@ export const HabitListPane = ({
             </button>
           )}
 
-          {/* 오늘만 — active 뷰에서만 의미 있음 */}
-          {viewMode === 'active' && (
-            <button
-              type="button"
-              onClick={() => setTodayOnly((v) => !v)}
-              aria-pressed={todayOnly}
-              title="오늘 스케줄만"
-              className={cn(
-                'inline-flex h-7 px-2 items-center justify-center rounded text-[11px] font-semibold transition-colors',
-                todayOnly
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent',
-              )}
-            >
-              오늘만
-            </button>
-          )}
-
-          {/* 보관함 토글 — 활성/보관함 view 전환 */}
+          {/* 오늘만 */}
           <button
             type="button"
-            onClick={() => setViewMode((v) => (v === 'active' ? 'archived' : 'active'))}
-            aria-pressed={viewMode === 'archived'}
-            title={viewMode === 'archived' ? '활성 습관으로 돌아가기' : '습관 보관함 보기'}
+            onClick={() => setTodayOnly((v) => !v)}
+            aria-pressed={todayOnly}
+            title="오늘 스케줄만"
             className={cn(
-              'inline-flex h-7 px-2 items-center justify-center gap-1 rounded text-[11px] font-semibold transition-colors',
-              viewMode === 'archived'
+              'inline-flex h-7 px-2 items-center justify-center rounded text-[11px] font-semibold transition-colors',
+              todayOnly
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent',
             )}
           >
-            <Archive className="h-3 w-3" />
-            보관함
-            {archivedCount > 0 && viewMode === 'active' && (
-              <span className="text-[10.5px] tabular-nums opacity-70">{archivedCount}</span>
-            )}
+            오늘만
           </button>
+
+          {/* 보관함 — Popover 로 보관된 습관 list 띄우기 */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                title="습관 보관함"
+                className="inline-flex h-7 px-2 items-center justify-center gap-1 rounded text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <Archive className="h-3 w-3" />
+                보관함
+                {archivedHabits.length > 0 && (
+                  <span className="text-[10.5px] tabular-nums opacity-70">{archivedHabits.length}</span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={8} className="w-80 p-0 overflow-hidden">
+              <ArchivePopoverBody habits={archivedHabits} allCheckins={allCheckins} />
+            </PopoverContent>
+          </Popover>
 
           {/* 정렬 */}
           <DropdownMenu>
@@ -282,15 +275,7 @@ export const HabitListPane = ({
 
       {/* 테이블 행 리스트 — divide-y 로 행 사이에만 hairline. 마지막 행 아래엔 라인 없음. */}
       <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[hsl(var(--hairline))]">
-        {viewMode === 'archived' && baseHabits.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-6 py-12">
-            <Archive className="h-7 w-7 text-muted-foreground/50 mb-2.5" strokeWidth={1.5} />
-            <p className="text-[13px] font-medium text-foreground/80">보관된 습관이 없어요</p>
-            <p className="mt-1 text-[11.5px] text-muted-foreground max-w-[220px] leading-snug">
-              잠시 쉬는 습관·끝낸 습관은 ⋯ 메뉴에서 보관함으로 옮기면 기록은 보존돼요.
-            </p>
-          </div>
-        ) : habits.filter((h) => !h.archived).length === 0 && viewMode === 'active' ? (
+        {activeHabits.length === 0 ? (
           <div className="p-2">
             <div className="text-[13px] text-foreground/70 font-medium mb-2">
               한 번에 시작하기 — 스타터 팩
@@ -361,7 +346,6 @@ export const HabitListPane = ({
                   isSelected
                     ? 'bg-primary/5'
                     : 'hover:bg-accent/50',
-                  habit.archived && 'opacity-75',
                 )}
               >
                 {/* 좌: emoji + 제목 + meta */}
@@ -382,36 +366,18 @@ export const HabitListPane = ({
                       {habit.pinned && <Pin className="h-3 w-3 text-foreground/55" />}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 text-[11px] tabular-nums text-muted-foreground">
-                      {habit.archived ? (
-                        <>
-                          <span className="inline-flex items-center gap-0.5" title="최고 연속">
-                            <Flame className="h-3 w-3" />
-                            {max}일
-                          </span>
-                          {habit.archivedAt && (
-                            <span className="text-muted-foreground/70" title="보관 시점">
-                              {new Date(habit.archivedAt).toLocaleDateString('ko-KR', {
-                                year: '2-digit', month: 'numeric', day: 'numeric',
-                              })} 보관
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <span className="inline-flex items-center gap-0.5" title="현재 연속">
-                            <Zap className="h-3 w-3" />
-                            {streak}일
-                          </span>
-                          <span className="inline-flex items-center gap-0.5" title="최고 연속">
-                            <Flame className="h-3 w-3" />
-                            {max}일
-                          </span>
-                          {timesPerDay > 1 && habit.unit && (
-                            <span className="text-foreground/45">
-                              {timesPerDay}{habit.unit}/일
-                            </span>
-                          )}
-                        </>
+                      <span className="inline-flex items-center gap-0.5" title="현재 연속">
+                        <Zap className="h-3 w-3" />
+                        {streak}일
+                      </span>
+                      <span className="inline-flex items-center gap-0.5" title="최고 연속">
+                        <Flame className="h-3 w-3" />
+                        {max}일
+                      </span>
+                      {timesPerDay > 1 && habit.unit && (
+                        <span className="text-foreground/45">
+                          {timesPerDay}{habit.unit}/일
+                        </span>
                       )}
                     </div>
                   </div>
@@ -466,47 +432,123 @@ export const HabitListPane = ({
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                      {!habit.archived && (
-                        <>
-                          <DropdownMenuItem onSelect={() => onEdit(habit)}>편집</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => habitStore.togglePinned(habit.id)}>
-                            {habit.pinned ? '핀 해제' : '핀 고정'}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onSelect={() => habitStore.archive(habit.id)}>
-                            <Archive className="h-3.5 w-3.5 mr-2" />
-                            보관함으로
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                      {habit.archived && (
-                        <>
-                          <DropdownMenuItem onSelect={() => habitStore.unarchive(habit.id)}>
-                            <ArchiveRestore className="h-3.5 w-3.5 mr-2" />
-                            다시 시작
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onSelect={() => {
-                              if (typeof window !== 'undefined' && window.confirm(
-                                `"${habit.title}" 을(를) 영구 삭제할까요?\n체크인 기록도 함께 사라져 복구할 수 없어요.`,
-                              )) {
-                                habitStore.remove(habit.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-2" />
-                            영구 삭제
-                          </DropdownMenuItem>
-                        </>
-                      )}
+                      <DropdownMenuItem onSelect={() => onEdit(habit)}>편집</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => habitStore.togglePinned(habit.id)}>
+                        {habit.pinned ? '핀 해제' : '핀 고정'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => habitStore.archive(habit.id)}>
+                        <Archive className="h-3.5 w-3.5 mr-2" />
+                        보관함으로
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </div>
             );
           })
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** 보관함 popover 본문 — 보관된 습관 list + 복원 / 영구 삭제 액션. */
+const ArchivePopoverBody = ({
+  habits,
+  allCheckins,
+}: {
+  habits: Habit[];
+  allCheckins: HabitCheckin[];
+}) => {
+  return (
+    <div className="flex flex-col">
+      {/* 헤더 */}
+      <header className="flex items-baseline justify-between gap-2 px-3.5 pt-3 pb-2 border-b hairline">
+        <h3 className="font-display text-[15px] font-semibold tracking-tight text-foreground leading-none inline-flex items-center gap-1.5">
+          <Archive className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+          습관 보관함
+        </h3>
+        <span className="text-[11px] tabular-nums text-muted-foreground font-medium">
+          {habits.length}개
+        </span>
+      </header>
+
+      {/* 본문 */}
+      <div className="px-2 py-2 max-h-[320px] overflow-y-auto">
+        {habits.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-4 py-6 text-center">
+            <p className="text-[12.5px] font-medium text-foreground/80">보관된 습관이 없어요</p>
+            <p className="mt-1 text-[11px] text-muted-foreground max-w-[220px] leading-snug">
+              잠시 쉬는 습관·끝낸 습관은 ⋯ 메뉴에서 보관함으로 옮기면 기록은 보존돼요.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            {habits.map((habit) => {
+              const checkins = allCheckins.filter((c) => c.habitId === habit.id);
+              const max = maxStreak(habit, checkins);
+              const stripe = (TASK_LIST_COLORS[habit.color] ?? TASK_LIST_COLORS.blue).stripe;
+              return (
+                <div
+                  key={habit.id}
+                  className="group flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent/50 transition-colors"
+                >
+                  <span
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-full text-[15px] shrink-0"
+                    style={{
+                      backgroundColor: `color-mix(in oklab, ${stripe} 28%, hsl(var(--background)))`,
+                    }}
+                  >
+                    {habit.emoji}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-medium text-foreground truncate">{habit.title}</div>
+                    <div className="flex items-center gap-2 mt-0.5 text-[10.5px] tabular-nums text-muted-foreground">
+                      <span className="inline-flex items-center gap-0.5" title="최고 연속">
+                        <Flame className="h-3 w-3" />
+                        {max}일
+                      </span>
+                      {habit.archivedAt && (
+                        <span className="text-muted-foreground/70" title="보관 시점">
+                          {new Date(habit.archivedAt).toLocaleDateString('ko-KR', {
+                            year: '2-digit', month: 'numeric', day: 'numeric',
+                          })} 보관
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* hover 액션 — 복원 / 영구 삭제 */}
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => habitStore.unarchive(habit.id)}
+                      aria-label="다시 시작"
+                      title="다시 시작"
+                      className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <ArchiveRestore className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== 'undefined' && window.confirm(
+                          `"${habit.title}" 을(를) 영구 삭제할까요?\n체크인 기록도 함께 사라져 복구할 수 없어요.`,
+                        )) {
+                          habitStore.remove(habit.id);
+                        }
+                      }}
+                      aria-label="영구 삭제"
+                      title="영구 삭제"
+                      className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
