@@ -339,7 +339,7 @@ const ScheduledTaskRow = ({
   return (
     <div
       className={cn(
-        'group flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors',
+        'group flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors',
         status === 'past' && 'opacity-50 hover:opacity-90',
         status === 'now' && 'bg-amber-200/45 hover:bg-amber-200/60',
         status === 'upcoming' && 'hover:bg-accent',
@@ -400,7 +400,7 @@ const ScheduledEventRow = ({
   return (
     <div
       className={cn(
-        'group flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors',
+        'group flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors',
         status === 'past' && 'opacity-50 hover:opacity-90',
         status === 'now' && 'bg-amber-200/45 hover:bg-amber-200/60',
         status === 'upcoming' && 'hover:bg-accent',
