@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, X, Send, Trash2, FileText, Plus as PlusIcon, BookOpen } from 'lucide-react';
 import type { WikiPage } from '@/types/wiki';
+import type { Expert } from '@/types/expert';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
+import { streamExpert } from '@/pages/indexRuntime';
 
 /**
  * 마이위키 AI 사이드 패널
@@ -10,7 +12,8 @@ import { cn } from '@/lib/utils';
  * - 위치: 본문 오른쪽 슬라이드 인 (360px)
  * - 컨텍스트: 활성 페이지가 있으면 *제목 + 본문 첫 800자* 자동 첨부 (제거 가능)
  * - 스레드: 페이지별 독립 (localStorage). 대문은 글로벌 스레드 1개.
- * - AI 통합: 현재는 placeholder 응답. 실 프로바이더 hook 은 별도 PR.
+ * - AI: streamExpert (메인 채팅 인프라 재사용) + OpenRouter 기본 모델.
+ *   페이지 컨텍스트는 previousResponses 로 주입, 외부 검색 disable (위키 컨텍스트만).
  */
 
 type Role = 'user' | 'assistant';
@@ -77,20 +80,22 @@ const EXAMPLES_GLOBAL = [
   '비슷한 주제로 묶어서 메인 문서 만들 후보',
 ];
 
-/** 실 AI 통합 전 임시 응답기. 추후 useWikiAiProvider 훅으로 교체. */
-async function simulateAiReply(question: string, ctx: string): Promise<string> {
-  // 가벼운 latency 시뮬레이션 (실 모델 호출 자리)
-  await new Promise((r) => setTimeout(r, 600));
-  const trimmed = question.trim().slice(0, 80);
-  return [
-    '_(AI 통합 전 — 임시 응답입니다)_',
-    '',
-    `> 질문: ${trimmed}`,
-    ctx ? `> 컨텍스트: ${ctx.slice(0, 60)}…` : '> 컨텍스트: (없음)',
-    '',
-    '실 AI 프로바이더가 연결되면 이 자리에 위키 컨텍스트를 반영한 답변이 표시됩니다. 우측 상단 휴지통으로 스레드 비우기 가능.',
-  ].join('\n');
-}
+/** 위키 AI 전용 dummy Expert — streamExpert 가 systemPrompt 만 사용. */
+const WIKI_AI_EXPERT: Expert = {
+  id: 'wiki-ai',
+  name: 'Wiki AI',
+  nameKo: '위키 AI',
+  icon: '✨',
+  color: 'blue',
+  category: 'ai',
+  description: '마이위키 보조 AI',
+  systemPrompt: [
+    '당신은 사용자의 개인 위키(마이위키)를 보조하는 AI입니다.',
+    '페이지 컨텍스트가 첨부되면 그것을 우선 참고해 정확하고 간결하게 답하세요.',
+    '한국어로 답하고, markdown 형식을 사용하되 과도한 헤더는 피하세요.',
+    '모르는 정보는 추측하지 말고 모른다고 말하세요.',
+  ].join('\n'),
+};
 
 export function WikiAiPanel({
   open,
@@ -157,16 +162,51 @@ export function WikiAiPanel({
   async function send(text: string): Promise<void> {
     const q = text.trim();
     if (!q || busy) return;
+
     const userMsg: AiMsg = { id: newId(), role: 'user', text: q, ts: Date.now(), ctxPageId: page?.id };
-    setMsgs((prev) => [...prev, userMsg]);
+    const aiMsgId = newId();
+    const aiMsg: AiMsg = { id: aiMsgId, role: 'assistant', text: '', ts: Date.now(), ctxPageId: page?.id };
+    setMsgs((prev) => [...prev, userMsg, aiMsg]);
     setInput('');
     setBusy(true);
+
+    // 컨텍스트(현재 페이지 본문 또는 위키 메타) 를 previousResponses 로 전달.
+    // 메인 채팅의 expert 패턴 재사용 — system 다음에 합성됨.
+    const previousResponses = ctxPayload
+      ? [{ name: '컨텍스트', content: ctxPayload }]
+      : [];
+
+    let accumulated = '';
+
     try {
-      const reply = await simulateAiReply(q, ctxPayload);
-      const aiMsg: AiMsg = { id: newId(), role: 'assistant', text: reply, ts: Date.now(), ctxPageId: page?.id };
-      setMsgs((prev) => [...prev, aiMsg]);
-    } catch {
-      notify.error('AI 응답을 받지 못했어요');
+      await streamExpert({
+        question: q,
+        expert: WIKI_AI_EXPERT,
+        previousResponses,
+        round: 'summary',
+        onDelta: (delta) => {
+          accumulated += delta;
+          setMsgs((prev) => prev.map((m) =>
+            m.id === aiMsgId ? { ...m, text: accumulated } : m,
+          ));
+        },
+        onDone: () => {
+          // 응답이 비어 있으면 안내 메시지로 교체.
+          if (!accumulated.trim()) {
+            setMsgs((prev) => prev.map((m) =>
+              m.id === aiMsgId ? { ...m, text: '_(응답이 비어 있어요. 다시 시도해 주세요)_' } : m,
+            ));
+          }
+        },
+        // 위키 컨텍스트만 사용 — 외부 검색 비활성화 (Q&A 안정성).
+        searchPolicy: 'never',
+      });
+    } catch (e) {
+      const errMsg = (e as Error)?.message ?? '알 수 없는 오류';
+      setMsgs((prev) => prev.map((m) =>
+        m.id === aiMsgId ? { ...m, text: `_(AI 호출 실패 — ${errMsg})_` } : m,
+      ));
+      notify.error('AI 응답을 받지 못했어요', { description: errMsg });
     } finally {
       setBusy(false);
     }
