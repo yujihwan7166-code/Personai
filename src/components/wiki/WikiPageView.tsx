@@ -228,13 +228,13 @@ export function WikiPageView({
                   <input
                     value={draft.title}
                     onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                    className="w-full text-3xl font-serif font-bold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-0.5 tracking-tight"
+                    className="w-full text-[28px] sm:text-[32px] font-semibold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-0.5 tracking-tight"
                     placeholder="페이지 제목"
                     style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
                   />
                 ) : (
                   <h1
-                    className="text-[36px] sm:text-[42px] leading-[1.15] font-semibold text-foreground tracking-tight"
+                    className="text-[28px] sm:text-[32px] leading-[1.2] font-semibold text-foreground tracking-tight"
                     style={{ fontFamily: 'var(--wiki-font-display)' }}
                   >
                     {page.title}

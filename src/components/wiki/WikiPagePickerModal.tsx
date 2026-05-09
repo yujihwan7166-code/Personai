@@ -296,7 +296,7 @@ export function WikiPagePickerModal({
                 else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
               }}
               placeholder="w_abc123… (페이지 인포박스에서 복사)"
-              className="w-full px-3 py-2 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] font-mono outline-none focus:border-primary/50 wiki-trans-color"
+              className="w-full px-3 py-2 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] font-mono outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
             />
             <p className="mt-2 text-[10.5px] text-muted-foreground/80">
               각 페이지의 인포박스 마지막 줄에 *📋 ID 복사 칩* 이 있어요.
@@ -341,7 +341,7 @@ export function WikiPagePickerModal({
                   else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
                 }}
                 placeholder="제목 입력…"
-                className="w-full px-3 py-2 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/50 wiki-trans-color"
+                className="w-full px-3 py-2 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
               />
             </div>
             {/* 타입 선택 제거됨 — 자동 'concept' 으로 생성. 풍부한 템플릿은 /wiki 홈의 새 페이지 모달에서. */}

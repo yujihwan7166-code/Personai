@@ -36,7 +36,7 @@ export function WikiMainDocForm({ form, onChange, allPages, currentId }: Props) 
           onChange={(e) => update({ overview: e.target.value })}
           placeholder="예) 이 문서는 [주제] 의 핵심 개념과 관련 자료를 묶어둔 길찾기 페이지."
           rows={3}
-          className="w-full resize-y rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[13px] leading-relaxed outline-none focus:border-primary/50 wiki-trans-color"
+          className="w-full resize-y rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[13px] leading-relaxed outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
         />
       </FieldBlock>
 
@@ -92,7 +92,7 @@ export function WikiMainDocForm({ form, onChange, allPages, currentId }: Props) 
             onChange={(e) => update({ extra: e.target.value })}
             placeholder="옵션 — 추가 메모, 설명, 표 등"
             rows={3}
-            className="w-full resize-y rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[12.5px] leading-relaxed outline-none focus:border-primary/50 wiki-trans-color font-mono"
+            className="w-full resize-y rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[12.5px] leading-relaxed outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color font-mono"
           />
         </FieldBlock>
       )}

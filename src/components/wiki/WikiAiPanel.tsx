@@ -292,7 +292,7 @@ export function WikiAiPanel({
           }}
           placeholder={page ? '이 페이지에 대해 묻기…' : '위키 전체에 대해 묻기…'}
           rows={2}
-          className="flex-1 resize-none rounded-md border border-[hsl(var(--hairline))] bg-background px-2 py-1.5 text-[12.5px] outline-none focus:border-primary/50 wiki-trans-color"
+          className="flex-1 resize-none rounded-md border border-[hsl(var(--hairline))] bg-background px-2 py-1.5 text-[12.5px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
         />
         <button
           type="submit"

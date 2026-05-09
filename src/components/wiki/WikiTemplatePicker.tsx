@@ -66,7 +66,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="제목 (선택, 비우면 템플릿 기본 제목 사용)"
-            className="w-full h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/40 transition-colors"
+            className="w-full h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 transition-colors"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 const t = WIKI_TEMPLATES.find((tt) => tt.id === picked) ?? WIKI_TEMPLATES[0];
@@ -98,7 +98,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
                     // 일반 — 흰 배경 통일
                     : isPicked
                       ? 'border-primary/60 bg-primary/5 ring-1 ring-primary/30'
-                      : 'border-[hsl(var(--hairline))] bg-card hover:border-foreground/20 hover:bg-accent/40',
+                      : 'border-[hsl(var(--hairline))] bg-card hover:border-foreground/30 hover:bg-accent/40',
                 )}
               >
                 <div className="flex items-start justify-between mb-1">

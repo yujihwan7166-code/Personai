@@ -136,7 +136,7 @@ export function WikiQuickCapture({ open, onClose, onCreate }: Props) {
             }}
             placeholder="한 줄 메모 · URL · 생각의 조각…  (Ctrl+Enter 로 저장)"
             rows={6}
-            className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[13px] outline-none focus:border-primary/50 wiki-trans-color leading-relaxed"
+            className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color leading-relaxed"
           />
           {urls.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
