@@ -268,7 +268,7 @@ const Wiki = () => {
   }, [openTemplatePicker, activePage, editing]);
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden relative">
+    <div className="wiki-warm-theme flex h-screen w-full bg-background overflow-hidden relative">
       {/* 모바일: 사이드바 열렸을 때 백드롭 */}
       {isMobile && sidebarOpen && (
         <div

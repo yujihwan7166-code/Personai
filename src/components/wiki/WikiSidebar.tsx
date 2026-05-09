@@ -89,7 +89,7 @@ export function WikiSidebar({
     <div className="flex flex-col h-full min-h-0">
       {/* 검색 — 새 페이지는 헤더 + 버튼 / Ctrl+N / 명령 팔레트로 접근 */}
       <div className="px-3 pt-2.5 pb-2 flex items-center gap-1.5">
-        <div className="flex-1 flex items-center gap-1.5 px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background focus-within:border-primary/50 transition-colors">
+        <div className="flex-1 flex items-center gap-1.5 px-3 h-8 rounded-full border border-[hsl(var(--hairline))] bg-card focus-within:border-primary/45 focus-within:ring-2 focus-within:ring-primary/15 transition-all">
           <Search className="w-3 h-3 text-muted-foreground shrink-0" />
           <input
             value={query}
@@ -100,7 +100,7 @@ export function WikiSidebar({
         </div>
       </div>
 
-      {/* 필터 */}
+      {/* 필터 — pill segmented */}
       <div className="px-3 pb-2 flex items-center gap-1 overflow-x-auto scrollbar-none">
         {FILTERS.map((f) => (
           <button
@@ -108,9 +108,9 @@ export function WikiSidebar({
             type="button"
             onClick={() => setFilter(f.id)}
             className={cn(
-              'px-2 py-0.5 rounded text-[10.5px] whitespace-nowrap transition-colors',
+              'px-2.5 h-6 inline-flex items-center justify-center rounded-full text-[10.5px] whitespace-nowrap font-semibold transition-all',
               filter === f.id
-                ? 'bg-primary/10 text-primary font-semibold'
+                ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
           >
@@ -141,12 +141,12 @@ export function WikiSidebar({
           />
         )}
         {showQuickSections && (favoritePages.length > 0 || recentPages.length > 0) && (
-          <p className="px-2 pt-2 pb-1 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70">
+          <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             모든 페이지 · {pages.length}
           </p>
         )}
         {!showQuickSections && query.trim() && filtered.length > 0 && (
-          <p className="px-2 pt-1 pb-1.5 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70">
+          <p className="px-2 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             검색 결과 {filtered.length}건
           </p>
         )}
@@ -247,7 +247,7 @@ function QuickSection({
 }) {
   return (
     <div className="mb-2">
-      <p className="flex items-center gap-1 px-2 pt-2 pb-1 text-[9.5px] font-mono uppercase tracking-wider text-muted-foreground/70">
+      <p className="flex items-center gap-1 px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
         {icon}
         {label} · {pages.length}
       </p>

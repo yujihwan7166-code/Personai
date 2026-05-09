@@ -234,7 +234,7 @@ export function WikiPageView({
                   />
                 ) : (
                   <h1
-                    className="text-[28px] leading-[1.2] font-bold text-foreground tracking-tight"
+                    className="text-[36px] sm:text-[42px] leading-[1.15] font-semibold text-foreground tracking-tight"
                     style={{ fontFamily: 'var(--wiki-font-display)' }}
                   >
                     {page.title}
