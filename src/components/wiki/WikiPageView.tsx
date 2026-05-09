@@ -351,10 +351,6 @@ export function WikiPageView({
                 onChange={(md) => setDraft({ ...draft, body: md })}
                 allPages={allPages}
                 currentId={page.id}
-                onPickPage={(insert) => {
-                  const pageTitle = window.prompt('페이지 제목:');
-                  if (pageTitle?.trim()) insert(pageTitle.trim());
-                }}
                 onUploadImage={async (file) => {
                   const id = await saveImage(file);
                   return `wiki-image:${id}`;

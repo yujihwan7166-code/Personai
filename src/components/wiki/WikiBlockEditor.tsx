@@ -57,8 +57,6 @@ interface Props {
   /** 위키링크·페이지 검색용. 현재 페이지는 자동 제외. */
   allPages: WikiPage[];
   currentId?: string;
-  /** 페이지 검색·삽입 (Ctrl+K 또는 슬래시 /페이지). 부모가 모달 띄우고 선택된 제목 콜백. */
-  onPickPage?: (insertTitle: (title: string) => void) => void;
   /** 이미지 업로드 — 본문 내 드롭/붙여넣기 시. base64 dataURL 또는 IDB blob ref 반환. */
   onUploadImage?: (file: File) => Promise<string>;
   /** 새 페이지 만들고 링크 (picker 의 '새로 만들기' 탭) */
@@ -98,7 +96,7 @@ function getEditorMarkdown(editor: { storage: unknown; getHTML: () => string }, 
  *
  * 저장 형식: markdown (tiptap-markdown 변환). 기존 IDB body 와 100% 호환.
  */
-export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPage, onUploadImage, onCreateAndLink, hideToolbar, onEditorReady, firstPlaceholder, restPlaceholder, className }: Props) {
+export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadImage, onCreateAndLink, hideToolbar, onEditorReady, firstPlaceholder, restPlaceholder, className }: Props) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -418,7 +416,19 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onPickPag
       {!hideToolbar && (
         <WikiEditorToolbar
           editor={editor}
-          onPickPage={onPickPage ? () => onPickPage((title) => editor.chain().focus().insertContent(`[[${title}]]`).run()) : undefined}
+          onPickPage={() => {
+            // 툴바 '페이지 링크' = Ctrl+K 와 동일 흐름. 선택 범위 있으면 ID 링크 변환.
+            const { from, to, empty } = editor.state.selection;
+            if (!empty) {
+              const text = editor.state.doc.textBetween(from, to, ' ');
+              setPickerSelText(text);
+              pickerSelRangeRef.current = { from, to };
+            } else {
+              setPickerSelText('');
+              pickerSelRangeRef.current = null;
+            }
+            setPickerOpen(true);
+          }}
           onPickImage={onUploadImage ? () => {
             const input = document.createElement('input');
             input.type = 'file';
