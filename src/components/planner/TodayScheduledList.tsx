@@ -361,7 +361,7 @@ const ScheduledTaskRow = ({
           style={{ backgroundColor: dotColor }}
         />
       </button>
-      <span className="mt-[2px] text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 whitespace-nowrap" aria-label="시간">
+      <span className="text-[12px] tabular-nums text-muted-foreground shrink-0 whitespace-nowrap leading-snug font-medium" aria-label="시간">
         {formatTimeRange(task.startAt, task.endAt)}
       </span>
       <button
@@ -416,7 +416,7 @@ const ScheduledEventRow = ({
           style={{ backgroundColor: event.color ?? 'hsl(var(--primary))' }}
         />
       </span>
-      <span className="mt-[2px] text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 whitespace-nowrap" aria-label="시간">
+      <span className="text-[12px] tabular-nums text-muted-foreground shrink-0 whitespace-nowrap leading-snug font-medium" aria-label="시간">
         {formatTimeRange(event.startAt, event.endAt)}
       </span>
       <button
