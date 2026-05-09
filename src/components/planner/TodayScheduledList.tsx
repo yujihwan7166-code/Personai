@@ -448,7 +448,7 @@ const ScheduledTaskRow = ({
   return (
     <div
       className={cn(
-        'group flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors',
+        'group flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors',
         status === 'past' ? 'opacity-50 hover:opacity-90' : 'hover:bg-accent',
       )}
     >
@@ -457,7 +457,7 @@ const ScheduledTaskRow = ({
         onClick={(e) => { e.stopPropagation(); taskStore.toggleDone(task.id); }}
         aria-label={task.done ? '완료 취소' : '완료'}
         title={task.done ? '완료 취소 (점 클릭)' : '완료 (점 클릭)'}
-        className="flex h-4 w-4 shrink-0 items-center justify-center"
+        className="flex h-[18px] w-4 shrink-0 items-center justify-center"
       >
         <span
           className={cn(
@@ -468,16 +468,17 @@ const ScheduledTaskRow = ({
           style={{ backgroundColor: dotColor }}
         />
       </button>
-      <span className="text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 whitespace-nowrap" aria-label="시간">
+      <span className="mt-[2px] text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 whitespace-nowrap" aria-label="시간">
         {formatTimeRange(task.startAt, task.endAt)}
       </span>
       <button
         type="button"
         onClick={onClick}
         className={cn(
-          'min-w-0 flex-1 truncate text-left text-[13px] leading-tight',
+          'min-w-0 flex-1 text-left text-[13px] leading-snug line-clamp-2 break-words',
           task.done ? 'text-foreground/40 line-through' : 'text-foreground',
         )}
+        title={task.title}
       >
         {task.title}
       </button>
@@ -507,12 +508,12 @@ const ScheduledEventRow = ({
   return (
     <div
       className={cn(
-        'group flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors',
+        'group flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors',
         status === 'past' ? 'opacity-50 hover:opacity-90' : 'hover:bg-accent',
       )}
     >
       <span
-        className="flex h-4 w-4 shrink-0 items-center justify-center"
+        className="flex h-[18px] w-4 shrink-0 items-center justify-center"
         aria-label="일정"
       >
         <span
@@ -523,13 +524,14 @@ const ScheduledEventRow = ({
           style={{ backgroundColor: event.color ?? 'hsl(var(--primary))' }}
         />
       </span>
-      <span className="text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 whitespace-nowrap" aria-label="시간">
+      <span className="mt-[2px] text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 whitespace-nowrap" aria-label="시간">
         {formatTimeRange(event.startAt, event.endAt)}
       </span>
       <button
         type="button"
         onClick={onClick}
-        className="min-w-0 flex-1 truncate text-left text-[13px] leading-tight text-foreground"
+        className="min-w-0 flex-1 text-left text-[13px] leading-snug line-clamp-2 break-words text-foreground"
+        title={event.title}
       >
         {event.title}
       </button>
