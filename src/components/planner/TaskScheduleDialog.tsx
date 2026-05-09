@@ -367,26 +367,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 mt-2">
-          {/* 종류 toggle — 맨 위. 탭 underline 스타일 (슬림). */}
+          {/* 종류 toggle — 맨 위. 탭 underline 스타일 (슬림). 데이뷰 레이아웃과 동일하게 일정 → 할 일 순서. */}
           <div className="sm:col-span-2 -mt-1 grid grid-cols-2 border-b border-foreground/10">
-            <button
-              type="button"
-              onClick={() => setIsEvent(false)}
-              aria-pressed={!isEvent}
-              className={cn(
-                'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
-                !isEvent ? 'text-foreground font-semibold' : 'text-foreground/55 hover:text-foreground/85',
-              )}
-            >
-              <span>할 일</span>
-              <span
-                aria-hidden
-                className={cn(
-                  'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
-                  !isEvent ? 'bg-foreground opacity-100' : 'opacity-0',
-                )}
-              />
-            </button>
             <button
               type="button"
               onClick={() => setIsEvent(true)}
@@ -402,6 +384,24 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 className={cn(
                   'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
                   isEvent ? 'bg-foreground opacity-100' : 'opacity-0',
+                )}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEvent(false)}
+              aria-pressed={!isEvent}
+              className={cn(
+                'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
+                !isEvent ? 'text-foreground font-semibold' : 'text-foreground/55 hover:text-foreground/85',
+              )}
+            >
+              <span>할 일</span>
+              <span
+                aria-hidden
+                className={cn(
+                  'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
+                  !isEvent ? 'bg-foreground opacity-100' : 'opacity-0',
                 )}
               />
             </button>
