@@ -51,7 +51,8 @@ export function WikiHome({
     const recentEdits = pages.filter((p) => p.updatedAt > sevenDays).length;
 
     const recent = pages.slice(0, 6); // pages 는 updatedAt desc 정렬됨
-    const inbox = pages.filter((p) => p.status === 'draft').slice(0, 5);
+    // '작업중' = status active. '초안' (legacy draft) 도 fallback 으로 같이 노출 — 정리 대기 의미.
+    const active = pages.filter((p) => p.status === 'active' || p.status === 'draft').slice(0, 5);
     const mocs = pages.filter((p) => isMainDoc(p));
 
     // 제목·alias → 페이지 맵 (대소문자 무시)
@@ -210,7 +211,7 @@ export function WikiHome({
     // 위키 정체성 표시용 — 'index' 페이지가 있으면 그 title 을 헤더에 활용
     const indexPage = pages.find((p) => p.type === 'index');
 
-    return { byStatus, recentEdits, recent, inbox, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots, backlinks, byId, indexPage };
+    return { byStatus, recentEdits, recent, active, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots, backlinks, byId, indexPage };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -258,7 +259,7 @@ export function WikiHome({
     );
   }
 
-  const totalQueue = stats.inbox.length + stats.wanted.length + stats.orphans.length + stats.stale.length;
+  const totalQueue = stats.active.length + stats.wanted.length + stats.orphans.length + stats.stale.length;
 
   return (
     <div className="max-w-4xl mx-auto px-6 sm:px-8 py-8">
@@ -417,7 +418,7 @@ export function WikiHome({
         />
       )}
 
-      {/* 5 카드 그리드 — 최근/초안/연결/만들/잠자 */}
+      {/* 4 카드 그리드 — 최근 / 작업중 / 연결 안 된 / 잠자는 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 최근 수정 */}
         <Section title="🕒 최근 수정" empty="아직 페이지가 없어요">
@@ -426,9 +427,9 @@ export function WikiHome({
           ))}
         </Section>
 
-        {/* 초안 */}
-        <Section title="🚧 초안 — 정리 대기" empty="모두 정리됐어요 ✓">
-          {stats.inbox.map((p) => (
+        {/* 작업중 */}
+        <Section title="🚀 작업중" empty="작업중인 페이지가 없어요">
+          {stats.active.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
           ))}
         </Section>
@@ -440,28 +441,6 @@ export function WikiHome({
         >
           {stats.orphans.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
-          ))}
-        </Section>
-
-        {/* 만들 페이지 (Wanted) — 다른 페이지가 가리키는데 아직 안 만든 곳 */}
-        <Section
-          title="🔗 만들 페이지"
-          empty="모든 위키링크가 충족됐어요 ✓"
-        >
-          {stats.wanted.map(([title, n]) => (
-            <li key={title}>
-              <button
-                type="button"
-                onClick={() => onCreateMissing?.(title)}
-                disabled={!onCreateMissing}
-                className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-60"
-                title={`${n}개 페이지에서 가리킴 — 클릭하면 생성`}
-              >
-                <span className="text-[14px] leading-none shrink-0" aria-hidden>🔴</span>
-                <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{title}</span>
-                <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">×{n}</span>
-              </button>
-            </li>
           ))}
         </Section>
 
