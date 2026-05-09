@@ -18,6 +18,8 @@ interface Props {
   onMakeMocFromTag?: (tag: string) => void;
   /** '+ 새 메인 문서' — 템플릿 픽커 거치지 않고 바로 type='moc' 페이지 만들고 진입 */
   onCreateMainDoc?: () => void;
+  /** 태그 chip 클릭 시 — 사이드바 검색에 반영 (그 태그로 필터링). */
+  onTagClick?: (tag: string) => void;
 }
 
 /** 30일 — 페이지 잠자는 임계 */
@@ -28,7 +30,7 @@ const MAIN_DOCS_VIEW_KEY = 'wiki.home.mainDocsView.v1';
 
 export function WikiHome({
   pages, favorites = [],
-  onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag, onCreateMainDoc,
+  onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag, onCreateMainDoc, onTagClick,
 }: Props) {
   const favSet = new Set(favorites);
   // 메인 문서 보기 모드 — 카드 / 목록 (localStorage 영속).
@@ -433,7 +435,7 @@ export function WikiHome({
 
         {/* 연결 안 된 페이지 */}
         <Section
-          title="🌱 연결 — 안 된 페이지"
+          title="🌱 연결 안 된 페이지"
           empty="모든 페이지가 연결됐어요 ✓"
         >
           {stats.orphans.map((p) => (
@@ -441,9 +443,9 @@ export function WikiHome({
           ))}
         </Section>
 
-        {/* 만들 페이지 (Wanted) */}
+        {/* 만들 페이지 (Wanted) — 다른 페이지가 가리키는데 아직 안 만든 곳 */}
         <Section
-          title="🔗 만들 — 빨간 링크"
+          title="🔗 만들 페이지"
           empty="모든 위키링크가 충족됐어요 ✓"
         >
           {stats.wanted.map(([title, n]) => (
@@ -457,15 +459,15 @@ export function WikiHome({
               >
                 <span className="text-[14px] leading-none shrink-0" aria-hidden>🔴</span>
                 <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{title}</span>
-                <span className="text-[10px] font-mono text-muted-foreground shrink-0">×{n}</span>
+                <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">×{n}</span>
               </button>
             </li>
           ))}
         </Section>
 
-        {/* 잠자 (Stale) */}
+        {/* 잠자는 페이지 (Stale) */}
         <Section
-          title="🌙 잠자 — 30일+ 미수정"
+          title="🌙 잠자는 페이지"
           empty="모든 페이지가 신선해요 ✓"
         >
           {stats.stale.map((p) => (
@@ -482,14 +484,17 @@ export function WikiHome({
           </h2>
           <div className="flex flex-wrap gap-1.5">
             {stats.topTags.map(([tag, n]) => (
-              <span
+              <button
                 key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent/60 text-foreground/80 text-[11px]"
-                title={`${tag} (${n}건)`}
+                type="button"
+                onClick={() => onTagClick?.(tag)}
+                disabled={!onTagClick}
+                title={`#${tag} (${n}건) — 클릭하면 사이드바 검색에 반영`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/60 text-foreground/80 text-[11px] hover:bg-primary/10 hover:text-primary transition-colors disabled:cursor-not-allowed disabled:hover:bg-accent/60 disabled:hover:text-foreground/80"
               >
                 #{tag}
-                <span className="text-[9.5px] font-mono text-muted-foreground">{n}</span>
-              </span>
+                <span className="text-[9.5px] tabular-nums opacity-70">{n}</span>
+              </button>
             ))}
           </div>
         </div>
@@ -612,7 +617,7 @@ function RegularDocsSection({
 
   const activeLabel = useMemo(() => {
     if (filter === 'all') return null;
-    if (filter === 'linked') return '링크됨';
+    if (filter === 'linked') return '참조됨';
     if (filter === 'orphan') return '미연결';
     return rootMocs.find((m) => m.id === filter)?.title ?? null;
   }, [filter, rootMocs]);
@@ -628,7 +633,7 @@ function RegularDocsSection({
           일반 문서
         </h2>
         <span className="text-[10.5px] text-muted-foreground/80">
-          {activeLabel ? `— in ${activeLabel}` : '— 메인이 아닌 페이지'}
+          {activeLabel ? `— ${activeLabel}` : '— 메인이 아닌 페이지'}
         </span>
         <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
         <span className="text-[11px] font-mono font-bold text-muted-foreground">
@@ -685,9 +690,9 @@ function RegularDocsSection({
                   ? 'bg-primary/10 text-primary font-semibold'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
-              title="메인 문서 자식은 아니지만 다른 페이지에서 링크되는 일반 문서"
+              title="메인 문서에 속하지 않지만 다른 페이지에서 링크된 일반 문서"
             >
-              🔗 링크됨 <span className="font-mono opacity-70">{linkedCount}</span>
+              🔗 참조됨 <span className="tabular-nums opacity-70">{linkedCount}</span>
             </button>
           )}
           {orphanCount > 0 && (
@@ -734,18 +739,18 @@ function RegularDocsSection({
                   >
                     <span className="text-[13px] leading-none shrink-0" aria-hidden>{m.icon}</span>
                     <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{p.title}</span>
-                    {/* 라벨 — MOC 자식 / 링크됨 / 미연결 (in 'all' 필터일 때만 노출) */}
+                    {/* 라벨 — MOC 자식 / 참조됨 / 미연결 ('all' 필터일 때만 노출) */}
                     {filter === 'all' && parents.length > 0 && (
                       <span className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[100px]" title={parents.map((m) => m.title).join(', ')}>
-                        in {parents.map((m) => m.title).join(', ')}
+                        📖 {parents.map((m) => m.title).join(', ')}
                       </span>
                     )}
                     {filter === 'all' && parents.length === 0 && linkers.length > 0 && (
                       <span
                         className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[120px]"
-                        title={`다음 페이지에서 링크: ${linkers.map((l) => l.title).join(', ')}`}
+                        title={`다음 페이지에서 참조: ${linkers.map((l) => l.title).join(', ')}`}
                       >
-                        🔗 {linkers.length === 1 ? linkers[0].title : `${linkers.length}개에서`}
+                        🔗 {linkers.length === 1 ? linkers[0].title : `${linkers.length}곳에서 참조`}
                       </span>
                     )}
                     {filter === 'all' && parents.length === 0 && linkers.length === 0 && (

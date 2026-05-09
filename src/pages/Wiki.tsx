@@ -588,6 +588,10 @@ const Wiki = () => {
             onCreateMissing={(title) => handleOpenByTitleOrId(title)}
             onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
             onCreateMainDoc={() => { void createMainDoc(); }}
+            onTagClick={(tag) => {
+              setSidebarQuery(tag);
+              if (isMobile) setSidebarOpen(true);
+            }}
             onPickStarterPack={async (pack) => {
               const built = pack.build();
               for (const p of built) await upsertPage(p);
