@@ -25,7 +25,7 @@ export const HabitDayProgress = ({
   weekday, day, completed, scheduled, isToday, isPast,
 }: HabitDayProgressProps) => {
   const ratio = scheduled === 0 ? 0 : Math.min(1, completed / scheduled);
-  const r = 8;                 // 원 반지름 (11 -> 8 컴팩트화)
+  const r = 10;                // 원 반지름
   const c = 2 * Math.PI * r;   // 둘레
   const dashOffset = c * (1 - ratio);
 
@@ -51,14 +51,14 @@ export const HabitDayProgress = ({
       </span>
       <div className="relative inline-flex items-center justify-center">
         <svg
-          width={22} height={22}
-          viewBox="0 0 22 22"
+          width={26} height={26}
+          viewBox="0 0 26 26"
           className={cn(isPast && !isToday && ratio === 0 && 'opacity-50')}
           aria-hidden
         >
           {/* 배경 원 */}
           <circle
-            cx={11} cy={11} r={r}
+            cx={13} cy={13} r={r}
             fill="none"
             stroke="hsl(var(--foreground) / 0.18)"
             strokeWidth={2}
@@ -66,22 +66,22 @@ export const HabitDayProgress = ({
           {/* 진행 원 */}
           {scheduled > 0 && (
             <circle
-              cx={11} cy={11} r={r}
+              cx={13} cy={13} r={r}
               fill="none"
               stroke={ringColor}
               strokeWidth={2}
               strokeLinecap="round"
               strokeDasharray={c}
               strokeDashoffset={dashOffset}
-              transform="rotate(-90 11 11)"
+              transform="rotate(-90 13 13)"
               style={{ transition: 'stroke-dashoffset 200ms ease' }}
             />
           )}
         </svg>
-        {/* 날짜 — 도넛 가운데 (컴팩트) */}
+        {/* 날짜 — 도넛 가운데 */}
         <span className={cn(
-          'absolute inset-0 flex items-center justify-center text-[10px] tabular-nums leading-none',
-          isToday ? 'text-blue-500 font-bold' : 'text-foreground/70 font-medium',
+          'absolute inset-0 flex items-center justify-center text-[11.5px] tabular-nums leading-none',
+          isToday ? 'text-blue-500 font-bold' : 'text-foreground/75 font-medium',
         )}>
           {day}
         </span>
