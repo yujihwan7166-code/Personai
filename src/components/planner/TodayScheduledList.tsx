@@ -80,6 +80,14 @@ const isSameLocalDay = (iso: string | undefined, day: Date) => {
 const formatTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 
+/** 시작 ~ 끝 형식. 끝이 같은 분이면 시작만. */
+const formatTimeRange = (startIso?: string, endIso?: string): string => {
+  if (!startIso) return '';
+  const start = formatTime(startIso);
+  if (!endIso || startIso === endIso) return start;
+  return `${start}~${formatTime(endIso)}`;
+};
+
 const computeStatus = (startIso: string | undefined, endIso: string | undefined, now: Date): RowStatus => {
   if (!startIso || !endIso) return 'upcoming';
   const start = new Date(startIso).getTime();
@@ -460,8 +468,8 @@ const ScheduledTaskRow = ({
           style={{ backgroundColor: dotColor }}
         />
       </button>
-      <span className="text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 w-10" aria-label="시작 시각">
-        {formatTime(task.startAt)}
+      <span className="text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 whitespace-nowrap" aria-label="시간">
+        {formatTimeRange(task.startAt, task.endAt)}
       </span>
       <button
         type="button"
@@ -515,8 +523,8 @@ const ScheduledEventRow = ({
           style={{ backgroundColor: event.color ?? 'hsl(var(--primary))' }}
         />
       </span>
-      <span className="text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 w-10" aria-label="시작 시각">
-        {formatTime(event.startAt)}
+      <span className="text-[11px] font-mono tabular-nums text-foreground/80 shrink-0 whitespace-nowrap" aria-label="시간">
+        {formatTimeRange(event.startAt, event.endAt)}
       </span>
       <button
         type="button"
