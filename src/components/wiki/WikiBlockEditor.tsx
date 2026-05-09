@@ -39,6 +39,7 @@ const TableHeader = TableHeaderBase.extend({
   addAttributes() { return { ...this.parent?.(), ...cellBg }; },
 });
 import { Markdown } from 'tiptap-markdown';
+import { notify } from '@/lib/notify';
 import { WikiEditorToolbar } from './WikiEditorToolbar';
 import { WikiPagePickerModal } from './WikiPagePickerModal';
 import type { WikiPage as WikiPageT } from '@/types/wiki';
@@ -167,10 +168,21 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
             if (item.type.startsWith('image/')) {
               event.preventDefault();
               const file = item.getAsFile();
-              if (!file || !onUploadImage) return true;
-              void onUploadImage(file).then((src) => {
-                editorRef.current?.chain().focus().setImage({ src }).run();
-              });
+              if (!file) return true;
+              if (!onUploadImage) {
+                notify.warning('이미지 업로드 핸들러가 없어요', { duration: 1800 });
+                return true;
+              }
+              void onUploadImage(file)
+                .then((src) => {
+                  editorRef.current?.chain().focus().setImage({ src }).run();
+                })
+                .catch((e) => {
+                  notify.warning('이미지 업로드 실패 — 다시 시도해 주세요', {
+                    description: (e as Error)?.message,
+                    duration: 2400,
+                  });
+                });
               return true;
             }
           }
@@ -184,10 +196,29 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
         const imgFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
         if (imgFiles.length === 0) return false;
         event.preventDefault();
-        if (!onUploadImage) return true;
-        void Promise.all(imgFiles.map(onUploadImage)).then((srcs) => {
-          for (const src of srcs) {
-            editorRef.current?.chain().focus().setImage({ src }).run();
+        if (!onUploadImage) {
+          notify.warning('이미지 업로드 핸들러가 없어요', { duration: 1800 });
+          return true;
+        }
+        // 다중 파일 — 개별 처리해 일부 실패 시 나머지는 정상 삽입.
+        void Promise.allSettled(imgFiles.map((f) => onUploadImage(f))).then((results) => {
+          let okCount = 0;
+          let failCount = 0;
+          for (const r of results) {
+            if (r.status === 'fulfilled') {
+              editorRef.current?.chain().focus().setImage({ src: r.value }).run();
+              okCount += 1;
+            } else {
+              failCount += 1;
+            }
+          }
+          if (failCount > 0) {
+            notify.warning(
+              okCount > 0
+                ? `이미지 ${imgFiles.length}장 중 ${failCount}장 실패`
+                : '이미지 업로드 실패 — 다시 시도해 주세요',
+              { duration: 2400 },
+            );
           }
         });
         return true;
@@ -436,8 +467,15 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
             input.onchange = async () => {
               const file = input.files?.[0];
               if (!file) return;
-              const src = await onUploadImage(file);
-              editor.chain().focus().setImage({ src }).run();
+              try {
+                const src = await onUploadImage(file);
+                editor.chain().focus().setImage({ src }).run();
+              } catch (e) {
+                notify.warning('이미지 업로드 실패 — 다시 시도해 주세요', {
+                  description: (e as Error)?.message,
+                  duration: 2400,
+                });
+              }
             };
             input.click();
           } : undefined}
