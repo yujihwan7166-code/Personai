@@ -176,12 +176,18 @@ function FontSizeDropdown({ editor }: { editor: Editor }) {
 
   const current = editor.getAttributes('textStyle')?.fontSize as string | undefined;
   const label = FONT_SIZES.find((s) => s.value === current)?.label ?? '본문';
+  const isActive = !!current;
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="h-7 px-2 inline-flex items-center gap-1 rounded text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+        className={cn(
+          'h-7 px-2 inline-flex items-center gap-1 rounded text-[11.5px] wiki-trans-color',
+          isActive
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        )}
         title="글씨 크기"
       >
         <Type className="w-3.5 h-3.5" />
@@ -235,12 +241,18 @@ function ColorDropdown({ editor }: { editor: Editor }) {
   }, [open]);
 
   const current = editor.getAttributes('textStyle')?.color as string | undefined;
+  const isActive = !!current;
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="h-7 w-8 inline-flex items-center justify-center gap-0.5 rounded text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+        className={cn(
+          'h-7 w-8 inline-flex items-center justify-center gap-0.5 rounded wiki-trans-color',
+          isActive
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        )}
         title="글씨 색"
       >
         <Palette className="w-3.5 h-3.5" />
@@ -293,12 +305,18 @@ function HighlightDropdown({ editor }: { editor: Editor }) {
   }, [open]);
 
   const current = editor.getAttributes('highlight')?.color as string | undefined;
+  const isActive = !!current;
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="h-7 w-8 inline-flex items-center justify-center gap-0.5 rounded text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+        className={cn(
+          'h-7 w-8 inline-flex items-center justify-center gap-0.5 rounded wiki-trans-color',
+          isActive
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        )}
         title="형광"
       >
         <Highlighter className="w-3.5 h-3.5" />
