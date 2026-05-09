@@ -154,12 +154,14 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick }: TodayScheduledLis
     const parsed = parseNaturalLanguage(trimmed, new Date(defaultStart));
     const startAt = parsed.startAt ?? defaultStart;
     const endAt = parsed.endAt ?? new Date(new Date(startAt).getTime() + 30 * 60_000).toISOString();
-    eventStore.add({
+    // 시간 잡힌 task (= "일정") — 설계 의도와 동일. taskStore 로 통일.
+    taskStore.add({
       title: parsed.cleanTitle || trimmed,
       startAt,
       endAt,
-      source: 'user',
       recurrence: parsed.recurrence,
+      tags: parsed.tags,
+      priority: parsed.priority,
     });
     notify.success('일정 추가됐어요', { duration: 1200 });
     setQuickAddValue('');

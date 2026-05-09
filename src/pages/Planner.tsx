@@ -210,7 +210,30 @@ const Planner = () => {
           initialNote: full?.note,
           initialPinned: full?.pinned,
         });
+        return;
       }
+      // 레거시 event — taskStore 로 마이그레이션 후 schedule 모달 열기.
+      // (새 항목은 taskStore.add 로 직접 들어가지만 옛 eventStore 데이터 호환.)
+      if (isInstanceId(item.id)) {
+        notify.info('반복 일정 인스턴스는 시리즈에서 편집해 주세요', { duration: 1500 });
+        return;
+      }
+      const ev = eventStore.findMaster(item.id);
+      if (!ev) return;
+      const newTask = taskStore.add({
+        title: ev.title,
+        startAt: ev.startAt,
+        endAt: ev.endAt,
+        recurrence: ev.recurrence,
+      });
+      eventStore.remove(ev.id);
+      setDialogMode({
+        kind: 'schedule',
+        taskId: newTask.id,
+        initialTitle: newTask.title,
+        initialStart: newTask.startAt,
+        initialEnd: newTask.endAt,
+      });
     },
     [],
   );

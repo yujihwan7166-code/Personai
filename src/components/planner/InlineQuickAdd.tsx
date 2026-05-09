@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CalendarDays, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { eventStore } from '@/services/planner/eventStore';
+import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
 import { parseNaturalLanguage } from '@/lib/planner/parseNaturalLanguage';
 
@@ -73,12 +73,14 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       parsed.endAt ??
       new Date(new Date(startAt).getTime() + fallbackDuration * 60_000).toISOString();
 
-    eventStore.add({
+    // 시간 잡힌 task (= "일정") — 설계 의도: 모든 user 항목은 task, eventStore 는 외부 통합용.
+    taskStore.add({
       title: parsed.cleanTitle || trimmed,
       startAt,
       endAt,
-      source: 'user',
       recurrence: parsed.recurrence,
+      tags: parsed.tags,
+      priority: parsed.priority,
     });
     notify.success('일정 추가됐어요', { duration: 1200 });
     onClose();
