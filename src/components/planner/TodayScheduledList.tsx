@@ -9,13 +9,14 @@
  *
  * Hover 액션: 편집 / 미루기 / 삭제 (반복 시리즈 인스턴스는 detach 처리).
  */
-import { useEffect, useMemo, useState } from 'react';
-import { Clock, Flag, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CalendarDays, Clock, Flag, ListChecks, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
+import { parseNaturalLanguage } from '@/lib/planner/parseNaturalLanguage';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import {
@@ -29,9 +30,32 @@ import { PRIORITY_COLORS, TASK_LIST_COLORS, type PlannerEvent, type PlannerTask,
 interface TodayScheduledListProps {
   anchorIso: string;
   onTaskClick?: (task: { id: string; title: string }) => void;
-  /** + 버튼 클릭 — 시간 정해 추가하는 상세 모달 띄우기. */
-  onAdd?: () => void;
 }
+
+/** + 클릭 시 입력 default 시작 시각 — anchor 가 오늘이면 다음 30분 슬롯, 아니면 anchor 09:00. */
+const computeDefaultStart = (anchorIso: string): string => {
+  const anchor = new Date(anchorIso);
+  const today = new Date();
+  const isToday = anchor.toDateString() === today.toDateString();
+  if (isToday) {
+    const d = new Date();
+    const mins = d.getMinutes();
+    if (mins === 0) {
+      d.setSeconds(0, 0);
+    } else if (mins < 30) {
+      d.setMinutes(30, 0, 0);
+    } else {
+      d.setHours(d.getHours() + 1, 0, 0, 0);
+    }
+    return d.toISOString();
+  }
+  const d = new Date(anchor);
+  d.setHours(9, 0, 0, 0);
+  return d.toISOString();
+};
+
+const formatTimeShort = (iso: string) =>
+  new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 type RowStatus = 'past' | 'now' | 'upcoming';
 type Kind = 'task' | 'event';
@@ -105,7 +129,43 @@ const removeItem = (kind: Kind, item: PlannerTask | PlannerEvent) => {
   notify.success('삭제됐어요', { duration: 1200 });
 };
 
-export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodayScheduledListProps) => {
+export const TodayScheduledList = ({ anchorIso, onTaskClick }: TodayScheduledListProps) => {
+  // 인라인 quick-add — 타임라인 InlineQuickAdd 와 동일한 톤. 헤더 + 클릭 시 등장.
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddValue, setQuickAddValue] = useState('');
+  const quickAddInputRef = useRef<HTMLInputElement>(null);
+
+  const defaultStart = useMemo(() => computeDefaultStart(anchorIso), [anchorIso, quickAddOpen]);
+
+  useEffect(() => {
+    if (quickAddOpen) {
+      const id = window.setTimeout(() => quickAddInputRef.current?.focus(), 30);
+      return () => window.clearTimeout(id);
+    }
+  }, [quickAddOpen]);
+
+  const submitQuickAdd = () => {
+    const trimmed = quickAddValue.trim();
+    if (!trimmed) {
+      setQuickAddOpen(false);
+      setQuickAddValue('');
+      return;
+    }
+    const parsed = parseNaturalLanguage(trimmed, new Date(defaultStart));
+    const startAt = parsed.startAt ?? defaultStart;
+    const endAt = parsed.endAt ?? new Date(new Date(startAt).getTime() + 30 * 60_000).toISOString();
+    eventStore.add({
+      title: parsed.cleanTitle || trimmed,
+      startAt,
+      endAt,
+      source: 'user',
+      recurrence: parsed.recurrence,
+    });
+    notify.success('일정 추가됐어요', { duration: 1200 });
+    setQuickAddValue('');
+    // 연속 추가를 위해 input 은 열어 둠. Esc/외부 클릭으로 닫기.
+  };
+
   // 시간 배정된 task + event 둘 다 보여줌. usePlannerToday 가 PLANNER_TASK/EVENT_CHANGED 양쪽 listen.
   const items = usePlannerToday(anchorIso);
   const day = useMemo(() => new Date(anchorIso), [anchorIso]);
@@ -145,18 +205,55 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
         {scheduled.length > 0 && (
           <span className="text-[11px] tabular-nums text-muted-foreground/80 font-medium">{scheduled.length}</span>
         )}
-        {onAdd && (
-          <button
-            type="button"
-            onClick={onAdd}
-            aria-label="일정 추가"
-            title="일정 추가 (시간 정해서)"
-            className="ml-auto h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" strokeWidth={2.25} />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setQuickAddOpen((v) => !v)}
+          aria-label={quickAddOpen ? '추가 취소' : '일정 추가'}
+          title={quickAddOpen ? '닫기' : '일정 추가'}
+          className={cn(
+            'ml-auto h-5 w-5 inline-flex items-center justify-center rounded transition-colors',
+            quickAddOpen
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+          )}
+        >
+          {quickAddOpen ? <X className="h-3 w-3" strokeWidth={2.5} /> : <Plus className="h-3.5 w-3.5" strokeWidth={2.25} />}
+        </button>
       </div>
+
+      {/* 인라인 quick-add — 타임라인 슬롯 클릭과 동일 동작. 자연어 파싱 지원. */}
+      {quickAddOpen && (
+        <div className="shrink-0 mb-1.5 flex items-center gap-2 rounded-md border border-primary/35 bg-primary/5 px-2 py-1.5">
+          <CalendarDays className="h-3 w-3 text-primary shrink-0" strokeWidth={2.25} aria-hidden />
+          <span className="text-[10.5px] font-mono tabular-nums text-foreground/70 font-semibold shrink-0">
+            {formatTimeShort(defaultStart)}
+          </span>
+          <input
+            ref={quickAddInputRef}
+            type="text"
+            value={quickAddValue}
+            onChange={(e) => setQuickAddValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submitQuickAdd();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setQuickAddOpen(false);
+                setQuickAddValue('');
+              }
+            }}
+            onBlur={() => {
+              // 빈 값으로 blur 되면 자동 닫기. 입력값이 있으면 유지 (실수로 안 닫힘).
+              if (!quickAddValue.trim()) {
+                window.setTimeout(() => setQuickAddOpen(false), 100);
+              }
+            }}
+            placeholder="일정 제목  (예: 회의 1시간)"
+            className="flex-1 min-w-0 bg-transparent text-[12.5px] leading-tight text-foreground placeholder:text-foreground/40 outline-none focus:outline-none focus:ring-0"
+          />
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
         {scheduled.length === 0 ? (

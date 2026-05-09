@@ -810,16 +810,6 @@ const Planner = () => {
                     <TodayScheduledList
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
-                      onAdd={() => {
-                        // 일정 추가 — anchor 날짜 09:00 default + presetIsEvent.
-                        const day = new Date(anchorIso);
-                        day.setHours(9, 0, 0, 0);
-                        setDialogMode({
-                          kind: 'create',
-                          presetStartIso: day.toISOString(),
-                          presetIsEvent: true,
-                        });
-                      }}
                     />
                     <TodayTodoList
                       anchorIso={anchorIso}
