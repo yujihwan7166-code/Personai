@@ -504,6 +504,10 @@ function MetaChips({
         onChange={(e) => onChange({ ...draft, status: e.target.value as WikiPageStatus })}
         className="h-7 px-2 rounded-md border border-[hsl(var(--hairline))] bg-card text-[11.5px] font-medium text-foreground focus:outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
       >
+        {/* legacy draft / archived 는 current 일 때만 fallback option 노출. */}
+        {draft.status === 'draft' && (
+          <option value="draft">{WIKI_STATUS_META.draft.label}</option>
+        )}
         {VISIBLE_WIKI_STATUSES.map((k) => (
           <option key={k} value={k}>{WIKI_STATUS_META[k].label}</option>
         ))}

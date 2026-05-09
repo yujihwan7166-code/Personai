@@ -79,8 +79,10 @@ export const WIKI_STATUS_META: Record<WikiPageStatus, { label: string; tint: str
   archived: { label: '보관',   tint: 'hsl(0 0% 40%)' },
 };
 
-/** dropdown 에 노출할 상태 — 'archived' 는 별도 메뉴 액션. */
-export const VISIBLE_WIKI_STATUSES: WikiPageStatus[] = ['draft', 'active', 'stable'];
+/** dropdown 에 노출할 상태 — 'draft' / 'archived' 는 별도 흐름.
+ *  사용자 피드백: 단순화 — '작업중 / 완성' 두 옵션만 충분.
+ *  draft 가 current 값인 페이지는 WikiPageView 에서 fallback option 으로 노출. */
+export const VISIBLE_WIKI_STATUSES: WikiPageStatus[] = ['active', 'stable'];
 
 export function newWikiId(): string {
   return `w_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -93,7 +95,7 @@ export function createEmptyWikiPage(overrides: Partial<WikiPage> = {}): WikiPage
     title: '제목 없음',
     aliases: [],
     type: 'concept',
-    status: 'draft',
+    status: 'active',
     tags: [],
     body: '',
     refersTo: [],
