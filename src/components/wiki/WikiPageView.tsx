@@ -243,16 +243,19 @@ export function WikiPageView({
                 {!editing && (
                   <>
                     <p
-                      className="text-[12px] mt-1.5"
+                      className="text-[12px] mt-2 leading-relaxed"
                       style={{ fontFamily: 'var(--wiki-font-meta)', color: 'hsl(var(--muted-foreground))' }}
                     >
                       {(() => {
-                        // Bear 풍 메타: N글자 · 약 N분 · 마지막 수정 · 별칭
                         const charCount = page.body.replace(/\s+/g, '').length;
                         const readMin = Math.max(1, Math.round(charCount / 500));
                         return (
                           <>
-                            {charCount.toLocaleString()}글자 · 약 {readMin}분 · 마지막 수정 · {relativeTime(page.updatedAt)}
+                            {charCount.toLocaleString()}글자
+                            <span className="mx-1.5 opacity-50">·</span>
+                            약 {readMin}분
+                            <span className="mx-1.5 opacity-50">·</span>
+                            {relativeTime(page.updatedAt)}
                           </>
                         );
                       })()}
@@ -271,7 +274,7 @@ export function WikiPageView({
                     <button onClick={cancel} className="px-2.5 h-8 rounded-md text-[12px] text-muted-foreground hover:bg-accent transition-colors flex items-center gap-1">
                       <X className="w-3.5 h-3.5" /> 취소
                     </button>
-                    <button onClick={save} className="px-2.5 h-8 rounded-md bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity flex items-center gap-1">
+                    <button onClick={save} className="px-3 h-8 rounded-md border border-primary/35 bg-card text-primary text-[12px] font-semibold hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors flex items-center gap-1">
                       <Save className="w-3.5 h-3.5" /> 저장
                     </button>
                   </>

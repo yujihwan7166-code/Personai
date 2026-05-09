@@ -267,7 +267,7 @@ export function WikiHome({
             내 위키
           </p>
           <h1
-            className="text-[40px] sm:text-[44px] leading-none font-semibold text-foreground tracking-tight"
+            className="text-[28px] sm:text-[32px] leading-tight font-semibold text-foreground tracking-tight"
             style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
           >
             {stats.indexPage ? stats.indexPage.title : '대문'}
@@ -537,12 +537,12 @@ function Section({
   const arr = Array.isArray(children) ? children : [children];
   const isEmpty = arr.length === 0 || arr.every((c) => !c);
   return (
-    <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3.5">
-      <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
+    <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-card p-4 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
+      <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-2.5">
         {title}
       </h2>
       {isEmpty ? (
-        <p className="text-[11.5px] text-muted-foreground/70 py-2">{empty}</p>
+        <p className="text-[11.5px] text-muted-foreground/65 py-1.5 italic">{empty}</p>
       ) : (
         <ul className="space-y-0.5">{children}</ul>
       )}
