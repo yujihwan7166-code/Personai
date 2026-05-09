@@ -927,13 +927,39 @@ const Planner = () => {
         onItemClick={(it) => handleInboxClick({ id: it.id, title: it.title })}
       />
     </div>
-    {/* 드래그 시간 미리보기 — DragOverlay 로 마우스 옆 표시. */}
+    {/* 드래그 시간 미리보기 — DragOverlay 로 마우스 옆 표시.
+        scheduled 블록은 timeline overflow-y-auto 의 implicit overflow-x clip 때문에
+        in-place transform 으로 옮기면 컬럼 밖으로 나갈 때 잘림. DragOverlay 로
+        portal 띄워 clip 회피 (좌측 할일 패널 위로 자연스럽게 떠다님). */}
     <DragOverlay dropAnimation={null}>
       {previewLabel && (
         <div className="pointer-events-none select-none rounded-md bg-foreground text-background px-2.5 py-1 text-[11.5px] font-mono tabular-nums shadow-lg whitespace-nowrap">
           {previewLabel}
         </div>
       )}
+      {(activeDrag?.data.kind === 'scheduled-task' || activeDrag?.data.kind === 'scheduled-event') && (() => {
+        const item = activeDrag.data.kind === 'scheduled-task'
+          ? activeDrag.data.task
+          : activeDrag.data.event;
+        const startAt = item.startAt;
+        const endAt = (item as { endAt?: string }).endAt;
+        const fmtTime = (iso?: string) => iso
+          ? new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+          : '';
+        return (
+          <div
+            className="pointer-events-none select-none flex items-center gap-2 rounded-md bg-card border border-primary/45 shadow-[0_8px_24px_-6px_hsl(30_15%_8%/0.25)] px-3 py-2 max-w-[260px] ring-1 ring-primary/15"
+          >
+            <span className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden />
+            <span className="text-[11.5px] tabular-nums text-muted-foreground font-medium shrink-0 whitespace-nowrap">
+              {fmtTime(startAt)}{endAt ? `~${fmtTime(endAt)}` : ''}
+            </span>
+            <span className="text-[12.5px] text-foreground font-medium truncate">
+              {item.title}
+            </span>
+          </div>
+        );
+      })()}
     </DragOverlay>
     {/* 포모도로 위젯은 App.tsx 에서 글로벌하게 렌더됨 — 여기 중복 X */}
     </DndContext>
