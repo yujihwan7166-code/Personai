@@ -30,7 +30,6 @@ import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalWeekBoard } from '@/components/journal/JournalWeekBoard';
 import { JournalActivityInsights } from '@/components/journal/JournalActivityInsights';
-import { JournalDailyCarousel } from '@/components/journal/JournalDailyCarousel';
 import { normalizeWeekAnchor } from '@/lib/journalWeek';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
@@ -453,26 +452,6 @@ const Journal = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
           <div className="flex flex-col gap-5 min-w-0">
-            {/* Carousel — 본문 첫 행 (헤더에서 이동, P). 검색·필터 시 hide. */}
-            {query.trim().length === 0 && !hasActiveFilter && (
-              <JournalDailyCarousel
-                allEntries={allEntries}
-                onStartEntry={() => setEditorMode({ kind: 'create' })}
-                onClickEntry={(entry) => setEditorMode({
-                  kind: 'edit',
-                  id: entry.id,
-                  initialBody: entry.body,
-                  initialMood: entry.mood,
-                  initialTags: entry.tags,
-                  initialFormat: entry.bodyFormat,
-                  initialImages: entry.images,
-                  initialActivities: entry.activities,
-                  initialWeather: entry.weather,
-                  initialSleepHours: entry.sleepHours,
-                  initialEnergy: entry.energy,
-                })}
-              />
-            )}
 
             {/* ── 주간 보드 뷰 — WeekNav 제거 (사용자 요청), 주 이동은 캘린더로 ── */}
             {effectiveViewMode === 'week' && (
