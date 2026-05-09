@@ -14,13 +14,12 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-type Filter = 'all' | 'moc' | 'active' | 'stable' | 'recent';
+type Filter = 'all' | 'moc' | 'active' | 'recent';
 
 const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: 'all',    label: '전체' },
   { id: 'moc',    label: '메인' },
   { id: 'active', label: '작업중' },
-  { id: 'stable', label: '완성' },
   { id: 'recent', label: '최근 수정' },
 ];
 
@@ -70,7 +69,6 @@ export function WikiSidebar({
     for (const p of pages) {
       if (filter === 'moc'    && !(p.isMain || p.type === 'moc')) continue;
       if (filter === 'active' && p.status !== 'active') continue;
-      if (filter === 'stable' && p.status !== 'stable') continue;
       if (filter === 'recent' && Date.now() - p.updatedAt > RECENT_EDIT_MS) continue;
       if (!q) { out.push({ page: p, hit: 'none' }); continue; }
       if (p.title.toLowerCase().includes(q)) { out.push({ page: p, hit: 'title' }); continue; }
