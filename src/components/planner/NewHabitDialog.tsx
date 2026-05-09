@@ -9,6 +9,7 @@ import { Plus, Trash2, X } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { habitStore } from '@/services/planner/habitStore';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { confirmDialog } from '@/lib/confirmDialog';
@@ -210,27 +211,39 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
 
           {/* 제목 + emoji + color */}
           <div className="flex gap-2">
-            {/* emoji popover (간단 grid) */}
-            <details className="relative">
-              <summary className="list-none h-10 w-10 inline-flex items-center justify-center rounded-md border border-foreground/25 bg-card cursor-pointer text-[18px] hover:border-foreground/35">
-                {emoji}
-              </summary>
-              <div className="absolute z-50 mt-1 p-2 grid grid-cols-6 gap-1 rounded-md border border-foreground/25 bg-card shadow-lg">
-                {EMOJI_PRESETS.map((e) => (
-                  <button
-                    key={e}
-                    type="button"
-                    onClick={() => { setEmoji(e); (document.activeElement as HTMLElement)?.blur?.(); }}
-                    className={cn(
-                      'h-8 w-8 inline-flex items-center justify-center rounded text-[16px] hover:bg-accent',
-                      e === emoji && 'bg-accent ring-1 ring-foreground/30',
-                    )}
-                  >
-                    {e}
-                  </button>
-                ))}
-              </div>
-            </details>
+            {/* emoji picker — Radix Popover (이전 details 가 좁은 폭으로 옆 row 와 겹치는 문제 해결) */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="이모지 선택"
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-md border hairline bg-card cursor-pointer text-[18px] hover:border-foreground/35 transition-colors"
+                >
+                  {emoji}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                sideOffset={6}
+                className="w-auto p-2"
+              >
+                <div className="grid grid-cols-6 gap-1">
+                  {EMOJI_PRESETS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => setEmoji(e)}
+                      className={cn(
+                        'h-8 w-8 inline-flex items-center justify-center rounded text-[16px] hover:bg-accent transition-colors',
+                        e === emoji && 'bg-accent ring-1 ring-foreground/30',
+                      )}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <input
               type="text"
               value={title}
@@ -238,7 +251,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
               autoFocus={mode.kind === 'create'}
               placeholder="습관 제목"
               onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-              className="flex-1 px-3 py-2 text-[14px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none"
+              className="flex-1 px-3 py-2 text-[14px] rounded-md border hairline bg-card focus:border-primary/45 focus:outline-none focus:ring-2 focus:ring-primary/15"
             />
           </div>
 
