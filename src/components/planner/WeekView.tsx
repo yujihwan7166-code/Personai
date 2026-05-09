@@ -11,6 +11,7 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { taskStore } from '@/services/planner/taskStore';
 import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
+import { toDateKey } from '@/lib/planner/habitStats';
 import { PlannerSection } from './PlannerSection';
 import { PlannerCard } from './PlannerCard';
 import { PlannerEmpty } from './PlannerEmpty';
@@ -22,6 +23,16 @@ const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
 const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+/** 길이 라벨 — "30분" / "1h 10m". */
+const formatDuration = (startIso: string, endIso: string): string => {
+  const mins = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
+  if (mins <= 0) return '';
+  if (mins < 60) return `${mins}분`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+};
 
 interface WeekViewProps {
   /** 주의 기준 날짜 (이 날 포함 일~토 7일). */
@@ -60,6 +71,8 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
       d.setDate(startDate.getDate() + i);
       return {
         iso: d.toISOString(),
+        // 그룹핑·매칭은 로컬 날짜 기준 — UTC slice 시 timezone 어긋나는 버그 회피.
+        key: toDateKey(d),
         date: d.getDate(),
         dow: d.getDay(),
         isToday: d.getTime() === todayMs,
@@ -78,17 +91,59 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
 
   const items = usePlannerRange(start, end);
 
-  // 일별로 그룹핑.
+  // 일별로 그룹핑 — 로컬 시각 기준 (UTC slice 버그 회피).
+  // 같은 날 안에서 startAt 오름차순 정렬 + overlap 플래그 합성.
   const itemsByDay = useMemo(() => {
-    const map = new Map<string, typeof items>();
+    type DayItem = typeof items[number] & { overlapping: boolean; durationLabel: string };
+    const map = new Map<string, DayItem[]>();
+
+    // 1) 로컬 날짜 키로 분류
+    const grouped = new Map<string, typeof items>();
     items.forEach((item) => {
       const startAt = item.data.startAt;
       if (!startAt) return;
-      const dayKey = startAt.slice(0, 10);
-      const arr = map.get(dayKey) ?? [];
+      const dayKey = toDateKey(new Date(startAt));
+      const arr = grouped.get(dayKey) ?? [];
       arr.push(item);
-      map.set(dayKey, arr);
+      grouped.set(dayKey, arr);
     });
+
+    // 2) 각 일별로 정렬 + 겹침 검사 + 길이 라벨 계산
+    grouped.forEach((arr, dayKey) => {
+      const sorted = [...arr].sort((a, b) =>
+        (a.data.startAt ?? '').localeCompare(b.data.startAt ?? ''),
+      );
+      const ranges = sorted.map((item) => {
+        const startAt = item.data.startAt!;
+        const endAt = item.kind === 'event'
+          ? item.data.endAt
+          : (item.data.endAt ?? startAt);
+        return {
+          startMs: new Date(startAt).getTime(),
+          endMs: new Date(endAt).getTime(),
+          startAt,
+          endAt,
+        };
+      });
+      const decorated: DayItem[] = sorted.map((item, i) => {
+        const r = ranges[i];
+        let overlapping = false;
+        for (let j = 0; j < ranges.length; j++) {
+          if (j === i) continue;
+          if (r.startMs < ranges[j].endMs && r.endMs > ranges[j].startMs) {
+            overlapping = true;
+            break;
+          }
+        }
+        return {
+          ...item,
+          overlapping,
+          durationLabel: formatDuration(r.startAt, r.endAt),
+        };
+      });
+      map.set(dayKey, decorated);
+    });
+
     return map;
   }, [items]);
 
@@ -96,8 +151,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
     <PlannerSection label="주" count={weekLabel} className="h-full">
       <div className="grid grid-cols-7 gap-2 h-full min-h-0">
         {days.map((d) => {
-          const dayKey = d.iso.slice(0, 10);
-          const dayItems = itemsByDay.get(dayKey) ?? [];
+          const dayItems = itemsByDay.get(d.key) ?? [];
           return (
             <DroppableDayColumn key={d.iso} dayIso={d.iso} className="flex flex-col min-h-0 min-w-0 rounded-md">
               <button
@@ -165,6 +219,8 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
                         kind={item.kind}
                         title={item.data.title}
                         startLabel={formatHm(startAt)}
+                        durationLabel={item.durationLabel || undefined}
+                        overlapping={item.overlapping}
                         done={item.kind === 'task' ? item.data.done : false}
                         color={blockColor}
                         priority={item.kind === 'task' ? item.data.priority : undefined}

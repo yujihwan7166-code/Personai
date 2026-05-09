@@ -6,6 +6,7 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
+import { toDateKey } from '@/lib/planner/habitStats';
 import { PlannerSection } from './PlannerSection';
 
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
@@ -90,13 +91,13 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick }: MonthViewProps
 
   const items = usePlannerRange(start, end);
 
-  // 일별 그룹핑.
+  // 일별 그룹핑 — 로컬 시각 기준 (UTC slice 시 timezone 어긋나는 버그 회피).
   const itemsByDay = useMemo(() => {
     const map = new Map<string, typeof items>();
     items.forEach((item) => {
       const startAt = item.data.startAt;
       if (!startAt) return;
-      const dayKey = startAt.slice(0, 10);
+      const dayKey = toDateKey(new Date(startAt));
       const arr = map.get(dayKey) ?? [];
       arr.push(item);
       map.set(dayKey, arr);
@@ -128,7 +129,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick }: MonthViewProps
           {weeks.map((week, wi) => (
             <div key={wi} className="grid grid-cols-7 gap-px">
               {week.map((cell) => {
-                const dayKey = cell.iso.slice(0, 10);
+                const dayKey = toDateKey(new Date(cell.iso));
                 const dayItems = itemsByDay.get(dayKey) ?? [];
                 return (
                   <button

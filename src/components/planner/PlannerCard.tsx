@@ -131,6 +131,10 @@ interface BlockCardProps {
   tags?: string[];
   /** Streak (반복 시리즈 연속 완료 수). */
   streakCurrent?: number;
+  /** 길이 라벨 — "30분" / "1h 10m" 등. 시간 옆에 작게. */
+  durationLabel?: string;
+  /** 같은 일에 다른 항목과 시간 겹침 — 좌측 분홍 stripe 로 표시. */
+  overlapping?: boolean;
 }
 
 type PlannerCardProps = (InboxCardProps | BlockCardProps) & { meta?: MetaChip[] };
@@ -324,7 +328,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
   }
 
   // variant === 'block'
-  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, meta, streakCurrent } = props;
+  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, meta, streakCurrent, durationLabel, overlapping } = props;
   const accent = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.7)');
   // 파스텔 풀 블록 — 색을 배경에 22% 섞고, 보더는 38% 로 약간 진하게.
   const blockBg = `color-mix(in oklab, ${accent} 22%, hsl(var(--background)))`;
@@ -335,7 +339,7 @@ export const PlannerCard = (props: PlannerCardProps) => {
     <div
       role="button"
       tabIndex={0}
-      aria-label={`${kind === 'event' ? '일정' : '할 일'} ${startLabel} ${title}${done ? ' (완료됨)' : ''}${canceled ? ' (취소됨)' : ''}`}
+      aria-label={`${kind === 'event' ? '일정' : '할 일'} ${startLabel} ${title}${done ? ' (완료됨)' : ''}${canceled ? ' (취소됨)' : ''}${overlapping ? ' (다른 항목과 시간 겹침)' : ''}`}
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -345,17 +349,27 @@ export const PlannerCard = (props: PlannerCardProps) => {
       }}
       style={{ backgroundColor: blockBg, borderColor: blockBorder }}
       className={cn(
-        'group flex items-stretch gap-2 px-2.5 py-1.5 rounded-md cursor-pointer overflow-hidden',
+        'group relative flex items-stretch gap-2 px-2.5 py-1.5 rounded-md cursor-pointer overflow-hidden',
         'border hover:brightness-[1.04] hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)] transition-all',
         'focus:outline-none focus:ring-1 focus:ring-foreground/40',
         dim && 'opacity-50',
       )}
     >
+      {overlapping && (
+        <span
+          aria-hidden
+          title="다른 항목과 시간 겹침"
+          className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-sm bg-rose-500/70"
+        />
+      )}
       <div className="min-w-0 flex-1 py-px">
         <div className="flex items-center gap-1">
           <span className="text-[10.5px] font-mono tabular-nums text-foreground/65 tracking-wide font-semibold">
             {startLabel}
           </span>
+          {durationLabel && (
+            <span className="text-[10px] tabular-nums text-muted-foreground/80 font-medium">· {durationLabel}</span>
+          )}
           {showFlag && (
             <Flag
               className="h-2.5 w-2.5"

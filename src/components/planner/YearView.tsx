@@ -7,6 +7,7 @@
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
+import { toDateKey } from '@/lib/planner/habitStats';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PlannerSection } from './PlannerSection';
 import { HabitHeatmap } from './HabitHeatmap';
@@ -35,12 +36,13 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
   const items = usePlannerRange(start, end);
 
   // 이벤트/할일 카운트 (날짜별, '강도' 표현). Apple Cal 패턴: 1-2 = 옅음 / 3+ = 진함.
+  // 로컬 시각 기준 — UTC slice 시 timezone 어긋나는 버그 회피.
   const busyCounts = useMemo(() => {
     const map = new Map<string, number>();
     items.forEach((item) => {
       const startAt = item.data.startAt;
       if (!startAt) return;
-      const key = startAt.slice(0, 10);
+      const key = toDateKey(new Date(startAt));
       map.set(key, (map.get(key) ?? 0) + 1);
     });
     return map;
@@ -85,7 +87,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
         } else {
           const d = new Date(year, m, dayNum);
           d.setHours(0, 0, 0, 0);
-          const dayKey = d.toISOString().slice(0, 10);
+          const dayKey = toDateKey(d);
           cells.push({
             iso: d.toISOString(),
             date: dayNum,
