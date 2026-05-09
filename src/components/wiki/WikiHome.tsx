@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Plus, Sparkles, ArrowRight, BookOpen, Star } from 'lucide-react';
+import { Plus, Sparkles, ArrowRight, BookOpen, Star, LayoutGrid, List } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
-import { cn } from '@/lib/utils';
 
 interface Props {
   pages: WikiPage[];
@@ -24,11 +24,22 @@ interface Props {
 const STALE_DAYS = 30;
 const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
 
+const MAIN_DOCS_VIEW_KEY = 'wiki.home.mainDocsView.v1';
+
 export function WikiHome({
   pages, favorites = [],
   onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag, onCreateMainDoc,
 }: Props) {
   const favSet = new Set(favorites);
+  // 메인 문서 보기 모드 — 카드 / 목록 (localStorage 영속).
+  const [mainDocsView, setMainDocsView] = useState<'card' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'card';
+    return window.localStorage.getItem(MAIN_DOCS_VIEW_KEY) === 'list' ? 'list' : 'card';
+  });
+  const updateMainDocsView = (v: 'card' | 'list') => {
+    setMainDocsView(v);
+    if (typeof window !== 'undefined') window.localStorage.setItem(MAIN_DOCS_VIEW_KEY, v);
+  };
   const stats = useMemo(() => {
     const byStatus = { draft: 0, active: 0, stable: 0, archived: 0 };
     for (const p of pages) byStatus[p.status]++;
@@ -279,7 +290,7 @@ export function WikiHome({
         </p>
       </header>
 
-      {/* 📖 메인 문서 — 4-col 카드 그리드 (한눈에) */}
+      {/* 📖 메인 문서 — 카드 그리드 / 목록 토글 */}
       <section className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <BookOpen className="w-4 h-4 text-primary" />
@@ -292,9 +303,48 @@ export function WikiHome({
           <span className="text-[11px] text-muted-foreground/80">— 주제별 묶음</span>
           <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
           {stats.mainCards.length > 0 && (
-            <span className="text-[11px] font-mono font-bold text-muted-foreground">
-              <span className="text-foreground/85">{stats.mainCards.length}</span> 메인
-            </span>
+            <>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                <span className="font-semibold text-foreground/85 tabular-nums">{stats.mainCards.length}</span> 메인
+              </span>
+              {/* 보기 토글 — 카드 / 목록 */}
+              <div
+                role="tablist"
+                aria-label="메인 문서 보기 방식"
+                className="inline-flex items-center p-0.5 rounded-full border border-[hsl(var(--hairline))] bg-card/60"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mainDocsView === 'card'}
+                  onClick={() => updateMainDocsView('card')}
+                  title="카드"
+                  className={cn(
+                    'inline-flex items-center justify-center h-6 w-6 rounded-full transition-all',
+                    mainDocsView === 'card'
+                      ? 'bg-card text-foreground shadow-[0_1px_2px_hsl(30_15%_8%/0.06)]'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <LayoutGrid className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mainDocsView === 'list'}
+                  onClick={() => updateMainDocsView('list')}
+                  title="목록"
+                  className={cn(
+                    'inline-flex items-center justify-center h-6 w-6 rounded-full transition-all',
+                    mainDocsView === 'list'
+                      ? 'bg-card text-foreground shadow-[0_1px_2px_hsl(30_15%_8%/0.06)]'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <List className="w-3 h-3" />
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -304,32 +354,52 @@ export function WikiHome({
             onCreate={onCreateMainDoc ?? onCreate}
             onMakeFromTag={onMakeMocFromTag}
           />
+        ) : mainDocsView === 'card' ? (
+          /* 카드 그리드 — index 만 root 인 경우 sub-mocs 노출 */
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {stats.mainCards.map((p) => (
+              <MainDocCard
+                key={p.id}
+                page={p}
+                isRoot
+                isFav={favSet.has(p.id)}
+                childCount={(stats.rootMocChildren.get(p.id)?.mocs.length ?? 0)
+                          + (stats.rootMocChildren.get(p.id)?.pages.length ?? 0)}
+                onSelect={onSelect}
+              />
+            ))}
+            {/* + 새 메인 문서 */}
+            <button
+              type="button"
+              onClick={() => (onCreateMainDoc ?? onCreate)()}
+              className="group flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[11px] font-medium px-3 py-3 min-h-[140px]"
+            >
+              <Plus className="w-4 h-4 group-hover:scale-110 wiki-trans-base" />
+              새 메인 문서
+            </button>
+          </div>
         ) : (
-          <>
-            {/* 메인 문서 카드 그리드 — index 만 root 인 경우 sub-mocs 노출 */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-              {stats.mainCards.map((p) => (
-                <MainDocCard
-                  key={p.id}
-                  page={p}
-                  isRoot
-                  isFav={favSet.has(p.id)}
-                  childCount={(stats.rootMocChildren.get(p.id)?.mocs.length ?? 0)
-                            + (stats.rootMocChildren.get(p.id)?.pages.length ?? 0)}
-                  onSelect={onSelect}
-                />
-              ))}
-              {/* + 새 메인 문서 */}
-              <button
-                type="button"
-                onClick={() => (onCreateMainDoc ?? onCreate)()}
-                className="group flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--hairline))] text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 wiki-trans-base text-[11px] font-medium px-3 py-3 min-h-[140px]"
-              >
-                <Plus className="w-4 h-4 group-hover:scale-110 wiki-trans-base" />
-                새 메인 문서
-              </button>
-            </div>
-          </>
+          /* 목록 — 컴팩트한 한 줄 행 + 카운트·태그 */
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card divide-y divide-[hsl(var(--hairline))] overflow-hidden">
+            {stats.mainCards.map((p) => (
+              <MainDocRow
+                key={p.id}
+                page={p}
+                isFav={favSet.has(p.id)}
+                childCount={(stats.rootMocChildren.get(p.id)?.mocs.length ?? 0)
+                          + (stats.rootMocChildren.get(p.id)?.pages.length ?? 0)}
+                onSelect={onSelect}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => (onCreateMainDoc ?? onCreate)()}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-muted-foreground hover:bg-primary/5 hover:text-primary wiki-trans-color text-[12.5px] font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              새 메인 문서
+            </button>
+          </div>
         )}
       </section>
 
@@ -809,6 +879,55 @@ function MainDocCard({
         </span>
         <ArrowRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 wiki-trans-base" />
       </div>
+    </button>
+  );
+}
+
+/** 메인 문서 — 목록 모드 한 줄 행. 카드보다 빽빽 + 빠른 스캔. */
+function MainDocRow({
+  page, isFav, childCount, onSelect,
+}: {
+  page: WikiPage;
+  isFav: boolean;
+  childCount: number;
+  onSelect: (id: string) => void;
+}) {
+  const updated = (() => {
+    const diff = Date.now() - page.updatedAt;
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (d === 0) return '오늘';
+    if (d === 1) return '어제';
+    if (d < 7) return `${d}일 전`;
+    if (d < 30) return `${Math.floor(d / 7)}주 전`;
+    return new Date(page.updatedAt).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' });
+  })();
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(page.id)}
+      className="w-full group flex items-center gap-3 px-4 py-2.5 text-left hover:bg-accent/40 wiki-trans-color"
+    >
+      {isFav && <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />}
+      <span
+        className="flex-1 min-w-0 truncate text-[14px] font-semibold text-foreground group-hover:text-primary wiki-trans-color"
+        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif', letterSpacing: '-0.005em' }}
+      >
+        {page.title}
+      </span>
+      {/* 태그 — 첫 1개만 (목록은 컴팩트해야 함) */}
+      {page.tags.length > 0 && (
+        <span className="hidden sm:inline-flex items-center px-2 h-5 rounded-full bg-accent/60 text-muted-foreground text-[10.5px] font-medium shrink-0">
+          #{page.tags[0]}{page.tags.length > 1 && <span className="opacity-60 ml-0.5">+{page.tags.length - 1}</span>}
+        </span>
+      )}
+      <span className="text-[11px] tabular-nums text-muted-foreground shrink-0 w-14 text-right">
+        <span className="font-semibold text-foreground/80">{childCount}</span>
+        <span className="text-muted-foreground/60"> 페이지</span>
+      </span>
+      <span className="hidden sm:inline text-[10.5px] tabular-nums text-muted-foreground/70 shrink-0 w-14 text-right">
+        {updated}
+      </span>
+      <ArrowRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 wiki-trans-base shrink-0" />
     </button>
   );
 }
