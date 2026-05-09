@@ -65,29 +65,15 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
         </p>
       ) : (
         <>
-          {/* 핵심 카운트 */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-md bg-accent/40 px-2.5 py-2">
-              <p className="text-[11px] font-medium tracking-[-0.005em] text-muted-foreground">
-                작성
-              </p>
-              <p className="text-[18px] font-semibold tabular-nums text-foreground leading-tight mt-0.5">
-                {stats.count}
-                <span className="text-[10px] font-normal text-muted-foreground ml-1">개</span>
-              </p>
-            </div>
-            <div className="rounded-md bg-accent/40 px-2.5 py-2">
-              <p className="text-[11px] font-medium tracking-[-0.005em] text-muted-foreground">
-                작성률
-              </p>
-              <p className="text-[18px] font-semibold tabular-nums text-foreground leading-tight mt-0.5">
-                {writingRate}%
-                <span className="text-[10px] font-normal text-muted-foreground ml-1">
-                  {stats.uniqueDays}/{stats.totalDays}
-                </span>
-              </p>
-            </div>
-          </div>
+          {/* 자연어 요약 한 문장 — 차가운 % 대신 다이어리 톤 */}
+          <p className="font-display text-[14px] leading-[1.7] text-foreground/85 tracking-[-0.005em]">
+            {period === 'week' ? '이번 주는 ' : '이번 달은 '}
+            <span className="font-semibold text-foreground">{stats.uniqueDays}일</span>
+            <span className="text-muted-foreground"> 적었어요</span>
+            <span className="text-muted-foreground/70 tabular-nums"> · </span>
+            <span className="text-muted-foreground tabular-nums">{stats.totalDays - stats.uniqueDays}일</span>
+            <span className="text-muted-foreground"> 더 채울 수 있어요</span>
+          </p>
 
           {/* 평균 mood */}
           {avgMoodEmoji && (
@@ -178,16 +164,18 @@ export const JournalSummaryPanel = ({ entries }: JournalSummaryPanelProps) => {
         </>
       )}
 
-      {/* AI 요약 버튼 (v3 placeholder) */}
-      <button
-        type="button"
-        disabled
-        title="v3 에서 활성화 — AI 한 단락 요약 + 핵심 포인트"
-        className="mt-1 inline-flex items-center justify-center gap-1.5 px-2 py-2 text-[11.5px] font-semibold rounded-md border border-dashed border-[hsl(var(--hairline))] text-muted-foreground bg-card cursor-not-allowed"
-      >
-        <Sparkles className="h-3 w-3" />
-        AI 요약 (v3 예정)
-      </button>
+      {/* AI 요약 버튼 (v3) — entries 가 충분히 쌓였을 때만 노출 */}
+      {entries.length >= 5 && (
+        <button
+          type="button"
+          disabled
+          title="v3 에서 활성화 — AI 한 단락 요약 + 핵심 포인트"
+          className="mt-1 inline-flex items-center justify-center gap-1.5 px-2 py-2 text-[11.5px] font-semibold rounded-md border border-dashed border-[hsl(var(--hairline))] text-muted-foreground bg-card cursor-not-allowed"
+        >
+          <Sparkles className="h-3 w-3" />
+          AI 요약 (v3 예정)
+        </button>
+      )}
     </aside>
   );
 };

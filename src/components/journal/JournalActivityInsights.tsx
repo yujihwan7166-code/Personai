@@ -23,6 +23,13 @@ export const JournalActivityInsights = ({ entries }: JournalActivityInsightsProp
 
   const hasContent = stats.topActivities.length > 0 || stats.activityMood.length > 0;
 
+  // 양 기간 모두 비어 있으면 카드 자체를 숨김 (사이드바 빈 자리 차지 방지).
+  // 단 entries 가 있을 때만 — entries 가 0개면 일기 자체가 비어 있어 카드 의미 없음.
+  const otherPeriod = period === 'week' ? 'month' : 'week';
+  const otherStats = useMemo(() => computeStats(entries, otherPeriod), [entries, otherPeriod]);
+  const otherHasContent = otherStats.topActivities.length > 0 || otherStats.activityMood.length > 0;
+  if (!hasContent && !otherHasContent) return null;
+
   return (
     <aside className="rounded-2xl border border-[hsl(var(--hairline))] bg-card p-4 flex flex-col gap-3 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)]">
       {/* 헤더 — 라벨 + 기간 토글 */}

@@ -32,7 +32,7 @@ function BodyPreview({ text }: { text: string }) {
     <div className="relative">
       <p
         ref={ref}
-        className="text-[15.5px] leading-[1.75] text-foreground/90 whitespace-pre-wrap line-clamp-7 tracking-[-0.005em]"
+        className="font-display text-[16.5px] leading-[1.85] text-foreground/90 whitespace-pre-wrap line-clamp-7 tracking-[-0.005em]"
       >
         {text}
       </p>

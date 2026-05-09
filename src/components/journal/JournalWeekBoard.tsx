@@ -123,6 +123,16 @@ export const JournalWeekBoard = ({
           const isFuture = key > today;
           const isSelected = key === selectedDay;
 
+          // 그 날 entry들의 mood 평균 → tint 결정 (가장 흔한 mood 기준)
+          const moodCounts = new Map<number, number>();
+          dayEntries.forEach((e) => {
+            if (e.mood !== undefined) moodCounts.set(e.mood, (moodCounts.get(e.mood) ?? 0) + 1);
+          });
+          const dominantMood = moodCounts.size > 0
+            ? [...moodCounts.entries()].sort((a, b) => b[1] - a[1])[0][0] as Mood
+            : null;
+          const moodTintClass = dominantMood !== null ? MOOD_TINT[dominantMood] : null;
+
           return (
             <button
               key={key}
@@ -138,43 +148,51 @@ export const JournalWeekBoard = ({
                     : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
               }
               className={cn(
-                'group/tab relative flex items-center justify-center h-9 sm:h-10 transition-all',
+                'group/tab relative flex flex-col items-center justify-center gap-1 h-14 sm:h-16 transition-all',
                 !isSelected && 'hover:bg-accent/40',
-                isFuture && !isSelected && 'opacity-50',
+                isFuture && !isSelected && 'opacity-45',
               )}
             >
-              <span className="inline-flex items-center gap-1">
-                {/* 오늘 = iOS Calendar 패턴 둥근 fill, 그 외 = 평이한 텍스트 */}
-                <span
-                  className={cn(
-                    'inline-flex items-center justify-center text-[13px] sm:text-[14px] tracking-[-0.01em] transition-colors',
-                    isToday && 'h-7 w-7 rounded-full font-semibold',
-                    isToday && isSelected && 'bg-primary text-primary-foreground',
-                    isToday && !isSelected && 'bg-primary/15 text-primary',
-                    !isToday && isSelected && 'font-semibold text-foreground',
-                    !isToday && !isSelected && 'font-medium text-muted-foreground group-hover/tab:text-foreground/85',
-                  )}
-                >
-                  {WEEKDAYS_KO[i]}
-                </span>
-                {/* 작성된 날 — 요일 옆 작은 dot (오늘이면 dot 자체 안 보여도 fill 으로 충분) */}
-                {hasEntry && !isToday && (
-                  <span
-                    className={cn(
-                      'w-1 h-1 rounded-full',
-                      isSelected ? 'bg-foreground/70' : 'bg-foreground/35',
-                    )}
-                    aria-hidden
-                  />
+              {/* 요일 라벨 — 작게 위 */}
+              <span
+                className={cn(
+                  'text-[10.5px] font-medium tracking-[0.05em]',
+                  isSelected ? 'text-foreground/80' : 'text-muted-foreground/75',
                 )}
+              >
+                {WEEKDAYS_KO[i]}
               </span>
-
-              {/* 선택된 탭 underline indicator — Apple Calendar 패턴 */}
-              {isSelected && (
-                <span
-                  className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-foreground"
-                  aria-hidden
-                />
+              {/* 일(day) 큰 숫자 + mood tint 배경 (entry 있는 날만) */}
+              <span
+                className={cn(
+                  'inline-flex items-center justify-center font-display tabular-nums transition-all',
+                  'h-8 w-8 sm:h-9 sm:w-9 rounded-full text-[15px] sm:text-[16px]',
+                  isToday && isSelected && 'bg-primary text-primary-foreground font-semibold shadow-[0_1px_3px_hsl(265_50%_30%/0.25)]',
+                  isToday && !isSelected && 'bg-primary/15 text-primary font-semibold',
+                  !isToday && isSelected && (moodTintClass
+                    ? `${moodTintClass} text-foreground font-semibold ring-1 ring-foreground/20`
+                    : 'bg-foreground text-background font-semibold'),
+                  !isToday && !isSelected && hasEntry && (moodTintClass
+                    ? `${moodTintClass} text-foreground/85 font-medium`
+                    : 'text-foreground/85 font-medium'),
+                  !isToday && !isSelected && !hasEntry && 'text-muted-foreground/60 group-hover/tab:text-foreground/70 font-normal',
+                )}
+              >
+                {d.getDate()}
+              </span>
+              {/* 다중 entry dot — 2개 이상일 때만 노출 */}
+              {dayEntries.length > 1 && (
+                <span className="absolute bottom-1.5 inline-flex gap-0.5" aria-hidden>
+                  {Array.from({ length: Math.min(3, dayEntries.length - 1) }).map((_, dotIdx) => (
+                    <span
+                      key={dotIdx}
+                      className={cn(
+                        'w-1 h-1 rounded-full',
+                        isSelected ? 'bg-foreground/55' : 'bg-foreground/30',
+                      )}
+                    />
+                  ))}
+                </span>
               )}
             </button>
           );
@@ -187,15 +205,15 @@ export const JournalWeekBoard = ({
         <header className="flex items-baseline justify-between gap-3 mb-5 sm:mb-6">
           <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">
             <h3
-              className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] tabular-nums text-foreground"
+              className="font-display text-[24px] sm:text-[28px] font-semibold tracking-tight tabular-nums text-foreground leading-none"
             >
               {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일{' '}
-              <span className="font-medium text-muted-foreground tracking-[-0.01em]">
+              <span className="font-medium text-muted-foreground tracking-tight">
                 {selectedDate.toLocaleDateString('ko-KR', { weekday: 'long' })}
               </span>
             </h3>
             {isSelectedToday && (
-              <span className="inline-flex items-center px-1.5 h-5 rounded-full bg-primary/10 text-primary text-[10.5px] font-semibold tracking-[-0.01em]">
+              <span className="inline-flex items-center px-2 h-6 rounded-full bg-primary text-primary-foreground text-[10.5px] font-semibold tracking-[0.02em]">
                 오늘
               </span>
             )}
@@ -299,7 +317,7 @@ export const JournalWeekBoard = ({
                       className="text-left"
                     >
                       {hasBody ? (
-                        <p className="text-[15.5px] sm:text-[16px] leading-[1.75] text-foreground/90 whitespace-pre-wrap tracking-[-0.005em]">
+                        <p className="font-display text-[16px] sm:text-[17px] leading-[1.85] text-foreground/90 whitespace-pre-wrap tracking-[-0.005em]">
                           {previewBody}
                         </p>
                       ) : (

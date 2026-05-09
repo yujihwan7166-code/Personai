@@ -239,38 +239,22 @@ const Journal = () => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h1 className="text-[26px] sm:text-[30px] font-bold tracking-[-0.025em] leading-none text-foreground">
+              <h1 className="font-display text-[34px] sm:text-[40px] font-semibold tracking-tight leading-none text-foreground">
                 일기
               </h1>
+              {streak > 0 && (
+                <span
+                  className="hidden sm:inline-flex items-center gap-1 text-[12px] font-medium tabular-nums text-primary/85"
+                  title={`${streak}일 연속 기록`}
+                >
+                  <span aria-hidden>🔥</span>
+                  {streak}일 연속
+                </span>
+              )}
               <span className="text-[12px] font-medium tabular-nums text-muted-foreground/65 hidden sm:inline">
-                {allEntries.length}개
+                {allEntries.length}편
               </span>
             </div>
-
-            {/* 가운데 — 오늘의 일기 carousel (lg+, 일기 제목 옆) */}
-            {!isEmpty && query.trim().length === 0 && !hasActiveFilter && (
-              <div className="hidden lg:flex flex-1 min-w-0 max-w-2xl">
-                <div className="flex-1 min-w-0">
-                  <JournalDailyCarousel
-                    allEntries={allEntries}
-                    onStartEntry={() => setEditorMode({ kind: 'create' })}
-                    onClickEntry={(entry) => setEditorMode({
-                      kind: 'edit',
-                      id: entry.id,
-                      initialBody: entry.body,
-                      initialMood: entry.mood,
-                      initialTags: entry.tags,
-                      initialFormat: entry.bodyFormat,
-                      initialImages: entry.images,
-                      initialActivities: entry.activities,
-                    initialWeather: entry.weather,
-                    initialSleepHours: entry.sleepHours,
-                    initialEnergy: entry.energy,
-                    })}
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="flex items-center gap-3 flex-wrap ml-auto">
             {/* 검색 input — focus 시 외곽 변화 X (영역 침범 인상 방지) */}
@@ -377,7 +361,7 @@ const Journal = () => {
               type="button"
               onClick={() => setEditorMode({ kind: 'create' })}
               title="새 일기 (N)"
-              className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-colors shadow-[0_1px_2px_hsl(30_30%_8%/0.08)]"
+              className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg border border-primary/35 bg-card text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
               오늘 일기
@@ -469,27 +453,25 @@ const Journal = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
           <div className="flex flex-col gap-5 min-w-0">
-            {/* 모바일 (lg 미만) — carousel 메인 컬럼 상단 노출 */}
+            {/* Carousel — 본문 첫 행 (헤더에서 이동, P). 검색·필터 시 hide. */}
             {query.trim().length === 0 && !hasActiveFilter && (
-              <div className="lg:hidden">
-                <JournalDailyCarousel
-                  allEntries={allEntries}
-                  onStartEntry={() => setEditorMode({ kind: 'create' })}
-                  onClickEntry={(entry) => setEditorMode({
-                    kind: 'edit',
-                    id: entry.id,
-                    initialBody: entry.body,
-                    initialMood: entry.mood,
-                    initialTags: entry.tags,
-                    initialFormat: entry.bodyFormat,
-                    initialImages: entry.images,
-                    initialActivities: entry.activities,
-                    initialWeather: entry.weather,
-                    initialSleepHours: entry.sleepHours,
-                    initialEnergy: entry.energy,
-                  })}
-                />
-              </div>
+              <JournalDailyCarousel
+                allEntries={allEntries}
+                onStartEntry={() => setEditorMode({ kind: 'create' })}
+                onClickEntry={(entry) => setEditorMode({
+                  kind: 'edit',
+                  id: entry.id,
+                  initialBody: entry.body,
+                  initialMood: entry.mood,
+                  initialTags: entry.tags,
+                  initialFormat: entry.bodyFormat,
+                  initialImages: entry.images,
+                  initialActivities: entry.activities,
+                  initialWeather: entry.weather,
+                  initialSleepHours: entry.sleepHours,
+                  initialEnergy: entry.energy,
+                })}
+              />
             )}
 
             {/* ── 주간 보드 뷰 — WeekNav 제거 (사용자 요청), 주 이동은 캘린더로 ── */}
@@ -513,21 +495,29 @@ const Journal = () => {
                   </div>
                 )}
 
-                {grouped.map((group) => (
+                {grouped.map((group) => {
+                  const [yearStr, monthStr] = group.key.split('-');
+                  const monthLabel = `${Number(monthStr)}월`;
+                  return (
                   <section
                     key={group.key}
                     id={`journal-month-${group.key}`}
                     className="flex flex-col gap-5 scroll-mt-24"
                   >
-                    {/* 월 헤더 — 책 챕터 톤 */}
-                    <div className="flex items-baseline gap-3 mb-1 px-1">
-                      <h2 className="text-[20px] sm:text-[22px] font-bold tracking-[-0.022em] text-foreground">
-                        {group.label}
-                      </h2>
-                      <span className="flex-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-                      <span className="text-[12px] font-medium tabular-nums text-muted-foreground/70">
-                        {group.items.length}개
-                      </span>
+                    {/* 월 헤더 — 책 챕터 톤 (연도 + 큰 serif 월) */}
+                    <div className="mb-1 px-1">
+                      <div className="text-[11px] font-medium tracking-[0.18em] uppercase text-muted-foreground/70 mb-1">
+                        {yearStr}
+                      </div>
+                      <div className="flex items-baseline gap-3">
+                        <h2 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-foreground leading-none">
+                          {monthLabel}
+                        </h2>
+                        <span className="flex-1 border-b border-dotted border-[hsl(var(--hairline))] translate-y-[-3px]" aria-hidden />
+                        <span className="text-[12px] font-medium tabular-nums text-muted-foreground/70">
+                          {group.items.length}편
+                        </span>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-5">
                       {group.items.map((entry) => (
@@ -552,7 +542,8 @@ const Journal = () => {
                       ))}
                     </div>
                   </section>
-                ))}
+                  );
+                })}
               </>
             )}
           </div>

@@ -161,12 +161,15 @@
     --surface-3: 40 22% 95%;
 
     /* Primary 보라 살짝 desaturated — 프린트 톤 */
-    --primary: 265 50% 52%;
+    --primary: 265 48% 50%;
     --primary-foreground: 40 30% 99%;
 
-    --ring: 265 50% 52%;
+    --ring: 265 48% 50%;
     --focus-ring: 265 55% 55%;
     --focus-offset: 40 25% 97%;
+
+    /* 다이어리 본문 serif — Day One/Bear 패턴 */
+    --journal-prose-font: 'Newsreader', 'Pretendard Variable', serif;
   }
 
   .dark .journal-warm-theme {
@@ -211,6 +214,15 @@
   }
   .journal-warm-theme .wiki-prose p:last-child {
     margin-bottom: 0;
+  }
+
+  /* 다이어리 본문 — 카드/모달 본문에 일관 적용 */
+  .journal-prose {
+    font-family: var(--journal-prose-font);
+    font-size: 16px;
+    line-height: 1.85;
+    letter-spacing: -0.005em;
+    color: hsl(var(--foreground));
   }
 
   /* ──────────────────────────────────────────────────────────────────
