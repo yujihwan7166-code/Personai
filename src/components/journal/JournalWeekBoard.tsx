@@ -94,7 +94,6 @@ export const JournalWeekBoard = ({
     setSelectedDay(defaultDay);
   }, [defaultDay]);
 
-  const selectedDate = useMemo(() => new Date(`${selectedDay}T00:00:00`), [selectedDay]);
   const selectedEntries = byDate.get(selectedDay) ?? [];
   const isSelectedFuture = selectedDay > today;
   const isSelectedToday = selectedDay === today;
@@ -199,45 +198,37 @@ export const JournalWeekBoard = ({
         })}
       </div>
 
-      {/* ── 하단 본문 panel ── */}
-      <div className="px-5 sm:px-6 pt-5 pb-6 sm:pb-7 min-h-[300px] sm:min-h-[360px]">
-        {/* panel 헤더 — "5월 5일 화요일" — 책 펼친 페이지 톤 */}
-        <header className="flex items-baseline justify-between gap-3 mb-5">
-          <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">
-            <h3
-              className="font-display text-[20px] sm:text-[24px] font-semibold tracking-tight tabular-nums text-foreground/90 leading-none"
+      {/* ── 하단 본문 panel — 날짜 헤더 제거 (탭에서 이미 보임), 슬림 액션 row 만 유지 ── */}
+      <div className="px-5 sm:px-6 pt-4 pb-6 sm:pb-7 min-h-[300px] sm:min-h-[360px]">
+        {/* 슬림 메타 row — 오늘 배지·N개 표시 + 새 일기 버튼 */}
+        <header className="flex items-center justify-between gap-2 mb-4 min-h-[28px]">
+            <div className="flex items-center gap-2 min-w-0">
+              {isSelectedToday && (
+                <span className="inline-flex items-center px-2 h-5 rounded-full bg-primary/12 text-primary text-[10.5px] font-semibold tracking-[0.02em]">
+                  오늘
+                </span>
+              )}
+              {selectedEntries.length > 1 && (
+                <span className="text-[11px] font-medium tabular-nums text-muted-foreground/75">
+                  {selectedEntries.length}개
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => onAddForDate(selectedDay)}
+              title={
+                isSelectedFuture
+                  ? '예정 일기'
+                  : selectedEntries.length === 0
+                    ? '적기'
+                    : '더 적기'
+              }
+              aria-label="새 일기"
+              className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
             >
-              {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일
-            </h3>
-            <span className="text-[12px] font-medium text-muted-foreground/80 tracking-tight">
-              {selectedDate.toLocaleDateString('ko-KR', { weekday: 'long' })}
-            </span>
-            {isSelectedToday && (
-              <span className="inline-flex items-center px-2 h-6 rounded-full bg-primary text-primary-foreground text-[10.5px] font-semibold tracking-[0.02em]">
-                오늘
-              </span>
-            )}
-            {selectedEntries.length > 1 && (
-              <span className="text-[11.5px] font-medium tabular-nums text-muted-foreground/80">
-                {selectedEntries.length}개
-              </span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => onAddForDate(selectedDay)}
-            title={
-              isSelectedFuture
-                ? '예정 일기'
-                : selectedEntries.length === 0
-                  ? '적기'
-                  : '더 적기'
-            }
-            aria-label="새 일기"
-            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+              <Plus className="h-3.5 w-3.5" />
+            </button>
         </header>
 
         {/* panel 본문 영역 */}
