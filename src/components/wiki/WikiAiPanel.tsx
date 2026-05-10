@@ -354,9 +354,9 @@ export function WikiAiPanel({
     <aside
       style={{ width }}
       className={cn(
-        'fixed top-0 right-0 h-full',
-        'bg-background border-l border-[hsl(var(--hairline))] shadow-xl',
-        'flex flex-col wiki-z-popover wiki-ai-panel-enter',
+        'relative h-full shrink-0',
+        'bg-background border-l border-[hsl(var(--hairline))]',
+        'flex flex-col wiki-ai-panel-enter',
       )}
       role="complementary"
       aria-label="마이위키 AI 도우미 패널"
