@@ -408,9 +408,25 @@ export function WikiAiPanel({
         </button>
       </header>
 
-      {/* 대화 목록 시트 */}
+      {/* 대화 목록 시트 — 아래 영역과 구분 강화 (bg + 라벨 + inset shadow) */}
       {historyOpen && (
-        <div className="border-b border-[hsl(var(--hairline))] bg-muted/20 max-h-[45%] overflow-y-auto shrink-0">
+        <div
+          className="border-b-2 border-[hsl(var(--hairline))] bg-accent/40 max-h-[45%] overflow-y-auto shrink-0"
+          style={{ boxShadow: 'inset 0 -6px 8px -6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(0,0,0,0.04)' }}
+        >
+          <div className="sticky top-0 z-[1] px-3 py-1 bg-accent/70 backdrop-blur-sm border-b border-[hsl(var(--hairline))] flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              대화 목록 · {sortedThreads.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(false)}
+              className="text-[10px] text-muted-foreground hover:text-foreground wiki-trans-color"
+              title="목록 닫기"
+            >
+              접기
+            </button>
+          </div>
           {sortedThreads.length === 0 ? (
             <div className="p-3 text-[11.5px] text-muted-foreground">대화가 없어요</div>
           ) : (
