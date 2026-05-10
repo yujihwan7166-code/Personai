@@ -20,9 +20,25 @@ interface PlannerAIPanelProps {
   onClose: () => void;
   view: PlannerView;
   anchorIso: string;
+  /** 너비(px). 동적 — 사용자가 좌측 가장자리 드래그로 조정. */
+  width: number;
+  /** 너비 변경 콜백. 부모가 clamp + persist 책임. */
+  onWidthChange: (next: number) => void;
+  /** clamp 범위 — 부모 정의값 그대로 사용. */
+  minWidth?: number;
+  maxWidth?: number;
 }
 
-export const PlannerAIPanel = ({ open, onClose, view, anchorIso }: PlannerAIPanelProps) => {
+export const PlannerAIPanel = ({
+  open,
+  onClose,
+  view,
+  anchorIso,
+  width,
+  onWidthChange,
+  minWidth = 280,
+  maxWidth = 560,
+}: PlannerAIPanelProps) => {
   const { state, send, stop, clear, applyAction, cancelAction, undoAction } = useAIChat({ view, anchorIso });
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +68,30 @@ export const PlannerAIPanel = ({ open, onClose, view, anchorIso }: PlannerAIPane
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  // ── 좌측 가장자리 드래그로 너비 조정 ──
+  // pointermove 로 viewport 우측 끝에서 마우스 X 좌표만큼 빼면 너비.
+  const dragRef = useRef<{ active: boolean }>({ active: false });
+  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragRef.current.active = true;
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+  const onResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current.active) return;
+    const next = window.innerWidth - e.clientX;
+    onWidthChange(Math.max(minWidth, Math.min(maxWidth, Math.round(next))));
+  };
+  const stopResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragRef.current.active = false;
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  };
+  // 더블클릭 → 기본값 복귀.
+  const resetToDefault = () => onWidthChange(340);
+
   return (
     <aside
       aria-hidden={!open}
@@ -59,10 +99,26 @@ export const PlannerAIPanel = ({ open, onClose, view, anchorIso }: PlannerAIPane
       className={cn(
         'fixed top-0 right-0 h-screen z-30 bg-background border-l hairline shadow-[-4px_0_20px_hsl(30_15%_8%/0.04)]',
         'transition-transform duration-200 ease-out',
-        'w-full sm:w-[340px]',
+        // 모바일: 풀스크린, sm 이상: 사용자 지정 너비 (CSS 변수로).
+        'w-full sm:w-[var(--ai-w)]',
         open ? 'translate-x-0' : 'translate-x-full pointer-events-none',
       )}
+      style={{ ['--ai-w' as string]: `${width}px` }}
     >
+      {/* 좌측 가장자리 — 드래그로 너비 조정. 모바일에선 숨김 (풀스크린이라 의미 X). */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="AI 패널 너비 조정"
+        title="드래그로 너비 조정 · 더블클릭으로 기본값"
+        className="hidden sm:block absolute top-0 left-0 h-full w-1.5 -ml-0.5 cursor-col-resize hover:bg-primary/30 active:bg-primary/50 transition-colors z-10"
+        onPointerDown={startResize}
+        onPointerMove={onResizeMove}
+        onPointerUp={stopResize}
+        onPointerCancel={stopResize}
+        onDoubleClick={resetToDefault}
+      />
+
       <div className="flex h-full flex-col">
         {/* ── 헤더 ── */}
         <div className="shrink-0 flex items-center justify-between px-3.5 pt-3 pb-2.5 border-b hairline">

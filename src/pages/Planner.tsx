@@ -129,6 +129,24 @@ const Planner = () => {
     if (typeof window === 'undefined') return;
     try { window.localStorage.setItem('planner.ai-panel.open', aiPanelOpen ? '1' : '0'); } catch { /* silent */ }
   }, [aiPanelOpen]);
+
+  // AI 패널 너비 — 사용자가 좌측 가장자리 드래그로 조정. 280~560 범위.
+  const AI_WIDTH_MIN = 280;
+  const AI_WIDTH_MAX = 560;
+  const AI_WIDTH_DEFAULT = 340;
+  const [aiPanelWidth, setAiPanelWidth] = useState<number>(() => {
+    if (typeof window === 'undefined') return AI_WIDTH_DEFAULT;
+    try {
+      const raw = window.localStorage.getItem('planner.ai-panel.width');
+      const n = raw ? Number(raw) : NaN;
+      if (!Number.isFinite(n)) return AI_WIDTH_DEFAULT;
+      return Math.max(AI_WIDTH_MIN, Math.min(AI_WIDTH_MAX, Math.round(n)));
+    } catch { return AI_WIDTH_DEFAULT; }
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem('planner.ai-panel.width', String(aiPanelWidth)); } catch { /* silent */ }
+  }, [aiPanelWidth]);
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -756,9 +774,11 @@ const Planner = () => {
       className={cn(
         'planner-theme min-h-screen bg-background flex',
         // AI 패널 열렸을 때 본문이 가려지지 않도록 우측 여백 — 패널 너비랑 동기.
-        aiPanelOpen && 'sm:pr-[340px]',
+        // 너비가 동적이라 CSS 변수 + sm: 미디어쿼리로 처리 (모바일은 패널이 풀스크린이라 여백 X).
         'transition-[padding] duration-200 ease-out',
+        aiPanelOpen && 'sm:pr-[var(--ai-panel-w)]',
       )}
+      style={{ ['--ai-panel-w' as string]: `${aiPanelWidth}px` }}
     >
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
       <aside className="shrink-0 w-12 border-r hairline bg-card/30">
@@ -1041,6 +1061,10 @@ const Planner = () => {
       onClose={() => setAiPanelOpen(false)}
       view={view}
       anchorIso={anchorIso}
+      width={aiPanelWidth}
+      onWidthChange={setAiPanelWidth}
+      minWidth={AI_WIDTH_MIN}
+      maxWidth={AI_WIDTH_MAX}
     />
     {/* MainModeTabs (offscreen) — rail "모드" 클릭 시 apiRef 로 패널 오픈.
         트리거 pill 자체는 화면 밖, dropdown panel 만 portal 로 등장 (Index.tsx 동일 패턴). */}
