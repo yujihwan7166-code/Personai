@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, LayoutGrid, Shuffle, Plus, Bot } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, LayoutGrid, LayoutDashboard, Shuffle, Plus, Bot } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -302,6 +302,15 @@ const Wiki = () => {
             </span>
             <button
               type="button"
+              onClick={() => navigate('/')}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              title="홈화면"
+              aria-label="홈화면"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               onClick={() => modeApiRef.current?.open()}
               className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               title="모드 전환"
@@ -408,7 +417,7 @@ const Wiki = () => {
           className="shrink-0 h-full w-11 border-r border-[hsl(var(--hairline))] bg-background flex flex-col items-center py-2 gap-1"
           aria-label="마이위키 빠른 액션"
         >
-          {/* 최상단: 사이드바 펴기 → 모드 전환 */}
+          {/* 최상단: 사이드바 펴기 → 홈화면 → 모드 전환 */}
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
@@ -417,6 +426,15 @@ const Wiki = () => {
             aria-label="사이드바 펴기"
           >
             <PanelLeftOpen className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+            title="홈화면"
+            aria-label="홈화면"
+          >
+            <LayoutDashboard className="h-4 w-4" />
           </button>
           <button
             type="button"
