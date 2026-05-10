@@ -20,6 +20,8 @@ export interface Memo {
   pinned: boolean;
   folderId?: string;            // optional — 없으면 미분류 (인박스)
   archivedAt?: number;          // 보관함
+  /** 휴지통(소프트 삭제). 있으면 활성 list 에서 제외 + 복구 가능. */
+  deletedAt?: number;
   wikiPageId?: string;          // 위키로 보낸 후 그 페이지 id
   /** 첨부 이미지 — paste / drag-drop. 본문 위에 grid 로 표시. */
   images?: MemoImage[];
@@ -87,12 +89,23 @@ function load(): Memo[] {
   }
 }
 
+/** 마지막 quota 알림 시각 — 1분 안에 중복 안내 X. */
+let lastQuotaAlertTs = 0;
+
 function save(list: Memo[]): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    /* quota / privacy mode */
+  } catch (err) {
+    // quota 초과·privacy mode 등 — 사용자가 데이터 유실 인지 못하면 큰 사고. 알림 + 콘솔.
+    console.error('[memoStore] save 실패:', err);
+    const now = Date.now();
+    if (now - lastQuotaAlertTs > 60_000) {
+      lastQuotaAlertTs = now;
+      import('@/lib/notify').then(({ notify }) => {
+        notify.error('메모 저장 실패 — 저장 공간 부족 가능. 휴지통 비우거나 큰 이미지 삭제하세요.', { duration: 6000 });
+      }).catch(() => { /* silent */ });
+    }
   }
 }
 
@@ -115,6 +128,15 @@ if (typeof window !== 'undefined') {
       listeners.forEach((l) => l());
     }
   });
+}
+
+// 30일 지난 휴지통 자동 정리 — 매 페이지 로드 시 1회.
+// (휴지통 누적으로 quota 잡아먹는 거 방지)
+if (typeof window !== 'undefined') {
+  // 다음 tick 으로 미뤄서 최초 commit/listeners 와 race 안 만들기
+  setTimeout(() => {
+    try { autoPurgeExpiredTrash(30); } catch { /* silent */ }
+  }, 0);
 }
 
 export function newMemoId(): string {
@@ -290,7 +312,9 @@ export function addMemo(
 
 export function updateMemo(
   id: string,
-  patch: Partial<Pick<Memo, 'body' | 'pinned' | 'archivedAt' | 'wikiPageId' | 'images' | 'sourceRecordingId' | 'sourceRecordingTitle' | 'sourceChapterIndex'>>,
+  patch: Partial<Pick<Memo,
+    'body' | 'pinned' | 'folderId' | 'archivedAt' | 'wikiPageId' | 'images' |
+    'sourceRecordingId' | 'sourceRecordingTitle' | 'sourceChapterIndex'>>,
 ): void {
   commit(
     ensure().map((m) => (m.id === id ? { ...m, ...patch, updatedAt: Date.now() } : m)),
@@ -326,8 +350,55 @@ export function findMemoFromChapter(recordingId: string, chapterIdx: number): Me
   return ensure().find((m) => m.sourceRecordingId === recordingId && m.sourceChapterIndex === chapterIdx);
 }
 
-export function removeMemo(id: string): void {
+/**
+ * 메모 삭제.
+ * - 기본(soft=true): 휴지통으로 이동 (deletedAt 세팅). 복구 가능.
+ * - soft=false: 영구 삭제 (purgeMemo 와 동일).
+ *
+ * 기존 호출자 호환: 인자 없이 부르면 soft delete (이전: 즉시 영구 삭제 → 정책 변경됨).
+ * 영구 삭제가 필요한 곳은 명시적으로 purgeMemo 사용.
+ */
+export function removeMemo(id: string, soft = true): void {
+  if (!soft) {
+    commit(ensure().filter((m) => m.id !== id));
+    return;
+  }
+  commit(ensure().map((m) => (m.id === id ? { ...m, deletedAt: Date.now(), pinned: false, updatedAt: Date.now() } : m)));
+}
+
+/** 휴지통에서 영구 삭제. UI 의 '비우기' 또는 '영구 삭제' 액션용. */
+export function purgeMemo(id: string): void {
   commit(ensure().filter((m) => m.id !== id));
+}
+
+/** 휴지통 일괄 비우기. */
+export function emptyTrash(): number {
+  const before = ensure();
+  const trashCount = before.filter((m) => m.deletedAt).length;
+  commit(before.filter((m) => !m.deletedAt));
+  return trashCount;
+}
+
+/** 휴지통에서 복구 — deletedAt 제거. */
+export function restoreMemo(id: string): void {
+  commit(
+    ensure().map((m) => {
+      if (m.id !== id) return m;
+      const { deletedAt, ...rest } = m;
+      void deletedAt;
+      return { ...rest, updatedAt: Date.now() } as Memo;
+    }),
+  );
+}
+
+/** 30일 지난 휴지통 항목 자동 영구 삭제 — store 진입 시 1회 호출 권장. */
+export function autoPurgeExpiredTrash(retentionDays = 30): number {
+  const cutoff = Date.now() - retentionDays * 24 * 3600_000;
+  const before = ensure();
+  const survivors = before.filter((m) => !(m.deletedAt && m.deletedAt < cutoff));
+  const purged = before.length - survivors.length;
+  if (purged > 0) commit(survivors);
+  return purged;
 }
 
 export function togglePin(id: string): void {
@@ -418,18 +489,38 @@ export function memoTimeLabel(epoch: number): string {
 // 검색 + 정렬
 // ──────────────────────────────────────────
 
+export type MemoSortKey = 'updated' | 'created' | 'title';
+
 export interface MemoFilter {
   query?: string;             // 본문·태그 검색
   /** 'folder' = 특정 폴더 (folderId 정의 시 그 폴더, undefined 시 미분류)
-   *  'all' = 모든 메모 (검색·태그 시 유용) */
-  scope: 'folder' | 'all';
+   *  'all' = 모든 메모 (검색·태그 시 유용)
+   *  'trash' = 휴지통 (deletedAt 있는 것만) */
+  scope: 'folder' | 'all' | 'trash';
   tag?: string;
   folderId?: string;
+  /** 정렬 키. 기본 'updated'. */
+  sort?: MemoSortKey;
+  /** true 면 보관함도 포함 (default: false — active only). */
+  includeArchived?: boolean;
 }
 
-/** 필터·정렬 — 핀 우선, 그 다음 시간 desc. */
+/** 필터·정렬 — 핀 우선, 그 다음 sort 키. */
 export function selectMemos(memos: Memo[], filter: MemoFilter): Memo[] {
   let list = memos;
+
+  // 휴지통 분기 — 다른 모든 분기와 배타.
+  if (filter.scope === 'trash') {
+    list = list.filter((m) => m.deletedAt);
+    return list.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
+  }
+
+  // 휴지통 항목은 active 분기에서 제외 (전역).
+  list = list.filter((m) => !m.deletedAt);
+
+  if (!filter.includeArchived) {
+    list = list.filter((m) => !m.archivedAt);
+  }
 
   if (filter.scope === 'folder') {
     // folderId 정의 → 그 폴더 / undefined → 미분류
@@ -447,11 +538,18 @@ export function selectMemos(memos: Memo[], filter: MemoFilter): Memo[] {
     list = list.filter((m) => m.body.toLowerCase().includes(q));
   }
 
-  // 항상 핀 우선 + 시간 desc
+  const sortKey: MemoSortKey = filter.sort ?? 'updated';
   return list.sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    if (sortKey === 'created') return b.createdAt - a.createdAt;
+    if (sortKey === 'title') return memoTitle(a).localeCompare(memoTitle(b), 'ko');
     return b.updatedAt - a.updatedAt;
   });
+}
+
+/** 휴지통 카운트. */
+export function trashCount(memos: Memo[]): number {
+  return memos.filter((m) => m.deletedAt).length;
 }
 
 export function tagFrequencies(memos: Memo[]): Array<[string, number]> {
