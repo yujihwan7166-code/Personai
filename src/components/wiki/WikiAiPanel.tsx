@@ -146,7 +146,11 @@ export function WikiAiPanel({
   const [msgs, setMsgs] = useState<AiMsg[]>(() => activeId ? loadMsgs(activeId) : []);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [ctxOn, setCtxOn] = useState(true);
+  // 컨텍스트 범위: 현재 문서 / 전체 위키. 활성 페이지가 없으면 강제 'all'.
+  const [ctxScope, setCtxScope] = useState<'page' | 'all'>(() => page ? 'page' : 'all');
+  useEffect(() => {
+    if (!page && ctxScope === 'page') setCtxScope('all');
+  }, [page, ctxScope]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [width, setWidth] = useState<number>(() => loadWidth());
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -239,14 +243,10 @@ export function WikiAiPanel({
     window.addEventListener('mouseup', onUp);
   }, [width]);
 
-  const ctxLabel = useMemo(() => {
-    if (page) return `📄 ${page.title}`;
-    return `🌐 위키 전체 (${totalPages}페이지)`;
-  }, [page, totalPages]);
-
   const ctxPayload = useMemo(() => {
-    if (!ctxOn) return '';
-    if (page) return `현재 보고 있는 페이지:\n제목: ${page.title}\n\n${page.body.slice(0, 800)}`;
+    if (ctxScope === 'page' && page) {
+      return `현재 보고 있는 페이지:\n제목: ${page.title}\n\n${page.body.slice(0, 800)}`;
+    }
     if (allPages && allPages.length > 0) {
       const lines = allPages.slice(0, 30).map((p) => {
         const firstLine = p.body.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '';
@@ -255,8 +255,8 @@ export function WikiAiPanel({
       const more = allPages.length > 30 ? `\n(외 ${allPages.length - 30}개 더)` : '';
       return `사용자의 위키 페이지 목록 (${allPages.length}개):\n${lines.join('\n')}${more}`;
     }
-    return '';
-  }, [ctxOn, page, allPages, totalPages]);
+    return totalPages > 0 ? `위키 페이지 ${totalPages}개` : '';
+  }, [ctxScope, page, allPages, totalPages]);
 
   async function send(text: string): Promise<void> {
     const q = text.trim();
@@ -454,24 +454,43 @@ export function WikiAiPanel({
         </div>
       )}
 
-      {/* 컨텍스트 칩 */}
+      {/* 참조 범위 선택 — 현재 문서 / 전체 위키 (segmented) */}
       <div className="px-3 py-2 border-b border-[hsl(var(--hairline))] flex items-center gap-2 shrink-0 bg-muted/20">
-        <button
-          type="button"
-          onClick={() => setCtxOn((v) => !v)}
-          className={cn(
-            'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[11px] wiki-trans-color',
-            ctxOn
-              ? 'bg-primary/10 text-primary'
-              : 'bg-muted text-muted-foreground line-through',
-          )}
-          title={ctxOn ? '컨텍스트 끄기 (일반 질문 모드)' : '컨텍스트 켜기 (위키 참조)'}
-        >
-          <FileText className="h-3 w-3" />
-          <span className="truncate max-w-[220px]">{ctxLabel}</span>
-        </button>
-        <span className="text-[10px] text-muted-foreground/70 truncate">
-          {ctxOn ? '참조 중' : '미참조'}
+        <span className="text-[10px] text-muted-foreground/80 shrink-0">참조</span>
+        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted border border-[hsl(var(--hairline))]">
+          <button
+            type="button"
+            onClick={() => page && setCtxScope('page')}
+            disabled={!page}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] wiki-trans-color',
+              ctxScope === 'page' && page
+                ? 'bg-background text-primary shadow-sm font-semibold'
+                : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
+            )}
+            title={page ? `현재 문서 — ${page.title}` : '활성 페이지가 없어요'}
+          >
+            <FileText className="h-3 w-3" />
+            <span className="truncate max-w-[120px]">현재 문서</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCtxScope('all')}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] wiki-trans-color',
+              ctxScope === 'all'
+                ? 'bg-background text-primary shadow-sm font-semibold'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+            title={`전체 위키 — ${totalPages}페이지`}
+          >
+            <span>전체 위키</span>
+          </button>
+        </div>
+        <span className="text-[10px] text-muted-foreground/70 truncate ml-auto">
+          {ctxScope === 'page' && page
+            ? page.title
+            : `${totalPages}페이지`}
         </span>
       </div>
 
