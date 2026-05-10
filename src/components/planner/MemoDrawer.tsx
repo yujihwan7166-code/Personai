@@ -163,8 +163,8 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
               <ChevronLeft className="h-4 w-4" />
             </button>
           ) : null}
-          <span className="text-[14px] font-semibold tracking-tight text-foreground">
-            {view === 'trash' ? '🗑 휴지통' : '📝 메모'}
+          <span className="text-[17px] font-semibold tracking-tight text-foreground">
+            {view === 'trash' ? '휴지통' : '메모'}
           </span>
           {view === 'list' && (
             <span className="text-[11px] tabular-nums text-foreground/55">{filtered.length}</span>

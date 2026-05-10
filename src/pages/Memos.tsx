@@ -216,10 +216,9 @@ const Memos = () => {
           >
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
-          <h1 className="text-[15px] font-semibold text-foreground tracking-tight flex-1 flex items-center gap-1.5">
-            <span aria-hidden className="text-[16px]">📝</span>
+          <h1 className="text-[19px] font-semibold text-foreground tracking-tight flex-1 flex items-baseline gap-2">
             <span>메모</span>
-            <span className="text-[11.5px] font-normal text-muted-foreground tabular-nums">{activeMemos.length}</span>
+            <span className="text-[12px] font-normal text-muted-foreground tabular-nums">{activeMemos.length}</span>
           </h1>
           <button
             onClick={() => setCreatingFolder(true)}
