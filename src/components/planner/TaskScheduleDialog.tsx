@@ -304,7 +304,15 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     onClose();
   };
 
-  const handleSubmit = () => submitWithScope(isSeriesInstance ? 'this' : 'all');
+  const handleSubmit = () => {
+    // 시리즈 인스턴스는 scope 모호 — Enter 자동 'this' 가 의도와 다른 경우 잦음.
+    // 명시적 선택을 강제 → 사용자가 footer 의 split-button 으로 의도 표현.
+    if (isSeriesInstance) {
+      notify.info('반복 일정이에요 — 우측 ▾ 에서 적용 범위를 선택하세요', { duration: 2500 });
+      return;
+    }
+    submitWithScope('all');
+  };
 
   const handleDelete = (scope: 'this' | 'all' = 'all') => {
     if (mode.kind !== 'schedule') return;

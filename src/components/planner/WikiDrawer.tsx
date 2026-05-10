@@ -64,6 +64,24 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
     return () => { cancelled = true; };
   }, [open]);
 
+  // Esc 2 단계 처리: detail view 면 목록으로, 목록 view 면 drawer 닫기.
+  // Sheet 의 기본 onOpenChange(false) 로 한 번에 닫히던 흐름을 분리.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (selectedId) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedId(null);
+      }
+      // selectedId 없으면 Radix Sheet 기본 동작에 위임 — close.
+    };
+    // capture 단계로 등록 — Radix 기본 핸들러보다 먼저 잡힘.
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [open, selectedId]);
+
   const selected = useMemo(
     () => pages.find((p) => p.id === selectedId) ?? null,
     [pages, selectedId],
