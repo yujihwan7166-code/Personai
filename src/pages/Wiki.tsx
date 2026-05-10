@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, LayoutGrid, LayoutDashboard, Shuffle, Plus, Bot } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, BookOpen, LayoutGrid, Shuffle, Plus, Bot } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -307,7 +307,7 @@ const Wiki = () => {
               title="홈화면"
               aria-label="홈화면"
             >
-              <LayoutDashboard className="h-4 w-4" />
+              <Home className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -340,10 +340,10 @@ const Wiki = () => {
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
-              title="대문(홈)"
-              aria-label="대문(홈)"
+              title="대문"
+              aria-label="대문"
             >
-              <Home className="h-4 w-4" />
+              <BookOpen className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -434,7 +434,7 @@ const Wiki = () => {
             title="홈화면"
             aria-label="홈화면"
           >
-            <LayoutDashboard className="h-4 w-4" />
+            <Home className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -457,10 +457,10 @@ const Wiki = () => {
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
-            title="대문(홈)"
-            aria-label="대문(홈)"
+            title="대문"
+            aria-label="대문"
           >
-            <Home className="h-4 w-4" />
+            <BookOpen className="h-4 w-4" />
           </button>
           <button
             type="button"

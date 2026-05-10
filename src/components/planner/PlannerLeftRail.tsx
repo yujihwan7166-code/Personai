@@ -1,9 +1,9 @@
 /**
  * 좌측 아이콘 rail — Notion/Linear 스타일.
  *
- * 최상단: 사이트 로고 (실제 홈 / 으로 이탈)
+ * 최상단(글로벌 네비): 사이트 로고 (실제 홈 / 으로 이탈), 모드 (사이트 모드 picker)
  * 1그룹(플래너 핵심): 오늘, 습관, AI, 검색, 매트릭스, 다가오는 일정
- * 2그룹(모드·기록): 모드, 메모, 위키
+ * 2그룹(기록): 메모, 위키
  * 하단 그룹(mt-auto): 설정 (placeholder, 곧)
  * - route: 라우트 점프
  * - drawer: 사이드 패널 (메모/위키)
@@ -51,9 +51,8 @@ const TOP_ITEMS_PRIMARY: RailItem[] = [
   { kind: 'event',  eventName: RAIL_EVENT.openAgenda,      label: '다가오는 일정',  Icon: CalendarClock },
 ];
 
-/** 2그룹 — 모드 전환·기록·도구. */
+/** 2그룹 — 기록 도구. */
 const TOP_ITEMS_SECONDARY: RailItem[] = [
-  { kind: 'event',  eventName: RAIL_EVENT.openModePalette, label: '모드',         Icon: LayoutGrid },
   { kind: 'drawer', drawer: 'memos',                      label: '메모',         Icon: FileText },
   { kind: 'drawer', drawer: 'wiki',                       label: '위키',         Icon: Network },
 ];
@@ -113,7 +112,7 @@ export const PlannerLeftRail = ({ aiOpen = false }: PlannerLeftRailProps) => {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="h-full flex flex-col items-center gap-1 py-3">
-        {/* 사이트 로고 — 진짜 홈(/)으로 이탈. 다른 rail 아이콘과 시각적으로 분리. */}
+        {/* ── 글로벌 네비 그룹 — 사이트 홈 + 모드 전환. 플래너 밖으로 나가는 액션들. ── */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -127,6 +126,21 @@ export const PlannerLeftRail = ({ aiOpen = false }: PlannerLeftRailProps) => {
           </TooltipTrigger>
           <TooltipContent side="right" className="text-[11.5px]">
             사이트 홈으로
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent(RAIL_EVENT.openModePalette))}
+              aria-label="모드"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground/50 hover:text-foreground hover:bg-accent/70 transition-all"
+            >
+              <LayoutGrid className="h-[16px] w-[16px]" strokeWidth={1.75} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="text-[11.5px]">
+            모드
           </TooltipContent>
         </Tooltip>
         <div className="my-1 h-px w-5 bg-border/60" aria-hidden />
