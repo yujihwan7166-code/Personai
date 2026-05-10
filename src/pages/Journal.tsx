@@ -378,26 +378,26 @@ const Journal = () => {
             </div>
           </div>
 
-          {/* 필터 카드 — 명확한 정체성 (헤더 + 자체 카드 + 모두 초기화) */}
+          {/* 필터 카드 — 컴팩트: 슬림 헤더 + 슬림 행 */}
           {filterOpen && query.trim().length === 0 && (topActivities.length > 0 || topTags.length > 0) && (
             <div className="mt-3 rounded-xl border border-[hsl(var(--hairline))] bg-card/70 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)] overflow-hidden">
-              {/* 카드 헤더 — '필터' 라벨 + 활성 개수 + 모두 초기화 */}
-              <div className="px-4 py-2 flex items-center justify-between border-b border-[hsl(var(--hairline))] bg-primary/[0.04]">
-                <div className="flex items-center gap-2 text-[11.5px] font-semibold tracking-[-0.005em] text-foreground/85">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-primary/80" />
+              {/* 카드 헤더 — h-7 슬림 */}
+              <div className="px-3 h-7 flex items-center justify-between border-b border-[hsl(var(--hairline))] bg-primary/[0.04]">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.005em] text-foreground/85">
+                  <SlidersHorizontal className="h-3 w-3 text-primary/80" />
                   필터
                   {hasActiveFilter && (
-                    <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary/12 text-primary text-[10px] font-bold tabular-nums">
+                    <span className="inline-flex items-center justify-center min-w-[15px] h-3.5 px-1 rounded-full bg-primary/12 text-primary text-[9.5px] font-bold tabular-nums">
                       {(activeActivity ? 1 : 0) + (activeTag ? 1 : 0)}
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   {hasActiveFilter && (
                     <button
                       type="button"
                       onClick={() => { setActiveActivity(null); setActiveTag(null); }}
-                      className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[10.5px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       <X className="h-2.5 w-2.5" />
                       모두 초기화
@@ -408,21 +408,21 @@ const Journal = () => {
                     onClick={() => setFilterOpen(false)}
                     aria-label="필터 닫기"
                     title="닫기"
-                    className="inline-flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-2.5 w-2.5" />
                   </button>
                 </div>
               </div>
 
-              {/* 카드 본문 — 활동 / 태그 행 */}
-              <div className="px-4 py-3 flex flex-col gap-3">
+              {/* 카드 본문 — 슬림 row, 칩 h-6 */}
+              <div className="px-3 py-1.5 flex flex-col">
                 {topActivities.length > 0 && (
-                  <div className="flex items-start gap-3">
-                    <span className="shrink-0 pt-1 w-12 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
+                  <div className="flex items-center gap-2.5 py-1">
+                    <span className="shrink-0 w-10 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
                       활동
                     </span>
-                    <div className="flex flex-wrap gap-1.5 flex-1">
+                    <div className="flex flex-wrap gap-1 flex-1">
                       {topActivities.map((a) => {
                         const meta = ACTIVITY_META[a.key];
                         const active = activeActivity === a.key;
@@ -432,7 +432,7 @@ const Journal = () => {
                             type="button"
                             onClick={() => setActiveActivity(active ? null : a.key)}
                             className={cn(
-                              'inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-[11.5px] font-medium border transition-colors',
+                              'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] font-medium border transition-colors',
                               active
                                 ? 'bg-primary/12 text-primary border-primary/35'
                                 : 'bg-background text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
@@ -448,21 +448,21 @@ const Journal = () => {
                   </div>
                 )}
                 {topActivities.length > 0 && topTags.length > 0 && (
-                  <div className="border-t border-[hsl(var(--hairline))] -mx-4" aria-hidden />
+                  <div className="border-t border-[hsl(var(--hairline))] -mx-3" aria-hidden />
                 )}
                 {topTags.length > 0 && (
-                  <div className="flex items-start gap-3">
-                    <span className="shrink-0 pt-1 w-12 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
+                  <div className="flex items-center gap-2.5 py-1">
+                    <span className="shrink-0 w-10 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
                       태그
                     </span>
-                    <div className="flex flex-wrap gap-1.5 flex-1">
+                    <div className="flex flex-wrap gap-1 flex-1">
                       {topTags.map((t) => (
                         <button
                           key={t.tag}
                           type="button"
                           onClick={() => setActiveTag(activeTag === t.tag ? null : t.tag)}
                           className={cn(
-                            'inline-flex items-center gap-0.5 px-2.5 h-7 rounded-full text-[11.5px] font-medium border transition-colors',
+                            'inline-flex items-center gap-0.5 px-2 h-6 rounded-full text-[11px] font-medium border transition-colors',
                             activeTag === t.tag
                               ? 'bg-primary/12 text-primary border-primary/35'
                               : 'bg-background text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
