@@ -12,13 +12,26 @@ import { expandRecurrence } from '@/lib/planner/recurrence';
 
 const STORAGE_KEY = 'planner.events.v1';
 
+/** 최소 필수 필드 검증 — id/title/startAt/endAt/createdAt/source 누락 시 invalid. */
+const isValidEvent = (v: unknown): v is PlannerEvent => {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.id === 'string'
+    && typeof o.title === 'string'
+    && typeof o.startAt === 'string'
+    && typeof o.endAt === 'string'
+    && typeof o.createdAt === 'string'
+    && typeof o.source === 'string';
+};
+
 const safeRead = (): PlannerEvent[] => {
   if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as PlannerEvent[]) : [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isValidEvent);
   } catch {
     return [];
   }
@@ -28,10 +41,14 @@ const safeWrite = (events: PlannerEvent[]): void => {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
-    window.dispatchEvent(new CustomEvent(PLANNER_EVENT_CHANGED));
-  } catch {
-    /* quota / serialization fail — silent */
+  } catch (err) {
+    console.error('[eventStore] safeWrite 실패:', err);
+    import('@/lib/notify').then(({ notify }) => {
+      notify.error('일정 저장 실패 — 저장 공간이 부족할 수 있어요');
+    }).catch(() => { /* silent */ });
+    return;
   }
+  window.dispatchEvent(new CustomEvent(PLANNER_EVENT_CHANGED));
 };
 
 const newId = (): string =>

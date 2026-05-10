@@ -12,13 +12,24 @@ import { expandRecurrence, isInstanceId, parseInstanceId } from '@/lib/planner/r
 
 const STORAGE_KEY = 'planner.tasks.v1';
 
+/** 최소 필수 필드 검증 — id/title/done/createdAt 누락 시 invalid (UI 가 .field 접근하다 crash 방지). */
+const isValidTask = (v: unknown): v is PlannerTask => {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.id === 'string'
+    && typeof o.title === 'string'
+    && typeof o.done === 'boolean'
+    && typeof o.createdAt === 'string';
+};
+
 const safeRead = (): PlannerTask[] => {
   if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as PlannerTask[]) : [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isValidTask);
   } catch {
     return [];
   }
@@ -28,10 +39,14 @@ const safeWrite = (tasks: PlannerTask[]): void => {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    window.dispatchEvent(new CustomEvent(PLANNER_TASK_CHANGED));
-  } catch {
-    /* silent */
+  } catch (err) {
+    console.error('[taskStore] safeWrite 실패:', err);
+    import('@/lib/notify').then(({ notify }) => {
+      notify.error('할 일 저장 실패 — 저장 공간이 부족할 수 있어요');
+    }).catch(() => { /* silent */ });
+    return;
   }
+  window.dispatchEvent(new CustomEvent(PLANNER_TASK_CHANGED));
 };
 
 const newId = (): string =>
