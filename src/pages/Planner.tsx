@@ -13,8 +13,10 @@
  * - t: 오늘로
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
+import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import {
   DndContext,
   DragOverlay,
@@ -84,6 +86,9 @@ const Planner = () => {
   const dayInputRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<PlannerView>('day');
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  // Rail "모드" → MainModeTabs 패널을 플래너 위에 플로팅. 외부 트리거용 apiRef.
+  const mainModeTabsApiRef = useRef<MainModeTabsApi | null>(null);
   const [anchorIso, setAnchorIso] = useState(() => {
     // ?date=YYYY-MM-DD 로 사이드바 미니캘린더에서 점프 가능.
     const dateParam = searchParams.get('date');
@@ -425,6 +430,27 @@ const Planner = () => {
     window.addEventListener(RAIL_EVENT.goToday, handler);
     return () => window.removeEventListener(RAIL_EVENT.goToday, handler);
   }, [goToday]);
+
+  // Rail 의 "모드" 클릭 → MainModeTabs 패널 오픈 (홈 화면의 모드 picker 그대로 띄움).
+  useEffect(() => {
+    const handler = () => mainModeTabsApiRef.current?.open();
+    window.addEventListener(RAIL_EVENT.openModePalette, handler);
+    return () => window.removeEventListener(RAIL_EVENT.openModePalette, handler);
+  }, []);
+
+  // MainModeTabs labels prop — MAIN_MODE_LABELS 에서 label 만 추출.
+  const mainModeLabelMap = useMemo(() => {
+    const out: Partial<Record<MainMode, string>> = {};
+    for (const [k, v] of Object.entries(MAIN_MODE_LABELS)) {
+      out[k as MainMode] = (v as { label: string }).label;
+    }
+    return out as Record<MainMode, string>;
+  }, []);
+
+  // 모드 선택 → 홈으로 이동, 해당 모드 자동 활성화 (Index.tsx 가 location.state 처리).
+  const handleSelectMainMode = useCallback((m: MainMode) => {
+    navigate('/', { state: { selectMainMode: m } });
+  }, [navigate]);
 
 
   const isFullscreen = view === 'month' || view === 'year' || view === 'goals' || view === 'habits';
@@ -972,6 +998,28 @@ const Planner = () => {
       })()}
     </DragOverlay>
     {/* 포모도로 위젯은 App.tsx 에서 글로벌하게 렌더됨 — 여기 중복 X */}
+    {/* MainModeTabs (offscreen) — rail "모드" 클릭 시 apiRef 로 패널 오픈.
+        트리거 pill 자체는 화면 밖, dropdown panel 만 portal 로 등장 (Index.tsx 동일 패턴). */}
+    <div
+      style={{ position: 'fixed', left: -9999, top: -9999, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}
+      aria-hidden
+    >
+      <MainModeTabs
+        modes={['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
+        labels={mainModeLabelMap}
+        currentMode={'general'}
+        pendingMode={null}
+        isDiscussing={false}
+        transitionPhase={0}
+        showPlayerBg={false}
+        onChange={handleSelectMainMode}
+        onSelectDebateSub={() => handleSelectMainMode('debate')}
+        onSelectAssistantCard={() => handleSelectMainMode('assistant')}
+        onSelectLifeTool={() => handleSelectMainMode('general')}
+        onSelectPlayerTool={() => handleSelectMainMode('player')}
+        apiRef={mainModeTabsApiRef}
+      />
+    </div>
     </DndContext>
   );
 };
