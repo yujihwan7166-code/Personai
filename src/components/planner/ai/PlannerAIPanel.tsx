@@ -154,11 +154,13 @@ export const PlannerAIPanel = ({
         {/* ── 메시지 영역 ── */}
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2.5">
           {state.messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center px-4">
-              <div className="text-[13px] text-foreground/80 mb-1.5">현재 화면을 보고 답해드릴게요</div>
-              <div className="text-[11.5px] text-muted-foreground mb-3 leading-relaxed">
-                일정·할 일·습관 데이터를 참고해 짧게 답합니다.<br />
-                <span className="text-muted-foreground/70">직접 추가·수정은 못 해요 — 방법만 안내해요.</span>
+            <div className="h-full flex flex-col items-center justify-center px-3 py-4">
+              <div className="text-center mb-4">
+                <div className="text-[13.5px] font-semibold text-foreground mb-1">무엇을 도와드릴까요?</div>
+                <div className="text-[11.5px] text-muted-foreground leading-relaxed">
+                  현재 화면 데이터를 참고해 답합니다.<br />
+                  <span className="text-muted-foreground/75">일정·할 일 추가는 카드로 제안 → 확인 누르면 적용.</span>
+                </div>
               </div>
               <AIQuickActions view={view} onPick={(p) => void send(p)} disabled={state.loading} />
             </div>
@@ -181,10 +183,10 @@ export const PlannerAIPanel = ({
           )}
         </div>
 
-        {/* ── 메시지 있을 때만 하단 quick actions 한 줄 ── */}
+        {/* ── 메시지 있을 때만 하단 quick actions (컴팩트 칩 모드) ── */}
         {state.messages.length > 0 && !state.loading && (
           <div className="shrink-0 px-3 pb-2">
-            <AIQuickActions view={view} onPick={(p) => void send(p)} disabled={state.loading} />
+            <AIQuickActions view={view} onPick={(p) => void send(p)} disabled={state.loading} compact />
           </div>
         )}
 
