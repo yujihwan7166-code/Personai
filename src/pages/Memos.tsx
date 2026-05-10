@@ -1161,19 +1161,25 @@ function MemoEditor({
             <MemoToolbar
               editor={tipTapEditor}
               onPickImage={() => {
+                // 이전: TipTap setImage(dataUrl) → 본문 string 안에 base64 박힘 → localStorage quota 폭발
+                // 이제: addMemoImage 로 IDB 에 blob 저장 → 본문 위 grid 에 표시 (가벼움)
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'image/*';
                 input.onchange = async () => {
                   const file = input.files?.[0];
                   if (!file) return;
-                  const dataUrl: string = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result as string);
-                    reader.onerror = () => reject(reader.error);
-                    reader.readAsDataURL(file);
-                  });
-                  tipTapEditor.chain().focus().setImage({ src: dataUrl }).run();
+                  if (file.size > 5 * 1024 * 1024) {
+                    notify.warning('이미지가 너무 커요 (5MB 이하)', { duration: 2000 });
+                    return;
+                  }
+                  try {
+                    const { addMemoImage } = await import('@/lib/memoStore');
+                    await addMemoImage(memo.id, file, file.name);
+                    notify.success('이미지 첨부됨', { duration: 1200 });
+                  } catch {
+                    notify.error('이미지 첨부 실패');
+                  }
                 };
                 input.click();
               }}
@@ -1296,6 +1302,13 @@ function MemoEditor({
             firstPlaceholder="제목"
             restPlaceholder="여기에 자유롭게 적어보세요. / 로 명령"
             onUploadImage={async (file) => {
+              // paste/drop 으로 들어오는 인라인 이미지 — TipTap body 에 base64 로 박힘.
+              // 큰 이미지면 localStorage quota 폭발하므로 1MB 이상 거부 + 안내.
+              // (큰 이미지는 툴바의 ImagePlus 버튼으로 → IDB grid 첨부 추천)
+              if (file.size > 1 * 1024 * 1024) {
+                notify.warning('인라인 이미지는 1MB 이하만. 큰 이미지는 툴바의 🖼 버튼으로 첨부하세요.', { duration: 3000 });
+                throw new Error('image too large');
+              }
               const dataUrl: string = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result as string);

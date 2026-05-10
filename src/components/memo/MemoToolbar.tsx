@@ -11,12 +11,16 @@ import type { Editor } from '@tiptap/react';
 import {
   ImagePlus, Minus, Quote, Code2, CheckSquare, Table as TableIcon,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
-  Heading1, Heading2, Heading3, Type,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  Heading1, Heading2, Heading3, Type, Link as LinkIcon,
+  AlignLeft, AlignCenter, AlignRight,
   List, ListOrdered,
   Palette, Highlighter, ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
+
+/** Mac: ⌘ / 다른 OS: Ctrl 표시 — title 단축키 라벨용. */
+const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
 
 const TEXT_COLORS = [
   { name: '기본',  value: '' },
@@ -60,6 +64,8 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
       editorEl.style.transition = 'background 200ms';
       editorEl.style.background = 'hsl(var(--accent) / 0.5)';
       setTimeout(() => { editorEl.style.background = ''; }, 200);
+      // 노란 flash 만으로는 사용자가 "왜 안 됐는지" 모름 — 명시 토스트 추가.
+      notify.info('첫 줄(제목) 에서는 블록 삽입이 안 돼요. 본문에 커서를 두세요.', { duration: 2000 });
       return;
     }
     fn();
@@ -78,6 +84,18 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
     codeblock: guarded(() => editor.chain().focus().toggleCodeBlock().run()),
     hr: guarded(() => editor.chain().focus().setHorizontalRule().run()),
     table: guarded(() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()),
+    link: () => {
+      const prev = editor.getAttributes('link').href as string | undefined;
+      const url = window.prompt('링크 URL', prev ?? 'https://');
+      if (url === null) return; // 취소
+      if (url.trim() === '') {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+        return;
+      }
+      // URL 정규화 — 프로토콜 없으면 https 추가
+      const normalized = /^[a-z]+:\/\//i.test(url) ? url : `https://${url}`;
+      editor.chain().focus().extendMarkRange('link').setLink({ href: normalized }).run();
+    },
   };
 
   return (
@@ -105,20 +123,23 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
       </IconBtn>
       <Sep />
       {/* 인라인 포맷 */}
-      <IconBtn onClick={exec.bold} active={editor.isActive('bold')} title="굵게 (⌘B)">
+      <IconBtn onClick={exec.bold} active={editor.isActive('bold')} title={`굵게 (${MOD}B)`}>
         <Bold className="w-3.5 h-3.5" />
       </IconBtn>
-      <IconBtn onClick={exec.italic} active={editor.isActive('italic')} title="이탤릭 (⌘I)">
+      <IconBtn onClick={exec.italic} active={editor.isActive('italic')} title={`이탤릭 (${MOD}I)`}>
         <Italic className="w-3.5 h-3.5" />
       </IconBtn>
-      <IconBtn onClick={exec.underline} active={editor.isActive('underline')} title="밑줄">
+      <IconBtn onClick={exec.underline} active={editor.isActive('underline')} title={`밑줄 (${MOD}U)`}>
         <UnderlineIcon className="w-3.5 h-3.5" />
       </IconBtn>
-      <IconBtn onClick={exec.strike} active={editor.isActive('strike')} title="취소선">
+      <IconBtn onClick={exec.strike} active={editor.isActive('strike')} title={`취소선 (${MOD}⇧X)`}>
         <Strikethrough className="w-3.5 h-3.5" />
       </IconBtn>
-      <IconBtn onClick={exec.code} active={editor.isActive('code')} title="인라인 코드">
+      <IconBtn onClick={exec.code} active={editor.isActive('code')} title={`인라인 코드 (${MOD}E)`}>
         <Code className="w-3.5 h-3.5" />
+      </IconBtn>
+      <IconBtn onClick={exec.link} active={editor.isActive('link')} title={`링크 (${MOD}K)`}>
+        <LinkIcon className="w-3.5 h-3.5" />
       </IconBtn>
       <Sep />
       <ColorDropdown editor={editor} />
@@ -126,10 +147,10 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
       <Sep />
       <AlignDropdown editor={editor} />
       <Sep />
-      <IconBtn onClick={exec.bullet} active={editor.isActive('bulletList')} title="글머리 기호">
+      <IconBtn onClick={exec.bullet} active={editor.isActive('bulletList')} title={`글머리 기호 (${MOD}⇧8)`}>
         <List className="w-3.5 h-3.5" />
       </IconBtn>
-      <IconBtn onClick={exec.ordered} active={editor.isActive('orderedList')} title="번호 매기기">
+      <IconBtn onClick={exec.ordered} active={editor.isActive('orderedList')} title={`번호 매기기 (${MOD}⇧7)`}>
         <ListOrdered className="w-3.5 h-3.5" />
       </IconBtn>
     </div>
@@ -304,7 +325,6 @@ const BlockTypeDropdown = ({ editor }: { editor: Editor }) => {
 const AlignDropdown = ({ editor }: { editor: Editor }) => {
   const ActiveIcon = editor.isActive({ textAlign: 'center' }) ? AlignCenter
     : editor.isActive({ textAlign: 'right' }) ? AlignRight
-    : editor.isActive({ textAlign: 'justify' }) ? AlignJustify
     : AlignLeft;
   return (
     <Popover
@@ -329,7 +349,7 @@ const AlignDropdown = ({ editor }: { editor: Editor }) => {
         { label: '왼쪽',     icon: AlignLeft,    val: 'left' as const  },
         { label: '가운데',   icon: AlignCenter,  val: 'center' as const },
         { label: '오른쪽',   icon: AlignRight,   val: 'right' as const  },
-        { label: '양쪽',     icon: AlignJustify, val: 'justify' as const },
+        // 'justify' 제거 — 메모 짧은 글에선 거의 안 쓰임 + 좁은 폭에서 단어 사이 공백 어색.
       ].map((opt) => {
         const active = editor.isActive({ textAlign: opt.val });
         return (
