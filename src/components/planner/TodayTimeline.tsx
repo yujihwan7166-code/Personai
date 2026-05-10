@@ -307,9 +307,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   };
 
   const handleDeleteTask = (task: PlannerTask) => {
-    const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'goalId'> = {
-      title: task.title, done: task.done, startAt: task.startAt, endAt: task.endAt, goalId: task.goalId,
-    };
+    // 되돌리기 시 메타(반복·서브태스크·녹음link·우선순위·노트·색상 등) 손실 없이 복원되도록 전체 캡처.
+    // 새 id 가 발급되는 건 store.add 의 정책이라 어쩔 수 없음 (시리즈 마스터의 경우 새 id 로 재시작).
+    const { id: _id, createdAt: _ca, ...rest } = task;
+    void _id; void _ca;
+    const snapshot: Omit<PlannerTask, 'id' | 'createdAt'> = { ...rest };
     taskStore.remove(task.id);
     notify.success('삭제됐어요', {
       duration: 5000,
@@ -318,9 +320,10 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   };
 
   const handleDeleteEvent = (event: PlannerEvent) => {
-    const snapshot: Omit<PlannerEvent, 'id' | 'createdAt'> = {
-      title: event.title, startAt: event.startAt, endAt: event.endAt, color: event.color, source: event.source,
-    };
+    // 모든 필드 캡처 — 반복·laneOrder 손실 방지.
+    const { id: _id, createdAt: _ca, ...rest } = event;
+    void _id; void _ca;
+    const snapshot: Omit<PlannerEvent, 'id' | 'createdAt'> = { ...rest };
     eventStore.remove(event.id);
     notify.success('삭제됐어요', {
       duration: 5000,
