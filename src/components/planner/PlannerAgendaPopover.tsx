@@ -1,10 +1,11 @@
 /**
  * Rail "다가오는 일정" 클릭 → 플로팅 팝오버로 TickTick 식 아젠다 표시.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { PlannerAgendaMini } from './PlannerAgendaMini';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface PlannerAgendaPopoverProps {
   open: boolean;
@@ -13,6 +14,9 @@ interface PlannerAgendaPopoverProps {
 }
 
 export const PlannerAgendaPopover = ({ open, onOpenChange, onItemClick }: PlannerAgendaPopoverProps) => {
+  useScrollLock(open);
+  const downOnBackdropRef = useRef(false);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -31,7 +35,13 @@ export const PlannerAgendaPopover = ({ open, onOpenChange, onItemClick }: Planne
       aria-label="다가오는 일정"
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onOpenChange(false);
+        downOnBackdropRef.current = e.target === e.currentTarget;
+      }}
+      onMouseUp={(e) => {
+        if (downOnBackdropRef.current && e.target === e.currentTarget) {
+          onOpenChange(false);
+        }
+        downOnBackdropRef.current = false;
       }}
     >
       <div

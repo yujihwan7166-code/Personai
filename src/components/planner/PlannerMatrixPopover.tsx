@@ -4,10 +4,11 @@
  * shadcn Dialog max-w 충돌 회피 위해 createPortal 직접 구성.
  * ESC/외부클릭으로 닫힘. 폭 480px 고정.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { PlannerMatrixMini } from './PlannerMatrixMini';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface PlannerMatrixPopoverProps {
   open: boolean;
@@ -16,6 +17,11 @@ interface PlannerMatrixPopoverProps {
 }
 
 export const PlannerMatrixPopover = ({ open, onOpenChange, onTaskClick }: PlannerMatrixPopoverProps) => {
+  useScrollLock(open);
+  // mousedown → mouseup 둘 다 backdrop 안에서 시작/끝났을 때만 닫힘.
+  // (popover 안 텍스트 select 후 backdrop 위로 release 했을 때 잘못 닫히는 거 방지)
+  const downOnBackdropRef = useRef(false);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -34,7 +40,13 @@ export const PlannerMatrixPopover = ({ open, onOpenChange, onTaskClick }: Planne
       aria-label="아이젠하워 매트릭스"
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onOpenChange(false);
+        downOnBackdropRef.current = e.target === e.currentTarget;
+      }}
+      onMouseUp={(e) => {
+        if (downOnBackdropRef.current && e.target === e.currentTarget) {
+          onOpenChange(false);
+        }
+        downOnBackdropRef.current = false;
       }}
     >
       <div

@@ -276,6 +276,15 @@ export const PomodoroWidget = () => {
         <button
           type="button"
           onClick={() => {
+            // 절반 이상 진행됐으면(>= 50%) confirm — 실수 클릭으로 세션 손실 방지.
+            // 짧게 지난 세션은 그냥 중단해도 사용자 손실 미미.
+            const elapsedMs = (session?.durationMin ?? 0) * 60_000 - remaining;
+            const totalMs = (session?.durationMin ?? 0) * 60_000;
+            const progressed = totalMs > 0 && elapsedMs / totalMs >= 0.5;
+            if (progressed) {
+              const ok = window.confirm('포모도로 진행 중이에요. 정말 중단할까요?');
+              if (!ok) return;
+            }
             pomodoroStore.stop();
             notify.info('포모도로 중단됨', { duration: 1200 });
           }}

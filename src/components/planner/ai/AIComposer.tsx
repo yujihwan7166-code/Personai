@@ -48,7 +48,10 @@ export const AIComposer = ({ onSend, onStop, loading, draft, onDraftChange }: AI
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+            // 한국어 IME 조합 중 Enter 차단 — isComposing + keyCode 229 백업.
+            // (브라우저별로 isComposing 만으로 못 잡는 케이스가 있어 두 검사 병행)
+            const composing = e.nativeEvent.isComposing || e.keyCode === 229;
+            if (e.key === 'Enter' && !e.shiftKey && !composing) {
               e.preventDefault();
               handleSubmit();
             }
