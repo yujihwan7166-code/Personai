@@ -2,7 +2,8 @@
  * 좌측 아이콘 rail — Notion/Linear 스타일.
  *
  * 최상단: 사이트 로고 (실제 홈 / 으로 이탈)
- * 상단 그룹: 모드, 오늘, 습관, AI, 검색, 매트릭스, 다가오는 일정, 메모, 위키, 타이머
+ * 1그룹(플래너 핵심): 오늘, 습관, AI, 검색, 매트릭스, 다가오는 일정
+ * 2그룹(모드·기록·도구): 모드, 메모, 위키, 타이머
  * 하단 그룹(mt-auto): 설정 (placeholder, 곧)
  * - route: 라우트 점프
  * - drawer: 사이드 패널 (메모/위키)
@@ -39,14 +40,19 @@ export const RAIL_EVENT = {
   openModePalette: 'planner:open-mode-palette',
 } as const;
 
-const TOP_ITEMS: RailItem[] = [
-  { kind: 'event',  eventName: RAIL_EVENT.openModePalette, label: '모드',         Icon: LayoutGrid },
+/** 1그룹 — 플래너 핵심(시간·일정·검색). */
+const TOP_ITEMS_PRIMARY: RailItem[] = [
   { kind: 'event',  eventName: RAIL_EVENT.goToday,         label: '오늘',         Icon: CalendarDays },
   { kind: 'event',  eventName: RAIL_EVENT.openHabits,      label: '습관',         Icon: Repeat },
   { kind: 'soon',                                         label: 'AI',           Icon: Sparkles },
   { kind: 'event',  eventName: RAIL_EVENT.openPalette,     label: '검색',         Icon: Search },
   { kind: 'event',  eventName: RAIL_EVENT.openMatrix,      label: '매트릭스',     Icon: Grid2x2 },
   { kind: 'event',  eventName: RAIL_EVENT.openAgenda,      label: '다가오는 일정',  Icon: CalendarClock },
+];
+
+/** 2그룹 — 모드 전환·기록·도구. */
+const TOP_ITEMS_SECONDARY: RailItem[] = [
+  { kind: 'event',  eventName: RAIL_EVENT.openModePalette, label: '모드',         Icon: LayoutGrid },
   { kind: 'drawer', drawer: 'memos',                      label: '메모',         Icon: FileText },
   { kind: 'drawer', drawer: 'wiki',                       label: '위키',         Icon: Network },
   { kind: 'soon',                                         label: '타이머',       Icon: Timer },
@@ -119,12 +125,18 @@ export const PlannerLeftRail = () => {
         </Tooltip>
         <div className="my-1 h-px w-5 bg-border/60" aria-hidden />
 
-        {TOP_ITEMS.map(renderItem)}
+        {TOP_ITEMS_PRIMARY.map(renderItem)}
+        <div className="my-1 h-px w-5 bg-border/60" aria-hidden />
+        {TOP_ITEMS_SECONDARY.map((item, idx) =>
+          renderItem(item, TOP_ITEMS_PRIMARY.length + idx),
+        )}
 
         {/* 하단 그룹 — 메타/글로벌 (설정 등). 위 그룹과 자동 분리. */}
         <div className="mt-auto flex flex-col items-center gap-1">
           <div className="my-1 h-px w-5 bg-border/60" aria-hidden />
-          {BOTTOM_ITEMS.map((item, idx) => renderItem(item, TOP_ITEMS.length + idx))}
+          {BOTTOM_ITEMS.map((item, idx) =>
+            renderItem(item, TOP_ITEMS_PRIMARY.length + TOP_ITEMS_SECONDARY.length + idx),
+          )}
         </div>
       </div>
 
