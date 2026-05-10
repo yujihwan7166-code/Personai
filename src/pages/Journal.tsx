@@ -255,11 +255,11 @@ const Journal = () => {
 
             {/* 도구 그룹 — 우측 정렬, 한 묶음 */}
             <div className="flex items-center gap-2 ml-auto">
-              {/* 검색 */}
+              {/* 검색 — ring-inset 으로 옆 버튼 영역 침범 방지 */}
               <div
                 className={cn(
-                  'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border w-44 sm:w-56',
-                  'border-[hsl(var(--hairline))] bg-card/60 focus-within:border-primary/35 focus-within:ring-2 focus-within:ring-primary/12 transition-shadow',
+                  'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border w-44 sm:w-56 shrink-0',
+                  'border-[hsl(var(--hairline))] bg-card/60 focus-within:border-primary/35 focus-within:ring-1 focus-within:ring-inset focus-within:ring-primary/25 transition-shadow',
                 )}
               >
                 <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -300,14 +300,23 @@ const Journal = () => {
                   role="tab"
                   aria-selected={effectiveViewMode === 'week'}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setViewMode('week')}
-                  disabled={query.trim().length > 0 || hasActiveFilter}
-                  title="주간 보드"
+                  onClick={() => {
+                    // 명시적으로 주간 뷰로 전환 — 검색·필터 자동 해제
+                    setQuery('');
+                    setActiveActivity(null);
+                    setActiveTag(null);
+                    setViewMode('week');
+                  }}
+                  title={
+                    query.trim().length > 0 || hasActiveFilter
+                      ? '주간 보드 (검색·필터 해제)'
+                      : '주간 보드'
+                  }
                   className={cn(
                     'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
                     effectiveViewMode === 'week'
                       ? 'bg-primary/12 text-primary font-semibold'
-                      : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
+                      : 'text-muted-foreground hover:text-foreground',
                   )}
                   style={{ outline: 'none', boxShadow: 'none' }}
                 >
