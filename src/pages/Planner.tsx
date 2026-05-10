@@ -746,7 +746,7 @@ const Planner = () => {
       <aside className="shrink-0 w-12 border-r hairline bg-card/30">
         <PlannerLeftRail />
       </aside>
-      <main className="flex-1 min-w-0 px-5 sm:px-8 pt-7 sm:pt-9 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
+      <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
             ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}
