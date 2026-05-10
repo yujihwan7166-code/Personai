@@ -224,7 +224,7 @@ const Journal = () => {
 
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
-      <main className="flex-1 px-4 sm:px-8 py-8 sm:py-12 max-w-5xl w-full mx-auto">
+      <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
         {/* 마스트헤드 — 한 줄 압축, 책 표지 톤 */}
         <header className="mb-6 sm:mb-8">
           <div className="flex flex-wrap items-center gap-3">
@@ -238,7 +238,7 @@ const Journal = () => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h1 className="font-display text-[34px] sm:text-[40px] font-semibold tracking-tight leading-none text-foreground">
+              <h1 className="font-display text-[24px] sm:text-[28px] font-semibold tracking-tight leading-none text-foreground">
                 일기
               </h1>
               {streak > 0 && (
@@ -489,7 +489,7 @@ const Journal = () => {
                         {yearStr}
                       </div>
                       <div className="flex items-baseline gap-3">
-                        <h2 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-foreground leading-none">
+                        <h2 className="font-display text-[20px] sm:text-[24px] font-semibold tracking-tight text-foreground leading-none">
                           {monthLabel}
                         </h2>
                         <span className="flex-1 border-b border-dotted border-[hsl(var(--hairline))] translate-y-[-3px]" aria-hidden />
@@ -527,7 +527,7 @@ const Journal = () => {
             )}
           </div>
           {/* 우측 사이드 — lg 이상에서만 노출. 정보 위계: 시각 앵커 → 회상 → 통계 */}
-          <aside className="hidden lg:flex flex-col gap-5 sticky top-8 self-start max-h-[calc(100vh-4rem)] overflow-y-auto pr-1">
+          <aside className="hidden lg:flex flex-col gap-5">
             <JournalCalendarMini
               entries={allEntries}
               selectedDate={activeDate}

@@ -83,28 +83,28 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
   return (
     <article
       className={cn(
-        'group rounded-2xl border border-[hsl(var(--hairline))] bg-card',
-        'pl-6 pr-7 py-6',
-        'shadow-[0_1px_2px_hsl(30_30%_8%/0.04)]',
-        'hover:border-foreground/25 hover:shadow-[0_4px_18px_-8px_hsl(30_30%_8%/0.1)]',
+        'group rounded-xl border border-[hsl(var(--hairline))] bg-card',
+        'pl-5 pr-5 py-4 sm:py-5',
+        'shadow-[0_1px_2px_hsl(30_30%_8%/0.03)]',
+        'hover:border-foreground/20 hover:shadow-[0_4px_14px_-8px_hsl(30_30%_8%/0.08)]',
         'transition-all duration-200',
       )}
     >
-      <div className="flex gap-5">
-        {/* ── 좌 날짜 컬럼 ── */}
-        <div className="w-14 shrink-0 flex flex-col items-start pr-5 border-r border-[hsl(var(--hairline))]">
-          <span className="text-[34px] font-bold tabular-nums leading-none tracking-[-0.03em] text-foreground group-hover:text-primary transition-colors">
+      <div className="flex gap-4">
+        {/* ── 좌 날짜 컬럼 — 컴팩트 ── */}
+        <div className="w-11 shrink-0 flex flex-col items-start pr-4 border-r border-[hsl(var(--hairline))]">
+          <span className="text-[22px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-foreground/90 group-hover:text-primary transition-colors">
             {day}
           </span>
-          <span className="mt-2 text-[11px] font-medium tabular-nums text-muted-foreground">
+          <span className="mt-1.5 text-[10.5px] font-medium tabular-nums text-muted-foreground/80">
             {month}월
           </span>
-          <span className="mt-0.5 text-[11px] font-medium text-muted-foreground/75">
-            {weekday}요일
+          <span className="mt-0.5 text-[10.5px] text-muted-foreground/65">
+            {weekday}
           </span>
           {moodKey && (
             <span
-              className={cn('mt-3 w-2 h-2 rounded-full', MOOD_TINT[moodKey])}
+              className={cn('mt-2 w-1.5 h-1.5 rounded-full', MOOD_TINT[moodKey])}
               title={`${moodLabel ?? ''} ${moodEmoji ?? ''}`.trim()}
               aria-label={moodLabel ?? ''}
             />

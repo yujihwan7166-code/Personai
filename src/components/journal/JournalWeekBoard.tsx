@@ -200,12 +200,12 @@ export const JournalWeekBoard = ({
       </div>
 
       {/* ── 하단 본문 panel ── */}
-      <div className="px-6 sm:px-8 pt-6 pb-7 sm:pb-8 min-h-[360px] sm:min-h-[420px]">
+      <div className="px-5 sm:px-6 pt-5 pb-6 sm:pb-7 min-h-[300px] sm:min-h-[360px]">
         {/* panel 헤더 — "5월 5일 화요일" 한 줄 좌상단 */}
-        <header className="flex items-baseline justify-between gap-3 mb-5 sm:mb-6">
+        <header className="flex items-baseline justify-between gap-3 mb-4 sm:mb-5">
           <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">
             <h3
-              className="font-display text-[24px] sm:text-[28px] font-semibold tracking-tight tabular-nums text-foreground leading-none"
+              className="font-display text-[18px] sm:text-[20px] font-semibold tracking-tight tabular-nums text-foreground leading-none"
             >
               {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일{' '}
               <span className="font-medium text-muted-foreground tracking-tight">
