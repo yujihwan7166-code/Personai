@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore,
+  ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore, RotateCcw,
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, Mic,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,7 @@ import { MemoToolbar } from '@/components/memo/MemoToolbar';
 import type { Editor } from '@tiptap/react';
 import '@/styles/memo.css';
 import {
-  useMemos, addMemo, updateMemo, removeMemo, togglePin,
+  useMemos, addMemo, updateMemo, removeMemo, restoreMemo, purgeMemo, emptyTrash, togglePin,
   archiveMemo, unarchiveMemo, removeMemoImage,
   memoTitle, memoPreview, extractMemoTags, memoTimeLabel,
   tagFrequencies,
@@ -72,14 +72,19 @@ const Memos = () => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [editingFolder, setEditingFolder] = useState<MemoFolder | null>(null);
   const [showArchive, setShowArchive] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
 
-  // archived 메모는 일반 list 에서 제외 — 별도 view 에서만.
+  // archived/deleted 메모는 일반 list 에서 제외 — 별도 view 에서만.
   const activeMemos = useMemo(
-    () => memos.filter((m) => !m.archivedAt),
+    () => memos.filter((m) => !m.archivedAt && !m.deletedAt),
     [memos],
   );
   const archivedMemos = useMemo(
-    () => memos.filter((m) => m.archivedAt).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
+    () => memos.filter((m) => m.archivedAt && !m.deletedAt).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
+    [memos],
+  );
+  const trashedMemos = useMemo(
+    () => memos.filter((m) => m.deletedAt).sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0)),
     [memos],
   );
 
@@ -156,19 +161,13 @@ const Memos = () => {
   }, []);
 
   const handleDelete = useCallback((id: string) => {
-    const snapshot = memos.find((m) => m.id === id);
-    if (!snapshot) return;
-    removeMemo(id);
-    notify.info('메모 삭제됨', {
+    // 소프트 삭제 — 휴지통으로 이동. 5초 undo 토스트로 복구 가능 (id 보존).
+    const target = memos.find((m) => m.id === id);
+    if (!target) return;
+    removeMemo(id); // soft (default)
+    notify.info('휴지통으로 이동', {
       duration: 5000,
-      action: {
-        label: '되돌리기',
-        onClick: () => {
-          // 새 id 로 복원 (폴더 위치 유지)
-          const restored = addMemo({ body: snapshot.body, pinned: snapshot.pinned });
-          if (snapshot.folderId) moveMemoToFolder(restored.id, snapshot.folderId);
-        },
-      },
+      action: { label: '되돌리기', onClick: () => restoreMemo(id) },
     });
     if (activeId === id) setActiveId(null);
   }, [memos, activeId]);
@@ -417,6 +416,88 @@ const Memos = () => {
                       ))}
                     </ul>
                   )
+                )}
+              </div>
+
+              {/* 휴지통 — 30일 자동 영구 삭제 */}
+              <div className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowTrash((v) => !v)}
+                  className={cn(
+                    'mx-2 w-[calc(100%-1rem)] flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-colors',
+                    'text-foreground/55 hover:text-foreground hover:bg-foreground/5',
+                    showTrash && 'text-foreground',
+                  )}
+                >
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                  <span className="text-[12.5px] font-medium">휴지통</span>
+                  <span className="ml-auto text-[10.5px] tabular-nums">
+                    {trashedMemos.length}
+                  </span>
+                  <ChevronRight className={cn(
+                    'w-3 h-3 transition-transform shrink-0 opacity-60',
+                    showTrash && 'rotate-90',
+                  )} strokeWidth={2} />
+                </button>
+                {showTrash && (
+                  <>
+                    {trashedMemos.length > 0 && (
+                      <div className="px-5 pt-1 pb-1.5 flex items-center justify-between text-[10.5px] text-muted-foreground">
+                        <span>30일 후 자동 영구 삭제</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const ok = window.confirm(`${trashedMemos.length}개 메모를 영구 삭제할까요?`);
+                            if (!ok) return;
+                            const n = emptyTrash();
+                            notify.info(`${n}개 영구 삭제됨`, { duration: 1500 });
+                          }}
+                          className="text-rose-500 hover:underline"
+                        >
+                          비우기
+                        </button>
+                      </div>
+                    )}
+                    {trashedMemos.length === 0 ? (
+                      <p className="px-5 py-1.5 text-[11px] text-muted-foreground italic">
+                        휴지통 비어있음
+                      </p>
+                    ) : (
+                      <ul className="pl-3 pr-2 pb-1 space-y-0.5">
+                        {trashedMemos.map((m) => (
+                          <li
+                            key={m.id}
+                            className="group flex items-center gap-1 px-2 py-1 rounded text-[12px] text-foreground/70 hover:bg-accent transition-colors"
+                          >
+                            <span className="flex-1 truncate">{memoTitle(m)}</span>
+                            <button
+                              type="button"
+                              onClick={() => { restoreMemo(m.id); notify.success('복구됨', { duration: 1200 }); }}
+                              aria-label="복구"
+                              title="복구"
+                              className="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-all"
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const ok = window.confirm('영구 삭제할까요?');
+                                if (!ok) return;
+                                purgeMemo(m.id);
+                              }}
+                              aria-label="영구 삭제"
+                              title="영구 삭제"
+                              className="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
                 )}
               </div>
             </>
