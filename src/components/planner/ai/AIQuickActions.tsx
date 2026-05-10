@@ -14,6 +14,9 @@ const ALL_ACTIONS: AIQuickAction[] = [
   { id: 'week-plan',      label: '주간 계획 짜기',   prompt: '이번 주 큰 흐름 잡아줘. 어느 요일에 뭘 몰아주면 좋을지.', visibleOn: ['week'] },
   { id: 'month-pattern',  label: '이번 달 패턴',     prompt: '이번 달 어떤 패턴이 보여? 좋은 흐름·고쳐야 할 흐름 각 1개씩.', visibleOn: ['month'] },
   { id: 'habits-coach',   label: '습관 코칭',        prompt: '내 습관 중 잘 안 되는 거 있어? 다음 주에 어떻게 접근하면 좋을까.', visibleOn: ['habits'] },
+  { id: 'goals-status',   label: '목표 점검',        prompt: '내 목표들 진척이 어때? 가장 신경 써야 할 거 1-2개만 짚어줘.', visibleOn: ['goals'] },
+  { id: 'goals-next',     label: '다음 행동',        prompt: '목표 진척을 위해 이번 주에 할 만한 작은 행동 3개만 추천해줘.', visibleOn: ['goals'] },
+  { id: 'year-overview',  label: '올해 흐름',        prompt: '올해 어떤 흐름이 보여? 반년 회고 + 남은 기간 한 가지 제안.', visibleOn: ['year'] },
 ];
 
 interface AIQuickActionsProps {

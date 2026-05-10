@@ -26,11 +26,20 @@ export const PlannerAIPanel = ({ open, onClose, view, anchorIso }: PlannerAIPane
   const { state, send, stop, clear } = useAIChat({ view, anchorIso });
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 새 메시지 도착 시 자동 스크롤 끝.
+  // 새 메시지 도착 + 스트리밍 중 본문 변경 시 자동 스크롤 끝.
+  // 사용자가 스크롤을 위로 올렸으면 (끝에서 80px 이상) 따라가지 않음 — 읽기 방해 X.
+  const lastContentLenRef = useRef(0);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const totalLen = state.messages.reduce((sum, m) => sum + m.content.length, 0);
+    const grew = totalLen > lastContentLenRef.current;
+    lastContentLenRef.current = totalLen;
+    if (!grew) return;
+    if (distanceFromBottom < 80) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [state.messages]);
 
   // Esc 닫기.

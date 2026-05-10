@@ -9,6 +9,7 @@
 import { cn } from '@/lib/utils';
 import type { AIMessage as AIMessageType } from '@/types/plannerAI';
 import { RefreshCw } from 'lucide-react';
+import { LazyMarkdown } from '@/components/LazyMarkdown';
 
 interface AIMessageProps {
   message: AIMessageType;
@@ -23,9 +24,9 @@ export const AIMessage = ({ message, onRetry }: AIMessageProps) => {
     <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words',
+          'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed break-words',
           isUser
-            ? 'bg-primary/12 text-foreground'
+            ? 'bg-primary/12 text-foreground whitespace-pre-wrap'
             : 'bg-card border hairline text-foreground',
           hasError && 'border-destructive/40 bg-destructive/5 text-foreground',
         )}
@@ -47,13 +48,20 @@ export const AIMessage = ({ message, onRetry }: AIMessageProps) => {
               </button>
             )}
           </div>
-        ) : (
+        ) : isUser ? (
           <>
             {message.content}
+          </>
+        ) : (
+          // assistant: markdown 렌더 (목록·굵게 등). 빈 본문 + 스트리밍이면 caret 만 표시.
+          <div className="ai-md prose-tight">
+            {message.content
+              ? <LazyMarkdown content={message.content} />
+              : null}
             {message.streaming && (
               <span className="inline-block ml-0.5 w-1.5 h-3 bg-foreground/60 animate-pulse align-text-bottom" aria-hidden />
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

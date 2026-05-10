@@ -121,7 +121,14 @@ const Planner = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [matrixPopoverOpen, setMatrixPopoverOpen] = useState(false);
   const [agendaPopoverOpen, setAgendaPopoverOpen] = useState(false);
-  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try { return window.localStorage.getItem('planner.ai-panel.open') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem('planner.ai-panel.open', aiPanelOpen ? '1' : '0'); } catch { /* silent */ }
+  }, [aiPanelOpen]);
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -745,7 +752,14 @@ const Planner = () => {
       onDragEnd={handleDragEnd}
       autoScroll={{ threshold: { x: 0, y: 0.15 }, acceleration: 12 }}
     >
-    <div className="planner-theme min-h-screen bg-background flex">
+    <div
+      className={cn(
+        'planner-theme min-h-screen bg-background flex',
+        // AI 패널 열렸을 때 본문이 가려지지 않도록 우측 여백 — 패널 너비랑 동기.
+        aiPanelOpen && 'sm:pr-[380px]',
+        'transition-[padding] duration-200 ease-out',
+      )}
+    >
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
       <aside className="shrink-0 w-12 border-r hairline bg-card/30">
         <PlannerLeftRail aiOpen={aiPanelOpen} />
