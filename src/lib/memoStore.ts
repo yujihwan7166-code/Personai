@@ -9,7 +9,14 @@ import { useSyncExternalStore } from 'react';
 
 export interface MemoImage {
   id: string;
-  dataUrl: string;              // base64 (소형) — 향후 IDB blob URL 로 마이그 가능
+  /** @deprecated 옛 base64 — 새로 추가하지 마세요. 호환용 유지. */
+  dataUrl?: string;
+  /** IndexedDB 의 이미지 row id. 새 첨부는 이쪽 사용. */
+  idbId?: string;
+  /** mime — idbId 와 같이 보관 (object URL revoke 시 쓸 수 있고, fallback 표시용) */
+  mimeType?: string;
+  /** byte size — quota 표시용 */
+  size?: number;
   name?: string;
   addedAt: number;
 }
@@ -321,22 +328,58 @@ export function updateMemo(
   );
 }
 
-/** 이미지 추가 (base64 dataUrl). 큰 이미지는 호출 측에서 압축 권장. */
-export function addMemoImage(memoId: string, dataUrl: string, name?: string): void {
+/**
+ * 이미지 추가 — IndexedDB 에 blob 저장 후 메타만 memo 에 보관.
+ * IDB 실패 시 base64 dataUrl 로 폴백 (큰 이미지는 quota 초과 가능 — 호출 측 압축 권장).
+ */
+export async function addMemoImage(memoId: string, input: Blob | string, name?: string): Promise<void> {
   const memo = getMemo(memoId);
   if (!memo) return;
-  const img: MemoImage = {
-    id: `img_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-    dataUrl,
-    name,
-    addedAt: Date.now(),
-  };
+  const baseId = `img_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  let img: MemoImage;
+  try {
+    const { putMemoImage } = await import('./memoImageStore');
+    const stored = await putMemoImage(input);
+    img = {
+      id: baseId,
+      idbId: stored.id,
+      mimeType: stored.mimeType,
+      size: stored.size,
+      name,
+      addedAt: Date.now(),
+    };
+  } catch {
+    // IDB 실패 (private mode 등) — dataUrl 폴백
+    const dataUrl = typeof input === 'string'
+      ? input
+      : await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(input as Blob);
+        });
+    img = {
+      id: baseId,
+      dataUrl,
+      mimeType: typeof input === 'string' ? undefined : (input as Blob).type,
+      size: typeof input === 'string' ? undefined : (input as Blob).size,
+      name,
+      addedAt: Date.now(),
+    };
+  }
   updateMemo(memoId, { images: [...(memo.images ?? []), img] });
 }
 
-export function removeMemoImage(memoId: string, imageId: string): void {
+export async function removeMemoImage(memoId: string, imageId: string): Promise<void> {
   const memo = getMemo(memoId);
   if (!memo) return;
+  const target = (memo.images ?? []).find((i) => i.id === imageId);
+  if (target?.idbId) {
+    try {
+      const { deleteMemoImage } = await import('./memoImageStore');
+      await deleteMemoImage(target.idbId);
+    } catch { /* silent */ }
+  }
   updateMemo(memoId, { images: (memo.images ?? []).filter((i) => i.id !== imageId) });
 }
 

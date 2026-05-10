@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
+import { useMemoImageSrc } from '@/hooks/useMemoImageSrc';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
@@ -1193,26 +1194,16 @@ function MemoEditor({
         </DropdownMenu>
       </div>
 
-      {/* 첨부 이미지 grid — 본문 위에 */}
+      {/* 첨부 이미지 grid — 본문 위에. IDB blob 이면 비동기 object URL, 옛 dataUrl 은 즉시. */}
       {(memo.images?.length ?? 0) > 0 && (
         <div className="shrink-0 px-6 sm:px-10 pt-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {memo.images!.map((img) => (
-              <div key={img.id} className="relative group/img rounded-md overflow-hidden border border-foreground/20 aspect-video bg-foreground/5">
-                <img
-                  src={img.dataUrl}
-                  alt={img.name ?? 'attached'}
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeMemoImage(memo.id, img.id)}
-                  aria-label="이미지 삭제"
-                  className="absolute top-1 right-1 w-6 h-6 inline-flex items-center justify-center rounded-md bg-black/60 text-white opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-black/80"
-                >
-                  <X className="w-3.5 h-3.5" strokeWidth={2} />
-                </button>
-              </div>
+              <MemoImageThumb
+                key={img.id}
+                image={img}
+                onRemove={() => void removeMemoImage(memo.id, img.id)}
+              />
             ))}
           </div>
         </div>
@@ -1455,6 +1446,32 @@ function ExportToWikiModal({ memo, onClose }: { memo: Memo; onClose: () => void 
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────
+// MemoImageThumb — 첨부 이미지 단일 카드 (IDB 비동기 / dataUrl 즉시 모두 처리)
+// ──────────────────────────────────────────
+function MemoImageThumb({ image, onRemove }: { image: import('@/lib/memoStore').MemoImage; onRemove: () => void }) {
+  const src = useMemoImageSrc(image);
+  return (
+    <div className="relative group/img rounded-md overflow-hidden border border-foreground/20 aspect-video bg-foreground/5">
+      {src ? (
+        <img src={src} alt={image.name ?? 'attached'} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-[10.5px] text-foreground/45">
+          이미지 로딩…
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="이미지 삭제"
+        className="absolute top-1 right-1 w-6 h-6 inline-flex items-center justify-center rounded-md bg-black/60 text-white opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-black/80"
+      >
+        <X className="w-3.5 h-3.5" strokeWidth={2} />
+      </button>
     </div>
   );
 }
