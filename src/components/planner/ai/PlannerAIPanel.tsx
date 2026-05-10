@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { Sparkles, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAIChat } from '@/hooks/planner/ai/useAIChat';
+import { AI_NAME } from '@/lib/planner/ai/aiName';
 import type { PlannerView } from '@/components/planner/ViewToggle';
 import { AIMessage } from './AIMessage';
 import { AIQuickActions } from './AIQuickActions';
@@ -95,7 +96,7 @@ export const PlannerAIPanel = ({
   return (
     <aside
       aria-hidden={!open}
-      aria-label="AI 컴패니언"
+      aria-label={`${AI_NAME} — AI 컴패니언`}
       className={cn(
         'fixed top-0 right-0 h-screen z-30 bg-background border-l hairline shadow-[-4px_0_20px_hsl(30_15%_8%/0.04)]',
         'transition-transform duration-200 ease-out',
@@ -124,7 +125,7 @@ export const PlannerAIPanel = ({
         <div className="shrink-0 flex items-center justify-between px-3.5 pt-3 pb-2.5 border-b hairline">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" strokeWidth={2} />
-            <h2 className="text-[13.5px] font-semibold text-foreground">AI</h2>
+            <h2 className="text-[13.5px] font-semibold text-foreground truncate">{AI_NAME}</h2>
           </div>
           <div className="flex items-center gap-0.5">
             {state.messages.length > 0 && (

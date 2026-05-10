@@ -347,21 +347,23 @@ export function WikiAiPanel({
     notify.info('대화를 삭제했어요');
   }
 
-  if (!open) return null;
-
   const sortedThreads = [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
 
   return (
     <aside
-      style={{ width }}
+      style={{ width: open ? width : 0 }}
       className={cn(
-        'relative h-full shrink-0',
-        'bg-background border-l border-[hsl(var(--hairline))]',
-        'flex flex-col wiki-ai-panel-enter',
+        'h-full shrink-0 overflow-hidden',
+        'transition-[width] duration-200 ease-out',
       )}
       role="complementary"
       aria-label="마이위키 AI 도우미 패널"
+      aria-hidden={!open}
     >
+      <div
+        style={{ width }}
+        className="relative h-full flex flex-col bg-background border-l border-[hsl(var(--hairline))]"
+      >
       {/* 좌측 리사이즈 핸들 */}
       <div
         onMouseDown={onResizeStart}
@@ -587,6 +589,7 @@ export function WikiAiPanel({
           <Send className="h-4 w-4" />
         </button>
       </form>
+      </div>
     </aside>
   );
 }
