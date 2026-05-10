@@ -76,7 +76,7 @@ type DialogMode =
       initialNote?: string;
       initialPinned?: boolean;
     }
-  | { kind: 'create'; presetStartIso: string };
+  | { kind: 'create'; presetStartIso: string; presetIsEvent?: boolean };
 
 const isSameDay = (a: Date, b: Date): boolean =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -526,9 +526,11 @@ const Planner = () => {
       ? (rawDropData as PlannerDropData)
       : undefined;
     setActiveDrag(null);
+    // 모든 분기에서 reset 보장 — early return 누락으로 다음 드래그가 잘못된 보정값 사용하는 버그 방지.
+    const initialScrollTop = dragInitialScrollTop.current;
+    dragInitialScrollTop.current = null;
 
     if (!dragData) {
-      dragInitialScrollTop.current = null;
       return;
     }
 
@@ -576,8 +578,8 @@ const Planner = () => {
       const snap = getSnapMin();
       // 자동 스크롤 보상 — 드래그 중 컨테이너가 스크롤된 만큼 e.delta.y 에 더함.
       const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
-      const scrollDelta = container && dragInitialScrollTop.current !== null
-        ? container.scrollTop - dragInitialScrollTop.current
+      const scrollDelta = container && initialScrollTop !== null
+        ? container.scrollTop - initialScrollTop
         : 0;
       const adjustedDeltaY = e.delta.y + scrollDelta;
       const deltaMinutes = Math.round((adjustedDeltaY / HOUR_PX) * 60 / snap) * snap; // 사용자 스냅 단위
@@ -689,6 +691,7 @@ const Planner = () => {
         taskStore.unschedule(task.id);
       }
       notify.info('인박스로 옮겼어요', { duration: 1500 });
+      return;
     }
 
     // ─── 시간 블록 → 좌하 "할 일" 박스: 시간 빼고 plannedFor=오늘 (일정 → 할 일 변환) ───
@@ -719,7 +722,6 @@ const Planner = () => {
       }
       notify.success('할 일로 옮겼어요', { duration: 1500 });
     }
-    dragInitialScrollTop.current = null;
   }, [tryDetachInstance]);
 
   return (
