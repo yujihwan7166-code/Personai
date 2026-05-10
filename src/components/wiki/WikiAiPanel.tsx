@@ -460,6 +460,19 @@ export function WikiAiPanel({
         <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted border border-[hsl(var(--hairline))]">
           <button
             type="button"
+            onClick={() => setCtxScope('all')}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] wiki-trans-color',
+              ctxScope === 'all'
+                ? 'bg-background text-primary shadow-sm font-semibold'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+            title={`전체 위키 — ${totalPages}페이지`}
+          >
+            <span>전체 위키</span>
+          </button>
+          <button
+            type="button"
             onClick={() => page && setCtxScope('page')}
             disabled={!page}
             className={cn(
@@ -472,19 +485,6 @@ export function WikiAiPanel({
           >
             <FileText className="h-3 w-3" />
             <span className="truncate max-w-[120px]">현재 문서</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setCtxScope('all')}
-            className={cn(
-              'inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] wiki-trans-color',
-              ctxScope === 'all'
-                ? 'bg-background text-primary shadow-sm font-semibold'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            title={`전체 위키 — ${totalPages}페이지`}
-          >
-            <span>전체 위키</span>
           </button>
         </div>
         <span className="text-[10px] text-muted-foreground/70 truncate ml-auto">
