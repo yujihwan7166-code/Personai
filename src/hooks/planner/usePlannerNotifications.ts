@@ -26,6 +26,24 @@ const readNotified = (): Set<string> => {
   }
 };
 
+/** 24시간 지난 reminder/start 키는 prune — set 무한 grow 방지. */
+const pruneOld = (set: Set<string>): boolean => {
+  const cutoff = Date.now() - 24 * 60 * 60_000;
+  let changed = false;
+  for (const key of set) {
+    // 키 형식: "reminder:<id>:<isoStartAt>" 또는 "start:<id>:<isoStartAt>"
+    const lastColon = key.lastIndexOf(':');
+    if (lastColon < 0) continue;
+    const iso = key.slice(lastColon + 1);
+    const ts = new Date(iso).getTime();
+    if (!isNaN(ts) && ts < cutoff) {
+      set.delete(key);
+      changed = true;
+    }
+  }
+  return changed;
+};
+
 const writeNotified = (set: Set<string>): void => {
   if (typeof window === 'undefined') return;
   try {
@@ -92,7 +110,7 @@ export const usePlannerNotifications = (): void => {
       ];
 
       const notified = readNotified();
-      let changed = false;
+      let changed = pruneOld(notified);
 
       const consider = (item: PlannerEvent | PlannerTask, kindLabel: string) => {
         if (!item.startAt) return;

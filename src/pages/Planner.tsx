@@ -545,12 +545,17 @@ const Planner = () => {
 
     if (!dropData) return;
 
-    // ─── 인박스 → 시간 슬롯: 시간 배정 (기본 30분) ───
+    // ─── 인박스 → 시간 슬롯: 시간 배정 ───
+    // 기본 길이 = 사용자 snap × 2 (15→30, 30→60). 너무 짧으면 클릭하기 어려움.
     if (dragData.kind === 'inbox-task' && dropData.kind === 'time-slot') {
       const start = dropData.startIso;
-      const end = new Date(new Date(start).getTime() + 30 * 60_000).toISOString();
+      const blockMin = Math.max(30, getSnapMin() * 2);
+      const end = new Date(new Date(start).getTime() + blockMin * 60_000).toISOString();
       taskStore.schedule(dragData.task.id, start, end);
-      notify.success('시간 배정됐어요', { duration: 1500 });
+      const startD = new Date(start);
+      const hh = String(startD.getHours()).padStart(2, '0');
+      const mm = String(startD.getMinutes()).padStart(2, '0');
+      notify.success(`${hh}:${mm} 에 배정됐어요`, { duration: 1500 });
       return;
     }
 
@@ -561,7 +566,10 @@ const Planner = () => {
       dropData.kind === 'time-slot'
     ) {
       const item = dragData.kind === 'scheduled-task' ? dragData.task : dragData.event;
-      if (!item.startAt || !item.endAt) return;
+      if (!item.startAt || !item.endAt) {
+        notify.warning('이 항목은 시간이 없어 이동할 수 없어요', { duration: 1500 });
+        return;
+      }
       const HOUR_PX = 56;
       const oldStart = new Date(item.startAt);
       const oldEnd = new Date(item.endAt);
@@ -635,7 +643,10 @@ const Planner = () => {
       dropData.kind === 'day-column'
     ) {
       const item = dragData.kind === 'scheduled-task' ? dragData.task : dragData.event;
-      if (!item.startAt || !item.endAt) return;
+      if (!item.startAt || !item.endAt) {
+        notify.warning('이 항목은 시간이 없어 이동할 수 없어요', { duration: 1500 });
+        return;
+      }
       const oldStart = new Date(item.startAt);
       const dur = new Date(item.endAt).getTime() - oldStart.getTime();
       const targetDay = new Date(dropData.dayIso);

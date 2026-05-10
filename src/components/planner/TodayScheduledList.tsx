@@ -104,7 +104,8 @@ const snoozeItem = (kind: Kind, item: PlannerTask | PlannerEvent, deltaMs: numbe
   notify.success('미뤘어요', { duration: 1200 });
 };
 
-/** 삭제 — 시리즈 인스턴스는 exdate 만 추가 (createNew=false). */
+/** 삭제 — 시리즈 인스턴스는 exdate 만 추가 (createNew=false).
+ * 단발 항목은 5초 내 되돌리기 제공 (TodayTimeline 과 일관). 시리즈는 exdate 추가라 되돌리기 어려움. */
 const removeItem = (kind: Kind, item: PlannerTask | PlannerEvent) => {
   if (isInstanceId(item.id)) {
     const parsed = parseInstanceId(item.id);
@@ -116,12 +117,31 @@ const removeItem = (kind: Kind, item: PlannerTask | PlannerEvent) => {
       const master = eventStore.findMaster(parsed.masterId);
       if (master) editThisOnly(eventStore, master, parsed.occurrenceIso, {}, { createNew: false });
     }
-  } else if (kind === 'task') {
-    taskStore.remove(item.id);
-  } else {
-    eventStore.remove(item.id);
+    notify.success('이 항목만 삭제했어요', { duration: 1500 });
+    return;
   }
-  notify.success('삭제됐어요', { duration: 1200 });
+  // 단발 — 전체 캡처 후 5초 undo.
+  if (kind === 'task') {
+    const t = item as PlannerTask;
+    const { id: _id, createdAt: _ca, ...rest } = t;
+    void _id; void _ca;
+    const snap = { ...rest } as Omit<PlannerTask, 'id' | 'createdAt'>;
+    taskStore.remove(t.id);
+    notify.success('삭제됐어요', {
+      duration: 5000,
+      action: { label: '되돌리기', onClick: () => taskStore.add(snap) },
+    });
+  } else {
+    const e = item as PlannerEvent;
+    const { id: _id, createdAt: _ca, ...rest } = e;
+    void _id; void _ca;
+    const snap = { ...rest } as Omit<PlannerEvent, 'id' | 'createdAt'>;
+    eventStore.remove(e.id);
+    notify.success('삭제됐어요', {
+      duration: 5000,
+      action: { label: '되돌리기', onClick: () => eventStore.add(snap) },
+    });
+  }
 };
 
 export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodayScheduledListProps) => {
