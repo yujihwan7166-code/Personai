@@ -396,10 +396,25 @@ const Planner = () => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
-      const isTyping =
-        target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      // INPUT/TEXTAREA/contentEditable 외에도 Radix combobox(role="combobox")·search role 도 입력으로 간주.
+      const isTyping = !!target && (
+        target.tagName === 'INPUT'
+        || target.tagName === 'TEXTAREA'
+        || target.isContentEditable
+        || target.getAttribute('role') === 'combobox'
+        || target.getAttribute('role') === 'searchbox'
+      );
       if (isTyping) return;
-      if (dialogMode) return;
+      // 모달·팝오버·AI 패널 떠있으면 글로벌 뷰 전환 단축키 모두 차단.
+      // (Esc/?는 그래도 받고 싶지만 단순화: 모두 차단)
+      if (dialogMode || paletteOpen || helpOpen || matrixPopoverOpen || agendaPopoverOpen || aiPanelOpen) {
+        // helpOpen 인 경우 ? 로 다시 닫지 못하면 답답하니 ? 만 통과.
+        if (helpOpen && e.key === '?') {
+          e.preventDefault();
+          setHelpOpen(false);
+        }
+        return;
+      }
 
       switch (e.key.toLowerCase()) {
         case 'n':
@@ -422,7 +437,7 @@ const Planner = () => {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [view, dialogMode, goPrev, goNext, goToday]);
+  }, [view, dialogMode, paletteOpen, helpOpen, matrixPopoverOpen, agendaPopoverOpen, aiPanelOpen, goPrev, goNext, goToday]);
 
   // ── Rail 이벤트 핸들러 ── (useWindowEvent 로 보일러플레이트 제거)
   const handleOpenPalette = useCallback(() => setPaletteOpen(true), []);

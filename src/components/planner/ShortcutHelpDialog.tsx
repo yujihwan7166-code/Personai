@@ -25,7 +25,9 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ['D'], desc: '일' },
       { keys: ['W'], desc: '주' },
       { keys: ['M'], desc: '월' },
-      { keys: ['Y'], desc: '년 / 습관 히트맵' },
+      { keys: ['Y'], desc: '년' },
+      { keys: ['G'], desc: '목표' },
+      { keys: ['H'], desc: '습관' },
     ],
   },
   {
@@ -39,8 +41,9 @@ const GROUPS: ShortcutGroup[] = [
   {
     label: '입력',
     items: [
-  { keys: ['N'], desc: '빠른 추가 포커스' },
+      { keys: ['N'], desc: '빠른 추가 포커스' },
       { keys: ['Ctrl', 'K'], desc: '명령 팔레트' },
+      { keys: ['/'], desc: '명령 팔레트 (보조)' },
       { keys: ['?'], desc: '이 도움말' },
     ],
   },
