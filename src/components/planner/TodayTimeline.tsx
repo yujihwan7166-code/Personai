@@ -340,14 +340,30 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   };
 
   const handleUnschedule = (task: PlannerTask) => {
-    // 시·분 정보가 영구 손실되므로 [되돌리기] 액션 제공.
     // 시리즈 인스턴스(`master@iso`) 는 taskStore.unschedule 가 master 목록에서
-    // 못 찾고 silent no-op — undo 가 master 를 잘못 덮어쓸 수 있으니 일반 알림만.
-    const isInstance = isInstanceId(task.id);
+    // 못 찾고 silent no-op — 토스트만 뜨고 실제론 아무 일도 안 일어나는 latent 버그.
+    // DnD 의 "시간 블록 → 인박스" 와 같은 정책으로: 그 occurrence 만 detach +
+    // 인박스 단발 항목 신규 생성 (Apple Calendar 의 "이 항목만" 패턴).
+    if (isInstanceId(task.id)) {
+      const parsed = parseInstanceId(task.id);
+      if (!parsed) return;
+      const master = taskStore.findMaster(parsed.masterId);
+      if (!master) return;
+      editThisOnly(taskStore, master, parsed.occurrenceIso, {
+        startAt: undefined,
+        endAt: undefined,
+      });
+      // 시리즈 detach 는 master.recurrence.exdates + 신규 task 생성 두 단계라
+      // 단순 undo 로 되돌리기 어려움 — 명시적 안내만 하고 액션 X.
+      notify.info('이 항목만 대기함으로 옮겼어요', { duration: 2000 });
+      return;
+    }
+
+    // 일반 task — 시·분 정보가 영구 손실되므로 [되돌리기] 액션 제공.
     const snapStart = task.startAt;
     const snapEnd = task.endAt;
     taskStore.unschedule(task.id);
-    if (!isInstance && snapStart) {
+    if (snapStart) {
       notify.info('대기함으로 옮겼어요', {
         duration: 4000,
         action: {
