@@ -16,7 +16,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Search, X, Hash, SlidersHorizontal, LayoutGrid, List } from 'lucide-react';
+import { ChevronLeft, Plus, Search, X, Hash, SlidersHorizontal, LayoutGrid, List, BarChart3 } from 'lucide-react';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
@@ -30,6 +30,7 @@ import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalWeekBoard } from '@/components/journal/JournalWeekBoard';
 import { JournalActivityInsights } from '@/components/journal/JournalActivityInsights';
+import { JournalStatsDialog } from '@/components/journal/JournalStatsDialog';
 import { normalizeWeekAnchor } from '@/lib/journalWeek';
 import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,7 @@ const Journal = () => {
   const [activeActivity, setActiveActivity] = useState<string | null>(null);
   const [activeDate, setActiveDate] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // 뷰 모드 — 주간 보드 / 시간순 목록. localStorage 영속.
@@ -366,6 +368,19 @@ const Journal = () => {
                   )}
                 </button>
               )}
+              {/* 통계 — 전체 일기 통계 모달 */}
+              {allEntries.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setStatsOpen(true)}
+                  title="전체 통계"
+                  aria-label="전체 통계"
+                  className="inline-flex items-center gap-1.5 px-2.5 h-9 rounded-lg border text-[12px] font-medium transition-colors border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card shrink-0"
+                >
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  <span>통계</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setEditorMode({ kind: 'create' })}
@@ -630,6 +645,12 @@ const Journal = () => {
         open={editorMode !== null}
         mode={editorMode}
         onClose={() => setEditorMode(null)}
+      />
+      <JournalStatsDialog
+        open={statsOpen}
+        onClose={() => setStatsOpen(false)}
+        entries={allEntries}
+        streak={streak}
       />
     </div>
   );
