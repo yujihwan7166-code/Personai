@@ -32,7 +32,7 @@ function BodyPreview({ text }: { text: string }) {
     <div className="relative">
       <p
         ref={ref}
-        className="font-display text-[16.5px] leading-[1.85] text-foreground/90 whitespace-pre-wrap line-clamp-7 tracking-[-0.005em]"
+        className="font-display text-[16px] leading-[1.95] text-foreground/88 whitespace-pre-wrap line-clamp-7 tracking-[-0.005em]"
       >
         {text}
       </p>
@@ -91,24 +91,27 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
       )}
     >
       <div className="flex flex-col">
-        {/* 상단 메타 — 날짜·요일·시각 인라인 서브타이틀 (Day One 패턴) */}
-        <header className="flex items-center justify-between gap-2 mb-2.5">
-          <div className="flex items-center gap-1.5 min-w-0 text-[11.5px] tabular-nums text-muted-foreground/85">
-            <span className="font-semibold text-foreground/75">{day}</span>
-            <span className="text-muted-foreground/60">·</span>
-            <span>{weekday}요일</span>
-            <span className="text-muted-foreground/45">·</span>
-            <span>{timeLabel}</span>
+        {/* 상단 — 큰 day(serif) + 작은 요일·시각 (책 페이지 머릿글 톤) */}
+        <header className="flex items-baseline justify-between gap-2 mb-3">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="font-display text-[20px] sm:text-[22px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-foreground/85 group-hover:text-primary/90 transition-colors">
+              {day}
+            </span>
+            <span className="text-[11px] tabular-nums text-muted-foreground/85">
+              {weekday}요일
+              <span className="text-muted-foreground/40 mx-1.5">·</span>
+              {timeLabel}
+            </span>
             {moodKey && (
               <span
-                className={cn('ml-1 w-1.5 h-1.5 rounded-full shrink-0', MOOD_TINT[moodKey])}
+                className={cn('ml-1 w-1.5 h-1.5 rounded-full shrink-0 self-center', MOOD_TINT[moodKey])}
                 title={`${moodLabel ?? ''} ${moodEmoji ?? ''}`.trim()}
                 aria-label={moodLabel ?? ''}
               />
             )}
             {entry.bodyFormat === 'markdown' && (
               <span
-                className="inline-flex items-center gap-0.5 px-1.5 h-4 rounded text-[10px] font-medium text-muted-foreground bg-accent/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                className="inline-flex items-center gap-0.5 px-1.5 h-4 rounded text-[10px] font-medium text-muted-foreground bg-accent/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity self-center"
                 title="풍부한 편집"
               >
                 <Wand2 className="h-2 w-2" />

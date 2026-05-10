@@ -225,42 +225,53 @@ const Journal = () => {
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
-        {/* 마스트헤드 — 한 줄 압축, 책 표지 톤 */}
-        <header className="mb-6 sm:mb-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-baseline gap-3 sm:gap-4 shrink-0">
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                aria-label="메인으로"
-                title="메인으로"
-                className="self-center inline-flex items-center justify-center h-7 w-7 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <h1 className="font-display text-[24px] sm:text-[28px] font-semibold tracking-tight leading-none text-foreground">
-                일기
-              </h1>
+        {/* 마스트헤드 — 두 줄 분리: 정체성 / 도구 (잡지 마스트 패턴) */}
+        <header className="mb-7 sm:mb-9">
+          {/* Row 1 — 정체성: 뒤로 + 타이틀 + streak / 우측: 오늘 일기 CTA */}
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              aria-label="메인으로"
+              title="메인으로"
+              className="inline-flex items-center justify-center h-7 w-7 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <h1 className="font-display text-[26px] sm:text-[32px] font-semibold tracking-tight leading-none text-foreground">
+              일기
+            </h1>
+            <div className="flex items-baseline gap-2.5 ml-1">
               {streak > 0 && (
                 <span
-                  className="hidden sm:inline-flex items-center gap-1 text-[12px] font-medium tabular-nums text-primary/85"
+                  className="inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85"
                   title={`${streak}일 연속 기록`}
                 >
                   <span aria-hidden>🔥</span>
                   {streak}일 연속
                 </span>
               )}
-              <span className="text-[12px] font-medium tabular-nums text-muted-foreground/65 hidden sm:inline">
-                {allEntries.length}편
+              <span className="text-[11.5px] font-medium tabular-nums text-muted-foreground/55 hidden sm:inline">
+                · {allEntries.length}편
               </span>
             </div>
+            <button
+              type="button"
+              onClick={() => setEditorMode({ kind: 'create' })}
+              title="새 일기 (N)"
+              className="ml-auto inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              오늘 일기
+            </button>
+          </div>
 
-            <div className="flex items-center gap-3 flex-wrap ml-auto">
-            {/* 검색 input — focus 시 외곽 변화 X (영역 침범 인상 방지) */}
+          {/* Row 2 — 도구: 검색 (flex-1) | 뷰 토글 | 필터 */}
+          <div className="flex items-center gap-2.5">
             <div
               className={cn(
-                'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border w-36',
-                'border-[hsl(var(--hairline))] bg-card/60',
+                'relative flex-1 inline-flex items-center gap-2 h-9 px-3 rounded-lg border max-w-md',
+                'border-[hsl(var(--hairline))] bg-card/60 focus-within:border-primary/35 focus-within:ring-2 focus-within:ring-primary/12 transition-shadow',
               )}
             >
               <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -269,7 +280,7 @@ const Journal = () => {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="검색"
+                placeholder="이번 일기 안에서 검색…"
                 aria-label="일기 검색"
                 className="flex-1 bg-transparent text-[12.5px] outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
                 style={{ outline: 'none', boxShadow: 'none' }}
@@ -285,11 +296,11 @@ const Journal = () => {
                 </button>
               )}
             </div>
-            {/* 뷰 모드 토글 — 주간 보드 / 시간순 목록 */}
+            {/* 뷰 모드 토글 */}
             <div
               role="tablist"
               aria-label="뷰 모드"
-              className="inline-flex items-center p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60"
+              className="inline-flex items-center p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60 shrink-0"
               title={
                 query.trim().length > 0 || hasActiveFilter
                   ? '검색·필터 시 자동 목록 뷰'
@@ -332,8 +343,7 @@ const Journal = () => {
                 <List className="h-3.5 w-3.5" />
               </button>
             </div>
-
-            {/* 필터 토글 — 활동·태그 패널 collapse */}
+            {/* 필터 토글 */}
             {(topActivities.length > 0 || topTags.length > 0) && (
               <button
                 type="button"
@@ -343,9 +353,9 @@ const Journal = () => {
                 aria-label="필터"
                 title={hasActiveFilter ? '필터 활성' : '필터'}
                 className={cn(
-                  'relative inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors outline-none focus:outline-none focus-visible:outline-none',
+                  'relative inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors outline-none focus:outline-none focus-visible:outline-none shrink-0',
                   filterOpen || hasActiveFilter
-                    ? 'border-foreground/25 bg-accent text-foreground'
+                    ? 'border-primary/30 bg-primary/8 text-primary'
                     : 'border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card',
                 )}
                 style={{ outline: 'none', boxShadow: 'none' }}
@@ -356,16 +366,6 @@ const Journal = () => {
                 )}
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => setEditorMode({ kind: 'create' })}
-              title="새 일기 (N)"
-              className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg border border-primary/35 bg-card text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              오늘 일기
-            </button>
-          </div>
           </div>
 
           {/* 필터 collapse 패널 — 활동 + 태그 (검색 중이 아닐 때만) */}
@@ -483,17 +483,17 @@ const Journal = () => {
                     id={`journal-month-${group.key}`}
                     className="flex flex-col gap-5 scroll-mt-24"
                   >
-                    {/* 월 헤더 — 책 챕터 톤 (연도 + 큰 serif 월) */}
-                    <div className="mb-1 px-1">
-                      <div className="text-[11px] font-medium tracking-[0.18em] uppercase text-muted-foreground/70 mb-1">
+                    {/* 월 챕터 — 책 톤: 연도 eyebrow + serif 월 + 가는 라인 */}
+                    <div className="mb-2 px-1">
+                      <div className="text-[10px] font-semibold tracking-[0.22em] uppercase text-muted-foreground/55 mb-1.5">
                         {yearStr}
                       </div>
                       <div className="flex items-baseline gap-3">
-                        <h2 className="font-display text-[20px] sm:text-[24px] font-semibold tracking-tight text-foreground leading-none">
+                        <h2 className="font-display text-[22px] sm:text-[26px] font-semibold tracking-tight text-foreground/90 leading-none">
                           {monthLabel}
                         </h2>
-                        <span className="flex-1 border-b border-dotted border-[hsl(var(--hairline))] translate-y-[-3px]" aria-hidden />
-                        <span className="text-[12px] font-medium tabular-nums text-muted-foreground/70">
+                        <span className="flex-1 border-b border-[hsl(var(--hairline))] translate-y-[-4px]" aria-hidden />
+                        <span className="text-[11px] font-medium tabular-nums text-muted-foreground/65">
                           {group.items.length}편
                         </span>
                       </div>
