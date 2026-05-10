@@ -99,8 +99,9 @@ export const PlannerAIPanel = ({ open, onClose, view, anchorIso }: PlannerAIPane
           {state.messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
               <div className="text-[13px] text-foreground/80 mb-1.5">현재 화면을 보고 답해드릴게요</div>
-              <div className="text-[11.5px] text-muted-foreground mb-4">
-                일정 · 할 일 · 습관 데이터를 참고해서 짧게 답합니다
+              <div className="text-[11.5px] text-muted-foreground mb-3 leading-relaxed">
+                일정·할 일·습관 데이터를 참고해 짧게 답합니다.<br />
+                <span className="text-muted-foreground/70">직접 추가·수정은 못 해요 — 방법만 안내해요.</span>
               </div>
               <AIQuickActions view={view} onPick={(p) => void send(p)} disabled={state.loading} />
             </div>
