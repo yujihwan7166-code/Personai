@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Sparkles, X, Send, Trash2, FileText, Plus as PlusIcon,
-  BookOpen, MessageSquarePlus, History,
+  BookOpen, MessageSquarePlus, History, Library,
 } from 'lucide-react';
 import type { WikiPage } from '@/types/wiki';
 import type { Expert } from '@/types/expert';
@@ -454,44 +454,51 @@ export function WikiAiPanel({
         </div>
       )}
 
-      {/* 참조 범위 선택 — 현재 문서 / 전체 위키 (segmented) */}
-      <div className="px-3 py-2 border-b border-[hsl(var(--hairline))] flex items-center gap-2 shrink-0 bg-muted/20">
-        <span className="text-[10px] text-muted-foreground/80 shrink-0">참조</span>
-        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted border border-[hsl(var(--hairline))]">
-          <button
-            type="button"
-            onClick={() => setCtxScope('all')}
-            className={cn(
-              'inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] wiki-trans-color',
-              ctxScope === 'all'
-                ? 'bg-background text-primary shadow-sm font-semibold'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-            title={`전체 위키 — ${totalPages}페이지`}
-          >
-            <span>전체 위키</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => page && setCtxScope('page')}
-            disabled={!page}
-            className={cn(
-              'inline-flex items-center gap-1 px-2 h-5 rounded text-[10.5px] wiki-trans-color',
-              ctxScope === 'page' && page
-                ? 'bg-background text-primary shadow-sm font-semibold'
-                : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
-            )}
-            title={page ? `현재 문서 — ${page.title}` : '활성 페이지가 없어요'}
-          >
-            <FileText className="h-3 w-3" />
-            <span className="truncate max-w-[120px]">현재 문서</span>
-          </button>
-        </div>
-        <span className="text-[10px] text-muted-foreground/70 truncate ml-auto">
-          {ctxScope === 'page' && page
-            ? page.title
-            : `${totalPages}페이지`}
+      {/* 참조 범위 — ghost pill, active 시 primary/10 (위키 toolbar 일관 톤) */}
+      <div className="px-3 py-1.5 border-b border-[hsl(var(--hairline))] flex items-center gap-1.5 shrink-0">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 shrink-0 mr-0.5">
+          참조
         </span>
+        <button
+          type="button"
+          onClick={() => setCtxScope('all')}
+          className={cn(
+            'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] wiki-trans-color',
+            ctxScope === 'all'
+              ? 'bg-primary/10 text-primary font-semibold'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+          )}
+          title={`전체 위키 — ${totalPages}페이지`}
+        >
+          <Library className="h-3 w-3" />
+          <span>전체 위키</span>
+          {totalPages > 0 && (
+            <span className={cn(
+              'text-[10px] tabular-nums',
+              ctxScope === 'all' ? 'text-primary/70' : 'text-muted-foreground/60',
+            )}>
+              {totalPages}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => page && setCtxScope('page')}
+          disabled={!page}
+          className={cn(
+            'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] wiki-trans-color min-w-0',
+            ctxScope === 'page' && page
+              ? 'bg-primary/10 text-primary font-semibold'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            'disabled:opacity-35 disabled:hover:bg-transparent disabled:cursor-not-allowed',
+          )}
+          title={page ? `현재 문서 — ${page.title}` : '활성 페이지가 없어요'}
+        >
+          <FileText className="h-3 w-3 shrink-0" />
+          <span className="truncate max-w-[120px]">
+            {page ? page.title : '현재 문서'}
+          </span>
+        </button>
       </div>
 
       {/* 메시지 영역 */}
