@@ -1,5 +1,5 @@
 /**
- * 주간 보드용 날짜 헬퍼 — JournalWeekBoard / JournalWeekNav 공용.
+ * 주간 보드용 날짜 헬퍼 — JournalWeekBoard 가 사용.
  *
  * 일관성 원칙: 일기는 월요일 시작 (한국 사용자 익숙). planner 는 일요일 시작이라 별도.
  */

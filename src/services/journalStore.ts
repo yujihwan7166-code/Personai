@@ -6,6 +6,7 @@
  * - 변경 시 JOURNAL_CHANGED 커스텀 이벤트 broadcast → 훅 자동 re-render
  */
 import { JournalEntry, Mood, BodyFormat, JournalImage, JOURNAL_CHANGED } from '@/types/journal';
+import { notify } from '@/lib/notify';
 
 const STORAGE_KEY = 'journal.entries.v1';
 
@@ -100,13 +101,27 @@ const safeRead = (): JournalEntry[] => {
   }
 };
 
+// quota 알림은 같은 세션에서 1회만 (반복 toast 방지)
+let quotaNotified = false;
+
 const safeWrite = (entries: JournalEntry[]): void => {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     window.dispatchEvent(new CustomEvent(JOURNAL_CHANGED));
-  } catch {
-    /* quota / serialization fail — silent */
+  } catch (err) {
+    const isQuota =
+      err instanceof DOMException &&
+      (err.name === 'QuotaExceededError' || err.code === 22);
+    if (isQuota && !quotaNotified) {
+      quotaNotified = true;
+      notify.error('저장 공간이 가득 찼어요', {
+        description: '이미지가 큰 일기를 정리하거나, 데이터를 내보낸 뒤 일부 삭제해 주세요.',
+      });
+    } else if (!isQuota) {
+      // 다른 직렬화 실패는 dev 콘솔에만 (silent toast)
+      console.error('일기 저장 실패', err);
+    }
   }
 };
 
