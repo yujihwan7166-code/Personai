@@ -10,7 +10,7 @@
  *
  * 디자인은 라이트 톤 (chip 옅은 outline, 라벨 medium foreground/70).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Trash2, Flag, RotateCw, ChevronDown } from 'lucide-react';
 import {
   Dialog,
@@ -135,9 +135,20 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
   const [taskColor, setTaskColor] = useState<TaskListColor | undefined>();
 
-  // 모드 변경 시 폼 초기화.
+  // 모드 변경 시 폼 초기화 — open 이 false→true 로 전환되거나 다른 mode 객체가 들어왔을 때만.
+  // 부모 리렌더로 mode 참조만 새로 들어오는 경우(같은 내용)에는 사용자 입력을 보존해야 함.
+  // 따라서 open=true 인 동안의 후속 mode 변경은 taskId/kind/presetStartIso 가 실제로 달라질 때만 반응.
+  const lastResetKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!mode) return;
+    if (!mode || !open) {
+      lastResetKeyRef.current = null;
+      return;
+    }
+    const key = mode.kind === 'schedule'
+      ? `s:${mode.taskId}`
+      : `c:${mode.presetStartIso}:${mode.presetIsEvent ? '1' : '0'}`;
+    if (lastResetKeyRef.current === key) return;
+    lastResetKeyRef.current = key;
     if (mode.kind === 'schedule') {
       setTitle(mode.initialTitle);
       // task 의 실제 startAt 유무로 isEvent 자동 결정 (사용자가 toggle 로 변경 가능).

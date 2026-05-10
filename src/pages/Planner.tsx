@@ -121,13 +121,17 @@ const Planner = () => {
   usePlannerNotifications();
 
   // Things3 Today Badge — 페이지 타이틀에 미완료 카운트 노출.
+  // 원본 타이틀은 mount 시점 1회만 캡처 (count 바뀔 때마다 캡처하면 "(N) 통합 플래너" 가 원본으로 잘못 저장됨).
+  const originalTitleRef = useRef<string>('');
   useEffect(() => {
-    const original = document.title;
+    originalTitleRef.current = document.title;
+    return () => {
+      document.title = originalTitleRef.current;
+    };
+  }, []);
+  useEffect(() => {
     const count = todayTasks.length;
     document.title = count > 0 ? `(${count}) 통합 플래너` : '통합 플래너';
-    return () => {
-      document.title = original;
-    };
   }, [todayTasks.length]);
 
   const handleDayClick = useCallback((dayIso: string) => {
@@ -432,8 +436,22 @@ const Planner = () => {
   }, [goToday]);
 
   // Rail 의 "모드" 클릭 → MainModeTabs 패널 오픈 (홈 화면의 모드 picker 그대로 띄움).
+  // apiRef 가 첫 렌더 직후라 미주입 상태일 수 있어 microtask + 1프레임 retry — silent fail 방지.
   useEffect(() => {
-    const handler = () => mainModeTabsApiRef.current?.open();
+    const handler = () => {
+      const tryOpen = (retries: number) => {
+        if (mainModeTabsApiRef.current) {
+          mainModeTabsApiRef.current.open();
+          return;
+        }
+        if (retries <= 0) {
+          notify.info('모드 패널을 잠시 후 다시 시도해주세요', { duration: 1500 });
+          return;
+        }
+        requestAnimationFrame(() => tryOpen(retries - 1));
+      };
+      tryOpen(3);
+    };
     window.addEventListener(RAIL_EVENT.openModePalette, handler);
     return () => window.removeEventListener(RAIL_EVENT.openModePalette, handler);
   }, []);
