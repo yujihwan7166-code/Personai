@@ -615,16 +615,21 @@ const Planner = () => {
       const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
 
       // 가로 드래그 = lane 좌/우 swap. 임계 60px.
+      // 단, 겹치는 다른 항목이 0개면 lane 개념 자체가 무의미 — swap 생략 + "순서도 변경" 거짓 알림 방지.
+      // dayPrefix 는 로컬 날짜 기준 (ISO slice 는 UTC 라 자정 넘는 케이스에서 다른 날짜로 잘못 잡힘).
       const LANE_SWAP_THRESHOLD = 60;
       let newLaneOrder: number | undefined;
       if (Math.abs(e.delta.x) > LANE_SWAP_THRESHOLD) {
-        const dayPrefix = newStart.slice(0, 10);
-        const newStartMs = new Date(newStart).getTime();
-        const newEndMs = new Date(newEnd).getTime();
+        const yyyy = newStartDate.getFullYear();
+        const mm = String(newStartDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(newStartDate.getDate()).padStart(2, '0');
+        const localDayAnchor = `${yyyy}-${mm}-${dd}T00:00:00`;
+        const newStartMs = newStartDate.getTime();
+        const newEndMs = newStartMs + dur;
         type WithLane = { id: string; startAt?: string; endAt?: string; laneOrder?: number };
         const overlapping: WithLane[] = [
-          ...taskStore.listScheduled(`${dayPrefix}T00:00:00`),
-          ...eventStore.listByDate(`${dayPrefix}T00:00:00`),
+          ...taskStore.listScheduled(localDayAnchor),
+          ...eventStore.listByDate(localDayAnchor),
         ].filter((other) => {
           if (other.id === item.id) return false;
           if (!other.startAt || !other.endAt) return false;
@@ -632,10 +637,12 @@ const Planner = () => {
           const oE = new Date(other.endAt).getTime();
           return oS < newEndMs && oE > newStartMs;
         });
-        const orders = overlapping.map((o) => o.laneOrder ?? 0);
-        newLaneOrder = e.delta.x < 0
-          ? (orders.length ? Math.min(...orders) - 1 : -1)
-          : (orders.length ? Math.max(...orders) + 1 : 1);
+        if (overlapping.length > 0) {
+          const orders = overlapping.map((o) => o.laneOrder ?? 0);
+          newLaneOrder = e.delta.x < 0
+            ? Math.min(...orders) - 1
+            : Math.max(...orders) + 1;
+        }
       }
 
       if (dragData.kind === 'scheduled-task') {

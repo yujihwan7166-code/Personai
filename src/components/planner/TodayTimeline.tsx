@@ -156,8 +156,15 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       const startAt = item.data.startAt;
       const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt;
       if (!startAt || !endAt) continue;
-      const startHour = new Date(startAt).getHours();
-      const endHour = new Date(endAt).getHours() + (new Date(endAt).getMinutes() > 0 ? 1 : 0);
+      const startD = new Date(startAt);
+      const endD = new Date(endAt);
+      const startHour = startD.getHours();
+      // 자정 넘는 항목(예 23:30~01:30) 은 endHour 가 1 → early 로 오분류되므로
+      // end 가 다른 날이면 24+ 로 간주(= 절대 early 가 아님, 가시 범위 안 → 보임 또는 late).
+      const endsOnSameDay = startD.toDateString() === endD.toDateString();
+      const endHour = endsOnSameDay
+        ? endD.getHours() + (endD.getMinutes() > 0 ? 1 : 0)
+        : 24;
       if (endHour <= visibleStart) early += 1;
       else if (startHour >= visibleEnd) late += 1;
     }
