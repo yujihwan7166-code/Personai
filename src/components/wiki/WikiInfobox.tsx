@@ -39,21 +39,15 @@ export function WikiInfobox({ page, onTagClick }: Props) {
       }}
       aria-label="페이지 정보"
     >
-      {/* 헤더 — 타입 색 띠 (alpha 18% 로 다크에서도 명확) */}
+      {/* 헤더 — 페이지 제목만 (유형 표기 제거) */}
       <div
-        className="px-3.5 py-2.5 text-center border-b-2"
+        className="px-3.5 py-3 text-center border-b-2"
         style={{
           backgroundColor: `${typeMeta.tint}26`,
           borderColor: 'hsl(var(--wiki-hairline-strong))',
         }}
       >
-        <p
-          className="text-[10.5px] font-bold uppercase tracking-[0.18em]"
-          style={{ color: typeMeta.tint }}
-        >
-          {typeMeta.icon} {typeMeta.label}
-        </p>
-        <p className="text-[14px] font-bold text-foreground mt-1 leading-tight">
+        <p className="text-[14px] font-bold text-foreground leading-tight">
           {page.title}
         </p>
       </div>
@@ -63,11 +57,6 @@ export function WikiInfobox({ page, onTagClick }: Props) {
         className="text-[12px]"
         style={{ '--row-line': '1px solid hsl(var(--wiki-hairline-strong))' } as React.CSSProperties}
       >
-        <Row label="유형">
-          <span className="inline-flex items-center gap-1">
-            <span aria-hidden>{typeMeta.icon}</span> {typeMeta.label}
-          </span>
-        </Row>
         {sourceUrl && (
           <Row label="원본">
             <a
