@@ -307,7 +307,7 @@ const Journal = () => {
                 className={cn(
                   'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
                   effectiveViewMode === 'week'
-                    ? 'bg-foreground text-background'
+                    ? 'bg-primary/12 text-primary font-semibold'
                     : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
                 )}
                 style={{ outline: 'none', boxShadow: 'none' }}
@@ -324,7 +324,7 @@ const Journal = () => {
                 className={cn(
                   'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
                   effectiveViewMode === 'list'
-                    ? 'bg-foreground text-background'
+                    ? 'bg-primary/12 text-primary font-semibold'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
                 style={{ outline: 'none', boxShadow: 'none' }}
@@ -372,8 +372,8 @@ const Journal = () => {
           {filterOpen && query.trim().length === 0 && (topActivities.length > 0 || topTags.length > 0) && (
             <div className="mt-4 pt-4 border-t border-[hsl(var(--hairline))] flex flex-col gap-3">
               {topActivities.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground font-semibold mr-1 w-10">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11.5px] tracking-[-0.005em] text-muted-foreground/80 font-semibold mr-1 w-10">
                     활동
                   </span>
                   {topActivities.map((a) => {
@@ -385,15 +385,15 @@ const Journal = () => {
                         type="button"
                         onClick={() => setActiveActivity(active ? null : a.key)}
                         className={cn(
-                          'inline-flex items-center gap-1 px-2 h-6 rounded text-[11.5px] font-medium transition-colors',
+                          'inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-[11.5px] font-medium border transition-colors',
                           active
-                            ? 'bg-foreground text-background'
-                            : 'bg-accent text-foreground hover:bg-accent/80',
+                            ? 'bg-primary/12 text-primary border-primary/35'
+                            : 'bg-card/60 text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
                         )}
                       >
                         <span aria-hidden>{meta?.emoji ?? '·'}</span>
                         {meta?.label ?? a.key}
-                        <span className="opacity-60 tabular-nums ml-0.5">{a.count}</span>
+                        <span className="opacity-55 tabular-nums ml-0.5">{a.count}</span>
                       </button>
                     );
                   })}
@@ -401,7 +401,7 @@ const Journal = () => {
                     <button
                       type="button"
                       onClick={() => setActiveActivity(null)}
-                      className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      className="inline-flex items-center gap-0.5 px-2 h-7 rounded-full text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       <X className="h-2.5 w-2.5" />
                       초기화
@@ -410,8 +410,8 @@ const Journal = () => {
                 </div>
               )}
               {topTags.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground font-semibold mr-1 w-10">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11.5px] tracking-[-0.005em] text-muted-foreground/80 font-semibold mr-1 w-10">
                     태그
                   </span>
                   {topTags.map((t) => (
@@ -420,22 +420,22 @@ const Journal = () => {
                       type="button"
                       onClick={() => setActiveTag(activeTag === t.tag ? null : t.tag)}
                       className={cn(
-                        'inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11.5px] font-medium transition-colors',
+                        'inline-flex items-center gap-0.5 px-2.5 h-7 rounded-full text-[11.5px] font-medium border transition-colors',
                         activeTag === t.tag
-                          ? 'bg-foreground text-background'
-                          : 'bg-accent text-foreground hover:bg-accent/80',
+                          ? 'bg-primary/12 text-primary border-primary/35'
+                          : 'bg-card/60 text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
                       )}
                     >
                       <Hash className="h-2.5 w-2.5 opacity-70" />
                       {t.tag}
-                      <span className="opacity-60 tabular-nums ml-0.5">{t.count}</span>
+                      <span className="opacity-55 tabular-nums ml-0.5">{t.count}</span>
                     </button>
                   ))}
                   {activeTag && (
                     <button
                       type="button"
                       onClick={() => setActiveTag(null)}
-                      className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      className="inline-flex items-center gap-0.5 px-2 h-7 rounded-full text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       <X className="h-2.5 w-2.5" />
                       초기화

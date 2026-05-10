@@ -212,8 +212,8 @@ export const JournalCalendarMini = ({
                   'relative aspect-square flex items-center justify-center text-[10.5px] tabular-nums transition-colors',
                   // 오늘 = primary 보라 둥근 fill (Apple iOS 패턴) — 가장 강한 신호
                   cell.isToday && !cell.isSelected && 'bg-primary text-primary-foreground rounded-full font-semibold shadow-[0_1px_2px_hsl(265_50%_52%/0.25)]',
-                  // 선택된 cell (오늘 X) = 검은 fill
-                  cell.isSelected && !cell.isToday && 'bg-foreground text-background rounded-full font-semibold',
+                  // 선택된 cell (오늘 X) — 위키/플래너 톤과 일관 (primary tint)
+                  cell.isSelected && !cell.isToday && 'bg-primary/15 text-primary rounded-full font-semibold ring-1 ring-primary/30',
                   // 오늘 + 선택 = primary 진한 fill (오늘 색 우선)
                   cell.isToday && cell.isSelected && 'bg-primary text-primary-foreground rounded-full font-semibold ring-2 ring-primary/30 ring-offset-1 ring-offset-card',
                   // 평범한 cell — rounded-md, hover bg-accent

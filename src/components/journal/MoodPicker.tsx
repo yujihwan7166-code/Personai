@@ -27,9 +27,9 @@ export const MoodPicker = ({ value, onChange }: MoodPickerProps) => (
           title={MOOD_LABELS[m]}
           onClick={() => onChange(active ? undefined : m)}
           className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-md text-[20px] transition-all',
-            'hover:scale-110 hover:bg-accent',
-            active && 'bg-accent ring-2 ring-foreground/30',
+            'flex h-9 w-9 items-center justify-center rounded-md text-[20px]',
+            'transition-transform duration-150 ease-out hover:scale-[1.08] hover:bg-accent/70',
+            active && 'bg-primary/10 ring-1 ring-primary/40 scale-[1.06]',
           )}
         >
           <span className="leading-none select-none">{MOOD_EMOJI[m]}</span>
