@@ -94,7 +94,12 @@ export function expandRecurrence<T extends PlannerEvent | PlannerTask>(
   const exdateSet = new Set(rec.exdates ?? []);
 
   const untilMs = rec.until ? new Date(rec.until).getTime() : null;
-  const maxCount = rec.count ?? MAX_OCCURRENCES_FALLBACK;
+  // count === 0 도 명시적 0회 의미 (사용자가 모두 끄려는 의도) — `??` 는 null/undefined 만 fallback.
+  const maxCount = rec.count == null ? MAX_OCCURRENCES_FALLBACK : Math.max(0, rec.count);
+  // until 이 시작보다 과거이면 0건이 정상 — 무한 루프나 계산 낭비 방지.
+  if (untilMs !== null && untilMs < masterStart.getTime()) {
+    return [];
+  }
 
   const results: Array<RecurrenceInstance<T>> = [];
   let emittedCount = 0;

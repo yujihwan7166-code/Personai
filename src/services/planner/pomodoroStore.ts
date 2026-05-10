@@ -95,12 +95,26 @@ const writeConfig = (config: PomodoroChainConfig): void => {
 
 const STORAGE_KEY = 'planner.pomodoro.v1';
 
+const isPomodoroSession = (v: unknown): v is PomodoroSession => {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.id === 'string'
+    && typeof o.startedAt === 'string'
+    && typeof o.durationMin === 'number'
+    && typeof o.autoComplete === 'boolean';
+};
+
 const safeRead = (): PomodoroSession | null => {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as PomodoroSession;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isPomodoroSession(parsed)) {
+      // 구버전 스키마 — 무시 (다음 write 가 정상 데이터로 덮어씀).
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }

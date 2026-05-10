@@ -205,6 +205,11 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const submitWithScope = (scope: 'this' | 'future' | 'all' = 'all') => {
     const trimmed = title.trim();
     if (trimmed.length === 0) return;
+    // until 이 시작 날짜보다 과거이면 시리즈가 0건 — 사용자 의도와 어긋나므로 차단.
+    if (recurrenceUntil && date && recurrenceUntil < date) {
+      notify.warning('반복 종료일이 시작일보다 빠를 수 없어요');
+      return;
+    }
     const untilIso = recurrenceUntil
       ? new Date(`${recurrenceUntil}T23:59:59`).toISOString()
       : undefined;

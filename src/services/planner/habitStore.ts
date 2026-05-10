@@ -22,7 +22,16 @@ const safeRead = (): Habit[] => {
 
 const commit = (next: Habit[]): void => {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch (err) {
+    // quota 초과·serialize 실패 등 — 사용자 알림 + 콘솔. silent 면 데이터 유실을 모름.
+    console.error('[habitStore] commit 실패:', err);
+    import('@/lib/notify').then(({ notify }) => {
+      notify.error('습관 저장 실패 — 저장 공간이 부족할 수 있어요');
+    }).catch(() => { /* notify 자체 실패 — 가능성 낮음 */ });
+    return;
+  }
   window.dispatchEvent(new CustomEvent(HABIT_CHANGED));
 };
 

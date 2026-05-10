@@ -24,7 +24,15 @@ const safeRead = (): HabitCheckin[] => {
 
 const commit = (next: HabitCheckin[]): void => {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch (err) {
+    console.error('[habitCheckinStore] commit 실패:', err);
+    import('@/lib/notify').then(({ notify }) => {
+      notify.error('체크인 저장 실패 — 저장 공간이 부족할 수 있어요');
+    }).catch(() => { /* silent */ });
+    return;
+  }
   window.dispatchEvent(new CustomEvent(HABIT_CHECKIN_CHANGED));
 };
 
