@@ -38,13 +38,14 @@ export const RAIL_EVENT = {
   openHabits: 'planner:open-habits',
   goToday: 'planner:go-today',
   openModePalette: 'planner:open-mode-palette',
+  toggleAI: 'planner:toggle-ai',
 } as const;
 
 /** 1그룹 — 플래너 핵심(시간·일정·검색). */
 const TOP_ITEMS_PRIMARY: RailItem[] = [
   { kind: 'event',  eventName: RAIL_EVENT.goToday,         label: '오늘',         Icon: CalendarDays },
   { kind: 'event',  eventName: RAIL_EVENT.openHabits,      label: '습관',         Icon: Repeat },
-  { kind: 'soon',                                         label: 'AI',           Icon: Sparkles },
+  { kind: 'event',  eventName: RAIL_EVENT.toggleAI,        label: 'AI',           Icon: Sparkles },
   { kind: 'event',  eventName: RAIL_EVENT.openPalette,     label: '검색',         Icon: Search },
   { kind: 'event',  eventName: RAIL_EVENT.openMatrix,      label: '매트릭스',     Icon: Grid2x2 },
   { kind: 'event',  eventName: RAIL_EVENT.openAgenda,      label: '다가오는 일정',  Icon: CalendarClock },
@@ -62,12 +63,18 @@ const BOTTOM_ITEMS: RailItem[] = [
   { kind: 'soon',                                         label: '설정',         Icon: Settings },
 ];
 
-export const PlannerLeftRail = () => {
+interface PlannerLeftRailProps {
+  /** AI 패널 열림 상태 — ✨ 버튼 active 시각 피드백용. */
+  aiOpen?: boolean;
+}
+
+export const PlannerLeftRail = ({ aiOpen = false }: PlannerLeftRailProps) => {
   const navigate = useNavigate();
   const [activeDrawer, setActiveDrawer] = useState<DrawerKind | null>(null);
 
   const renderItem = (item: RailItem, idx: number) => {
-    const isActive = item.kind === 'drawer' && activeDrawer === item.drawer;
+    const isActive = (item.kind === 'drawer' && activeDrawer === item.drawer)
+      || (item.kind === 'event' && item.eventName === RAIL_EVENT.toggleAI && aiOpen);
     const onClick = () => {
       if (item.kind === 'route') navigate(item.to);
       else if (item.kind === 'drawer') {

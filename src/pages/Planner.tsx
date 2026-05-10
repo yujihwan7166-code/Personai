@@ -32,6 +32,7 @@ import {
 } from '@dnd-kit/core';
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { PlannerLeftRail, RAIL_EVENT } from '@/components/planner/PlannerLeftRail';
+import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
 import { PlannerInput } from '@/components/planner/PlannerInput';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
@@ -120,6 +121,7 @@ const Planner = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [matrixPopoverOpen, setMatrixPopoverOpen] = useState(false);
   const [agendaPopoverOpen, setAgendaPopoverOpen] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const todayTasks = useTodayTasks();
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
@@ -406,6 +408,7 @@ const Planner = () => {
     setView('day');
     goToday();
   }, [goToday]);
+  const handleToggleAI = useCallback(() => setAiPanelOpen((v) => !v), []);
   // 모드 — apiRef 가 첫 렌더 직후라 미주입 가능 → rAF 3회 retry 후 안내.
   const handleOpenModePalette = useCallback(() => {
     const tryOpen = (retries: number) => {
@@ -428,6 +431,7 @@ const Planner = () => {
   useWindowEvent(RAIL_EVENT.openHabits, handleOpenHabits);
   useWindowEvent(RAIL_EVENT.goToday, handleGoToday);
   useWindowEvent(RAIL_EVENT.openModePalette, handleOpenModePalette);
+  useWindowEvent(RAIL_EVENT.toggleAI, handleToggleAI);
 
   // MainModeTabs labels prop — MAIN_MODE_LABELS 에서 label 만 추출.
   const mainModeLabelMap = useMemo(() => {
@@ -744,7 +748,7 @@ const Planner = () => {
     <div className="planner-theme min-h-screen bg-background flex">
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
       <aside className="shrink-0 w-12 border-r hairline bg-card/30">
-        <PlannerLeftRail />
+        <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
@@ -1002,6 +1006,13 @@ const Planner = () => {
       })()}
     </DragOverlay>
     {/* 포모도로 위젯은 App.tsx 에서 글로벌하게 렌더됨 — 여기 중복 X */}
+    {/* AI 컴패니언 패널 — 우측 슬라이드, backdrop 없음. 본문이랑 동시 사용 가능. */}
+    <PlannerAIPanel
+      open={aiPanelOpen}
+      onClose={() => setAiPanelOpen(false)}
+      view={view}
+      anchorIso={anchorIso}
+    />
     {/* MainModeTabs (offscreen) — rail "모드" 클릭 시 apiRef 로 패널 오픈.
         트리거 pill 자체는 화면 밖, dropdown panel 만 portal 로 등장 (Index.tsx 동일 패턴). */}
     <div
