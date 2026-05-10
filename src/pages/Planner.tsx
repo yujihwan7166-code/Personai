@@ -416,6 +416,16 @@ const Planner = () => {
     return () => window.removeEventListener(RAIL_EVENT.openHabits, open);
   }, []);
 
+  // Rail 의 "오늘" 클릭 → day 뷰 + 오늘로 점프.
+  useEffect(() => {
+    const handler = () => {
+      setView('day');
+      goToday();
+    };
+    window.addEventListener(RAIL_EVENT.goToday, handler);
+    return () => window.removeEventListener(RAIL_EVENT.goToday, handler);
+  }, [goToday]);
+
 
   const isFullscreen = view === 'month' || view === 'year' || view === 'goals' || view === 'habits';
 

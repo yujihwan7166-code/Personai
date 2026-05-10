@@ -1,16 +1,17 @@
 /**
  * 좌측 아이콘 rail — Notion/Linear 스타일.
  *
- * 순서: 홈, 습관, AI, 검색, 메모, 위키, 타이머
+ * 최상단: 사이트 로고 (실제 홈 / 으로 이탈)
+ * 그 아래: 오늘, 습관, AI, 검색, 매트릭스, 다가오는 일정, 메모, 위키, 타이머
  * - route: 라우트 점프
  * - drawer: 사이드 패널 (메모/위키)
- * - event: window CustomEvent 발행 (검색 = 팔레트, 그 외는 placeholder toast)
+ * - event: window CustomEvent 발행 (검색 = 팔레트, 오늘 = day 뷰 + 오늘로)
  * 폭 48px 고정.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarClock, FileText, Grid2x2, Home, Network, Repeat, Search, Sparkles, Timer,
+  CalendarClock, CalendarDays, FileText, Grid2x2, Home, Network, Repeat, Search, Sparkles, Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -32,10 +33,11 @@ export const RAIL_EVENT = {
   openMatrix: 'planner:open-matrix',
   openAgenda: 'planner:open-agenda',
   openHabits: 'planner:open-habits',
+  goToday: 'planner:go-today',
 } as const;
 
 const ITEMS: RailItem[] = [
-  { kind: 'route',  to: '/',                           label: '홈',         Icon: Home },
+  { kind: 'event',  eventName: RAIL_EVENT.goToday,      label: '오늘',       Icon: CalendarDays },
   { kind: 'event',  eventName: RAIL_EVENT.openHabits,   label: '습관',       Icon: Repeat },
   { kind: 'soon',                                      label: 'AI',         Icon: Sparkles },
   { kind: 'event',  eventName: RAIL_EVENT.openPalette,  label: '검색',       Icon: Search },
@@ -53,6 +55,24 @@ export const PlannerLeftRail = () => {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="h-full flex flex-col items-center gap-1 py-3">
+        {/* 사이트 로고 — 진짜 홈(/)으로 이탈. 다른 rail 아이콘과 시각적으로 분리. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              aria-label="사이트 홈으로"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground/70 hover:text-foreground hover:bg-accent/70 transition-all"
+            >
+              <Home className="h-[16px] w-[16px]" strokeWidth={1.75} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="text-[11.5px]">
+            사이트 홈으로
+          </TooltipContent>
+        </Tooltip>
+        <div className="my-1 h-px w-5 bg-border/60" aria-hidden />
+
         {ITEMS.map((item, idx) => {
           const isActive = item.kind === 'drawer' && activeDrawer === item.drawer;
           const onClick = () => {
