@@ -970,6 +970,15 @@ function MemoRow({
               )}>
                 {title}
               </span>
+              {(memo.images?.length ?? 0) > 0 && (
+                <span
+                  className="text-[10.5px] text-muted-foreground/80 shrink-0 inline-flex items-center gap-0.5 font-medium tabular-nums"
+                  title={`첨부 이미지 ${memo.images!.length}장`}
+                  aria-label={`첨부 이미지 ${memo.images!.length}장`}
+                >
+                  📎{memo.images!.length}
+                </span>
+              )}
               {memo.wikiPageId && (
                 <ExternalLink className="w-3 h-3 text-primary/70 shrink-0" strokeWidth={1.75} />
               )}
@@ -1210,6 +1219,34 @@ function MemoEditor({
               <Folder className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
               폴더로 이동…
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              // 마크다운 export — body 그대로 .md 다운로드. 첨부 이미지는 제외.
+              const safeName = (memoTitle(memo) || 'memo').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+              const blob = new Blob([memo.body], { type: 'text/markdown;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${safeName}.md`;
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(url), 0);
+              notify.success('내려받기 시작', { duration: 1200 });
+            }}>
+              <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+              마크다운으로 내보내기
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={async () => {
+              // 클립보드 복사 — 본문 그대로.
+              try {
+                await navigator.clipboard.writeText(memo.body);
+                notify.success('본문을 클립보드에 복사했어요', { duration: 1200 });
+              } catch {
+                notify.error('복사 실패 — 권한을 허용해주세요');
+              }
+            }}>
+              <ExternalLink className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+              본문 복사
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {isArchived ? (
               <DropdownMenuItem onClick={() => { unarchiveMemo(memo.id); notify.success('복원됐어요', { duration: 1200 }); }}>
                 <ArchiveRestore className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />

@@ -128,10 +128,9 @@ export interface PlannerTask {
   tags?: string[];
   /** 서브태스크 체크리스트 (TickTick/Things3 패턴). note 와 다른 차원 — 단계별 상태. */
   subtasks?: Subtask[];
-  /** Eisenhower Matrix — 긴급함 (priority 와 별개 축). */
-  urgent?: boolean;
-  /** Eisenhower Matrix — 중요함. */
-  important?: boolean;
+  // NOTE: urgent / important 필드는 PlannerTask 에 정의돼있었지만 어느 코드에서도
+  // write 되지 않는 dead schema 였음. PlannerMatrixMini 가 priority + due-date 로
+  // derive 하는 로컬 변수만 사용 중. 혼동을 피하려 type 에서 제거.
   /** 사용자 분류 (List/Project) — 메모 폴더와 별개. 미설정 = 인박스. */
   listId?: string;
   /** 반복 시리즈 인스턴스별 완료 상태 — iso(occurrenceStartIso) → done.

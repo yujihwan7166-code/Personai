@@ -259,8 +259,29 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             notify.success('전체 시리즈가 할 일로 변경됐어요');
           }
         } else {
+          // 일정→할 일 변환은 시·분 정보 영구 손실 → 토스트에 [되돌리기] 액션.
+          // 변환 직전 startAt/endAt 스냅샷을 잡고, 클릭 시 startAt 만 되돌리면
+          // taskStore.update 가 sanitize 거치며 plannedFor 를 자동 비움 (일관 처리).
+          const prev = taskStore.findMaster(mode.taskId);
+          const wasScheduled = Boolean(prev?.startAt);
           taskStore.update(mode.taskId, patch);
-          notify.success('할 일로 변경됐어요');
+          if (wasScheduled && prev) {
+            const restoreStart = prev.startAt;
+            const restoreEnd = prev.endAt;
+            const taskId = mode.taskId;
+            notify.success('할 일로 변경됐어요', {
+              duration: 5000,
+              action: {
+                label: '되돌리기',
+                onClick: () => taskStore.update(taskId, {
+                  startAt: restoreStart,
+                  endAt: restoreEnd,
+                }),
+              },
+            });
+          } else {
+            notify.success('할 일로 변경됐어요');
+          }
         }
       } else {
         taskStore.add({

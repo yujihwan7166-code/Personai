@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ExternalLink, Folder, FolderInput, Pin, PinOff,
   Plus, Search, Trash2, X, Archive, ArchiveRestore, RotateCcw,
-  ArrowDownAZ, Clock, Sparkles,
+  ArrowDownAZ, Clock, Sparkles, Paperclip,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import {
@@ -38,6 +38,33 @@ interface MemoDrawerProps {
 }
 
 type DrawerView = 'list' | 'editor' | 'trash';
+
+/** 검색어와 일치하는 부분을 <mark> 로 강조. case-insensitive. */
+const Highlight = ({ text, query }: { text: string; query: string }) => {
+  const q = query.trim();
+  if (!q) return <>{text}</>;
+  const lower = text.toLowerCase();
+  const ql = q.toLowerCase();
+  const parts: Array<{ str: string; hit: boolean }> = [];
+  let i = 0;
+  while (i < text.length) {
+    const idx = lower.indexOf(ql, i);
+    if (idx < 0) {
+      parts.push({ str: text.slice(i), hit: false });
+      break;
+    }
+    if (idx > i) parts.push({ str: text.slice(i, idx), hit: false });
+    parts.push({ str: text.slice(idx, idx + q.length), hit: true });
+    i = idx + q.length;
+  }
+  return (
+    <>
+      {parts.map((p, j) => p.hit
+        ? <mark key={j} className="bg-amber-200/70 dark:bg-amber-400/30 text-foreground rounded px-0.5">{p.str}</mark>
+        : <span key={j}>{p.str}</span>)}
+    </>
+  );
+};
 
 export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
   const navigate = useNavigate();
@@ -488,6 +515,7 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
                 <ul className="space-y-0.5">
                   {filtered.map((m) => {
                     const folder = m.folderId ? folders.find((f) => f.id === m.folderId) : null;
+                    const imgCount = m.images?.length ?? 0;
                     return (
                       <li key={m.id}>
                         <button
@@ -502,15 +530,24 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
                             <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
                               {m.pinned && <span className="mr-1" aria-hidden>📌</span>}
                               {m.archivedAt && <span className="mr-1 opacity-60" aria-hidden>📥</span>}
-                              {memoTitle(m)}
+                              <Highlight text={memoTitle(m)} query={query} />
                             </span>
+                            {imgCount > 0 && (
+                              <span
+                                className="shrink-0 text-[10.5px] text-foreground/55 inline-flex items-center gap-0.5 tabular-nums"
+                                aria-label={`첨부 이미지 ${imgCount}장`}
+                              >
+                                <Paperclip className="h-2.5 w-2.5" strokeWidth={2} />
+                                {imgCount}
+                              </span>
+                            )}
                             <span className="shrink-0 text-[10.5px] tabular-nums text-foreground/55">
                               {memoTimeLabel(m.updatedAt)}
                             </span>
                           </div>
                           {memoPreview(m) && (
                             <span className="text-[11.5px] text-foreground/55 leading-snug line-clamp-1">
-                              {memoPreview(m)}
+                              <Highlight text={memoPreview(m)} query={query} />
                             </span>
                           )}
                           {folder && (

@@ -340,8 +340,24 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   };
 
   const handleUnschedule = (task: PlannerTask) => {
+    // 시·분 정보가 영구 손실되므로 [되돌리기] 액션 제공.
+    // 시리즈 인스턴스(`master@iso`) 는 taskStore.unschedule 가 master 목록에서
+    // 못 찾고 silent no-op — undo 가 master 를 잘못 덮어쓸 수 있으니 일반 알림만.
+    const isInstance = isInstanceId(task.id);
+    const snapStart = task.startAt;
+    const snapEnd = task.endAt;
     taskStore.unschedule(task.id);
-    notify.info('대기함으로 옮겼어요', { duration: 1500 });
+    if (!isInstance && snapStart) {
+      notify.info('대기함으로 옮겼어요', {
+        duration: 4000,
+        action: {
+          label: '되돌리기',
+          onClick: () => taskStore.update(task.id, { startAt: snapStart, endAt: snapEnd }),
+        },
+      });
+    } else {
+      notify.info('대기함으로 옮겼어요', { duration: 1500 });
+    }
   };
 
   const handleSetPriority = (task: PlannerTask, p: Priority) => {
