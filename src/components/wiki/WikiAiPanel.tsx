@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Sparkles, X, Send, Trash2, FileText, Plus as PlusIcon, BookOpen } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Sparkles, X, Send, Trash2, FileText, Plus as PlusIcon,
+  BookOpen, MessageSquarePlus, History,
+} from 'lucide-react';
 import type { WikiPage } from '@/types/wiki';
 import type { Expert } from '@/types/expert';
 import { notify } from '@/lib/notify';
@@ -9,11 +12,12 @@ import { streamExpert } from '@/pages/indexRuntime';
 /**
  * 마이위키 AI 사이드 패널
  *
- * - 위치: 본문 오른쪽 슬라이드 인 (360px)
- * - 컨텍스트: 활성 페이지가 있으면 *제목 + 본문 첫 800자* 자동 첨부 (제거 가능)
- * - 스레드: 페이지별 독립 (localStorage). 대문은 글로벌 스레드 1개.
- * - AI: streamExpert (메인 채팅 인프라 재사용) + OpenRouter 기본 모델.
- *   페이지 컨텍스트는 previousResponses 로 주입, 외부 검색 disable (위키 컨텍스트만).
+ * 컨셉: 그냥 사이드바 AI 비서. 일반 질문도 받고, 위키 페이지를 보고 있으면
+ * 그 내용도 자동으로 컨텍스트로 첨부해 답한다. 페이지를 옮겨도 대화는 유지.
+ *
+ * - 멀티 스레드: 사용자가 명시적으로 "새 대화" 누를 때만 분리. 이전 대화는 보존.
+ * - 리사이즈: 좌측 핸들 드래그로 너비 조절. localStorage 영속.
+ * - AI: streamExpert + 외부 검색 비활성. 페이지/위키 컨텍스트만 사용.
  */
 
 type Role = 'user' | 'assistant';
@@ -22,67 +26,91 @@ interface AiMsg {
   role: Role;
   text: string;
   ts: number;
-  /** 답변 시 첨부됐던 컨텍스트 페이지 id (있으면) */
   ctxPageId?: string;
+}
+interface ThreadMeta {
+  id: string;
+  title: string;
+  updatedAt: number;
+  msgCount: number;
 }
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** 활성 페이지. null = 대문 / 그래프 (글로벌 스레드) */
+  /** 활성 페이지. 컨텍스트 첨부용 — null 이면 위키 전체 메타. */
   page: WikiPage | null;
-  /** 전체 페이지 — 글로벌 컨텍스트 (제목+요약) 생성용. 없으면 메타만. */
+  /** 전체 페이지 — 글로벌 컨텍스트(제목+요약) 생성용. */
   allPages?: WikiPage[];
-  /** 위키 메타 — page=null + allPages 미제공 시 fallback */
+  /** fallback */
   totalPages: number;
-  /** AI 답변 → 본문 끝에 인용블록 추가 (활성 페이지가 있을 때만 활성) */
   onAppendToBody?: (snippet: string) => void;
-  /** AI 답변 → 새 draft 페이지로 만들기 */
   onCreatePageFromAnswer?: (title: string, body: string) => void;
 }
 
-const STORAGE_PREFIX = 'wiki_ai_thread:';
-const GLOBAL_KEY = STORAGE_PREFIX + '__global__';
+const THREADS_KEY = 'wiki_ai_threads_v2';
+const THREAD_PREFIX = 'wiki_ai_thread_v2:';
+const ACTIVE_KEY = 'wiki_ai_active_v2';
+const WIDTH_KEY = 'wiki_ai_panel_w';
+const MIN_W = 320;
+const MAX_W = 720;
+const DEFAULT_W = 380;
 
-function threadKey(pageId: string | null): string {
-  return pageId ? STORAGE_PREFIX + pageId : GLOBAL_KEY;
-}
-
-function loadThread(key: string): AiMsg[] {
+function loadThreads(): ThreadMeta[] {
   try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const r = window.localStorage.getItem(THREADS_KEY);
+    if (!r) return [];
+    const p = JSON.parse(r);
+    return Array.isArray(p) ? p : [];
   } catch {
     return [];
   }
 }
-
-function saveThread(key: string, msgs: AiMsg[]): void {
+function saveThreads(t: ThreadMeta[]): void {
+  try { window.localStorage.setItem(THREADS_KEY, JSON.stringify(t)); } catch { /* quota */ }
+}
+function loadMsgs(id: string): AiMsg[] {
   try {
-    window.localStorage.setItem(key, JSON.stringify(msgs.slice(-200)));
+    const r = window.localStorage.getItem(THREAD_PREFIX + id);
+    if (!r) return [];
+    const p = JSON.parse(r);
+    return Array.isArray(p) ? p : [];
   } catch {
-    /* quota — 무시 */
+    return [];
   }
+}
+function saveMsgs(id: string, m: AiMsg[]): void {
+  try { window.localStorage.setItem(THREAD_PREFIX + id, JSON.stringify(m.slice(-200))); } catch { /* quota */ }
+}
+function dropMsgs(id: string): void {
+  try { window.localStorage.removeItem(THREAD_PREFIX + id); } catch { /* */ }
+}
+function loadWidth(): number {
+  const r = Number(window.localStorage.getItem(WIDTH_KEY));
+  return Number.isFinite(r) && r >= MIN_W && r <= MAX_W ? r : DEFAULT_W;
 }
 
 function newId(): string {
   return `m_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
+function newThreadId(): string {
+  return `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
 
-const EXAMPLES_PAGE = [
+function deriveTitle(msgs: AiMsg[]): string {
+  const first = msgs.find((m) => m.role === 'user');
+  if (!first) return '새 대화';
+  const t = first.text.replace(/\s+/g, ' ').trim().slice(0, 24);
+  return t || '새 대화';
+}
+
+const EXAMPLES = [
   '이 페이지 핵심 3줄로 요약해줘',
-  '관련된 위키 페이지 추천해줘',
-  '이 내용에서 빠진 관점 짚어줘',
-];
-const EXAMPLES_GLOBAL = [
   '내 위키 전체 흐름 한눈에 정리해줘',
-  '오랫동안 안 본 페이지 알려줘',
-  '비슷한 주제로 묶어서 메인 문서 만들 후보',
+  '요즘 글쓰기 막막한데 도와줄래?',
+  '관련된 위키 페이지 추천해줘',
 ];
 
-/** 위키 AI 전용 dummy Expert — streamExpert 가 systemPrompt 만 사용. */
 const WIKI_AI_EXPERT: Expert = {
   id: 'wiki-ai',
   name: 'Wiki AI',
@@ -90,10 +118,10 @@ const WIKI_AI_EXPERT: Expert = {
   icon: '✨',
   color: 'blue',
   category: 'ai',
-  description: '마이위키 보조 AI',
+  description: '사이드바 AI 비서',
   systemPrompt: [
-    '당신은 사용자의 개인 위키(마이위키)를 보조하는 AI입니다.',
-    '페이지 컨텍스트가 첨부되면 그것을 우선 참고해 정확하고 간결하게 답하세요.',
+    '당신은 사용자의 사이드바 AI 비서입니다.',
+    '일반 질문에도 자연스럽게 답하되, 위키 페이지 컨텍스트가 첨부되면 그것을 우선 참고해 답하세요.',
     '한국어로 답하고, markdown 형식을 사용하되 과도한 헤더는 피하세요.',
     '모르는 정보는 추측하지 말고 모른다고 말하세요.',
   ].join('\n'),
@@ -108,28 +136,62 @@ export function WikiAiPanel({
   onAppendToBody,
   onCreatePageFromAnswer,
 }: Props) {
-  const tkey = threadKey(page?.id ?? null);
-  const [msgs, setMsgs] = useState<AiMsg[]>(() => loadThread(tkey));
+  const [threads, setThreads] = useState<ThreadMeta[]>(() => loadThreads());
+  const [activeId, setActiveId] = useState<string>(() => {
+    const saved = window.localStorage.getItem(ACTIVE_KEY);
+    const list = loadThreads();
+    if (saved && list.some((t) => t.id === saved)) return saved;
+    return list[0]?.id ?? '';
+  });
+  const [msgs, setMsgs] = useState<AiMsg[]>(() => activeId ? loadMsgs(activeId) : []);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [ctxOn, setCtxOn] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [width, setWidth] = useState<number>(() => loadWidth());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // 페이지 변경 시 해당 스레드 로드
+  // 빈 상태 → 첫 스레드 자동 생성
   useEffect(() => {
-    setMsgs(loadThread(tkey));
-    setCtxOn(true);
-  }, [tkey]);
+    if (threads.length === 0) {
+      const id = newThreadId();
+      const meta: ThreadMeta = { id, title: '새 대화', updatedAt: Date.now(), msgCount: 0 };
+      setThreads([meta]);
+      saveThreads([meta]);
+      setActiveId(id);
+      setMsgs([]);
+    }
+  }, [threads.length]);
 
-  // 메시지 변경 시 저장 + 스크롤 하단
+  // 활성 id 영속
   useEffect(() => {
-    saveThread(tkey, msgs);
+    if (activeId) {
+      try { window.localStorage.setItem(ACTIVE_KEY, activeId); } catch { /* */ }
+    }
+  }, [activeId]);
+
+  // 활성 스레드 변경 시 메시지 로드
+  useEffect(() => {
+    if (activeId) setMsgs(loadMsgs(activeId));
+  }, [activeId]);
+
+  // 메시지 변경 시 저장 + 메타 업데이트 + 스크롤
+  useEffect(() => {
+    if (!activeId) return;
+    saveMsgs(activeId, msgs);
+    setThreads((prev) => {
+      const next = prev.map((t) => t.id === activeId
+        ? { ...t, msgCount: msgs.length, updatedAt: Date.now(), title: deriveTitle(msgs) }
+        : t);
+      saveThreads(next);
+      return next;
+    });
     queueMicrotask(() => {
       const el = scrollRef.current;
       if (el) el.scrollTop = el.scrollHeight;
     });
-  }, [msgs, tkey]);
+  }, [msgs, activeId]);
 
   // 열릴 때 자동 포커스
   useEffect(() => {
@@ -139,15 +201,43 @@ export function WikiAiPanel({
     }
   }, [open]);
 
-  // ESC 닫기
+  // ESC — history 열려 있으면 닫기, 아니면 패널 닫기
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (historyOpen) setHistoryOpen(false);
+        else onClose();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, onClose, historyOpen]);
+
+  // 리사이즈 — 좌측 핸들 드래그
+  const onResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = width;
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.min(MAX_W, Math.max(MIN_W, startW + (startX - ev.clientX)));
+      setWidth(next);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      setWidth((w) => {
+        try { window.localStorage.setItem(WIDTH_KEY, String(w)); } catch { /* */ }
+        return w;
+      });
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [width]);
 
   const ctxLabel = useMemo(() => {
     if (page) return `📄 ${page.title}`;
@@ -156,10 +246,8 @@ export function WikiAiPanel({
 
   const ctxPayload = useMemo(() => {
     if (!ctxOn) return '';
-    if (page) return `${page.title}\n\n${page.body.slice(0, 800)}`;
+    if (page) return `현재 보고 있는 페이지:\n제목: ${page.title}\n\n${page.body.slice(0, 800)}`;
     if (allPages && allPages.length > 0) {
-      // 글로벌 모드 — 페이지 목록을 컨텍스트로 (제목 + 첫 줄 요약).
-      // 너무 길어지지 않게 30개 제한 + 줄당 80자.
       const lines = allPages.slice(0, 30).map((p) => {
         const firstLine = p.body.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '';
         return `- ${p.title}${firstLine ? ` — ${firstLine.slice(0, 80)}` : ''}`;
@@ -167,14 +255,12 @@ export function WikiAiPanel({
       const more = allPages.length > 30 ? `\n(외 ${allPages.length - 30}개 더)` : '';
       return `사용자의 위키 페이지 목록 (${allPages.length}개):\n${lines.join('\n')}${more}`;
     }
-    return `위키 페이지 ${totalPages}개`;
+    return '';
   }, [ctxOn, page, allPages, totalPages]);
-
-  const examples = page ? EXAMPLES_PAGE : EXAMPLES_GLOBAL;
 
   async function send(text: string): Promise<void> {
     const q = text.trim();
-    if (!q || busy) return;
+    if (!q || busy || !activeId) return;
 
     const userMsg: AiMsg = { id: newId(), role: 'user', text: q, ts: Date.now(), ctxPageId: page?.id };
     const aiMsgId = newId();
@@ -183,12 +269,7 @@ export function WikiAiPanel({
     setInput('');
     setBusy(true);
 
-    // 컨텍스트(현재 페이지 본문 또는 위키 메타) 를 previousResponses 로 전달.
-    // 메인 채팅의 expert 패턴 재사용 — system 다음에 합성됨.
-    const previousResponses = ctxPayload
-      ? [{ name: '컨텍스트', content: ctxPayload }]
-      : [];
-
+    const previousResponses = ctxPayload ? [{ name: '컨텍스트', content: ctxPayload }] : [];
     let accumulated = '';
 
     try {
@@ -204,14 +285,12 @@ export function WikiAiPanel({
           ));
         },
         onDone: () => {
-          // 응답이 비어 있으면 안내 메시지로 교체.
           if (!accumulated.trim()) {
             setMsgs((prev) => prev.map((m) =>
               m.id === aiMsgId ? { ...m, text: '_(응답이 비어 있어요. 다시 시도해 주세요)_' } : m,
             ));
           }
         },
-        // 위키 컨텍스트만 사용 — 외부 검색 비활성화 (Q&A 안정성).
         searchPolicy: 'never',
       });
     } catch (e) {
@@ -225,47 +304,155 @@ export function WikiAiPanel({
     }
   }
 
-  function clearThread(): void {
+  function newThread(): void {
+    const id = newThreadId();
+    const meta: ThreadMeta = { id, title: '새 대화', updatedAt: Date.now(), msgCount: 0 };
+    const next = [meta, ...threads];
+    setThreads(next);
+    saveThreads(next);
+    setActiveId(id);
     setMsgs([]);
-    notify.info('스레드를 비웠어요');
+    setHistoryOpen(false);
+    window.setTimeout(() => inputRef.current?.focus(), 30);
+  }
+
+  function switchThread(id: string): void {
+    if (id === activeId) {
+      setHistoryOpen(false);
+      return;
+    }
+    setActiveId(id);
+    setHistoryOpen(false);
+  }
+
+  function deleteThread(id: string): void {
+    if (!window.confirm('이 대화를 삭제할까요? 메시지는 복구할 수 없어요.')) return;
+    dropMsgs(id);
+    const next = threads.filter((t) => t.id !== id);
+    setThreads(next);
+    saveThreads(next);
+    if (id === activeId) {
+      if (next.length > 0) {
+        setActiveId(next[0].id);
+      } else {
+        const nid = newThreadId();
+        const meta: ThreadMeta = { id: nid, title: '새 대화', updatedAt: Date.now(), msgCount: 0 };
+        setThreads([meta]);
+        saveThreads([meta]);
+        setActiveId(nid);
+        setMsgs([]);
+      }
+    }
+    notify.info('대화를 삭제했어요');
   }
 
   if (!open) return null;
 
+  const sortedThreads = [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
+
   return (
     <aside
+      style={{ width }}
       className={cn(
-        'fixed top-0 right-0 h-full w-full max-w-[360px] sm:max-w-[380px]',
+        'fixed top-0 right-0 h-full',
         'bg-background border-l border-[hsl(var(--hairline))] shadow-xl',
         'flex flex-col wiki-z-popover wiki-ai-panel-enter',
       )}
       role="complementary"
       aria-label="AI 채팅 패널"
     >
+      {/* 좌측 리사이즈 핸들 */}
+      <div
+        onMouseDown={onResizeStart}
+        className="absolute top-0 left-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 wiki-trans-color z-10"
+        title="드래그해서 너비 조절"
+        aria-label="너비 조절"
+        role="separator"
+      />
+
       {/* 헤더 */}
-      <header className="h-12 px-3 border-b border-[hsl(var(--hairline))] flex items-center gap-2 shrink-0">
+      <header className="h-12 px-3 border-b border-[hsl(var(--hairline))] flex items-center gap-1 shrink-0">
         <Sparkles className="h-4 w-4 text-primary shrink-0" />
         <h2 className="flex-1 text-[13px] font-bold truncate">AI 보조</h2>
         <button
           type="button"
-          onClick={clearThread}
-          disabled={msgs.length === 0}
-          className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent wiki-trans-color"
-          title="스레드 비우기"
-          aria-label="스레드 비우기"
+          onClick={() => setHistoryOpen((v) => !v)}
+          className={cn(
+            'h-7 px-2 inline-flex items-center gap-1 rounded-md text-[11px] wiki-trans-color',
+            historyOpen
+              ? 'bg-accent text-foreground'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+          )}
+          title="대화 목록"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <History className="h-3.5 w-3.5" />
+          <span>대화 {threads.length > 0 && `(${threads.length})`}</span>
+        </button>
+        <button
+          type="button"
+          onClick={newThread}
+          className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+          title="새 대화 시작"
+          aria-label="새 대화"
+        >
+          <MessageSquarePlus className="h-4 w-4" />
         </button>
         <button
           type="button"
           onClick={onClose}
           className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-          title="닫기 (Esc / Ctrl+J)"
+          title="닫기 (Esc)"
           aria-label="닫기"
         >
           <X className="h-4 w-4" />
         </button>
       </header>
+
+      {/* 대화 목록 시트 */}
+      {historyOpen && (
+        <div className="border-b border-[hsl(var(--hairline))] bg-muted/20 max-h-[45%] overflow-y-auto shrink-0">
+          {sortedThreads.length === 0 ? (
+            <div className="p-3 text-[11.5px] text-muted-foreground">대화가 없어요</div>
+          ) : (
+            <ul className="py-1">
+              {sortedThreads.map((t) => (
+                <li
+                  key={t.id}
+                  className={cn(
+                    'group flex items-center gap-2 px-3 py-1.5 hover:bg-accent/60 wiki-trans-color',
+                    t.id === activeId && 'bg-primary/10',
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => switchThread(t.id)}
+                    className="flex-1 text-left min-w-0"
+                  >
+                    <div className={cn(
+                      'text-[12px] truncate',
+                      t.id === activeId ? 'text-primary font-semibold' : 'text-foreground',
+                    )}>
+                      {t.title || '새 대화'}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {t.msgCount}개 메시지 · {formatTime(t.updatedAt)}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); deleteThread(t.id); }}
+                    className="opacity-0 group-hover:opacity-100 h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive wiki-trans-color"
+                    title="대화 삭제"
+                    aria-label="대화 삭제"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* 컨텍스트 칩 */}
       <div className="px-3 py-2 border-b border-[hsl(var(--hairline))] flex items-center gap-2 shrink-0 bg-muted/20">
@@ -278,12 +465,14 @@ export function WikiAiPanel({
               ? 'bg-primary/10 text-primary'
               : 'bg-muted text-muted-foreground line-through',
           )}
-          title={ctxOn ? '컨텍스트 끄기' : '컨텍스트 켜기'}
+          title={ctxOn ? '컨텍스트 끄기 (일반 질문 모드)' : '컨텍스트 켜기 (위키 참조)'}
         >
           <FileText className="h-3 w-3" />
           <span className="truncate max-w-[220px]">{ctxLabel}</span>
         </button>
-        <span className="text-[10px] text-muted-foreground/70 truncate">{ctxOn ? '첨부됨' : '미첨부'}</span>
+        <span className="text-[10px] text-muted-foreground/70 truncate">
+          {ctxOn ? '참조 중' : '미참조'}
+        </span>
       </div>
 
       {/* 메시지 영역 */}
@@ -291,12 +480,10 @@ export function WikiAiPanel({
         {msgs.length === 0 ? (
           <div className="space-y-3">
             <p className="text-[12px] text-muted-foreground leading-relaxed">
-              {page
-                ? '이 페이지에 대해 묻거나, 정리·연결을 부탁해보세요.'
-                : '위키 전체에 대해 묻거나, 페이지를 찾아달라고 해보세요.'}
+              사이드바 AI 비서예요. 일반 질문도 받고, 위키 페이지를 보고 있으면 그 내용도 참고해 답해요.
             </p>
             <div className="flex flex-col gap-1.5">
-              {examples.map((ex) => (
+              {EXAMPLES.map((ex) => (
                 <button
                   key={ex}
                   type="button"
@@ -343,7 +530,7 @@ export function WikiAiPanel({
               void send(input);
             }
           }}
-          placeholder={page ? '이 페이지에 대해 묻기…' : '위키 전체에 대해 묻기…'}
+          placeholder="무엇이든 물어보세요…"
           rows={2}
           className="flex-1 resize-none rounded-md border border-[hsl(var(--hairline))] bg-background px-2 py-1.5 text-[12.5px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
         />
@@ -359,6 +546,18 @@ export function WikiAiPanel({
       </form>
     </aside>
   );
+}
+
+function formatTime(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return sameYear
+    ? `${d.getMonth() + 1}/${d.getDate()}`
+    : `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
 }
 
 /** 가벼운 markdown 렌더러 — 헤더 / 리스트 / 인라인(굵게·기울임·코드·링크). */
@@ -423,7 +622,6 @@ function MdLite({ text }: { text: string }) {
 }
 
 function renderInline(text: string): ReactNode {
-  // 토큰: `code`, **bold**, *italic*, [text](url)
   const parts: ReactNode[] = [];
   const re = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*\n]+\*)|(\[[^\]]+\]\([^)]+\))/g;
   let last = 0;
