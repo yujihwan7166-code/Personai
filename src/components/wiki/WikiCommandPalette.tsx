@@ -1,6 +1,6 @@
 import { Command } from 'cmdk';
 import { useEffect, useState } from 'react';
-import { Plus, Network, Home, Download, Upload, Trash2, X, Inbox, Sparkles } from 'lucide-react';
+import { Plus, Network, Home, Download, Upload, Trash2, X, Inbox, Bot } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
 import { exportAllAsJson } from '@/lib/wikiBackup';
 
@@ -113,8 +113,8 @@ export function WikiCommandPalette({
             )}
             {onAskAi && (
               <Item
-                icon={<Sparkles className="h-3.5 w-3.5" />}
-                label="AI 보조 열기"
+                icon={<Bot className="h-3.5 w-3.5" />}
+                label="마이위키 AI 도우미 열기"
                 hint="Ctrl/Cmd+J"
                 onSelect={() => run(onAskAi)}
               />

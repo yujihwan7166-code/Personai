@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  Sparkles, X, Send, Trash2, FileText, Plus as PlusIcon,
+  Bot, X, Send, Trash2, FileText, Plus as PlusIcon,
   BookOpen, MessageSquarePlus, History, Library,
 } from 'lucide-react';
 import type { WikiPage } from '@/types/wiki';
@@ -359,7 +359,7 @@ export function WikiAiPanel({
         'flex flex-col wiki-z-popover wiki-ai-panel-enter',
       )}
       role="complementary"
-      aria-label="AI 채팅 패널"
+      aria-label="마이위키 AI 도우미 패널"
     >
       {/* 좌측 리사이즈 핸들 */}
       <div
@@ -372,8 +372,8 @@ export function WikiAiPanel({
 
       {/* 헤더 */}
       <header className="h-12 px-3 border-b border-[hsl(var(--hairline))] flex items-center gap-1 shrink-0">
-        <Sparkles className="h-4 w-4 text-primary shrink-0" />
-        <h2 className="flex-1 text-[13px] font-bold truncate">AI 보조</h2>
+        <Bot className="h-4 w-4 text-primary shrink-0" />
+        <h2 className="flex-1 text-[13px] font-bold truncate">마이위키 AI 도우미</h2>
         <button
           type="button"
           onClick={() => setHistoryOpen((v) => !v)}
