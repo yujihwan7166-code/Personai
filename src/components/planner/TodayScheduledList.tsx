@@ -395,7 +395,9 @@ const ScheduledTaskRow = ({
       >
         {task.title}
       </button>
-      {(task.priority ?? 0) > 0 && (
+      {/* 일정 도메인엔 priority 개념이 없음 — startAt 있는 task 는 깃발 표시 X.
+          taskStore sanitize 가 보통 막아주지만, 가상 인스턴스/레거시 데이터 대비 가드. */}
+      {!task.startAt && (task.priority ?? 0) > 0 && (
         <Flag
           className="h-3 w-3 shrink-0"
           style={{ color: PRIORITY_COLORS[task.priority!], fill: PRIORITY_COLORS[task.priority!] }}

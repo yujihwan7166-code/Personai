@@ -152,7 +152,9 @@ export const Overdue = ({ onTaskClick }: OverdueProps) => {
               <span className="text-[9.5px] font-mono tabular-nums text-rose-500/80 shrink-0 font-semibold">
                 {task.startAt ? formatPastTime(task.startAt) : ''}
               </span>
-              {(task.priority ?? 0) > 0 && (
+              {/* Overdue 는 정의상 startAt 있는 task — 일정 도메인이라 priority 깃발 X.
+                  레거시 데이터에 priority 잔존해도 표시 안 함. */}
+              {!task.startAt && (task.priority ?? 0) > 0 && (
                 <Flag
                   className="h-2.5 w-2.5 shrink-0"
                   style={{

@@ -152,10 +152,12 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     if (mode.kind === 'schedule') {
       setTitle(mode.initialTitle);
       // task 의 실제 startAt 유무로 isEvent 자동 결정 (사용자가 toggle 로 변경 가능).
+      // initialStart 는 모달의 시간 input 초기값으로만 사용 — 모드 결정에 쓰면
+      // 호출부가 default 09:00 을 채워보낼 때 인박스 task 가 일정 모달로 잘못 열림.
       const direct = taskStore.findMaster(mode.taskId);
       const series = resolveSeries(mode.taskId);
       const masterTask = series?.kind === 'task' ? series.master : direct;
-      const hasTime = Boolean(mode.initialStart ?? masterTask?.startAt);
+      const hasTime = Boolean(masterTask?.startAt);
       setIsEvent(hasTime);
       // 날짜/시간 default — initialStart 가 없고 plannedFor 만 있으면 그 날 09:00.
       const fallbackStart = masterTask?.plannedFor
@@ -201,6 +203,23 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   // 시간(시작·길이) input 노출은 isEvent 만으로 결정 — 모드 무관.
   // 할 일 = 시간 무관, 일정 = 시간 블록.
   const showsTimeInputs = isEvent;
+
+  /**
+   * 일정으로 전환 — priority 가 있었으면 자동 해제 + 안내.
+   * 일정 도메인엔 우선순위 개념이 없으므로 잔존하면 표시 단계에서 잘못된
+   * 깃발이 뜸 (taskStore.update 도 sanitize 하지만, 모달 state 도 즉시
+   * 동기화해야 사용자가 다시 할 일로 토글했을 때 부활하지 않음).
+   */
+  const switchToEvent = () => {
+    setIsEvent(true);
+    if (priority !== 0) {
+      setPriority(0);
+      notify.info('일정으로 바꾸면서 우선순위는 해제됐어요', { duration: 1800 });
+    }
+  };
+  const switchToTask = () => {
+    setIsEvent(false);
+  };
 
   const submitWithScope = (scope: 'this' | 'future' | 'all' = 'all') => {
     const trimmed = title.trim();
@@ -395,7 +414,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           <div className="sm:col-span-2 -mt-1 grid grid-cols-2 border-b border-foreground/10">
             <button
               type="button"
-              onClick={() => setIsEvent(true)}
+              onClick={switchToEvent}
               aria-pressed={isEvent}
               className={cn(
                 'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
@@ -413,7 +432,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </button>
             <button
               type="button"
-              onClick={() => setIsEvent(false)}
+              onClick={switchToTask}
               aria-pressed={!isEvent}
               className={cn(
                 'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',

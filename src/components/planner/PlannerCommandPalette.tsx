@@ -141,7 +141,8 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
               className="px-2 pt-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:font-semibold"
             >
               {allTasks.map((t) => {
-                const p = (t.priority ?? 0) as Priority;
+                // 일정(startAt 있음) 도메인엔 priority 개념 없음 — 깃발 표시 X.
+                const p = (t.startAt ? 0 : (t.priority ?? 0)) as Priority;
                 const flag = p > 0 ? (
                   <Flag className="h-3 w-3" style={{ color: PRIORITY_COLORS[p], fill: PRIORITY_COLORS[p] }} />
                 ) : undefined;

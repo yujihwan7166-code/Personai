@@ -662,7 +662,11 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
               const done = item.kind === 'task' ? item.data.done : false;
               const canceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
               const kindLabel = item.kind === 'event' ? '일정' : '할 일';
-              const taskPriority = item.kind === 'task' ? (item.data.priority ?? 0) : 0;
+              // 일정 도메인엔 priority 개념이 없음 — startAt 있는 task 는 깃발 표시 X.
+              // (taskStore 가 sanitize 하지만 가상 인스턴스/레거시 데이터 대비 표시 단계 가드.)
+              const taskPriority = item.kind === 'task' && !item.data.startAt
+                ? (item.data.priority ?? 0)
+                : 0;
               const showFlag = taskPriority > 0;
               const hasNote = item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0);
               const recurring = Boolean(item.data.recurrence);
@@ -847,37 +851,41 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                           <Ban className="mr-2 h-3.5 w-3.5" />
                           {item.data.canceled ? '취소 되돌림' : '취소'}
                         </ContextMenuItem>
-                        <ContextMenuSub>
-                          <ContextMenuSubTrigger>
-                            <Flag
-                              className="mr-2 h-3.5 w-3.5"
-                              style={
-                                (item.data.priority ?? 0) > 0
-                                  ? { color: PRIORITY_COLORS[item.data.priority as Priority], fill: PRIORITY_COLORS[item.data.priority as Priority] }
-                                  : undefined
-                              }
-                            />
-                            우선순위
-                          </ContextMenuSubTrigger>
-                          <ContextMenuSubContent className="w-32">
-                            {([3, 2, 1, 0] as Priority[]).map((p) => (
-                              <ContextMenuItem
-                                key={p}
-                                onSelect={() => handleSetPriority(item.data, p)}
-                                className={item.data.priority === p || (p === 0 && !item.data.priority) ? 'bg-accent' : ''}
-                              >
-                                {p > 0 && (
-                                  <Flag
-                                    className="mr-2 h-3.5 w-3.5"
-                                    style={{ color: PRIORITY_COLORS[p], fill: PRIORITY_COLORS[p] }}
-                                  />
-                                )}
-                                {p === 0 && <span className="mr-2 inline-block w-3.5" aria-hidden />}
-                                {PRIORITY_LABELS[p]}
-                              </ContextMenuItem>
-                            ))}
-                          </ContextMenuSubContent>
-                        </ContextMenuSub>
+                        {/* 우선순위 — 할 일 전용. 타임라인 블록은 전부 일정(startAt 있음)이라
+                            논리상 항상 hide 이지만, 의도를 분명히 하려고 명시적 가드. */}
+                        {!item.data.startAt && (
+                          <ContextMenuSub>
+                            <ContextMenuSubTrigger>
+                              <Flag
+                                className="mr-2 h-3.5 w-3.5"
+                                style={
+                                  (item.data.priority ?? 0) > 0
+                                    ? { color: PRIORITY_COLORS[item.data.priority as Priority], fill: PRIORITY_COLORS[item.data.priority as Priority] }
+                                    : undefined
+                                }
+                              />
+                              우선순위
+                            </ContextMenuSubTrigger>
+                            <ContextMenuSubContent className="w-32">
+                              {([3, 2, 1, 0] as Priority[]).map((p) => (
+                                <ContextMenuItem
+                                  key={p}
+                                  onSelect={() => handleSetPriority(item.data, p)}
+                                  className={item.data.priority === p || (p === 0 && !item.data.priority) ? 'bg-accent' : ''}
+                                >
+                                  {p > 0 && (
+                                    <Flag
+                                      className="mr-2 h-3.5 w-3.5"
+                                      style={{ color: PRIORITY_COLORS[p], fill: PRIORITY_COLORS[p] }}
+                                    />
+                                  )}
+                                  {p === 0 && <span className="mr-2 inline-block w-3.5" aria-hidden />}
+                                  {PRIORITY_LABELS[p]}
+                                </ContextMenuItem>
+                              ))}
+                            </ContextMenuSubContent>
+                          </ContextMenuSub>
+                        )}
                         <ContextMenuItem onSelect={() => handleUnschedule(item.data)}>
                           <InboxIcon className="mr-2 h-3.5 w-3.5" />
                           대기함으로

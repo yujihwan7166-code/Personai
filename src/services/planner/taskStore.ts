@@ -9,6 +9,7 @@
  */
 import { PlannerTask, PLANNER_TASK_CHANGED } from '@/types/planner';
 import { expandRecurrence, isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
+import { sanitizeForDomain } from '@/lib/planner/taskDomain';
 
 const STORAGE_KEY = 'planner.tasks.v1';
 
@@ -22,6 +23,13 @@ const isValidTask = (v: unknown): v is PlannerTask => {
     && typeof o.createdAt === 'string';
 };
 
+/**
+ * 도메인 일관성 강제 — startAt 있으면 priority/plannedFor 제거.
+ * 과거 버전에서 할 일 → 일정 변환 시 priority 잔존 버그로 잘못 저장된
+ * 데이터를 표시 단계에서 즉시 클린업. 한 번 거치고 나면 멱등.
+ */
+const sanitizeOne = (t: PlannerTask): PlannerTask => sanitizeForDomain(t) as PlannerTask;
+
 const safeRead = (): PlannerTask[] => {
   if (typeof window === 'undefined') return [];
   try {
@@ -29,7 +37,7 @@ const safeRead = (): PlannerTask[] => {
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isValidTask);
+    return parsed.filter(isValidTask).map(sanitizeOne);
   } catch {
     return [];
   }
@@ -208,12 +216,12 @@ export const taskStore = {
   },
 
   add(input: Omit<PlannerTask, 'id' | 'createdAt' | 'done'> & { done?: boolean }): PlannerTask {
-    const next: PlannerTask = {
+    const next: PlannerTask = sanitizeOne({
       ...input,
       done: input.done ?? false,
       id: newId(),
       createdAt: new Date().toISOString(),
-    };
+    });
     safeWrite([...safeRead(), next]);
     return next;
   },
@@ -222,7 +230,8 @@ export const taskStore = {
     const all = safeRead();
     const idx = all.findIndex((t) => t.id === id);
     if (idx === -1) return;
-    all[idx] = { ...all[idx], ...patch };
+    // 패치 후 도메인 일관성 강제 — 일정으로 바뀌면 priority/plannedFor 자동 제거.
+    all[idx] = sanitizeOne({ ...all[idx], ...patch });
     safeWrite(all);
   },
 

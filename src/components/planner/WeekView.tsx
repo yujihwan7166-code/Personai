@@ -223,7 +223,8 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick }: WeekViewProps) 
                         overlapping={item.overlapping}
                         done={item.kind === 'task' ? item.data.done : false}
                         color={blockColor}
-                        priority={item.kind === 'task' ? item.data.priority : undefined}
+                        // 주 뷰 블록도 일정 도메인 — priority 깃발 X (item 은 항상 startAt 있음).
+                        priority={undefined}
                         hasNote={item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0)}
                         canceled={item.kind === 'task' ? item.data.canceled : undefined}
                         recurring={Boolean(item.data.recurrence)}
