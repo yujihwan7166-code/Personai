@@ -6,11 +6,13 @@
  * - 오늘로: 'T' 키 + 버튼
  * - 현재 기간 라벨: 헤더에 명확히 표시
  *
- * 단축키:
- * - n: 인박스 빠른 추가 포커스 (Day/Week 뷰)
- * - d/w/m/y/g: 뷰 전환
- * - ← / →: 이전 / 다음
+ * 단축키 (input/textarea/contentEditable 안에서는 비활성):
+ * - n: 인박스 빠른 추가 포커스 (필요 시 day 뷰로 전환)
+ * - d/w/m/y/g/h: 뷰 전환 (day/week/month/year/goals/habits)
+ * - ← / →: 이전 / 다음 (시간 네비)
  * - t: 오늘로
+ * - ?: 단축키 도움말
+ * - / 또는 ⌘K(⌃K): 명령 팔레트
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';

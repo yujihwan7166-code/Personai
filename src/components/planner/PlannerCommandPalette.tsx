@@ -45,7 +45,10 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
       const target = e.target as HTMLElement | null;
       const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
 
+      // Cmd+K — 입력 중에도 열림(글로벌). 단 팔레트 자기 input 안에서는 토글 X (cmdk 가 처리).
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        // 팔레트가 이미 열려있고 사용자가 안에서 타이핑 중이면 cmdk 의 자체 동작에 맡김.
+        if (open && isTyping) return;
         e.preventDefault();
         onOpenChange(!open);
       } else if (e.key === 'Escape' && open) {
@@ -67,10 +70,20 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
     onOpenChange(false);
   };
 
-  // 검색용 데이터 — 완료·취소 제외 + 결과 limit (Linear/Cron 패턴, 노이즈 감소).
-  const allTasks = taskStore.list().filter((t) => !t.done && !t.canceled).slice(0, RESULT_LIMIT);
-  const allEvents = eventStore.list().slice(0, RESULT_LIMIT);
-  const hasQuery = query.trim().length > 0;
+  // 검색용 데이터 — 완료·취소 제외 후 query 로 1차 필터, 그 다음에 slice.
+  // (slice 를 먼저 하면 21번째부터의 매칭이 영원히 안 보임.)
+  const q = query.trim().toLowerCase();
+  const hasQuery = q.length > 0;
+  const allTasks = (() => {
+    const base = taskStore.list().filter((t) => !t.done && !t.canceled);
+    const filtered = hasQuery ? base.filter((t) => t.title.toLowerCase().includes(q)) : base;
+    return filtered.slice(0, RESULT_LIMIT);
+  })();
+  const allEvents = (() => {
+    const base = eventStore.list();
+    const filtered = hasQuery ? base.filter((e) => e.title.toLowerCase().includes(q)) : base;
+    return filtered.slice(0, RESULT_LIMIT);
+  })();
 
   return (
     <div
