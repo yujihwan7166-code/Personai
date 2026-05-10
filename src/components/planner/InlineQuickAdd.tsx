@@ -34,16 +34,20 @@ const formatHm = (iso: string) =>
 export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: InlineQuickAddProps) => {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
   // 외부 클릭 / ESC 시 닫기.
+  // 이전: input.parentElement 만 체크해서 wrapper 의 다른 자식(X 버튼 등) 클릭하면 잘못 닫힘.
+  // 수정: wrapper ref 로 정확히 wrapper 트리 전체 contain 체크.
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!inputRef.current?.parentElement?.contains(target)) {
+      const target = e.target as Node;
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(target)) {
         onClose();
       }
     };
@@ -94,6 +98,7 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
 
   return (
     <div
+      ref={wrapperRef}
       className={cn(
         'absolute left-2 z-30 w-[calc(100%_-_16px)] max-w-[420px] rounded-md overflow-hidden',
         'border border-primary/30 bg-card shadow-xl ring-1 ring-primary/15',

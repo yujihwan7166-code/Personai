@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Flag, Plus, X } from 'lucide-react';
 import { ddayStore } from '@/services/planner/ddayStore';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
 import { PLANNER_DDAY_CHANGED, type PlannerDday } from '@/types/planner';
 
 const localDateKey = (d: Date) => {
@@ -129,22 +130,32 @@ const NewDdayInput = ({ onDone }: { onDone: () => void }) => {
   const todayKey = localDateKey(new Date());
   const [date, setDate] = useState(todayKey);
 
-  const submit = () => {
+  /** explicit=true: Enter / + 버튼처럼 사용자가 명시 저장. label 필수.
+   *  explicit=false: blur 자동 저장. label 비었으면 silent cancel (자동 저장이라 noise X). */
+  const submit = (explicit: boolean) => {
     const trimmed = label.trim();
-    if (trimmed && date) {
-      ddayStore.add({ label: trimmed, dateIso: date });
+    if (!trimmed) {
+      if (explicit) notify.warning('라벨을 입력해주세요', { duration: 1500 });
+      else onDone(); // 자동 저장에서 라벨 없으면 그냥 취소
+      return;
     }
+    if (!date) {
+      if (explicit) notify.warning('날짜를 선택해주세요', { duration: 1500 });
+      else onDone();
+      return;
+    }
+    ddayStore.add({ label: trimmed, dateIso: date });
     onDone();
   };
 
   return (
     <div
       className="mt-1 flex items-center gap-1 px-1.5 py-1 rounded bg-accent/60"
-      // wrapper outside 클릭(focus 가 wrapper 외부로) 시 자동 저장.
+      // wrapper outside 클릭(focus 가 wrapper 외부로) 시 자동 저장 시도.
       // wrapper 내부 input ↔ date 이동 시는 저장 X (relatedTarget contained).
       onBlur={(e) => {
         if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-        submit();
+        submit(false);
       }}
     >
       <input
@@ -152,7 +163,7 @@ const NewDdayInput = ({ onDone }: { onDone: () => void }) => {
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') submit();
+          if (e.key === 'Enter') submit(true);
           else if (e.key === 'Escape') onDone();
         }}
         placeholder="라벨"
@@ -163,7 +174,7 @@ const NewDdayInput = ({ onDone }: { onDone: () => void }) => {
         value={date}
         onChange={(e) => setDate(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') submit();
+          if (e.key === 'Enter') submit(true);
           else if (e.key === 'Escape') onDone();
         }}
         className="bg-transparent text-[10.5px] tabular-nums text-foreground/85 outline-none w-[100px]"
@@ -172,7 +183,7 @@ const NewDdayInput = ({ onDone }: { onDone: () => void }) => {
         type="button"
         // mousedown 으로 막아 input blur 가 button click 전 submit 되는 race 방지.
         onMouseDown={(e) => e.preventDefault()}
-        onClick={submit}
+        onClick={() => submit(true)}
         aria-label="저장"
         title="저장 (Enter)"
         className="h-5 w-5 inline-flex items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-foreground/10 transition-colors shrink-0"

@@ -48,11 +48,20 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
   const editRef = useRef<HTMLTextAreaElement>(null);
 
   // drawer 닫힐 때 모든 상태 초기화 + 편집 중이면 자동 저장.
+  // 편집 본문이 빈 문자열이면 저장 안 함 + (방금 startNew 로 만들어진 빈 메모면) 자동 정리.
   useEffect(() => {
     if (!open) {
       if (selectedId) {
         const trimmed = editBody.trim();
-        if (trimmed) updateMemo(selectedId, { body: trimmed });
+        if (trimmed) {
+          updateMemo(selectedId, { body: trimmed });
+        } else {
+          // 빈 메모 — 본문 0 이면 누적 방지 위해 자동 제거 (사용자가 의도적으로 비웠다면 의미 X).
+          const target = memos.find((m) => m.id === selectedId);
+          if (target && (!target.body || target.body.trim().length === 0)) {
+            removeMemo(selectedId);
+          }
+        }
         setSelectedId(null);
         setEditBody('');
       }
@@ -60,7 +69,7 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
       setDrafting(false);
       setDraftBody('');
     }
-  }, [open, selectedId, editBody]);
+  }, [open, selectedId, editBody, memos]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
