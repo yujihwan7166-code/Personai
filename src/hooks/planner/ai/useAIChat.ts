@@ -9,6 +9,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AIMessage, AIChatState } from '@/types/plannerAI';
 import { AI_SYSTEM_PROMPT } from '@/lib/planner/ai/aiSystemPrompt';
 import { buildAIContext } from '@/lib/planner/ai/buildAIContext';
+import { parseAIContent } from '@/lib/planner/ai/parseActions';
+import { applyAIAction, undoAIAction } from '@/lib/planner/ai/applyAction';
+import { notify } from '@/lib/notify';
 import type { PlannerView } from '@/components/planner/ViewToggle';
 
 const STORAGE_KEY = 'planner.ai-chat.v1';
@@ -167,10 +170,17 @@ export const useAIChat = ({ view, anchorIso }: UseAIChatArgs) => {
         }
       }
 
+      // 스트리밍 끝 — 최종 본문에서 ```action 블록 추출, 본문에서는 제거.
+      const parsed = parseAIContent(accumulated);
       setState((s) => ({
         loading: false,
         messages: s.messages.map((m) => m.id === assistantMsg.id
-          ? { ...m, streaming: false }
+          ? {
+              ...m,
+              streaming: false,
+              content: parsed.displayContent || accumulated,
+              ...(parsed.actions.length > 0 ? { actions: parsed.actions } : {}),
+            }
           : m),
       }));
     } catch (err: unknown) {
@@ -188,5 +198,58 @@ export const useAIChat = ({ view, anchorIso }: UseAIChatArgs) => {
     }
   }, [view, anchorIso, state.loading, state.messages]);
 
-  return { state, send, stop, clear };
+  /** 액션 카드 [추가] 클릭 → 실제 적용 + 상태 업데이트. */
+  const applyAction = useCallback((messageId: string, actionIdx: number) => {
+    setState((s) => {
+      const msg = s.messages.find((m) => m.id === messageId);
+      if (!msg || !msg.actions || !msg.actions[actionIdx]) return s;
+      const inst = msg.actions[actionIdx];
+      if (inst.status !== 'pending') return s;
+      const appliedId = applyAIAction(inst.action);
+      if (!appliedId) {
+        notify.error('추가 실패 — 다시 시도해주세요');
+        return s;
+      }
+      notify.success('추가됐어요', { duration: 1500 });
+      return {
+        ...s,
+        messages: s.messages.map((m) => m.id !== messageId ? m : {
+          ...m,
+          actions: m.actions!.map((a, i) => i !== actionIdx ? a : { ...a, status: 'applied' as const, appliedId }),
+        }),
+      };
+    });
+  }, []);
+
+  /** 액션 카드 [취소] 클릭 → status 만 변경, store 손대지 않음. */
+  const cancelAction = useCallback((messageId: string, actionIdx: number) => {
+    setState((s) => ({
+      ...s,
+      messages: s.messages.map((m) => m.id !== messageId ? m : {
+        ...m,
+        actions: m.actions!.map((a, i) => i !== actionIdx ? a : { ...a, status: 'canceled' as const }),
+      }),
+    }));
+  }, []);
+
+  /** 적용된 액션 [되돌리기] → store 에서 제거 + status 되돌림. */
+  const undoAction = useCallback((messageId: string, actionIdx: number) => {
+    setState((s) => {
+      const msg = s.messages.find((m) => m.id === messageId);
+      if (!msg || !msg.actions || !msg.actions[actionIdx]) return s;
+      const inst = msg.actions[actionIdx];
+      if (inst.status !== 'applied' || !inst.appliedId) return s;
+      undoAIAction(inst.action, inst.appliedId);
+      notify.info('되돌렸어요', { duration: 1500 });
+      return {
+        ...s,
+        messages: s.messages.map((m) => m.id !== messageId ? m : {
+          ...m,
+          actions: m.actions!.map((a, i) => i !== actionIdx ? a : { ...a, status: 'pending' as const, appliedId: undefined }),
+        }),
+      };
+    });
+  }, []);
+
+  return { state, send, stop, clear, applyAction, cancelAction, undoAction };
 };

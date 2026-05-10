@@ -6,6 +6,42 @@
 
 export type AIRole = 'user' | 'assistant';
 
+/** AI 가 답변에 포함할 수 있는 제안 액션. 사용자가 확인 버튼 누르면 실제 적용. */
+export type AIAction =
+  | {
+      type: 'add_event';
+      title: string;
+      /** ISO 8601. */
+      startAt: string;
+      endAt: string;
+      note?: string;
+    }
+  | {
+      type: 'add_scheduled_task';
+      title: string;
+      startAt: string;
+      endAt: string;
+      /** PlannerTask Priority 와 일치 (0=없음, 1=가장 높음, 3=낮음). */
+      priority?: 0 | 1 | 2 | 3;
+    }
+  | {
+      type: 'add_inbox_task';
+      title: string;
+      /** 'YYYY-MM-DD' — 시간 미배정이지만 그날 하기로. */
+      plannedFor?: string;
+      priority?: 0 | 1 | 2 | 3;
+    };
+
+export type AIActionStatus = 'pending' | 'applied' | 'canceled';
+
+export interface AIActionInstance {
+  /** AI 가 보낸 액션. */
+  action: AIAction;
+  status: AIActionStatus;
+  /** 적용 후 생성된 항목 id (undo 용). */
+  appliedId?: string;
+}
+
 export interface AIMessage {
   id: string;
   role: AIRole;
@@ -14,6 +50,8 @@ export interface AIMessage {
   streaming?: boolean;
   /** 에러 표시. 있으면 빨간 톤 + 재시도 가능. */
   error?: string;
+  /** AI 가 본문에 포함시킨 액션 제안들. 사용자가 [확인] 누르면 실제 적용. */
+  actions?: AIActionInstance[];
   createdAt: string;
 }
 

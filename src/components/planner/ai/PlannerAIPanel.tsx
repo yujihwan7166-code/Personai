@@ -23,7 +23,7 @@ interface PlannerAIPanelProps {
 }
 
 export const PlannerAIPanel = ({ open, onClose, view, anchorIso }: PlannerAIPanelProps) => {
-  const { state, send, stop, clear } = useAIChat({ view, anchorIso });
+  const { state, send, stop, clear, applyAction, cancelAction, undoAction } = useAIChat({ view, anchorIso });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 새 메시지 도착 + 스트리밍 중 본문 변경 시 자동 스크롤 끝.
@@ -116,6 +116,9 @@ export const PlannerAIPanel = ({ open, onClose, view, anchorIso }: PlannerAIPane
                   const prev = state.messages.slice(0, idx).reverse().find((x) => x.role === 'user');
                   if (prev) void send(prev.content);
                 } : undefined}
+                onApplyAction={(i) => applyAction(m.id, i)}
+                onCancelAction={(i) => cancelAction(m.id, i)}
+                onUndoAction={(i) => undoAction(m.id, i)}
               />
             ))
           )}

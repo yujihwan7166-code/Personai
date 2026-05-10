@@ -10,13 +10,17 @@ import { cn } from '@/lib/utils';
 import type { AIMessage as AIMessageType } from '@/types/plannerAI';
 import { RefreshCw } from 'lucide-react';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
+import { AIActionCard } from './AIActionCard';
 
 interface AIMessageProps {
   message: AIMessageType;
   onRetry?: () => void;
+  onApplyAction?: (idx: number) => void;
+  onCancelAction?: (idx: number) => void;
+  onUndoAction?: (idx: number) => void;
 }
 
-export const AIMessage = ({ message, onRetry }: AIMessageProps) => {
+export const AIMessage = ({ message, onRetry, onApplyAction, onCancelAction, onUndoAction }: AIMessageProps) => {
   const isUser = message.role === 'user';
   const hasError = Boolean(message.error);
 
@@ -60,6 +64,20 @@ export const AIMessage = ({ message, onRetry }: AIMessageProps) => {
               : null}
             {message.streaming && (
               <span className="inline-block ml-0.5 w-1.5 h-3 bg-foreground/60 animate-pulse align-text-bottom" aria-hidden />
+            )}
+            {/* AI 가 제안한 액션 카드들 — 사용자가 [추가]/[취소] 결정. */}
+            {!message.streaming && message.actions && message.actions.length > 0 && (
+              <div className="mt-1">
+                {message.actions.map((inst, idx) => (
+                  <AIActionCard
+                    key={idx}
+                    instance={inst}
+                    onApply={() => onApplyAction?.(idx)}
+                    onCancel={() => onCancelAction?.(idx)}
+                    onUndo={() => onUndoAction?.(idx)}
+                  />
+                ))}
+              </div>
             )}
           </div>
         )}
