@@ -171,7 +171,7 @@ export const JournalWeekBoard = ({
                   isToday && !isSelected && 'bg-primary/15 text-primary font-semibold',
                   !isToday && isSelected && (moodTintClass
                     ? `${moodTintClass} text-foreground font-semibold ring-1 ring-foreground/20`
-                    : 'bg-foreground text-background font-semibold'),
+                    : 'bg-primary/15 text-primary font-semibold ring-1 ring-primary/30'),
                   !isToday && !isSelected && hasEntry && (moodTintClass
                     ? `${moodTintClass} text-foreground/85 font-medium`
                     : 'text-foreground/85 font-medium'),

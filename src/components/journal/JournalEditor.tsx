@@ -404,7 +404,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
                         className={cn(
                           'inline-flex items-center justify-center h-8 rounded-md border text-[16px] transition-colors',
                           active
-                            ? 'border-foreground/40 bg-foreground/5'
+                            ? 'border-primary/40 bg-primary/10 text-primary'
                             : 'border-[hsl(var(--hairline))] bg-card hover:border-foreground/20',
                         )}
                       >
@@ -434,7 +434,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
                           className={cn(
                             'flex-1 h-8 rounded-md border text-[11px] font-semibold tabular-nums transition-colors',
                             active
-                              ? 'border-foreground/40 bg-foreground text-background'
+                              ? 'border-primary/40 bg-primary/12 text-primary'
                               : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
                           )}
                         >
@@ -537,7 +537,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
             type="button"
             onClick={handleSubmit}
             title="Ctrl/Cmd + Enter"
-            className="px-4 py-1.5 text-[12px] rounded-md bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+            className="px-4 py-1.5 text-[12px] rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
           >
             저장
           </button>

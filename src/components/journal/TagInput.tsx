@@ -52,7 +52,7 @@ export const TagInput = ({ value, onChange, suggestions = [], className }: TagIn
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       <div
-        className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 min-h-[36px] rounded-md border border-[hsl(var(--hairline))] bg-card focus-within:border-foreground/40 transition-colors cursor-text"
+        className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 min-h-[36px] rounded-md border border-[hsl(var(--hairline))] bg-card focus-within:border-primary/45 focus-within:ring-2 focus-within:ring-primary/15 transition-colors cursor-text"
         onClick={() => inputRef.current?.focus()}
       >
         {value.map((t) => (

@@ -34,12 +34,13 @@ export const JournalEmpty = ({ onAdd, className }: JournalEmptyProps) => {
         className,
       )}
       style={{
+        // 다크 모드에서도 보이도록 foreground 기반 alpha — light/dark 자동 대응
         backgroundImage: `repeating-linear-gradient(
           to bottom,
           transparent 0,
           transparent calc(2rem - 1px),
-          hsl(var(--hairline) / 0.35) calc(2rem - 1px),
-          hsl(var(--hairline) / 0.35) 2rem
+          hsl(var(--foreground) / 0.07) calc(2rem - 1px),
+          hsl(var(--foreground) / 0.07) 2rem
         )`,
       }}
     >
@@ -69,7 +70,7 @@ export const JournalEmpty = ({ onAdd, className }: JournalEmptyProps) => {
       <button
         type="button"
         onClick={onAdd}
-        className="mt-8 inline-flex items-center gap-1.5 px-4 h-9 text-[12.5px] font-semibold rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-colors shadow-[0_1px_2px_hsl(30_30%_8%/0.08)]"
+        className="mt-8 inline-flex items-center gap-1.5 px-4 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)]"
       >
         <Pencil className="h-3.5 w-3.5" />
         오늘 일기 쓰기

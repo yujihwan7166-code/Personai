@@ -36,7 +36,7 @@ export const ActivityPicker = ({ value, onChange }: Props) => {
             className={cn(
               'inline-flex flex-col items-center justify-center gap-0.5 h-12 px-0.5 rounded-md border transition-colors',
               active
-                ? 'border-foreground/40 bg-foreground/5 text-foreground'
+                ? 'border-primary/40 bg-primary/10 text-primary font-medium'
                 : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
             )}
           >
