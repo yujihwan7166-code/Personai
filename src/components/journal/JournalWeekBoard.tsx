@@ -148,12 +148,12 @@ export const JournalWeekBoard = ({
                     : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
               }
               className={cn(
-                'group/tab relative flex flex-col items-center justify-center gap-1 h-14 sm:h-16 transition-all',
+                'group/tab relative flex flex-row items-center justify-center gap-1.5 h-10 sm:h-11 transition-all',
                 !isSelected && 'hover:bg-accent/40',
                 isFuture && !isSelected && 'opacity-45',
               )}
             >
-              {/* 요일 라벨 — 작게 위 */}
+              {/* 요일 라벨 — 인라인 좌측 */}
               <span
                 className={cn(
                   'text-[10.5px] font-medium tracking-[0.05em]',
@@ -162,11 +162,11 @@ export const JournalWeekBoard = ({
               >
                 {WEEKDAYS_KO[i]}
               </span>
-              {/* 일(day) 큰 숫자 + mood tint 배경 (entry 있는 날만) */}
+              {/* 일(day) 숫자 + mood tint 배경 — 인라인 우측 */}
               <span
                 className={cn(
                   'inline-flex items-center justify-center font-display tabular-nums transition-all',
-                  'h-8 w-8 sm:h-9 sm:w-9 rounded-full text-[15px] sm:text-[16px]',
+                  'h-7 w-7 rounded-full text-[13px] sm:text-[14px]',
                   isToday && isSelected && 'bg-primary text-primary-foreground font-semibold shadow-[0_1px_3px_hsl(265_50%_30%/0.25)]',
                   isToday && !isSelected && 'bg-primary/15 text-primary font-semibold',
                   !isToday && isSelected && (moodTintClass
@@ -180,14 +180,14 @@ export const JournalWeekBoard = ({
               >
                 {d.getDate()}
               </span>
-              {/* 다중 entry dot — 2개 이상일 때만 노출 */}
+              {/* 다중 entry dot — 2개 이상일 때만 노출, 하단 absolute */}
               {dayEntries.length > 1 && (
-                <span className="absolute bottom-1.5 inline-flex gap-0.5" aria-hidden>
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 inline-flex gap-0.5" aria-hidden>
                   {Array.from({ length: Math.min(3, dayEntries.length - 1) }).map((_, dotIdx) => (
                     <span
                       key={dotIdx}
                       className={cn(
-                        'w-1 h-1 rounded-full',
+                        'w-0.5 h-0.5 rounded-full',
                         isSelected ? 'bg-foreground/55' : 'bg-foreground/30',
                       )}
                     />
