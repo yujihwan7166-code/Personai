@@ -644,7 +644,6 @@ function FolderGroup({
       <div
         className="group flex items-center gap-2 h-9 px-2 rounded-md cursor-pointer text-foreground hover:bg-foreground/5 transition-colors"
         onClick={onToggle}
-        onDoubleClick={onStartRename}
       >
         <span
           className="inline-flex items-center justify-center h-6 w-6 rounded-md text-[15px] leading-none shrink-0"
