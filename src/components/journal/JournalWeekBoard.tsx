@@ -102,18 +102,26 @@ export const JournalWeekBoard = ({
   return (
     <section
       className={cn(
-        // 탭 + 본문이 하나의 큰 통합 카드 — Linear/Apple Calendar 톤
+        // 탭 + 본문이 하나의 큰 통합 카드 — 책 한 권 톤
         'rounded-2xl border bg-card overflow-hidden transition-all',
         'border-[hsl(var(--hairline))]',
         'shadow-[0_1px_2px_hsl(30_30%_8%/0.04),0_4px_16px_-8px_hsl(30_30%_8%/0.06)]',
+        // 데스크탑: 좌(day strip) + 우(본문) / 모바일: 상(day strip) + 하(본문)
+        'flex flex-col sm:flex-row',
         isSelectedFuture && 'opacity-95',
       )}
     >
-      {/* ── 상단 7-day 탭 row — Apple Calendar 패턴 (underline indicator) ── */}
+      {/* ── day strip — 책 책갈피 톤 (sm+ 세로 / 모바일 가로) ── */}
       <div
         role="tablist"
         aria-label="요일 선택"
-        className="grid grid-cols-7 border-b border-[hsl(var(--hairline))] bg-card/40"
+        className={cn(
+          'bg-card/40 border-[hsl(var(--hairline))]',
+          // 모바일: 7-col 가로 + 하단 border
+          'grid grid-cols-7 border-b',
+          // 데스크탑: 세로 column + 우측 border, 폭 92px
+          'sm:flex sm:flex-col sm:w-[92px] sm:shrink-0 sm:border-b-0 sm:border-r sm:py-1',
+        )}
       >
         {days.map((d, i) => {
           const key = ymd(d);
@@ -131,24 +139,22 @@ export const JournalWeekBoard = ({
               aria-selected={isSelected}
               onClick={() => setSelectedDay(key)}
               title={
-                isFuture
-                  ? `${d.getMonth() + 1}월 ${d.getDate()}일 (미래)`
-                  : hasEntry
-                    ? `${d.getMonth() + 1}월 ${d.getDate()}일 · ${dayEntries.length}개`
-                    : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
-              }
-              className={cn(
-                'group/tab relative flex flex-row items-baseline justify-center gap-1.5 h-9 transition-colors',
-                !isSelected && 'hover:bg-accent/30',
-                isFuture && !isSelected && 'opacity-50',
-              )}
-              title={
                 hasEntry
                   ? `${d.getMonth() + 1}월 ${d.getDate()}일 · ${dayEntries.length}편`
                   : `${d.getMonth() + 1}월 ${d.getDate()}일`
               }
+              className={cn(
+                'group/tab relative flex items-baseline gap-1.5 transition-colors',
+                // 모바일: 9px 높이, 가운데 정렬
+                'h-9 justify-center',
+                // 데스크탑: 11px 높이, 왼쪽 정렬 + 패딩
+                'sm:h-11 sm:items-center sm:justify-start sm:px-4',
+                !isSelected && 'hover:bg-accent/30',
+                isSelected && 'bg-primary/[0.06]',
+                isFuture && !isSelected && 'opacity-50',
+              )}
             >
-              {/* 요일 — 오늘 표식이 여기에 살아 있음 (보라 + bold) */}
+              {/* 요일 — 오늘 = 보라 bold */}
               <span
                 className={cn(
                   'text-[10.5px] tracking-[0.05em] transition-colors',
@@ -163,7 +169,7 @@ export const JournalWeekBoard = ({
               >
                 {WEEKDAYS_KO[i]}
               </span>
-              {/* 일(day) 숫자 — 글자 굵기·색이 entry 유무 자체를 표현 */}
+              {/* 일(day) 숫자 — 글자 굵기·색이 entry 유무 표현 */}
               <span
                 className={cn(
                   'font-display tabular-nums leading-none transition-colors',
@@ -179,10 +185,17 @@ export const JournalWeekBoard = ({
               >
                 {d.getDate()}
               </span>
-              {/* 선택 인디케이터 — 하단 2px primary underline */}
+              {/* 모바일: 하단 underline (sm 이상 hidden) */}
               {isSelected && (
                 <span
-                  className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-full"
+                  className="sm:hidden absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-full"
+                  aria-hidden
+                />
+              )}
+              {/* 데스크탑: 우측 3px primary bar (book tab 느낌) */}
+              {isSelected && (
+                <span
+                  className="hidden sm:block absolute top-1.5 bottom-1.5 right-0 w-[3px] bg-primary rounded-l"
                   aria-hidden
                 />
               )}
@@ -191,8 +204,8 @@ export const JournalWeekBoard = ({
         })}
       </div>
 
-      {/* ── 하단 본문 panel ── */}
-      <div className="px-5 sm:px-6 pt-5 pb-6 sm:pb-7 min-h-[300px] sm:min-h-[360px]">
+      {/* ── 본문 panel ── */}
+      <div className="flex-1 min-w-0 px-5 sm:px-6 pt-5 pb-6 sm:pb-7 min-h-[300px] sm:min-h-[400px]">
         {/* panel 헤더 — "5월 5일 화요일" — 책 펼친 페이지 톤 */}
         <header className="flex items-baseline justify-between gap-3 mb-5">
           <div className="flex items-baseline gap-2.5 min-w-0 flex-wrap">
