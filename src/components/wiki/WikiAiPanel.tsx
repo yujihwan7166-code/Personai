@@ -454,51 +454,55 @@ export function WikiAiPanel({
         </div>
       )}
 
-      {/* 참조 범위 — ghost pill, active 시 primary/10 (위키 toolbar 일관 톤) */}
-      <div className="px-3 py-1.5 border-b border-[hsl(var(--hairline))] flex items-center gap-1.5 shrink-0">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 shrink-0 mr-0.5">
+      {/* 참조 범위 — 가독성 강화: 굵은 라벨 + 큰 pill + 명확한 active/inactive */}
+      <div className="px-3 py-2 border-b border-[hsl(var(--hairline))] flex items-center gap-2 shrink-0 bg-primary/[0.03]">
+        <span className="text-[11px] font-semibold text-foreground/80 shrink-0">
           참조
         </span>
-        <button
-          type="button"
-          onClick={() => setCtxScope('all')}
-          className={cn(
-            'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] wiki-trans-color',
-            ctxScope === 'all'
-              ? 'bg-primary/10 text-primary font-semibold'
-              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-          )}
-          title={`전체 위키 — ${totalPages}페이지`}
-        >
-          <Library className="h-3 w-3" />
-          <span>전체 위키</span>
-          {totalPages > 0 && (
-            <span className={cn(
-              'text-[10px] tabular-nums',
-              ctxScope === 'all' ? 'text-primary/70' : 'text-muted-foreground/60',
-            )}>
-              {totalPages}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <button
+            type="button"
+            onClick={() => setCtxScope('all')}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full text-[12px] border wiki-trans-color',
+              ctxScope === 'all'
+                ? 'bg-primary text-primary-foreground border-primary font-semibold shadow-sm'
+                : 'bg-background text-foreground/70 border-[hsl(var(--hairline))] hover:bg-accent hover:text-foreground hover:border-foreground/20',
+            )}
+            title={`전체 위키 — ${totalPages}페이지`}
+          >
+            <Library className="h-3.5 w-3.5" />
+            <span>전체 위키</span>
+            {totalPages > 0 && (
+              <span className={cn(
+                'tabular-nums text-[10.5px] px-1.5 py-px rounded-full',
+                ctxScope === 'all'
+                  ? 'bg-primary-foreground/20 text-primary-foreground'
+                  : 'bg-muted text-muted-foreground',
+              )}>
+                {totalPages}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => page && setCtxScope('page')}
+            disabled={!page}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full text-[12px] border wiki-trans-color min-w-0',
+              ctxScope === 'page' && page
+                ? 'bg-primary text-primary-foreground border-primary font-semibold shadow-sm'
+                : 'bg-background text-foreground/70 border-[hsl(var(--hairline))] hover:bg-accent hover:text-foreground hover:border-foreground/20',
+              'disabled:opacity-40 disabled:hover:bg-background disabled:hover:border-[hsl(var(--hairline))] disabled:cursor-not-allowed',
+            )}
+            title={page ? `현재 문서 — ${page.title}` : '활성 페이지가 없어요'}
+          >
+            <FileText className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate max-w-[140px]">
+              {page ? page.title : '현재 문서'}
             </span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => page && setCtxScope('page')}
-          disabled={!page}
-          className={cn(
-            'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] wiki-trans-color min-w-0',
-            ctxScope === 'page' && page
-              ? 'bg-primary/10 text-primary font-semibold'
-              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            'disabled:opacity-35 disabled:hover:bg-transparent disabled:cursor-not-allowed',
-          )}
-          title={page ? `현재 문서 — ${page.title}` : '활성 페이지가 없어요'}
-        >
-          <FileText className="h-3 w-3 shrink-0" />
-          <span className="truncate max-w-[120px]">
-            {page ? page.title : '현재 문서'}
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* 메시지 영역 */}
