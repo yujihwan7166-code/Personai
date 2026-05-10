@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore, RotateCcw,
+  ArrowDownAZ, Clock as ClockIcon,
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, Mic,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,7 @@ import '@/styles/memo.css';
 import {
   useMemos, addMemo, updateMemo, removeMemo, restoreMemo, purgeMemo, emptyTrash, togglePin,
   archiveMemo, unarchiveMemo, removeMemoImage,
+  type MemoSortKey,
   memoTitle, memoPreview, extractMemoTags, memoTimeLabel,
   tagFrequencies,
   useFolders, addFolder, renameFolder, removeFolder, updateFolder, moveMemoToFolder,
@@ -74,6 +76,16 @@ const Memos = () => {
   const [editingFolder, setEditingFolder] = useState<MemoFolder | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  // 정렬 키 — localStorage 영속.
+  const [sortKey, setSortKey] = useState<MemoSortKey>(() => {
+    if (typeof window === 'undefined') return 'updated';
+    const v = window.localStorage.getItem('personai.memos.sort');
+    return (v === 'created' || v === 'title') ? v : 'updated';
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem('personai.memos.sort', sortKey); } catch { /* silent */ }
+  }, [sortKey]);
 
   // archived/deleted 메모는 일반 list 에서 제외 — 별도 view 에서만.
   const activeMemos = useMemo(
@@ -90,11 +102,14 @@ const Memos = () => {
   );
 
   // ──── 정렬·필터 ────
+  // 핀 우선 + 사용자 선택 정렬 (updated/created/title).
   const sortPinTime = useCallback((list: Memo[]): Memo[] =>
     [...list].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      if (sortKey === 'created') return b.createdAt - a.createdAt;
+      if (sortKey === 'title') return memoTitle(a).localeCompare(memoTitle(b), 'ko');
       return b.updatedAt - a.updatedAt;
-    }), []);
+    }), [sortKey]);
 
   // 폴더별 메모 (핀 우선, 시간 desc) — archived 제외
   const memosOf = useCallback((folderId: string): Memo[] =>
@@ -224,9 +239,9 @@ const Memos = () => {
           </button>
         </div>
 
-        {/* 검색 */}
-        <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/50">
+        {/* 검색 + 정렬 */}
+        <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22 flex items-center gap-1.5">
+          <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/50">
             <Search className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
             <input
               value={query}
@@ -240,6 +255,31 @@ const Memos = () => {
               </button>
             )}
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="정렬"
+                title={`정렬: ${sortKey === 'updated' ? '최근 수정' : sortKey === 'created' ? '생성순' : '제목순'}`}
+                className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                {sortKey === 'title'
+                  ? <ArrowDownAZ className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  : <ClockIcon className="w-3.5 h-3.5" strokeWidth={1.75} />}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onSelect={() => setSortKey('updated')}>
+                최근 수정 {sortKey === 'updated' && <span className="ml-auto text-foreground/50">✓</span>}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSortKey('created')}>
+                생성순 {sortKey === 'created' && <span className="ml-auto text-foreground/50">✓</span>}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSortKey('title')}>
+                제목순 (가나다) {sortKey === 'title' && <span className="ml-auto text-foreground/50">✓</span>}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* 한 흐름 스크롤 리스트 — 폴더들 → 미분류 메모들 (헤더 없음) */}
