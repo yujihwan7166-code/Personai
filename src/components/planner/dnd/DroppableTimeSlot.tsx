@@ -25,14 +25,24 @@ export const DroppableTimeSlot = ({ startIso, onClick, ariaLabel, className }: D
     data,
   });
 
+  // <button> 안에 다른 <button>(부유하는 시간 블록) 이 들어가는 a11y 위반을 피하기 위해
+  // div + role="button" 으로 표현. 키보드 동등성 유지(Enter/Space → onClick).
   return (
-    <button
+    <div
       ref={setNodeRef}
-      type="button"
+      role="button"
+      tabIndex={onClick ? 0 : -1}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (!onClick) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       aria-label={ariaLabel}
       className={cn(
-        'group relative transition-colors',
+        'group relative transition-colors cursor-pointer',
         isOver
           ? 'bg-primary/10 ring-1 ring-primary/40 ring-inset'
           : 'hover:bg-accent/50',
@@ -46,6 +56,6 @@ export const DroppableTimeSlot = ({ startIso, onClick, ariaLabel, className }: D
       >
         +
       </span>
-    </button>
+    </div>
   );
 };

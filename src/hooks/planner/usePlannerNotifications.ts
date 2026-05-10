@@ -38,12 +38,44 @@ const canNotify = (): boolean =>
   'Notification' in window &&
   Notification.permission === 'granted';
 
+const HINT_KEY = 'planner.notif-hint.v1';
+
+const maybeHintOnce = (hasUpcoming: boolean): void => {
+  if (typeof window === 'undefined') return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') return;
+  if (Notification.permission === 'denied') return; // 거절 = 안내해도 의미 없음
+  if (!hasUpcoming) return; // 알릴 게 없으면 안내도 노이즈
+  try {
+    if (window.localStorage.getItem(HINT_KEY)) return; // 1회만
+    window.localStorage.setItem(HINT_KEY, '1');
+    // 동적 import 로 notify 끌어옴 — circular 방지.
+    import('@/lib/notify').then(({ notify }) => {
+      notify.info('일정 알림을 받으려면 브라우저 알림 권한이 필요해요', { duration: 4500 });
+    }).catch(() => { /* silent */ });
+  } catch { /* localStorage 비활성 */ }
+};
+
 export const usePlannerNotifications = (): void => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const check = () => {
-      if (!canNotify()) return;
+      if (!canNotify()) {
+        // 권한 없음 + 곧 시작할 항목 있음 → 1회 안내.
+        const now = Date.now();
+        const todayIso = new Date().toISOString();
+        const upcoming = [
+          ...eventStore.listByDate(todayIso),
+          ...taskStore.listScheduled(todayIso),
+        ].some((it) => {
+          if (!it.startAt) return false;
+          const diff = new Date(it.startAt).getTime() - now;
+          return diff > 0 && diff <= 60 * 60_000; // 1시간 안
+        });
+        maybeHintOnce(upcoming);
+        return;
+      }
       const now = Date.now();
       const todayIso = new Date().toISOString();
 

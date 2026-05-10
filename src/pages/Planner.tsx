@@ -288,10 +288,17 @@ const Planner = () => {
         setTimeout(() => dayInputRef.current?.focus(), 50);
         break;
       case 'newAtNow': {
+        // "지금" — 다음 30분 슬롯 (현재가 14:31 이면 15:00, 14:00 이면 그대로 14:00).
+        // floor 로 떨어뜨리면 과거 슬롯이 되는 일관성 문제.
         const now = new Date();
-        // 30분 단위로 반올림.
-        const minutes = Math.floor(now.getMinutes() / 30) * 30;
-        now.setMinutes(minutes, 0, 0);
+        const mins = now.getMinutes();
+        if (mins === 0) {
+          now.setSeconds(0, 0);
+        } else if (mins < 30) {
+          now.setMinutes(30, 0, 0);
+        } else {
+          now.setHours(now.getHours() + 1, 0, 0, 0);
+        }
         setDialogMode({ kind: 'create', presetStartIso: now.toISOString() });
         break;
       }
@@ -757,7 +764,7 @@ const Planner = () => {
       <aside className="shrink-0 w-12 border-r hairline bg-card/30">
         <PlannerLeftRail />
       </aside>
-      <main className="flex-1 min-w-0 px-5 sm:px-8 py-5 sm:py-7 max-w-[1320px] w-full mx-auto">
+      <main className="flex-1 min-w-0 px-5 sm:px-8 pt-7 sm:pt-9 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
             ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}
@@ -777,11 +784,11 @@ const Planner = () => {
                 </button>
               )}
               <div className="min-w-0 flex items-baseline gap-3">
-                <h2 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-foreground leading-none truncate">
+                <h2 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-foreground leading-tight truncate">
                   {headerLabels.primary}
                 </h2>
                 {headerLabels.secondary && (
-                  <span className="hidden sm:inline text-[15px] sm:text-[16px] text-muted-foreground tabular-nums font-medium leading-none">
+                  <span className="hidden sm:inline text-[15px] sm:text-[16px] text-muted-foreground tabular-nums font-medium leading-tight">
                     {headerLabels.secondary}
                   </span>
                 )}
@@ -906,12 +913,16 @@ const Planner = () => {
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                       onAdd={() => {
-                        // 일정 추가 — 모달. anchor 가 오늘이면 다음 30분 슬롯, 아니면 anchor 09:00.
+                        // 일정 추가 — 모달.
+                        // anchor 가 오늘: 다음 30분 슬롯
+                        // anchor 가 미래: anchor 09:00
+                        // anchor 가 과거: 오늘 다음 30분 슬롯 (과거에 일정 만드는 건 거의 의도가 아님)
                         const anchor = new Date(anchorIso);
                         const today = new Date();
-                        const isToday = anchor.toDateString() === today.toDateString();
+                        const isSame = anchor.toDateString() === today.toDateString();
+                        const isPast = !isSame && anchor.getTime() < today.getTime();
                         let preset: Date;
-                        if (isToday) {
+                        if (isSame || isPast) {
                           preset = new Date();
                           const mins = preset.getMinutes();
                           if (mins === 0) preset.setSeconds(0, 0);
