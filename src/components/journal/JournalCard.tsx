@@ -90,67 +90,56 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
         'transition-all duration-200',
       )}
     >
-      <div className="flex gap-4">
-        {/* ── 좌 날짜 컬럼 — 컴팩트 ── */}
-        <div className="w-11 shrink-0 flex flex-col items-start pr-4 border-r border-[hsl(var(--hairline))]">
-          <span className="text-[22px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-foreground/90 group-hover:text-primary transition-colors">
-            {day}
-          </span>
-          <span className="mt-1.5 text-[10.5px] font-medium tabular-nums text-muted-foreground/80">
-            {month}월
-          </span>
-          <span className="mt-0.5 text-[10.5px] text-muted-foreground/65">
-            {weekday}
-          </span>
-          {moodKey && (
-            <span
-              className={cn('mt-2 w-1.5 h-1.5 rounded-full', MOOD_TINT[moodKey])}
-              title={`${moodLabel ?? ''} ${moodEmoji ?? ''}`.trim()}
-              aria-label={moodLabel ?? ''}
-            />
-          )}
-        </div>
-
-        {/* ── 우 본문 컬럼 ── */}
-        <div className="flex-1 min-w-0">
-          {/* 상단 메타 — 시각 + 풍부 배지 (hover) + 액션 (hover) */}
-          <header className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[12px] font-medium tabular-nums text-muted-foreground">
-                {timeLabel}
+      <div className="flex flex-col">
+        {/* 상단 메타 — 날짜·요일·시각 인라인 서브타이틀 (Day One 패턴) */}
+        <header className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-1.5 min-w-0 text-[11.5px] tabular-nums text-muted-foreground/85">
+            <span className="font-semibold text-foreground/75">{day}</span>
+            <span className="text-muted-foreground/60">·</span>
+            <span>{weekday}요일</span>
+            <span className="text-muted-foreground/45">·</span>
+            <span>{timeLabel}</span>
+            {moodKey && (
+              <span
+                className={cn('ml-1 w-1.5 h-1.5 rounded-full shrink-0', MOOD_TINT[moodKey])}
+                title={`${moodLabel ?? ''} ${moodEmoji ?? ''}`.trim()}
+                aria-label={moodLabel ?? ''}
+              />
+            )}
+            {entry.bodyFormat === 'markdown' && (
+              <span
+                className="inline-flex items-center gap-0.5 px-1.5 h-4 rounded text-[10px] font-medium text-muted-foreground bg-accent/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                title="풍부한 편집"
+              >
+                <Wand2 className="h-2 w-2" />
+                풍부
               </span>
-              {entry.bodyFormat === 'markdown' && (
-                <span
-                  className="inline-flex items-center gap-0.5 px-1.5 h-4 rounded text-[10px] font-medium text-muted-foreground bg-accent/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
-                  title="풍부한 편집"
-                >
-                  <Wand2 className="h-2 w-2" />
-                  풍부
-                </span>
-              )}
-            </div>
-            <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity shrink-0 -mr-1">
-              <button
-                type="button"
-                onClick={onEdit}
-                aria-label="수정"
-                title="수정"
-                className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={onDelete}
-                aria-label="삭제"
-                title="삭제"
-                className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </span>
-          </header>
+            )}
+          </div>
+          <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity shrink-0 -mr-1">
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label="수정"
+              title="수정"
+              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label="삭제"
+              title="삭제"
+              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </span>
+        </header>
 
+        {/* 본문 컬럼 (전체 폭) */}
+        <div className="min-w-0">
           {/* 본문 — Pretendard sans 톤 */}
           {hasBody ? (
             <BodyPreview text={previewBody} />
