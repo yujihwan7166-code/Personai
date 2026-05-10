@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Sparkles, X, Send, Trash2, FileText, Plus as PlusIcon, BookOpen } from 'lucide-react';
 import type { WikiPage } from '@/types/wiki';
 import type { Expert } from '@/types/expert';
@@ -31,7 +31,9 @@ interface Props {
   onClose: () => void;
   /** 활성 페이지. null = 대문 / 그래프 (글로벌 스레드) */
   page: WikiPage | null;
-  /** 위키 메타 — page=null 일 때 컨텍스트로 사용 */
+  /** 전체 페이지 — 글로벌 컨텍스트 (제목+요약) 생성용. 없으면 메타만. */
+  allPages?: WikiPage[];
+  /** 위키 메타 — page=null + allPages 미제공 시 fallback */
   totalPages: number;
   /** AI 답변 → 본문 끝에 인용블록 추가 (활성 페이지가 있을 때만 활성) */
   onAppendToBody?: (snippet: string) => void;
@@ -101,6 +103,7 @@ export function WikiAiPanel({
   open,
   onClose,
   page,
+  allPages,
   totalPages,
   onAppendToBody,
   onCreatePageFromAnswer,
@@ -154,8 +157,18 @@ export function WikiAiPanel({
   const ctxPayload = useMemo(() => {
     if (!ctxOn) return '';
     if (page) return `${page.title}\n\n${page.body.slice(0, 800)}`;
+    if (allPages && allPages.length > 0) {
+      // 글로벌 모드 — 페이지 목록을 컨텍스트로 (제목 + 첫 줄 요약).
+      // 너무 길어지지 않게 30개 제한 + 줄당 80자.
+      const lines = allPages.slice(0, 30).map((p) => {
+        const firstLine = p.body.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '';
+        return `- ${p.title}${firstLine ? ` — ${firstLine.slice(0, 80)}` : ''}`;
+      });
+      const more = allPages.length > 30 ? `\n(외 ${allPages.length - 30}개 더)` : '';
+      return `사용자의 위키 페이지 목록 (${allPages.length}개):\n${lines.join('\n')}${more}`;
+    }
     return `위키 페이지 ${totalPages}개`;
-  }, [ctxOn, page, totalPages]);
+  }, [ctxOn, page, allPages, totalPages]);
 
   const examples = page ? EXAMPLES_PAGE : EXAMPLES_GLOBAL;
 
@@ -348,6 +361,97 @@ export function WikiAiPanel({
   );
 }
 
+/** 가벼운 markdown 렌더러 — 헤더 / 리스트 / 인라인(굵게·기울임·코드·링크). */
+function MdLite({ text }: { text: string }) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const blocks: ReactNode[] = [];
+  let listBuf: string[] = [];
+  let olBuf: string[] = [];
+
+  const flushUl = () => {
+    if (listBuf.length === 0) return;
+    blocks.push(
+      <ul key={`ul-${blocks.length}`} className="list-disc pl-4 my-1 space-y-0.5">
+        {listBuf.map((li, i) => <li key={i}>{renderInline(li)}</li>)}
+      </ul>,
+    );
+    listBuf = [];
+  };
+  const flushOl = () => {
+    if (olBuf.length === 0) return;
+    blocks.push(
+      <ol key={`ol-${blocks.length}`} className="list-decimal pl-4 my-1 space-y-0.5">
+        {olBuf.map((li, i) => <li key={i}>{renderInline(li)}</li>)}
+      </ol>,
+    );
+    olBuf = [];
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const ulM = /^\s*[-*]\s+(.*)$/.exec(line);
+    const olM = /^\s*\d+\.\s+(.*)$/.exec(line);
+    const hM = /^(#{1,3})\s+(.*)$/.exec(line);
+    if (ulM) {
+      flushOl();
+      listBuf.push(ulM[1]);
+      continue;
+    }
+    if (olM) {
+      flushUl();
+      olBuf.push(olM[1]);
+      continue;
+    }
+    flushUl();
+    flushOl();
+    if (hM) {
+      const level = hM[1].length;
+      const cls = level === 1 ? 'text-[14px] font-bold mt-1.5 mb-0.5'
+        : level === 2 ? 'text-[13px] font-bold mt-1.5 mb-0.5'
+        : 'text-[12.5px] font-semibold mt-1 mb-0.5';
+      blocks.push(<div key={`h-${i}`} className={cls}>{renderInline(hM[2])}</div>);
+    } else if (line.trim() === '') {
+      blocks.push(<div key={`sp-${i}`} className="h-1.5" />);
+    } else {
+      blocks.push(<div key={`p-${i}`}>{renderInline(line)}</div>);
+    }
+  }
+  flushUl();
+  flushOl();
+  return <>{blocks}</>;
+}
+
+function renderInline(text: string): ReactNode {
+  // 토큰: `code`, **bold**, *italic*, [text](url)
+  const parts: ReactNode[] = [];
+  const re = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*\n]+\*)|(\[[^\]]+\]\([^)]+\))/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith('`')) {
+      parts.push(<code key={key++} className="px-1 py-px rounded bg-muted text-[11.5px] font-mono">{tok.slice(1, -1)}</code>);
+    } else if (tok.startsWith('**')) {
+      parts.push(<strong key={key++} className="font-bold">{tok.slice(2, -2)}</strong>);
+    } else if (tok.startsWith('*')) {
+      parts.push(<em key={key++} className="italic">{tok.slice(1, -1)}</em>);
+    } else {
+      const lm = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(tok);
+      if (lm) {
+        parts.push(<a key={key++} href={lm[2]} target="_blank" rel="noreferrer" className="text-primary underline">{lm[1]}</a>);
+      } else {
+        parts.push(tok);
+      }
+    }
+    last = m.index + tok.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
 function MsgBubble({
   msg,
   canAppend,
@@ -366,21 +470,21 @@ function MsgBubble({
     <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
       <div
         className={cn(
-          'max-w-[90%] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed whitespace-pre-wrap',
+          'max-w-[90%] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed',
           isUser
-            ? 'bg-primary/10 text-foreground'
-            : 'bg-accent/60 text-foreground/90',
+            ? 'bg-primary/10 text-foreground whitespace-pre-wrap'
+            : 'bg-accent/60 text-foreground/90 wiki-ai-md',
         )}
       >
-        {msg.text}
+        {isUser ? msg.text : <MdLite text={msg.text} />}
       </div>
-      {!isUser && (canAppend || canCreate) && (
-        <div className="flex items-center gap-1 pl-1">
+      {!isUser && msg.text.trim().length > 0 && (canAppend || canCreate) && (
+        <div className="flex items-center gap-1.5 pl-1 pt-0.5">
           {canAppend && (
             <button
               type="button"
               onClick={onAppend}
-              className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              className="inline-flex items-center gap-1 px-2 h-6 rounded-full border border-[hsl(var(--hairline))] bg-background text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground hover:border-primary/30 wiki-trans-color"
               title="현재 페이지 본문 끝에 추가"
             >
               <BookOpen className="h-3 w-3" /> 본문에 추가
@@ -390,10 +494,10 @@ function MsgBubble({
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              className="inline-flex items-center gap-1 px-2 h-6 rounded-full border border-[hsl(var(--hairline))] bg-background text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground hover:border-primary/30 wiki-trans-color"
               title="이 답변으로 새 페이지 만들기"
             >
-              <PlusIcon className="h-3 w-3" /> 새 페이지
+              <PlusIcon className="h-3 w-3" /> 새 페이지로
             </button>
           )}
         </div>

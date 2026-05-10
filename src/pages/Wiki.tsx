@@ -671,6 +671,7 @@ const Wiki = () => {
         open={aiOpen}
         onClose={() => setAiOpen(false)}
         page={activePage}
+        allPages={pages}
         totalPages={pages.length}
         onAppendToBody={activePage ? (snippet) => {
           const quoted = snippet.split('\n').map((l) => `> ${l}`).join('\n');
