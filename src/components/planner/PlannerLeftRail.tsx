@@ -3,7 +3,7 @@
  *
  * 최상단: 사이트 로고 (실제 홈 / 으로 이탈)
  * 1그룹(플래너 핵심): 오늘, 습관, AI, 검색, 매트릭스, 다가오는 일정
- * 2그룹(모드·기록·도구): 모드, 메모, 위키, 타이머
+ * 2그룹(모드·기록): 모드, 메모, 위키
  * 하단 그룹(mt-auto): 설정 (placeholder, 곧)
  * - route: 라우트 점프
  * - drawer: 사이드 패널 (메모/위키)
@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarClock, CalendarDays, FileText, Grid2x2, Home, LayoutGrid, Network, Repeat,
-  Search, Settings, Sparkles, Timer,
+  Search, Settings, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -56,7 +56,6 @@ const TOP_ITEMS_SECONDARY: RailItem[] = [
   { kind: 'event',  eventName: RAIL_EVENT.openModePalette, label: '모드',         Icon: LayoutGrid },
   { kind: 'drawer', drawer: 'memos',                      label: '메모',         Icon: FileText },
   { kind: 'drawer', drawer: 'wiki',                       label: '위키',         Icon: Network },
-  { kind: 'soon',                                         label: '타이머',       Icon: Timer },
 ];
 
 const BOTTOM_ITEMS: RailItem[] = [
