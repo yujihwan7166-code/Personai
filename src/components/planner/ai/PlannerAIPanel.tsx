@@ -59,7 +59,7 @@ export const PlannerAIPanel = ({ open, onClose, view, anchorIso }: PlannerAIPane
       className={cn(
         'fixed top-0 right-0 h-screen z-30 bg-background border-l hairline shadow-[-4px_0_20px_hsl(30_15%_8%/0.04)]',
         'transition-transform duration-200 ease-out',
-        'w-full sm:w-[380px]',
+        'w-full sm:w-[340px]',
         open ? 'translate-x-0' : 'translate-x-full pointer-events-none',
       )}
     >

@@ -756,7 +756,7 @@ const Planner = () => {
       className={cn(
         'planner-theme min-h-screen bg-background flex',
         // AI 패널 열렸을 때 본문이 가려지지 않도록 우측 여백 — 패널 너비랑 동기.
-        aiPanelOpen && 'sm:pr-[380px]',
+        aiPanelOpen && 'sm:pr-[340px]',
         'transition-[padding] duration-200 ease-out',
       )}
     >
