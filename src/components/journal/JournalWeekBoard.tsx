@@ -123,16 +123,6 @@ export const JournalWeekBoard = ({
           const isFuture = key > today;
           const isSelected = key === selectedDay;
 
-          // 그 날 entry들의 mood 평균 → tint 결정 (가장 흔한 mood 기준)
-          const moodCounts = new Map<number, number>();
-          dayEntries.forEach((e) => {
-            if (e.mood !== undefined) moodCounts.set(e.mood, (moodCounts.get(e.mood) ?? 0) + 1);
-          });
-          const dominantMood = moodCounts.size > 0
-            ? [...moodCounts.entries()].sort((a, b) => b[1] - a[1])[0][0] as Mood
-            : null;
-          const moodTintClass = dominantMood !== null ? MOOD_TINT[dominantMood] : null;
-
           return (
             <button
               key={key}
@@ -150,23 +140,30 @@ export const JournalWeekBoard = ({
               className={cn(
                 'group/tab relative flex flex-row items-baseline justify-center gap-1.5 h-9 transition-colors',
                 !isSelected && 'hover:bg-accent/30',
-                isFuture && !isSelected && 'opacity-45',
+                isFuture && !isSelected && 'opacity-50',
               )}
+              title={
+                hasEntry
+                  ? `${d.getMonth() + 1}월 ${d.getDate()}일 · ${dayEntries.length}편`
+                  : `${d.getMonth() + 1}월 ${d.getDate()}일`
+              }
             >
-              {/* 요일 라벨 — 인라인 좌측 */}
+              {/* 요일 — 오늘 표식이 여기에 살아 있음 (보라 + bold) */}
               <span
                 className={cn(
-                  'text-[10.5px] font-medium tracking-[0.05em] transition-colors',
+                  'text-[10.5px] tracking-[0.05em] transition-colors',
                   isSelected
-                    ? 'text-primary/85 font-semibold'
+                    ? 'text-primary font-semibold'
                     : isToday
-                      ? 'text-primary/65'
-                      : 'text-muted-foreground/65',
+                      ? 'text-primary/80 font-bold'
+                      : hasEntry
+                        ? 'text-muted-foreground/70 font-medium'
+                        : 'text-muted-foreground/55 font-medium',
                 )}
               >
                 {WEEKDAYS_KO[i]}
               </span>
-              {/* 일(day) 숫자 — 동그라미 제거, 큰 글씨 */}
+              {/* 일(day) 숫자 — 글자 굵기·색이 entry 유무 자체를 표현 */}
               <span
                 className={cn(
                   'font-display tabular-nums leading-none transition-colors',
@@ -177,36 +174,15 @@ export const JournalWeekBoard = ({
                       ? 'text-primary/85 font-semibold'
                       : hasEntry
                         ? 'text-foreground/85 font-medium'
-                        : 'text-muted-foreground/55 font-normal group-hover/tab:text-foreground/65',
+                        : 'text-muted-foreground/45 font-normal group-hover/tab:text-foreground/65',
                 )}
               >
                 {d.getDate()}
               </span>
-              {/* 인디케이터 — 선택 underline + entry mood dot + 오늘 dot */}
-              {/* 선택된 day: 하단 2px primary underline */}
+              {/* 선택 인디케이터 — 하단 2px primary underline */}
               {isSelected && (
                 <span
                   className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-full"
-                  aria-hidden
-                />
-              )}
-              {/* entry 있는 날: 작은 mood color dot (선택 X 일 때) */}
-              {!isSelected && hasEntry && (
-                <span
-                  className={cn(
-                    'absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full',
-                    moodTintClass
-                      ? `${moodTintClass}`
-                      : isToday ? 'bg-primary/60' : 'bg-foreground/35',
-                  )}
-                  aria-hidden
-                  title={dayEntries.length > 1 ? `${dayEntries.length}개` : undefined}
-                />
-              )}
-              {/* 오늘 (선택·entry 둘 다 X): 빈 day 표시용 작은 primary 점 */}
-              {!isSelected && !hasEntry && isToday && (
-                <span
-                  className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary/55"
                   aria-hidden
                 />
               )}
