@@ -148,51 +148,67 @@ export const JournalWeekBoard = ({
                     : `${d.getMonth() + 1}월 ${d.getDate()}일 · 비어있음`
               }
               className={cn(
-                'group/tab relative flex flex-row items-center justify-center gap-1.5 h-10 sm:h-11 transition-all',
-                !isSelected && 'hover:bg-accent/40',
+                'group/tab relative flex flex-row items-baseline justify-center gap-1.5 h-9 transition-colors',
+                !isSelected && 'hover:bg-accent/30',
                 isFuture && !isSelected && 'opacity-45',
               )}
             >
               {/* 요일 라벨 — 인라인 좌측 */}
               <span
                 className={cn(
-                  'text-[10.5px] font-medium tracking-[0.05em]',
-                  isSelected ? 'text-foreground/80' : 'text-muted-foreground/75',
+                  'text-[10.5px] font-medium tracking-[0.05em] transition-colors',
+                  isSelected
+                    ? 'text-primary/85 font-semibold'
+                    : isToday
+                      ? 'text-primary/65'
+                      : 'text-muted-foreground/65',
                 )}
               >
                 {WEEKDAYS_KO[i]}
               </span>
-              {/* 일(day) 숫자 + mood tint 배경 — 인라인 우측 */}
+              {/* 일(day) 숫자 — 동그라미 제거, 큰 글씨 */}
               <span
                 className={cn(
-                  'inline-flex items-center justify-center font-display tabular-nums transition-all',
-                  'h-7 w-7 rounded-full text-[13px] sm:text-[14px]',
-                  isToday && isSelected && 'bg-primary text-primary-foreground font-semibold shadow-[0_1px_3px_hsl(265_50%_30%/0.25)]',
-                  isToday && !isSelected && 'bg-primary/15 text-primary font-semibold',
-                  !isToday && isSelected && (moodTintClass
-                    ? `${moodTintClass} text-foreground font-semibold ring-1 ring-foreground/20`
-                    : 'bg-primary/15 text-primary font-semibold ring-1 ring-primary/30'),
-                  !isToday && !isSelected && hasEntry && (moodTintClass
-                    ? `${moodTintClass} text-foreground/85 font-medium`
-                    : 'text-foreground/85 font-medium'),
-                  !isToday && !isSelected && !hasEntry && 'text-muted-foreground/60 group-hover/tab:text-foreground/70 font-normal',
+                  'font-display tabular-nums leading-none transition-colors',
+                  'text-[17px] sm:text-[18px]',
+                  isSelected
+                    ? 'text-primary font-semibold'
+                    : isToday
+                      ? 'text-primary/85 font-semibold'
+                      : hasEntry
+                        ? 'text-foreground/85 font-medium'
+                        : 'text-muted-foreground/55 font-normal group-hover/tab:text-foreground/65',
                 )}
               >
                 {d.getDate()}
               </span>
-              {/* 다중 entry dot — 2개 이상일 때만 노출, 하단 absolute */}
-              {dayEntries.length > 1 && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 inline-flex gap-0.5" aria-hidden>
-                  {Array.from({ length: Math.min(3, dayEntries.length - 1) }).map((_, dotIdx) => (
-                    <span
-                      key={dotIdx}
-                      className={cn(
-                        'w-0.5 h-0.5 rounded-full',
-                        isSelected ? 'bg-foreground/55' : 'bg-foreground/30',
-                      )}
-                    />
-                  ))}
-                </span>
+              {/* 인디케이터 — 선택 underline + entry mood dot + 오늘 dot */}
+              {/* 선택된 day: 하단 2px primary underline */}
+              {isSelected && (
+                <span
+                  className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-full"
+                  aria-hidden
+                />
+              )}
+              {/* entry 있는 날: 작은 mood color dot (선택 X 일 때) */}
+              {!isSelected && hasEntry && (
+                <span
+                  className={cn(
+                    'absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full',
+                    moodTintClass
+                      ? `${moodTintClass}`
+                      : isToday ? 'bg-primary/60' : 'bg-foreground/35',
+                  )}
+                  aria-hidden
+                  title={dayEntries.length > 1 ? `${dayEntries.length}개` : undefined}
+                />
+              )}
+              {/* 오늘 (선택·entry 둘 다 X): 빈 day 표시용 작은 primary 점 */}
+              {!isSelected && !hasEntry && isToday && (
+                <span
+                  className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary/55"
+                  aria-hidden
+                />
               )}
             </button>
           );
