@@ -51,10 +51,11 @@ interface Props {
 const THREADS_KEY = 'wiki_ai_threads_v2';
 const THREAD_PREFIX = 'wiki_ai_thread_v2:';
 const ACTIVE_KEY = 'wiki_ai_active_v2';
-const WIDTH_KEY = 'wiki_ai_panel_w';
-const MIN_W = 320;
+// v2: 기본 너비 다이어트 — 380 → 336 (사용자 피드백)
+const WIDTH_KEY = 'wiki_ai_panel_w_v2';
+const MIN_W = 280;
 const MAX_W = 720;
-const DEFAULT_W = 380;
+const DEFAULT_W = 336;
 
 function loadThreads(): ThreadMeta[] {
   try {
