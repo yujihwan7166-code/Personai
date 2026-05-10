@@ -111,7 +111,7 @@ export const JournalWeekBoard = ({
         isSelectedFuture && 'opacity-95',
       )}
     >
-      {/* ── day strip — 책 책갈피 톤 (sm+ 세로 / 모바일 가로) ── */}
+      {/* ── day strip — 다이어리 책갈피 톤 ── */}
       <div
         role="tablist"
         aria-label="요일 선택"
@@ -119,8 +119,8 @@ export const JournalWeekBoard = ({
           'bg-card/40 border-[hsl(var(--hairline))]',
           // 모바일: 7-col 가로 + 하단 border
           'grid grid-cols-7 border-b',
-          // 데스크탑: 세로 column + 우측 border, 폭 92px
-          'sm:flex sm:flex-col sm:w-[92px] sm:shrink-0 sm:border-b-0 sm:border-r sm:py-1',
+          // 데스크탑: 세로 column + 우측 border, 폭 100px
+          'sm:flex sm:flex-col sm:w-[100px] sm:shrink-0 sm:border-b-0 sm:border-r',
         )}
       >
         {days.map((d, i) => {
@@ -130,6 +130,7 @@ export const JournalWeekBoard = ({
           const isToday = key === today;
           const isFuture = key > today;
           const isSelected = key === selectedDay;
+          const isLast = i === days.length - 1;
 
           return (
             <button
@@ -144,40 +145,45 @@ export const JournalWeekBoard = ({
                   : `${d.getMonth() + 1}월 ${d.getDate()}일`
               }
               className={cn(
-                'group/tab relative flex items-baseline gap-1.5 transition-colors',
-                // 모바일: 9px 높이, 가운데 정렬
-                'h-9 justify-center',
-                // 데스크탑: 11px 높이, 왼쪽 정렬 + 패딩
-                'sm:h-11 sm:items-center sm:justify-start sm:px-4',
+                'group/tab relative flex transition-colors',
+                // 모바일: 가로 row, h-9, 인라인 정렬
+                'flex-row items-baseline justify-center gap-1.5 h-9',
+                // 데스크탑: 세로 column (요일↑ + day↓), h-14, 종이 분할선
+                'sm:flex-col sm:items-center sm:justify-center sm:gap-1 sm:h-14 sm:px-3',
+                !isLast && 'sm:border-b sm:border-[hsl(var(--hairline))]/55',
                 !isSelected && 'hover:bg-accent/30',
-                isSelected && 'bg-primary/[0.06]',
+                isSelected && 'bg-primary/[0.07]',
                 isFuture && !isSelected && 'opacity-50',
               )}
             >
-              {/* 요일 — 오늘 = 보라 bold */}
+              {/* 요일 — 데스크탑에서 italic serif eyebrow (writing 톤) */}
               <span
                 className={cn(
                   'text-[10.5px] tracking-[0.05em] transition-colors',
+                  'sm:text-[11px] sm:font-display sm:italic sm:tracking-[0.04em]',
                   isSelected
-                    ? 'text-primary font-semibold'
+                    ? 'text-primary font-semibold sm:not-italic'
                     : isToday
-                      ? 'text-primary/80 font-bold'
+                      ? 'text-primary/85 font-bold sm:not-italic'
                       : hasEntry
-                        ? 'text-muted-foreground/70 font-medium'
+                        ? 'text-muted-foreground/75 font-medium'
                         : 'text-muted-foreground/55 font-medium',
                 )}
               >
                 {WEEKDAYS_KO[i]}
               </span>
-              {/* 일(day) 숫자 — 글자 굵기·색이 entry 유무 표현 */}
+              {/* 일(day) — 큰 serif 숫자. 일기 있는 날 = 잉크 underline */}
               <span
                 className={cn(
                   'font-display tabular-nums leading-none transition-colors',
-                  'text-[17px] sm:text-[18px]',
+                  'text-[17px] sm:text-[22px]',
+                  // 일기 있는 날 (선택·오늘 X) — 데스크탑에서만 잉크 자국
+                  hasEntry && !isSelected && !isToday &&
+                    'sm:underline sm:underline-offset-[5px] sm:decoration-foreground/35 sm:decoration-[1.5px]',
                   isSelected
                     ? 'text-primary font-semibold'
                     : isToday
-                      ? 'text-primary/85 font-semibold'
+                      ? 'text-primary/90 font-semibold'
                       : hasEntry
                         ? 'text-foreground/85 font-medium'
                         : 'text-muted-foreground/45 font-normal group-hover/tab:text-foreground/65',
@@ -185,17 +191,24 @@ export const JournalWeekBoard = ({
               >
                 {d.getDate()}
               </span>
-              {/* 모바일: 하단 underline (sm 이상 hidden) */}
+              {/* 오늘 dot — 데스크탑 좌상단 작은 보라 점 (전통 캘린더 마크) */}
+              {isToday && !isSelected && (
+                <span
+                  className="hidden sm:block absolute top-2 right-2 h-1 w-1 rounded-full bg-primary/70"
+                  aria-hidden
+                />
+              )}
+              {/* 모바일 선택: 하단 underline */}
               {isSelected && (
                 <span
                   className="sm:hidden absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-full"
                   aria-hidden
                 />
               )}
-              {/* 데스크탑: 우측 3px primary bar (book tab 느낌) */}
+              {/* 데스크탑 선택: 우측 책갈피 ribbon */}
               {isSelected && (
                 <span
-                  className="hidden sm:block absolute top-1.5 bottom-1.5 right-0 w-[3px] bg-primary rounded-l"
+                  className="hidden sm:block absolute top-2.5 bottom-2.5 right-0 w-[3px] bg-primary rounded-l"
                   aria-hidden
                 />
               )}
