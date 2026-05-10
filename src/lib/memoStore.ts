@@ -59,6 +59,19 @@ export interface MemoFolder {
 const STORAGE_KEY = 'personai.memos.v1';
 const FOLDER_STORAGE_KEY = 'personai.memo-folders.v1';
 
+// 구버전 RightMemoSidebar (제거됨) 가 사용하던 별도 키 — 잔존 데이터 1회 정리.
+// (해당 컴포넌트는 import 0 이라 dead. 데이터는 사용자 관점에서 잃을 게 없음 — 별도 store 라 메인 메모와 연결 안 됐음.)
+const LEGACY_KEYS = ['personai-right-memo-sidebar-v1'];
+if (typeof window !== 'undefined') {
+  try {
+    for (const k of LEGACY_KEYS) {
+      if (window.localStorage.getItem(k) !== null) {
+        window.localStorage.removeItem(k);
+      }
+    }
+  } catch { /* private mode 등 — silent */ }
+}
+
 let cache: Memo[] | null = null;
 const listeners = new Set<() => void>();
 

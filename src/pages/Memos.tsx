@@ -9,7 +9,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore,
-  ImagePlus,
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, Mic,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,7 +26,7 @@ import type { Editor } from '@tiptap/react';
 import '@/styles/memo.css';
 import {
   useMemos, addMemo, updateMemo, removeMemo, togglePin,
-  archiveMemo, unarchiveMemo, addMemoImage, removeMemoImage,
+  archiveMemo, unarchiveMemo, removeMemoImage,
   memoTitle, memoPreview, extractMemoTags, memoTimeLabel,
   tagFrequencies,
   useFolders, addFolder, renameFolder, removeFolder, updateFolder, moveMemoToFolder,
@@ -970,48 +969,9 @@ function MemoEditor({
   const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
   const debounceRef = useRef<number | null>(null);
   const isArchived = !!memo.archivedAt;
-  const fileInputRef = useRef<HTMLInputElement>(null);
   // TipTap 에디터 인스턴스 — 외부 툴바와 공유.
+  // 이미지 paste/drop 은 TipTap extension 이 처리 (textarea 핸들러는 dead — 본문은 contenteditable).
   const [tipTapEditor, setTipTapEditor] = useState<Editor | null>(null);
-
-  // 이미지 첨부 — 파일을 dataURL 로 변환해 store 에 추가. 1MB 제한.
-  const attachFiles = useCallback(async (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    if (arr.length === 0) return;
-    for (const file of arr) {
-      if (file.size > 2 * 1024 * 1024) {
-        notify.warning(`"${file.name}" 너무 커요 (2MB 이하)`);
-        continue;
-      }
-      try {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(file);
-        });
-        addMemoImage(memo.id, dataUrl, file.name);
-      } catch {
-        notify.warning(`"${file.name}" 첨부 실패`);
-      }
-    }
-    notify.success(`이미지 ${arr.length}개 첨부됨`, { duration: 1200 });
-  }, [memo.id]);
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = Array.from(e.clipboardData?.items ?? []);
-    const imgs = items.filter((it) => it.type.startsWith('image/')).map((it) => it.getAsFile()).filter((f): f is File => !!f);
-    if (imgs.length > 0) {
-      e.preventDefault();
-      attachFiles(imgs);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
-    if (e.dataTransfer.files.length === 0) return;
-    e.preventDefault();
-    attachFiles(e.dataTransfer.files);
-  };
 
   // memo 변경 시 (다른 메모 선택) draft 동기화
   useEffect(() => {
