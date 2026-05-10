@@ -225,10 +225,9 @@ const Journal = () => {
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
-        {/* 마스트헤드 — 두 줄 분리: 정체성 / 도구 (잡지 마스트 패턴) */}
-        <header className="mb-7 sm:mb-9">
-          {/* Row 1 — 정체성: 뒤로 + 타이틀 + streak / 우측: 오늘 일기 CTA */}
-          <div className="flex items-center gap-3 mb-4">
+        {/* 마스트헤드 — 한 줄: 타이틀 + 도구 (검색/뷰/필터) + CTA */}
+        <header className="mb-6 sm:mb-7">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -238,211 +237,237 @@ const Journal = () => {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <h1 className="font-display text-[26px] sm:text-[32px] font-semibold tracking-tight leading-none text-foreground">
+            <h1 className="font-display text-[26px] sm:text-[30px] font-semibold tracking-tight leading-none text-foreground shrink-0">
               일기
             </h1>
-            <div className="flex items-baseline gap-2.5 ml-1">
-              {streak > 0 && (
-                <span
-                  className="inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85"
-                  title={`${streak}일 연속 기록`}
-                >
-                  <span aria-hidden>🔥</span>
-                  {streak}일 연속
-                </span>
-              )}
-              <span className="text-[11.5px] font-medium tabular-nums text-muted-foreground/55 hidden sm:inline">
-                · {allEntries.length}편
+            {streak > 0 && (
+              <span
+                className="hidden sm:inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85 shrink-0"
+                title={`${streak}일 연속 기록`}
+              >
+                <span aria-hidden>🔥</span>
+                {streak}일
               </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setEditorMode({ kind: 'create' })}
-              title="새 일기 (N)"
-              className="ml-auto inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              오늘 일기
-            </button>
-          </div>
+            )}
+            <span className="text-[11.5px] font-medium tabular-nums text-muted-foreground/55 hidden md:inline shrink-0">
+              · {allEntries.length}편
+            </span>
 
-          {/* Row 2 — 도구: 검색 (flex-1) | 뷰 토글 | 필터 */}
-          <div className="flex items-center gap-2.5">
-            <div
-              className={cn(
-                'relative flex-1 inline-flex items-center gap-2 h-9 px-3 rounded-lg border max-w-md',
-                'border-[hsl(var(--hairline))] bg-card/60 focus-within:border-primary/35 focus-within:ring-2 focus-within:ring-primary/12 transition-shadow',
-              )}
-            >
-              <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <input
-                ref={searchRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="이번 일기 안에서 검색…"
-                aria-label="일기 검색"
-                className="flex-1 bg-transparent text-[12.5px] outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
-                style={{ outline: 'none', boxShadow: 'none' }}
-              />
-              {query.length > 0 && (
+            {/* 도구 그룹 — 우측 정렬, 한 묶음 */}
+            <div className="flex items-center gap-2 ml-auto">
+              {/* 검색 */}
+              <div
+                className={cn(
+                  'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border w-44 sm:w-56',
+                  'border-[hsl(var(--hairline))] bg-card/60 focus-within:border-primary/35 focus-within:ring-2 focus-within:ring-primary/12 transition-shadow',
+                )}
+              >
+                <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="검색…"
+                  aria-label="일기 검색"
+                  className="flex-1 min-w-0 bg-transparent text-[12.5px] outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
+                  style={{ outline: 'none', boxShadow: 'none' }}
+                />
+                {query.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    aria-label="검색 지우기"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              {/* 뷰 모드 토글 */}
+              <div
+                role="tablist"
+                aria-label="뷰 모드"
+                className="inline-flex items-center p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60 shrink-0"
+                title={
+                  query.trim().length > 0 || hasActiveFilter
+                    ? '검색·필터 시 자동 목록 뷰'
+                    : '주간 / 목록'
+                }
+              >
                 <button
                   type="button"
-                  onClick={() => setQuery('')}
-                  aria-label="검색 지우기"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  role="tab"
+                  aria-selected={effectiveViewMode === 'week'}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setViewMode('week')}
+                  disabled={query.trim().length > 0 || hasActiveFilter}
+                  title="주간 보드"
+                  className={cn(
+                    'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
+                    effectiveViewMode === 'week'
+                      ? 'bg-primary/12 text-primary font-semibold'
+                      : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
+                  )}
+                  style={{ outline: 'none', boxShadow: 'none' }}
                 >
-                  <X className="h-3 w-3" />
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={effectiveViewMode === 'list'}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setViewMode('list')}
+                  title="시간순 목록"
+                  className={cn(
+                    'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
+                    effectiveViewMode === 'list'
+                      ? 'bg-primary/12 text-primary font-semibold'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                  style={{ outline: 'none', boxShadow: 'none' }}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {/* 필터 — 라벨 텍스트 추가해서 정체성 명확 */}
+              {(topActivities.length > 0 || topTags.length > 0) && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setFilterOpen((v) => !v)}
+                  aria-expanded={filterOpen}
+                  aria-label="필터"
+                  title={hasActiveFilter ? '필터 활성' : '필터'}
+                  className={cn(
+                    'relative inline-flex items-center gap-1.5 px-2.5 h-9 rounded-lg border text-[12px] font-medium transition-colors outline-none focus:outline-none focus-visible:outline-none shrink-0',
+                    filterOpen || hasActiveFilter
+                      ? 'border-primary/35 bg-primary/10 text-primary'
+                      : 'border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card',
+                  )}
+                  style={{ outline: 'none', boxShadow: 'none' }}
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <span>필터</span>
+                  {hasActiveFilter && (
+                    <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold tabular-nums">
+                      {(activeActivity ? 1 : 0) + (activeTag ? 1 : 0)}
+                    </span>
+                  )}
                 </button>
               )}
-            </div>
-            {/* 뷰 모드 토글 */}
-            <div
-              role="tablist"
-              aria-label="뷰 모드"
-              className="inline-flex items-center p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60 shrink-0"
-              title={
-                query.trim().length > 0 || hasActiveFilter
-                  ? '검색·필터 시 자동 목록 뷰'
-                  : '주간 / 목록'
-              }
-            >
               <button
                 type="button"
-                role="tab"
-                aria-selected={effectiveViewMode === 'week'}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setViewMode('week')}
-                disabled={query.trim().length > 0 || hasActiveFilter}
-                title="주간 보드"
-                className={cn(
-                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
-                  effectiveViewMode === 'week'
-                    ? 'bg-primary/12 text-primary font-semibold'
-                    : 'text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground',
-                )}
-                style={{ outline: 'none', boxShadow: 'none' }}
+                onClick={() => setEditorMode({ kind: 'create' })}
+                title="새 일기 (N)"
+                className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)] shrink-0"
               >
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={effectiveViewMode === 'list'}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setViewMode('list')}
-                title="시간순 목록"
-                className={cn(
-                  'inline-flex items-center justify-center h-8 w-8 rounded text-[12px] transition-colors outline-none focus:outline-none focus-visible:outline-none',
-                  effectiveViewMode === 'list'
-                    ? 'bg-primary/12 text-primary font-semibold'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-                style={{ outline: 'none', boxShadow: 'none' }}
-              >
-                <List className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">오늘 일기</span>
               </button>
             </div>
-            {/* 필터 토글 */}
-            {(topActivities.length > 0 || topTags.length > 0) && (
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setFilterOpen((v) => !v)}
-                aria-expanded={filterOpen}
-                aria-label="필터"
-                title={hasActiveFilter ? '필터 활성' : '필터'}
-                className={cn(
-                  'relative inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors outline-none focus:outline-none focus-visible:outline-none shrink-0',
-                  filterOpen || hasActiveFilter
-                    ? 'border-primary/30 bg-primary/8 text-primary'
-                    : 'border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card',
-                )}
-                style={{ outline: 'none', boxShadow: 'none' }}
-              >
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                {hasActiveFilter && (
-                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" aria-hidden />
-                )}
-              </button>
-            )}
           </div>
 
-          {/* 필터 collapse 패널 — 활동 + 태그 (검색 중이 아닐 때만) */}
+          {/* 필터 카드 — 명확한 정체성 (헤더 + 자체 카드 + 모두 초기화) */}
           {filterOpen && query.trim().length === 0 && (topActivities.length > 0 || topTags.length > 0) && (
-            <div className="mt-4 pt-4 border-t border-[hsl(var(--hairline))] flex flex-col gap-3">
-              {topActivities.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11.5px] tracking-[-0.005em] text-muted-foreground/80 font-semibold mr-1 w-10">
-                    활동
-                  </span>
-                  {topActivities.map((a) => {
-                    const meta = ACTIVITY_META[a.key];
-                    const active = activeActivity === a.key;
-                    return (
-                      <button
-                        key={a.key}
-                        type="button"
-                        onClick={() => setActiveActivity(active ? null : a.key)}
-                        className={cn(
-                          'inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-[11.5px] font-medium border transition-colors',
-                          active
-                            ? 'bg-primary/12 text-primary border-primary/35'
-                            : 'bg-card/60 text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
-                        )}
-                      >
-                        <span aria-hidden>{meta?.emoji ?? '·'}</span>
-                        {meta?.label ?? a.key}
-                        <span className="opacity-55 tabular-nums ml-0.5">{a.count}</span>
-                      </button>
-                    );
-                  })}
-                  {activeActivity && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveActivity(null)}
-                      className="inline-flex items-center gap-0.5 px-2 h-7 rounded-full text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                      초기화
-                    </button>
+            <div className="mt-3 rounded-xl border border-[hsl(var(--hairline))] bg-card/70 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)] overflow-hidden">
+              {/* 카드 헤더 — '필터' 라벨 + 활성 개수 + 모두 초기화 */}
+              <div className="px-4 py-2 flex items-center justify-between border-b border-[hsl(var(--hairline))] bg-primary/[0.04]">
+                <div className="flex items-center gap-2 text-[11.5px] font-semibold tracking-[-0.005em] text-foreground/85">
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-primary/80" />
+                  필터
+                  {hasActiveFilter && (
+                    <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary/12 text-primary text-[10px] font-bold tabular-nums">
+                      {(activeActivity ? 1 : 0) + (activeTag ? 1 : 0)}
+                    </span>
                   )}
                 </div>
-              )}
-              {topTags.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11.5px] tracking-[-0.005em] text-muted-foreground/80 font-semibold mr-1 w-10">
-                    태그
-                  </span>
-                  {topTags.map((t) => (
-                    <button
-                      key={t.tag}
-                      type="button"
-                      onClick={() => setActiveTag(activeTag === t.tag ? null : t.tag)}
-                      className={cn(
-                        'inline-flex items-center gap-0.5 px-2.5 h-7 rounded-full text-[11.5px] font-medium border transition-colors',
-                        activeTag === t.tag
-                          ? 'bg-primary/12 text-primary border-primary/35'
-                          : 'bg-card/60 text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
-                      )}
-                    >
-                      <Hash className="h-2.5 w-2.5 opacity-70" />
-                      {t.tag}
-                      <span className="opacity-55 tabular-nums ml-0.5">{t.count}</span>
-                    </button>
-                  ))}
-                  {activeTag && (
+                <div className="flex items-center gap-1">
+                  {hasActiveFilter && (
                     <button
                       type="button"
-                      onClick={() => setActiveTag(null)}
-                      className="inline-flex items-center gap-0.5 px-2 h-7 rounded-full text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      onClick={() => { setActiveActivity(null); setActiveTag(null); }}
+                      className="inline-flex items-center gap-0.5 px-2 h-6 rounded text-[10.5px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       <X className="h-2.5 w-2.5" />
-                      초기화
+                      모두 초기화
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setFilterOpen(false)}
+                    aria-label="필터 닫기"
+                    title="닫기"
+                    className="inline-flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
-              )}
+              </div>
+
+              {/* 카드 본문 — 활동 / 태그 행 */}
+              <div className="px-4 py-3 flex flex-col gap-3">
+                {topActivities.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <span className="shrink-0 pt-1 w-12 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
+                      활동
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 flex-1">
+                      {topActivities.map((a) => {
+                        const meta = ACTIVITY_META[a.key];
+                        const active = activeActivity === a.key;
+                        return (
+                          <button
+                            key={a.key}
+                            type="button"
+                            onClick={() => setActiveActivity(active ? null : a.key)}
+                            className={cn(
+                              'inline-flex items-center gap-1 px-2.5 h-7 rounded-full text-[11.5px] font-medium border transition-colors',
+                              active
+                                ? 'bg-primary/12 text-primary border-primary/35'
+                                : 'bg-background text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
+                            )}
+                          >
+                            <span aria-hidden>{meta?.emoji ?? '·'}</span>
+                            {meta?.label ?? a.key}
+                            <span className="opacity-55 tabular-nums ml-0.5">{a.count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {topActivities.length > 0 && topTags.length > 0 && (
+                  <div className="border-t border-[hsl(var(--hairline))] -mx-4" aria-hidden />
+                )}
+                {topTags.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <span className="shrink-0 pt-1 w-12 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
+                      태그
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 flex-1">
+                      {topTags.map((t) => (
+                        <button
+                          key={t.tag}
+                          type="button"
+                          onClick={() => setActiveTag(activeTag === t.tag ? null : t.tag)}
+                          className={cn(
+                            'inline-flex items-center gap-0.5 px-2.5 h-7 rounded-full text-[11.5px] font-medium border transition-colors',
+                            activeTag === t.tag
+                              ? 'bg-primary/12 text-primary border-primary/35'
+                              : 'bg-background text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
+                          )}
+                        >
+                          <Hash className="h-2.5 w-2.5 opacity-70" />
+                          {t.tag}
+                          <span className="opacity-55 tabular-nums ml-0.5">{t.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </header>
