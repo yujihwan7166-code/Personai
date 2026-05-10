@@ -16,7 +16,7 @@
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Bot } from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import {
@@ -848,6 +848,21 @@ const Planner = () => {
             </div>
           ) : (
             <div className="flex-1" />
+          )}
+
+          {/* AI 도우미 진입 pill — 뷰 토글 좌측. 패널 열려있으면 숨김 (rail 의 ✨ 와 중복 방지).
+              마이위키의 AI 도우미 버튼 스타일과 일관 — 작은 outlined pill. */}
+          {!aiPanelOpen && (
+            <button
+              type="button"
+              onClick={() => setAiPanelOpen(true)}
+              className="shrink-0 h-8 w-8 sm:w-auto sm:px-2.5 inline-flex items-center justify-center sm:justify-start gap-1 rounded-md border hairline bg-background/80 backdrop-blur text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+              title="AI 도우미"
+              aria-label="AI 도우미 열기"
+            >
+              <Bot className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline text-[11.5px] font-medium">AI 도우미</span>
+            </button>
           )}
 
           {/* 뷰 토글 — 모든 뷰 공통, 우측 끝. */}
