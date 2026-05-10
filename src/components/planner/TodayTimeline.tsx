@@ -34,6 +34,7 @@ import { HabitTimelineOverlay } from './HabitTimelineOverlay';
 import { toDateKey } from '@/lib/planner/habitStats';
 import { DroppableTimeSlot } from './dnd/DroppableTimeSlot';
 import { DraggableBlock } from './dnd/DraggableBlock';
+import { MIN_BLOCK_MINUTES } from './dnd/plannerDndTypes';
 import { InlineQuickAdd } from './InlineQuickAdd';
 import { SubtaskProgress } from './SubtaskList';
 import {
@@ -299,7 +300,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       const endRaw = visibleStart * 60 + yToMin(y2);
       const sMin = Math.min(start.startMin, endRaw);
       const eMin = Math.max(start.startMin, endRaw);
-      const dur = Math.max(15, eMin - sMin);
+      const dur = Math.max(MIN_BLOCK_MINUTES, eMin - sMin);
       const startD = new Date(baseDateIso);
       startD.setHours(Math.floor(sMin / 60), sMin % 60, 0, 0);
       setQuickAddSlot(startD.toISOString());

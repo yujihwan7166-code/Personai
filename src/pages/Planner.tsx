@@ -55,6 +55,8 @@ import { notify } from '@/lib/notify';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { getSnapMin } from '@/lib/planner/snapMin';
+import { nextHalfHourSlot } from '@/lib/planner/timeSlots';
+import { useWindowEvent } from '@/hooks/useWindowEvent';
 import {
   DRAG_ACTIVATION_DISTANCE,
   transposeTimeToDate,
@@ -288,18 +290,7 @@ const Planner = () => {
         setTimeout(() => dayInputRef.current?.focus(), 50);
         break;
       case 'newAtNow': {
-        // "지금" — 다음 30분 슬롯 (현재가 14:31 이면 15:00, 14:00 이면 그대로 14:00).
-        // floor 로 떨어뜨리면 과거 슬롯이 되는 일관성 문제.
-        const now = new Date();
-        const mins = now.getMinutes();
-        if (mins === 0) {
-          now.setSeconds(0, 0);
-        } else if (mins < 30) {
-          now.setMinutes(30, 0, 0);
-        } else {
-          now.setHours(now.getHours() + 1, 0, 0, 0);
-        }
-        setDialogMode({ kind: 'create', presetStartIso: now.toISOString() });
+        setDialogMode({ kind: 'create', presetStartIso: nextHalfHourSlot().toISOString() });
         break;
       }
       case 'jumpToTask': {
@@ -406,64 +397,37 @@ const Planner = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [view, dialogMode, goPrev, goNext, goToday]);
 
-  // Rail 의 "검색" 클릭 → 명령 팔레트 열기.
-  useEffect(() => {
-    const open = () => setPaletteOpen(true);
-    window.addEventListener(RAIL_EVENT.openPalette, open);
-    return () => window.removeEventListener(RAIL_EVENT.openPalette, open);
-  }, []);
-
-  // Rail 의 "매트릭스" 클릭 → 매트릭스 팝오버.
-  useEffect(() => {
-    const open = () => setMatrixPopoverOpen(true);
-    window.addEventListener(RAIL_EVENT.openMatrix, open);
-    return () => window.removeEventListener(RAIL_EVENT.openMatrix, open);
-  }, []);
-
-  // Rail 의 "다가오는 일정" 클릭 → 아젠다 팝오버.
-  useEffect(() => {
-    const open = () => setAgendaPopoverOpen(true);
-    window.addEventListener(RAIL_EVENT.openAgenda, open);
-    return () => window.removeEventListener(RAIL_EVENT.openAgenda, open);
-  }, []);
-
-  // Rail 의 "습관" 클릭 → habits 풀뷰로 전환.
-  useEffect(() => {
-    const open = () => setView('habits');
-    window.addEventListener(RAIL_EVENT.openHabits, open);
-    return () => window.removeEventListener(RAIL_EVENT.openHabits, open);
-  }, []);
-
-  // Rail 의 "오늘" 클릭 → day 뷰 + 오늘로 점프.
-  useEffect(() => {
-    const handler = () => {
-      setView('day');
-      goToday();
-    };
-    window.addEventListener(RAIL_EVENT.goToday, handler);
-    return () => window.removeEventListener(RAIL_EVENT.goToday, handler);
+  // ── Rail 이벤트 핸들러 ── (useWindowEvent 로 보일러플레이트 제거)
+  const handleOpenPalette = useCallback(() => setPaletteOpen(true), []);
+  const handleOpenMatrix = useCallback(() => setMatrixPopoverOpen(true), []);
+  const handleOpenAgenda = useCallback(() => setAgendaPopoverOpen(true), []);
+  const handleOpenHabits = useCallback(() => setView('habits'), []);
+  const handleGoToday = useCallback(() => {
+    setView('day');
+    goToday();
   }, [goToday]);
-
-  // Rail 의 "모드" 클릭 → MainModeTabs 패널 오픈 (홈 화면의 모드 picker 그대로 띄움).
-  // apiRef 가 첫 렌더 직후라 미주입 상태일 수 있어 microtask + 1프레임 retry — silent fail 방지.
-  useEffect(() => {
-    const handler = () => {
-      const tryOpen = (retries: number) => {
-        if (mainModeTabsApiRef.current) {
-          mainModeTabsApiRef.current.open();
-          return;
-        }
-        if (retries <= 0) {
-          notify.info('모드 패널을 잠시 후 다시 시도해주세요', { duration: 1500 });
-          return;
-        }
-        requestAnimationFrame(() => tryOpen(retries - 1));
-      };
-      tryOpen(3);
+  // 모드 — apiRef 가 첫 렌더 직후라 미주입 가능 → rAF 3회 retry 후 안내.
+  const handleOpenModePalette = useCallback(() => {
+    const tryOpen = (retries: number) => {
+      if (mainModeTabsApiRef.current) {
+        mainModeTabsApiRef.current.open();
+        return;
+      }
+      if (retries <= 0) {
+        notify.info('모드 패널을 잠시 후 다시 시도해주세요', { duration: 1500 });
+        return;
+      }
+      requestAnimationFrame(() => tryOpen(retries - 1));
     };
-    window.addEventListener(RAIL_EVENT.openModePalette, handler);
-    return () => window.removeEventListener(RAIL_EVENT.openModePalette, handler);
+    tryOpen(3);
   }, []);
+
+  useWindowEvent(RAIL_EVENT.openPalette, handleOpenPalette);
+  useWindowEvent(RAIL_EVENT.openMatrix, handleOpenMatrix);
+  useWindowEvent(RAIL_EVENT.openAgenda, handleOpenAgenda);
+  useWindowEvent(RAIL_EVENT.openHabits, handleOpenHabits);
+  useWindowEvent(RAIL_EVENT.goToday, handleGoToday);
+  useWindowEvent(RAIL_EVENT.openModePalette, handleOpenModePalette);
 
   // MainModeTabs labels prop — MAIN_MODE_LABELS 에서 label 만 추출.
   const mainModeLabelMap = useMemo(() => {
@@ -920,25 +884,14 @@ const Planner = () => {
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                       onAdd={() => {
-                        // 일정 추가 — 모달.
-                        // anchor 가 오늘: 다음 30분 슬롯
-                        // anchor 가 미래: anchor 09:00
-                        // anchor 가 과거: 오늘 다음 30분 슬롯 (과거에 일정 만드는 건 거의 의도가 아님)
+                        // anchor 오늘/과거 → 지금 다음 30분 슬롯, 미래 → anchor 09:00.
                         const anchor = new Date(anchorIso);
                         const today = new Date();
                         const isSame = anchor.toDateString() === today.toDateString();
                         const isPast = !isSame && anchor.getTime() < today.getTime();
-                        let preset: Date;
-                        if (isSame || isPast) {
-                          preset = new Date();
-                          const mins = preset.getMinutes();
-                          if (mins === 0) preset.setSeconds(0, 0);
-                          else if (mins < 30) preset.setMinutes(30, 0, 0);
-                          else preset.setHours(preset.getHours() + 1, 0, 0, 0);
-                        } else {
-                          preset = new Date(anchor);
-                          preset.setHours(9, 0, 0, 0);
-                        }
+                        const preset = (isSame || isPast)
+                          ? nextHalfHourSlot()
+                          : (() => { const d = new Date(anchor); d.setHours(9, 0, 0, 0); return d; })();
                         setDialogMode({
                           kind: 'create',
                           presetStartIso: preset.toISOString(),
