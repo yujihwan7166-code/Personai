@@ -1617,6 +1617,12 @@ export function MainModeTabs({
                             } else if (item.id === 'serendipity') {
                               setOpen(false);
                               navigate('/discover');
+                            } else if (item.id === 'briefing') {
+                              setOpen(false);
+                              // 글로벌 모달 — 어디서든 호출 가능. autoShow 토글도 같이.
+                              import('@/components/DailyBriefingMount').then(({ triggerDailyBriefing }) => {
+                                triggerDailyBriefing();
+                              });
                             }
                           }}
                           role="menuitem"

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GlobalMemoHotkey } from "@/components/GlobalMemoHotkey";
+import { DailyBriefingMount } from "@/components/DailyBriefingMount";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
         <Suspense fallback={<RouteFallback />}>
           <BrowserRouter>
             <GlobalMemoHotkey />
+            <DailyBriefingMount />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
