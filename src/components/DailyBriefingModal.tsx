@@ -81,17 +81,18 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
       className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="relative w-full max-w-[1040px] max-h-[92vh] flex flex-col bg-card border border-foreground/15 rounded-2xl shadow-2xl overflow-hidden">
-        {/* 헤더 */}
-        <div className="shrink-0 px-6 pt-5 pb-3 border-b hairline flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="text-[11.5px] font-semibold tracking-[0.16em] uppercase text-amber-600 dark:text-amber-400 mb-1">
-              ☕ 데일리 브리핑
-            </div>
-            <div className="text-[20px] font-bold text-foreground leading-tight">
-              {data.greeting}
-            </div>
-          </div>
+      <div
+        className="relative w-full max-w-[1040px] flex flex-col bg-card border border-foreground/15 rounded-2xl shadow-2xl overflow-hidden"
+        style={{
+          // 황금비율 (1040 / 1.618 ≈ 643). 작은 화면에선 92vh 로 캡 — 뷰포트 넘침 방지.
+          height: 'min(643px, 92vh)',
+        }}
+      >
+        {/* 헤더 — 간결하게 한 줄 */}
+        <div className="shrink-0 px-6 py-3.5 border-b hairline flex items-center gap-3">
+          <h2 className="min-w-0 flex-1 text-[15.5px] font-semibold tracking-tight text-foreground">
+            데일리 브리핑
+          </h2>
           <button
             type="button"
             onClick={() => setSettingsOpen((v) => !v)}
