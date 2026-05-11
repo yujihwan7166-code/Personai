@@ -133,9 +133,9 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 px-6 py-5">
-              {/* 좌측 — 내 데이터 */}
+              {/* 좌측 — 하루 정보 (날씨·주식·시간·뉴스·한 줄 등) */}
               <div className="space-y-4 min-w-0">
-                <ColumnHeader label="내 일정·할 일" />
+                <ColumnHeader label="하루 정보" />
                 {leftWidgets.length === 0 ? (
                   <ColumnEmpty />
                 ) : leftWidgets.map((wid) => (
@@ -143,9 +143,9 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
                 ))}
               </div>
 
-              {/* 우측 — 하루 정보 */}
+              {/* 우측 — 데일리 (내 일정·할 일·습관 등) */}
               <div className="space-y-4 min-w-0">
-                <ColumnHeader label="하루 정보" />
+                <ColumnHeader label="내 데일리" />
                 {rightWidgets.length === 0 ? (
                   <ColumnEmpty />
                 ) : rightWidgets.map((wid) => (

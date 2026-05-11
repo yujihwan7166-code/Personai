@@ -37,20 +37,23 @@ export const WIDGET_META: Record<BriefingWidgetId, {
   /** true 면 아직 미구현 — 'soon' 표시. */
   soon?: boolean;
 }> = {
-  pickFirst: { label: '가장 먼저',          emoji: '✨', group: '내 데이터', column: 'left' },
-  timed:     { label: '오늘 시간 잡힌 항목', emoji: '📅', group: '내 데이터', column: 'left' },
-  inbox:     { label: '오늘 할 일',         emoji: '☑',  group: '내 데이터', column: 'left' },
-  overdue:   { label: '어제 미완료',         emoji: '⚠',  group: '내 데이터', column: 'left' },
-  habits:    { label: '오늘 습관',          emoji: '🔥', group: '내 데이터', column: 'left' },
-  dday:      { label: '가까운 D-day',       emoji: '⚑',  group: '내 데이터', column: 'left' },
-  quote:     { label: '오늘의 한 줄',       emoji: '💬', group: '영감',      column: 'right' },
-  word:      { label: '오늘의 단어',        emoji: '🌱', group: '영감',      column: 'right' },
+  // ── 좌측: 하루 정보 (외부 + 영감) ──
+  weather:   { label: '날씨',              emoji: '🌤', group: '외부 정보', column: 'left', soon: true },
+  news:      { label: '뉴스 헤드라인',      emoji: '📰', group: '외부 정보', column: 'left', soon: true },
+  stocks:    { label: '주식·코인',          emoji: '📈', group: '외부 정보', column: 'left', soon: true },
+  exchange:  { label: '환율',              emoji: '💱', group: '외부 정보', column: 'left', soon: true },
+  subway:    { label: '지하철 도착',        emoji: '🚇', group: '외부 정보', column: 'left', soon: true },
+  quote:     { label: '오늘의 한 줄',       emoji: '💬', group: '영감',      column: 'left' },
+  word:      { label: '오늘의 단어',        emoji: '🌱', group: '영감',      column: 'left' },
+
+  // ── 우측: 데일리(내 데이터) ──
+  pickFirst: { label: '가장 먼저',          emoji: '✨', group: '내 데이터', column: 'right' },
+  timed:     { label: '오늘 시간 잡힌 항목', emoji: '📅', group: '내 데이터', column: 'right' },
+  inbox:     { label: '오늘 할 일',         emoji: '☑',  group: '내 데이터', column: 'right' },
+  overdue:   { label: '어제 미완료',         emoji: '⚠',  group: '내 데이터', column: 'right' },
+  habits:    { label: '오늘 습관',          emoji: '🔥', group: '내 데이터', column: 'right' },
+  dday:      { label: '가까운 D-day',       emoji: '⚑',  group: '내 데이터', column: 'right' },
   readlist:  { label: '읽을거리',          emoji: '📚', group: '영감',      column: 'right' },
-  weather:   { label: '날씨',              emoji: '🌤', group: '외부 정보', column: 'right', soon: true },
-  news:      { label: '뉴스 헤드라인',      emoji: '📰', group: '외부 정보', column: 'right', soon: true },
-  stocks:    { label: '주식·코인',          emoji: '📈', group: '외부 정보', column: 'right', soon: true },
-  exchange:  { label: '환율',              emoji: '💱', group: '외부 정보', column: 'right', soon: true },
-  subway:    { label: '지하철 도착',        emoji: '🚇', group: '외부 정보', column: 'right', soon: true },
 };
 
 /** 기본 활성 위젯 — 처음 사용자에게 보여줄 set. */
