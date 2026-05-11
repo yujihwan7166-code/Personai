@@ -130,7 +130,6 @@ export const JournalWeekBoard = ({
           const isToday = key === today;
           const isFuture = key > today;
           const isSelected = key === selectedDay;
-          const isLast = i === days.length - 1;
 
           return (
             <button
@@ -148,23 +147,22 @@ export const JournalWeekBoard = ({
                 'group/tab relative flex transition-colors',
                 // 모바일: 가로 row, h-9, 인라인 정렬
                 'flex-row items-baseline justify-center gap-1.5 h-9',
-                // 데스크탑: 세로 column (요일↑ + day↓), h-14, 종이 분할선
-                'sm:flex-col sm:items-center sm:justify-center sm:gap-1 sm:h-14 sm:px-3',
-                !isLast && 'sm:border-b sm:border-[hsl(var(--hairline))]/55',
-                !isSelected && 'hover:bg-accent/30',
-                isSelected && 'bg-primary/[0.07]',
-                isFuture && !isSelected && 'opacity-50',
+                // 데스크탑: 세로 column, h-11 (꽉 차게), 패딩 최소
+                'sm:flex-col sm:items-center sm:justify-center sm:gap-0.5 sm:h-11 sm:px-3',
+                !isSelected && 'hover:bg-accent/40',
+                isSelected && 'bg-primary/12',
+                isFuture && !isSelected && 'opacity-45',
               )}
             >
-              {/* 요일 — 데스크탑에서 italic serif eyebrow (writing 톤) */}
+              {/* 요일 — 데스크탑 italic serif eyebrow */}
               <span
                 className={cn(
-                  'text-[10.5px] tracking-[0.05em] transition-colors',
-                  'sm:text-[11px] sm:font-display sm:italic sm:tracking-[0.04em]',
+                  'text-[10.5px] tracking-[0.05em] leading-none transition-colors',
+                  'sm:text-[10.5px] sm:font-display sm:italic sm:tracking-[0.04em]',
                   isSelected
                     ? 'text-primary font-semibold sm:not-italic'
                     : isToday
-                      ? 'text-primary/85 font-bold sm:not-italic'
+                      ? 'text-primary/80 font-bold sm:not-italic'
                       : hasEntry
                         ? 'text-muted-foreground/75 font-medium'
                         : 'text-muted-foreground/55 font-medium',
@@ -172,16 +170,15 @@ export const JournalWeekBoard = ({
               >
                 {WEEKDAYS_KO[i]}
               </span>
-              {/* 일(day) — 큰 serif 숫자. 일기 있는 날 = 잉크 underline */}
+              {/* 일(day) — serif 숫자, 일기 있는 날 = 잉크 underline */}
               <span
                 className={cn(
                   'font-display tabular-nums leading-none transition-colors',
-                  'text-[17px] sm:text-[22px]',
-                  // 일기 있는 날 (선택·오늘 X) — 데스크탑에서만 잉크 자국
+                  'text-[17px] sm:text-[19px]',
                   hasEntry && !isSelected && !isToday &&
-                    'sm:underline sm:underline-offset-[5px] sm:decoration-foreground/35 sm:decoration-[1.5px]',
+                    'sm:underline sm:underline-offset-[4px] sm:decoration-foreground/30 sm:decoration-[1.5px]',
                   isSelected
-                    ? 'text-primary font-semibold'
+                    ? 'text-primary font-bold'
                     : isToday
                       ? 'text-primary/90 font-semibold'
                       : hasEntry
@@ -191,24 +188,17 @@ export const JournalWeekBoard = ({
               >
                 {d.getDate()}
               </span>
-              {/* 오늘 dot — 데스크탑 좌상단 작은 보라 점 (전통 캘린더 마크) */}
+              {/* 오늘 dot — 우상단 살짝 더 또렷한 보라 점 */}
               {isToday && !isSelected && (
                 <span
-                  className="hidden sm:block absolute top-2 right-2 h-1 w-1 rounded-full bg-primary/70"
+                  className="hidden sm:block absolute top-1.5 right-2 h-1.5 w-1.5 rounded-full bg-primary/80"
                   aria-hidden
                 />
               )}
-              {/* 모바일 선택: 하단 underline */}
+              {/* 모바일 선택: 하단 2px underline */}
               {isSelected && (
                 <span
                   className="sm:hidden absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-full"
-                  aria-hidden
-                />
-              )}
-              {/* 데스크탑 선택: 우측 책갈피 ribbon */}
-              {isSelected && (
-                <span
-                  className="hidden sm:block absolute top-2.5 bottom-2.5 right-0 w-[3px] bg-primary rounded-l"
                   aria-hidden
                 />
               )}
