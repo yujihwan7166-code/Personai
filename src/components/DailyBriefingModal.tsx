@@ -1,13 +1,11 @@
 /**
- * 데일리 브리핑 모달 — 큰 메인 영역 + 우측 작은 설정 패널.
+ * 데일리 브리핑 모달 — 2-칼럼 (좌 내 데이터 · 우 하루 정보) + 별도 설정 패널.
  *
  * 레이아웃:
- *   [메인 컨텐츠 (넓음)]  |  [설정 패널 (좁음, 토글 가능)]
+ *   [좌: 내 데이터 (일정·할일·습관)]  [우: 하루 정보 (한줄·단어·읽을거리·날씨·뉴스 등)]
+ *   ⚙ 클릭 → 별도 floating 설정 패널이 슬라이드 인 (우측 column 위 overlay)
  *
- * 메인: 사용자가 활성화한 위젯들이 순서대로 표시.
- * 설정: 위젯 ON/OFF, 순서 ↑↓, autoShow 토글, 기본값 복귀.
- *
- * 정적 데이터 (AI 호출 X — 빠르고 비용 0).
+ * 외부 API 위젯 (날씨·뉴스 등) 은 placeholder — 추후 연동.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -15,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   X, Calendar, CheckSquare, AlertTriangle, Flag, Flame, Sparkles, ArrowRight,
   Settings, ChevronUp, ChevronDown, Quote, BookOpen, BookText, RotateCcw,
+  Cloud, Newspaper, TrendingUp, DollarSign, Train,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildDailyBriefing, type BriefingData } from '@/lib/buildDailyBriefing';
@@ -36,9 +35,8 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
   const navigate = useNavigate();
   const data: BriefingData | null = useMemo(() => open ? buildDailyBriefing() : null, [open]);
   const [settings, setSettings] = useState(() => dailyBriefingStore.getSettings());
-  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // 표시 기록.
   useEffect(() => {
     if (open) {
       dailyBriefingStore.markShownToday();
@@ -46,17 +44,18 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
     }
   }, [open]);
 
-  // Esc 닫기.
   useEffect(() => {
     if (!open) return;
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') {
+      if (settingsOpen) setSettingsOpen(false);
+      else onClose();
+    } };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [open, onClose]);
+  }, [open, settingsOpen, onClose]);
 
   if (!open || !data || typeof document === 'undefined') return null;
 
-  // 설정 mutate 후 state refresh.
   const refresh = () => setSettings(dailyBriefingStore.getSettings());
   const toggleWidget = (id: BriefingWidgetId, en: boolean) => { dailyBriefingStore.toggleWidget(id, en); refresh(); };
   const moveUp = (id: BriefingWidgetId) => { dailyBriefingStore.moveUp(id); refresh(); };
@@ -68,6 +67,10 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
     refresh();
   };
 
+  // 활성 위젯을 좌·우 열로 분류 — settings.widgets 순서 유지하며 column 별로 거름.
+  const leftWidgets = settings.widgets.filter((id) => WIDGET_META[id].column === 'left');
+  const rightWidgets = settings.widgets.filter((id) => WIDGET_META[id].column === 'right');
+
   const goPlanner = () => { onClose(); navigate('/planner'); };
 
   return createPortal(
@@ -78,14 +81,7 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
       className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div
-        className={cn(
-          'w-full max-h-[92vh] flex flex-col bg-card border border-foreground/15 rounded-2xl shadow-2xl overflow-hidden',
-          // 설정 열림 여부에 따라 너비 변동 — 설정 열렸을 때 더 넓게.
-          settingsOpen ? 'max-w-[920px]' : 'max-w-[640px]',
-          'transition-[max-width] duration-200',
-        )}
-      >
+      <div className="relative w-full max-w-[1040px] max-h-[92vh] flex flex-col bg-card border border-foreground/15 rounded-2xl shadow-2xl overflow-hidden">
         {/* 헤더 */}
         <div className="shrink-0 px-6 pt-5 pb-3 border-b hairline flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -100,7 +96,7 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
             type="button"
             onClick={() => setSettingsOpen((v) => !v)}
             aria-label="설정"
-            title={settingsOpen ? '설정 숨기기' : '설정 보기'}
+            title={settingsOpen ? '설정 닫기' : '설정 열기'}
             className={cn(
               'shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-md transition-colors',
               settingsOpen
@@ -120,151 +116,46 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
           </button>
         </div>
 
-        {/* 본문 — 메인 + 설정 */}
-        <div className="flex-1 min-h-0 flex">
-          {/* ── 메인 ── */}
-          <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5 space-y-5">
-            {settings.widgets.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-[13px]">
-                표시할 위젯이 없어요.
-                <br />
-                <button
-                  type="button"
-                  onClick={() => setSettingsOpen(true)}
-                  className="mt-2 text-primary hover:underline"
-                >
-                  설정에서 위젯을 켜주세요 →
-                </button>
-              </div>
-            ) : settings.widgets.map((wid) => (
-              <WidgetRenderer key={wid} id={wid} data={data} onCloseModal={onClose} />
-            ))}
-          </div>
-
-          {/* ── 설정 패널 (우측, 작음) ── */}
-          {settingsOpen && (
-            <div className="w-[260px] shrink-0 border-l hairline bg-card/40 flex flex-col">
-              <div className="shrink-0 px-3.5 py-2.5 border-b hairline flex items-center justify-between">
-                <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
-                  표시 설정
-                </span>
-                <button
-                  type="button"
-                  onClick={resetWidgets}
-                  aria-label="기본값"
-                  title="기본값으로 복귀"
-                  className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                </button>
+        {/* 본문 — 2 칼럼 */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {leftWidgets.length === 0 && rightWidgets.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground text-[13px]">
+              표시할 위젯이 없어요.
+              <br />
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="mt-2 text-primary hover:underline"
+              >
+                ⚙ 설정에서 위젯 켜기 →
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 px-6 py-5">
+              {/* 좌측 — 내 데이터 */}
+              <div className="space-y-4 min-w-0">
+                <ColumnHeader label="내 일정·할 일" />
+                {leftWidgets.length === 0 ? (
+                  <ColumnEmpty />
+                ) : leftWidgets.map((wid) => (
+                  <WidgetRenderer key={wid} id={wid} data={data} onCloseModal={onClose} />
+                ))}
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-3">
-                {/* 활성 위젯 (순서) */}
-                <div>
-                  <div className="px-1.5 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground/85 font-semibold">
-                    표시중 — 드래그/↑↓ 로 순서
-                  </div>
-                  {settings.widgets.length === 0 ? (
-                    <div className="px-2 py-1.5 text-[11.5px] text-muted-foreground italic">없음</div>
-                  ) : (
-                    <ul className="space-y-0.5">
-                      {settings.widgets.map((wid, idx) => {
-                        const meta = WIDGET_META[wid];
-                        return (
-                          <li key={wid} className="group flex items-center gap-1 px-2 py-1 rounded hover:bg-accent/60 transition-colors">
-                            <span className="text-[12px] leading-none shrink-0">{meta.emoji}</span>
-                            <span className="flex-1 text-[12px] text-foreground/85 truncate">{meta.label}</span>
-                            <button
-                              type="button"
-                              onClick={() => moveUp(wid)}
-                              disabled={idx === 0}
-                              aria-label="위로"
-                              title="위로"
-                              className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-25 disabled:cursor-not-allowed"
-                            >
-                              <ChevronUp className="h-3 w-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moveDown(wid)}
-                              disabled={idx === settings.widgets.length - 1}
-                              aria-label="아래로"
-                              title="아래로"
-                              className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-25 disabled:cursor-not-allowed"
-                            >
-                              <ChevronDown className="h-3 w-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => toggleWidget(wid, false)}
-                              aria-label="끄기"
-                              title="끄기"
-                              className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-
-                {/* 비활성 위젯 — 그룹별 */}
-                {(['내 데이터', '영감'] as const).map((group) => {
-                  const items = ALL_WIDGETS
-                    .filter((id) => WIDGET_META[id].group === group)
-                    .filter((id) => !settings.widgets.includes(id));
-                  if (items.length === 0) return null;
-                  return (
-                    <div key={group}>
-                      <div className="px-1.5 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground/85 font-semibold">
-                        추가 — {group}
-                      </div>
-                      <ul className="space-y-0.5">
-                        {items.map((wid) => {
-                          const meta = WIDGET_META[wid];
-                          return (
-                            <li key={wid}>
-                              <button
-                                type="button"
-                                onClick={() => toggleWidget(wid, true)}
-                                className="w-full flex items-center gap-1.5 px-2 py-1 rounded text-left text-[12px] text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
-                              >
-                                <span className="text-[12px] leading-none shrink-0">{meta.emoji}</span>
-                                <span className="flex-1 truncate">{meta.label}</span>
-                                <span className="text-muted-foreground/50">+</span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 설정 푸터 — autoShow */}
-              <div className="shrink-0 px-3 py-2.5 border-t hairline">
-                <label className="flex items-start gap-2 text-[12px] text-foreground/85 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={settings.autoShow}
-                    onChange={(e) => setAuto(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 rounded border-foreground/30 accent-primary cursor-pointer"
-                  />
-                  <span className="leading-snug">
-                    매일 첫 접속 시<br />
-                    <span className="text-muted-foreground text-[11px]">자동 표시</span>
-                  </span>
-                </label>
+              {/* 우측 — 하루 정보 */}
+              <div className="space-y-4 min-w-0">
+                <ColumnHeader label="하루 정보" />
+                {rightWidgets.length === 0 ? (
+                  <ColumnEmpty />
+                ) : rightWidgets.map((wid) => (
+                  <WidgetRenderer key={wid} id={wid} data={data} onCloseModal={onClose} />
+                ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* 푸터 액션 */}
+        {/* 푸터 */}
         <div className="shrink-0 px-6 py-3 border-t hairline flex items-center gap-3">
           <span className="text-[11px] text-muted-foreground">
             {settings.widgets.length} 위젯 · {settings.autoShow ? '매일 자동' : '수동'}
@@ -278,11 +169,176 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>
+
+        {/* ── 설정 패널 (별도 floating, 우측 슬라이드) ── */}
+        <div
+          className={cn(
+            'absolute top-0 right-0 h-full w-[320px] bg-card border-l hairline shadow-[-4px_0_20px_hsl(30_15%_8%/0.06)] flex flex-col',
+            'transition-transform duration-200 ease-out',
+            settingsOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none',
+          )}
+        >
+          <div className="shrink-0 px-3.5 py-2.5 border-b hairline flex items-center justify-between">
+            <span className="text-[12px] font-semibold tracking-[0.12em] uppercase text-foreground/85">
+              표시 설정
+            </span>
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={resetWidgets}
+                aria-label="기본값"
+                title="기본값으로 복귀"
+                className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(false)}
+                aria-label="설정 닫기"
+                className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-3">
+            {/* 활성 위젯 */}
+            <div>
+              <div className="px-1.5 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground/85 font-semibold">
+                표시중 — ↑↓ 로 순서
+              </div>
+              {settings.widgets.length === 0 ? (
+                <div className="px-2 py-1.5 text-[11.5px] text-muted-foreground italic">없음</div>
+              ) : (
+                <ul className="space-y-0.5">
+                  {settings.widgets.map((wid, idx) => {
+                    const meta = WIDGET_META[wid];
+                    const colTag = meta.column === 'left' ? '좌' : '우';
+                    return (
+                      <li key={wid} className="group flex items-center gap-1 px-2 py-1 rounded hover:bg-accent/60 transition-colors">
+                        <span className="text-[12px] leading-none shrink-0">{meta.emoji}</span>
+                        <span className="flex-1 text-[12px] text-foreground/85 truncate">
+                          {meta.label}
+                          <span className="ml-1.5 text-[9.5px] text-muted-foreground/65">({colTag})</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => moveUp(wid)}
+                          disabled={idx === 0}
+                          aria-label="위로"
+                          className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-25 disabled:cursor-not-allowed"
+                        >
+                          <ChevronUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveDown(wid)}
+                          disabled={idx === settings.widgets.length - 1}
+                          aria-label="아래로"
+                          className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-25 disabled:cursor-not-allowed"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleWidget(wid, false)}
+                          aria-label="끄기"
+                          title="끄기"
+                          className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* 비활성 — 그룹별 */}
+            {(['내 데이터', '영감', '외부 정보'] as const).map((group) => {
+              const items = ALL_WIDGETS
+                .filter((id) => WIDGET_META[id].group === group)
+                .filter((id) => !settings.widgets.includes(id));
+              if (items.length === 0) return null;
+              return (
+                <div key={group}>
+                  <div className="px-1.5 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground/85 font-semibold">
+                    추가 — {group}
+                  </div>
+                  <ul className="space-y-0.5">
+                    {items.map((wid) => {
+                      const meta = WIDGET_META[wid];
+                      return (
+                        <li key={wid}>
+                          <button
+                            type="button"
+                            onClick={() => toggleWidget(wid, true)}
+                            disabled={meta.soon}
+                            className={cn(
+                              'w-full flex items-center gap-1.5 px-2 py-1 rounded text-left text-[12px] transition-colors',
+                              meta.soon
+                                ? 'text-foreground/35 cursor-not-allowed'
+                                : 'text-foreground/65 hover:text-foreground hover:bg-accent',
+                            )}
+                            title={meta.soon ? '곧 추가됩니다' : undefined}
+                          >
+                            <span className="text-[12px] leading-none shrink-0">{meta.emoji}</span>
+                            <span className="flex-1 truncate">{meta.label}</span>
+                            {meta.soon && (
+                              <span className="text-[9.5px] text-muted-foreground/55 uppercase tracking-wide">곧</span>
+                            )}
+                            {!meta.soon && <span className="text-muted-foreground/50">+</span>}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="shrink-0 px-3 py-2.5 border-t hairline">
+            <label className="flex items-start gap-2 text-[12px] text-foreground/85 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={settings.autoShow}
+                onChange={(e) => setAuto(e.target.checked)}
+                className="mt-0.5 h-3.5 w-3.5 rounded border-foreground/30 accent-primary cursor-pointer"
+              />
+              <span className="leading-snug">
+                매일 첫 접속 시<br />
+                <span className="text-muted-foreground text-[11px]">자동 표시</span>
+              </span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>,
     document.body,
   );
 };
+
+// ─── 칼럼 헤더 & 빈 상태 ──────────────────────────────
+
+function ColumnHeader({ label }: { label: string }) {
+  return (
+    <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/85 pb-1 border-b hairline mb-2">
+      {label}
+    </div>
+  );
+}
+
+function ColumnEmpty() {
+  return (
+    <div className="text-center py-8 text-[11.5px] text-muted-foreground/60 italic">
+      이 영역에 표시할 위젯 없음
+    </div>
+  );
+}
 
 // ─── 위젯 렌더러 ───────────────────────────────────────────
 
@@ -426,7 +482,7 @@ function WidgetRenderer({
             <BookText className="h-3 w-3" />
             오늘의 단어
           </div>
-          <div className="flex items-baseline gap-2.5 mb-1">
+          <div className="flex items-baseline gap-2.5 mb-1 flex-wrap">
             <span className="text-[18px] font-bold text-foreground tracking-tight">{data.word.word}</span>
             <span className="text-[13px] text-foreground/85">{data.word.meaning}</span>
           </div>
@@ -457,6 +513,18 @@ function WidgetRenderer({
         </Section>
       );
 
+    // ── 외부 정보 placeholder ──
+    case 'weather':
+      return <ComingSoon icon={<Cloud className="h-3.5 w-3.5" />} title="날씨" hint="위치 입력 + OpenWeatherMap API 연동 예정" />;
+    case 'news':
+      return <ComingSoon icon={<Newspaper className="h-3.5 w-3.5" />} title="뉴스 헤드라인" hint="연합/KBS RSS 파싱 예정" />;
+    case 'stocks':
+      return <ComingSoon icon={<TrendingUp className="h-3.5 w-3.5" />} title="주식·코인" hint="관심 종목 + 실시간 시세 예정" />;
+    case 'exchange':
+      return <ComingSoon icon={<DollarSign className="h-3.5 w-3.5" />} title="환율" hint="USD/JPY/EUR 등 공개 API" />;
+    case 'subway':
+      return <ComingSoon icon={<Train className="h-3.5 w-3.5" />} title="지하철 도착" hint="서울교통공사 공공 API" />;
+
     default:
       return null;
   }
@@ -484,6 +552,19 @@ function Section({
       {isEmpty && empty ? (
         <p className="text-[11.5px] text-muted-foreground/70 italic ml-5">{empty}</p>
       ) : children}
+    </section>
+  );
+}
+
+function ComingSoon({ icon, title, hint }: { icon: React.ReactNode; title: string; hint: string }) {
+  return (
+    <section className="rounded-xl border border-dashed hairline bg-card/40 px-4 py-3.5 opacity-70">
+      <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+        <span className="text-muted-foreground">{icon}</span>
+        {title}
+        <span className="ml-auto text-[9.5px] tracking-wider">곧 추가</span>
+      </div>
+      <div className="text-[11.5px] text-muted-foreground italic">{hint}</div>
     </section>
   );
 }

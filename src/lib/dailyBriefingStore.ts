@@ -20,18 +20,37 @@ export type BriefingWidgetId =
   | 'dday'         // ⚑ D-day
   | 'quote'        // 💬 오늘의 한 줄
   | 'word'         // 🌱 오늘의 단어
-  | 'readlist';    // 📚 읽을거리 (메모 #읽을거리 태그)
+  | 'readlist'     // 📚 읽을거리 (메모 #읽을거리 태그)
+  // ── 외부 정보 (placeholder, 추후 API 연동) ──
+  | 'weather'      // 🌤 날씨
+  | 'news'         // 📰 뉴스
+  | 'stocks'       // 📈 주식·코인
+  | 'exchange'     // 💱 환율
+  | 'subway';      // 🚇 지하철
 
-export const WIDGET_META: Record<BriefingWidgetId, { label: string; emoji: string; group: '내 데이터' | '영감' }> = {
-  pickFirst: { label: '가장 먼저',          emoji: '✨', group: '내 데이터' },
-  timed:     { label: '오늘 시간 잡힌 항목', emoji: '📅', group: '내 데이터' },
-  inbox:     { label: '오늘 할 일',         emoji: '☑',  group: '내 데이터' },
-  overdue:   { label: '어제 미완료',         emoji: '⚠',  group: '내 데이터' },
-  habits:    { label: '오늘 습관',          emoji: '🔥', group: '내 데이터' },
-  dday:      { label: '가까운 D-day',       emoji: '⚑',  group: '내 데이터' },
-  quote:     { label: '오늘의 한 줄',       emoji: '💬', group: '영감' },
-  word:      { label: '오늘의 단어',        emoji: '🌱', group: '영감' },
-  readlist:  { label: '읽을거리',          emoji: '📚', group: '영감' },
+/** 위젯 분류 — 'mine' = 내 데이터 (좌측), 'info' = 하루 정보 (우측), 'soon' = 준비 중. */
+export type WidgetGroup = '내 데이터' | '영감' | '외부 정보';
+export type WidgetColumn = 'left' | 'right';
+
+export const WIDGET_META: Record<BriefingWidgetId, {
+  label: string; emoji: string; group: WidgetGroup; column: WidgetColumn;
+  /** true 면 아직 미구현 — 'soon' 표시. */
+  soon?: boolean;
+}> = {
+  pickFirst: { label: '가장 먼저',          emoji: '✨', group: '내 데이터', column: 'left' },
+  timed:     { label: '오늘 시간 잡힌 항목', emoji: '📅', group: '내 데이터', column: 'left' },
+  inbox:     { label: '오늘 할 일',         emoji: '☑',  group: '내 데이터', column: 'left' },
+  overdue:   { label: '어제 미완료',         emoji: '⚠',  group: '내 데이터', column: 'left' },
+  habits:    { label: '오늘 습관',          emoji: '🔥', group: '내 데이터', column: 'left' },
+  dday:      { label: '가까운 D-day',       emoji: '⚑',  group: '내 데이터', column: 'left' },
+  quote:     { label: '오늘의 한 줄',       emoji: '💬', group: '영감',      column: 'right' },
+  word:      { label: '오늘의 단어',        emoji: '🌱', group: '영감',      column: 'right' },
+  readlist:  { label: '읽을거리',          emoji: '📚', group: '영감',      column: 'right' },
+  weather:   { label: '날씨',              emoji: '🌤', group: '외부 정보', column: 'right', soon: true },
+  news:      { label: '뉴스 헤드라인',      emoji: '📰', group: '외부 정보', column: 'right', soon: true },
+  stocks:    { label: '주식·코인',          emoji: '📈', group: '외부 정보', column: 'right', soon: true },
+  exchange:  { label: '환율',              emoji: '💱', group: '외부 정보', column: 'right', soon: true },
+  subway:    { label: '지하철 도착',        emoji: '🚇', group: '외부 정보', column: 'right', soon: true },
 };
 
 /** 기본 활성 위젯 — 처음 사용자에게 보여줄 set. */
@@ -41,8 +60,11 @@ const DEFAULT_ENABLED: BriefingWidgetId[] = [
 
 /** 모든 위젯 — 비활성도 포함. UI 의 설정 패널이 이 순서로 노출. */
 export const ALL_WIDGETS: BriefingWidgetId[] = [
+  // 좌측 (내 데이터)
   'pickFirst', 'timed', 'inbox', 'overdue', 'habits', 'dday',
+  // 우측 (영감 + 외부 정보)
   'quote', 'word', 'readlist',
+  'weather', 'news', 'stocks', 'exchange', 'subway',
 ];
 
 export interface BriefingSettings {
