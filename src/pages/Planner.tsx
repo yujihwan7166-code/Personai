@@ -883,11 +883,14 @@ const Planner = () => {
             </div>
           )}
 
-          {/* spacer — 우측 utility 를 끝으로 민다. */}
+          {/* spacer — ViewToggle 을 가운데로 민다. */}
           <div className="flex-1" />
 
-          {/* 뷰 토글 — 모든 뷰 공통. */}
+          {/* 뷰 토글 — 중앙. */}
           <ViewToggle value={view} onChange={setView} />
+
+          {/* spacer — PageSwitcher 를 우측 끝으로 민다. */}
+          <div className="flex-1" />
 
           {/* 페이지 스위처 — 우측 끝. */}
           <PageSwitcher current="planner" />
