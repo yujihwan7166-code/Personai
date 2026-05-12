@@ -210,8 +210,8 @@ const Journal = () => {
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
         {/* 마스트헤드 — 좌(타이틀) | 우(PageSwitcher 위 + 도구 아래) horizontal split */}
         <header className="mb-6 sm:mb-7 flex items-start justify-between gap-6 flex-wrap">
-          {/* 좌측: 타이틀 영역 */}
-          <div className="min-w-0">
+          {/* 좌측: 타이틀 영역 — 살짝 아래로 내려서 우측 도구 행과 시각 균형 */}
+          <div className="min-w-0 pt-2 sm:pt-3">
             <div className="text-[12.5px] font-semibold tracking-[0.2em] uppercase text-primary/70 mb-1.5">
               TODAY
             </div>
