@@ -206,15 +206,15 @@ export interface HubTool {
 
 export const HUB_TOOLS: HubTool[] = [
   // ── 정리 (도구·자동) ─────────────────
-  { id: 'planner',    label: '통합 플래너',   desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '정리' },
-  { id: 'wiki',       label: '마이위키',      desc: '나만의 지식 베이스',           emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '정리' },
-  { id: 'pomodoro',   label: '포모도로',      desc: '25분 집중 타이머',             emoji: '🍅', tint: 'hsl(0 75% 55%)',   axis: '정리' },
-  { id: 'briefing',   label: '데일리 브리핑',  desc: 'AI 가 요약해주는 오늘',       emoji: '☕', tint: 'hsl(25 85% 55%)',  axis: '정리' },
+  { id: 'planner',     label: '통합 플래너',  desc: '캘린더·할일·습관·목표 한 화면에',     emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '정리' },
+  { id: 'wiki',        label: '마이위키',     desc: '나만의 지식 베이스',                 emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '정리' },
+  { id: 'briefing',    label: '데일리 브리핑', desc: 'AI 가 요약해주는 오늘',              emoji: '☕', tint: 'hsl(25 85% 55%)',  axis: '정리' },
+  { id: 'serendipity', label: '우연의 발견',  desc: '매일 다른 글·명언·발견',             emoji: '🎲', tint: 'hsl(160 55% 45%)', axis: '정리' },
   // ── 기록 (직접 쓰기) ──────────────
-  { id: 'memo',       label: '메모',          desc: '짧은 생각 즉시',               emoji: '✏️', tint: 'hsl(45 80% 55%)',  axis: '기록' },
-  { id: 'journal',    label: '일기',          desc: '하루 기록 · 감정',             emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
-  { id: 'meeting',     label: '녹음 노트',     desc: '회의·인터뷰 → 자동 정리·할일 추출',  emoji: '🎙️', tint: 'hsl(265 65% 55%)', axis: '기록' },
-  { id: 'serendipity', label: '우연의 발견',   desc: '매일 다른 글·명언·발견',              emoji: '🎲', tint: 'hsl(160 55% 45%)', axis: '기록' },
+  { id: 'memo',       label: '메모',          desc: '짧은 생각 즉시',                     emoji: '✏️', tint: 'hsl(45 80% 55%)',  axis: '기록' },
+  { id: 'whiteboard', label: '화이트보드',    desc: '자유롭게 그리고 정리',                emoji: '🧩', tint: 'hsl(200 60% 55%)', axis: '기록' },
+  { id: 'journal',    label: '일기',          desc: '하루 기록 · 감정',                   emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
+  { id: 'meeting',    label: '녹음 노트',     desc: '회의·인터뷰 → 자동 정리·할일 추출',   emoji: '🎙️', tint: 'hsl(265 65% 55%)', axis: '기록' },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -1623,6 +1623,11 @@ export function MainModeTabs({
                               import('@/components/DailyBriefingMount').then(({ triggerDailyBriefing }) => {
                                 triggerDailyBriefing();
                               });
+                            } else if (item.id === 'whiteboard') {
+                              // 라우트 미구현 — 안내만.
+                              import('@/lib/notify').then(({ notify }) =>
+                                notify.info('화이트보드', { description: '준비 중이에요.' }),
+                              );
                             }
                           }}
                           role="menuitem"
