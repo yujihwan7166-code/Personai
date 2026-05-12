@@ -82,15 +82,20 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative w-full max-w-[1040px] flex flex-col bg-card border border-foreground/15 rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-[1040px] flex flex-col rounded-3xl shadow-[0_24px_60px_-20px_rgba(30,20,10,0.25)] overflow-hidden"
         style={{
-          // 황금비율 (1040 / 1.618 ≈ 643). 작은 화면에선 92vh 로 캡 — 뷰포트 넘침 방지.
+          // 황금비율 (1040 / 1.618 ≈ 643).
           height: 'min(643px, 92vh)',
+          // 따뜻한 크림 배경 (Notion / Bear 톤). 다크 모드 자동 대응.
+          background: 'linear-gradient(180deg, hsl(35 40% 98%) 0%, hsl(28 30% 96%) 100%)',
         }}
       >
+        {/* 다크 모드 백그라운드 오버레이 — Tailwind dark: 로 처리 */}
+        <div className="absolute inset-0 dark:bg-gradient-to-b dark:from-[hsl(30_15%_10%)] dark:to-[hsl(28_12%_8%)] pointer-events-none" aria-hidden />
+
         {/* 헤더 — 간결하게 한 줄 */}
-        <div className="shrink-0 px-6 py-3.5 border-b hairline flex items-center gap-3">
-          <h2 className="min-w-0 flex-1 text-[15.5px] font-semibold tracking-tight text-foreground">
+        <div className="relative shrink-0 px-7 py-4 flex items-center gap-3 z-10">
+          <h2 className="min-w-0 flex-1 text-[16px] font-bold tracking-tight text-foreground/90">
             데일리 브리핑
           </h2>
           <button
@@ -99,10 +104,10 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
             aria-label="설정"
             title={settingsOpen ? '설정 닫기' : '설정 열기'}
             className={cn(
-              'shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-md transition-colors',
+              'shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-full transition-all',
               settingsOpen
-                ? 'bg-accent text-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+                ? 'bg-foreground/10 text-foreground'
+                : 'text-foreground/55 hover:text-foreground hover:bg-foreground/8',
             )}
           >
             <Settings className="h-4 w-4" />
@@ -111,16 +116,19 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-full text-foreground/55 hover:text-foreground hover:bg-foreground/8 transition-all"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* 본문 — 2 칼럼 */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* 본문 영역 — Hero + 2 칼럼 */}
+        <div className="relative flex-1 min-h-0 overflow-y-auto z-10">
+          {/* Hero — 오늘 한눈 요약 (날짜 + 핵심 카운트) */}
+          <BriefingHero data={data} />
+
           {leftWidgets.length === 0 && rightWidgets.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground text-[13px]">
+            <div className="text-center py-12 text-foreground/55 text-[13px]">
               표시할 위젯이 없어요.
               <br />
               <button
@@ -132,9 +140,9 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-7 py-6">
-              {/* 좌측 — 하루 정보 (날씨·주식·시간·뉴스·한 줄 등) */}
-              <div className="space-y-5 min-w-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-7 py-5">
+              {/* 좌측 — 하루 정보 */}
+              <div className="space-y-4 min-w-0">
                 <ColumnHeader label="하루 정보" />
                 {leftWidgets.length === 0 ? (
                   <ColumnEmpty />
@@ -144,7 +152,7 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
               </div>
 
               {/* 우측 — 데일리 (내 일정·할 일·습관 등) */}
-              <div className="space-y-5 min-w-0">
+              <div className="space-y-4 min-w-0">
                 <ColumnHeader label="내 데일리" />
                 {rightWidgets.length === 0 ? (
                   <ColumnEmpty />
@@ -157,17 +165,17 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
         </div>
 
         {/* 푸터 */}
-        <div className="shrink-0 px-6 py-3 border-t hairline flex items-center gap-3">
-          <span className="text-[11px] text-muted-foreground">
+        <div className="relative shrink-0 px-7 py-3.5 flex items-center gap-3 z-10 border-t border-foreground/8">
+          <span className="text-[12px] text-foreground/55">
             {settings.widgets.length} 위젯 · {settings.autoShow ? '매일 자동' : '수동'}
           </span>
           <button
             type="button"
             onClick={goPlanner}
-            className="ml-auto inline-flex items-center gap-1 h-8 px-3.5 rounded-md bg-primary text-primary-foreground text-[12.5px] font-semibold hover:bg-primary/90 transition-colors"
+            className="ml-auto inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-foreground text-background text-[13px] font-semibold hover:bg-foreground/90 transition-colors shadow-[0_2px_8px_-2px_rgba(30,20,10,0.2)]"
           >
             플래너 열기
-            <ArrowRight className="h-3 w-3" />
+            <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
 
@@ -325,9 +333,101 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
 
 // ─── 칼럼 헤더 & 빈 상태 ──────────────────────────────
 
+/** Hero — 오늘 한눈 요약. 큰 날짜 + 인사 + 핵심 카운트 칩. */
+function BriefingHero({ data }: { data: BriefingData }) {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const weekday = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()];
+
+  // 한눈 카운트 — 0 이면 안 보임 (시각 노이즈 ↓).
+  const undoneTimed = data.timed.filter((t) => t.kind === 'task' && !t.done).length + data.timed.filter((t) => t.kind === 'event').length;
+  const habitDone = data.habits.filter((h) => h.done).length;
+
+  return (
+    <div className="px-7 pt-2 pb-5">
+      <div
+        className="rounded-2xl px-6 py-5 relative overflow-hidden"
+        style={{
+          // 따뜻한 sunrise 그라데이션 — 부드럽고 자연스럽게.
+          background: 'linear-gradient(135deg, hsl(35 75% 92%) 0%, hsl(20 80% 90%) 60%, hsl(340 60% 92%) 100%)',
+        }}
+      >
+        {/* 다크 모드 대응 — 부드러운 어두운 톤 */}
+        <div
+          className="absolute inset-0 hidden dark:block pointer-events-none"
+          style={{ background: 'linear-gradient(135deg, hsl(28 18% 14%) 0%, hsl(20 20% 12%) 60%, hsl(340 18% 14%) 100%)' }}
+          aria-hidden
+        />
+
+        <div className="relative flex items-end justify-between gap-4 flex-wrap">
+          {/* 좌: 날짜 + 인사 */}
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold text-foreground/55 tracking-wide mb-1">
+              {now.getFullYear()}년
+            </div>
+            <div className="text-[28px] sm:text-[32px] font-bold text-foreground leading-none tracking-tight">
+              {month}월 {day}일
+              <span className="ml-2 text-[18px] sm:text-[20px] text-foreground/70 font-semibold">
+                {weekday}요일
+              </span>
+            </div>
+            <div className="text-[13.5px] text-foreground/70 mt-2 leading-relaxed">
+              {data.greeting.replace(/^.*·\s*/, '')}
+            </div>
+          </div>
+
+          {/* 우: 한눈 카운트 칩 */}
+          <div className="flex flex-wrap items-center gap-2">
+            {undoneTimed > 0 && (
+              <HeroChip icon="📅" label="일정" value={undoneTimed} />
+            )}
+            {data.inbox.length > 0 && (
+              <HeroChip icon="☑" label="할 일" value={data.inbox.length} />
+            )}
+            {data.habits.length > 0 && (
+              <HeroChip icon="🔥" label="습관" value={`${habitDone}/${data.habits.length}`} />
+            )}
+            {data.overdue.length > 0 && (
+              <HeroChip icon="⚠" label="어제" value={data.overdue.length} tone="warn" />
+            )}
+            {data.upcomingDday.length > 0 && (
+              <HeroChip icon="⚑" label="D-day" value={data.upcomingDday.length} />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroChip({ icon, label, value, tone = 'default' }: {
+  icon: string;
+  label: string;
+  value: number | string;
+  tone?: 'default' | 'warn';
+}) {
+  return (
+    <div className={cn(
+      'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5',
+      'bg-background/55 backdrop-blur-sm',
+      tone === 'warn' && 'bg-rose-50/85 dark:bg-rose-500/15',
+    )}>
+      <span className="text-[14px] leading-none">{icon}</span>
+      <span className="text-[11.5px] text-foreground/60 font-medium">{label}</span>
+      <span className={cn(
+        'text-[14px] font-bold tabular-nums',
+        tone === 'warn' ? 'text-rose-600 dark:text-rose-400' : 'text-foreground',
+      )}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
 function ColumnHeader({ label }: { label: string }) {
   return (
-    <div className="text-[13px] font-bold text-foreground/90 pb-2 border-b hairline mb-1">
+    <div className="text-[12.5px] font-bold text-foreground/55 tracking-wide pb-2 mb-1">
       {label}
     </div>
   );
@@ -350,13 +450,19 @@ function WidgetRenderer({
     case 'pickFirst':
       if (!data.pickFirst) return null;
       return (
-        <section className="rounded-xl border border-primary/35 bg-primary/8 px-5 py-4">
-          <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-primary mb-2">
+        <section
+          className="rounded-2xl px-5 py-4 shadow-[0_2px_8px_-2px_rgba(30,20,10,0.08)]"
+          style={{
+            // 부드러운 amber 톤 — 따뜻한 강조.
+            background: 'linear-gradient(135deg, hsl(40 90% 95%) 0%, hsl(30 85% 93%) 100%)',
+          }}
+        >
+          <div className="flex items-center gap-1.5 text-[12px] font-bold text-amber-700 dark:text-amber-300 mb-2">
             <Sparkles className="h-3.5 w-3.5" />
             가장 먼저
           </div>
-          <div className="text-[18px] font-bold text-foreground leading-snug">{data.pickFirst.title}</div>
-          <div className="text-[14px] text-foreground/65 mt-1.5 leading-relaxed">{data.pickFirst.reason}</div>
+          <div className="text-[17px] font-bold text-foreground leading-snug">{data.pickFirst.title}</div>
+          <div className="text-[13.5px] text-foreground/65 mt-1.5 leading-relaxed">{data.pickFirst.reason}</div>
         </section>
       );
 
@@ -488,14 +594,14 @@ function Section({
 }) {
   const isEmpty = (typeof count === 'number' && count === 0) || count === '0' || count === '0/0';
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-2.5">
-        <span className="text-foreground/70">{icon}</span>
-        <span className="text-[13px] font-bold text-foreground/85">{title}</span>
-        <span className="text-[12px] tabular-nums text-muted-foreground ml-auto font-semibold">{count}</span>
+    <section className="rounded-2xl bg-background/55 backdrop-blur-sm px-5 py-4 shadow-[0_1px_4px_-1px_rgba(30,20,10,0.04)]">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-foreground/65">{icon}</span>
+        <span className="text-[13.5px] font-bold text-foreground/85">{title}</span>
+        <span className="text-[12px] tabular-nums text-foreground/45 ml-auto font-semibold">{count}</span>
       </div>
       {isEmpty && empty ? (
-        <p className="text-[13px] text-muted-foreground/65 italic ml-6">{empty}</p>
+        <p className="text-[13px] text-foreground/45 italic ml-6">{empty}</p>
       ) : children}
     </section>
   );
@@ -503,13 +609,13 @@ function Section({
 
 function ComingSoon({ icon, title, hint }: { icon: React.ReactNode; title: string; hint: string }) {
   return (
-    <section className="rounded-xl border border-dashed hairline bg-card/40 px-5 py-4 opacity-75">
-      <div className="flex items-center gap-2 text-[13px] font-bold text-foreground/70 mb-1.5">
-        <span className="text-muted-foreground">{icon}</span>
+    <section className="rounded-2xl px-5 py-4 bg-background/40 backdrop-blur-sm opacity-80 border border-dashed border-foreground/15">
+      <div className="flex items-center gap-2 text-[13.5px] font-bold text-foreground/65 mb-1.5">
+        <span className="text-foreground/45">{icon}</span>
         {title}
-        <span className="ml-auto text-[11px] font-semibold tracking-wide uppercase text-muted-foreground/70">곧 추가</span>
+        <span className="ml-auto text-[11px] font-semibold text-foreground/45">곧</span>
       </div>
-      <div className="text-[12.5px] text-muted-foreground italic leading-relaxed">{hint}</div>
+      <div className="text-[12.5px] text-foreground/55 italic leading-relaxed">{hint}</div>
     </section>
   );
 }

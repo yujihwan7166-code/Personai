@@ -73,7 +73,7 @@ export const JournalEmpty = ({ onAdd, className }: JournalEmptyProps) => {
         className="mt-8 inline-flex items-center gap-1.5 px-4 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)]"
       >
         <Pencil className="h-3.5 w-3.5" />
-        오늘 일기 쓰기
+        오늘의 일기 쓰기
       </button>
     </div>
   );

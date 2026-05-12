@@ -312,7 +312,7 @@ const Journal = () => {
                 className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)] shrink-0"
               >
                 <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">오늘 일기</span>
+                <span className="hidden sm:inline">오늘의 일기</span>
               </button>
             </div>
           </div>

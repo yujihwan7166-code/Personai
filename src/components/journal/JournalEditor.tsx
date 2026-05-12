@@ -341,7 +341,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         <DialogHeader className="px-7 pt-6 pb-4 border-b border-[hsl(var(--hairline))] shrink-0">
           <DialogTitle className="flex items-baseline gap-3 pr-8 min-w-0 flex-wrap">
             <span className="text-[18px] font-bold shrink-0 tracking-[-0.01em]">
-              {mode.kind === 'edit' ? '일기 수정' : '오늘 일기'}
+              {mode.kind === 'edit' ? '일기 수정' : '오늘의 일기'}
             </span>
             <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground shrink-0">
               {dateLabel}
