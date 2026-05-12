@@ -455,10 +455,8 @@ const Journal = () => {
               />
             )}
 
-            {/* ── 시간순 feed (월 챕터 그룹핑) ── */}
+            {/* ── 시간순 feed (월 그룹 헤더 없이 단순 list — 요청에 따라 챕터 헤더 제거) ── */}
             {grouped.map((group) => {
-              const [yearStr, monthStr] = group.key.split('-');
-              const monthLabelStr = `${Number(monthStr)}월`;
               // 오늘 hero 가 별도로 보여주는 entry 는 feed 에서 제외 (중복 방지)
               const showTodayHero = !hasActiveFilter && query.trim().length === 0;
               const items = showTodayHero
@@ -469,33 +467,16 @@ const Journal = () => {
                 <section
                   key={group.key}
                   id={`journal-month-${group.key}`}
-                  className="flex flex-col gap-5 scroll-mt-24"
+                  className="flex flex-col gap-4 scroll-mt-24"
                 >
-                  {/* 월 챕터 — 연도 eyebrow + serif 월 + 가는 라인 */}
-                  <div className="mb-1 px-1">
-                    <div className="text-[10px] font-semibold tracking-[0.22em] uppercase text-muted-foreground/55 mb-1.5">
-                      {yearStr}
-                    </div>
-                    <div className="flex items-baseline gap-3">
-                      <h2 className="font-display text-[22px] sm:text-[26px] font-semibold tracking-tight text-foreground/90 leading-none">
-                        {monthLabelStr}
-                      </h2>
-                      <span className="flex-1 border-b border-[hsl(var(--hairline))] translate-y-[-4px]" aria-hidden />
-                      <span className="text-[11px] font-medium tabular-nums text-muted-foreground/65">
-                        {items.length}편
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    {items.map((entry) => (
-                      <JournalCard
-                        key={entry.id}
-                        entry={entry}
-                        onEdit={() => openEdit(entry)}
-                        onDelete={() => handleDelete(entry)}
-                      />
-                    ))}
-                  </div>
+                  {items.map((entry) => (
+                    <JournalCard
+                      key={entry.id}
+                      entry={entry}
+                      onEdit={() => openEdit(entry)}
+                      onDelete={() => handleDelete(entry)}
+                    />
+                  ))}
                 </section>
               );
             })}

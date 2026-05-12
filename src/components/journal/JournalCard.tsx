@@ -61,17 +61,11 @@ interface JournalCardProps {
 
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
-const formatTime = (iso: string): string =>
-  new Date(iso).toLocaleTimeString('ko-KR', {
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  });
-
 export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
   const d = new Date(entry.createdAt);
   const day = d.getDate();                              // 29
   const month = d.getMonth() + 1;                        // 4
   const weekday = WEEKDAY_KO[d.getDay()];                // 수
-  const timeLabel = formatTime(entry.createdAt);
 
   const moodKey = entry.mood !== undefined ? (entry.mood as Mood) : null;
   const moodEmoji = moodKey ? MOOD_EMOJI[moodKey] : null;
@@ -97,10 +91,10 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
             <span className="font-display text-[20px] sm:text-[22px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-foreground/85 group-hover:text-primary/90 transition-colors">
               {day}
             </span>
-            <span className="text-[11px] tabular-nums text-muted-foreground/85">
-              {weekday}요일
+            <span className="text-[11.5px] tabular-nums text-muted-foreground/85">
+              {month}월
               <span className="text-muted-foreground/40 mx-1.5">·</span>
-              {timeLabel}
+              {weekday}요일
             </span>
             {moodKey && (
               <span
