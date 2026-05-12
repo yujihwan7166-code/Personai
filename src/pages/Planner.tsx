@@ -849,7 +849,7 @@ const Planner = () => {
                   <ChevronRight className="h-[18px] w-[18px]" />
                 </button>
               )}
-              {view !== 'habits' && (
+              {view === 'day' && (
                 <button
                   type="button"
                   onClick={goToday}
