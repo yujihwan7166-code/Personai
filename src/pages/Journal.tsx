@@ -217,14 +217,14 @@ const Journal = () => {
           <div className="flex items-center gap-3 flex-wrap">
             {/* 타이틀 영역 — 좌측 */}
             <div className="min-w-0 shrink-0">
-              <div className="text-[10px] font-semibold tracking-[0.22em] uppercase text-primary/70 mb-1">
+              <div className="text-[12px] font-semibold tracking-[0.2em] uppercase text-primary/70 mb-1.5">
                 TODAY
               </div>
-              <div className="flex items-baseline gap-2.5 flex-wrap">
-                <h1 className="font-display text-[22px] sm:text-[26px] font-semibold tracking-tight text-foreground leading-none">
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight text-foreground leading-none">
                   오늘의 일기
                 </h1>
-                <span className="text-[12.5px] font-medium tabular-nums text-muted-foreground/75">
+                <span className="text-[15px] font-medium tabular-nums text-muted-foreground/80">
                   {(() => {
                     const d = new Date();
                     const wd = '일월화수목금토'[d.getDay()];
@@ -233,14 +233,14 @@ const Journal = () => {
                 </span>
                 {streak > 0 && (
                   <span
-                    className="hidden sm:inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85"
+                    className="hidden sm:inline-flex items-center gap-1 text-[13.5px] font-medium tabular-nums text-primary/85"
                     title={`${streak}일 연속 기록`}
                   >
                     <span aria-hidden>🔥</span>
                     {streak}일
                   </span>
                 )}
-                <span className="text-[11.5px] font-medium tabular-nums text-muted-foreground/55 hidden md:inline">
+                <span className="text-[13.5px] font-medium tabular-nums text-muted-foreground/60 hidden md:inline">
                   · {allEntries.length}편
                 </span>
               </div>
