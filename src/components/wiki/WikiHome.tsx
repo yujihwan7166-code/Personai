@@ -267,8 +267,8 @@ export function WikiHome({
       {/* 헤더 — 큰 serif 타이틀 + 자연어 stats. divider 진하게(hairline-strong), 위아래 간격 컴팩트. */}
       <header className="mb-4 flex items-end justify-between gap-3 pb-2.5 border-b border-[hsl(var(--wiki-hairline-strong))]">
         <div className="mt-2">
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 mb-1.5">
-            내 위키
+          <p className="text-[12.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 mb-1.5">
+            마이위키
           </p>
           <h1
             className="text-[28px] sm:text-[32px] leading-tight font-semibold text-foreground tracking-tight"
