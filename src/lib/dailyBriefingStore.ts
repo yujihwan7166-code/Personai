@@ -18,7 +18,6 @@ export type BriefingWidgetId =
   | 'overdue'      // ⚠ 어제 미완료
   | 'habits'       // 🔥 습관
   | 'dday'         // ⚑ D-day
-  | 'readlist'     // 📚 읽을거리 (메모 #읽을거리 태그)
   // ── 외부 정보 (placeholder, 추후 API 연동) ──
   | 'weather'      // 🌤 날씨
   | 'news'         // 📰 뉴스
@@ -46,7 +45,6 @@ export const WIDGET_META: Record<BriefingWidgetId, {
   overdue:   { label: '어제 미완료',         emoji: '⚠',  group: '내 데이터', column: 'right' },
   habits:    { label: '오늘 습관',          emoji: '🔥', group: '내 데이터', column: 'right' },
   dday:      { label: '가까운 D-day',       emoji: '⚑',  group: '내 데이터', column: 'right' },
-  readlist:  { label: '읽을거리',          emoji: '📚', group: '내 데이터', column: 'right' },
 };
 
 /** 기본 활성 위젯 — 처음 사용자에게 보여줄 set. */
@@ -59,7 +57,7 @@ export const ALL_WIDGETS: BriefingWidgetId[] = [
   // 좌측 (하루 정보 — 외부 API)
   'weather', 'news', 'stocks', 'exchange',
   // 우측 (내 데이터)
-  'pickFirst', 'timed', 'inbox', 'overdue', 'habits', 'dday', 'readlist',
+  'pickFirst', 'timed', 'inbox', 'overdue', 'habits', 'dday',
 ];
 
 export interface BriefingSettings {

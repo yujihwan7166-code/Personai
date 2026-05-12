@@ -12,7 +12,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Calendar, CheckSquare, AlertTriangle, Flag, Flame, Sparkles, ArrowRight,
-  Settings, ChevronUp, ChevronDown, BookOpen, RotateCcw,
+  Settings, ChevronUp, ChevronDown, RotateCcw,
   Cloud, Newspaper, TrendingUp, DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -132,9 +132,9 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 px-6 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-7 py-6">
               {/* 좌측 — 하루 정보 (날씨·주식·시간·뉴스·한 줄 등) */}
-              <div className="space-y-4 min-w-0">
+              <div className="space-y-5 min-w-0">
                 <ColumnHeader label="하루 정보" />
                 {leftWidgets.length === 0 ? (
                   <ColumnEmpty />
@@ -144,7 +144,7 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
               </div>
 
               {/* 우측 — 데일리 (내 일정·할 일·습관 등) */}
-              <div className="space-y-4 min-w-0">
+              <div className="space-y-5 min-w-0">
                 <ColumnHeader label="내 데일리" />
                 {rightWidgets.length === 0 ? (
                   <ColumnEmpty />
@@ -327,7 +327,7 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
 
 function ColumnHeader({ label }: { label: string }) {
   return (
-    <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/85 pb-1 border-b hairline mb-2">
+    <div className="text-[13px] font-bold text-foreground/90 pb-2 border-b hairline mb-1">
       {label}
     </div>
   );
@@ -335,7 +335,7 @@ function ColumnHeader({ label }: { label: string }) {
 
 function ColumnEmpty() {
   return (
-    <div className="text-center py-8 text-[11.5px] text-muted-foreground/60 italic">
+    <div className="text-center py-10 text-[13px] text-muted-foreground/60 italic">
       이 영역에 표시할 위젯 없음
     </div>
   );
@@ -350,31 +350,31 @@ function WidgetRenderer({
     case 'pickFirst':
       if (!data.pickFirst) return null;
       return (
-        <section className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3.5">
-          <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-primary mb-1.5">
-            <Sparkles className="h-3 w-3" />
+        <section className="rounded-xl border border-primary/35 bg-primary/8 px-5 py-4">
+          <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-primary mb-2">
+            <Sparkles className="h-3.5 w-3.5" />
             가장 먼저
           </div>
-          <div className="text-[15px] font-bold text-foreground leading-snug">{data.pickFirst.title}</div>
-          <div className="text-[12px] text-muted-foreground mt-1">{data.pickFirst.reason}</div>
+          <div className="text-[18px] font-bold text-foreground leading-snug">{data.pickFirst.title}</div>
+          <div className="text-[14px] text-foreground/65 mt-1.5 leading-relaxed">{data.pickFirst.reason}</div>
         </section>
       );
 
     case 'timed':
       return (
-        <Section icon={<Calendar className="h-3.5 w-3.5" />} title="오늘 시간 잡힌 항목" count={data.timed.length} empty="시간 잡힌 항목 없음">
+        <Section icon={<Calendar className="h-4 w-4" />} title="오늘 시간 잡힌 항목" count={data.timed.length} empty="시간 잡힌 항목 없음">
           {data.timed.length > 0 && (
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {data.timed.map((it, i) => (
-                <li key={i} className="flex items-baseline gap-2 text-[13px]">
-                  <span className="tabular-nums font-mono text-muted-foreground text-[11.5px] shrink-0 w-[88px]">
+                <li key={i} className="flex items-baseline gap-3 text-[14px] leading-relaxed">
+                  <span className="tabular-nums font-mono text-foreground/65 text-[12.5px] shrink-0 w-[96px]">
                     {fmtTime(it.startAt)}{it.endAt ? `~${fmtTime(it.endAt)}` : ''}
                   </span>
                   <span className={cn('flex-1 min-w-0 truncate text-foreground', it.done && 'line-through text-muted-foreground')}>
                     {it.title}
                   </span>
                   {it.kind === 'event' && (
-                    <span className="shrink-0 text-[9.5px] text-muted-foreground/65 uppercase">일정</span>
+                    <span className="shrink-0 text-[10.5px] text-muted-foreground/70 uppercase font-medium">일정</span>
                   )}
                 </li>
               ))}
@@ -385,20 +385,20 @@ function WidgetRenderer({
 
     case 'inbox':
       return (
-        <Section icon={<CheckSquare className="h-3.5 w-3.5" />} title="오늘 할 일" count={data.inbox.length} empty="대기 중 할 일 없음">
+        <Section icon={<CheckSquare className="h-4 w-4" />} title="오늘 할 일" count={data.inbox.length} empty="대기 중 할 일 없음">
           {data.inbox.length > 0 && (
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {data.inbox.map((t) => (
-                <li key={t.id} className="flex items-baseline gap-2 text-[13px]">
+                <li key={t.id} className="flex items-baseline gap-2.5 text-[14px] leading-relaxed">
                   {(t.priority ?? 0) > 0 ? (
                     <Flag className={cn(
-                      'h-3 w-3 shrink-0 mt-0.5',
+                      'h-3.5 w-3.5 shrink-0 mt-0.5',
                       t.priority === 3 && 'text-rose-500 fill-rose-500',
                       t.priority === 2 && 'text-amber-500 fill-amber-500',
                       t.priority === 1 && 'text-blue-500 fill-blue-500',
                     )} />
                   ) : (
-                    <span className="h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0 mt-1.5" aria-hidden />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/55 shrink-0 mt-1.5" aria-hidden />
                   )}
                   <span className="flex-1 min-w-0 truncate text-foreground">{t.title}</span>
                 </li>
@@ -411,10 +411,10 @@ function WidgetRenderer({
     case 'overdue':
       if (data.overdue.length === 0) return null;
       return (
-        <Section icon={<AlertTriangle className="h-3.5 w-3.5 text-rose-500" />} title="어제 못 끝낸 일" count={data.overdue.length}>
-          <ul className="space-y-1">
+        <Section icon={<AlertTriangle className="h-4 w-4 text-rose-500" />} title="어제 못 끝낸 일" count={data.overdue.length}>
+          <ul className="space-y-2">
             {data.overdue.map((t) => (
-              <li key={t.id} className="text-[13px] text-foreground truncate">{t.title}</li>
+              <li key={t.id} className="text-[14px] text-foreground truncate leading-relaxed">{t.title}</li>
             ))}
           </ul>
         </Section>
@@ -423,20 +423,20 @@ function WidgetRenderer({
     case 'habits':
       if (data.habits.length === 0) return null;
       return (
-        <Section icon={<Flame className="h-3.5 w-3.5" />} title="오늘 습관" count={`${data.habits.filter((h) => h.done).length}/${data.habits.length}`}>
-          <ul className="space-y-1">
+        <Section icon={<Flame className="h-4 w-4" />} title="오늘 습관" count={`${data.habits.filter((h) => h.done).length}/${data.habits.length}`}>
+          <ul className="space-y-2">
             {data.habits.map((h) => (
-              <li key={h.id} className="flex items-center gap-2 text-[13px]">
+              <li key={h.id} className="flex items-center gap-2.5 text-[14px] leading-relaxed">
                 <span className={cn(
-                  'h-3.5 w-3.5 rounded-full shrink-0 inline-flex items-center justify-center text-[10px]',
+                  'h-4 w-4 rounded-full shrink-0 inline-flex items-center justify-center text-[11px] font-bold',
                   h.done ? 'bg-emerald-500 text-white' :
-                    h.streakAtRisk ? 'bg-rose-500/15 text-rose-500 ring-1 ring-rose-500/40' :
+                    h.streakAtRisk ? 'bg-rose-500/15 text-rose-500 ring-1 ring-rose-500/45' :
                       'bg-muted text-muted-foreground/60',
                 )}>
                   {h.done ? '✓' : h.streakAtRisk ? '!' : ''}
                 </span>
-                <span className={cn('flex-1 truncate', h.done && 'text-muted-foreground line-through')}>{h.title}</span>
-                {h.streakAtRisk && <span className="shrink-0 text-[10.5px] text-rose-500 font-medium">streak 위험</span>}
+                <span className={cn('flex-1 truncate text-foreground', h.done && 'text-muted-foreground line-through')}>{h.title}</span>
+                {h.streakAtRisk && <span className="shrink-0 text-[11.5px] text-rose-500 font-semibold">streak 위험</span>}
               </li>
             ))}
           </ul>
@@ -446,38 +446,17 @@ function WidgetRenderer({
     case 'dday':
       if (data.upcomingDday.length === 0) return null;
       return (
-        <Section icon={<Flag className="h-3.5 w-3.5" />} title="가까운 D-day" count={data.upcomingDday.length}>
-          <ul className="space-y-1">
+        <Section icon={<Flag className="h-4 w-4" />} title="가까운 D-day" count={data.upcomingDday.length}>
+          <ul className="space-y-2">
             {data.upcomingDday.map((d, i) => (
-              <li key={i} className="flex items-baseline gap-2 text-[13px]">
-                <span className="tabular-nums font-mono text-[11.5px] shrink-0 text-foreground/85 w-[60px]">
+              <li key={i} className="flex items-baseline gap-3 text-[14px] leading-relaxed">
+                <span className="tabular-nums font-mono text-[12.5px] shrink-0 font-bold text-foreground w-[64px]">
                   {d.daysLeft === 0 ? 'D-DAY' : `D-${d.daysLeft}`}
                 </span>
                 <span className="flex-1 truncate text-foreground">{d.label}</span>
               </li>
             ))}
           </ul>
-        </Section>
-      );
-
-    case 'readlist':
-      return (
-        <Section icon={<BookOpen className="h-3.5 w-3.5" />} title="읽을거리" count={data.readlist.length} empty="#읽을거리 태그 메모 없음">
-          {data.readlist.length > 0 && (
-            <ul className="space-y-1">
-              {data.readlist.map((m) => (
-                <li key={m.id}>
-                  <button
-                    type="button"
-                    onClick={() => { onCloseModal(); window.location.href = `/memos?id=${m.id}`; }}
-                    className="text-left text-[13px] text-foreground hover:text-primary hover:underline truncate w-full"
-                  >
-                    {m.title}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </Section>
       );
 
@@ -510,13 +489,13 @@ function Section({
   const isEmpty = (typeof count === 'number' && count === 0) || count === '0' || count === '0/0';
   return (
     <section>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</span>
-        <span className="text-[10.5px] tabular-nums text-muted-foreground/70 ml-auto font-medium">{count}</span>
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="text-foreground/70">{icon}</span>
+        <span className="text-[13px] font-bold text-foreground/85">{title}</span>
+        <span className="text-[12px] tabular-nums text-muted-foreground ml-auto font-semibold">{count}</span>
       </div>
       {isEmpty && empty ? (
-        <p className="text-[11.5px] text-muted-foreground/70 italic ml-5">{empty}</p>
+        <p className="text-[13px] text-muted-foreground/65 italic ml-6">{empty}</p>
       ) : children}
     </section>
   );
@@ -524,13 +503,13 @@ function Section({
 
 function ComingSoon({ icon, title, hint }: { icon: React.ReactNode; title: string; hint: string }) {
   return (
-    <section className="rounded-xl border border-dashed hairline bg-card/40 px-4 py-3.5 opacity-70">
-      <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+    <section className="rounded-xl border border-dashed hairline bg-card/40 px-5 py-4 opacity-75">
+      <div className="flex items-center gap-2 text-[13px] font-bold text-foreground/70 mb-1.5">
         <span className="text-muted-foreground">{icon}</span>
         {title}
-        <span className="ml-auto text-[9.5px] tracking-wider">곧 추가</span>
+        <span className="ml-auto text-[11px] font-semibold tracking-wide uppercase text-muted-foreground/70">곧 추가</span>
       </div>
-      <div className="text-[11.5px] text-muted-foreground italic">{hint}</div>
+      <div className="text-[12.5px] text-muted-foreground italic leading-relaxed">{hint}</div>
     </section>
   );
 }
