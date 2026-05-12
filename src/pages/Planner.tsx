@@ -34,6 +34,7 @@ import {
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { PlannerLeftRail, RAIL_EVENT } from '@/components/planner/PlannerLeftRail';
 import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
+import { PlannerInput } from '@/components/planner/PlannerInput';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
 import { TodayTodoList } from '@/components/planner/TodayTodoList';
@@ -800,29 +801,37 @@ const Planner = () => {
         <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
-        {/* ── Universal top bar ── 모든 뷰 공유.
-            [◀ 라벨 ▶ 오늘로]   [뷰 토글 (중앙)]   [페이지 스위처 (우)] */}
-        <div className="mb-3 flex items-center gap-4 px-0.5">
-          {/* 시간 네비 cluster — goals 외 모든 뷰. habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
+        {/* ── Row 1 ── ViewToggle 단독. 뷰 전환에도 절대 안 흔들리는 stable anchor. */}
+        <div className="mb-2 flex items-center px-0.5">
+          <ViewToggle value={view} onChange={setView} />
+        </div>
+
+        {/* ── Row 2 ── 날짜 nav + 빠른추가 + AI도우미 + PageSwitcher.
+            date 라벨은 고정 너비 → 길이 변동 무시. PlannerInput / 스페이서는 항상 flex-1 slot. */}
+        <div className="mb-3 flex items-center gap-3 px-0.5">
+          {/* 시간 네비 cluster — goals 외 모든 뷰. */}
           {view !== 'goals' && (
-            <div className="shrink-0 flex items-center gap-2">
-              {view !== 'habits' && (
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  aria-label="이전"
-                  title="이전 (←)"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                >
-                  <ChevronLeft className="h-[18px] w-[18px]" />
-                </button>
-              )}
-              <div className="min-w-0 flex items-baseline gap-3">
-                <h2 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-foreground leading-tight truncate">
+            <div className="shrink-0 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={goPrev}
+                aria-label="이전"
+                title="이전 (←)"
+                aria-hidden={view === 'habits'}
+                tabIndex={view === 'habits' ? -1 : 0}
+                className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors',
+                  view === 'habits' && 'invisible pointer-events-none',
+                )}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="w-[180px] sm:w-[220px] flex items-baseline gap-2 overflow-hidden">
+                <h2 className="font-display text-[18px] sm:text-[20px] font-semibold tracking-tight text-foreground leading-none truncate shrink-0 max-w-full">
                   {headerLabels.primary}
                 </h2>
                 {headerLabels.secondary && (
-                  <span className="hidden sm:inline text-[15px] sm:text-[16px] text-muted-foreground tabular-nums font-medium leading-tight">
+                  <span className="hidden sm:inline text-[12px] text-muted-foreground tabular-nums font-medium leading-none truncate">
                     {headerLabels.secondary}
                   </span>
                 )}
@@ -831,63 +840,76 @@ const Planner = () => {
                     type="button"
                     onClick={() => window.dispatchEvent(new Event('planner-habit-new'))}
                     title="새 습관 추가"
-                    className="ml-1 inline-flex items-center gap-1 h-8 px-3 rounded-full border hairline bg-card text-[12.5px] font-semibold text-foreground hover:bg-accent transition-colors self-center"
+                    className="ml-1 inline-flex items-center gap-1 h-7 px-2.5 rounded-full border hairline bg-card text-[11.5px] font-semibold text-foreground hover:bg-accent transition-colors self-center shrink-0"
                   >
-                    <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    <Plus className="h-3 w-3" strokeWidth={2.5} />
                     새 습관
                   </button>
                 )}
               </div>
-              {view !== 'habits' && (
-                <button
-                  type="button"
-                  onClick={goNext}
-                  aria-label="다음"
-                  title="다음 (→)"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                >
-                  <ChevronRight className="h-[18px] w-[18px]" />
-                </button>
-              )}
-              {view === 'day' && (
-                <button
-                  type="button"
-                  onClick={goToday}
-                  disabled={anchorIsToday}
-                  aria-label="오늘로"
-                  title="오늘로 (T)"
-                  className={cn(
-                    'ml-1.5 h-8 px-3.5 text-[12.5px] font-semibold rounded-full transition-all',
-                    anchorIsToday
-                      ? 'text-muted-foreground/40 cursor-default'
-                      : 'border hairline bg-card text-foreground hover:bg-accent hover:border-foreground/30',
-                  )}
-                >
-                  오늘로
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label="다음"
+                title="다음 (→)"
+                aria-hidden={view === 'habits'}
+                tabIndex={view === 'habits' ? -1 : 0}
+                className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors',
+                  view === 'habits' && 'invisible pointer-events-none',
+                )}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={goToday}
+                disabled={anchorIsToday}
+                aria-label="오늘로"
+                title="오늘로 (T)"
+                aria-hidden={view !== 'day'}
+                tabIndex={view === 'day' ? 0 : -1}
+                className={cn(
+                  'ml-1 h-7 px-3 text-[11.5px] font-semibold rounded-full transition-all shrink-0',
+                  view !== 'day' && 'invisible pointer-events-none',
+                  anchorIsToday
+                    ? 'text-muted-foreground/40 cursor-default'
+                    : 'border hairline bg-card text-foreground hover:bg-accent hover:border-foreground/30',
+                )}
+              >
+                오늘로
+              </button>
             </div>
           )}
 
-          {/* 뷰 토글 — 날짜 nav 바로 옆. */}
-          <ViewToggle value={view} onChange={setView} />
+          {/* 입력창 slot — day 뷰만 실제 input. 그 외 뷰는 빈 spacer (flex-1 동일). */}
+          {view === 'day' ? (
+            <div className="flex-1 min-w-0">
+              <PlannerInput
+                inputRef={dayInputRef}
+                placeholder="여기에 적어요 — 예: ‘오후 3시 회의’ 또는 ‘약 사기’"
+                onSubmit={handleDayAdd}
+                variant="prominent"
+                hidePreview
+              />
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
 
-          {/* AI 챗봇 — 뷰 토글 오른쪽. 패널 열려있으면 숨김 (rail ✨ 와 중복 방지). */}
+          {/* AI 도우미 — PlannerInput 옆. 패널 열려있으면 숨김 (rail ✨ 와 중복 방지). */}
           {!aiPanelOpen && (
             <button
               type="button"
               onClick={() => setAiPanelOpen(true)}
               className="shrink-0 h-8 w-8 sm:w-auto sm:px-3 inline-flex items-center justify-center sm:justify-start gap-1.5 rounded-full border border-primary/30 bg-primary/8 text-foreground hover:bg-primary/15 hover:border-primary/50 transition-colors"
-              title="AI 챗봇"
-              aria-label="AI 챗봇 열기"
+              title="AI 도우미"
+              aria-label="AI 도우미 열기"
             >
               <Bot className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="hidden sm:inline text-[12px] font-semibold">AI 챗봇</span>
+              <span className="hidden sm:inline text-[12px] font-semibold">AI 도우미</span>
             </button>
           )}
-
-          {/* spacer — PageSwitcher 를 우측 끝으로 민다. */}
-          <div className="flex-1" />
 
           {/* 페이지 스위처 — 우측 끝. */}
           <PageSwitcher current="planner" />
