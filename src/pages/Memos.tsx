@@ -201,7 +201,7 @@ const Memos = () => {
   const showBody = !isMobile || !!activeMemo;
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="wiki-warm-theme min-h-screen flex bg-background">
       {/* 좌 사이드 */}
       <aside className={cn(
         'shrink-0 border-r border-foreground/25 bg-card flex flex-col',
