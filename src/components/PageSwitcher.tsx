@@ -3,7 +3,6 @@
  *
  * 사용: <PageSwitcher current="planner" />
  *
- * 화이트보드는 라우트 미구현 — 클릭 시 "준비 중" toast.
  */
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,7 +14,6 @@ import {
   NotebookPen,
   type LucideIcon,
 } from 'lucide-react';
-import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 
 export type PageSwitcherCurrent =
@@ -49,7 +47,7 @@ export const PageSwitcher = ({ current, className, compact = false }: PageSwitch
     { key: 'planner',    label: '통합플래너', icon: CalendarDays,    to: '/planner' },
     { key: 'wiki',       label: '마이위키',   icon: Network,         to: '/wiki' },
     { key: 'memos',      label: '메모',       icon: FileText,        to: '/memos' },
-    { key: 'whiteboard', label: '화이트보드', icon: LayoutDashboard, onClick: () => notify.info('화이트보드', { description: '준비 중이에요.' }) },
+    { key: 'whiteboard', label: '화이트보드', icon: LayoutDashboard, to: '/whiteboard' },
     { key: 'journal',    label: '일기',       icon: NotebookPen,     to: '/journal' },
   ];
 

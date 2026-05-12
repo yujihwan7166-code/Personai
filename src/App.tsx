@@ -18,6 +18,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Wiki = lazy(() => import("./pages/Wiki"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Memos = lazy(() => import("./pages/Memos"));
+const Whiteboard = lazy(() => import("./pages/Whiteboard"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Discover = lazy(() => import("./pages/Discover"));
 
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/wiki" element={<Wiki />} />
               <Route path="/planner" element={<Planner />} />
               <Route path="/memos" element={<Memos />} />
+              <Route path="/whiteboard" element={<Whiteboard />} />
               <Route path="/journal" element={<Journal />} />
               <Route path="/discover" element={<Discover />} />
               <Route path="*" element={<NotFound />} />
