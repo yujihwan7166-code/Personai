@@ -189,6 +189,27 @@ const Memos = () => {
     if (activeId === id) setActiveId(null);
   }, [memos, activeId]);
 
+  // 메모 카드 ⋯ 메뉴용 — 위키 보내기/마크다운/복사 공통 핸들러
+  const handleExportMd = useCallback((m: Memo) => {
+    const safeName = (memoTitle(m) || 'memo').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+    const blob = new Blob([m.body], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeName}.md`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    notify.success('내려받기 시작', { duration: 1200 });
+  }, []);
+  const handleCopyBody = useCallback(async (m: Memo) => {
+    try {
+      await navigator.clipboard.writeText(m.body);
+      notify.success('본문을 클립보드에 복사했어요', { duration: 1200 });
+    } catch {
+      notify.error('복사 실패 — 권한을 허용해주세요');
+    }
+  }, []);
+
   // 모바일 — 좁은 화면에서 사이드 ↔ 본문 토글 (활성 메모 있으면 본문)
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -307,6 +328,12 @@ const Memos = () => {
                       onPin={() => togglePin(m.id)}
                       onMoveFolder={() => setMovingMemo(m)}
                       onDelete={() => handleDelete(m.id)}
+                      onSendToWiki={m.wikiPageId ? undefined : () => setExporting(m)}
+                      onOpenWiki={m.wikiPageId ? () => navigate('/wiki') : undefined}
+                      onExportMd={() => handleExportMd(m)}
+                      onCopyBody={() => void handleCopyBody(m)}
+                      onArchive={m.archivedAt ? undefined : () => { archiveMemo(m.id); notify.info('보관함으로 옮겼어요', { duration: 1200 }); }}
+                      onUnarchive={m.archivedAt ? () => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); } : undefined}
                     />
                   ))}
                 </ul>
@@ -341,6 +368,11 @@ const Memos = () => {
                       onMemoPin={(m) => togglePin(m.id)}
                       onMemoMove={(m) => setMovingMemo(m)}
                       onMemoDelete={(m) => handleDelete(m.id)}
+                      onMemoSendToWiki={(m) => setExporting(m)}
+                      onMemoOpenWiki={() => navigate('/wiki')}
+                      onMemoExportMd={(m) => handleExportMd(m)}
+                      onMemoCopyBody={(m) => void handleCopyBody(m)}
+                      onMemoArchive={(m) => { archiveMemo(m.id); notify.info('보관함으로 옮겼어요', { duration: 1200 }); }}
                     />
                   ))}
                   {creatingFolder && (
@@ -371,6 +403,12 @@ const Memos = () => {
                       onPin={() => togglePin(m.id)}
                       onMoveFolder={() => setMovingMemo(m)}
                       onDelete={() => handleDelete(m.id)}
+                      onSendToWiki={m.wikiPageId ? undefined : () => setExporting(m)}
+                      onOpenWiki={m.wikiPageId ? () => navigate('/wiki') : undefined}
+                      onExportMd={() => handleExportMd(m)}
+                      onCopyBody={() => void handleCopyBody(m)}
+                      onArchive={m.archivedAt ? undefined : () => { archiveMemo(m.id); notify.info('보관함으로 옮겼어요', { duration: 1200 }); }}
+                      onUnarchive={m.archivedAt ? () => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); } : undefined}
                     />
                   ))}
                 </ul>
@@ -446,6 +484,8 @@ const Memos = () => {
                           onMoveFolder={() => setMovingMemo(m)}
                           onDelete={() => handleDelete(m.id)}
                           onUnarchive={() => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); }}
+                          onExportMd={() => handleExportMd(m)}
+                          onCopyBody={() => void handleCopyBody(m)}
                         />
                       ))}
                     </ul>
@@ -544,13 +584,8 @@ const Memos = () => {
         {activeMemo ? (
           <MemoEditor
             memo={activeMemo}
-            onDelete={() => handleDelete(activeMemo.id)}
-            onPin={() => togglePin(activeMemo.id)}
-            onSendToWiki={() => setExporting(activeMemo)}
-            onMoveFolder={() => setMovingMemo(activeMemo)}
             onTagClick={(tag) => { setActiveTag(tag); }}
             onBackToList={isMobile ? () => setActiveId(null) : undefined}
-            folders={folders}
           />
         ) : (
           <>
@@ -599,6 +634,7 @@ function FolderGroup({
   folder, memos, expanded, renaming, activeId,
   onToggle, onSelectMemo, onAddMemo, onStartRename, onFinishRename, onDelete, onEdit,
   onMemoPin, onMemoMove, onMemoDelete,
+  onMemoSendToWiki, onMemoOpenWiki, onMemoExportMd, onMemoCopyBody, onMemoArchive,
 }: {
   folder: MemoFolder;
   memos: Memo[];
@@ -615,6 +651,11 @@ function FolderGroup({
   onMemoPin: (m: Memo) => void;
   onMemoMove: (m: Memo) => void;
   onMemoDelete: (m: Memo) => void;
+  onMemoSendToWiki?: (m: Memo) => void;
+  onMemoOpenWiki?: (m: Memo) => void;
+  onMemoExportMd?: (m: Memo) => void;
+  onMemoCopyBody?: (m: Memo) => void;
+  onMemoArchive?: (m: Memo) => void;
 }) {
   const folderColor = folder.color ? MEMO_FOLDER_COLORS[folder.color]?.stripe : undefined;
   const [draft, setDraft] = useState(folder.name);
@@ -704,6 +745,11 @@ function FolderGroup({
                     onPin={() => onMemoPin(m)}
                     onMoveFolder={() => onMemoMove(m)}
                     onDelete={() => onMemoDelete(m)}
+                    onSendToWiki={m.wikiPageId ? undefined : (onMemoSendToWiki ? () => onMemoSendToWiki(m) : undefined)}
+                    onOpenWiki={m.wikiPageId && onMemoOpenWiki ? () => onMemoOpenWiki(m) : undefined}
+                    onExportMd={onMemoExportMd ? () => onMemoExportMd(m) : undefined}
+                    onCopyBody={onMemoCopyBody ? () => onMemoCopyBody(m) : undefined}
+                    onArchive={onMemoArchive ? () => onMemoArchive(m) : undefined}
                   />
                 </li>
               );
@@ -913,6 +959,7 @@ const extractLeadingEmoji = (body: string): string | null => {
 function MemoRow({
   memo, active, onClick, loose = false, bare = false, archived = false,
   onPin, onMoveFolder, onDelete, onArchive, onUnarchive,
+  onSendToWiki, onOpenWiki, onExportMd, onCopyBody,
 }: {
   memo: Memo; active: boolean; onClick: () => void;
   loose?: boolean;     // 최상위 미분류 — 폴더와 같은 크기(h-9 14px) + 작은 muted 점 prefix
@@ -923,11 +970,15 @@ function MemoRow({
   onDelete?: () => void;
   onArchive?: () => void;
   onUnarchive?: () => void;
+  onSendToWiki?: () => void;
+  onOpenWiki?: () => void;
+  onExportMd?: () => void;
+  onCopyBody?: () => void;
 }) {
   const title = memoTitle(memo);
   // 본문 첫 emoji 자동 추출 (Bear 패턴). 제목 prefix 로 사용.
   const titleEmoji = extractLeadingEmoji(memo.body);
-  const hasActions = !!(onPin || onMoveFolder || onDelete || onArchive || onUnarchive);
+  const hasActions = !!(onPin || onMoveFolder || onDelete || onArchive || onUnarchive || onSendToWiki || onOpenWiki || onExportMd || onCopyBody);
   // loose (최상위 미분류) vs bare (폴더 children) — 둘 다 1줄, 미리보기 X.
   const isCardMode = loose || bare;
   const inner = (
@@ -1029,7 +1080,20 @@ function MemoRow({
               <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={1.75} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuContent align="end" className="w-48">
+            {onOpenWiki && (
+              <DropdownMenuItem onClick={onOpenWiki} className="text-primary focus:text-primary">
+                <ExternalLink className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                위키 페이지 열기
+              </DropdownMenuItem>
+            )}
+            {onSendToWiki && (
+              <DropdownMenuItem onClick={onSendToWiki} className="text-primary focus:text-primary">
+                <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                위키로 보내기
+              </DropdownMenuItem>
+            )}
+            {(onOpenWiki || onSendToWiki) && (onPin || onMoveFolder) && <DropdownMenuSeparator />}
             {onPin && (
               <DropdownMenuItem onClick={onPin}>
                 <Pin
@@ -1046,19 +1110,32 @@ function MemoRow({
                 폴더로 이동…
               </DropdownMenuItem>
             )}
+            {onExportMd && (
+              <DropdownMenuItem onClick={onExportMd}>
+                <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                마크다운으로 내보내기
+              </DropdownMenuItem>
+            )}
+            {onCopyBody && (
+              <DropdownMenuItem onClick={onCopyBody}>
+                <ExternalLink className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                본문 복사
+              </DropdownMenuItem>
+            )}
+            {(onExportMd || onCopyBody) && (onArchive || onUnarchive) && <DropdownMenuSeparator />}
             {onArchive && (
               <DropdownMenuItem onClick={onArchive}>
                 <Archive className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-                보관
+                보관함으로
               </DropdownMenuItem>
             )}
             {onUnarchive && (
               <DropdownMenuItem onClick={onUnarchive}>
                 <ArchiveRestore className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-                복원
+                보관함에서 복원
               </DropdownMenuItem>
             )}
-            {(onPin || onMoveFolder || onArchive || onUnarchive) && onDelete && <DropdownMenuSeparator />}
+            {(onPin || onMoveFolder || onArchive || onUnarchive || onExportMd || onCopyBody || onSendToWiki || onOpenWiki) && onDelete && <DropdownMenuSeparator />}
             {onDelete && (
               <DropdownMenuItem
                 onClick={onDelete}
@@ -1081,19 +1158,12 @@ function MemoRow({
 
 // ──────────────────────────────────────────
 function MemoEditor({
-  memo, onDelete, onPin, onSendToWiki, onMoveFolder, onTagClick, onBackToList, folders,
+  memo, onTagClick, onBackToList,
 }: {
   memo: Memo;
-  onDelete: () => void;
-  onPin: () => void;
-  onSendToWiki: () => void;
-  onMoveFolder: () => void;
   onTagClick: (tag: string) => void;
   onBackToList?: () => void;  // 모바일 — 목록으로 돌아가기
-  folders: MemoFolder[];
 }) {
-  const currentFolder = memo.folderId ? folders.find((f) => f.id === memo.folderId) : null;
-  const navigate = useNavigate();
   const [draft, setDraft] = useState(memo.body);
   const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
   const debounceRef = useRef<number | null>(null);
@@ -1186,92 +1256,8 @@ function MemoEditor({
             />
           )}
         </div>
-        {/* ⋯ 메뉴 — 부가 액션 */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              aria-label="더 보기"
-              title="더 보기"
-            >
-              <MoreHorizontal className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            {memo.wikiPageId ? (
-              <DropdownMenuItem onClick={() => navigate('/wiki')} className="text-primary focus:text-primary">
-                <ExternalLink className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-                위키 페이지 열기
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem
-                onClick={onSendToWiki}
-                disabled={!draft.trim()}
-                className="text-primary focus:text-primary"
-              >
-                <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-                위키로 보내기
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onPin}>
-              <Pin className="w-3.5 h-3.5 mr-2" fill={memo.pinned ? 'currentColor' : 'none'} strokeWidth={1.75} />
-              {memo.pinned ? '고정 해제' : '맨 위에 고정'}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onMoveFolder}>
-              <Folder className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-              폴더로 이동…
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              // 마크다운 export — body 그대로 .md 다운로드. 첨부 이미지는 제외.
-              const safeName = (memoTitle(memo) || 'memo').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
-              const blob = new Blob([memo.body], { type: 'text/markdown;charset=utf-8' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `${safeName}.md`;
-              a.click();
-              setTimeout(() => URL.revokeObjectURL(url), 0);
-              notify.success('내려받기 시작', { duration: 1200 });
-            }}>
-              <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-              마크다운으로 내보내기
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={async () => {
-              // 클립보드 복사 — 본문 그대로.
-              try {
-                await navigator.clipboard.writeText(memo.body);
-                notify.success('본문을 클립보드에 복사했어요', { duration: 1200 });
-              } catch {
-                notify.error('복사 실패 — 권한을 허용해주세요');
-              }
-            }}>
-              <ExternalLink className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-              본문 복사
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {isArchived ? (
-              <DropdownMenuItem onClick={() => { unarchiveMemo(memo.id); notify.success('복원됐어요', { duration: 1200 }); }}>
-                <ArchiveRestore className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-                보관함에서 복원
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={() => { archiveMemo(memo.id); notify.info('보관함으로 옮겼어요', { duration: 1200 }); }}>
-                <Archive className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-                보관함으로
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={onDelete}
-              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-            >
-              <Trash2 className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
-              삭제
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        {/* 페이지 스위처 — 에디터 우측 끝 (⋯ 다음) */}
+        {/* 페이지 스위처 — 에디터 우측 끝
+            (메모 단위 액션 = 사이드바 카드의 ⋯ 메뉴에서 처리 → 에디터 툴바는 깔끔하게) */}
         <PageSwitcher current="memos" className="shrink-0" />
       </div>
 
