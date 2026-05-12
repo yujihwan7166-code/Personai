@@ -277,7 +277,7 @@ export function WikiHome({
             {stats.indexPage ? stats.indexPage.title : '대문'}
           </h1>
         </div>
-        <div className="flex flex-col items-end gap-2 min-w-0 self-start">
+        <div className="flex flex-col items-end gap-4 min-w-0 self-start">
           <PageSwitcher current="wiki" />
           <p className="text-[11.5px] text-muted-foreground inline-flex items-center gap-2 font-medium">
             <span><span className="font-semibold text-foreground tabular-nums">{pages.length}</span><span className="text-muted-foreground/70">개 페이지</span></span>
