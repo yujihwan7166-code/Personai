@@ -241,8 +241,8 @@ const Journal = () => {
             </div>
           </div>
 
-          {/* 우측: 2 행 vertical stack — 살짝 아래로 (pt 추가). gap 그대로. */}
-          <div className="flex flex-col items-end gap-7 shrink-0 pt-2 sm:pt-3">
+          {/* 우측: 2 행 vertical stack — PageSwitcher 위치 고정, 도구만 더 아래로 (gap ↑↑) */}
+          <div className="flex flex-col items-end gap-7 shrink-0">
             <PageSwitcher current="journal" />
 
             {/* 도구 그룹 — 검색·필터·통계·CTA */}
