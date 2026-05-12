@@ -222,7 +222,7 @@ const Journal = () => {
         {/* 마스트헤드 — 한 줄: 타이틀 + 도구 (검색/뷰/필터) + CTA */}
         <header className="mb-6 sm:mb-7">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 페이지 스위처 — 홈 + 5개 모드 칩. 일기가 active. */}
+            {/* 페이지 스위처 — 홈 + 4개 모드 칩 (플래너·위키·메모·일기). 일기가 active. */}
             <nav
               aria-label="페이지 이동"
               className="inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60 shrink-0"
