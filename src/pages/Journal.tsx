@@ -225,17 +225,8 @@ const Journal = () => {
           aria-label="페이지 이동"
           className="mb-4 sm:mb-5 inline-flex flex-wrap items-center gap-0.5 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60"
         >
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            aria-label="홈 (모드 선택)"
-            title="홈 · 모드 선택"
-            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          >
-            <Home className="h-3.5 w-3.5" />
-          </button>
-          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" aria-hidden />
           {([
+            { key: 'home',       label: '홈',          icon: Home,            active: false, onClick: () => navigate('/') },
             { key: 'planner',    label: '통합플래너',  icon: CalendarDays,    active: false, onClick: () => navigate('/planner') },
             { key: 'wiki',       label: '마이위키',    icon: Network,         active: false, onClick: () => navigate('/wiki') },
             { key: 'memos',      label: '메모',        icon: FileText,        active: false, onClick: () => navigate('/memos') },
