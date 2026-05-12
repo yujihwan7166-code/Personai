@@ -33,7 +33,6 @@ import {
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { PlannerLeftRail, RAIL_EVENT } from '@/components/planner/PlannerLeftRail';
 import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
-import { PageSwitcher } from '@/components/PageSwitcher';
 import { PlannerInput } from '@/components/planner/PlannerInput';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
@@ -801,10 +800,6 @@ const Planner = () => {
         <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
-        {/* 페이지 스위처 — 헤더 안 inline (chip 모양). 4 페이지 공통. */}
-        <div className="mb-4 flex items-center gap-2 flex-wrap">
-          <PageSwitcher active="planner" />
-        </div>
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
             ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}

@@ -41,7 +41,6 @@ import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalTodayHero } from '@/components/journal/JournalTodayHero';
-import { PageSwitcher } from '@/components/PageSwitcher';
 import { JournalActivityInsights } from '@/components/journal/JournalActivityInsights';
 import { JournalStatsDialog } from '@/components/journal/JournalStatsDialog';
 import { getTopTags } from '@/lib/journalTags';
@@ -223,8 +222,6 @@ const Journal = () => {
         {/* 마스트헤드 — 한 줄: 타이틀 + 도구 (검색/뷰/필터) + CTA */}
         <header className="mb-6 sm:mb-7">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 페이지 스위처 — 헤더 안 inline (chip 모양). 4 페이지 공통. */}
-            <PageSwitcher active="journal" />
             {streak > 0 && (
               <span
                 className="hidden sm:inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85 shrink-0 ml-1"

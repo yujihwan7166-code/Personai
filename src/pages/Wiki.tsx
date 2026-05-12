@@ -7,7 +7,6 @@ import { useWikiFavorites } from '@/hooks/useWikiFavorites';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import type { WikiPage } from '@/types/wiki';
 import { MainModeTabs } from '@/components/MainModeTabs';
-import { PageSwitcher } from '@/components/PageSwitcher';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
 import { WikiPageView } from '@/components/wiki/WikiPageView';
 import { WikiHome } from '@/components/wiki/WikiHome';
@@ -507,10 +506,6 @@ const Wiki = () => {
       )}
 
       <main className="flex-1 min-w-0 overflow-y-auto relative">
-        {/* 페이지 스위처 — 헤더 안 inline (chip 모양). 4 페이지 공통. */}
-        <div className="absolute top-2 left-2 sm:top-3 sm:left-4 z-10">
-          <PageSwitcher active="wiki" />
-        </div>
         {!aiOpen && (
           <button
             type="button"

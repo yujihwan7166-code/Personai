@@ -15,7 +15,6 @@ import {
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useMemoImageSrc } from '@/hooks/useMemoImageSrc';
-import { PageSwitcher } from '@/components/PageSwitcher';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
@@ -208,12 +207,15 @@ const Memos = () => {
         isMobile ? 'w-full' : 'w-[268px]',
         !showSidebar && 'hidden',
       )}>
-        {/* 페이지 스위처 — 헤더 안 inline (chip 모양). 4 페이지 공통. */}
-        <div className="shrink-0 px-2.5 py-2 border-b border-foreground/15 flex items-center">
-          <PageSwitcher active="memos" />
-        </div>
         {/* 상단 — 뒤로 + 제목 + 새 메모 */}
         <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22 flex items-center gap-1">
+          <button
+            onClick={() => navigate('/')}
+            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label="뒤로"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+          </button>
           <h1 className="text-[19px] font-semibold text-foreground tracking-tight flex-1 flex items-baseline gap-2">
             <span>메모</span>
             <span className="text-[12px] font-normal text-muted-foreground tabular-nums">{activeMemos.length}</span>
