@@ -17,7 +17,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Home,
   Plus,
   Search,
   X,
@@ -28,10 +27,7 @@ import {
   CalendarDays,
   Network,
   FileText,
-  Sun,
-  Sparkles,
   LayoutDashboard,
-  Mic,
 } from 'lucide-react';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
@@ -223,50 +219,17 @@ const Journal = () => {
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
-        {/* 페이지 스위처 — 홈 + 좌측 그룹(통합플래너·마이위키·데일리브리핑·우연의 발견)
-            + 우측 그룹(메모·화이트보드·일기·녹음노트) */}
+        {/* 페이지 스위처 — 통합플래너·마이위키·메모·화이트보드·일기(현재) */}
         <nav
           aria-label="페이지 이동"
           className="mb-4 sm:mb-5 inline-flex flex-wrap items-center gap-0.5 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60"
         >
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            aria-label="홈 (모드 선택)"
-            title="홈 · 모드 선택"
-            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          >
-            <Home className="h-3.5 w-3.5" />
-          </button>
-          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-0.5" aria-hidden />
           {([
-            { key: 'planner',  label: '통합플래너',    icon: CalendarDays,    onClick: () => navigate('/planner') },
-            { key: 'wiki',     label: '마이위키',      icon: Network,         onClick: () => navigate('/wiki') },
-            { key: 'briefing', label: '데일리브리핑',  icon: Sun,             onClick: () => {
-              import('@/components/DailyBriefingMount').then(({ triggerDailyBriefing }) => triggerDailyBriefing());
-            } },
-            { key: 'discover', label: '우연의 발견',   icon: Sparkles,        onClick: () => navigate('/discover') },
-          ] as const).map((p) => {
-            const Icon = p.icon;
-            return (
-              <button
-                key={p.key}
-                type="button"
-                onClick={p.onClick}
-                title={p.label}
-                className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[12px] font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-accent"
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{p.label}</span>
-              </button>
-            );
-          })}
-          <span className="w-px h-4 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
-          {([
-            { key: 'memos',      label: '메모',     icon: FileText,         active: false, onClick: () => navigate('/memos') },
-            { key: 'whiteboard', label: '화이트보드', icon: LayoutDashboard,  active: false, onClick: () => notify.info('화이트보드', { description: '준비 중이에요.' }) },
-            { key: 'journal',    label: '일기',     icon: NotebookPen,      active: true,  onClick: () => { /* current */ } },
-            { key: 'voice',      label: '녹음노트',  icon: Mic,              active: false, onClick: () => navigate('/', { state: { selectMainMode: 'voice_main' } }) },
+            { key: 'planner',    label: '통합플래너',  icon: CalendarDays,    active: false, onClick: () => navigate('/planner') },
+            { key: 'wiki',       label: '마이위키',    icon: Network,         active: false, onClick: () => navigate('/wiki') },
+            { key: 'memos',      label: '메모',        icon: FileText,        active: false, onClick: () => navigate('/memos') },
+            { key: 'whiteboard', label: '화이트보드',  icon: LayoutDashboard, active: false, onClick: () => notify.info('화이트보드', { description: '준비 중이에요.' }) },
+            { key: 'journal',    label: '일기',        icon: NotebookPen,     active: true,  onClick: () => { /* current */ } },
           ] as const).map((p) => {
             const Icon = p.icon;
             return (
