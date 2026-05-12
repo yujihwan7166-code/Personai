@@ -802,7 +802,7 @@ const Planner = () => {
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [뷰 토글 (중앙)]   [페이지 스위처 (우)] */}
-        <div className="mb-5 flex items-center gap-4 px-0.5 flex-wrap">
+        <div className="mb-3 flex items-center gap-4 px-0.5">
           {/* 시간 네비 cluster — goals 외 모든 뷰. habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
           {view !== 'goals' && (
             <div className="shrink-0 flex items-center gap-2">
