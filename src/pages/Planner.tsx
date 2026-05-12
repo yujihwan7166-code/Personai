@@ -788,7 +788,7 @@ const Planner = () => {
     >
     <div
       className={cn(
-        'planner-theme min-h-screen bg-background flex flex-col',
+        'planner-theme min-h-screen bg-background flex',
         // AI 패널 열렸을 때 본문이 가려지지 않도록 우측 여백 — 패널 너비랑 동기.
         // 너비가 동적이라 CSS 변수 + sm: 미디어쿼리로 처리 (모바일은 패널이 풀스크린이라 여백 X).
         'transition-[padding] duration-200 ease-out',
@@ -796,16 +796,15 @@ const Planner = () => {
       )}
       style={{ ['--ai-panel-w' as string]: `${aiPanelWidth}px` }}
     >
-      {/* 페이지 스위처 — 최상단 띠 (rail + main 위). 4 페이지 공통. */}
-      <div className="shrink-0 px-3 sm:px-4 py-2 border-b border-foreground/15 bg-card/60">
-        <PageSwitcher active="planner" />
-      </div>
-    <div className="flex-1 flex min-h-0">
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
       <aside className="shrink-0 w-12 border-r hairline bg-card/30">
         <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
+        {/* 페이지 스위처 — 헤더 안 inline (chip 모양). 4 페이지 공통. */}
+        <div className="mb-4 flex items-center gap-2 flex-wrap">
+          <PageSwitcher active="planner" />
+        </div>
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
             ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}
@@ -1040,7 +1039,6 @@ const Planner = () => {
         onOpenChange={setAgendaPopoverOpen}
         onItemClick={(it) => handleInboxClick({ id: it.id, title: it.title })}
       />
-    </div>
     </div>
     {/* 드래그 시간 미리보기 — DragOverlay 로 마우스 옆 표시.
         scheduled 블록은 timeline overflow-y-auto 의 implicit overflow-x clip 때문에

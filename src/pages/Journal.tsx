@@ -219,14 +219,12 @@ const Journal = () => {
 
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
-      {/* 페이지 스위처 — 최상단 띠. 4 페이지 공통. */}
-      <div className="shrink-0 px-3 sm:px-4 py-2 border-b border-[hsl(var(--hairline))] bg-card/60">
-        <PageSwitcher active="journal" />
-      </div>
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
         {/* 마스트헤드 — 한 줄: 타이틀 + 도구 (검색/뷰/필터) + CTA */}
         <header className="mb-6 sm:mb-7">
           <div className="flex items-center gap-2 flex-wrap">
+            {/* 페이지 스위처 — 헤더 안 inline (chip 모양). 4 페이지 공통. */}
+            <PageSwitcher active="journal" />
             {streak > 0 && (
               <span
                 className="hidden sm:inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85 shrink-0 ml-1"

@@ -269,12 +269,7 @@ const Wiki = () => {
   }, [openTemplatePicker, activePage, editing]);
 
   return (
-    <div className="wiki-warm-theme flex flex-col h-screen w-full bg-background overflow-hidden relative">
-      {/* 페이지 스위처 — 최상단 띠 (사이드바 위). 4 페이지 공통. */}
-      <div className="shrink-0 px-3 sm:px-4 py-2 border-b border-[hsl(var(--hairline))] bg-card/60">
-        <PageSwitcher active="wiki" />
-      </div>
-    <div className="flex-1 flex min-h-0">
+    <div className="wiki-warm-theme flex h-screen w-full bg-background overflow-hidden relative">
       {/* 모바일: 사이드바 열렸을 때 백드롭 */}
       {isMobile && sidebarOpen && (
         <div
@@ -512,6 +507,10 @@ const Wiki = () => {
       )}
 
       <main className="flex-1 min-w-0 overflow-y-auto relative">
+        {/* 페이지 스위처 — 헤더 안 inline (chip 모양). 4 페이지 공통. */}
+        <div className="absolute top-2 left-2 sm:top-3 sm:left-4 z-10">
+          <PageSwitcher active="wiki" />
+        </div>
         {!aiOpen && (
           <button
             type="button"
@@ -745,7 +744,6 @@ const Wiki = () => {
           apiRef={modeApiRef}
         />
       </div>
-    </div>
     </div>
   );
 };
