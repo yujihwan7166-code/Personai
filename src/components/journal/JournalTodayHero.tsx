@@ -31,7 +31,7 @@ export const JournalTodayHero = ({ todayEntries, onCreate, onEdit, onDelete }: P
         </div>
         <div className="flex items-baseline gap-3">
           <h2 className="font-display text-[22px] sm:text-[26px] font-semibold tracking-tight text-foreground/90 leading-none">
-            오늘
+            오늘의 일기
           </h2>
           <span className="flex-1 border-b border-[hsl(var(--hairline))] translate-y-[-4px]" aria-hidden />
           <span className="text-[11px] font-medium tabular-nums text-muted-foreground/65">

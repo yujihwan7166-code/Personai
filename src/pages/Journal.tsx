@@ -28,7 +28,6 @@ import {
   CalendarDays,
   Network,
   FileText,
-  Compass,
 } from 'lucide-react';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
@@ -239,11 +238,10 @@ const Journal = () => {
               </button>
               <span className="w-px h-4 bg-[hsl(var(--hairline))]" aria-hidden />
               {[
-                { key: 'journal',  label: '일기',     icon: NotebookPen,  path: '/journal'  },
                 { key: 'planner',  label: '플래너',   icon: CalendarDays, path: '/planner'  },
                 { key: 'wiki',     label: '위키',     icon: Network,      path: '/wiki'     },
                 { key: 'memos',    label: '메모',     icon: FileText,     path: '/memos'    },
-                { key: 'discover', label: '디스커버', icon: Compass,      path: '/discover' },
+                { key: 'journal',  label: '일기',     icon: NotebookPen,  path: '/journal'  },
               ].map((p) => {
                 const active = p.key === 'journal';
                 const Icon = p.icon;
