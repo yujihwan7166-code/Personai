@@ -1186,24 +1186,8 @@ function MemoEditor({
             />
           )}
         </div>
-        {memo.wikiPageId ? (
-          <button
-            onClick={() => navigate('/wiki')}
-            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors"
-          >
-            <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
-            위키 페이지 열기
-          </button>
-        ) : (
-          <button
-            onClick={onSendToWiki}
-            disabled={!draft.trim()}
-            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.75} />
-            위키로 보내기
-          </button>
-        )}
+        {/* 페이지 스위처 — 에디터 우측 끝 */}
+        <PageSwitcher current="memos" className="shrink-0" />
         {/* ⋯ 메뉴 — 부가 액션 */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -1216,6 +1200,22 @@ function MemoEditor({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
+            {memo.wikiPageId ? (
+              <DropdownMenuItem onClick={() => navigate('/wiki')} className="text-primary focus:text-primary">
+                <ExternalLink className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                위키 페이지 열기
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={onSendToWiki}
+                disabled={!draft.trim()}
+                className="text-primary focus:text-primary"
+              >
+                <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
+                위키로 보내기
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onPin}>
               <Pin className="w-3.5 h-3.5 mr-2" fill={memo.pinned ? 'currentColor' : 'none'} strokeWidth={1.75} />
               {memo.pinned ? '고정 해제' : '맨 위에 고정'}
