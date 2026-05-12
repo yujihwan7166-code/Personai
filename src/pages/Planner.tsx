@@ -16,7 +16,7 @@
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Bot } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { PageSwitcher } from '@/components/PageSwitcher';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
@@ -801,22 +801,8 @@ const Planner = () => {
       </aside>
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
-            [AI 도우미] [◀ 라벨 ▶ 오늘로]   [spacer]   [뷰 / 페이지 스위처]
-            ← 좌측 보조        ← 시간 네비                  ← 우측 utility */}
+            [◀ 라벨 ▶ 오늘로]   [뷰 토글 (중앙)]   [페이지 스위처 (우)] */}
         <div className="mb-5 flex items-center gap-4 px-0.5 flex-wrap">
-          {/* AI 도우미 — 좌측 끝. 패널 열려있으면 숨김 (rail 의 ✨ 와 중복 방지). */}
-          {!aiPanelOpen && (
-            <button
-              type="button"
-              onClick={() => setAiPanelOpen(true)}
-              className="shrink-0 h-8 w-8 sm:w-auto sm:px-3 inline-flex items-center justify-center sm:justify-start gap-1.5 rounded-full border border-primary/30 bg-primary/8 text-foreground hover:bg-primary/15 hover:border-primary/50 transition-colors"
-              title="AI 도우미"
-              aria-label="AI 도우미 열기"
-            >
-              <Bot className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="hidden sm:inline text-[12px] font-semibold">AI 도우미</span>
-            </button>
-          )}
           {/* 시간 네비 cluster — goals 외 모든 뷰. habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
           {view !== 'goals' && (
             <div className="shrink-0 flex items-center gap-2">
