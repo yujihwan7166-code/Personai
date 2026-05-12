@@ -16,7 +16,7 @@
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Bot } from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { PageSwitcher } from '@/components/PageSwitcher';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
@@ -871,6 +871,20 @@ const Planner = () => {
 
           {/* 뷰 토글 — 날짜 nav 바로 옆. */}
           <ViewToggle value={view} onChange={setView} />
+
+          {/* AI 챗봇 — 뷰 토글 오른쪽. 패널 열려있으면 숨김 (rail ✨ 와 중복 방지). */}
+          {!aiPanelOpen && (
+            <button
+              type="button"
+              onClick={() => setAiPanelOpen(true)}
+              className="shrink-0 h-8 w-8 sm:w-auto sm:px-3 inline-flex items-center justify-center sm:justify-start gap-1.5 rounded-full border border-primary/30 bg-primary/8 text-foreground hover:bg-primary/15 hover:border-primary/50 transition-colors"
+              title="AI 챗봇"
+              aria-label="AI 챗봇 열기"
+            >
+              <Bot className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="hidden sm:inline text-[12px] font-semibold">AI 챗봇</span>
+            </button>
+          )}
 
           {/* spacer — PageSwitcher 를 우측 끝으로 민다. */}
           <div className="flex-1" />
