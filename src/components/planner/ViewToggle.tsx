@@ -24,7 +24,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
   <div
     role="tablist"
     aria-label="뷰 전환"
-    className="inline-flex items-center gap-0.5 p-1 rounded-full bg-secondary/60 border hairline"
+    className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-secondary/60 border hairline"
   >
     {OPTIONS.map((opt) => {
       const active = value === opt.id;
