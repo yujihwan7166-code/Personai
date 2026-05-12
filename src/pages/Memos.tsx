@@ -208,10 +208,6 @@ const Memos = () => {
         isMobile ? 'w-full' : 'w-[268px]',
         !showSidebar && 'hidden',
       )}>
-        {/* 페이지 스위처 — 사이드바 최상단 (compact: 아이콘만) */}
-        <div className="shrink-0 px-2 pt-2 pb-1.5">
-          <PageSwitcher current="memos" compact className="w-full justify-between" />
-        </div>
         {/* 상단 — 제목 + 새 메모 */}
         <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22 flex items-center gap-1">
           <h1 className="text-[19px] font-semibold text-foreground tracking-tight flex-1 flex items-baseline gap-2">
@@ -545,6 +541,10 @@ const Memos = () => {
 
       {/* 본문 영역 */}
       <main className={cn('flex-1 min-w-0 flex flex-col bg-background', !showBody && 'hidden')}>
+        {/* 페이지 스위처 — 우측 상단 (일관성) */}
+        <div className="shrink-0 flex justify-end px-4 py-3 border-b border-[hsl(var(--hairline))]">
+          <PageSwitcher current="memos" />
+        </div>
         {activeMemo ? (
           <MemoEditor
             memo={activeMemo}
