@@ -9,7 +9,6 @@ import { habitStore } from '@/services/planner/habitStore';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { ddayStore } from '@/services/planner/ddayStore';
 import { getMemos, memoTitle, extractMemoTags } from '@/lib/memoStore';
-import { todaysQuote, todaysWord } from '@/lib/briefingPool';
 
 export interface BriefingData {
   /** 사람 친화 인사 라인 (예: "좋은 아침이에요 · 5월 11일 (일)"). */
@@ -26,10 +25,6 @@ export interface BriefingData {
   upcomingDday: Array<{ label: string; daysLeft: number }>;
   /** 핵심 추천 1개 — "가장 먼저 할 일" 자동 결정. */
   pickFirst?: { kind: 'event' | 'task' | 'habit'; title: string; reason: string };
-  /** 오늘의 한 줄 (정적 풀, 날짜 결정). */
-  quote: { text: string; author?: string };
-  /** 오늘의 단어 (영단어). */
-  word: { word: string; meaning: string; sample?: string };
   /** 읽을거리 — 메모 중 #읽을거리 태그 가진 것 (최대 5개). */
   readlist: Array<{ id: string; title: string }>;
 }
@@ -160,8 +155,6 @@ export const buildDailyBriefing = (): BriefingData => {
     habits,
     upcomingDday,
     pickFirst,
-    quote: todaysQuote(),
-    word: todaysWord(),
     readlist,
   };
 };

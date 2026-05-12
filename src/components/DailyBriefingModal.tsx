@@ -12,8 +12,8 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Calendar, CheckSquare, AlertTriangle, Flag, Flame, Sparkles, ArrowRight,
-  Settings, ChevronUp, ChevronDown, Quote, BookOpen, BookText, RotateCcw,
-  Cloud, Newspaper, TrendingUp, DollarSign, Train,
+  Settings, ChevronUp, ChevronDown, BookOpen, RotateCcw,
+  Cloud, Newspaper, TrendingUp, DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildDailyBriefing, type BriefingData } from '@/lib/buildDailyBriefing';
@@ -259,7 +259,7 @@ export const DailyBriefingModal = ({ open, onClose }: DailyBriefingModalProps) =
             </div>
 
             {/* 비활성 — 그룹별 */}
-            {(['내 데이터', '영감', '외부 정보'] as const).map((group) => {
+            {(['내 데이터', '외부 정보'] as const).map((group) => {
               const items = ALL_WIDGETS
                 .filter((id) => WIDGET_META[id].group === group)
                 .filter((id) => !settings.widgets.includes(id));
@@ -460,39 +460,6 @@ function WidgetRenderer({
         </Section>
       );
 
-    case 'quote':
-      return (
-        <section className="rounded-xl border hairline bg-accent/30 px-4 py-3.5">
-          <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-            <Quote className="h-3 w-3" />
-            오늘의 한 줄
-          </div>
-          <blockquote className="text-[13.5px] text-foreground leading-relaxed italic">
-            "{data.quote.text}"
-          </blockquote>
-          {data.quote.author && (
-            <div className="text-[11.5px] text-muted-foreground mt-1.5 text-right">— {data.quote.author}</div>
-          )}
-        </section>
-      );
-
-    case 'word':
-      return (
-        <section className="rounded-xl border hairline bg-emerald-50/40 dark:bg-emerald-500/5 px-4 py-3.5">
-          <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-1.5">
-            <BookText className="h-3 w-3" />
-            오늘의 단어
-          </div>
-          <div className="flex items-baseline gap-2.5 mb-1 flex-wrap">
-            <span className="text-[18px] font-bold text-foreground tracking-tight">{data.word.word}</span>
-            <span className="text-[13px] text-foreground/85">{data.word.meaning}</span>
-          </div>
-          {data.word.sample && (
-            <div className="text-[12px] text-muted-foreground italic">"{data.word.sample}"</div>
-          )}
-        </section>
-      );
-
     case 'readlist':
       return (
         <Section icon={<BookOpen className="h-3.5 w-3.5" />} title="읽을거리" count={data.readlist.length} empty="#읽을거리 태그 메모 없음">
@@ -523,8 +490,6 @@ function WidgetRenderer({
       return <ComingSoon icon={<TrendingUp className="h-3.5 w-3.5" />} title="주식·코인" hint="관심 종목 + 실시간 시세 예정" />;
     case 'exchange':
       return <ComingSoon icon={<DollarSign className="h-3.5 w-3.5" />} title="환율" hint="USD/JPY/EUR 등 공개 API" />;
-    case 'subway':
-      return <ComingSoon icon={<Train className="h-3.5 w-3.5" />} title="지하철 도착" hint="서울교통공사 공공 API" />;
 
     default:
       return null;
