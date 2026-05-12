@@ -219,21 +219,39 @@ const Journal = () => {
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
-        {/* 마스트헤드 — 한 줄: 타이틀 + 도구 (검색/뷰/필터) + CTA */}
+        {/* 마스트헤드 — TODAY eyebrow + 오늘의 일기 타이틀 + 날짜 (좌) / 검색·필터·통계·CTA (우) */}
         <header className="mb-6 sm:mb-7">
-          <div className="flex items-center gap-2 flex-wrap">
-            {streak > 0 && (
-              <span
-                className="hidden sm:inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85 shrink-0 ml-1"
-                title={`${streak}일 연속 기록`}
-              >
-                <span aria-hidden>🔥</span>
-                {streak}일
-              </span>
-            )}
-            <span className="text-[11.5px] font-medium tabular-nums text-muted-foreground/55 hidden md:inline shrink-0">
-              · {allEntries.length}편
-            </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* 타이틀 영역 — 좌측 */}
+            <div className="min-w-0 shrink-0">
+              <div className="text-[10px] font-semibold tracking-[0.22em] uppercase text-primary/70 mb-1">
+                TODAY
+              </div>
+              <div className="flex items-baseline gap-2.5 flex-wrap">
+                <h1 className="font-display text-[22px] sm:text-[26px] font-semibold tracking-tight text-foreground leading-none">
+                  오늘의 일기
+                </h1>
+                <span className="text-[12.5px] font-medium tabular-nums text-muted-foreground/75">
+                  {(() => {
+                    const d = new Date();
+                    const wd = '일월화수목금토'[d.getDay()];
+                    return `${d.getMonth() + 1}월 ${d.getDate()}일 ${wd}요일`;
+                  })()}
+                </span>
+                {streak > 0 && (
+                  <span
+                    className="hidden sm:inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85"
+                    title={`${streak}일 연속 기록`}
+                  >
+                    <span aria-hidden>🔥</span>
+                    {streak}일
+                  </span>
+                )}
+                <span className="text-[11.5px] font-medium tabular-nums text-muted-foreground/55 hidden md:inline">
+                  · {allEntries.length}편
+                </span>
+              </div>
+            </div>
 
             {/* 도구 그룹 — 우측 정렬, 한 묶음 */}
             <div className="flex items-center gap-2 ml-auto">

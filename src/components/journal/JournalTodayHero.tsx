@@ -19,26 +19,10 @@ interface Props {
 
 export const JournalTodayHero = ({ todayEntries, onCreate, onEdit, onDelete }: Props) => {
   const has = todayEntries.length > 0;
-  const now = new Date();
-  const dateLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일`;
 
   return (
     <section className="flex flex-col gap-3" aria-label="오늘">
-      {/* 헤더 — 연도 eyebrow + 큰 serif "오늘" + 가는 라인 + 날짜 */}
-      <div className="px-1">
-        <div className="text-[10px] font-semibold tracking-[0.22em] uppercase text-primary/70 mb-1.5">
-          TODAY
-        </div>
-        <div className="flex items-baseline gap-3">
-          <h2 className="font-display text-[22px] sm:text-[26px] font-semibold tracking-tight text-foreground/90 leading-none">
-            오늘의 일기
-          </h2>
-          <span className="flex-1 border-b border-[hsl(var(--hairline))] translate-y-[-4px]" aria-hidden />
-          <span className="text-[11px] font-medium tabular-nums text-muted-foreground/65">
-            {dateLabel}
-          </span>
-        </div>
-      </div>
+      {/* 이전엔 TODAY eyebrow + 큰 '오늘의 일기' 헤더가 여기 있었음 — 페이지 헤더로 이동 (중복 제거). */}
 
       {has ? (
         <div className="flex flex-col gap-4">
