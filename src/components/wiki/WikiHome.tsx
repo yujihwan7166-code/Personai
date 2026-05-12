@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Sparkles, ArrowRight, BookOpen, Star, LayoutGrid, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
 
@@ -276,21 +277,24 @@ export function WikiHome({
             {stats.indexPage ? stats.indexPage.title : '대문'}
           </h1>
         </div>
-        <p className="text-[11.5px] text-muted-foreground pb-1 inline-flex items-center gap-2 font-medium">
-          <span><span className="font-semibold text-foreground tabular-nums">{pages.length}</span><span className="text-muted-foreground/70">개 페이지</span></span>
-          <span className="text-muted-foreground/40">·</span>
-          <span><span className="font-semibold text-foreground/85 tabular-nums">{stats.recentEdits}</span><span className="text-muted-foreground/70">개 활동</span></span>
-          {totalQueue > 0 && (
-            <>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="inline-flex items-center gap-1">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="text-primary font-semibold tabular-nums">{totalQueue}</span>
-                <span className="text-primary/70">개 검토</span>
-              </span>
-            </>
-          )}
-        </p>
+        <div className="flex flex-col items-end gap-2 pb-1 min-w-0">
+          <PageSwitcher current="wiki" />
+          <p className="text-[11.5px] text-muted-foreground inline-flex items-center gap-2 font-medium">
+            <span><span className="font-semibold text-foreground tabular-nums">{pages.length}</span><span className="text-muted-foreground/70">개 페이지</span></span>
+            <span className="text-muted-foreground/40">·</span>
+            <span><span className="font-semibold text-foreground/85 tabular-nums">{stats.recentEdits}</span><span className="text-muted-foreground/70">개 활동</span></span>
+            {totalQueue > 0 && (
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="text-primary font-semibold tabular-nums">{totalQueue}</span>
+                  <span className="text-primary/70">개 검토</span>
+                </span>
+              </>
+            )}
+          </p>
+        </div>
       </header>
 
       {/* 📖 메인 문서 — 카드 그리드 / 목록 토글 */}
