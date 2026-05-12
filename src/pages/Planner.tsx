@@ -889,8 +889,8 @@ const Planner = () => {
           {/* spacer — PageSwitcher 를 우측 끝으로 민다. */}
           <div className="flex-1" />
 
-          {/* 페이지 스위처 — 우측 끝. */}
-          <PageSwitcher current="planner" />
+          {/* 페이지 스위처 — 우측 끝. 시각적으로 살짝 위로. */}
+          <PageSwitcher current="planner" className="-mt-2 self-start" />
         </div>
 
         {isFullscreen ? (
