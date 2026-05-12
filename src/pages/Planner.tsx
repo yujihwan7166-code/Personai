@@ -849,30 +849,10 @@ const Planner = () => {
                   <ChevronRight className="h-[18px] w-[18px]" />
                 </button>
               )}
-              {view !== 'habits' && (
-                <button
-                  type="button"
-                  onClick={goToday}
-                  disabled={anchorIsToday}
-                  aria-label="오늘로"
-                  title="오늘로 (T)"
-                  className={cn(
-                    'ml-1.5 h-8 px-3.5 text-[12.5px] font-semibold rounded-full transition-all',
-                    anchorIsToday
-                      ? 'text-muted-foreground/40 cursor-default'
-                      : 'border hairline bg-card text-foreground hover:bg-accent hover:border-foreground/30',
-                  )}
-                >
-                  오늘로
-                </button>
-              )}
             </div>
           )}
 
-          {/* spacer — ViewToggle 을 가운데로 민다. */}
-          <div className="flex-1" />
-
-          {/* 뷰 토글 — 중앙. */}
+          {/* 뷰 토글 — 날짜 nav 바로 옆. */}
           <ViewToggle value={view} onChange={setView} />
 
           {/* spacer — PageSwitcher 를 우측 끝으로 민다. */}

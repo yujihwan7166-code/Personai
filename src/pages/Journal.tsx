@@ -208,7 +208,9 @@ const Journal = () => {
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
-        <PageSwitcher current="journal" className="mb-4 sm:mb-5" />
+        <div className="flex justify-end mb-4 sm:mb-5">
+          <PageSwitcher current="journal" />
+        </div>
 
         {/* 마스트헤드 — TODAY eyebrow + 오늘의 일기 타이틀 + 날짜 (좌) / 검색·필터·통계·CTA (우) */}
         <header className="mb-6 sm:mb-7">
