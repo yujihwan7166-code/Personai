@@ -208,46 +208,45 @@ const Journal = () => {
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
-        <div className="flex justify-end mb-4 sm:mb-5">
-          <PageSwitcher current="journal" />
-        </div>
-
-        {/* 마스트헤드 — TODAY eyebrow + 오늘의 일기 타이틀 + 날짜 (좌) / 검색·필터·통계·CTA (우) */}
+        {/* 마스트헤드 — TODAY + 타이틀 (윗줄, 단독) / PageSwitcher + 도구 (아랫줄, 우측) */}
         <header className="mb-6 sm:mb-7">
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* 타이틀 영역 — 좌측 */}
-            <div className="min-w-0 shrink-0">
-              <div className="text-[12px] font-semibold tracking-[0.2em] uppercase text-primary/70 mb-1.5">
-                TODAY
-              </div>
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight text-foreground leading-none">
-                  오늘의 일기
-                </h1>
-                <span className="text-[15px] font-medium tabular-nums text-muted-foreground/80">
-                  {(() => {
-                    const d = new Date();
-                    const wd = '일월화수목금토'[d.getDay()];
-                    return `${d.getMonth() + 1}월 ${d.getDate()}일 ${wd}요일`;
-                  })()}
-                </span>
-                {streak > 0 && (
-                  <span
-                    className="hidden sm:inline-flex items-center gap-1 text-[13.5px] font-medium tabular-nums text-primary/85"
-                    title={`${streak}일 연속 기록`}
-                  >
-                    <span aria-hidden>🔥</span>
-                    {streak}일
-                  </span>
-                )}
-                <span className="text-[13.5px] font-medium tabular-nums text-muted-foreground/60 hidden md:inline">
-                  · {allEntries.length}편
-                </span>
-              </div>
+          {/* 윗줄: 타이틀 영역 */}
+          <div className="min-w-0 mb-5 sm:mb-6">
+            <div className="text-[12px] font-semibold tracking-[0.2em] uppercase text-primary/70 mb-1.5">
+              TODAY
             </div>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight text-foreground leading-none">
+                오늘의 일기
+              </h1>
+              <span className="text-[15px] font-medium tabular-nums text-muted-foreground/80">
+                {(() => {
+                  const d = new Date();
+                  const wd = '일월화수목금토'[d.getDay()];
+                  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${wd}요일`;
+                })()}
+              </span>
+              {streak > 0 && (
+                <span
+                  className="hidden sm:inline-flex items-center gap-1 text-[13.5px] font-medium tabular-nums text-primary/85"
+                  title={`${streak}일 연속 기록`}
+                >
+                  <span aria-hidden>🔥</span>
+                  {streak}일
+                </span>
+              )}
+              <span className="text-[13.5px] font-medium tabular-nums text-muted-foreground/60 hidden md:inline">
+                · {allEntries.length}편
+              </span>
+            </div>
+          </div>
 
-            {/* 도구 그룹 — 우측 정렬, 한 묶음 */}
-            <div className="flex items-center gap-2 ml-auto">
+          {/* 아랫줄: PageSwitcher + 도구 그룹 (우측 정렬) */}
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            <PageSwitcher current="journal" />
+
+            {/* 도구 그룹 — 검색·필터·통계·CTA */}
+            <div className="flex items-center gap-2">
               {/* 검색 — ring-inset 으로 옆 버튼 영역 침범 방지 */}
               <div
                 className={cn(
