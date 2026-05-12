@@ -208,18 +208,18 @@ const Journal = () => {
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
       <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
-        {/* 마스트헤드 — TODAY + 타이틀 (윗줄, 단독) / PageSwitcher + 도구 (아랫줄, 우측) */}
-        <header className="mb-6 sm:mb-7">
-          {/* 윗줄: 타이틀 영역 */}
-          <div className="min-w-0 mb-5 sm:mb-6">
-            <div className="text-[12px] font-semibold tracking-[0.2em] uppercase text-primary/70 mb-1.5">
+        {/* 마스트헤드 — 좌(타이틀) | 우(PageSwitcher 위 + 도구 아래) horizontal split */}
+        <header className="mb-6 sm:mb-7 flex items-start justify-between gap-6 flex-wrap">
+          {/* 좌측: 타이틀 영역 */}
+          <div className="min-w-0">
+            <div className="text-[12.5px] font-semibold tracking-[0.2em] uppercase text-primary/70 mb-1.5">
               TODAY
             </div>
             <div className="flex items-baseline gap-3 flex-wrap">
-              <h1 className="font-display text-[28px] sm:text-[34px] font-semibold tracking-tight text-foreground leading-none">
+              <h1 className="font-display text-[34px] sm:text-[42px] font-bold tracking-tight text-foreground leading-none">
                 오늘의 일기
               </h1>
-              <span className="text-[15px] font-medium tabular-nums text-muted-foreground/80">
+              <span className="text-[15.5px] font-medium tabular-nums text-muted-foreground/80">
                 {(() => {
                   const d = new Date();
                   const wd = '일월화수목금토'[d.getDay()];
@@ -241,8 +241,8 @@ const Journal = () => {
             </div>
           </div>
 
-          {/* 아랫줄: PageSwitcher + 도구 그룹 (우측 정렬) */}
-          <div className="flex items-center gap-3 flex-wrap justify-end">
+          {/* 우측: 2 행 vertical stack — 상 PageSwitcher / 하 도구 그룹 */}
+          <div className="flex flex-col items-end gap-2.5 shrink-0">
             <PageSwitcher current="journal" />
 
             {/* 도구 그룹 — 검색·필터·통계·CTA */}
