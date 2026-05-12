@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useMemoImageSrc } from '@/hooks/useMemoImageSrc';
+import { PageSwitcher } from '@/components/PageSwitcher';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
@@ -200,7 +201,12 @@ const Memos = () => {
   const showBody = !isMobile || !!activeMemo;
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* 페이지 스위처 — 4 페이지 공통 (상단 띠). */}
+      <div className="shrink-0 px-3 sm:px-4 py-2 border-b border-foreground/15 bg-card/60">
+        <PageSwitcher active="memos" />
+      </div>
+    <div className="flex-1 flex min-h-0">
       {/* 좌 사이드 */}
       <aside className={cn(
         'shrink-0 border-r border-foreground/25 bg-card flex flex-col',
@@ -576,6 +582,7 @@ const Memos = () => {
           onClose={() => setMovingMemo(null)}
         />
       )}
+      </div>
       {editingFolder && (
         <FolderEditModal
           folder={editingFolder}

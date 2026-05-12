@@ -41,6 +41,7 @@ import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
 import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
 import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
 import { JournalTodayHero } from '@/components/journal/JournalTodayHero';
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { JournalActivityInsights } from '@/components/journal/JournalActivityInsights';
 import { JournalStatsDialog } from '@/components/journal/JournalStatsDialog';
 import { getTopTags } from '@/lib/journalTags';
@@ -222,49 +223,8 @@ const Journal = () => {
         {/* 마스트헤드 — 한 줄: 타이틀 + 도구 (검색/뷰/필터) + CTA */}
         <header className="mb-6 sm:mb-7">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 페이지 스위처 — 홈 + 4개 모드 칩 (플래너·위키·메모·일기). 일기가 active. */}
-            <nav
-              aria-label="페이지 이동"
-              className="inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/60 shrink-0"
-            >
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                aria-label="홈 (모드 선택)"
-                title="홈 · 모드 선택"
-                className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <Home className="h-3.5 w-3.5" />
-              </button>
-              <span className="w-px h-4 bg-[hsl(var(--hairline))]" aria-hidden />
-              {[
-                { key: 'planner',  label: '플래너',   icon: CalendarDays, path: '/planner'  },
-                { key: 'wiki',     label: '위키',     icon: Network,      path: '/wiki'     },
-                { key: 'memos',    label: '메모',     icon: FileText,     path: '/memos'    },
-                { key: 'journal',  label: '일기',     icon: NotebookPen,  path: '/journal'  },
-              ].map((p) => {
-                const active = p.key === 'journal';
-                const Icon = p.icon;
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => { if (!active) navigate(p.path); }}
-                    aria-current={active ? 'page' : undefined}
-                    title={p.label}
-                    className={cn(
-                      'inline-flex items-center gap-1 h-7 px-2 rounded-md text-[12px] font-medium transition-colors',
-                      active
-                        ? 'bg-primary/12 text-primary cursor-default'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-accent',
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">{p.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+            {/* 페이지 스위처 — 4 페이지 공통 컴포넌트. */}
+            <PageSwitcher active="journal" />
             {streak > 0 && (
               <span
                 className="hidden sm:inline-flex items-center gap-1 text-[11.5px] font-medium tabular-nums text-primary/85 shrink-0 ml-1"

@@ -7,6 +7,7 @@ import { useWikiFavorites } from '@/hooks/useWikiFavorites';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import type { WikiPage } from '@/types/wiki';
 import { MainModeTabs } from '@/components/MainModeTabs';
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
 import { WikiPageView } from '@/components/wiki/WikiPageView';
 import { WikiHome } from '@/components/wiki/WikiHome';
@@ -506,18 +507,22 @@ const Wiki = () => {
       )}
 
       <main className="flex-1 min-w-0 overflow-y-auto relative">
-        {!aiOpen && (
-          <button
-            type="button"
-            onClick={() => setAiOpen(true)}
-            className="absolute top-2 right-2 sm:top-3 sm:right-4 z-10 h-8 w-8 sm:w-auto sm:px-2.5 inline-flex items-center justify-center sm:justify-start gap-1 rounded-md border border-[hsl(var(--hairline))] bg-background/80 backdrop-blur text-muted-foreground hover:text-primary hover:border-primary/40 wiki-trans-color"
-            title="마이위키 AI 도우미 (Ctrl/Cmd+J)"
-            aria-label="마이위키 AI 도우미 열기"
-          >
-            <Bot className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline text-[11.5px] font-medium">AI 도우미</span>
-          </button>
-        )}
+        {/* 페이지 스위처 — 4 페이지 공통. AI 도우미 토글과 같은 줄 우측. */}
+        <div className="sticky top-0 z-20 flex items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-background/85 backdrop-blur border-b border-[hsl(var(--hairline))]">
+          <PageSwitcher active="wiki" />
+          {!aiOpen && (
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              className="h-8 w-8 sm:w-auto sm:px-2.5 inline-flex items-center justify-center sm:justify-start gap-1 rounded-md border border-[hsl(var(--hairline))] bg-background/80 backdrop-blur text-muted-foreground hover:text-primary hover:border-primary/40 wiki-trans-color"
+              title="마이위키 AI 도우미 (Ctrl/Cmd+J)"
+              aria-label="마이위키 AI 도우미 열기"
+            >
+              <Bot className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline text-[11.5px] font-medium">AI 도우미</span>
+            </button>
+          )}
+        </div>
         {view === 'graph' ? (
           pages.length === 0 ? (
             <WikiHome
