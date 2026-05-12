@@ -204,7 +204,7 @@ const Memos = () => {
     <div className="wiki-warm-theme min-h-screen flex bg-background">
       {/* 좌 사이드 */}
       <aside className={cn(
-        'shrink-0 border-r border-foreground/25 bg-card flex flex-col',
+        'shrink-0 border-r border-foreground/25 bg-background flex flex-col',
         isMobile ? 'w-full' : 'w-[268px]',
         !showSidebar && 'hidden',
       )}>
@@ -540,11 +540,7 @@ const Memos = () => {
       </aside>
 
       {/* 본문 영역 */}
-      <main className={cn('flex-1 min-w-0 flex flex-col bg-background', !showBody && 'hidden')}>
-        {/* 페이지 스위처 — 우측 상단 (일관성) */}
-        <div className="shrink-0 flex justify-end px-4 py-3 border-b border-[hsl(var(--hairline))]">
-          <PageSwitcher current="memos" />
-        </div>
+      <main className={cn('flex-1 min-w-0 flex flex-col bg-background relative', !showBody && 'hidden')}>
         {activeMemo ? (
           <MemoEditor
             memo={activeMemo}
@@ -557,7 +553,13 @@ const Memos = () => {
             folders={folders}
           />
         ) : (
-          <EmptyState onNew={handleNewMemo} />
+          <>
+            {/* 페이지 스위처 — 우측 상단 (빈 상태에서만 표시) */}
+            <div className="shrink-0 flex justify-end px-4 py-3">
+              <PageSwitcher current="memos" />
+            </div>
+            <EmptyState onNew={handleNewMemo} />
+          </>
         )}
       </main>
 
