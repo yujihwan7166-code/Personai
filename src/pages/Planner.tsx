@@ -801,7 +801,6 @@ const Planner = () => {
         <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
-        <PageSwitcher current="planner" className="mb-4" />
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
             ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}
@@ -872,20 +871,10 @@ const Planner = () => {
             </div>
           )}
 
-          {/* 입력창 — day 뷰만. 그 외 뷰는 spacer 로 뷰토글을 우측 끝으로 밀기. */}
-          {view === 'day' ? (
-            <div className="flex-1 min-w-0">
-              <PlannerInput
-                inputRef={dayInputRef}
-                placeholder="여기에 적어요 — 예: ‘오후 3시 회의’ 또는 ‘약 사기’"
-                onSubmit={handleDayAdd}
-                variant="prominent"
-                hidePreview
-              />
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
+          {/* 페이지 스위처 — 중앙. 다른 노트 페이지로 빠른 이동. */}
+          <div className="flex-1 min-w-0 flex justify-center">
+            <PageSwitcher current="planner" />
+          </div>
 
           {/* AI 도우미 진입 pill — 뷰 토글 좌측. 패널 열려있으면 숨김 (rail 의 ✨ 와 중복 방지).
               마이위키의 AI 도우미 버튼 스타일과 일관 — 작은 outlined pill. */}
