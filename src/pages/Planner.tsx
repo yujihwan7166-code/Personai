@@ -34,7 +34,6 @@ import {
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { PlannerLeftRail, RAIL_EVENT } from '@/components/planner/PlannerLeftRail';
 import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
-import { PlannerInput } from '@/components/planner/PlannerInput';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
 import { TodayTodoList } from '@/components/planner/TodayTodoList';
@@ -802,9 +801,22 @@ const Planner = () => {
       </aside>
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
-            [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [AI / 뷰 / 페이지 스위처]
-            ← 시간 네비             ← 메인 액션      ← 우측 utility */}
+            [AI 도우미] [◀ 라벨 ▶ 오늘로]   [spacer]   [뷰 / 페이지 스위처]
+            ← 좌측 보조        ← 시간 네비                  ← 우측 utility */}
         <div className="mb-5 flex items-center gap-4 px-0.5 flex-wrap">
+          {/* AI 도우미 — 좌측 끝. 패널 열려있으면 숨김 (rail 의 ✨ 와 중복 방지). */}
+          {!aiPanelOpen && (
+            <button
+              type="button"
+              onClick={() => setAiPanelOpen(true)}
+              className="shrink-0 h-8 w-8 sm:w-auto sm:px-3 inline-flex items-center justify-center sm:justify-start gap-1.5 rounded-full border border-primary/30 bg-primary/8 text-foreground hover:bg-primary/15 hover:border-primary/50 transition-colors"
+              title="AI 도우미"
+              aria-label="AI 도우미 열기"
+            >
+              <Bot className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="hidden sm:inline text-[12px] font-semibold">AI 도우미</span>
+            </button>
+          )}
           {/* 시간 네비 cluster — goals 외 모든 뷰. habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
           {view !== 'goals' && (
             <div className="shrink-0 flex items-center gap-2">
@@ -871,35 +883,8 @@ const Planner = () => {
             </div>
           )}
 
-          {/* 입력창 — day 뷰만. 그 외 뷰는 spacer 로 뷰토글을 우측 끝으로 밀기. */}
-          {view === 'day' ? (
-            <div className="flex-1 min-w-0">
-              <PlannerInput
-                inputRef={dayInputRef}
-                placeholder="여기에 적어요 — 예: ‘오후 3시 회의’ 또는 ‘약 사기’"
-                onSubmit={handleDayAdd}
-                variant="prominent"
-                hidePreview
-              />
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {/* AI 도우미 진입 pill — 뷰 토글 좌측. 패널 열려있으면 숨김 (rail 의 ✨ 와 중복 방지).
-              마이위키의 AI 도우미 버튼 스타일과 일관 — 작은 outlined pill. */}
-          {!aiPanelOpen && (
-            <button
-              type="button"
-              onClick={() => setAiPanelOpen(true)}
-              className="shrink-0 h-8 w-8 sm:w-auto sm:px-3 inline-flex items-center justify-center sm:justify-start gap-1.5 rounded-full border border-primary/30 bg-primary/8 text-foreground hover:bg-primary/15 hover:border-primary/50 transition-colors"
-              title="AI 도우미"
-              aria-label="AI 도우미 열기"
-            >
-              <Bot className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="hidden sm:inline text-[12px] font-semibold">AI 도우미</span>
-            </button>
-          )}
+          {/* spacer — 우측 utility 를 끝으로 민다. */}
+          <div className="flex-1" />
 
           {/* 뷰 토글 — 모든 뷰 공통. */}
           <ViewToggle value={view} onChange={setView} />
