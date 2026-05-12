@@ -7,6 +7,7 @@ import { useWikiFavorites } from '@/hooks/useWikiFavorites';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import type { WikiPage } from '@/types/wiki';
 import { MainModeTabs } from '@/components/MainModeTabs';
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
 import { WikiPageView } from '@/components/wiki/WikiPageView';
 import { WikiHome } from '@/components/wiki/WikiHome';
@@ -292,6 +293,10 @@ const Wiki = () => {
         aria-hidden={!sidebarOpen}
       >
         <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
+          {/* 페이지 스위처 — 사이드바 최상단 (compact) */}
+          <div className="px-2 pt-2 pb-1.5">
+            <PageSwitcher current="wiki" compact className="w-full justify-between" />
+          </div>
           {/* 윗줄 — 정체성 / 모드 전환 / 사이드바 닫기 */}
           <div className="px-2 h-12 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <span

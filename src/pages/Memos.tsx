@@ -13,6 +13,7 @@ import {
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, Mic,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { notify } from '@/lib/notify';
 import { useMemoImageSrc } from '@/hooks/useMemoImageSrc';
 import {
@@ -207,15 +208,12 @@ const Memos = () => {
         isMobile ? 'w-full' : 'w-[268px]',
         !showSidebar && 'hidden',
       )}>
-        {/* 상단 — 뒤로 + 제목 + 새 메모 */}
+        {/* 페이지 스위처 — 사이드바 최상단 (compact: 아이콘만) */}
+        <div className="shrink-0 px-2 pt-2 pb-1.5">
+          <PageSwitcher current="memos" compact className="w-full justify-between" />
+        </div>
+        {/* 상단 — 제목 + 새 메모 */}
         <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22 flex items-center gap-1">
-          <button
-            onClick={() => navigate('/')}
-            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            aria-label="뒤로"
-          >
-            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-          </button>
           <h1 className="text-[19px] font-semibold text-foreground tracking-tight flex-1 flex items-baseline gap-2">
             <span>메모</span>
             <span className="text-[12px] font-normal text-muted-foreground tabular-nums">{activeMemos.length}</span>
