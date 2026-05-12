@@ -211,7 +211,7 @@ const Journal = () => {
         {/* 마스트헤드 — 좌(타이틀) | 우(PageSwitcher 위 + 도구 아래) horizontal split */}
         <header className="mb-6 sm:mb-7 flex items-start justify-between gap-6 flex-wrap">
           {/* 좌측: 타이틀 영역 — 살짝 아래로 내려서 우측 도구 행과 시각 균형 */}
-          <div className="min-w-0 pt-2 sm:pt-3">
+          <div className="min-w-0 pt-3 sm:pt-5">
             <div className="text-[12.5px] font-semibold tracking-[0.2em] uppercase text-primary/70 mb-1.5">
               TODAY
             </div>
@@ -241,8 +241,8 @@ const Journal = () => {
             </div>
           </div>
 
-          {/* 우측: 2 행 vertical stack — 상 PageSwitcher / 하 도구 그룹 */}
-          <div className="flex flex-col items-end gap-2.5 shrink-0">
+          {/* 우측: 2 행 vertical stack — 상 PageSwitcher / 하 도구 그룹 (gap ↑) */}
+          <div className="flex flex-col items-end gap-4 shrink-0">
             <PageSwitcher current="journal" />
 
             {/* 도구 그룹 — 검색·필터·통계·CTA */}
