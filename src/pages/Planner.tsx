@@ -801,7 +801,9 @@ const Planner = () => {
         <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
       <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
-        <PageSwitcher current="planner" className="mb-4" />
+        <div className="mb-4 flex justify-end">
+          <PageSwitcher current="planner" />
+        </div>
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [입력 (day)]   [일/주/월/년]
             ← 시간 네비             ← 메인 액션      ← 우측 utility (Google Cal 패턴) */}
