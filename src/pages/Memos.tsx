@@ -1186,8 +1186,6 @@ function MemoEditor({
             />
           )}
         </div>
-        {/* 페이지 스위처 — 에디터 우측 끝 */}
-        <PageSwitcher current="memos" className="shrink-0" />
         {/* ⋯ 메뉴 — 부가 액션 */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -1273,6 +1271,8 @@ function MemoEditor({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        {/* 페이지 스위처 — 에디터 우측 끝 (⋯ 다음) */}
+        <PageSwitcher current="memos" className="shrink-0" />
       </div>
 
       {/* 첨부 이미지 grid — 본문 위에. IDB blob 이면 비동기 object URL, 옛 dataUrl 은 즉시. */}
