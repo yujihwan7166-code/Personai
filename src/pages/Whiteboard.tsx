@@ -531,6 +531,7 @@ type Interaction =
   | { kind: 'erasing'; ids: Set<string> }
   | { kind: 'dragging'; ids: string[]; startWorld: { x: number; y: number }; origin: Map<string, { x: number; y: number }> }
   | { kind: 'resizing'; handle: ResizeHandle; ids: string[]; startWorld: { x: number; y: number }; origin: Map<string, { x: number; y: number; w: number; h: number }> }
+  | { kind: 'rotating'; id: string; cx: number; cy: number; startAngle: number; originAngle: number }
   | { kind: 'marquee'; start: { x: number; y: number }; current: { x: number; y: number }; baseSelection: Set<string> };
 
 // 활성 보드 — 캔버스 + 플로팅 UI
@@ -818,11 +819,23 @@ function BoardCanvas({
     const wp = toWorld(e.clientX, e.clientY);
 
     if (tool === 'select') {
-      // 단일 선택 + 핸들 hit-test
+      // 단일 선택 + 회전 핸들 hit-test (resize 보다 먼저)
       if (selection.size === 1) {
         const onlyId = [...selection][0];
         const onlyEl = elements.find((x) => x.id === onlyId);
-        if (onlyEl) {
+        if (onlyEl && isRotatable(onlyEl)) {
+          if (hitsRotationHandle(onlyEl, wp, viewport.zoom)) {
+            const cx = onlyEl.x + onlyEl.w / 2;
+            const cy = onlyEl.y + onlyEl.h / 2;
+            setInteraction({
+              kind: 'rotating',
+              id: onlyEl.id,
+              cx, cy,
+              startAngle: Math.atan2(wp.y - cy, wp.x - cx),
+              originAngle: onlyEl.angle,
+            });
+            return;
+          }
           const handle = findResizeHandle(onlyEl, wp, viewport.zoom);
           if (handle) {
             const origin = new Map<string, { x: number; y: number; w: number; h: number }>();
@@ -923,6 +936,20 @@ function BoardCanvas({
         if (!org) return el;
         return { ...el, x: org.x + dx, y: org.y + dy, updatedAt: Date.now() };
       });
+      setElements(board.id, next);
+      return;
+    }
+
+    if (interaction.kind === 'rotating') {
+      const a = Math.atan2(wp.y - interaction.cy, wp.x - interaction.cx);
+      let angle = interaction.originAngle + (a - interaction.startAngle);
+      if (e.shiftKey) {
+        const SNAP = Math.PI / 12;   // 15°
+        angle = Math.round(angle / SNAP) * SNAP;
+      }
+      const next = elements.map((el) =>
+        el.id === interaction.id ? { ...el, angle, updatedAt: Date.now() } : el,
+      );
       setElements(board.id, next);
       return;
     }
@@ -1072,7 +1099,7 @@ function BoardCanvas({
         setElements(board.id, nextElements);
         shouldCommit = true;
       }
-    } else if (interaction.kind === 'dragging' || interaction.kind === 'resizing') {
+    } else if (interaction.kind === 'dragging' || interaction.kind === 'resizing' || interaction.kind === 'rotating') {
       shouldCommit = true;
     }
     setInteraction({ kind: 'idle' });
@@ -1210,6 +1237,31 @@ function BoardCanvas({
                     strokeWidth={1.25 / viewport.zoom}
                   />
                 ))}
+                {/* 회전 핸들 — 상단 중앙 위 */}
+                {showHandles && isRotatable(el) && (() => {
+                  const rotX = bb.x + bb.w / 2;
+                  const rotY = bb.y - 24 / viewport.zoom;
+                  return (
+                    <g>
+                      <line
+                        x1={bb.x + bb.w / 2}
+                        y1={bb.y}
+                        x2={rotX}
+                        y2={rotY}
+                        stroke="hsl(217 91% 55%)"
+                        strokeWidth={1 / viewport.zoom}
+                      />
+                      <circle
+                        cx={rotX}
+                        cy={rotY}
+                        r={HANDLE * 0.55}
+                        fill="white"
+                        stroke="hsl(217 91% 55%)"
+                        strokeWidth={1.25 / viewport.zoom}
+                      />
+                    </g>
+                  );
+                })()}
               </g>
             );
           })}
@@ -1301,6 +1353,21 @@ function BoardCanvas({
               }}
             />
           )}
+
+          {/* 우하 (위) — 미니맵 */}
+          <MiniMap
+            elements={elements}
+            viewport={viewport}
+            containerSize={size}
+            onJump={(wp) => {
+              // 뷰포트 중심을 클릭 지점으로
+              setViewport(board.id, {
+                ...viewport,
+                x: wp.x - size.w / 2 / viewport.zoom,
+                y: wp.y - size.h / 2 / viewport.zoom,
+              });
+            }}
+          />
 
           {/* 좌하 — 줌 컨트롤 */}
           <div className="absolute left-4 bottom-4">
@@ -1754,6 +1821,104 @@ function RedoBtn({ enabled, onClick }: { enabled: boolean; onClick: () => void }
 }
 
 // ──────────────────────────────────────────
+// ──────────────────────────────────────────
+function MiniMap({
+  elements,
+  viewport,
+  containerSize,
+  onJump,
+}: {
+  elements: WBElement[];
+  viewport: WBViewport;
+  containerSize: { w: number; h: number };
+  onJump: (wp: { x: number; y: number }) => void;
+}) {
+  const MAP_W = 168;
+  const MAP_H = 112;
+  // 요소 + 현재 viewport 를 모두 포함하는 bbox
+  const vw = containerSize.w / viewport.zoom;
+  const vh = containerSize.h / viewport.zoom;
+  const viewBbox = { x: viewport.x, y: viewport.y, w: vw, h: vh };
+  const all: Array<{ x: number; y: number; w: number; h: number }> = [
+    viewBbox,
+    ...elements.map((el) => ({ x: el.x, y: el.y, w: el.w, h: el.h })),
+  ];
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const b of all) {
+    if (b.x < minX) minX = b.x;
+    if (b.y < minY) minY = b.y;
+    if (b.x + b.w > maxX) maxX = b.x + b.w;
+    if (b.y + b.h > maxY) maxY = b.y + b.h;
+  }
+  // 여백
+  const padX = (maxX - minX) * 0.08 || 100;
+  const padY = (maxY - minY) * 0.08 || 100;
+  minX -= padX; minY -= padY; maxX += padX; maxY += padY;
+  const worldW = maxX - minX || 1;
+  const worldH = maxY - minY || 1;
+  const scale = Math.min(MAP_W / worldW, MAP_H / worldH);
+  const ox = (MAP_W - worldW * scale) / 2;
+  const oy = (MAP_H - worldH * scale) / 2;
+  const toLocal = (wx: number, wy: number) => ({
+    x: ox + (wx - minX) * scale,
+    y: oy + (wy - minY) * scale,
+  });
+  const onClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const wx = (mx - ox) / scale + minX;
+    const wy = (my - oy) / scale + minY;
+    onJump({ x: wx, y: wy });
+  };
+  return (
+    <div className="absolute right-4 bottom-16">
+      <FloatingCard className="p-1">
+        <svg
+          width={MAP_W}
+          height={MAP_H}
+          viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+          onClick={onClick}
+          className="cursor-pointer rounded-md"
+          style={{ background: 'hsl(var(--accent) / 0.35)' }}
+        >
+          {/* 요소 미리보기 */}
+          {elements.map((el) => {
+            const p1 = toLocal(el.x, el.y);
+            const p2 = toLocal(el.x + el.w, el.y + el.h);
+            return (
+              <rect
+                key={el.id}
+                x={p1.x}
+                y={p1.y}
+                width={Math.max(1, p2.x - p1.x)}
+                height={Math.max(1, p2.y - p1.y)}
+                fill="hsl(var(--foreground) / 0.35)"
+              />
+            );
+          })}
+          {/* 현재 viewport */}
+          {(() => {
+            const p1 = toLocal(viewBbox.x, viewBbox.y);
+            const p2 = toLocal(viewBbox.x + viewBbox.w, viewBbox.y + viewBbox.h);
+            return (
+              <rect
+                x={p1.x}
+                y={p1.y}
+                width={Math.max(2, p2.x - p1.x)}
+                height={Math.max(2, p2.y - p1.y)}
+                fill="hsl(217 91% 55% / 0.10)"
+                stroke="hsl(217 91% 55%)"
+                strokeWidth={1.25}
+              />
+            );
+          })()}
+        </svg>
+      </FloatingCard>
+    </div>
+  );
+}
+
 function HelpFloating() {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -2107,6 +2272,18 @@ function ShortcutGroup({ title, items }: { title: string; items: Array<[string, 
 // 헬퍼
 function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
+}
+
+function isRotatable(el: WBElement): boolean {
+  return el.type !== 'line' && el.type !== 'arrow' && el.type !== 'freedraw';
+}
+
+function hitsRotationHandle(el: WBElement, wp: { x: number; y: number }, zoom: number): boolean {
+  if (!isRotatable(el)) return false;
+  const cx = el.x + el.w / 2;
+  const hy = el.y - 24 / zoom;
+  const TH = 10 / zoom;
+  return Math.hypot(wp.x - cx, wp.y - hy) <= TH;
 }
 
 /** 단일 선택 요소 bbox 경계 근처면 핸들 반환. */
