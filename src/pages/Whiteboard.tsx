@@ -69,6 +69,7 @@ import {
   useBoardData,
   useBoards,
   useFolders,
+  useSaveState,
   useSettings,
   useTrashedBoards,
 } from '@/lib/whiteboardStore';
@@ -93,6 +94,7 @@ import {
   findElementsInRect,
   nextZIndex,
   rectFromPoints,
+  rotatedAABB,
   screenToWorld,
   worldToElementLocal,
 } from '@/lib/whiteboard/geometry';
@@ -1357,6 +1359,18 @@ function BoardCanvas({
   // 정렬된 요소 (zIndex 오름차순 — 큰 게 위에 그려짐)
   const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
 
+  // viewport culling — 보이는 영역(+여유 padding) 에 걸친 요소만 렌더
+  // 100 px 여유로 살짝 밖 까지 렌더 (스크롤 떨림 방지)
+  const cullPad = 100 / viewport.zoom;
+  const vbX1 = viewport.x - cullPad;
+  const vbY1 = viewport.y - cullPad;
+  const vbX2 = viewport.x + size.w / viewport.zoom + cullPad;
+  const vbY2 = viewport.y + size.h / viewport.zoom + cullPad;
+  const visible = sorted.filter((el) => {
+    const bb = rotatedAABB(el);
+    return !(bb.x > vbX2 || bb.x + bb.w < vbX1 || bb.y > vbY2 || bb.y + bb.h < vbY1);
+  });
+
   // 검색 매치 — 텍스트가 있는 요소만
   const searchMatches = (() => {
     const q = searchQuery.trim().toLowerCase();
@@ -1412,7 +1426,7 @@ function BoardCanvas({
           const hit = findElementAt(elements, wp.x, wp.y);
           if (hit && !selection.has(hit.id)) setSelection(new Set([hit.id]));
           const ids = hit ? (selection.has(hit.id) ? [...selection] : [hit.id]) : [...selection];
-          if (ids.length === 0) return;
+          // 빈 영역 우클릭도 메뉴 표시 (붙여넣기·전체선택)
           setContextMenu({ clientX: e.clientX, clientY: e.clientY, ids });
         }}
       >
@@ -1455,8 +1469,8 @@ function BoardCanvas({
               fill={`url(#wb-${gridType}grid)`}
             />
           )}
-          {/* 요소 레이어 */}
-          {sorted.map((el) => {
+          {/* 요소 레이어 — viewport culling */}
+          {visible.map((el) => {
             const erasing = interaction.kind === 'erasing' && interaction.ids.has(el.id);
             const dim = searchMatches && !searchMatches.has(el.id);
             return (
@@ -1468,13 +1482,17 @@ function BoardCanvas({
               </g>
             );
           })}
-          {/* 검색 매치 강조 outline */}
+          {/* 검색 매치 강조 outline — 회전 transform 반영 */}
           {searchMatches && [...searchMatches].map((id) => {
             const el = elements.find((x) => x.id === id);
             if (!el) return null;
+            const mcx = el.x + el.w / 2;
+            const mcy = el.y + el.h / 2;
+            const mtransform = el.angle ? `rotate(${(el.angle * 180) / Math.PI} ${mcx} ${mcy})` : undefined;
             return (
               <rect
                 key={`match-${id}`}
+                transform={mtransform}
                 x={el.x - 6 / viewport.zoom}
                 y={el.y - 6 / viewport.zoom}
                 width={el.w + 12 / viewport.zoom}
@@ -1519,18 +1537,27 @@ function BoardCanvas({
                   strokeWidth={1.5 / viewport.zoom}
                   strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`}
                 />
-                {showHandles && points.map((p) => (
-                  <rect
-                    key={p.key}
-                    x={p.cx - HANDLE/2}
-                    y={p.cy - HANDLE/2}
-                    width={HANDLE}
-                    height={HANDLE}
-                    fill="white"
-                    stroke="hsl(217 91% 55%)"
-                    strokeWidth={1.25 / viewport.zoom}
-                  />
-                ))}
+                {showHandles && points.map((p) => {
+                  const cur: Record<ResizeHandle, string> = {
+                    nw: 'nwse-resize', se: 'nwse-resize',
+                    ne: 'nesw-resize', sw: 'nesw-resize',
+                    n: 'ns-resize', s: 'ns-resize',
+                    e: 'ew-resize', w: 'ew-resize',
+                  };
+                  return (
+                    <rect
+                      key={p.key}
+                      x={p.cx - HANDLE/2}
+                      y={p.cy - HANDLE/2}
+                      width={HANDLE}
+                      height={HANDLE}
+                      fill="white"
+                      stroke="hsl(217 91% 55%)"
+                      strokeWidth={1.25 / viewport.zoom}
+                      style={{ cursor: cur[p.key], pointerEvents: 'auto' }}
+                    />
+                  );
+                })}
                 {/* 회전 핸들 — 상단 중앙 위 */}
                 {showHandles && isRotatable(el) && (() => {
                   const rotX = bb.x + bb.w / 2;
@@ -1552,6 +1579,7 @@ function BoardCanvas({
                         fill="white"
                         stroke="hsl(217 91% 55%)"
                         strokeWidth={1.25 / viewport.zoom}
+                        style={{ cursor: 'grab', pointerEvents: 'auto' }}
                       />
                     </g>
                   );
@@ -1797,6 +1825,10 @@ function BoardCanvas({
             pushSnapshot(board.id, elements.filter((el) => !contextMenu.ids.includes(el.id)));
             setContextMenu(null);
           }}
+          onSelectAll={() => {
+            setSelection(new Set(elements.filter((el) => !el.locked).map((el) => el.id)));
+            setContextMenu(null);
+          }}
           onChangeZ={(mode) => { changeZOrder(mode); setContextMenu(null); }}
           onToggleLock={() => {
             const next = elements.map((el) =>
@@ -1827,6 +1859,7 @@ function BoardHeader({
   onExport: (format: 'png' | 'svg' | 'json') => void;
 }) {
   const settings = useSettings();
+  const saveState = useSaveState(board.id);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(board.name);
   useEffect(() => { setDraft(board.name); }, [board.name]);
@@ -1958,11 +1991,18 @@ function BoardHeader({
           </button>
         )}
         <span
-          className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground/80 pl-1"
-          title="저장됨"
+          className={cn(
+            'inline-flex items-center gap-1 text-[10.5px] pl-1 transition-colors',
+            saveState === 'error'
+              ? 'text-destructive'
+              : saveState === 'saving'
+                ? 'text-amber-500 dark:text-amber-400'
+                : 'text-muted-foreground/80',
+          )}
+          title={saveState === 'error' ? '저장 실패' : saveState === 'saving' ? '저장 중…' : '저장됨'}
         >
-          <Save className="w-3 h-3" strokeWidth={1.75} />
-          저장됨
+          <Save className={cn('w-3 h-3', saveState === 'saving' && 'animate-pulse')} strokeWidth={1.75} />
+          {saveState === 'error' ? '실패' : saveState === 'saving' ? '저장 중' : '저장됨'}
         </span>
       </FloatingCard>
     </div>
@@ -2724,6 +2764,7 @@ function ContextMenu({
   onCopy,
   onPaste,
   onCut,
+  onSelectAll,
   onChangeZ,
   onToggleLock,
   onDelete,
@@ -2738,6 +2779,7 @@ function ContextMenu({
   onCopy: () => void;
   onPaste: () => void;
   onCut: () => void;
+  onSelectAll: () => void;
   onChangeZ: (mode: 'front' | 'back' | 'forward' | 'backward') => void;
   onToggleLock: () => void;
   onDelete: () => void;
@@ -2745,6 +2787,7 @@ function ContextMenu({
   const targets = elements.filter((el) => ids.includes(el.id));
   const isLocked = targets.some((el) => el.locked);
   const isSticky = targets.length === 1 && targets[0].type === 'sticky';
+  const empty = ids.length === 0;
 
   // 외부 클릭 시 닫기
   useEffect(() => {
@@ -2762,28 +2805,38 @@ function ContextMenu({
       className="fixed z-50 bg-card border border-[hsl(var(--hairline))] rounded-md shadow-lg py-1 min-w-[200px]"
       style={{ left: x, top: y }}
     >
-      <CMItem onClick={onDuplicate} label="복제" shortcut="Ctrl+D" />
-      <CMItem onClick={onCopy}      label="복사" shortcut="Ctrl+C" />
-      <CMItem onClick={onCut}       label="잘라내기" shortcut="Ctrl+X" />
-      <CMItem onClick={onPaste}     label="붙여넣기" shortcut="Ctrl+V" />
-      <CMSep />
-      <CMItem onClick={() => onChangeZ('front')}    label="맨 앞으로"  shortcut="Ctrl+Shift+]" />
-      <CMItem onClick={() => onChangeZ('forward')}  label="한 칸 앞"   shortcut="Ctrl+]" />
-      <CMItem onClick={() => onChangeZ('backward')} label="한 칸 뒤"   shortcut="Ctrl+[" />
-      <CMItem onClick={() => onChangeZ('back')}     label="맨 뒤로"    shortcut="Ctrl+Shift+[" />
-      <CMSep />
-      <CMItem onClick={onToggleLock} label={isLocked ? '잠금 해제' : '잠금'} shortcut="Ctrl+L" />
-      {isSticky && (
+      {empty ? (
+        // 빈 캔버스 — 붙여넣기·전체선택만
         <>
+          <CMItem onClick={onPaste}    label="붙여넣기" shortcut="Ctrl+V" />
+          <CMItem onClick={onSelectAll} label="전체 선택" shortcut="Ctrl+A" />
+        </>
+      ) : (
+        <>
+          <CMItem onClick={onDuplicate} label="복제" shortcut="Ctrl+D" />
+          <CMItem onClick={onCopy}      label="복사" shortcut="Ctrl+C" />
+          <CMItem onClick={onCut}       label="잘라내기" shortcut="Ctrl+X" />
+          <CMItem onClick={onPaste}     label="붙여넣기" shortcut="Ctrl+V" />
           <CMSep />
-          {/* Phase 3 통합 자리잡이 — 비활성 */}
-          <CMItem disabled label="메모로 보내기" hint="준비 중" />
-          <CMItem disabled label="위키 페이지로 변환" hint="준비 중" />
-          <CMItem disabled label="플래너 할일로" hint="준비 중" />
+          <CMItem onClick={() => onChangeZ('front')}    label="맨 앞으로"  shortcut="Ctrl+]" />
+          <CMItem onClick={() => onChangeZ('forward')}  label="한 칸 앞"   shortcut="]" />
+          <CMItem onClick={() => onChangeZ('backward')} label="한 칸 뒤"   shortcut="[" />
+          <CMItem onClick={() => onChangeZ('back')}     label="맨 뒤로"    shortcut="Ctrl+[" />
+          <CMSep />
+          <CMItem onClick={onToggleLock} label={isLocked ? '잠금 해제' : '잠금'} shortcut="Ctrl+L" />
+          {isSticky && (
+            <>
+              <CMSep />
+              {/* Phase 3 통합 자리잡이 — 비활성 */}
+              <CMItem disabled label="메모로 보내기" hint="준비 중" />
+              <CMItem disabled label="위키 페이지로 변환" hint="준비 중" />
+              <CMItem disabled label="플래너 할일로" hint="준비 중" />
+            </>
+          )}
+          <CMSep />
+          <CMItem onClick={onDelete} label="삭제" shortcut="Del" danger />
         </>
       )}
-      <CMSep />
-      <CMItem onClick={onDelete} label="삭제" shortcut="Del" danger />
     </div>
   );
 }
@@ -3125,7 +3178,10 @@ function InlineEditor({
         textAlign: element.type === 'sticky' || element.type === 'text' ? (element as { textAlign?: 'left' | 'center' | 'right' }).textAlign ?? 'left' : 'center',
         resize: 'none',
         lineHeight: 1.4,
-        zIndex: 1000,
+        zIndex: 30,    // DropdownMenu/Dialog 보다 낮게
+        // 회전된 요소면 textarea 도 같이 회전
+        transform: element.angle ? `rotate(${(element.angle * 180) / Math.PI}deg)` : undefined,
+        transformOrigin: 'center center',
       }}
       placeholder={element.type === 'sticky' ? '내용을 입력하세요' : '텍스트…'}
     />

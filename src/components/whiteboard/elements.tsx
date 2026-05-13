@@ -21,6 +21,7 @@ import type {
 } from '@/types/whiteboard';
 import { WB_COLOR_HSL, WB_STICKY_BG, WB_STROKE_DASH, WB_STROKE_WIDTH } from '@/lib/whiteboard/colors';
 import { getImageObjectURL } from '@/lib/whiteboard/imageStore';
+import { renderMarkdownLite } from '@/lib/whiteboard/markdownLite';
 
 function transform(el: Pick<WBElement, 'x' | 'y' | 'w' | 'h' | 'angle'>): string | undefined {
   if (!el.angle) return undefined;
@@ -209,7 +210,7 @@ export const TextEl = memo(function TextEl({ el }: { el: WBText }) {
             pointerEvents: 'none',
           }}
         >
-          {el.content || ''}
+          {renderMarkdownLite(el.content || '')}
         </div>
       </foreignObject>
     </g>
@@ -259,7 +260,7 @@ export const StickyEl = memo(function StickyEl({ el }: { el: WBSticky }) {
             pointerEvents: 'none',
           }}
         >
-          {el.content || ''}
+          {renderMarkdownLite(el.content || '')}
         </div>
       </foreignObject>
     </g>
@@ -289,7 +290,7 @@ function ShapeText({ el }: { el: WBRect | WBEllipse | WBDiamond | WBTriangle | W
           pointerEvents: 'none',
         }}
       >
-        {el.text}
+        {renderMarkdownLite(el.text)}
       </div>
     </foreignObject>
   );

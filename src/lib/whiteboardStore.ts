@@ -162,28 +162,91 @@ function commitBoards(next: WBBoard[]): void {
   invalidateBoardsDerived();
   saveJSON(K_BOARDS, next);
   boardsListeners.forEach((l) => l());
+  wbBroadcast?.postMessage({ type: 'boards' });
 }
 function commitFolders(next: WBFolder[]): void {
   foldersCache = next;
   invalidateFoldersDerived();
   saveJSON(K_FOLDERS, next);
   foldersListeners.forEach((l) => l());
+  wbBroadcast?.postMessage({ type: 'folders' });
 }
 function commitSettings(next: WBSettings): void {
   settingsCache = next;
   saveJSON(K_SETTINGS, next);
   settingsListeners.forEach((l) => l());
 }
-function commitBoardData(boardId: string, next: WBBoardData): void {
-  boardDataCache.set(boardId, next);
-  // IDB 비동기 저장 (실패 시 console)
-  void idbPutBoardData(boardId, next).catch((err) =>
-    console.error(`[whiteboardStore] IDB boardData save 실패 (${boardId}):`, err),
-  );
-  boardDataListeners.get(boardId)?.forEach((l) => l());
+// Save 상태 추적 (IDB write 진행 여부) + per-board debounce
+export type WBSaveState = 'idle' | 'saving' | 'error';
+const saveStateMap: Map<string, WBSaveState> = new Map();
+const saveStateListeners = new Set<() => void>();
+const saveDebounceTimers: Map<string, number> = new Map();
+
+function setSaveState(boardId: string, state: WBSaveState): void {
+  saveStateMap.set(boardId, state);
+  saveStateListeners.forEach((l) => l());
 }
 
-// 다중 탭 동기화 — storage 이벤트
+export function getSaveState(boardId: string): WBSaveState {
+  return saveStateMap.get(boardId) ?? 'idle';
+}
+export function useSaveState(boardId: string | null): WBSaveState {
+  return useSyncExternalStore(
+    (cb) => {
+      saveStateListeners.add(cb);
+      return () => saveStateListeners.delete(cb);
+    },
+    () => (boardId ? getSaveState(boardId) : 'idle'),
+    () => (boardId ? getSaveState(boardId) : 'idle'),
+  );
+}
+
+function commitBoardData(boardId: string, next: WBBoardData): void {
+  boardDataCache.set(boardId, next);
+  setSaveState(boardId, 'saving');
+  // 200ms trailing debounce — 드래그 중 IDB write 폭주 방지
+  const existing = saveDebounceTimers.get(boardId);
+  if (existing) window.clearTimeout(existing);
+  const tid = window.setTimeout(() => {
+    saveDebounceTimers.delete(boardId);
+    const latest = boardDataCache.get(boardId);
+    if (!latest) return;
+    idbPutBoardData(boardId, latest).then(() => {
+      setSaveState(boardId, 'idle');
+    }).catch((err) => {
+      console.error(`[whiteboardStore] IDB boardData save 실패 (${boardId}):`, err);
+      setSaveState(boardId, 'error');
+    });
+  }, 200);
+  saveDebounceTimers.set(boardId, tid);
+  boardDataListeners.get(boardId)?.forEach((l) => l());
+  // BroadcastChannel — 다른 탭에 알림
+  wbBroadcast?.postMessage({ type: 'boardData', boardId });
+}
+
+// 다중 탭 동기화 — BroadcastChannel (IDB 변경 sync) + storage 이벤트(메타)
+const wbBroadcast: BroadcastChannel | null =
+  typeof window !== 'undefined' && 'BroadcastChannel' in window
+    ? new BroadcastChannel('wb-sync')
+    : null;
+
+wbBroadcast?.addEventListener('message', (ev) => {
+  const msg = ev.data as { type: string; boardId?: string };
+  if (msg.type === 'boardData' && msg.boardId) {
+    // 캐시 무효화 → 다음 ensureBoardData 호출이 IDB 재로드
+    boardDataCache.delete(msg.boardId);
+    boardDataListeners.get(msg.boardId)?.forEach((l) => l());
+  } else if (msg.type === 'boards') {
+    boardsCache = null;
+    invalidateBoardsDerived();
+    boardsListeners.forEach((l) => l());
+  } else if (msg.type === 'folders') {
+    foldersCache = null;
+    invalidateFoldersDerived();
+    foldersListeners.forEach((l) => l());
+  }
+});
+
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
     if (e.key === K_BOARDS) {
