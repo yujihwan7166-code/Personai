@@ -4,13 +4,14 @@
  * Phase 1 단순 SVG (roughjs 적용은 Phase 2 후순위).
  * 모든 렌더러는 순수 함수형 — 요소 데이터만 받음.
  */
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import type {
   WBArrow,
   WBDiamond,
   WBElement,
   WBEllipse,
   WBFreedraw,
+  WBImage,
   WBLine,
   WBRect,
   WBSpeech,
@@ -19,6 +20,7 @@ import type {
   WBTriangle,
 } from '@/types/whiteboard';
 import { WB_COLOR_HSL, WB_STICKY_BG, WB_STROKE_DASH, WB_STROKE_WIDTH } from '@/lib/whiteboard/colors';
+import { getImageObjectURL } from '@/lib/whiteboard/imageStore';
 
 function transform(el: Pick<WBElement, 'x' | 'y' | 'w' | 'h' | 'angle'>): string | undefined {
   if (!el.angle) return undefined;
@@ -294,6 +296,44 @@ function ShapeText({ el }: { el: WBRect | WBEllipse | WBDiamond | WBTriangle | W
 }
 
 // ──────────────────────────────────────────
+export const ImageEl = memo(function ImageEl({ el }: { el: WBImage }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    getImageObjectURL(el.imageId).then((u) => {
+      if (mounted) setUrl(u);
+    }).catch(() => { /* silent */ });
+    return () => { mounted = false; };
+  }, [el.imageId]);
+  return (
+    <g transform={transform(el)} opacity={el.opacity}>
+      {url ? (
+        <image
+          href={url}
+          x={el.x}
+          y={el.y}
+          width={el.w}
+          height={el.h}
+          preserveAspectRatio="xMidYMid slice"
+          style={{ borderRadius: el.cornerRadius }}
+        />
+      ) : (
+        <rect
+          x={el.x}
+          y={el.y}
+          width={el.w}
+          height={el.h}
+          rx={el.cornerRadius}
+          fill="hsl(var(--accent) / 0.4)"
+          stroke="hsl(var(--hairline))"
+          strokeDasharray="4 4"
+        />
+      )}
+    </g>
+  );
+});
+
+// ──────────────────────────────────────────
 // 단일 dispatch
 export const Element = memo(function ElementRenderer({ el }: { el: WBElement }) {
   switch (el.type) {
@@ -307,9 +347,9 @@ export const Element = memo(function ElementRenderer({ el }: { el: WBElement }) 
     case 'freedraw': return <FreedrawEl el={el} />;
     case 'text':     return <TextEl     el={el} />;
     case 'sticky':   return <StickyEl   el={el} />;
-    case 'image':    return null;     // Phase 2
-    case 'frame':    return null;     // Phase 2
-    case 'bracket':  return null;     // Phase 2
+    case 'image':    return <ImageEl    el={el} />;
+    case 'frame':    return null;     // Phase 2 후순위
+    case 'bracket':  return null;     // Phase 2 후순위
     default:         return null;
   }
 });

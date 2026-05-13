@@ -74,6 +74,7 @@ import type {
   WBBoard,
   WBElement,
   WBFreedraw,
+  WBImage,
   WBLine,
   WBRect,
   WBSticky,
@@ -95,6 +96,7 @@ import { WB_STICKY_BG } from '@/lib/whiteboard/colors';
 import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
 import { alignElements, computeSnap, distributeElements, type AlignMode, type DistributeMode, type Guide } from '@/lib/whiteboard/snapping';
 import { exportJSON, exportPNG, exportSVG } from '@/lib/whiteboard/export';
+import { addWBImage } from '@/lib/whiteboard/imageStore';
 
 // ──────────────────────────────────────────
 // 도구 정의
@@ -786,6 +788,74 @@ function BoardCanvas({
     return screenToWorld(clientX, clientY, rect, viewport);
   }, [viewport]);
 
+  // 이미지 파일 추가 (drop / paste 공용)
+  const insertImageAt = useCallback(async (file: File, wp: { x: number; y: number }) => {
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) {
+      notify.warning('이미지가 너무 커요 (10MB 이하)', { duration: 2000 });
+      return;
+    }
+    try {
+      const rec = await addWBImage(file);
+      const MAX_DIM = 480;
+      const scale = Math.min(1, MAX_DIM / Math.max(rec.w, rec.h));
+      const w = rec.w * scale;
+      const h = rec.h * scale;
+      const now = Date.now();
+      const img: WBImage = {
+        id: newElementId(),
+        type: 'image',
+        x: wp.x - w / 2,
+        y: wp.y - h / 2,
+        w, h,
+        angle: 0,
+        zIndex: nextZIndex(elements),
+        opacity: 1,
+        locked: false,
+        groupIds: [],
+        imageId: rec.id,
+        naturalW: rec.w,
+        naturalH: rec.h,
+        cornerRadius: 8,
+        createdAt: now,
+        updatedAt: now,
+      };
+      addElement(board.id, img);
+      setSelection(new Set([img.id]));
+      pushSnapshot(board.id, [...elements, img]);
+      notify.success('이미지 추가됨', { duration: 1200 });
+    } catch (err) {
+      notify.error('이미지 추가 실패');
+      console.error('[wb] insertImage 실패:', err);
+    }
+  }, [board.id, elements]);
+
+  // 페이스트 (이미지)
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (editingId) return;
+      if (isEditableTarget(e.target)) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            const rect = containerRef.current?.getBoundingClientRect();
+            const center = rect
+              ? { x: viewport.x + rect.width / 2 / viewport.zoom, y: viewport.y + rect.height / 2 / viewport.zoom }
+              : { x: 0, y: 0 };
+            void insertImageAt(file, center);
+            return;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [editingId, viewport, insertImageAt]);
+
   // 휠 — 팬 / 줌
   const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -1198,6 +1268,19 @@ function BoardCanvas({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const files = Array.from(e.dataTransfer.files);
+          if (files.length === 0) return;
+          const wp = toWorld(e.clientX, e.clientY);
+          let offset = 0;
+          for (const file of files) {
+            if (!file.type.startsWith('image/')) continue;
+            void insertImageAt(file, { x: wp.x + offset, y: wp.y + offset });
+            offset += 24;
+          }
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           const wp = toWorld(e.clientX, e.clientY);
