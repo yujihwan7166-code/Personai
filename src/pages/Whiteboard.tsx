@@ -94,6 +94,7 @@ import {
   nextZIndex,
   rectFromPoints,
   screenToWorld,
+  worldToElementLocal,
 } from '@/lib/whiteboard/geometry';
 import { WB_STICKY_BG } from '@/lib/whiteboard/colors';
 import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
@@ -995,7 +996,9 @@ function BoardCanvas({
         const onlyId = [...selection][0];
         const onlyEl = elements.find((x) => x.id === onlyId);
         if (onlyEl && isRotatable(onlyEl)) {
-          if (hitsRotationHandle(onlyEl, wp, viewport.zoom)) {
+          // 회전된 요소: wp 를 요소 로컬 좌표로 변환한 뒤 핸들 hit-test
+          const localWp = worldToElementLocal(wp, onlyEl);
+          if (hitsRotationHandle(onlyEl, localWp, viewport.zoom)) {
             const cx = onlyEl.x + onlyEl.w / 2;
             const cy = onlyEl.y + onlyEl.h / 2;
             setInteraction({
@@ -1007,7 +1010,7 @@ function BoardCanvas({
             });
             return;
           }
-          const handle = findResizeHandle(onlyEl, wp, viewport.zoom);
+          const handle = findResizeHandle(onlyEl, localWp, viewport.zoom);
           if (handle) {
             const origin = new Map<string, { x: number; y: number; w: number; h: number }>();
             origin.set(onlyEl.id, { x: onlyEl.x, y: onlyEl.y, w: onlyEl.w, h: onlyEl.h });
@@ -1484,7 +1487,7 @@ function BoardCanvas({
               />
             );
           })}
-          {/* 선택 표시 + 단일 선택 시 핸들 */}
+          {/* 선택 표시 + 단일 선택 시 핸들 (회전된 요소면 transform 적용) */}
           {[...selection].map((id) => {
             const el = elements.find((x) => x.id === id);
             if (!el) return null;
@@ -1501,8 +1504,11 @@ function BoardCanvas({
               { key: 'sw', cx: bb.x,           cy: bb.y + bb.h },
               { key: 'w',  cx: bb.x,           cy: bb.y + bb.h/2 },
             ];
+            const cx = bb.x + bb.w / 2;
+            const cy = bb.y + bb.h / 2;
+            const transform = el.angle ? `rotate(${(el.angle * 180) / Math.PI} ${cx} ${cy})` : undefined;
             return (
-              <g key={`sel-${id}`} pointerEvents="none">
+              <g key={`sel-${id}`} pointerEvents="none" transform={transform}>
                 <rect
                   x={bb.x - 4 / viewport.zoom}
                   y={bb.y - 4 / viewport.zoom}
@@ -1636,15 +1642,17 @@ function BoardCanvas({
               if (!svg) return;
               const data = getBoardData(board.id);
               if (format === 'png') {
-                exportPNG(svg, data.elements, board.name).catch(() =>
-                  notify.error('PNG 내보내기 실패'),
-                );
+                exportPNG(svg, data.elements, board.name).then(() => {
+                  notify.success('PNG 내보냈어요', { duration: 1500 });
+                }).catch(() => notify.error('PNG 내보내기 실패'));
               } else if (format === 'svg') {
-                exportSVG(svg, data.elements, board.name);
+                exportSVG(svg, data.elements, board.name).then(() => {
+                  notify.success('SVG 내보냈어요', { duration: 1500 });
+                }).catch(() => notify.error('SVG 내보내기 실패'));
               } else {
                 exportJSON(data, board.name);
+                notify.success('JSON 내보냈어요', { duration: 1500 });
               }
-              notify.success(`${format.toUpperCase()} 내보냈어요`, { duration: 1500 });
             }}
           />
 

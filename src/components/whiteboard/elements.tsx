@@ -315,6 +315,7 @@ export const ImageEl = memo(function ImageEl({ el }: { el: WBImage }) {
           width={el.w}
           height={el.h}
           preserveAspectRatio="xMidYMid slice"
+          data-wb-image-id={el.imageId}
           style={{ borderRadius: el.cornerRadius }}
         />
       ) : (

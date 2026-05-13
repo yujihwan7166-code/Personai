@@ -20,6 +20,7 @@ import type {
   WBToolState,
   WBViewport,
 } from '@/types/whiteboard';
+import { idbDeleteBoardData, idbGetBoardData, idbPutBoardData } from '@/lib/whiteboard/imageStore';
 
 // ──────────────────────────────────────────
 // Storage keys
@@ -111,17 +112,49 @@ function ensureSettings(): WBSettings {
   }
   return settingsCache;
 }
+const EMPTY_BOARD_DATA: WBBoardData = {
+  schemaVersion: 1,
+  elements: [],
+  viewport: DEFAULT_VIEWPORT,
+};
+
+// IDB 로딩 진행 중인 보드 (중복 fetch 방지)
+const loadingBoardIds = new Set<string>();
+
 function ensureBoardData(boardId: string): WBBoardData {
-  let data = boardDataCache.get(boardId);
-  if (!data) {
-    data = loadJSON<WBBoardData>(boardDataKey(boardId), {
-      schemaVersion: 1,
-      elements: [],
-      viewport: DEFAULT_VIEWPORT,
-    });
-    boardDataCache.set(boardId, data);
+  const cached = boardDataCache.get(boardId);
+  if (cached) return cached;
+
+  // 캐시 없음 — 즉시 빈 데이터 반환 + 비동기 IDB 로드 트리거.
+  // 1) IDB 에 있으면 그걸 캐시에 넣고 listeners 알림.
+  // 2) IDB 에 없고 localStorage 에 옛 키 있으면 마이그레이션 후 캐시.
+  if (!loadingBoardIds.has(boardId) && typeof window !== 'undefined') {
+    loadingBoardIds.add(boardId);
+    void (async () => {
+      try {
+        let data = await idbGetBoardData<WBBoardData>(boardId);
+        if (!data) {
+          // localStorage 마이그레이션
+          const legacy = loadJSON<WBBoardData | null>(boardDataKey(boardId), null);
+          if (legacy && legacy.schemaVersion) {
+            data = legacy;
+            await idbPutBoardData(boardId, data);
+            window.localStorage.removeItem(boardDataKey(boardId));
+          }
+        }
+        if (data) {
+          boardDataCache.set(boardId, data);
+          boardDataListeners.get(boardId)?.forEach((l) => l());
+        }
+      } catch { /* silent */ }
+      finally {
+        loadingBoardIds.delete(boardId);
+      }
+    })();
   }
-  return data;
+  // 캐시에 빈 placeholder 임시 저장 — 같은 board 재요청 시 중복 IDB 호출 방지
+  boardDataCache.set(boardId, EMPTY_BOARD_DATA);
+  return EMPTY_BOARD_DATA;
 }
 
 function commitBoards(next: WBBoard[]): void {
@@ -143,7 +176,10 @@ function commitSettings(next: WBSettings): void {
 }
 function commitBoardData(boardId: string, next: WBBoardData): void {
   boardDataCache.set(boardId, next);
-  saveJSON(boardDataKey(boardId), next);
+  // IDB 비동기 저장 (실패 시 console)
+  void idbPutBoardData(boardId, next).catch((err) =>
+    console.error(`[whiteboardStore] IDB boardData save 실패 (${boardId}):`, err),
+  );
   boardDataListeners.get(boardId)?.forEach((l) => l());
 }
 
@@ -291,8 +327,9 @@ export function purgeBoard(id: string): void {
   }
   const next = ensureBoards().filter((b) => b.id !== id);
   commitBoards(next);
-  // 데이터도 영구 삭제
+  // 데이터도 영구 삭제 (캐시 + IDB + 옛 localStorage)
   boardDataCache.delete(id);
+  void idbDeleteBoardData(id).catch(() => { /* silent */ });
   if (typeof window !== 'undefined') {
     try { window.localStorage.removeItem(boardDataKey(id)); } catch { /* silent */ }
   }
@@ -511,6 +548,7 @@ export function autoPurgeExpiredTrash(daysMax = 30): number {
       if (el.type === 'image') imageIds.push(el.imageId);
     }
     boardDataCache.delete(b.id);
+    void idbDeleteBoardData(b.id).catch(() => { /* silent */ });
     if (typeof window !== 'undefined') {
       try { window.localStorage.removeItem(boardDataKey(b.id)); } catch { /* silent */ }
     }

@@ -6,6 +6,7 @@
  * - PNG:  SVG → canvas → dataURL (2× DPI)
  */
 import type { WBBoardData, WBElement } from '@/types/whiteboard';
+import { getWBImage } from './imageStore';
 
 const PADDING = 32;  // 요소 union bbox 주위 여백
 
@@ -53,21 +54,51 @@ export function exportJSON(boardData: WBBoardData, baseName: string): void {
  * - viewBox 를 export bbox 로 갱신
  * - dot grid 및 선택·핸들·marquee 등은 제거
  */
-function buildExportSVG(svgEl: SVGSVGElement, elements: WBElement[]): string {
+/** Blob → dataURL (base64). */
+function blobToDataURL(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result as string);
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+
+/**
+ * SVG clone 의 <image> 요소에 있는 blob URL href 를 dataURL 로 치환.
+ * 이미지 element 의 imageId 를 wb-image-id 데이터 속성으로 찾아 IDB 에서 blob 로드.
+ */
+async function inlineImagesInSVG(clone: SVGSVGElement): Promise<void> {
+  const images = Array.from(clone.querySelectorAll('image'));
+  await Promise.all(
+    images.map(async (img) => {
+      const href = img.getAttribute('href') ?? img.getAttribute('xlink:href') ?? '';
+      if (!href.startsWith('blob:')) return;
+      const id = img.getAttribute('data-wb-image-id');
+      if (!id) return;
+      try {
+        const rec = await getWBImage(id);
+        if (!rec) return;
+        const dataUrl = await blobToDataURL(rec.blob);
+        img.setAttribute('href', dataUrl);
+        img.removeAttribute('xlink:href');
+      } catch { /* silent */ }
+    }),
+  );
+}
+
+/** clone 만 받아서 inline images 후 string 반환 (PNG/SVG 공용 비동기 경로). */
+async function buildExportSVGAsync(svgEl: SVGSVGElement, elements: WBElement[]): Promise<string> {
+  // 위 buildExportSVG 와 동일 로직 + inlineImagesInSVG 호출.
   const bbox = computeExportBBox(elements);
-  // svg 노드 clone
   const clone = svgEl.cloneNode(true) as SVGSVGElement;
-  // viewBox / size 조정
   clone.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.w} ${bbox.h}`);
   clone.setAttribute('width', String(bbox.w));
   clone.setAttribute('height', String(bbox.h));
-  // 배경 grid·선택·marquee·guide 제거 — 요소 g 만 남기기 위해
-  // defs(dotgrid) 와 첫 background rect 는 제거
   const defs = clone.querySelector('defs');
   if (defs) defs.remove();
-  const allRects = clone.querySelectorAll('rect[fill="url(#wb-dotgrid)"]');
+  const allRects = clone.querySelectorAll('rect[fill="url(#wb-dotgrid)"], rect[fill="url(#wb-linegrid)"]');
   allRects.forEach((r) => r.remove());
-  // selection·marquee 보조 (점선 stroke 컬러 hsl(217 91% 55%) 검사로 제거)
   const auxLines = clone.querySelectorAll('line, rect, circle');
   auxLines.forEach((node) => {
     const stroke = node.getAttribute('stroke') ?? '';
@@ -75,34 +106,33 @@ function buildExportSVG(svgEl: SVGSVGElement, elements: WBElement[]): string {
     if (
       (stroke.includes('217 91% 55%') && (node.getAttribute('stroke-dasharray') || node.tagName === 'circle')) ||
       fill.includes('217 91% 55%') ||
-      stroke.includes('330 80% 60%')  // snap guide 자홍
+      stroke.includes('330 80% 60%')
     ) {
       node.remove();
     }
   });
-  // 배경색 (불투명 출력용)
   const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   bg.setAttribute('x', String(bbox.x));
   bg.setAttribute('y', String(bbox.y));
   bg.setAttribute('width', String(bbox.w));
   bg.setAttribute('height', String(bbox.h));
-  bg.setAttribute('fill', 'hsl(40 25% 97%)');  // wiki-warm-theme background
+  bg.setAttribute('fill', 'hsl(40 25% 97%)');
   clone.insertBefore(bg, clone.firstChild);
-  // 출력 string
-  const serializer = new XMLSerializer();
-  return serializer.serializeToString(clone);
+  // 이미지 inline
+  await inlineImagesInSVG(clone);
+  return new XMLSerializer().serializeToString(clone);
 }
 
-/** SVG export */
-export function exportSVG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string): void {
-  const svgString = buildExportSVG(svgEl, elements);
+/** SVG export (이미지 inline 포함) */
+export async function exportSVG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string): Promise<void> {
+  const svgString = await buildExportSVGAsync(svgEl, elements);
   const safeName = baseName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
   downloadBlob(new Blob([svgString], { type: 'image/svg+xml' }), `${safeName}.svg`);
 }
 
 /** PNG export — 2× DPI */
 export async function exportPNG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string): Promise<void> {
-  const svgString = buildExportSVG(svgEl, elements);
+  const svgString = await buildExportSVGAsync(svgEl, elements);
   const bbox = computeExportBBox(elements);
   const scale = 2;
   const W = Math.ceil(bbox.w * scale);

@@ -40,9 +40,59 @@ export function rectFromPoints(a: WorldPoint, b: WorldPoint): BBox {
   };
 }
 
-/** 요소의 회전 미적용 AABB. */
+/** 요소의 회전 미적용 AABB (요소 로컬). */
 export function elementBBox(el: WBElement): BBox {
   return { x: el.x, y: el.y, w: el.w, h: el.h };
+}
+
+/** 회전 적용된 4 코너 — world 좌표. */
+export function rotatedCorners(el: WBElement): Array<[number, number]> {
+  if (!el.angle) {
+    return [
+      [el.x, el.y],
+      [el.x + el.w, el.y],
+      [el.x + el.w, el.y + el.h],
+      [el.x, el.y + el.h],
+    ];
+  }
+  const cx = el.x + el.w / 2;
+  const cy = el.y + el.h / 2;
+  const cos = Math.cos(el.angle);
+  const sin = Math.sin(el.angle);
+  const rot = (px: number, py: number): [number, number] => {
+    const dx = px - cx;
+    const dy = py - cy;
+    return [dx * cos - dy * sin + cx, dx * sin + dy * cos + cy];
+  };
+  return [
+    rot(el.x, el.y),
+    rot(el.x + el.w, el.y),
+    rot(el.x + el.w, el.y + el.h),
+    rot(el.x, el.y + el.h),
+  ];
+}
+
+/** 회전 적용 AABB — marquee 검사용. */
+export function rotatedAABB(el: WBElement): BBox {
+  if (!el.angle) return { x: el.x, y: el.y, w: el.w, h: el.h };
+  const corners = rotatedCorners(el);
+  const xs = corners.map((c) => c[0]);
+  const ys = corners.map((c) => c[1]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  return { x: minX, y: minY, w: Math.max(...xs) - minX, h: Math.max(...ys) - minY };
+}
+
+/** world → 요소 로컬 좌표 (요소 중심점 기준 역회전). */
+export function worldToElementLocal(wp: { x: number; y: number }, el: WBElement): { x: number; y: number } {
+  if (!el.angle) return { x: wp.x, y: wp.y };
+  const cx = el.x + el.w / 2;
+  const cy = el.y + el.h / 2;
+  const cos = Math.cos(-el.angle);
+  const sin = Math.sin(-el.angle);
+  const dx = wp.x - cx;
+  const dy = wp.y - cy;
+  return { x: dx * cos - dy * sin + cx, y: dx * sin + dy * cos + cy };
 }
 
 /** 회전된 요소의 hit-test. world 좌표 (px) → 요소 포함 여부. */
@@ -73,15 +123,16 @@ export function findElementAt(elements: WBElement[], px: number, py: number): WB
   return null;
 }
 
-/** marquee 영역에 걸친 요소 (AABB 교차). */
+/** marquee 영역에 걸친 요소 (회전 적용 AABB 교차). */
 export function findElementsInRect(elements: WBElement[], rect: BBox): WBElement[] {
   const x2 = rect.x + rect.w;
   const y2 = rect.y + rect.h;
   return elements.filter((el) => {
     if (el.locked) return false;
-    const ex2 = el.x + el.w;
-    const ey2 = el.y + el.h;
-    return !(el.x > x2 || ex2 < rect.x || el.y > y2 || ey2 < rect.y);
+    const bb = rotatedAABB(el);
+    const ex2 = bb.x + bb.w;
+    const ey2 = bb.y + bb.h;
+    return !(bb.x > x2 || ex2 < rect.x || bb.y > y2 || ey2 < rect.y);
   });
 }
 

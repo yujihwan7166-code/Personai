@@ -6,7 +6,8 @@
  */
 const DB_NAME = 'wb';
 const STORE = 'images';
-const DB_VERSION = 1;
+const BOARD_DATA_STORE = 'boardData';
+const DB_VERSION = 2;
 
 export interface WBImageRecord {
   id: string;
@@ -34,6 +35,9 @@ function openDB(): Promise<IDBDatabase> {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) {
         db.createObjectStore(STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(BOARD_DATA_STORE)) {
+        db.createObjectStore(BOARD_DATA_STORE);   // key = boardId (out-of-line)
       }
     };
   });
@@ -99,6 +103,38 @@ export async function removeWBImage(id: string): Promise<void> {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
     tx.objectStore(STORE).delete(id);
+  });
+}
+
+// ──────────────────────────────────────────
+// BoardData IDB API — store 'boardData', key = boardId
+export async function idbGetBoardData<T = unknown>(boardId: string): Promise<T | null> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BOARD_DATA_STORE, 'readonly');
+    const req = tx.objectStore(BOARD_DATA_STORE).get(boardId);
+    req.onsuccess = () => resolve((req.result as T) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function idbPutBoardData(boardId: string, data: unknown): Promise<void> {
+  const db = await openDB();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(BOARD_DATA_STORE, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(BOARD_DATA_STORE).put(data, boardId);
+  });
+}
+
+export async function idbDeleteBoardData(boardId: string): Promise<void> {
+  const db = await openDB();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(BOARD_DATA_STORE, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(BOARD_DATA_STORE).delete(boardId);
   });
 }
 
