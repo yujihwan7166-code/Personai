@@ -44,26 +44,53 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   addBoard,
+  addElement,
   addFolder,
   duplicateBoard,
   getBoard,
+  newElementId,
   purgeBoard,
+  removeElements,
   removeFolder,
   renameBoard,
   renameFolder,
   restoreBoard,
   setActiveBoardId,
+  setElements,
   setTool,
   setViewport,
   toggleBoardStarred,
   trashBoard,
+  updateElement,
   useBoardData,
   useBoards,
   useFolders,
   useSettings,
   useTrashedBoards,
 } from '@/lib/whiteboardStore';
-import type { WBBoard, WBToolKind, WBViewport } from '@/types/whiteboard';
+import type {
+  WBArrow,
+  WBBoard,
+  WBElement,
+  WBFreedraw,
+  WBLine,
+  WBRect,
+  WBSticky,
+  WBText,
+  WBToolKind,
+  WBToolState,
+  WBViewport,
+} from '@/types/whiteboard';
+import { Element as WBElementRenderer } from '@/components/whiteboard/elements';
+import {
+  elementBBox,
+  findElementAt,
+  findElementsInRect,
+  nextZIndex,
+  rectFromPoints,
+  screenToWorld,
+} from '@/lib/whiteboard/geometry';
+import { WB_STICKY_BG } from '@/lib/whiteboard/colors';
 
 // ──────────────────────────────────────────
 // 도구 정의
@@ -114,7 +141,12 @@ export default function Whiteboard() {
       <Sidebar boards={boards} folders={folders} activeBoardId={activeBoardId} />
       <main className="flex-1 min-w-0 relative overflow-hidden bg-background">
         {activeBoard ? (
-          <BoardCanvas board={activeBoard} viewport={boardData?.viewport ?? { x: 0, y: 0, zoom: 1 }} tool={settings.tool.kind} />
+          <BoardCanvas
+            board={activeBoard}
+            elements={boardData?.elements ?? []}
+            viewport={boardData?.viewport ?? { x: 0, y: 0, zoom: 1 }}
+            toolState={settings.tool}
+          />
         ) : (
           <EmptyMain />
         )}
@@ -485,18 +517,36 @@ function EmptyMain() {
 }
 
 // ──────────────────────────────────────────
+// 인터랙션 상태 (캔버스 임시 상태 — store 에 박지 않음)
+type Interaction =
+  | { kind: 'idle' }
+  | { kind: 'panning'; startX: number; startY: number; vx: number; vy: number }
+  | { kind: 'creating'; tool: WBToolKind; start: { x: number; y: number }; current: { x: number; y: number }; tempElement?: WBElement }
+  | { kind: 'drawing-line'; arrow: boolean; start: { x: number; y: number }; current: { x: number; y: number } }
+  | { kind: 'pen'; points: Array<[number, number]> }
+  | { kind: 'erasing'; ids: Set<string> }
+  | { kind: 'dragging'; ids: string[]; startWorld: { x: number; y: number }; origin: Map<string, { x: number; y: number }> }
+  | { kind: 'marquee'; start: { x: number; y: number }; current: { x: number; y: number }; baseSelection: Set<string> };
+
 // 활성 보드 — 캔버스 + 플로팅 UI
 function BoardCanvas({
   board,
+  elements,
   viewport,
-  tool,
+  toolState,
 }: {
   board: WBBoard;
+  elements: WBElement[];
   viewport: WBViewport;
-  tool: WBToolKind;
+  toolState: WBToolState;
 }) {
+  const tool = toolState.kind;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [interaction, setInteraction] = useState<Interaction>({ kind: 'idle' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [spaceDown, setSpaceDown] = useState(false);
 
   // 컨테이너 사이즈 추적
   useEffect(() => {
@@ -510,42 +560,57 @@ function BoardCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // 팬 (휠) / 줌 (Ctrl+휠)
-  const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (e.ctrlKey || e.metaKey) {
-      // 줌 — 커서 위치 기준
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const factor = Math.exp(-e.deltaY * 0.002);
-      const nextZoom = clamp(viewport.zoom * factor, 0.1, 5);
-      // 커서 아래 world 좌표가 동일하게 유지되도록 viewport.x/y 조정
-      const worldX = viewport.x + sx / viewport.zoom;
-      const worldY = viewport.y + sy / viewport.zoom;
-      const nx = worldX - sx / nextZoom;
-      const ny = worldY - sy / nextZoom;
-      setViewport(board.id, { x: nx, y: ny, zoom: nextZoom });
-    } else {
-      // 팬
-      setViewport(board.id, {
-        ...viewport,
-        x: viewport.x + (e.shiftKey ? e.deltaY : e.deltaX) / viewport.zoom,
-        y: viewport.y + (e.shiftKey ? 0 : e.deltaY) / viewport.zoom,
-      });
-    }
-  }, [board.id, viewport]);
+  // 새 보드로 전환 시 선택·편집 초기화
+  useEffect(() => {
+    setSelection(new Set());
+    setEditingId(null);
+    setInteraction({ kind: 'idle' });
+  }, [board.id]);
 
-  // 드래그 팬 (pan 도구 또는 spacebar)
-  const [spaceDown, setSpaceDown] = useState(false);
-  const panRef = useRef<{ startX: number; startY: number; vx: number; vy: number } | null>(null);
-
+  // 전역 단축키
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ' ' && !isEditableTarget(e.target)) {
+      if (isEditableTarget(e.target)) return;
+      // space hold
+      if (e.key === ' ') {
         e.preventDefault();
         setSpaceDown(true);
+        return;
+      }
+      // 도구 단축키
+      const key = e.key.toLowerCase();
+      const toolMap: Record<string, WBToolKind> = {
+        v: 'select', h: 'pan', t: 'text', s: 'sticky',
+        r: 'shape', l: 'line', a: 'line', p: 'pen', e: 'eraser',
+      };
+      const shapeKey: Record<string, WBToolState['shapeKind']> = { o: 'ellipse', d: 'diamond' };
+      if (e.key === 'Escape') {
+        if (editingId) { setEditingId(null); return; }
+        if (interaction.kind !== 'idle') { setInteraction({ kind: 'idle' }); return; }
+        if (selection.size > 0) { setSelection(new Set()); return; }
+        setTool({ kind: 'select' });
+        return;
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selection.size > 0) {
+        e.preventDefault();
+        removeElements(board.id, [...selection]);
+        setSelection(new Set());
+        return;
+      }
+      if ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setSelection(new Set(elements.filter((el) => !el.locked).map((el) => el.id)));
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (toolMap[key]) {
+        setTool({ kind: toolMap[key] });
+        if (key === 'a') setTool({ lineKind: 'arrow-solid' });
+        if (key === 'l') setTool({ lineKind: 'line' });
+      } else if (shapeKey[key]) {
+        setTool({ kind: 'shape', shapeKind: shapeKey[key] });
+      } else if (key === 'r') {
+        setTool({ kind: 'shape', shapeKind: 'rect' });
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
@@ -557,46 +622,249 @@ function BoardCanvas({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, []);
+  }, [board.id, editingId, elements, interaction, selection]);
+
+  // 화면 좌표 → world
+  const toWorld = useCallback((clientX: number, clientY: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return screenToWorld(clientX, clientY, rect, viewport);
+  }, [viewport]);
+
+  // 휠 — 팬 / 줌
+  const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const factor = Math.exp(-e.deltaY * 0.002);
+      const nextZoom = clamp(viewport.zoom * factor, 0.1, 5);
+      const worldX = viewport.x + sx / viewport.zoom;
+      const worldY = viewport.y + sy / viewport.zoom;
+      setViewport(board.id, { x: worldX - sx / nextZoom, y: worldY - sy / nextZoom, zoom: nextZoom });
+    } else {
+      setViewport(board.id, {
+        ...viewport,
+        x: viewport.x + (e.shiftKey ? e.deltaY : e.deltaX) / viewport.zoom,
+        y: viewport.y + (e.shiftKey ? 0 : e.deltaY) / viewport.zoom,
+      });
+    }
+  }, [board.id, viewport]);
 
   const isPanMode = tool === 'pan' || spaceDown;
 
+  // ── pointer down ──────────────────────────
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPanMode && e.button !== 1) return;  // middle button = pan
+    if (e.button !== 0 && e.button !== 1) return;
+    if (editingId) return;  // 편집 중에는 무시
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     e.preventDefault();
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    panRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      vx: viewport.x,
-      vy: viewport.y,
-    };
-  };
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const p = panRef.current;
-    if (!p) return;
-    const dx = (e.clientX - p.startX) / viewport.zoom;
-    const dy = (e.clientY - p.startY) / viewport.zoom;
-    setViewport(board.id, { ...viewport, x: p.vx - dx, y: p.vy - dy });
-  };
-  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (panRef.current) {
-      panRef.current = null;
-      (e.target as Element).releasePointerCapture?.(e.pointerId);
+
+    // 팬 모드 또는 중간 버튼
+    if (isPanMode || e.button === 1) {
+      setInteraction({ kind: 'panning', startX: e.clientX, startY: e.clientY, vx: viewport.x, vy: viewport.y });
+      return;
     }
+
+    const wp = toWorld(e.clientX, e.clientY);
+
+    if (tool === 'select') {
+      const hit = findElementAt(elements, wp.x, wp.y);
+      if (hit) {
+        // 선택 토글 (Shift) 또는 갈음
+        if (e.shiftKey) {
+          setSelection((prev) => {
+            const next = new Set(prev);
+            if (next.has(hit.id)) next.delete(hit.id);
+            else next.add(hit.id);
+            return next;
+          });
+          return;
+        }
+        const nextSelection = selection.has(hit.id) ? selection : new Set([hit.id]);
+        if (!selection.has(hit.id)) setSelection(nextSelection);
+        const origin = new Map<string, { x: number; y: number }>();
+        for (const el of elements) {
+          if (nextSelection.has(el.id)) origin.set(el.id, { x: el.x, y: el.y });
+        }
+        setInteraction({ kind: 'dragging', ids: [...nextSelection], startWorld: wp, origin });
+      } else {
+        // 빈 영역 — marquee
+        if (!e.shiftKey) setSelection(new Set());
+        setInteraction({ kind: 'marquee', start: wp, current: wp, baseSelection: e.shiftKey ? new Set(selection) : new Set() });
+      }
+      return;
+    }
+
+    if (tool === 'sticky') {
+      const sticky = makeSticky(wp, toolState);
+      sticky.zIndex = nextZIndex(elements);
+      addElement(board.id, sticky);
+      setSelection(new Set([sticky.id]));
+      setEditingId(sticky.id);
+      return;
+    }
+
+    if (tool === 'text') {
+      const text = makeText(wp);
+      text.zIndex = nextZIndex(elements);
+      addElement(board.id, text);
+      setSelection(new Set([text.id]));
+      setEditingId(text.id);
+      return;
+    }
+
+    if (tool === 'shape') {
+      setInteraction({ kind: 'creating', tool: 'shape', start: wp, current: wp });
+      return;
+    }
+
+    if (tool === 'line') {
+      const arrow = toolState.lineKind !== 'line';
+      setInteraction({ kind: 'drawing-line', arrow, start: wp, current: wp });
+      return;
+    }
+
+    if (tool === 'pen') {
+      setInteraction({ kind: 'pen', points: [[wp.x, wp.y]] });
+      return;
+    }
+
+    if (tool === 'eraser') {
+      const hit = findElementAt(elements, wp.x, wp.y);
+      const ids = new Set<string>();
+      if (hit) ids.add(hit.id);
+      setInteraction({ kind: 'erasing', ids });
+      return;
+    }
+  };
+
+  // ── pointer move ──────────────────────────
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (interaction.kind === 'idle') return;
+    const wp = toWorld(e.clientX, e.clientY);
+
+    if (interaction.kind === 'panning') {
+      const dx = (e.clientX - interaction.startX) / viewport.zoom;
+      const dy = (e.clientY - interaction.startY) / viewport.zoom;
+      setViewport(board.id, { ...viewport, x: interaction.vx - dx, y: interaction.vy - dy });
+      return;
+    }
+
+    if (interaction.kind === 'dragging') {
+      const dx = wp.x - interaction.startWorld.x;
+      const dy = wp.y - interaction.startWorld.y;
+      const next = elements.map((el) => {
+        if (!interaction.ids.includes(el.id)) return el;
+        const org = interaction.origin.get(el.id);
+        if (!org) return el;
+        return { ...el, x: org.x + dx, y: org.y + dy, updatedAt: Date.now() };
+      });
+      setElements(board.id, next);
+      return;
+    }
+
+    if (interaction.kind === 'marquee') {
+      setInteraction({ ...interaction, current: wp });
+      const rect = rectFromPoints(interaction.start, wp);
+      const inRect = findElementsInRect(elements, rect);
+      const next = new Set(interaction.baseSelection);
+      for (const el of inRect) next.add(el.id);
+      setSelection(next);
+      return;
+    }
+
+    if (interaction.kind === 'creating') {
+      setInteraction({ ...interaction, current: wp });
+      return;
+    }
+
+    if (interaction.kind === 'drawing-line') {
+      let nx = wp.x;
+      let ny = wp.y;
+      if (e.shiftKey) {
+        // 15° 스냅
+        const dx = wp.x - interaction.start.x;
+        const dy = wp.y - interaction.start.y;
+        const angle = Math.atan2(dy, dx);
+        const snap = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
+        const dist = Math.hypot(dx, dy);
+        nx = interaction.start.x + Math.cos(snap) * dist;
+        ny = interaction.start.y + Math.sin(snap) * dist;
+      }
+      setInteraction({ ...interaction, current: { x: nx, y: ny } });
+      return;
+    }
+
+    if (interaction.kind === 'pen') {
+      const last = interaction.points[interaction.points.length - 1];
+      const dx = wp.x - last[0];
+      const dy = wp.y - last[1];
+      if (dx * dx + dy * dy < 1) return;  // 너무 가까운 점 무시
+      setInteraction({ kind: 'pen', points: [...interaction.points, [wp.x, wp.y]] });
+      return;
+    }
+
+    if (interaction.kind === 'erasing') {
+      const hit = findElementAt(elements, wp.x, wp.y);
+      if (hit && !interaction.ids.has(hit.id)) {
+        const next = new Set(interaction.ids);
+        next.add(hit.id);
+        setInteraction({ kind: 'erasing', ids: next });
+      }
+      return;
+    }
+  };
+
+  // ── pointer up ──────────────────────────
+  const onPointerUp = (_e: React.PointerEvent<HTMLDivElement>) => {
+    if (interaction.kind === 'idle') return;
+
+    if (interaction.kind === 'creating') {
+      const rect = rectFromPoints(interaction.start, interaction.current);
+      if (rect.w >= 2 && rect.h >= 2) {
+        const shape = makeShape(rect, toolState);
+        if (shape) {
+          shape.zIndex = nextZIndex(elements);
+          addElement(board.id, shape);
+          setSelection(new Set([shape.id]));
+          setEditingId(shape.id);
+        }
+      }
+    } else if (interaction.kind === 'drawing-line') {
+      const dx = interaction.current.x - interaction.start.x;
+      const dy = interaction.current.y - interaction.start.y;
+      if (Math.hypot(dx, dy) >= 4) {
+        const line = makeLineOrArrow(interaction.start, interaction.current, interaction.arrow, toolState);
+        line.zIndex = nextZIndex(elements);
+        addElement(board.id, line);
+        setSelection(new Set([line.id]));
+      }
+    } else if (interaction.kind === 'pen') {
+      if (interaction.points.length >= 2) {
+        const freedraw = makeFreedraw(interaction.points, toolState);
+        freedraw.zIndex = nextZIndex(elements);
+        addElement(board.id, freedraw);
+        setSelection(new Set([freedraw.id]));
+      }
+    } else if (interaction.kind === 'erasing') {
+      if (interaction.ids.size > 0) {
+        removeElements(board.id, [...interaction.ids]);
+      }
+    }
+    setInteraction({ kind: 'idle' });
   };
 
   // 줌 컨트롤 핸들러
   const zoomBy = (factor: number) => {
     const nextZoom = clamp(viewport.zoom * factor, 0.1, 5);
-    // 화면 중앙 기준
     const cx = size.w / 2;
     const cy = size.h / 2;
     const worldX = viewport.x + cx / viewport.zoom;
     const worldY = viewport.y + cy / viewport.zoom;
-    const nx = worldX - cx / nextZoom;
-    const ny = worldY - cy / nextZoom;
-    setViewport(board.id, { x: nx, y: ny, zoom: nextZoom });
+    setViewport(board.id, { x: worldX - cx / nextZoom, y: worldY - cy / nextZoom, zoom: nextZoom });
   };
   const zoomReset = () => {
     setViewport(board.id, { x: -size.w / 2, y: -size.h / 2, zoom: 1 });
@@ -606,8 +874,16 @@ function BoardCanvas({
   const gridSize = 16;
 
   const cursorClass = isPanMode
-    ? (panRef.current ? 'cursor-grabbing' : 'cursor-grab')
-    : (tool === 'select' ? 'cursor-default' : 'cursor-crosshair');
+    ? (interaction.kind === 'panning' ? 'cursor-grabbing' : 'cursor-grab')
+    : tool === 'select' ? 'cursor-default'
+    : tool === 'eraser' ? 'cursor-cell'
+    : 'cursor-crosshair';
+
+  // 정렬된 요소 (zIndex 오름차순 — 큰 게 위에 그려짐)
+  const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
+
+  // 그리는 중 임시 요소
+  const ghost = renderGhost(interaction, toolState);
 
   return (
     <>
@@ -627,7 +903,6 @@ function BoardCanvas({
           xmlns="http://www.w3.org/2000/svg"
           style={{ display: 'block' }}
         >
-          {/* dot grid pattern */}
           <defs>
             <pattern
               id="wb-dotgrid"
@@ -649,8 +924,85 @@ function BoardCanvas({
               fill="url(#wb-dotgrid)"
             />
           )}
-          {/* TODO: ElementsLayer (Step 3) */}
+          {/* 요소 레이어 */}
+          {sorted.map((el) => (
+            <g
+              key={el.id}
+              opacity={interaction.kind === 'erasing' && interaction.ids.has(el.id) ? 0.3 : 1}
+            >
+              <WBElementRenderer el={el} />
+            </g>
+          ))}
+          {/* 선택 표시 */}
+          {[...selection].map((id) => {
+            const el = elements.find((x) => x.id === id);
+            if (!el) return null;
+            const bb = elementBBox(el);
+            return (
+              <rect
+                key={`sel-${id}`}
+                x={bb.x - 4}
+                y={bb.y - 4}
+                width={bb.w + 8}
+                height={bb.h + 8}
+                fill="none"
+                stroke="hsl(217 91% 55%)"
+                strokeWidth={1.5 / viewport.zoom}
+                strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`}
+                pointerEvents="none"
+              />
+            );
+          })}
+          {/* marquee */}
+          {interaction.kind === 'marquee' && (() => {
+            const r = rectFromPoints(interaction.start, interaction.current);
+            return (
+              <rect
+                x={r.x}
+                y={r.y}
+                width={r.w}
+                height={r.h}
+                fill="hsl(217 91% 55% / 0.08)"
+                stroke="hsl(217 91% 55%)"
+                strokeWidth={1 / viewport.zoom}
+                strokeDasharray={`${3 / viewport.zoom} ${3 / viewport.zoom}`}
+                pointerEvents="none"
+              />
+            );
+          })()}
+          {/* 그리는 중 ghost */}
+          {ghost}
         </svg>
+
+        {/* 인라인 편집 (HTML 레이어로 SVG 위에) */}
+        {editingId && (() => {
+          const el = elements.find((x) => x.id === editingId);
+          if (!el) return null;
+          return (
+            <InlineEditor
+              key={editingId}
+              element={el}
+              viewport={viewport}
+              container={containerRef.current}
+              onCommit={(content) => {
+                if (el.type === 'sticky' || el.type === 'text') {
+                  if (content.trim() || el.type === 'sticky') {
+                    updateElement(board.id, el.id, { content });
+                  } else {
+                    // 빈 text는 삭제
+                    removeElements(board.id, [el.id]);
+                    setSelection(new Set());
+                  }
+                } else {
+                  // shape 안 텍스트
+                  updateElement(board.id, el.id, { text: content });
+                }
+                setEditingId(null);
+              }}
+              onCancel={() => setEditingId(null)}
+            />
+          );
+        })()}
       </div>
 
       {/* 좌상 — 보드 헤더 */}
@@ -880,4 +1232,230 @@ function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
   return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
+}
+
+// ──────────────────────────────────────────
+// 요소 팩토리
+function baseElement(x: number, y: number, w: number, h: number) {
+  const now = Date.now();
+  return {
+    id: newElementId(),
+    x, y, w, h,
+    angle: 0,
+    zIndex: 0,
+    opacity: 1,
+    locked: false,
+    groupIds: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function makeSticky(pos: { x: number; y: number }, tool: WBToolState): WBSticky {
+  const SIZE = 200;
+  return {
+    ...baseElement(pos.x - SIZE / 2, pos.y - SIZE / 2, SIZE, SIZE),
+    type: 'sticky',
+    content: '',
+    color: tool.stickyColor,
+    fontSize: 16,
+    textAlign: 'left',
+  };
+}
+
+function makeText(pos: { x: number; y: number }): WBText {
+  return {
+    ...baseElement(pos.x, pos.y - 12, 200, 28),
+    type: 'text',
+    content: '',
+    fontSize: 16,
+    fontFamily: 'sans',
+    textColor: 'ink',
+    textAlign: 'left',
+  };
+}
+
+function makeShape(rect: { x: number; y: number; w: number; h: number }, tool: WBToolState): WBElement | null {
+  const base = {
+    ...baseElement(rect.x, rect.y, rect.w, rect.h),
+    strokeColor: tool.strokeColor,
+    strokeWidth: 'normal' as const,
+    strokeStyle: 'solid' as const,
+    roughness: tool.roughness,
+    fillColor: tool.fillColor,
+    fillStyle: (tool.fillColor === 'none' ? 'none' : 'solid') as 'none' | 'solid',
+  };
+  switch (tool.shapeKind) {
+    case 'rect':     return { ...base, type: 'rect', cornerRadius: 6 } as WBRect;
+    case 'ellipse':  return { ...base, type: 'ellipse' };
+    case 'diamond':  return { ...base, type: 'diamond' };
+    case 'triangle': return { ...base, type: 'triangle' };
+    case 'speech':   return { ...base, type: 'speech', tailDirection: 'bl' };
+    default:         return null;
+  }
+}
+
+function makeLineOrArrow(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  arrow: boolean,
+  tool: WBToolState,
+): WBLine | WBArrow {
+  const x = Math.min(start.x, end.x);
+  const y = Math.min(start.y, end.y);
+  const w = Math.abs(end.x - start.x);
+  const h = Math.abs(end.y - start.y);
+  const points: Array<[number, number]> = [[start.x, start.y], [end.x, end.y]];
+  const base = {
+    ...baseElement(x, y, w || 1, h || 1),
+    strokeColor: tool.strokeColor,
+    strokeWidth: 'normal' as const,
+    strokeStyle: (tool.lineKind === 'arrow-dashed' ? 'dashed' : 'solid') as 'dashed' | 'solid',
+    roughness: tool.roughness,
+    points,
+  };
+  if (!arrow) {
+    return { ...base, type: 'line' };
+  }
+  return {
+    ...base,
+    type: 'arrow',
+    startArrow: 'none',
+    endArrow: 'arrow',
+    curve: tool.lineKind === 'arrow-curved' ? 'curved'
+         : tool.lineKind === 'arrow-elbow' ? 'elbow' : 'straight',
+  };
+}
+
+function makeFreedraw(points: Array<[number, number]>, tool: WBToolState): WBFreedraw {
+  const xs = points.map((p) => p[0]);
+  const ys = points.map((p) => p[1]);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  const w = Math.max(...xs) - x || 1;
+  const h = Math.max(...ys) - y || 1;
+  return {
+    ...baseElement(x, y, w, h),
+    type: 'freedraw',
+    strokeColor: tool.penColor,
+    strokeWidth: tool.penWidth,
+    strokeStyle: 'solid',
+    roughness: 0,
+    points,
+  };
+}
+
+// ──────────────────────────────────────────
+// 그리는 중 임시 ghost SVG
+function renderGhost(interaction: Interaction, tool: WBToolState): React.ReactNode {
+  if (interaction.kind === 'creating') {
+    const r = rectFromPoints(interaction.start, interaction.current);
+    if (r.w < 1 || r.h < 1) return null;
+    const ghostEl = makeShape(r, tool);
+    if (!ghostEl) return null;
+    return <g opacity={0.6}><WBElementRenderer el={ghostEl} /></g>;
+  }
+  if (interaction.kind === 'drawing-line') {
+    const ghostEl = makeLineOrArrow(interaction.start, interaction.current, interaction.arrow, tool);
+    return <g opacity={0.7}><WBElementRenderer el={ghostEl} /></g>;
+  }
+  if (interaction.kind === 'pen' && interaction.points.length >= 2) {
+    const ghostEl = makeFreedraw(interaction.points, tool);
+    return <WBElementRenderer el={ghostEl} />;
+  }
+  return null;
+}
+
+// ──────────────────────────────────────────
+// 인라인 텍스트 편집 — sticky/text/shape 안 텍스트
+function InlineEditor({
+  element,
+  viewport,
+  container,
+  onCommit,
+  onCancel,
+}: {
+  element: WBElement;
+  viewport: WBViewport;
+  container: HTMLDivElement | null;
+  onCommit: (content: string) => void;
+  onCancel: () => void;
+}) {
+  const initial =
+    element.type === 'sticky' ? element.content
+    : element.type === 'text' ? element.content
+    : ('text' in element ? element.text ?? '' : '');
+  const [value, setValue] = useState(initial);
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+  // 한글 IME 진행 여부
+  const composingRef = useRef(false);
+
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
+
+  if (!container) return null;
+  const rect = container.getBoundingClientRect();
+  const sx = (element.x - viewport.x) * viewport.zoom;
+  const sy = (element.y - viewport.y) * viewport.zoom;
+  const sw = element.w * viewport.zoom;
+  const sh = element.h * viewport.zoom;
+
+  // 스티키면 안쪽 패딩
+  const padding = element.type === 'sticky' ? 12 : 4;
+  const tone =
+    element.type === 'sticky'
+      ? WB_STICKY_BG[element.color]
+      : { bg: 'transparent', border: 'transparent', text: 'hsl(0 0% 15%)' };
+
+  const fontSize =
+    element.type === 'sticky' ? element.fontSize
+    : element.type === 'text' ? element.fontSize
+    : ('fontSize' in element ? element.fontSize ?? 16 : 16);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onCompositionStart={() => { composingRef.current = true; }}
+      onCompositionEnd={() => { composingRef.current = false; }}
+      onKeyDown={(e) => {
+        // 한글 IME 진행 중 Enter/Esc 무시
+        if (composingRef.current || e.nativeEvent.isComposing || e.keyCode === 229) return;
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          onCancel();
+        } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          onCommit(value);
+        }
+        // 캔버스 단축키 차단
+        e.stopPropagation();
+      }}
+      onBlur={() => onCommit(value)}
+      style={{
+        position: 'absolute',
+        left: rect.left + sx + padding,
+        top: rect.top + sy + padding,
+        width: sw - padding * 2,
+        height: sh - padding * 2,
+        background: tone.bg,
+        border: 'none',
+        outline: '2px solid hsl(217 91% 55% / 0.5)',
+        outlineOffset: 2,
+        borderRadius: 4,
+        padding: 4,
+        color: tone.text,
+        fontSize,
+        fontFamily: 'inherit',
+        textAlign: element.type === 'sticky' || element.type === 'text' ? (element as { textAlign?: 'left' | 'center' | 'right' }).textAlign ?? 'left' : 'center',
+        resize: 'none',
+        lineHeight: 1.4,
+        zIndex: 1000,
+      }}
+      placeholder={element.type === 'sticky' ? '내용을 입력하세요' : '텍스트…'}
+    />
+  );
 }
