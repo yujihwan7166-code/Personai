@@ -44,14 +44,21 @@ const DEFAULT_TOOL: WBToolState = {
 
 const DEFAULT_VIEWPORT: WBViewport = { x: 0, y: 0, zoom: 1 };
 
+export type WBGridType = 'dot' | 'line' | 'none';
+export type WBBgColor = 'cream' | 'white' | 'dark';
+
 interface WBSettings {
   activeBoardId: string | null;
   tool: WBToolState;
+  gridType: WBGridType;
+  bgColor: WBBgColor;
 }
 
 const DEFAULT_SETTINGS: WBSettings = {
   activeBoardId: null,
   tool: DEFAULT_TOOL,
+  gridType: 'dot',
+  bgColor: 'cream',
 };
 
 // ──────────────────────────────────────────
@@ -324,6 +331,14 @@ export function setActiveBoardId(id: string | null): void {
 export function setTool(patch: Partial<WBToolState>): void {
   const cur = ensureSettings();
   commitSettings({ ...cur, tool: { ...cur.tool, ...patch } });
+}
+export function setBoardGridType(gridType: WBGridType): void {
+  const cur = ensureSettings();
+  commitSettings({ ...cur, gridType });
+}
+export function setBoardBgColor(bgColor: WBBgColor): void {
+  const cur = ensureSettings();
+  commitSettings({ ...cur, bgColor });
 }
 
 // ──────────────────────────────────────────

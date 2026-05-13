@@ -57,6 +57,8 @@ import {
   renameFolder,
   restoreBoard,
   setActiveBoardId,
+  setBoardBgColor,
+  setBoardGridType,
   setElements,
   setTool,
   setViewport,
@@ -152,6 +154,8 @@ export default function Whiteboard() {
             elements={boardData?.elements ?? []}
             viewport={boardData?.viewport ?? { x: 0, y: 0, zoom: 1 }}
             toolState={settings.tool}
+            gridType={settings.gridType}
+            bgColor={settings.bgColor}
           />
         ) : (
           <EmptyMain />
@@ -544,11 +548,15 @@ function BoardCanvas({
   elements,
   viewport,
   toolState,
+  gridType,
+  bgColor,
 }: {
   board: WBBoard;
   elements: WBElement[];
   viewport: WBViewport;
   toolState: WBToolState;
+  gridType: 'dot' | 'line' | 'none';
+  bgColor: 'cream' | 'white' | 'dark';
 }) {
   const tool = toolState.kind;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -640,6 +648,61 @@ function BoardCanvas({
     );
     setElements(board.id, next);
   }, [board.id, elements, selection]);
+
+  // 그룹 / 그룹 해제 / 잠금 토글
+  const doGroup = useCallback(() => {
+    if (selection.size < 2) return;
+    const groupId = `g_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const next = elements.map((el) =>
+      selection.has(el.id)
+        ? { ...el, groupIds: [...el.groupIds, groupId], updatedAt: Date.now() }
+        : el,
+    );
+    setElements(board.id, next);
+    pushSnapshot(board.id, next);
+  }, [board.id, elements, selection]);
+
+  const doUngroup = useCallback(() => {
+    if (selection.size === 0) return;
+    // 선택된 요소들의 가장 마지막(최상위) 그룹을 해제
+    const lastGroups = new Set<string>();
+    for (const el of elements) {
+      if (selection.has(el.id) && el.groupIds.length > 0) {
+        lastGroups.add(el.groupIds[el.groupIds.length - 1]);
+      }
+    }
+    if (lastGroups.size === 0) return;
+    const next = elements.map((el) => ({
+      ...el,
+      groupIds: el.groupIds.filter((g) => !lastGroups.has(g)),
+      updatedAt: Date.now(),
+    }));
+    setElements(board.id, next);
+    pushSnapshot(board.id, next);
+  }, [board.id, elements, selection]);
+
+  const doToggleLock = useCallback(() => {
+    if (selection.size === 0) return;
+    const anyUnlocked = elements.some((el) => selection.has(el.id) && !el.locked);
+    const next = elements.map((el) =>
+      selection.has(el.id) ? { ...el, locked: anyUnlocked, updatedAt: Date.now() } : el,
+    );
+    setElements(board.id, next);
+    pushSnapshot(board.id, next);
+  }, [board.id, elements, selection]);
+
+  // 그룹 확장 — 한 멤버 클릭 시 동일 그룹 전체 선택
+  const expandGroupSelection = useCallback((id: string, baseSelection?: Set<string>): Set<string> => {
+    const el = elements.find((x) => x.id === id);
+    if (!el || el.groupIds.length === 0) return new Set(baseSelection ?? [id]);
+    const lastGroup = el.groupIds[el.groupIds.length - 1];
+    const groupMembers = elements
+      .filter((x) => x.groupIds.includes(lastGroup))
+      .map((x) => x.id);
+    const next = new Set(baseSelection ?? []);
+    for (const mid of groupMembers) next.add(mid);
+    return next;
+  }, [elements]);
 
   const changeZOrder = useCallback((mode: 'front' | 'back' | 'forward' | 'backward') => {
     if (selection.size === 0) return;
@@ -749,6 +812,9 @@ function BoardCanvas({
           return;
         }
         if (k === 'd') { e.preventDefault(); duplicateSelected(); return; }
+        if (k === 'g' && !e.shiftKey) { e.preventDefault(); doGroup(); return; }
+        if (k === 'g' && e.shiftKey)  { e.preventDefault(); doUngroup(); return; }
+        if (k === 'l') { e.preventDefault(); doToggleLock(); return; }
         if (k === 'c') { e.preventDefault(); copySelected(); return; }
         if (k === 'v') { e.preventDefault(); pasteClipboard(); return; }
         if (k === 'x') { e.preventDefault(); copySelected(); removeElements(board.id, [...selection]); setSelection(new Set()); pushSnapshot(board.id, elements.filter((el) => !selection.has(el.id))); return; }
@@ -779,7 +845,7 @@ function BoardCanvas({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [board.id, editingId, elements, interaction, selection, contextMenu, doUndo, doRedo, duplicateSelected, copySelected, pasteClipboard, moveSelected, changeZOrder]);
+  }, [board.id, editingId, elements, interaction, selection, contextMenu, doUndo, doRedo, duplicateSelected, copySelected, pasteClipboard, moveSelected, changeZOrder, doGroup, doUngroup, doToggleLock]);
 
   // 화면 좌표 → world
   const toWorld = useCallback((clientX: number, clientY: number) => {
@@ -928,13 +994,18 @@ function BoardCanvas({
         if (e.shiftKey) {
           setSelection((prev) => {
             const next = new Set(prev);
-            if (next.has(hit.id)) next.delete(hit.id);
-            else next.add(hit.id);
+            // 그룹 전체 토글
+            const groupMembers = expandGroupSelection(hit.id);
+            const allIn = [...groupMembers].every((id) => next.has(id));
+            if (allIn) for (const id of groupMembers) next.delete(id);
+            else for (const id of groupMembers) next.add(id);
             return next;
           });
           return;
         }
-        const nextSelection = selection.has(hit.id) ? selection : new Set([hit.id]);
+        // 단일 클릭 — 그룹 자동 확장
+        const groupMembers = expandGroupSelection(hit.id);
+        const nextSelection = selection.has(hit.id) ? selection : groupMembers;
         if (!selection.has(hit.id)) setSelection(nextSelection);
         const origin = new Map<string, { x: number; y: number }>();
         for (const el of elements) {
@@ -1263,6 +1334,12 @@ function BoardCanvas({
       <div
         ref={containerRef}
         className={cn('absolute inset-0 select-none', cursorClass)}
+        style={{
+          background:
+            bgColor === 'white' ? 'white'
+            : bgColor === 'dark' ? 'hsl(220 10% 14%)'
+            : undefined,  // cream = 기본 bg-background
+        }}
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -1308,16 +1385,26 @@ function BoardCanvas({
               height={gridSize}
               patternUnits="userSpaceOnUse"
             >
-              <circle cx={1} cy={1} r={0.8} fill="hsl(var(--foreground) / 0.10)" />
+              <circle cx={1} cy={1} r={0.8} fill={bgColor === 'dark' ? 'hsl(0 0% 100% / 0.10)' : 'hsl(var(--foreground) / 0.10)'} />
+            </pattern>
+            <pattern
+              id="wb-linegrid"
+              x={0}
+              y={0}
+              width={gridSize}
+              height={gridSize}
+              patternUnits="userSpaceOnUse"
+            >
+              <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke={bgColor === 'dark' ? 'hsl(0 0% 100% / 0.06)' : 'hsl(var(--foreground) / 0.06)'} strokeWidth="0.6" />
             </pattern>
           </defs>
-          {size.w > 0 && (
+          {size.w > 0 && gridType !== 'none' && (
             <rect
               x={viewport.x}
               y={viewport.y}
               width={size.w / viewport.zoom}
               height={size.h / viewport.zoom}
-              fill="url(#wb-dotgrid)"
+              fill={`url(#wb-${gridType}grid)`}
             />
           )}
           {/* 요소 레이어 */}
@@ -1674,7 +1761,14 @@ function BoardCanvas({
 }
 
 // ──────────────────────────────────────────
-function BoardHeader({ board, onExport }: { board: WBBoard; onExport: (format: 'png' | 'svg' | 'json') => void }) {
+function BoardHeader({
+  board,
+  onExport,
+}: {
+  board: WBBoard;
+  onExport: (format: 'png' | 'svg' | 'json') => void;
+}) {
+  const settings = useSettings();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(board.name);
   useEffect(() => { setDraft(board.name); }, [board.name]);
@@ -1720,6 +1814,40 @@ function BoardHeader({ board, onExport }: { board: WBBoard; onExport: (format: '
               <Copy className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
               복제
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">배경·그리드</div>
+            <div className="flex items-center gap-1 px-2 pb-1.5">
+              {(['cream', 'white', 'dark'] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setBoardBgColor(c)}
+                  className={cn(
+                    'flex-1 h-7 rounded border-2 transition-colors',
+                    settings.bgColor === c ? 'border-primary' : 'border-transparent hover:border-foreground/20',
+                  )}
+                  style={{
+                    background: c === 'white' ? 'white' : c === 'dark' ? 'hsl(220 10% 14%)' : 'hsl(40 25% 97%)',
+                  }}
+                  title={c}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-1 px-2 pb-1.5">
+              {(['dot', 'line', 'none'] as const).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setBoardGridType(g)}
+                  className={cn(
+                    'flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                    settings.gridType === g ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                  )}
+                >
+                  {g === 'dot' ? '도트' : g === 'line' ? '격자' : '없음'}
+                </button>
+              ))}
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onExport('png')}>
               <ArrowLeft className="w-3.5 h-3.5 mr-2 rotate-180" strokeWidth={1.75} />
