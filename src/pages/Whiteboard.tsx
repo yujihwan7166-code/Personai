@@ -552,6 +552,8 @@ function BoardCanvas({
   const [interaction, setInteraction] = useState<Interaction>({ kind: 'idle' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
+  const [immersive, setImmersive] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ clientX: number; clientY: number; ids: string[] } | null>(null);
 
   // 컨테이너 사이즈 추적
   useEffect(() => {
@@ -697,10 +699,17 @@ function BoardCanvas({
       };
       const shapeKey: Record<string, WBToolState['shapeKind']> = { o: 'ellipse', d: 'diamond' };
       if (e.key === 'Escape') {
+        if (contextMenu) { setContextMenu(null); return; }
         if (editingId) { setEditingId(null); return; }
         if (interaction.kind !== 'idle') { setInteraction({ kind: 'idle' }); return; }
         if (selection.size > 0) { setSelection(new Set()); return; }
         setTool({ kind: 'select' });
+        return;
+      }
+      // Tab — 몰입 모드 (플로팅 UI 토글)
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        setImmersive((v) => !v);
         return;
       }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selection.size > 0) {
@@ -760,7 +769,7 @@ function BoardCanvas({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [board.id, editingId, elements, interaction, selection, doUndo, doRedo, duplicateSelected, copySelected, pasteClipboard, moveSelected, changeZOrder]);
+  }, [board.id, editingId, elements, interaction, selection, contextMenu, doUndo, doRedo, duplicateSelected, copySelected, pasteClipboard, moveSelected, changeZOrder]);
 
   // 화면 좌표 → world
   const toWorld = useCallback((clientX: number, clientY: number) => {
@@ -1113,6 +1122,15 @@ function BoardCanvas({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          const wp = toWorld(e.clientX, e.clientY);
+          const hit = findElementAt(elements, wp.x, wp.y);
+          if (hit && !selection.has(hit.id)) setSelection(new Set([hit.id]));
+          const ids = hit ? (selection.has(hit.id) ? [...selection] : [hit.id]) : [...selection];
+          if (ids.length === 0) return;
+          setContextMenu({ clientX: e.clientX, clientY: e.clientY, ids });
+        }}
       >
         <svg
           width="100%"
@@ -1247,44 +1265,121 @@ function BoardCanvas({
         })()}
       </div>
 
-      {/* 좌상 — 보드 헤더 */}
-      <BoardHeader board={board} />
+      {/* 플로팅 UI — Tab 으로 토글 (몰입 모드) */}
+      <div
+        className={cn(
+          'pointer-events-none absolute inset-0 transition-opacity duration-200',
+          immersive ? 'opacity-0' : 'opacity-100',
+        )}
+        aria-hidden={immersive}
+      >
+        <div className="pointer-events-auto contents">
+          {/* 좌상 — 보드 헤더 */}
+          <BoardHeader board={board} />
 
-      {/* 우상 — PageSwitcher */}
-      <div className="absolute right-4 top-4">
-        <PageSwitcher current="whiteboard" />
+          {/* 우상 — PageSwitcher */}
+          <div className="absolute right-4 top-4">
+            <PageSwitcher current="whiteboard" />
+          </div>
+
+          {/* 좌측 세로 — 도구 팔레트 */}
+          <ToolPalette active={tool} />
+
+          {/* ContextualPanel — 선택 시 등장 */}
+          {selection.size > 0 && !editingId && (
+            <ContextualPanel
+              boardId={board.id}
+              elements={elements}
+              selection={selection}
+              onClearSelection={() => setSelection(new Set())}
+              onChangeZ={changeZOrder}
+              onDuplicate={duplicateSelected}
+              onDelete={() => {
+                removeElements(board.id, [...selection]);
+                setSelection(new Set());
+                pushSnapshot(board.id, elements.filter((el) => !selection.has(el.id)));
+              }}
+            />
+          )}
+
+          {/* 좌하 — 줌 컨트롤 */}
+          <div className="absolute left-4 bottom-4">
+            <FloatingCard className="flex items-center gap-0.5 px-1 h-9">
+              <ZoomBtn icon={ZoomOut} label="축소" onClick={() => zoomBy(1 / 1.2)} />
+              <span
+                className="px-2 text-[11.5px] font-medium tabular-nums text-foreground/80 min-w-[44px] text-center cursor-pointer"
+                onClick={zoomReset}
+                title="100% 로 리셋"
+              >
+                {Math.round(viewport.zoom * 100)}%
+              </span>
+              <ZoomBtn icon={ZoomIn} label="확대" onClick={() => zoomBy(1.2)} />
+              <div className="w-px h-4 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
+              <ZoomBtn icon={Maximize2} label="전체 보기" onClick={zoomReset} />
+            </FloatingCard>
+          </div>
+
+          {/* 우하 — 도움말 */}
+          <HelpFloating />
+
+          {/* 우하 상태 — undo/redo */}
+          <div className="absolute right-16 bottom-4 flex items-center gap-1">
+            <FloatingCard className="flex items-center gap-0.5 px-1 h-9">
+              <UndoBtn enabled={canUndo(board.id)} onClick={doUndo} />
+              <RedoBtn enabled={canRedo(board.id)} onClick={doRedo} />
+            </FloatingCard>
+          </div>
+        </div>
       </div>
 
-      {/* 좌측 세로 — 도구 팔레트 */}
-      <ToolPalette active={tool} />
+      {/* 몰입 모드 안내 (Tab 표시) */}
+      {immersive && (
+        <button
+          type="button"
+          onClick={() => setImmersive(false)}
+          className="absolute right-4 top-4 text-[11px] text-muted-foreground/60 hover:text-foreground/80 bg-card/70 backdrop-blur-sm px-2 py-1 rounded transition-colors"
+          title="Tab 으로 UI 다시 보기"
+        >
+          Tab 으로 UI 켜기
+        </button>
+      )}
 
-      {/* 좌하 — 줌 컨트롤 */}
-      <div className="absolute left-4 bottom-4">
-        <FloatingCard className="flex items-center gap-0.5 px-1 h-9">
-          <ZoomBtn icon={ZoomOut} label="축소" onClick={() => zoomBy(1 / 1.2)} />
-          <span
-            className="px-2 text-[11.5px] font-medium tabular-nums text-foreground/80 min-w-[44px] text-center cursor-pointer"
-            onClick={zoomReset}
-            title="100% 로 리셋"
-          >
-            {Math.round(viewport.zoom * 100)}%
-          </span>
-          <ZoomBtn icon={ZoomIn} label="확대" onClick={() => zoomBy(1.2)} />
-          <div className="w-px h-4 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
-          <ZoomBtn icon={Maximize2} label="전체 보기" onClick={zoomReset} />
-        </FloatingCard>
-      </div>
-
-      {/* 우하 — 도움말 */}
-      <HelpFloating />
-
-      {/* 우하 상태 — undo/redo 가능 표시 (사용자 메모리 보조) */}
-      <div className="absolute right-16 bottom-4 flex items-center gap-1">
-        <FloatingCard className="flex items-center gap-0.5 px-1 h-9">
-          <UndoBtn enabled={canUndo(board.id)} onClick={doUndo} />
-          <RedoBtn enabled={canRedo(board.id)} onClick={doRedo} />
-        </FloatingCard>
-      </div>
+      {/* 우클릭 컨텍스트 메뉴 */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.clientX}
+          y={contextMenu.clientY}
+          ids={contextMenu.ids}
+          boardId={board.id}
+          elements={elements}
+          onClose={() => setContextMenu(null)}
+          onDuplicate={() => { duplicateSelected(); setContextMenu(null); }}
+          onCopy={() => { copySelected(); setContextMenu(null); }}
+          onPaste={() => { pasteClipboard(); setContextMenu(null); }}
+          onCut={() => {
+            copySelected();
+            removeElements(board.id, contextMenu.ids);
+            setSelection(new Set());
+            pushSnapshot(board.id, elements.filter((el) => !contextMenu.ids.includes(el.id)));
+            setContextMenu(null);
+          }}
+          onChangeZ={(mode) => { changeZOrder(mode); setContextMenu(null); }}
+          onToggleLock={() => {
+            const next = elements.map((el) =>
+              contextMenu.ids.includes(el.id) ? { ...el, locked: !el.locked, updatedAt: Date.now() } : el,
+            );
+            setElements(board.id, next);
+            pushSnapshot(board.id, next);
+            setContextMenu(null);
+          }}
+          onDelete={() => {
+            removeElements(board.id, contextMenu.ids);
+            setSelection(new Set());
+            pushSnapshot(board.id, elements.filter((el) => !contextMenu.ids.includes(el.id)));
+            setContextMenu(null);
+          }}
+        />
+      )}
     </>
   );
 }
@@ -1740,6 +1835,258 @@ function HelpFloating() {
   );
 }
 
+// ──────────────────────────────────────────
+// ContextualPanel — 선택 요소 액션 (하단 가운데 떠다님)
+function ContextualPanel({
+  boardId,
+  elements,
+  selection,
+  onClearSelection,
+  onChangeZ,
+  onDuplicate,
+  onDelete,
+}: {
+  boardId: string;
+  elements: WBElement[];
+  selection: Set<string>;
+  onClearSelection: () => void;
+  onChangeZ: (mode: 'front' | 'back' | 'forward' | 'backward') => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const selected = elements.filter((el) => selection.has(el.id));
+  const single = selected.length === 1 ? selected[0] : null;
+  const isLocked = selected.some((el) => el.locked);
+
+  return (
+    <div className="absolute left-1/2 -translate-x-1/2 bottom-4 z-10">
+      <FloatingCard className="flex items-center gap-0.5 px-1.5 h-10">
+        {/* 색 — 단일 선택 시 (도형/스티키만) */}
+        {single && (single.type === 'sticky') && (
+          <div className="flex items-center gap-0.5 px-1">
+            {(['amber', 'pink', 'mint', 'sky', 'lavender', 'slate'] as const).map((c) => {
+              const tone = WB_STICKY_BG[c];
+              const isActive = single.color === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    updateElement(boardId, single.id, { color: c });
+                    pushSnapshot(boardId, elements.map((el) => el.id === single.id ? { ...el, color: c, updatedAt: Date.now() } : el));
+                  }}
+                  className={cn(
+                    'w-6 h-6 rounded-md transition-transform border-2',
+                    isActive ? 'border-primary scale-110' : 'border-transparent hover:scale-110',
+                  )}
+                  style={{ background: tone.bg, borderColor: isActive ? undefined : tone.border }}
+                  title={c}
+                  aria-label={c}
+                />
+              );
+            })}
+            <div className="w-px h-5 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
+          </div>
+        )}
+        {/* z-order */}
+        <PanelBtn icon="bringToFront" label="맨 앞" onClick={() => onChangeZ('front')} />
+        <PanelBtn icon="bringForward" label="한 칸 앞" onClick={() => onChangeZ('forward')} />
+        <PanelBtn icon="sendBackward" label="한 칸 뒤" onClick={() => onChangeZ('backward')} />
+        <PanelBtn icon="sendToBack" label="맨 뒤" onClick={() => onChangeZ('back')} />
+        <div className="w-px h-5 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
+        {/* 복제 */}
+        <button
+          type="button"
+          onClick={onDuplicate}
+          className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          title="복제 (Ctrl+D)"
+        >
+          <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />
+        </button>
+        {/* 잠금 */}
+        <button
+          type="button"
+          onClick={() => {
+            // 잠금 토글 (다중 선택 가능, 모두 동일 상태로)
+            const targetLocked = !isLocked;
+            const next = elements.map((el) =>
+              selection.has(el.id) ? { ...el, locked: targetLocked, updatedAt: Date.now() } : el,
+            );
+            setElements(boardId, next);
+            pushSnapshot(boardId, next);
+          }}
+          className={cn(
+            'w-7 h-7 rounded flex items-center justify-center transition-colors',
+            isLocked ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+          )}
+          title={isLocked ? '잠금 해제 (Ctrl+L)' : '잠금 (Ctrl+L)'}
+        >
+          {isLocked ? '🔒' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>}
+        </button>
+        <div className="w-px h-5 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
+        {/* 삭제 */}
+        <button
+          type="button"
+          onClick={onDelete}
+          className="w-7 h-7 rounded flex items-center justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-colors"
+          title="삭제 (Del)"
+        >
+          <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+        </button>
+        <div className="w-px h-5 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
+        {/* 선택 해제 */}
+        <button
+          type="button"
+          onClick={onClearSelection}
+          className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          title="선택 해제 (Esc)"
+        >
+          ✕
+        </button>
+        <span className="text-[10.5px] text-muted-foreground/80 tabular-nums px-1">{selection.size}개</span>
+      </FloatingCard>
+    </div>
+  );
+}
+
+function PanelBtn({ icon, label, onClick }: { icon: 'bringToFront' | 'bringForward' | 'sendBackward' | 'sendToBack'; label: string; onClick: () => void }) {
+  const path = (() => {
+    switch (icon) {
+      case 'bringToFront':  return <><rect x="3" y="3" width="12" height="12" rx="1" fill="currentColor" opacity="0.3"/><rect x="9" y="9" width="12" height="12" rx="1" fill="currentColor"/></>;
+      case 'bringForward':  return <><rect x="3" y="3" width="12" height="12" rx="1"/><rect x="9" y="9" width="12" height="12" rx="1" fill="currentColor"/></>;
+      case 'sendBackward':  return <><rect x="3" y="3" width="12" height="12" rx="1" fill="currentColor"/><rect x="9" y="9" width="12" height="12" rx="1"/></>;
+      case 'sendToBack':    return <><rect x="3" y="3" width="12" height="12" rx="1" fill="currentColor"/><rect x="9" y="9" width="12" height="12" rx="1" fill="currentColor" opacity="0.3"/></>;
+    }
+  })();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      title={label}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{path}</svg>
+    </button>
+  );
+}
+
+// ──────────────────────────────────────────
+// 우클릭 컨텍스트 메뉴
+function ContextMenu({
+  x,
+  y,
+  ids,
+  elements,
+  onClose,
+  onDuplicate,
+  onCopy,
+  onPaste,
+  onCut,
+  onChangeZ,
+  onToggleLock,
+  onDelete,
+}: {
+  x: number;
+  y: number;
+  ids: string[];
+  boardId: string;
+  elements: WBElement[];
+  onClose: () => void;
+  onDuplicate: () => void;
+  onCopy: () => void;
+  onPaste: () => void;
+  onCut: () => void;
+  onChangeZ: (mode: 'front' | 'back' | 'forward' | 'backward') => void;
+  onToggleLock: () => void;
+  onDelete: () => void;
+}) {
+  const targets = elements.filter((el) => ids.includes(el.id));
+  const isLocked = targets.some((el) => el.locked);
+  const isSticky = targets.length === 1 && targets[0].type === 'sticky';
+
+  // 외부 클릭 시 닫기
+  useEffect(() => {
+    const onDocDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-wb-context-menu]')) onClose();
+    };
+    window.addEventListener('pointerdown', onDocDown);
+    return () => window.removeEventListener('pointerdown', onDocDown);
+  }, [onClose]);
+
+  return (
+    <div
+      data-wb-context-menu
+      className="fixed z-50 bg-card border border-[hsl(var(--hairline))] rounded-md shadow-lg py-1 min-w-[200px]"
+      style={{ left: x, top: y }}
+    >
+      <CMItem onClick={onDuplicate} label="복제" shortcut="Ctrl+D" />
+      <CMItem onClick={onCopy}      label="복사" shortcut="Ctrl+C" />
+      <CMItem onClick={onCut}       label="잘라내기" shortcut="Ctrl+X" />
+      <CMItem onClick={onPaste}     label="붙여넣기" shortcut="Ctrl+V" />
+      <CMSep />
+      <CMItem onClick={() => onChangeZ('front')}    label="맨 앞으로"  shortcut="Ctrl+Shift+]" />
+      <CMItem onClick={() => onChangeZ('forward')}  label="한 칸 앞"   shortcut="Ctrl+]" />
+      <CMItem onClick={() => onChangeZ('backward')} label="한 칸 뒤"   shortcut="Ctrl+[" />
+      <CMItem onClick={() => onChangeZ('back')}     label="맨 뒤로"    shortcut="Ctrl+Shift+[" />
+      <CMSep />
+      <CMItem onClick={onToggleLock} label={isLocked ? '잠금 해제' : '잠금'} shortcut="Ctrl+L" />
+      {isSticky && (
+        <>
+          <CMSep />
+          {/* Phase 3 통합 자리잡이 — 비활성 */}
+          <CMItem disabled label="메모로 보내기" hint="준비 중" />
+          <CMItem disabled label="위키 페이지로 변환" hint="준비 중" />
+          <CMItem disabled label="플래너 할일로" hint="준비 중" />
+        </>
+      )}
+      <CMSep />
+      <CMItem onClick={onDelete} label="삭제" shortcut="Del" danger />
+    </div>
+  );
+}
+
+function CMItem({
+  onClick,
+  label,
+  shortcut,
+  hint,
+  danger,
+  disabled,
+}: {
+  onClick?: () => void;
+  label: string;
+  shortcut?: string;
+  hint?: string;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={cn(
+        'w-full flex items-center gap-3 px-3 py-1.5 text-[12.5px] text-left transition-colors',
+        disabled
+          ? 'text-muted-foreground/40 cursor-not-allowed'
+          : danger
+            ? 'text-destructive hover:bg-destructive/10'
+            : 'text-foreground hover:bg-accent',
+      )}
+    >
+      <span className="flex-1 truncate">{label}</span>
+      {shortcut && !disabled && <span className="text-[10px] font-mono text-muted-foreground/70">{shortcut}</span>}
+      {hint && <span className="text-[10px] text-muted-foreground/60">{hint}</span>}
+    </button>
+  );
+}
+
+function CMSep() {
+  return <div className="my-1 h-px bg-[hsl(var(--hairline))]" aria-hidden />;
+}
+
+// ──────────────────────────────────────────
 function ShortcutGroup({ title, items }: { title: string; items: Array<[string, string]> }) {
   return (
     <div className="mb-3">
