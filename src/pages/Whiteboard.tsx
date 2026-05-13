@@ -94,6 +94,7 @@ import {
 import { WB_STICKY_BG } from '@/lib/whiteboard/colors';
 import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
 import { alignElements, computeSnap, distributeElements, type AlignMode, type DistributeMode, type Guide } from '@/lib/whiteboard/snapping';
+import { exportJSON, exportPNG, exportSVG } from '@/lib/whiteboard/export';
 
 // ──────────────────────────────────────────
 // 도구 정의
@@ -549,6 +550,7 @@ function BoardCanvas({
 }) {
   const tool = toolState.kind;
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [interaction, setInteraction] = useState<Interaction>({ kind: 'idle' });
@@ -1187,6 +1189,7 @@ function BoardCanvas({
         }}
       >
         <svg
+          ref={svgRef}
           width="100%"
           height="100%"
           viewBox={size.w > 0 ? viewBox : '0 0 1 1'}
@@ -1368,7 +1371,24 @@ function BoardCanvas({
       >
         <div className="pointer-events-auto contents">
           {/* 좌상 — 보드 헤더 */}
-          <BoardHeader board={board} />
+          <BoardHeader
+            board={board}
+            onExport={(format) => {
+              const svg = svgRef.current;
+              if (!svg) return;
+              const data = getBoardData(board.id);
+              if (format === 'png') {
+                exportPNG(svg, data.elements, board.name).catch(() =>
+                  notify.error('PNG 내보내기 실패'),
+                );
+              } else if (format === 'svg') {
+                exportSVG(svg, data.elements, board.name);
+              } else {
+                exportJSON(data, board.name);
+              }
+              notify.success(`${format.toUpperCase()} 내보냈어요`, { duration: 1500 });
+            }}
+          />
 
           {/* 우상 — PageSwitcher */}
           <div className="absolute right-4 top-4">
@@ -1503,7 +1523,7 @@ function BoardCanvas({
 }
 
 // ──────────────────────────────────────────
-function BoardHeader({ board }: { board: WBBoard }) {
+function BoardHeader({ board, onExport }: { board: WBBoard; onExport: (format: 'png' | 'svg' | 'json') => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(board.name);
   useEffect(() => { setDraft(board.name); }, [board.name]);
@@ -1548,6 +1568,19 @@ function BoardHeader({ board }: { board: WBBoard }) {
             <DropdownMenuItem onClick={() => { const dup = duplicateBoard(board.id); if (dup) notify.success('복제됨'); }}>
               <Copy className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
               복제
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onExport('png')}>
+              <ArrowLeft className="w-3.5 h-3.5 mr-2 rotate-180" strokeWidth={1.75} />
+              PNG 으로 내보내기
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('svg')}>
+              <ArrowLeft className="w-3.5 h-3.5 mr-2 rotate-180" strokeWidth={1.75} />
+              SVG 으로 내보내기
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport('json')}>
+              <ArrowLeft className="w-3.5 h-3.5 mr-2 rotate-180" strokeWidth={1.75} />
+              JSON 백업
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

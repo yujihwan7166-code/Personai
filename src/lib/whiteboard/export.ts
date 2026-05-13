@@ -1,0 +1,136 @@
+/**
+ * 화이트보드 — Export 유틸.
+ *
+ * - JSON: BoardData 그대로 직렬화 (백업·복원용)
+ * - SVG:  요소를 자체 SVG 마크업으로 출력 (브라우저 렌더와 동일하면 됨)
+ * - PNG:  SVG → canvas → dataURL (2× DPI)
+ */
+import type { WBBoardData, WBElement } from '@/types/whiteboard';
+
+const PADDING = 32;  // 요소 union bbox 주위 여백
+
+/**
+ * 모든 요소를 감싸는 bbox + 여백.
+ * 요소 없으면 800×600 default.
+ */
+function computeExportBBox(elements: WBElement[]): { x: number; y: number; w: number; h: number } {
+  if (elements.length === 0) {
+    return { x: 0, y: 0, w: 800, h: 600 };
+  }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const el of elements) {
+    if (el.x < minX) minX = el.x;
+    if (el.y < minY) minY = el.y;
+    if (el.x + el.w > maxX) maxX = el.x + el.w;
+    if (el.y + el.h > maxY) maxY = el.y + el.h;
+  }
+  return {
+    x: minX - PADDING,
+    y: minY - PADDING,
+    w: (maxX - minX) + PADDING * 2,
+    h: (maxY - minY) + PADDING * 2,
+  };
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+/** JSON export — BoardData 그대로. */
+export function exportJSON(boardData: WBBoardData, baseName: string): void {
+  const json = JSON.stringify(boardData, null, 2);
+  const safeName = baseName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+  downloadBlob(new Blob([json], { type: 'application/json' }), `${safeName}.json`);
+}
+
+/**
+ * 현재 화면에 렌더된 SVG 요소 노드를 그대로 가져와 export.
+ * - viewBox 를 export bbox 로 갱신
+ * - dot grid 및 선택·핸들·marquee 등은 제거
+ */
+function buildExportSVG(svgEl: SVGSVGElement, elements: WBElement[]): string {
+  const bbox = computeExportBBox(elements);
+  // svg 노드 clone
+  const clone = svgEl.cloneNode(true) as SVGSVGElement;
+  // viewBox / size 조정
+  clone.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.w} ${bbox.h}`);
+  clone.setAttribute('width', String(bbox.w));
+  clone.setAttribute('height', String(bbox.h));
+  // 배경 grid·선택·marquee·guide 제거 — 요소 g 만 남기기 위해
+  // defs(dotgrid) 와 첫 background rect 는 제거
+  const defs = clone.querySelector('defs');
+  if (defs) defs.remove();
+  const allRects = clone.querySelectorAll('rect[fill="url(#wb-dotgrid)"]');
+  allRects.forEach((r) => r.remove());
+  // selection·marquee 보조 (점선 stroke 컬러 hsl(217 91% 55%) 검사로 제거)
+  const auxLines = clone.querySelectorAll('line, rect, circle');
+  auxLines.forEach((node) => {
+    const stroke = node.getAttribute('stroke') ?? '';
+    const fill = node.getAttribute('fill') ?? '';
+    if (
+      (stroke.includes('217 91% 55%') && (node.getAttribute('stroke-dasharray') || node.tagName === 'circle')) ||
+      fill.includes('217 91% 55%') ||
+      stroke.includes('330 80% 60%')  // snap guide 자홍
+    ) {
+      node.remove();
+    }
+  });
+  // 배경색 (불투명 출력용)
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('x', String(bbox.x));
+  bg.setAttribute('y', String(bbox.y));
+  bg.setAttribute('width', String(bbox.w));
+  bg.setAttribute('height', String(bbox.h));
+  bg.setAttribute('fill', 'hsl(40 25% 97%)');  // wiki-warm-theme background
+  clone.insertBefore(bg, clone.firstChild);
+  // 출력 string
+  const serializer = new XMLSerializer();
+  return serializer.serializeToString(clone);
+}
+
+/** SVG export */
+export function exportSVG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string): void {
+  const svgString = buildExportSVG(svgEl, elements);
+  const safeName = baseName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+  downloadBlob(new Blob([svgString], { type: 'image/svg+xml' }), `${safeName}.svg`);
+}
+
+/** PNG export — 2× DPI */
+export async function exportPNG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string): Promise<void> {
+  const svgString = buildExportSVG(svgEl, elements);
+  const bbox = computeExportBBox(elements);
+  const scale = 2;
+  const W = Math.ceil(bbox.w * scale);
+  const H = Math.ceil(bbox.h * scale);
+
+  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas 2d context 실패');
+    ctx.fillStyle = 'hsl(40 25% 97%)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(img, 0, 0, W, H);
+    const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!pngBlob) throw new Error('PNG 변환 실패');
+    const safeName = baseName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+    downloadBlob(pngBlob, `${safeName}.png`);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
