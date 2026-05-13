@@ -1624,10 +1624,8 @@ export function MainModeTabs({
                                 triggerDailyBriefing();
                               });
                             } else if (item.id === 'whiteboard') {
-                              // 라우트 미구현 — 안내만.
-                              import('@/lib/notify').then(({ notify }) =>
-                                notify.info('화이트보드', { description: '준비 중이에요.' }),
-                              );
+                              setOpen(false);
+                              navigate('/whiteboard');
                             }
                           }}
                           role="menuitem"
