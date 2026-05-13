@@ -102,7 +102,7 @@ import {
 import { WB_STICKY_BG, WB_COLOR_HSL } from '@/lib/whiteboard/colors';
 import { WB_COLORS } from '@/types/whiteboard';
 import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
-import { findBindable, isBindable, resolveArrow } from '@/lib/whiteboard/binding';
+import { findBindable, isBindable, resolveArrow, syncAllBindings } from '@/lib/whiteboard/binding';
 import { buildTemplate, TEMPLATE_META, type WBTemplateKind } from '@/lib/whiteboard/templates';
 import { alignElements, computeSnap, distributeElements, type AlignMode, type DistributeMode, type Guide } from '@/lib/whiteboard/snapping';
 import { exportJSON, exportPNG, exportSVG } from '@/lib/whiteboard/export';
@@ -606,6 +606,7 @@ function BoardCanvas({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchIndex, setSearchIndex] = useState(0);
+  const [hoverElementId, setHoverElementId] = useState<string | null>(null);
 
   // 컨테이너 사이즈 추적
   useEffect(() => {
@@ -619,16 +620,35 @@ function BoardCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // 새 보드로 전환 시 선택·편집 초기화 + 초기 history snapshot
+  // 새 보드로 전환 시 선택·편집 초기화
   useEffect(() => {
     setSelection(new Set());
     setEditingId(null);
     setInteraction({ kind: 'idle' });
+    setHoverElementId(null);
     clearHistory(board.id);
-    pushSnapshot(board.id, elements);
-    // 의존: board.id 만 — 매 elements 변경 시 reset 안 함
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [board.id]);
+
+  // 초기 history snapshot — IDB 비동기 로드가 끝난 후 첫 elements 가 도착했을 때만 (per-board ref 로 1회 보장)
+  const historyInitRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (historyInitRef.current === board.id) return;
+    // EMPTY 상태(load 진행 중)에는 push 하지 않음 — IDB load 완료 신호로 elements 가 갱신될 때까지 대기
+    // 단, 진짜 빈 새 보드(addBoard 직후)는 elements 가 []이면서 IDB 캐시에도 즉시 들어가있음.
+    // 둘을 구별하기 위해 getBoardData(board.id) 결과의 reference 가 EMPTY 인지 검사 시도.
+    // 안전한 단순 휴리스틱: 첫 진입 후 50ms 안에 elements 가 도착하면 그걸로 init.
+    const timer = window.setTimeout(() => {
+      historyInitRef.current = board.id;
+      pushSnapshot(board.id, getBoardData(board.id).elements);
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [board.id, elements]);
+
+  // 도구 변경 시 hover state 초기화 (eraser → 다른 도구 전환 등)
+  useEffect(() => {
+    if (tool !== 'eraser') setHoverElementId(null);
+  }, [tool]);
 
   // 트랜잭션 끝 — history 에 스냅샷
   const commitHistory = useCallback(() => {
@@ -686,7 +706,10 @@ function BoardCanvas({
     setElements(board.id, next);
     if (moveCommitTimerRef.current) window.clearTimeout(moveCommitTimerRef.current);
     moveCommitTimerRef.current = window.setTimeout(() => {
-      pushSnapshot(board.id, getBoardData(board.id).elements);
+      const base = getBoardData(board.id).elements;
+      const synced = syncAllBindings(base);
+      if (synced !== base) setElements(board.id, synced);
+      pushSnapshot(board.id, synced);
       moveCommitTimerRef.current = null;
     }, 250);
   }, [board.id, elements, selection]);
@@ -1164,6 +1187,12 @@ function BoardCanvas({
 
   // ── pointer move ──────────────────────────
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    // hover 추적 — eraser tool 일 때만 활용 (다른 도구는 cursor 만으로 충분)
+    if (interaction.kind === 'idle' && tool === 'eraser') {
+      const wp = toWorld(e.clientX, e.clientY);
+      const hit = findElementAt(elements, wp.x, wp.y);
+      if (hit?.id !== hoverElementId) setHoverElementId(hit?.id ?? null);
+    }
     if (interaction.kind === 'idle') return;
     const wp = toWorld(e.clientX, e.clientY);
 
@@ -1404,8 +1433,13 @@ function BoardCanvas({
     setInteraction({ kind: 'idle' });
     setSnapGuides([]);
     if (shouldCommit) {
-      if (nextElements) pushSnapshot(board.id, nextElements);
-      else commitHistory();
+      // 위치 변경 후 — 묶인 화살표의 stored points 도 갱신해 저장 (undo/export 정합)
+      const base = nextElements ?? getBoardData(board.id).elements;
+      const synced = syncAllBindings(base);
+      if (synced !== base) {
+        setElements(board.id, synced);
+      }
+      pushSnapshot(board.id, synced);
     }
   };
 
@@ -1469,7 +1503,7 @@ function BoardCanvas({
   })();
 
   // 그리는 중 임시 요소
-  const ghost = renderGhost(interaction, toolState);
+  const ghost = renderGhost(interaction, toolState, elements);
 
   return (
     <>
@@ -1487,6 +1521,21 @@ function BoardCanvas({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onDoubleClick={(e) => {
+          // 더블클릭으로 편집 가능한 요소 진입 (sticky/text/도형/frame)
+          if (editingId) return;
+          const wp = toWorld(e.clientX, e.clientY);
+          const hit = findElementAt(elements, wp.x, wp.y);
+          if (!hit) return;
+          if (hit.type === 'sticky' || hit.type === 'text' ||
+              hit.type === 'rect' || hit.type === 'ellipse' ||
+              hit.type === 'diamond' || hit.type === 'triangle' ||
+              hit.type === 'speech' || hit.type === 'frame') {
+            e.preventDefault();
+            setSelection(new Set([hit.id]));
+            setEditingId(hit.id);
+          }
+        }}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
         onDrop={(e) => {
           e.preventDefault();
@@ -1552,13 +1601,63 @@ function BoardCanvas({
           {/* 요소 레이어 — viewport culling */}
           {visible.map((el) => {
             const erasing = interaction.kind === 'erasing' && interaction.ids.has(el.id);
+            const hoverErase = tool === 'eraser' && interaction.kind === 'idle' && hoverElementId === el.id;
             const dim = searchMatches && !searchMatches.has(el.id);
             return (
               <g
                 key={el.id}
-                opacity={erasing ? 0.3 : dim ? 0.18 : 1}
+                opacity={erasing ? 0.3 : hoverErase ? 0.5 : dim ? 0.18 : 1}
               >
                 <WBElementRenderer el={el} />
+              </g>
+            );
+          })}
+          {/* eraser hover preview — 빨간 outline */}
+          {tool === 'eraser' && interaction.kind === 'idle' && hoverElementId && (() => {
+            const el = elements.find((x) => x.id === hoverElementId);
+            if (!el) return null;
+            const cx = el.x + el.w / 2;
+            const cy = el.y + el.h / 2;
+            const tr = el.angle ? `rotate(${(el.angle * 180) / Math.PI} ${cx} ${cy})` : undefined;
+            return (
+              <rect
+                transform={tr}
+                x={el.x - 2 / viewport.zoom}
+                y={el.y - 2 / viewport.zoom}
+                width={el.w + 4 / viewport.zoom}
+                height={el.h + 4 / viewport.zoom}
+                fill="none"
+                stroke="hsl(0 72% 51%)"
+                strokeWidth={2 / viewport.zoom}
+                strokeDasharray={`${3 / viewport.zoom} ${3 / viewport.zoom}`}
+                pointerEvents="none"
+              />
+            );
+          })()}
+          {/* 잠긴 요소 — 우상단 자물쇠 배지 */}
+          {visible.filter((el) => el.locked).map((el) => {
+            const SZ = 14 / viewport.zoom;
+            const cx = el.x + el.w / 2;
+            const cy = el.y + el.h / 2;
+            const tr = el.angle ? `rotate(${(el.angle * 180) / Math.PI} ${cx} ${cy})` : undefined;
+            return (
+              <g key={`lock-${el.id}`} transform={tr} pointerEvents="none">
+                <circle
+                  cx={el.x + el.w - SZ / 2 - 4 / viewport.zoom}
+                  cy={el.y + SZ / 2 + 4 / viewport.zoom}
+                  r={SZ / 2 + 2 / viewport.zoom}
+                  fill="hsl(var(--card))"
+                  stroke="hsl(var(--hairline))"
+                  strokeWidth={1 / viewport.zoom}
+                />
+                <text
+                  x={el.x + el.w - SZ / 2 - 4 / viewport.zoom}
+                  y={el.y + SZ / 2 + 4 / viewport.zoom}
+                  fontSize={SZ}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fill="hsl(38 92% 50%)"
+                >🔒</text>
               </g>
             );
           })}
@@ -1748,6 +1847,8 @@ function BoardCanvas({
                     removeElements(board.id, [el.id]);
                     setSelection(new Set());
                   }
+                } else if (el.type === 'frame') {
+                  updateElement(board.id, el.id, { name: content.trim() || '프레임' });
                 } else {
                   updateElement(board.id, el.id, { text: content });
                 }
@@ -1851,12 +1952,12 @@ function BoardCanvas({
               onChangeZ={changeZOrder}
               onDuplicate={duplicateSelected}
               onAlign={(mode) => {
-                const next = alignElements(elements, selection, mode);
+                const next = syncAllBindings(alignElements(elements, selection, mode));
                 setElements(board.id, next);
                 pushSnapshot(board.id, next);
               }}
               onDistribute={(mode) => {
-                const next = distributeElements(elements, selection, mode);
+                const next = syncAllBindings(distributeElements(elements, selection, mode));
                 setElements(board.id, next);
                 pushSnapshot(board.id, next);
               }}
@@ -3479,10 +3580,14 @@ function makeFreedraw(points: Array<[number, number]>, tool: WBToolState): WBFre
 
 // ──────────────────────────────────────────
 // 그리는 중 임시 ghost SVG
-function renderGhost(interaction: Interaction, tool: WBToolState): React.ReactNode {
+function renderGhost(interaction: Interaction, tool: WBToolState, elements: WBElement[]): React.ReactNode {
   if (interaction.kind === 'creating') {
     const r = rectFromPoints(interaction.start, interaction.current);
     if (r.w < 1 || r.h < 1) return null;
+    if (interaction.tool === 'frame') {
+      const ghostEl = makeFrame(r, elements);
+      return <g opacity={0.6}><WBElementRenderer el={ghostEl} /></g>;
+    }
     const ghostEl = makeShape(r, tool);
     if (!ghostEl) return null;
     return <g opacity={0.6}><WBElementRenderer el={ghostEl} /></g>;
@@ -3516,6 +3621,7 @@ function InlineEditor({
   const initial =
     element.type === 'sticky' ? element.content
     : element.type === 'text' ? element.content
+    : element.type === 'frame' ? element.name
     : ('text' in element ? element.text ?? '' : '');
   const [value, setValue] = useState(initial);
   const ref = useRef<HTMLTextAreaElement | null>(null);
@@ -3529,21 +3635,28 @@ function InlineEditor({
 
   if (!container) return null;
   const rect = container.getBoundingClientRect();
+  const isFrameNameEdit = element.type === 'frame';
+  // 프레임은 위 라벨 영역에서 편집 (사각형 내부가 아니라 상단)
   const sx = (element.x - viewport.x) * viewport.zoom;
-  const sy = (element.y - viewport.y) * viewport.zoom;
+  const sy = isFrameNameEdit
+    ? (element.y - 26 - viewport.y) * viewport.zoom
+    : (element.y - viewport.y) * viewport.zoom;
   const sw = element.w * viewport.zoom;
-  const sh = element.h * viewport.zoom;
+  const sh = isFrameNameEdit ? 24 * viewport.zoom : element.h * viewport.zoom;
 
   // 스티키면 안쪽 패딩
-  const padding = element.type === 'sticky' ? 12 : 4;
+  const padding = element.type === 'sticky' ? 12 : isFrameNameEdit ? 2 : 4;
   const tone =
     element.type === 'sticky'
       ? WB_STICKY_BG[element.color]
-      : { bg: 'transparent', border: 'transparent', text: 'hsl(0 0% 15%)' };
+      : isFrameNameEdit
+        ? { bg: 'hsl(40 30% 99%)', border: 'transparent', text: 'hsl(var(--foreground) / 0.75)' }
+        : { bg: 'transparent', border: 'transparent', text: 'hsl(0 0% 15%)' };
 
   const fontSize =
     element.type === 'sticky' ? element.fontSize
     : element.type === 'text' ? element.fontSize
+    : isFrameNameEdit ? 12
     : ('fontSize' in element ? element.fontSize ?? 16 : 16);
 
   return (

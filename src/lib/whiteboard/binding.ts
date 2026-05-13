@@ -113,5 +113,20 @@ export function resolveArrow(arrow: WBArrow, elements: WBElement[]): WBArrow {
   };
 }
 
+/**
+ * 모든 화살표의 binding 을 해소해 새 elements 배열을 반환.
+ * 도형 이동/리사이즈 후 호출 → 화살표 points 도 갱신되어 저장됨.
+ */
+export function syncAllBindings(elements: WBElement[]): WBElement[] {
+  let changed = false;
+  const next = elements.map((el) => {
+    if (el.type !== 'arrow' || (!el.startBinding && !el.endBinding)) return el;
+    const resolved = resolveArrow(el, elements);
+    if (resolved !== el) changed = true;
+    return resolved;
+  });
+  return changed ? next : elements;
+}
+
 // re-export for convenience
 export { findElementAt };
