@@ -1661,13 +1661,14 @@ function BoardCanvas({
               </g>
             );
           })}
-          {/* 검색 매치 강조 outline — 회전 transform 반영 */}
-          {searchMatches && [...searchMatches].map((id) => {
+          {/* 검색 매치 강조 outline — 현재 매치는 진하게, 나머지는 옅게 */}
+          {searchMatches && [...searchMatches].map((id, idx) => {
             const el = elements.find((x) => x.id === id);
             if (!el) return null;
             const mcx = el.x + el.w / 2;
             const mcy = el.y + el.h / 2;
             const mtransform = el.angle ? `rotate(${(el.angle * 180) / Math.PI} ${mcx} ${mcy})` : undefined;
+            const isCurrent = idx === searchIndex;
             return (
               <rect
                 key={`match-${id}`}
@@ -1677,8 +1678,8 @@ function BoardCanvas({
                 width={el.w + 12 / viewport.zoom}
                 height={el.h + 12 / viewport.zoom}
                 fill="none"
-                stroke="hsl(38 92% 50%)"
-                strokeWidth={2 / viewport.zoom}
+                stroke={isCurrent ? 'hsl(38 92% 50%)' : 'hsl(38 92% 50% / 0.45)'}
+                strokeWidth={(isCurrent ? 2.5 : 1.5) / viewport.zoom}
                 rx={4 / viewport.zoom}
                 pointerEvents="none"
               />

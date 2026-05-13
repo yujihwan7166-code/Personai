@@ -528,7 +528,25 @@ export function updateElement(boardId: string, elementId: string, patch: Partial
 export function removeElements(boardId: string, ids: string[]): void {
   const cur = ensureBoardData(boardId);
   const idSet = new Set(ids);
-  updateBoardData(boardId, { elements: cur.elements.filter((el) => !idSet.has(el.id)) });
+  // 이미지 element 들의 IDB orphan 정리
+  const imageIds = cur.elements
+    .filter((el) => idSet.has(el.id) && el.type === 'image')
+    .map((el) => (el as Extract<WBElement, { type: 'image' }>).imageId);
+  // 단, 같은 imageId 를 쓰는 다른 element 가 남아있으면 보존
+  const remaining = cur.elements.filter((el) => !idSet.has(el.id));
+  const stillUsed = new Set(
+    remaining.filter((el) => el.type === 'image').map((el) => (el as Extract<WBElement, { type: 'image' }>).imageId),
+  );
+  const toPurge = imageIds.filter((iid) => !stillUsed.has(iid));
+  if (toPurge.length > 0) {
+    void import('@/lib/whiteboard/imageStore').then(({ removeWBImage, revokeImageObjectURL }) => {
+      for (const iid of toPurge) {
+        revokeImageObjectURL(iid);
+        void removeWBImage(iid).catch(() => { /* silent */ });
+      }
+    });
+  }
+  updateBoardData(boardId, { elements: remaining });
 }
 
 // ──────────────────────────────────────────
