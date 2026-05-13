@@ -93,6 +93,7 @@ import {
 } from '@/lib/whiteboard/geometry';
 import { WB_STICKY_BG } from '@/lib/whiteboard/colors';
 import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
+import { alignElements, computeSnap, distributeElements, type AlignMode, type DistributeMode, type Guide } from '@/lib/whiteboard/snapping';
 
 // ──────────────────────────────────────────
 // 도구 정의
@@ -555,6 +556,7 @@ function BoardCanvas({
   const [spaceDown, setSpaceDown] = useState(false);
   const [immersive, setImmersive] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ clientX: number; clientY: number; ids: string[] } | null>(null);
+  const [snapGuides, setSnapGuides] = useState<Guide[]>([]);
 
   // 컨테이너 사이즈 추적
   useEffect(() => {
@@ -928,8 +930,34 @@ function BoardCanvas({
     }
 
     if (interaction.kind === 'dragging') {
-      const dx = wp.x - interaction.startWorld.x;
-      const dy = wp.y - interaction.startWorld.y;
+      let dx = wp.x - interaction.startWorld.x;
+      let dy = wp.y - interaction.startWorld.y;
+      // 스마트 스냅 — 끌고 있는 요소 외 다른 요소 기준
+      // 다중 선택 시 union bbox 로 한 번에 스냅
+      if (!e.altKey) {
+        const draggedIds = new Set(interaction.ids);
+        const targets = elements.filter((el) => draggedIds.has(el.id));
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const el of targets) {
+          const org = interaction.origin.get(el.id)!;
+          const x1 = org.x + dx;
+          const y1 = org.y + dy;
+          const x2 = x1 + el.w;
+          const y2 = y1 + el.h;
+          if (x1 < minX) minX = x1;
+          if (y1 < minY) minY = y1;
+          if (x2 > maxX) maxX = x2;
+          if (y2 > maxY) maxY = y2;
+        }
+        const dragRect = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+        const others = elements.filter((el) => !draggedIds.has(el.id));
+        const snap = computeSnap(dragRect, others, viewport.zoom);
+        dx += snap.dx;
+        dy += snap.dy;
+        setSnapGuides(snap.guides);
+      } else {
+        setSnapGuides([]);
+      }
       const next = elements.map((el) => {
         if (!interaction.ids.includes(el.id)) return el;
         const org = interaction.origin.get(el.id);
@@ -1103,9 +1131,8 @@ function BoardCanvas({
       shouldCommit = true;
     }
     setInteraction({ kind: 'idle' });
+    setSnapGuides([]);
     if (shouldCommit) {
-      // useEffect로 다음 tick 에서 commit (state 갱신 후 elements 가 최신이 됨)
-      // 그러나 nextElements 이 있으면 그걸 즉시 commit 가능
       if (nextElements) pushSnapshot(board.id, nextElements);
       else commitHistory();
     }
@@ -1284,6 +1311,20 @@ function BoardCanvas({
           })()}
           {/* 그리는 중 ghost */}
           {ghost}
+          {/* 스마트 정렬 가이드 */}
+          {snapGuides.map((g, i) => (
+            <line
+              key={i}
+              x1={g.axis === 'v' ? g.pos : g.from}
+              y1={g.axis === 'v' ? g.from : g.pos}
+              x2={g.axis === 'v' ? g.pos : g.to}
+              y2={g.axis === 'v' ? g.to : g.pos}
+              stroke="hsl(330 80% 60%)"
+              strokeWidth={1 / viewport.zoom}
+              strokeDasharray={`${3 / viewport.zoom} ${3 / viewport.zoom}`}
+              pointerEvents="none"
+            />
+          ))}
         </svg>
 
         {/* 인라인 편집 (HTML 레이어로 SVG 위에) */}
@@ -1346,6 +1387,16 @@ function BoardCanvas({
               onClearSelection={() => setSelection(new Set())}
               onChangeZ={changeZOrder}
               onDuplicate={duplicateSelected}
+              onAlign={(mode) => {
+                const next = alignElements(elements, selection, mode);
+                setElements(board.id, next);
+                pushSnapshot(board.id, next);
+              }}
+              onDistribute={(mode) => {
+                const next = distributeElements(elements, selection, mode);
+                setElements(board.id, next);
+                pushSnapshot(board.id, next);
+              }}
               onDelete={() => {
                 removeElements(board.id, [...selection]);
                 setSelection(new Set());
@@ -2009,6 +2060,8 @@ function ContextualPanel({
   onClearSelection,
   onChangeZ,
   onDuplicate,
+  onAlign,
+  onDistribute,
   onDelete,
 }: {
   boardId: string;
@@ -2017,6 +2070,8 @@ function ContextualPanel({
   onClearSelection: () => void;
   onChangeZ: (mode: 'front' | 'back' | 'forward' | 'backward') => void;
   onDuplicate: () => void;
+  onAlign: (mode: AlignMode) => void;
+  onDistribute: (mode: DistributeMode) => void;
   onDelete: () => void;
 }) {
   const selected = elements.filter((el) => selection.has(el.id));
@@ -2052,6 +2107,24 @@ function ContextualPanel({
             })}
             <div className="w-px h-5 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
           </div>
+        )}
+        {/* 다중 선택 정렬·분배 */}
+        {selection.size >= 2 && (
+          <>
+            <AlignBtn axis="left"     onClick={() => onAlign('left')} />
+            <AlignBtn axis="center-h" onClick={() => onAlign('center-h')} />
+            <AlignBtn axis="right"    onClick={() => onAlign('right')} />
+            <AlignBtn axis="top"      onClick={() => onAlign('top')} />
+            <AlignBtn axis="center-v" onClick={() => onAlign('center-v')} />
+            <AlignBtn axis="bottom"   onClick={() => onAlign('bottom')} />
+            {selection.size >= 3 && (
+              <>
+                <AlignBtn axis="dist-h" onClick={() => onDistribute('horizontal')} />
+                <AlignBtn axis="dist-v" onClick={() => onDistribute('vertical')} />
+              </>
+            )}
+            <div className="w-px h-5 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
+          </>
         )}
         {/* z-order */}
         <PanelBtn icon="bringToFront" label="맨 앞" onClick={() => onChangeZ('front')} />
@@ -2111,6 +2184,37 @@ function ContextualPanel({
         <span className="text-[10.5px] text-muted-foreground/80 tabular-nums px-1">{selection.size}개</span>
       </FloatingCard>
     </div>
+  );
+}
+
+function AlignBtn({ axis, onClick }: { axis: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom' | 'dist-h' | 'dist-v'; onClick: () => void }) {
+  const label = {
+    left: '좌측 정렬', 'center-h': '가로 중앙', right: '우측 정렬',
+    top: '상단 정렬', 'center-v': '세로 중앙', bottom: '하단 정렬',
+    'dist-h': '가로 균등 분배', 'dist-v': '세로 균등 분배',
+  }[axis];
+  // SVG 아이콘 — 간단한 시각 표현
+  const svg = (() => {
+    switch (axis) {
+      case 'left':     return <><line x1="3" y1="3" x2="3" y2="21" stroke="currentColor" strokeWidth="1.5"/><rect x="4" y="6" width="10" height="4" rx="0.5" fill="currentColor"/><rect x="4" y="14" width="14" height="4" rx="0.5" fill="currentColor"/></>;
+      case 'right':    return <><line x1="21" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="1.5"/><rect x="10" y="6" width="10" height="4" rx="0.5" fill="currentColor"/><rect x="6" y="14" width="14" height="4" rx="0.5" fill="currentColor"/></>;
+      case 'center-h': return <><line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2"/><rect x="7" y="6" width="10" height="4" rx="0.5" fill="currentColor"/><rect x="5" y="14" width="14" height="4" rx="0.5" fill="currentColor"/></>;
+      case 'top':      return <><line x1="3" y1="3" x2="21" y2="3" stroke="currentColor" strokeWidth="1.5"/><rect x="6" y="4" width="4" height="10" rx="0.5" fill="currentColor"/><rect x="14" y="4" width="4" height="14" rx="0.5" fill="currentColor"/></>;
+      case 'bottom':   return <><line x1="3" y1="21" x2="21" y2="21" stroke="currentColor" strokeWidth="1.5"/><rect x="6" y="10" width="4" height="10" rx="0.5" fill="currentColor"/><rect x="14" y="6" width="4" height="14" rx="0.5" fill="currentColor"/></>;
+      case 'center-v': return <><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2"/><rect x="6" y="7" width="4" height="10" rx="0.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="0.5" fill="currentColor"/></>;
+      case 'dist-h':   return <><rect x="3" y="7" width="4" height="10" rx="0.5" fill="currentColor"/><rect x="10" y="7" width="4" height="10" rx="0.5" fill="currentColor"/><rect x="17" y="7" width="4" height="10" rx="0.5" fill="currentColor"/></>;
+      case 'dist-v':   return <><rect x="7" y="3" width="10" height="4" rx="0.5" fill="currentColor"/><rect x="7" y="10" width="10" height="4" rx="0.5" fill="currentColor"/><rect x="7" y="17" width="10" height="4" rx="0.5" fill="currentColor"/></>;
+    }
+  })();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      title={label}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">{svg}</svg>
+    </button>
   );
 }
 
