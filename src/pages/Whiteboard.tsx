@@ -559,6 +559,8 @@ function BoardCanvas({
   const [immersive, setImmersive] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ clientX: number; clientY: number; ids: string[] } | null>(null);
   const [snapGuides, setSnapGuides] = useState<Guide[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // 컨테이너 사이즈 추적
   useEffect(() => {
@@ -736,6 +738,7 @@ function BoardCanvas({
       // Ctrl/Cmd 단축키
       if (e.ctrlKey || e.metaKey) {
         const k = e.key.toLowerCase();
+        if (k === 'f') { e.preventDefault(); setSearchOpen(true); return; }
         if (k === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); return; }
         if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); doRedo(); return; }
         if (k === 'a') {
@@ -1165,6 +1168,23 @@ function BoardCanvas({
   // 정렬된 요소 (zIndex 오름차순 — 큰 게 위에 그려짐)
   const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
 
+  // 검색 매치 — 텍스트가 있는 요소만
+  const searchMatches = (() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!searchOpen || !q) return null;
+    const matched = new Set<string>();
+    for (const el of elements) {
+      const text = (
+        el.type === 'sticky' ? el.content
+        : el.type === 'text' ? el.content
+        : (el.type === 'rect' || el.type === 'ellipse' || el.type === 'diamond' || el.type === 'triangle' || el.type === 'speech') ? (el.text ?? '')
+        : ''
+      );
+      if (text.toLowerCase().includes(q)) matched.add(el.id);
+    }
+    return matched;
+  })();
+
   // 그리는 중 임시 요소
   const ghost = renderGhost(interaction, toolState);
 
@@ -1218,14 +1238,37 @@ function BoardCanvas({
             />
           )}
           {/* 요소 레이어 */}
-          {sorted.map((el) => (
-            <g
-              key={el.id}
-              opacity={interaction.kind === 'erasing' && interaction.ids.has(el.id) ? 0.3 : 1}
-            >
-              <WBElementRenderer el={el} />
-            </g>
-          ))}
+          {sorted.map((el) => {
+            const erasing = interaction.kind === 'erasing' && interaction.ids.has(el.id);
+            const dim = searchMatches && !searchMatches.has(el.id);
+            return (
+              <g
+                key={el.id}
+                opacity={erasing ? 0.3 : dim ? 0.18 : 1}
+              >
+                <WBElementRenderer el={el} />
+              </g>
+            );
+          })}
+          {/* 검색 매치 강조 outline */}
+          {searchMatches && [...searchMatches].map((id) => {
+            const el = elements.find((x) => x.id === id);
+            if (!el) return null;
+            return (
+              <rect
+                key={`match-${id}`}
+                x={el.x - 6 / viewport.zoom}
+                y={el.y - 6 / viewport.zoom}
+                width={el.w + 12 / viewport.zoom}
+                height={el.h + 12 / viewport.zoom}
+                fill="none"
+                stroke="hsl(38 92% 50%)"
+                strokeWidth={2 / viewport.zoom}
+                rx={4 / viewport.zoom}
+                pointerEvents="none"
+              />
+            );
+          })}
           {/* 선택 표시 + 단일 선택 시 핸들 */}
           {[...selection].map((id) => {
             const el = elements.find((x) => x.id === id);
@@ -1394,6 +1437,31 @@ function BoardCanvas({
           <div className="absolute right-4 top-4">
             <PageSwitcher current="whiteboard" />
           </div>
+
+          {/* 상단 가운데 — 검색 (Ctrl+F) */}
+          {searchOpen && (
+            <SearchBar
+              query={searchQuery}
+              matchCount={searchMatches?.size ?? 0}
+              onChange={setSearchQuery}
+              onClose={() => { setSearchOpen(false); setSearchQuery(''); }}
+              onJump={() => {
+                if (!searchMatches || searchMatches.size === 0) return;
+                // 첫 매치 요소로 viewport 점프
+                const firstId = [...searchMatches][0];
+                const el = elements.find((x) => x.id === firstId);
+                if (!el) return;
+                const cx = el.x + el.w / 2;
+                const cy = el.y + el.h / 2;
+                setViewport(board.id, {
+                  zoom: viewport.zoom,
+                  x: cx - size.w / 2 / viewport.zoom,
+                  y: cy - size.h / 2 / viewport.zoom,
+                });
+                setSelection(new Set([firstId]));
+              }}
+            />
+          )}
 
           {/* 좌측 세로 — 도구 팔레트 */}
           <ToolPalette active={tool} />
@@ -1998,6 +2066,60 @@ function MiniMap({
             );
           })()}
         </svg>
+      </FloatingCard>
+    </div>
+  );
+}
+
+function SearchBar({
+  query,
+  matchCount,
+  onChange,
+  onClose,
+  onJump,
+}: {
+  query: string;
+  matchCount: number;
+  onChange: (v: string) => void;
+  onClose: () => void;
+  onJump: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
+  return (
+    <div className="absolute left-1/2 -translate-x-1/2 top-4 z-30">
+      <FloatingCard className="flex items-center gap-1 px-2 h-9 min-w-[280px]">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-muted-foreground">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="16.5" y1="16.5" x2="21" y2="21"/>
+        </svg>
+        <input
+          ref={ref}
+          type="text"
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') onJump();
+            if (e.key === 'Escape') onClose();
+          }}
+          placeholder="텍스트·스티키·도형 검색…"
+          className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
+        />
+        {query && (
+          <span className="text-[11px] tabular-nums text-muted-foreground">{matchCount}개</span>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-6 h-6 rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center justify-center text-[14px]"
+          aria-label="검색 닫기"
+        >
+          ✕
+        </button>
       </FloatingCard>
     </div>
   );
