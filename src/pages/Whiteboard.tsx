@@ -98,8 +98,10 @@ import {
   screenToWorld,
   worldToElementLocal,
 } from '@/lib/whiteboard/geometry';
-import { WB_STICKY_BG } from '@/lib/whiteboard/colors';
+import { WB_STICKY_BG, WB_COLOR_HSL } from '@/lib/whiteboard/colors';
+import { WB_COLORS } from '@/types/whiteboard';
 import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
+import { findBindable, isBindable, resolveArrow } from '@/lib/whiteboard/binding';
 import { alignElements, computeSnap, distributeElements, type AlignMode, type DistributeMode, type Guide } from '@/lib/whiteboard/snapping';
 import { exportJSON, exportPNG, exportSVG } from '@/lib/whiteboard/export';
 import { addWBImage } from '@/lib/whiteboard/imageStore';
@@ -538,7 +540,7 @@ type Interaction =
   | { kind: 'idle' }
   | { kind: 'panning'; startX: number; startY: number; vx: number; vy: number }
   | { kind: 'creating'; tool: WBToolKind; start: { x: number; y: number }; current: { x: number; y: number }; tempElement?: WBElement }
-  | { kind: 'drawing-line'; arrow: boolean; start: { x: number; y: number }; current: { x: number; y: number } }
+  | { kind: 'drawing-line'; arrow: boolean; start: { x: number; y: number }; current: { x: number; y: number }; startBindingId?: string; endBindingId?: string }
   | { kind: 'pen'; points: Array<[number, number]> }
   | { kind: 'erasing'; ids: Set<string> }
   | { kind: 'dragging'; ids: string[]; startWorld: { x: number; y: number }; origin: Map<string, { x: number; y: number }> }
@@ -1087,7 +1089,15 @@ function BoardCanvas({
 
     if (tool === 'line') {
       const arrow = toolState.lineKind !== 'line';
-      setInteraction({ kind: 'drawing-line', arrow, start: wp, current: wp });
+      // 시작점이 도형 위면 binding 후보 저장
+      const startBound = findBindable(elements, wp.x, wp.y);
+      setInteraction({
+        kind: 'drawing-line',
+        arrow,
+        start: wp,
+        current: wp,
+        startBindingId: startBound?.id,
+      });
       return;
     }
 
@@ -1253,7 +1263,11 @@ function BoardCanvas({
         nx = interaction.start.x + Math.cos(snap) * dist;
         ny = interaction.start.y + Math.sin(snap) * dist;
       }
-      setInteraction({ ...interaction, current: { x: nx, y: ny } });
+      // end binding 후보 추적 (시작점 binding 요소와는 다른 요소만)
+      const endBound = findBindable(elements, nx, ny);
+      const endBindingId =
+        endBound && endBound.id !== interaction.startBindingId ? endBound.id : undefined;
+      setInteraction({ ...interaction, current: { x: nx, y: ny }, endBindingId });
       return;
     }
 
@@ -1303,6 +1317,11 @@ function BoardCanvas({
       if (Math.hypot(dx, dy) >= 4) {
         const line = makeLineOrArrow(interaction.start, interaction.current, interaction.arrow, toolState);
         line.zIndex = nextZIndex(elements);
+        // binding 부여 (화살표만, arrow 가 true 인 경우)
+        if (interaction.arrow && line.type === 'arrow') {
+          if (interaction.startBindingId) line.startBinding = { elementId: interaction.startBindingId, anchor: 'center' };
+          if (interaction.endBindingId)   line.endBinding   = { elementId: interaction.endBindingId,   anchor: 'center' };
+        }
         nextElements = [...elements, line];
         setElements(board.id, nextElements);
         setSelection(new Set([line.id]));
@@ -1356,8 +1375,13 @@ function BoardCanvas({
     : tool === 'eraser' ? 'cursor-cell'
     : 'cursor-crosshair';
 
+  // 화살표 binding 해소 — 묶인 요소의 현재 위치 반영
+  const resolvedElements = elements.map((el) =>
+    el.type === 'arrow' && (el.startBinding || el.endBinding) ? resolveArrow(el, elements) : el,
+  );
+
   // 정렬된 요소 (zIndex 오름차순 — 큰 게 위에 그려짐)
-  const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
+  const sorted = [...resolvedElements].sort((a, b) => a.zIndex - b.zIndex);
 
   // viewport culling — 보이는 영역(+여유 padding) 에 걸친 요소만 렌더
   // 100 px 여유로 살짝 밖 까지 렌더 (스크롤 떨림 방지)
@@ -1606,6 +1630,34 @@ function BoardCanvas({
           })()}
           {/* 그리는 중 ghost */}
           {ghost}
+          {/* binding 후보 강조 — 화살표 그리는 중 */}
+          {interaction.kind === 'drawing-line' && (() => {
+            const ids = [interaction.startBindingId, interaction.endBindingId].filter(Boolean) as string[];
+            if (ids.length === 0) return null;
+            return ids.map((id) => {
+              const el = elements.find((x) => x.id === id);
+              if (!el) return null;
+              const ccx = el.x + el.w / 2;
+              const ccy = el.y + el.h / 2;
+              const ctransform = el.angle ? `rotate(${(el.angle * 180) / Math.PI} ${ccx} ${ccy})` : undefined;
+              return (
+                <rect
+                  key={`bind-cand-${id}`}
+                  transform={ctransform}
+                  x={el.x - 2 / viewport.zoom}
+                  y={el.y - 2 / viewport.zoom}
+                  width={el.w + 4 / viewport.zoom}
+                  height={el.h + 4 / viewport.zoom}
+                  rx={4 / viewport.zoom}
+                  fill="hsl(217 91% 55% / 0.08)"
+                  stroke="hsl(217 91% 55%)"
+                  strokeWidth={2 / viewport.zoom}
+                  strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`}
+                  pointerEvents="none"
+                />
+              );
+            });
+          })()}
           {/* 스마트 정렬 가이드 */}
           {snapGuides.map((g, i) => (
             <line
@@ -2594,32 +2646,9 @@ function ContextualPanel({
   return (
     <div className="absolute left-1/2 -translate-x-1/2 bottom-4 z-10">
       <FloatingCard className="flex items-center gap-0.5 px-1.5 h-10">
-        {/* 색 — 단일 선택 시 (도형/스티키만) */}
-        {single && (single.type === 'sticky') && (
-          <div className="flex items-center gap-0.5 px-1">
-            {(['amber', 'pink', 'mint', 'sky', 'lavender', 'slate'] as const).map((c) => {
-              const tone = WB_STICKY_BG[c];
-              const isActive = single.color === c;
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => {
-                    updateElement(boardId, single.id, { color: c });
-                    pushSnapshot(boardId, elements.map((el) => el.id === single.id ? { ...el, color: c, updatedAt: Date.now() } : el));
-                  }}
-                  className={cn(
-                    'w-6 h-6 rounded-md transition-transform border-2',
-                    isActive ? 'border-primary scale-110' : 'border-transparent hover:scale-110',
-                  )}
-                  style={{ background: tone.bg, borderColor: isActive ? undefined : tone.border }}
-                  title={c}
-                  aria-label={c}
-                />
-              );
-            })}
-            <div className="w-px h-5 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
-          </div>
+        {/* 스타일 버튼 — 단일 선택 시 expandable 메뉴 */}
+        {single && (
+          <StylePopover element={single} boardId={boardId} elements={elements} />
         )}
         {/* 다중 선택 정렬·분배 */}
         {selection.size >= 2 && (
@@ -2696,6 +2725,274 @@ function ContextualPanel({
         </button>
         <span className="text-[10.5px] text-muted-foreground/80 tabular-nums px-1">{selection.size}개</span>
       </FloatingCard>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────
+// StylePopover — 단일 선택 요소의 스타일 (색·획·폰트 등) 편집 팝오버
+function StylePopover({
+  element,
+  boardId,
+  elements,
+}: {
+  element: WBElement;
+  boardId: string;
+  elements: WBElement[];
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('pointerdown', onDoc);
+    return () => window.removeEventListener('pointerdown', onDoc);
+  }, [open]);
+
+  const apply = (patch: Partial<WBElement>) => {
+    updateElement(boardId, element.id, patch);
+    pushSnapshot(boardId, elements.map((el) =>
+      el.id === element.id ? ({ ...el, ...patch, updatedAt: Date.now() } as WBElement) : el,
+    ));
+  };
+
+  // 미리보기 색 (대표)
+  const previewColor =
+    element.type === 'sticky'
+      ? WB_STICKY_BG[element.color].bg
+      : 'strokeColor' in element
+        ? WB_COLOR_HSL[element.strokeColor]
+        : element.type === 'text'
+          ? WB_COLOR_HSL[element.textColor]
+          : 'hsl(var(--foreground))';
+
+  return (
+    <div ref={ref} className="relative flex items-center">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          'flex items-center gap-1 px-2 h-7 rounded transition-colors',
+          open ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        )}
+        title="스타일"
+      >
+        <span
+          className="w-3.5 h-3.5 rounded-full border border-foreground/20"
+          style={{ background: previewColor }}
+        />
+        <span className="text-[11px] font-medium">스타일</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 bottom-full mb-2 z-20">
+          <FloatingCard className="p-3 min-w-[280px] flex flex-col gap-3">
+            {/* 스티키 — 6색 + 폰트 크기 */}
+            {element.type === 'sticky' && (
+              <>
+                <StyleRow label="색">
+                  {(['amber', 'pink', 'mint', 'sky', 'lavender', 'slate'] as const).map((c) => {
+                    const tone = WB_STICKY_BG[c];
+                    const isActive = element.color === c;
+                    return (
+                      <button key={c} type="button" onClick={() => apply({ color: c })}
+                        className={cn('w-6 h-6 rounded-md transition-transform border-2',
+                          isActive ? 'border-primary scale-110' : 'border-transparent hover:scale-110')}
+                        style={{ background: tone.bg, borderColor: isActive ? undefined : tone.border }}
+                        title={c} />
+                    );
+                  })}
+                </StyleRow>
+                <StyleRow label="크기">
+                  {([14, 16, 20] as const).map((s) => (
+                    <button key={s} type="button" onClick={() => apply({ fontSize: s })}
+                      className={cn('w-9 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.fontSize === s ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{s}</button>
+                  ))}
+                </StyleRow>
+                <StyleRow label="정렬">
+                  {(['left', 'center'] as const).map((a) => (
+                    <button key={a} type="button" onClick={() => apply({ textAlign: a })}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.textAlign === a ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{a === 'left' ? '왼쪽' : '중앙'}</button>
+                  ))}
+                </StyleRow>
+              </>
+            )}
+
+            {/* 텍스트 */}
+            {element.type === 'text' && (
+              <>
+                <StyleRow label="색">
+                  {(WB_COLORS).map((c) => {
+                    const isActive = element.textColor === c;
+                    return (
+                      <button key={c} type="button" onClick={() => apply({ textColor: c })}
+                        className={cn('w-5 h-5 rounded-full transition-transform border-2',
+                          isActive ? 'border-primary scale-125' : 'border-transparent hover:scale-110')}
+                        style={{ background: WB_COLOR_HSL[c] }}
+                        title={c} />
+                    );
+                  })}
+                </StyleRow>
+                <StyleRow label="크기">
+                  {([12, 14, 16, 20, 28, 40] as const).map((s) => (
+                    <button key={s} type="button" onClick={() => apply({ fontSize: s })}
+                      className={cn('w-9 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.fontSize === s ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{s}</button>
+                  ))}
+                </StyleRow>
+                <StyleRow label="정렬">
+                  {(['left', 'center', 'right'] as const).map((a) => (
+                    <button key={a} type="button" onClick={() => apply({ textAlign: a })}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.textAlign === a ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{a === 'left' ? '왼쪽' : a === 'center' ? '중앙' : '오른쪽'}</button>
+                  ))}
+                </StyleRow>
+              </>
+            )}
+
+            {/* 도형 (rect/ellipse/diamond/triangle/speech) */}
+            {(element.type === 'rect' || element.type === 'ellipse' || element.type === 'diamond' || element.type === 'triangle' || element.type === 'speech') && (
+              <>
+                <StyleRow label="윤곽">
+                  {WB_COLORS.map((c) => {
+                    const isActive = element.strokeColor === c;
+                    return (
+                      <button key={c} type="button" onClick={() => apply({ strokeColor: c } as Partial<WBElement>)}
+                        className={cn('w-5 h-5 rounded-full transition-transform border-2',
+                          isActive ? 'border-primary scale-125' : 'border-transparent hover:scale-110')}
+                        style={{ background: WB_COLOR_HSL[c] }}
+                        title={c} />
+                    );
+                  })}
+                </StyleRow>
+                <StyleRow label="채움">
+                  <button type="button" onClick={() => apply({ fillColor: 'none' } as Partial<WBElement>)}
+                    className={cn('w-5 h-5 rounded-full transition-transform border-2 border-foreground/30 bg-card flex items-center justify-center',
+                      element.fillColor === 'none' ? 'border-primary scale-125' : 'hover:scale-110')}
+                    title="없음">×</button>
+                  {WB_COLORS.map((c) => {
+                    const isActive = element.fillColor === c;
+                    return (
+                      <button key={c} type="button" onClick={() => apply({ fillColor: c } as Partial<WBElement>)}
+                        className={cn('w-5 h-5 rounded-full transition-transform border-2',
+                          isActive ? 'border-primary scale-125' : 'border-transparent hover:scale-110')}
+                        style={{ background: WB_COLOR_HSL[c].replace('hsl(', 'hsla(').replace(')', ' / 0.4)') }}
+                        title={c} />
+                    );
+                  })}
+                </StyleRow>
+                <StyleRow label="두께">
+                  {(['thin', 'normal', 'thick'] as const).map((w) => (
+                    <button key={w} type="button" onClick={() => apply({ strokeWidth: w } as Partial<WBElement>)}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.strokeWidth === w ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{w === 'thin' ? '얇음' : w === 'normal' ? '보통' : '굵음'}</button>
+                  ))}
+                </StyleRow>
+                <StyleRow label="선">
+                  {(['solid', 'dashed', 'dotted'] as const).map((s) => (
+                    <button key={s} type="button" onClick={() => apply({ strokeStyle: s } as Partial<WBElement>)}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.strokeStyle === s ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{s === 'solid' ? '실선' : s === 'dashed' ? '점선' : '점'}</button>
+                  ))}
+                </StyleRow>
+              </>
+            )}
+
+            {/* 선·화살표 */}
+            {(element.type === 'line' || element.type === 'arrow') && (
+              <>
+                <StyleRow label="색">
+                  {WB_COLORS.map((c) => {
+                    const isActive = element.strokeColor === c;
+                    return (
+                      <button key={c} type="button" onClick={() => apply({ strokeColor: c } as Partial<WBElement>)}
+                        className={cn('w-5 h-5 rounded-full transition-transform border-2',
+                          isActive ? 'border-primary scale-125' : 'border-transparent hover:scale-110')}
+                        style={{ background: WB_COLOR_HSL[c] }}
+                        title={c} />
+                    );
+                  })}
+                </StyleRow>
+                <StyleRow label="두께">
+                  {(['thin', 'normal', 'thick'] as const).map((w) => (
+                    <button key={w} type="button" onClick={() => apply({ strokeWidth: w } as Partial<WBElement>)}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.strokeWidth === w ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{w === 'thin' ? '얇음' : w === 'normal' ? '보통' : '굵음'}</button>
+                  ))}
+                </StyleRow>
+                <StyleRow label="선">
+                  {(['solid', 'dashed', 'dotted'] as const).map((s) => (
+                    <button key={s} type="button" onClick={() => apply({ strokeStyle: s } as Partial<WBElement>)}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.strokeStyle === s ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{s === 'solid' ? '실선' : s === 'dashed' ? '점선' : '점'}</button>
+                  ))}
+                </StyleRow>
+              </>
+            )}
+
+            {/* freedraw */}
+            {element.type === 'freedraw' && (
+              <>
+                <StyleRow label="색">
+                  {WB_COLORS.map((c) => {
+                    const isActive = element.strokeColor === c;
+                    return (
+                      <button key={c} type="button" onClick={() => apply({ strokeColor: c } as Partial<WBElement>)}
+                        className={cn('w-5 h-5 rounded-full transition-transform border-2',
+                          isActive ? 'border-primary scale-125' : 'border-transparent hover:scale-110')}
+                        style={{ background: WB_COLOR_HSL[c] }}
+                        title={c} />
+                    );
+                  })}
+                </StyleRow>
+                <StyleRow label="두께">
+                  {(['thin', 'normal', 'thick'] as const).map((w) => (
+                    <button key={w} type="button" onClick={() => apply({ strokeWidth: w } as Partial<WBElement>)}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.strokeWidth === w ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{w === 'thin' ? '얇음' : w === 'normal' ? '보통' : '굵음'}</button>
+                  ))}
+                </StyleRow>
+              </>
+            )}
+
+            {/* 공통 — 투명도 */}
+            <StyleRow label="투명도">
+              <input
+                type="range"
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={element.opacity}
+                onChange={(e) => apply({ opacity: parseFloat(e.target.value) } as Partial<WBElement>)}
+                className="flex-1"
+              />
+              <span className="text-[10.5px] tabular-nums text-muted-foreground w-8 text-right">{Math.round(element.opacity * 100)}%</span>
+            </StyleRow>
+          </FloatingCard>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StyleRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10.5px] text-muted-foreground/80 w-10 shrink-0">{label}</span>
+      <div className="flex items-center gap-1 flex-wrap flex-1">{children}</div>
     </div>
   );
 }
