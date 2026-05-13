@@ -10,6 +10,7 @@ import type {
   WBDiamond,
   WBElement,
   WBEllipse,
+  WBFrame,
   WBFreedraw,
   WBImage,
   WBLine,
@@ -350,10 +351,51 @@ export const Element = memo(function ElementRenderer({ el }: { el: WBElement }) 
     case 'text':     return <TextEl     el={el} />;
     case 'sticky':   return <StickyEl   el={el} />;
     case 'image':    return <ImageEl    el={el} />;
-    case 'frame':    return null;     // Phase 2 후순위
+    case 'frame':    return <FrameEl    el={el} />;
     case 'bracket':  return null;     // Phase 2 후순위
     default:         return null;
   }
+});
+
+// ──────────────────────────────────────────
+export const FrameEl = memo(function FrameEl({ el }: { el: WBFrame }) {
+  const bg = el.bgColor === 'transparent' ? 'transparent' : (WB_COLOR_HSL[el.bgColor]?.replace('hsl(', 'hsla(').replace(')', ' / 0.04)') ?? 'transparent');
+  return (
+    <g transform={transform(el)} opacity={el.opacity}>
+      {/* 본체 — 옅은 배경 + 점선 외곽 */}
+      <rect
+        x={el.x}
+        y={el.y}
+        width={el.w}
+        height={el.h}
+        fill={bg}
+        stroke="hsl(var(--foreground) / 0.30)"
+        strokeWidth={1.5}
+        strokeDasharray="6 4"
+        rx={4}
+      />
+      {/* 이름 라벨 — 상단 좌측 */}
+      <foreignObject x={el.x} y={el.y - 22} width={el.w} height={22}>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            color: 'hsl(var(--foreground) / 0.75)',
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: 'inherit',
+            paddingLeft: 4,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+          }}
+        >
+          <span aria-hidden>▢</span>
+          <span>{el.name || '프레임'}</span>
+        </div>
+      </foreignObject>
+    </g>
+  );
 });
 
 // ──────────────────────────────────────────

@@ -229,7 +229,8 @@ export interface WBFolder {
 // 도구 상태
 export type WBToolKind =
   | 'select' | 'pan' | 'text' | 'sticky'
-  | 'shape' | 'line' | 'pen' | 'eraser';
+  | 'shape' | 'line' | 'pen' | 'eraser'
+  | 'frame';
 
 export type WBShapeKind = 'rect' | 'ellipse' | 'diamond' | 'triangle' | 'speech';
 export type WBLineKind = 'line' | 'arrow-solid' | 'arrow-dashed' | 'arrow-curved' | 'arrow-elbow';

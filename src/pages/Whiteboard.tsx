@@ -12,6 +12,7 @@ import {
   Type,
   StickyNote,
   Square,
+  SquareDashed,
   Minus,
   Pencil,
   Eraser,
@@ -102,6 +103,7 @@ import { WB_STICKY_BG, WB_COLOR_HSL } from '@/lib/whiteboard/colors';
 import { WB_COLORS } from '@/types/whiteboard';
 import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
 import { findBindable, isBindable, resolveArrow } from '@/lib/whiteboard/binding';
+import { buildTemplate, TEMPLATE_META, type WBTemplateKind } from '@/lib/whiteboard/templates';
 import { alignElements, computeSnap, distributeElements, type AlignMode, type DistributeMode, type Guide } from '@/lib/whiteboard/snapping';
 import { exportJSON, exportPNG, exportSVG } from '@/lib/whiteboard/export';
 import { addWBImage } from '@/lib/whiteboard/imageStore';
@@ -122,6 +124,7 @@ const TOOLS: ToolDef[] = [
   { key: 'text',    label: '텍스트',   shortcut: 'T', icon: Type },
   { key: 'sticky',  label: '스티키',   shortcut: 'S', icon: StickyNote,  hasFlyout: true },
   { key: 'shape',   label: '도형',     shortcut: 'R', icon: Square,      hasFlyout: true },
+  { key: 'frame',   label: '프레임',   shortcut: 'F', icon: SquareDashed },
   { key: 'line',    label: '선·화살표', shortcut: 'L', icon: Minus,       hasFlyout: true },
   { key: 'pen',     label: '펜',       shortcut: 'P', icon: Pencil,      hasFlyout: true },
   { key: 'eraser',  label: '지우개',   shortcut: 'E', icon: Eraser },
@@ -129,7 +132,7 @@ const TOOLS: ToolDef[] = [
 
 const TOOL_GROUPS: Array<WBToolKind[]> = [
   ['select', 'pan'],
-  ['text', 'sticky', 'shape', 'line', 'pen'],
+  ['text', 'sticky', 'shape', 'frame', 'line', 'pen'],
   ['eraser'],
 ];
 
@@ -514,7 +517,7 @@ function EmptyMain() {
         <PageSwitcher current="whiteboard" />
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center max-w-[320px]">
+        <div className="text-center max-w-[420px]">
           <div className="text-5xl mb-4">🎨</div>
           <p className="text-[16px] font-medium text-foreground mb-1.5">보드를 선택하거나 새로 만들어보세요</p>
           <p className="text-[13px] text-muted-foreground mb-4">자유 캔버스에 스티키·도형·연결선을 배치하며 생각을 정리해요.</p>
@@ -526,6 +529,31 @@ function EmptyMain() {
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             새 보드 만들기
           </button>
+          <div className="mt-6">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground/70 mb-2">또는 템플릿</p>
+            <div className="grid grid-cols-2 gap-2 max-w-[380px] mx-auto">
+              {(['brainstorm', 'kpt', 'kanban', 'mindmap'] as const).map((kind) => {
+                const meta = TEMPLATE_META[kind];
+                return (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => {
+                      const b = addBoard(meta.label, null);
+                      const elements = buildTemplate(kind, 0, 0);
+                      setElements(b.id, elements);
+                      pushSnapshot(b.id, elements);
+                    }}
+                    className="text-left p-3 rounded-lg bg-card border border-[hsl(var(--hairline))] hover:border-primary/40 hover:shadow-sm transition-all"
+                  >
+                    <div className="text-2xl mb-1">{meta.emoji}</div>
+                    <div className="text-[13px] font-medium text-foreground">{meta.label}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">{meta.description}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -800,6 +828,7 @@ function BoardCanvas({
       const toolMap: Record<string, WBToolKind> = {
         v: 'select', h: 'pan', t: 'text', s: 'sticky',
         r: 'shape', l: 'line', a: 'line', p: 'pen', e: 'eraser',
+        f: 'frame',
       };
       const shapeKey: Record<string, WBToolState['shapeKind']> = { o: 'ellipse', d: 'diamond' };
       if (e.key === 'Escape') {
@@ -1040,15 +1069,28 @@ function BoardCanvas({
         }
         // 단일 클릭 — 그룹 자동 확장 (이미 선택돼있어도 그룹 멤버 항상 포함)
         const groupMembers = expandGroupSelection(hit.id);
-        // 이미 그룹 전체가 선택돼 있으면 유지, 아니면 그룹으로 갈음
         const allMembersSelected = [...groupMembers].every((id) => selection.has(id));
         const nextSelection = allMembersSelected ? selection : groupMembers;
         if (!allMembersSelected) setSelection(nextSelection);
-        // 잠긴 요소는 드래그 origin 에서 제외 → 안 움직임
+        // 프레임 드래그면 안에 든 요소도 같이 이동
+        const frameDescendants = new Set<string>();
+        for (const el of elements) {
+          if (el.type !== 'frame' || !nextSelection.has(el.id)) continue;
+          for (const other of elements) {
+            if (other.id === el.id || nextSelection.has(other.id)) continue;
+            const cx = other.x + other.w / 2;
+            const cy = other.y + other.h / 2;
+            if (cx >= el.x && cx <= el.x + el.w && cy >= el.y && cy <= el.y + el.h) {
+              frameDescendants.add(other.id);
+            }
+          }
+        }
         const origin = new Map<string, { x: number; y: number }>();
         const dragIds: string[] = [];
         for (const el of elements) {
-          if (nextSelection.has(el.id) && !el.locked) {
+          const inSelection = nextSelection.has(el.id);
+          const inFrame = frameDescendants.has(el.id);
+          if ((inSelection || inFrame) && !el.locked) {
             origin.set(el.id, { x: el.x, y: el.y });
             dragIds.push(el.id);
           }
@@ -1084,6 +1126,11 @@ function BoardCanvas({
 
     if (tool === 'shape') {
       setInteraction({ kind: 'creating', tool: 'shape', start: wp, current: wp });
+      return;
+    }
+
+    if (tool === 'frame') {
+      setInteraction({ kind: 'creating', tool: 'frame', start: wp, current: wp });
       return;
     }
 
@@ -1301,14 +1348,23 @@ function BoardCanvas({
     if (interaction.kind === 'creating') {
       const rect = rectFromPoints(interaction.start, interaction.current);
       if (rect.w >= 2 && rect.h >= 2) {
-        const shape = makeShape(rect, toolState);
-        if (shape) {
-          shape.zIndex = nextZIndex(elements);
-          nextElements = [...elements, shape];
+        if (interaction.tool === 'frame') {
+          const frame = makeFrame(rect, elements);
+          frame.zIndex = -1000;   // frame 은 항상 뒤로 (다른 요소 위에 안 올라옴)
+          nextElements = [...elements, frame];
           setElements(board.id, nextElements);
-          setSelection(new Set([shape.id]));
-          setEditingId(shape.id);
+          setSelection(new Set([frame.id]));
           shouldCommit = true;
+        } else {
+          const shape = makeShape(rect, toolState);
+          if (shape) {
+            shape.zIndex = nextZIndex(elements);
+            nextElements = [...elements, shape];
+            setElements(board.id, nextElements);
+            setSelection(new Set([shape.id]));
+            setEditingId(shape.id);
+            shouldCommit = true;
+          }
         }
       }
     } else if (interaction.kind === 'drawing-line') {
@@ -1717,6 +1773,17 @@ function BoardCanvas({
           {/* 좌상 — 보드 헤더 */}
           <BoardHeader
             board={board}
+            onApplyTemplate={(kind) => {
+              // 현재 viewport 중앙에 템플릿 추가
+              const cx = viewport.x + size.w / 2 / viewport.zoom;
+              const cy = viewport.y + size.h / 2 / viewport.zoom;
+              const added = buildTemplate(kind, cx, cy);
+              const merged = [...elements, ...added];
+              setElements(board.id, merged);
+              setSelection(new Set(added.map((el) => el.id)));
+              pushSnapshot(board.id, merged);
+              notify.success(`${TEMPLATE_META[kind].label} 추가됨`, { duration: 1500 });
+            }}
             onExport={(format) => {
               const svg = svgRef.current;
               if (!svg) return;
@@ -1906,9 +1973,11 @@ function BoardCanvas({
 function BoardHeader({
   board,
   onExport,
+  onApplyTemplate,
 }: {
   board: WBBoard;
   onExport: (format: 'png' | 'svg' | 'json') => void;
+  onApplyTemplate: (kind: WBTemplateKind) => void;
 }) {
   const settings = useSettings();
   const saveState = useSaveState(board.id);
@@ -1957,6 +2026,17 @@ function BoardHeader({
               <Copy className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
               복제
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">템플릿 추가</div>
+            {(['brainstorm', 'kpt', 'kanban', 'mindmap'] as const).map((kind) => {
+              const meta = TEMPLATE_META[kind];
+              return (
+                <DropdownMenuItem key={kind} onClick={() => onApplyTemplate(kind)}>
+                  <span className="mr-2" aria-hidden>{meta.emoji}</span>
+                  {meta.label}
+                </DropdownMenuItem>
+              );
+            })}
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">배경·그리드</div>
             <div className="flex items-center gap-1 px-2 pb-1.5">
@@ -3346,6 +3426,28 @@ function makeLineOrArrow(
     endArrow: 'arrow',
     curve: tool.lineKind === 'arrow-curved' ? 'curved'
          : tool.lineKind === 'arrow-elbow' ? 'elbow' : 'straight',
+  };
+}
+
+function makeFrame(rect: { x: number; y: number; w: number; h: number }, elements: WBElement[]): import('@/types/whiteboard').WBFrame {
+  // 안에 든 요소 자동 등록
+  const childIds: string[] = [];
+  for (const el of elements) {
+    if (el.type === 'frame') continue;
+    const cx = el.x + el.w / 2;
+    const cy = el.y + el.h / 2;
+    if (cx >= rect.x && cx <= rect.x + rect.w && cy >= rect.y && cy <= rect.y + rect.h) {
+      childIds.push(el.id);
+    }
+  }
+  const frameCount = elements.filter((e) => e.type === 'frame').length;
+  return {
+    ...baseElement(rect.x, rect.y, rect.w, rect.h),
+    type: 'frame',
+    name: `프레임 ${frameCount + 1}`,
+    bgColor: 'transparent',
+    childIds,
+    clipChildren: false,
   };
 }
 
