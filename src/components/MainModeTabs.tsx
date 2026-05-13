@@ -1619,10 +1619,10 @@ export function MainModeTabs({
                               navigate('/discover');
                             } else if (item.id === 'briefing') {
                               setOpen(false);
-                              // 글로벌 모달 — 어디서든 호출 가능. autoShow 토글도 같이.
-                              import('@/components/DailyBriefingMount').then(({ triggerDailyBriefing }) => {
-                                triggerDailyBriefing();
-                              });
+                              // 데일리 브리핑 — 준비 중 (재설계 예정)
+                              import('@/lib/notify').then(({ notify }) =>
+                                notify.info('데일리 브리핑', { description: '준비 중이에요.' }),
+                              );
                             } else if (item.id === 'whiteboard') {
                               setOpen(false);
                               navigate('/whiteboard');
