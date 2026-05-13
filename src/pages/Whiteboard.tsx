@@ -48,6 +48,7 @@ import {
   addFolder,
   duplicateBoard,
   getBoard,
+  getBoardData,
   newElementId,
   purgeBoard,
   removeElements,
@@ -91,6 +92,7 @@ import {
   screenToWorld,
 } from '@/lib/whiteboard/geometry';
 import { WB_STICKY_BG } from '@/lib/whiteboard/colors';
+import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
 
 // ──────────────────────────────────────────
 // 도구 정의
@@ -518,6 +520,8 @@ function EmptyMain() {
 
 // ──────────────────────────────────────────
 // 인터랙션 상태 (캔버스 임시 상태 — store 에 박지 않음)
+type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
+
 type Interaction =
   | { kind: 'idle' }
   | { kind: 'panning'; startX: number; startY: number; vx: number; vy: number }
@@ -526,6 +530,7 @@ type Interaction =
   | { kind: 'pen'; points: Array<[number, number]> }
   | { kind: 'erasing'; ids: Set<string> }
   | { kind: 'dragging'; ids: string[]; startWorld: { x: number; y: number }; origin: Map<string, { x: number; y: number }> }
+  | { kind: 'resizing'; handle: ResizeHandle; ids: string[]; startWorld: { x: number; y: number }; origin: Map<string, { x: number; y: number; w: number; h: number }> }
   | { kind: 'marquee'; start: { x: number; y: number }; current: { x: number; y: number }; baseSelection: Set<string> };
 
 // 활성 보드 — 캔버스 + 플로팅 UI
@@ -560,12 +565,119 @@ function BoardCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // 새 보드로 전환 시 선택·편집 초기화
+  // 새 보드로 전환 시 선택·편집 초기화 + 초기 history snapshot
   useEffect(() => {
     setSelection(new Set());
     setEditingId(null);
     setInteraction({ kind: 'idle' });
+    clearHistory(board.id);
+    pushSnapshot(board.id, elements);
+    // 의존: board.id 만 — 매 elements 변경 시 reset 안 함
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board.id]);
+
+  // 트랜잭션 끝 — history 에 스냅샷
+  const commitHistory = useCallback(() => {
+    pushSnapshot(board.id, elements);
+  }, [board.id, elements]);
+
+  // undo / redo
+  const doUndo = useCallback(() => {
+    const prev = undo(board.id);
+    if (prev) {
+      setElements(board.id, prev);
+      setSelection(new Set());
+    }
+  }, [board.id]);
+  const doRedo = useCallback(() => {
+    const next = redo(board.id);
+    if (next) {
+      setElements(board.id, next);
+      setSelection(new Set());
+    }
+  }, [board.id]);
+
+  // 선택 요소 복제·이동·z-order
+  const duplicateSelected = useCallback(() => {
+    if (selection.size === 0) return;
+    const ids = new Set(selection);
+    const newOnes: WBElement[] = [];
+    const newIds = new Set<string>();
+    let z = nextZIndex(elements);
+    for (const el of elements) {
+      if (!ids.has(el.id)) continue;
+      const copy: WBElement = {
+        ...el,
+        id: newElementId(),
+        x: el.x + 16,
+        y: el.y + 16,
+        zIndex: z++,
+        updatedAt: Date.now(),
+      };
+      newOnes.push(copy);
+      newIds.add(copy.id);
+    }
+    setElements(board.id, [...elements, ...newOnes]);
+    setSelection(newIds);
+    pushSnapshot(board.id, [...elements, ...newOnes]);
+  }, [board.id, elements, selection]);
+
+  const moveSelected = useCallback((dx: number, dy: number) => {
+    if (selection.size === 0) return;
+    const next = elements.map((el) =>
+      selection.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy, updatedAt: Date.now() } : el,
+    );
+    setElements(board.id, next);
+  }, [board.id, elements, selection]);
+
+  const changeZOrder = useCallback((mode: 'front' | 'back' | 'forward' | 'backward') => {
+    if (selection.size === 0) return;
+    const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
+    const minZ = sorted[0]?.zIndex ?? 0;
+    const maxZ = sorted[sorted.length - 1]?.zIndex ?? 0;
+    const next = elements.map((el) => {
+      if (!selection.has(el.id)) return el;
+      let z = el.zIndex;
+      if (mode === 'front') z = maxZ + 1;
+      else if (mode === 'back') z = minZ - 1;
+      else if (mode === 'forward') z = el.zIndex + 1.5;
+      else if (mode === 'backward') z = el.zIndex - 1.5;
+      return { ...el, zIndex: z, updatedAt: Date.now() };
+    });
+    // zIndex 정규화 (정수로)
+    const normalized = [...next].sort((a, b) => a.zIndex - b.zIndex).map((el, i) => ({ ...el, zIndex: i }));
+    setElements(board.id, normalized);
+    pushSnapshot(board.id, normalized);
+  }, [board.id, elements, selection]);
+
+  // 클립보드 (메모리 한정)
+  const clipboardRef = useRef<WBElement[] | null>(null);
+  const copySelected = useCallback(() => {
+    if (selection.size === 0) return;
+    clipboardRef.current = elements.filter((el) => selection.has(el.id));
+  }, [elements, selection]);
+  const pasteClipboard = useCallback(() => {
+    const items = clipboardRef.current;
+    if (!items || items.length === 0) return;
+    const newOnes: WBElement[] = [];
+    const newIds = new Set<string>();
+    let z = nextZIndex(elements);
+    for (const el of items) {
+      const copy: WBElement = {
+        ...el,
+        id: newElementId(),
+        x: el.x + 24,
+        y: el.y + 24,
+        zIndex: z++,
+        updatedAt: Date.now(),
+      };
+      newOnes.push(copy);
+      newIds.add(copy.id);
+    }
+    setElements(board.id, [...elements, ...newOnes]);
+    setSelection(newIds);
+    pushSnapshot(board.id, [...elements, ...newOnes]);
+  }, [board.id, elements]);
 
   // 전역 단축키
   useEffect(() => {
@@ -595,14 +707,40 @@ function BoardCanvas({
         e.preventDefault();
         removeElements(board.id, [...selection]);
         setSelection(new Set());
+        pushSnapshot(board.id, elements.filter((el) => !selection.has(el.id)));
         return;
       }
-      if ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey)) {
+      // 화살표 키 이동
+      if (selection.size > 0 && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
         e.preventDefault();
-        setSelection(new Set(elements.filter((el) => !el.locked).map((el) => el.id)));
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+        moveSelected(dx, dy);
         return;
       }
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Ctrl/Cmd 단축키
+      if (e.ctrlKey || e.metaKey) {
+        const k = e.key.toLowerCase();
+        if (k === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); return; }
+        if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); doRedo(); return; }
+        if (k === 'a') {
+          e.preventDefault();
+          setSelection(new Set(elements.filter((el) => !el.locked).map((el) => el.id)));
+          return;
+        }
+        if (k === 'd') { e.preventDefault(); duplicateSelected(); return; }
+        if (k === 'c') { e.preventDefault(); copySelected(); return; }
+        if (k === 'v') { e.preventDefault(); pasteClipboard(); return; }
+        if (k === 'x') { e.preventDefault(); copySelected(); removeElements(board.id, [...selection]); setSelection(new Set()); pushSnapshot(board.id, elements.filter((el) => !selection.has(el.id))); return; }
+        if (e.key === ']') { e.preventDefault(); changeZOrder(e.shiftKey ? 'front' : 'forward'); return; }
+        if (e.key === '[') { e.preventDefault(); changeZOrder(e.shiftKey ? 'back' : 'backward'); return; }
+        return;
+      }
+      // 단독 [ ] (Ctrl 없이) — z-order 한 칸
+      if (e.key === ']') { e.preventDefault(); changeZOrder('forward'); return; }
+      if (e.key === '[') { e.preventDefault(); changeZOrder('backward'); return; }
+      if (e.altKey) return;
       if (toolMap[key]) {
         setTool({ kind: toolMap[key] });
         if (key === 'a') setTool({ lineKind: 'arrow-solid' });
@@ -622,7 +760,7 @@ function BoardCanvas({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [board.id, editingId, elements, interaction, selection]);
+  }, [board.id, editingId, elements, interaction, selection, doUndo, doRedo, duplicateSelected, copySelected, pasteClipboard, moveSelected, changeZOrder]);
 
   // 화면 좌표 → world
   const toWorld = useCallback((clientX: number, clientY: number) => {
@@ -671,6 +809,20 @@ function BoardCanvas({
     const wp = toWorld(e.clientX, e.clientY);
 
     if (tool === 'select') {
+      // 단일 선택 + 핸들 hit-test
+      if (selection.size === 1) {
+        const onlyId = [...selection][0];
+        const onlyEl = elements.find((x) => x.id === onlyId);
+        if (onlyEl) {
+          const handle = findResizeHandle(onlyEl, wp, viewport.zoom);
+          if (handle) {
+            const origin = new Map<string, { x: number; y: number; w: number; h: number }>();
+            origin.set(onlyEl.id, { x: onlyEl.x, y: onlyEl.y, w: onlyEl.w, h: onlyEl.h });
+            setInteraction({ kind: 'resizing', handle, ids: [onlyEl.id], startWorld: wp, origin });
+            return;
+          }
+        }
+      }
       const hit = findElementAt(elements, wp.x, wp.y);
       if (hit) {
         // 선택 토글 (Shift) 또는 갈음
@@ -766,6 +918,53 @@ function BoardCanvas({
       return;
     }
 
+    if (interaction.kind === 'resizing') {
+      const dx = wp.x - interaction.startWorld.x;
+      const dy = wp.y - interaction.startWorld.y;
+      const id = interaction.ids[0];
+      const org = interaction.origin.get(id);
+      if (!org) return;
+      const { x, y, w, h } = org;
+      const minSize = 10;
+      const lockRatio = e.shiftKey;
+      const fromCenter = e.altKey;
+      let newW = w, newH = h, newX = x, newY = y;
+      switch (interaction.handle) {
+        case 'e': newW = Math.max(minSize, w + dx); break;
+        case 'w': newW = Math.max(minSize, w - dx); newX = x + (w - newW); break;
+        case 's': newH = Math.max(minSize, h + dy); break;
+        case 'n': newH = Math.max(minSize, h - dy); newY = y + (h - newH); break;
+        case 'se': newW = Math.max(minSize, w + dx); newH = Math.max(minSize, h + dy); break;
+        case 'sw': newW = Math.max(minSize, w - dx); newH = Math.max(minSize, h + dy); newX = x + (w - newW); break;
+        case 'ne': newW = Math.max(minSize, w + dx); newH = Math.max(minSize, h - dy); newY = y + (h - newH); break;
+        case 'nw': newW = Math.max(minSize, w - dx); newH = Math.max(minSize, h - dy); newX = x + (w - newW); newY = y + (h - newH); break;
+      }
+      if (lockRatio) {
+        const aspect = w / h;
+        if (interaction.handle === 'e' || interaction.handle === 'w') {
+          newH = newW / aspect;
+        } else if (interaction.handle === 'n' || interaction.handle === 's') {
+          newW = newH * aspect;
+        } else {
+          // 코너 — 더 큰 비율로 맞춤
+          if (Math.abs(newW / w) > Math.abs(newH / h)) newH = newW / aspect;
+          else newW = newH * aspect;
+        }
+      }
+      if (fromCenter) {
+        // 중심 기준 — 반대편도 같이
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+        newX = cx - newW / 2;
+        newY = cy - newH / 2;
+      }
+      const next = elements.map((el) =>
+        el.id === id ? { ...el, x: newX, y: newY, w: newW, h: newH, updatedAt: Date.now() } : el,
+      );
+      setElements(board.id, next);
+      return;
+    }
+
     if (interaction.kind === 'marquee') {
       setInteraction({ ...interaction, current: wp });
       const rect = rectFromPoints(interaction.start, wp);
@@ -822,15 +1021,20 @@ function BoardCanvas({
   const onPointerUp = (_e: React.PointerEvent<HTMLDivElement>) => {
     if (interaction.kind === 'idle') return;
 
+    let nextElements: WBElement[] | null = null;
+    let shouldCommit = false;
+
     if (interaction.kind === 'creating') {
       const rect = rectFromPoints(interaction.start, interaction.current);
       if (rect.w >= 2 && rect.h >= 2) {
         const shape = makeShape(rect, toolState);
         if (shape) {
           shape.zIndex = nextZIndex(elements);
-          addElement(board.id, shape);
+          nextElements = [...elements, shape];
+          setElements(board.id, nextElements);
           setSelection(new Set([shape.id]));
           setEditingId(shape.id);
+          shouldCommit = true;
         }
       }
     } else if (interaction.kind === 'drawing-line') {
@@ -839,22 +1043,36 @@ function BoardCanvas({
       if (Math.hypot(dx, dy) >= 4) {
         const line = makeLineOrArrow(interaction.start, interaction.current, interaction.arrow, toolState);
         line.zIndex = nextZIndex(elements);
-        addElement(board.id, line);
+        nextElements = [...elements, line];
+        setElements(board.id, nextElements);
         setSelection(new Set([line.id]));
+        shouldCommit = true;
       }
     } else if (interaction.kind === 'pen') {
       if (interaction.points.length >= 2) {
         const freedraw = makeFreedraw(interaction.points, toolState);
         freedraw.zIndex = nextZIndex(elements);
-        addElement(board.id, freedraw);
+        nextElements = [...elements, freedraw];
+        setElements(board.id, nextElements);
         setSelection(new Set([freedraw.id]));
+        shouldCommit = true;
       }
     } else if (interaction.kind === 'erasing') {
       if (interaction.ids.size > 0) {
-        removeElements(board.id, [...interaction.ids]);
+        nextElements = elements.filter((el) => !interaction.ids.has(el.id));
+        setElements(board.id, nextElements);
+        shouldCommit = true;
       }
+    } else if (interaction.kind === 'dragging' || interaction.kind === 'resizing') {
+      shouldCommit = true;
     }
     setInteraction({ kind: 'idle' });
+    if (shouldCommit) {
+      // useEffect로 다음 tick 에서 commit (state 갱신 후 elements 가 최신이 됨)
+      // 그러나 nextElements 이 있으면 그걸 즉시 commit 가능
+      if (nextElements) pushSnapshot(board.id, nextElements);
+      else commitHistory();
+    }
   };
 
   // 줌 컨트롤 핸들러
@@ -933,24 +1151,48 @@ function BoardCanvas({
               <WBElementRenderer el={el} />
             </g>
           ))}
-          {/* 선택 표시 */}
+          {/* 선택 표시 + 단일 선택 시 핸들 */}
           {[...selection].map((id) => {
             const el = elements.find((x) => x.id === id);
             if (!el) return null;
             const bb = elementBBox(el);
+            const showHandles = selection.size === 1 && tool === 'select' && el.type !== 'line' && el.type !== 'arrow' && el.type !== 'freedraw';
+            const HANDLE = 8 / viewport.zoom;
+            const points: Array<{ key: ResizeHandle; cx: number; cy: number }> = [
+              { key: 'nw', cx: bb.x,           cy: bb.y },
+              { key: 'n',  cx: bb.x + bb.w/2,  cy: bb.y },
+              { key: 'ne', cx: bb.x + bb.w,    cy: bb.y },
+              { key: 'e',  cx: bb.x + bb.w,    cy: bb.y + bb.h/2 },
+              { key: 'se', cx: bb.x + bb.w,    cy: bb.y + bb.h },
+              { key: 's',  cx: bb.x + bb.w/2,  cy: bb.y + bb.h },
+              { key: 'sw', cx: bb.x,           cy: bb.y + bb.h },
+              { key: 'w',  cx: bb.x,           cy: bb.y + bb.h/2 },
+            ];
             return (
-              <rect
-                key={`sel-${id}`}
-                x={bb.x - 4}
-                y={bb.y - 4}
-                width={bb.w + 8}
-                height={bb.h + 8}
-                fill="none"
-                stroke="hsl(217 91% 55%)"
-                strokeWidth={1.5 / viewport.zoom}
-                strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`}
-                pointerEvents="none"
-              />
+              <g key={`sel-${id}`} pointerEvents="none">
+                <rect
+                  x={bb.x - 4 / viewport.zoom}
+                  y={bb.y - 4 / viewport.zoom}
+                  width={bb.w + 8 / viewport.zoom}
+                  height={bb.h + 8 / viewport.zoom}
+                  fill="none"
+                  stroke="hsl(217 91% 55%)"
+                  strokeWidth={1.5 / viewport.zoom}
+                  strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`}
+                />
+                {showHandles && points.map((p) => (
+                  <rect
+                    key={p.key}
+                    x={p.cx - HANDLE/2}
+                    y={p.cy - HANDLE/2}
+                    width={HANDLE}
+                    height={HANDLE}
+                    fill="white"
+                    stroke="hsl(217 91% 55%)"
+                    strokeWidth={1.25 / viewport.zoom}
+                  />
+                ))}
+              </g>
             );
           })}
           {/* marquee */}
@@ -989,15 +1231,15 @@ function BoardCanvas({
                   if (content.trim() || el.type === 'sticky') {
                     updateElement(board.id, el.id, { content });
                   } else {
-                    // 빈 text는 삭제
                     removeElements(board.id, [el.id]);
                     setSelection(new Set());
                   }
                 } else {
-                  // shape 안 텍스트
                   updateElement(board.id, el.id, { text: content });
                 }
                 setEditingId(null);
+                // 다음 tick 에 store 의 최신 elements 로 history commit
+                setTimeout(() => pushSnapshot(board.id, getBoardData(board.id).elements), 0);
               }}
               onCancel={() => setEditingId(null)}
             />
@@ -1034,16 +1276,13 @@ function BoardCanvas({
       </div>
 
       {/* 우하 — 도움말 */}
-      <div className="absolute right-4 bottom-4">
-        <FloatingCard className="w-9 h-9 flex items-center justify-center">
-          <button
-            type="button"
-            className="w-full h-full rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="단축키 도움말"
-            title="단축키 (?)"
-          >
-            <HelpCircle className="w-[18px] h-[18px]" strokeWidth={1.75} />
-          </button>
+      <HelpFloating />
+
+      {/* 우하 상태 — undo/redo 가능 표시 (사용자 메모리 보조) */}
+      <div className="absolute right-16 bottom-4 flex items-center gap-1">
+        <FloatingCard className="flex items-center gap-0.5 px-1 h-9">
+          <UndoBtn enabled={canUndo(board.id)} onClick={doUndo} />
+          <RedoBtn enabled={canRedo(board.id)} onClick={doRedo} />
         </FloatingCard>
       </div>
     </>
@@ -1149,8 +1388,26 @@ function BoardHeader({ board }: { board: WBBoard }) {
 
 // ──────────────────────────────────────────
 function ToolPalette({ active }: { active: WBToolKind }) {
+  const settings = useSettings();
+  const [flyout, setFlyout] = useState<WBToolKind | null>(null);
+
+  const handleToolClick = (key: WBToolKind) => {
+    setTool({ kind: key });
+    const def = TOOLS.find((t) => t.key === key);
+    if (def?.hasFlyout) {
+      setFlyout((cur) => (cur === key ? null : key));
+    } else {
+      setFlyout(null);
+    }
+  };
+
+  // 캔버스에서 작업 시작하면 flyout 닫기
+  useEffect(() => {
+    if (flyout && active !== flyout) setFlyout(null);
+  }, [active, flyout]);
+
   return (
-    <div className="absolute left-4 top-1/2 -translate-y-1/2">
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-start gap-2">
       <FloatingCard className="flex flex-col p-1 gap-0.5">
         {TOOL_GROUPS.map((group, gi) => (
           <div key={gi} className="flex flex-col gap-0.5">
@@ -1162,7 +1419,7 @@ function ToolPalette({ active }: { active: WBToolKind }) {
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setTool({ kind: key })}
+                  onClick={() => handleToolClick(key)}
                   title={`${tool.label} (${tool.shortcut})`}
                   aria-label={tool.label}
                   aria-pressed={isActive}
@@ -1189,8 +1446,146 @@ function ToolPalette({ active }: { active: WBToolKind }) {
           </div>
         ))}
       </FloatingCard>
+      {flyout && <ToolFlyout tool={flyout} settings={settings.tool} onClose={() => setFlyout(null)} />}
     </div>
   );
+}
+
+// ──────────────────────────────────────────
+function ToolFlyout({
+  tool,
+  settings,
+  onClose,
+}: {
+  tool: WBToolKind;
+  settings: WBToolState;
+  onClose: () => void;
+}) {
+  if (tool === 'sticky') {
+    return (
+      <FloatingCard className="p-2 flex flex-col gap-1.5">
+        <span className="text-[10px] font-medium text-muted-foreground px-1">스티키 색</span>
+        <div className="grid grid-cols-3 gap-1.5">
+          {(['amber', 'pink', 'mint', 'sky', 'lavender', 'slate'] as const).map((c) => {
+            const tone = WB_STICKY_BG[c];
+            const isActive = settings.stickyColor === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => { setTool({ stickyColor: c }); onClose(); }}
+                className={cn(
+                  'w-9 h-9 rounded-md transition-all border-2',
+                  isActive ? 'border-primary scale-110' : 'border-transparent hover:scale-105',
+                )}
+                style={{ background: tone.bg, borderColor: isActive ? undefined : tone.border }}
+                aria-label={c}
+                title={c}
+              />
+            );
+          })}
+        </div>
+      </FloatingCard>
+    );
+  }
+  if (tool === 'shape') {
+    const shapes: Array<{ key: 'rect' | 'ellipse' | 'diamond' | 'triangle' | 'speech'; label: string; icon: React.ReactNode }> = [
+      { key: 'rect',     label: '사각',     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="3" y="5" width="18" height="14" rx="2"/></svg> },
+      { key: 'ellipse',  label: '원',       icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><ellipse cx="12" cy="12" rx="9" ry="7"/></svg> },
+      { key: 'diamond',  label: '다이아',   icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><polygon points="12,3 21,12 12,21 3,12"/></svg> },
+      { key: 'triangle', label: '삼각',     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><polygon points="12,4 21,20 3,20"/></svg> },
+      { key: 'speech',   label: '말풍선',   icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M4 5h16v10h-9l-4 4v-4H4z"/></svg> },
+    ];
+    return (
+      <FloatingCard className="p-2 flex flex-col gap-1.5">
+        <span className="text-[10px] font-medium text-muted-foreground px-1">도형</span>
+        <div className="grid grid-cols-3 gap-1">
+          {shapes.map((s) => {
+            const isActive = settings.shapeKind === s.key;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => { setTool({ shapeKind: s.key }); onClose(); }}
+                className={cn(
+                  'w-9 h-9 rounded-md flex items-center justify-center transition-colors',
+                  isActive ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+                title={s.label}
+              >
+                {s.icon}
+              </button>
+            );
+          })}
+        </div>
+      </FloatingCard>
+    );
+  }
+  if (tool === 'line') {
+    const lines: Array<{ key: WBToolState['lineKind']; label: string }> = [
+      { key: 'line',          label: '선' },
+      { key: 'arrow-solid',   label: '→ 화살표' },
+      { key: 'arrow-dashed',  label: '┄→ 점선' },
+      { key: 'arrow-curved',  label: '╭ 곡선' },
+      { key: 'arrow-elbow',   label: '└ 직각' },
+    ];
+    return (
+      <FloatingCard className="p-2 flex flex-col gap-1.5 min-w-[120px]">
+        <span className="text-[10px] font-medium text-muted-foreground px-1">선 스타일</span>
+        {lines.map((l) => {
+          const isActive = settings.lineKind === l.key;
+          return (
+            <button
+              key={l.key}
+              type="button"
+              onClick={() => { setTool({ lineKind: l.key }); onClose(); }}
+              className={cn(
+                'h-7 px-2 rounded text-[12px] text-left transition-colors',
+                isActive ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+            >
+              {l.label}
+            </button>
+          );
+        })}
+      </FloatingCard>
+    );
+  }
+  if (tool === 'pen') {
+    const widths: Array<{ key: WBToolState['penWidth']; label: string; size: number }> = [
+      { key: 'thin', label: '얇음', size: 2 },
+      { key: 'normal', label: '보통', size: 4 },
+      { key: 'thick', label: '굵음', size: 7 },
+    ];
+    return (
+      <FloatingCard className="p-2 flex flex-col gap-1.5">
+        <span className="text-[10px] font-medium text-muted-foreground px-1">펜 두께</span>
+        <div className="flex gap-1">
+          {widths.map((w) => {
+            const isActive = settings.penWidth === w.key;
+            return (
+              <button
+                key={w.key}
+                type="button"
+                onClick={() => { setTool({ penWidth: w.key }); onClose(); }}
+                className={cn(
+                  'w-9 h-9 rounded-md flex items-center justify-center transition-colors',
+                  isActive ? 'bg-primary/12' : 'hover:bg-accent',
+                )}
+                title={w.label}
+              >
+                <span
+                  className="rounded-full bg-foreground"
+                  style={{ width: w.size, height: w.size }}
+                />
+              </button>
+            );
+          })}
+        </div>
+      </FloatingCard>
+    );
+  }
+  return null;
 }
 
 // ──────────────────────────────────────────
@@ -1222,10 +1617,186 @@ function ZoomBtn({ icon: Icon, label, onClick }: { icon: LucideIcon; label: stri
   );
 }
 
+function UndoBtn({ enabled, onClick }: { enabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!enabled}
+      className={cn(
+        'w-7 h-7 rounded flex items-center justify-center transition-colors',
+        enabled ? 'text-muted-foreground hover:bg-accent hover:text-foreground' : 'text-muted-foreground/30 cursor-not-allowed',
+      )}
+      aria-label="실행 취소"
+      title="실행 취소 (Ctrl+Z)"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 7v6h6" />
+        <path d="M3 13a9 9 0 1 0 3-7" />
+      </svg>
+    </button>
+  );
+}
+function RedoBtn({ enabled, onClick }: { enabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!enabled}
+      className={cn(
+        'w-7 h-7 rounded flex items-center justify-center transition-colors',
+        enabled ? 'text-muted-foreground hover:bg-accent hover:text-foreground' : 'text-muted-foreground/30 cursor-not-allowed',
+      )}
+      aria-label="다시 실행"
+      title="다시 실행 (Ctrl+Shift+Z)"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 7v6h-6" />
+        <path d="M21 13a9 9 0 1 1-3-7" />
+      </svg>
+    </button>
+  );
+}
+
+// ──────────────────────────────────────────
+function HelpFloating() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === '?' && !isEditableTarget(e.target)) {
+        setOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  return (
+    <>
+      <div className="absolute right-4 bottom-4">
+        <FloatingCard className="w-9 h-9 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="w-full h-full rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="단축키 도움말"
+            title="단축키 (?)"
+          >
+            <HelpCircle className="w-[18px] h-[18px]" strokeWidth={1.75} />
+          </button>
+        </FloatingCard>
+      </div>
+      {open && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-card border border-[hsl(var(--hairline))] rounded-xl shadow-xl max-w-[640px] w-[90vw] max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-[hsl(var(--hairline))] flex items-center justify-between">
+              <h2 className="text-[15px] font-semibold">단축키</h2>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-5 py-4 grid grid-cols-2 gap-x-8 gap-y-1 text-[12.5px]">
+              <ShortcutGroup title="도구" items={[
+                ['V', '선택'], ['H', '팬'], ['T', '텍스트'], ['S', '스티키'],
+                ['R', '도형 (사각)'], ['O', '도형 (원)'], ['D', '도형 (다이아)'],
+                ['L', '선'], ['A', '화살표'], ['P', '펜'], ['E', '지우개'],
+              ]} />
+              <ShortcutGroup title="편집" items={[
+                ['Ctrl+Z', '실행 취소'], ['Ctrl+Shift+Z', '다시 실행'],
+                ['Ctrl+A', '전체 선택'], ['Ctrl+D', '복제'],
+                ['Ctrl+C / X / V', '복사 / 잘라내기 / 붙여넣기'],
+                ['Delete', '삭제'],
+                ['Shift+클릭', '선택 토글'],
+                ['↑↓←→', '1px 이동 (Shift: 10px)'],
+                ['[ / ]', 'z-order 한 칸'],
+                ['Ctrl+[ / ]', '맨 뒤 / 맨 앞'],
+              ]} />
+              <ShortcutGroup title="뷰" items={[
+                ['Space (hold)', '임시 팬'],
+                ['휠', '세로 팬 (Shift: 가로)'],
+                ['Ctrl+휠', '줌 (커서 기준)'],
+                ['?', '이 단축키 모달'],
+                ['Esc', '편집·인터랙션·선택 취소'],
+              ]} />
+              <ShortcutGroup title="그리기 보조" items={[
+                ['Shift+드래그', '선·화살표 15° 스냅'],
+                ['Shift+리사이즈', '비율 고정'],
+                ['Alt+리사이즈', '중심 기준'],
+              ]} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ShortcutGroup({ title, items }: { title: string; items: Array<[string, string]> }) {
+  return (
+    <div className="mb-3">
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{title}</h3>
+      <dl className="space-y-0.5">
+        {items.map(([key, label]) => (
+          <div key={key} className="flex items-baseline gap-2">
+            <dt className="font-mono text-[11px] text-foreground/70 shrink-0 min-w-[110px]">{key}</dt>
+            <dd className="text-foreground/85">{label}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 // ──────────────────────────────────────────
 // 헬퍼
 function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
+}
+
+/** 단일 선택 요소 bbox 경계 근처면 핸들 반환. */
+function findResizeHandle(
+  el: WBElement,
+  wp: { x: number; y: number },
+  zoom: number,
+): ResizeHandle | null {
+  if (el.type === 'line' || el.type === 'arrow' || el.type === 'freedraw') return null;
+  const TH = 10 / zoom;     // hit threshold
+  const x1 = el.x;
+  const y1 = el.y;
+  const x2 = el.x + el.w;
+  const y2 = el.y + el.h;
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const near = (a: number, b: number) => Math.abs(a - b) <= TH;
+  // 코너 우선 (영역 더 작음)
+  if (near(wp.x, x1) && near(wp.y, y1)) return 'nw';
+  if (near(wp.x, x2) && near(wp.y, y1)) return 'ne';
+  if (near(wp.x, x1) && near(wp.y, y2)) return 'sw';
+  if (near(wp.x, x2) && near(wp.y, y2)) return 'se';
+  // 변 — 사각형 안쪽이어야 함
+  if (wp.y >= y1 - TH && wp.y <= y2 + TH) {
+    if (near(wp.x, x1)) return 'w';
+    if (near(wp.x, x2)) return 'e';
+  }
+  if (wp.x >= x1 - TH && wp.x <= x2 + TH) {
+    if (near(wp.y, y1)) return 'n';
+    if (near(wp.y, y2)) return 's';
+  }
+  // 정확히 중앙 변 (n, s)
+  if (near(wp.y, y1) && Math.abs(wp.x - mx) < el.w / 2 - TH) return 'n';
+  if (near(wp.y, y2) && Math.abs(wp.x - mx) < el.w / 2 - TH) return 's';
+  if (near(wp.x, x1) && Math.abs(wp.y - my) < el.h / 2 - TH) return 'w';
+  if (near(wp.x, x2) && Math.abs(wp.y - my) < el.h / 2 - TH) return 'e';
+  return null;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
