@@ -2938,9 +2938,17 @@ function StylePopover({
               </>
             )}
 
-            {/* 도형 (rect/ellipse/diamond/triangle/speech) */}
+            {/* 도형 (rect/ellipse/diamond/triangle/speech) — roughness 포함 */}
             {(element.type === 'rect' || element.type === 'ellipse' || element.type === 'diamond' || element.type === 'triangle' || element.type === 'speech') && (
               <>
+                <StyleRow label="질감">
+                  {([0, 1, 2] as const).map((r) => (
+                    <button key={r} type="button" onClick={() => apply({ roughness: r } as Partial<WBElement>)}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        element.roughness === r ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{r === 0 ? '깔끔' : r === 1 ? '손그림' : '거침'}</button>
+                  ))}
+                </StyleRow>
                 <StyleRow label="윤곽">
                   {WB_COLORS.map((c) => {
                     const isActive = element.strokeColor === c;

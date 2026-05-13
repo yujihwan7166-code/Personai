@@ -23,6 +23,7 @@ import type {
 import { WB_COLOR_HSL, WB_STICKY_BG, WB_STROKE_DASH, WB_STROKE_WIDTH } from '@/lib/whiteboard/colors';
 import { getImageObjectURL } from '@/lib/whiteboard/imageStore';
 import { renderMarkdownLite } from '@/lib/whiteboard/markdownLite';
+import { drawableSVGPaths, roughCached, roughGenerator, roughOptions } from '@/lib/whiteboard/rough';
 
 function transform(el: Pick<WBElement, 'x' | 'y' | 'w' | 'h' | 'angle'>): string | undefined {
   if (!el.angle) return undefined;
@@ -48,7 +49,45 @@ function fillValue(el: { fillColor: string }) {
 }
 
 // ──────────────────────────────────────────
+// roughjs 렌더 — roughness > 0 시 sketchy path 들을 React 노드로 반환.
+function RoughPaths({ paths }: { paths: Array<{ d: string; fill?: string; stroke?: string }> }) {
+  return (
+    <>
+      {paths.map((p, i) => (
+        <path
+          key={i}
+          d={p.d}
+          fill={p.fill ?? 'none'}
+          stroke={p.stroke ?? 'currentColor'}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ))}
+    </>
+  );
+}
+
+// ──────────────────────────────────────────
 export const RectEl = memo(function RectEl({ el }: { el: WBRect }) {
+  if (el.roughness > 0) {
+    const stroke = WB_COLOR_HSL[el.strokeColor];
+    const fill = el.fillColor !== 'none' ? WB_COLOR_HSL[el.fillColor].replace('hsl(', 'hsla(').replace(')', ' / 0.18)') : undefined;
+    const drawable = roughCached({
+      el,
+      cacheKey: `rect|${el.x}|${el.y}|${el.w}|${el.h}|${el.strokeColor}|${el.fillColor}|${el.fillStyle}|${el.strokeWidth}|${el.roughness}`,
+      build: () => roughGenerator.rectangle(el.x, el.y, el.w, el.h, {
+        ...roughOptions(el.roughness, fill, el.fillStyle as 'solid'|'hachure'|'cross-hatch'|undefined),
+        stroke,
+        strokeWidth: WB_STROKE_WIDTH[el.strokeWidth],
+      }),
+    });
+    return (
+      <g transform={transform(el)} opacity={el.opacity}>
+        <RoughPaths paths={drawableSVGPaths(drawable)} />
+        {el.text && <ShapeText el={el} />}
+      </g>
+    );
+  }
   return (
     <g transform={transform(el)} opacity={el.opacity}>
       <rect
@@ -67,6 +106,25 @@ export const RectEl = memo(function RectEl({ el }: { el: WBRect }) {
 });
 
 export const EllipseEl = memo(function EllipseEl({ el }: { el: WBEllipse }) {
+  if (el.roughness > 0) {
+    const stroke = WB_COLOR_HSL[el.strokeColor];
+    const fill = el.fillColor !== 'none' ? WB_COLOR_HSL[el.fillColor].replace('hsl(', 'hsla(').replace(')', ' / 0.18)') : undefined;
+    const drawable = roughCached({
+      el,
+      cacheKey: `ellipse|${el.x}|${el.y}|${el.w}|${el.h}|${el.strokeColor}|${el.fillColor}|${el.fillStyle}|${el.strokeWidth}|${el.roughness}`,
+      build: () => roughGenerator.ellipse(el.x + el.w / 2, el.y + el.h / 2, el.w, el.h, {
+        ...roughOptions(el.roughness, fill, el.fillStyle as 'solid'|'hachure'|'cross-hatch'|undefined),
+        stroke,
+        strokeWidth: WB_STROKE_WIDTH[el.strokeWidth],
+      }),
+    });
+    return (
+      <g transform={transform(el)} opacity={el.opacity}>
+        <RoughPaths paths={drawableSVGPaths(drawable)} />
+        {el.text && <ShapeText el={el} />}
+      </g>
+    );
+  }
   return (
     <g transform={transform(el)} opacity={el.opacity}>
       <ellipse
@@ -82,10 +140,33 @@ export const EllipseEl = memo(function EllipseEl({ el }: { el: WBEllipse }) {
   );
 });
 
+function polyRough(el: { x: number; y: number; w: number; h: number; strokeColor: string; strokeWidth: 'thin'|'normal'|'thick'; roughness: 0|1|2; fillColor: string; fillStyle: string }, pts: Array<[number, number]>, tag: string) {
+  const stroke = WB_COLOR_HSL[el.strokeColor as keyof typeof WB_COLOR_HSL];
+  const fill = el.fillColor !== 'none' ? WB_COLOR_HSL[el.fillColor as keyof typeof WB_COLOR_HSL].replace('hsl(', 'hsla(').replace(')', ' / 0.18)') : undefined;
+  return roughCached({
+    el,
+    cacheKey: `${tag}|${el.x}|${el.y}|${el.w}|${el.h}|${el.strokeColor}|${el.fillColor}|${el.fillStyle}|${el.strokeWidth}|${el.roughness}`,
+    build: () => roughGenerator.polygon(pts, {
+      ...roughOptions(el.roughness, fill, el.fillStyle as 'solid'|'hachure'|'cross-hatch'|undefined),
+      stroke,
+      strokeWidth: WB_STROKE_WIDTH[el.strokeWidth],
+    }),
+  });
+}
+
 export const DiamondEl = memo(function DiamondEl({ el }: { el: WBDiamond }) {
   const cx = el.x + el.w / 2;
   const cy = el.y + el.h / 2;
-  const points = `${cx},${el.y} ${el.x + el.w},${cy} ${cx},${el.y + el.h} ${el.x},${cy}`;
+  const pts: Array<[number, number]> = [[cx, el.y], [el.x + el.w, cy], [cx, el.y + el.h], [el.x, cy]];
+  if (el.roughness > 0) {
+    return (
+      <g transform={transform(el)} opacity={el.opacity}>
+        <RoughPaths paths={drawableSVGPaths(polyRough(el, pts, 'diamond'))} />
+        {el.text && <ShapeText el={el} />}
+      </g>
+    );
+  }
+  const points = pts.map((p) => p.join(',')).join(' ');
   return (
     <g transform={transform(el)} opacity={el.opacity}>
       <polygon points={points} fill={fillValue(el)} {...strokeAttrs(el)} />
@@ -95,7 +176,16 @@ export const DiamondEl = memo(function DiamondEl({ el }: { el: WBDiamond }) {
 });
 
 export const TriangleEl = memo(function TriangleEl({ el }: { el: WBTriangle }) {
-  const points = `${el.x + el.w / 2},${el.y} ${el.x + el.w},${el.y + el.h} ${el.x},${el.y + el.h}`;
+  const pts: Array<[number, number]> = [[el.x + el.w / 2, el.y], [el.x + el.w, el.y + el.h], [el.x, el.y + el.h]];
+  if (el.roughness > 0) {
+    return (
+      <g transform={transform(el)} opacity={el.opacity}>
+        <RoughPaths paths={drawableSVGPaths(polyRough(el, pts, 'triangle'))} />
+        {el.text && <ShapeText el={el} />}
+      </g>
+    );
+  }
+  const points = pts.map((p) => p.join(',')).join(' ');
   return (
     <g transform={transform(el)} opacity={el.opacity}>
       <polygon points={points} fill={fillValue(el)} {...strokeAttrs(el)} />
@@ -131,6 +221,23 @@ export const SpeechEl = memo(function SpeechEl({ el }: { el: WBSpeech }) {
 // ──────────────────────────────────────────
 export const LineEl = memo(function LineEl({ el }: { el: WBLine }) {
   if (el.points.length < 2) return null;
+  if (el.roughness > 0) {
+    const stroke = WB_COLOR_HSL[el.strokeColor];
+    const drawable = roughCached({
+      el,
+      cacheKey: `line|${el.points.map((p) => p.join(',')).join(';')}|${el.strokeColor}|${el.strokeWidth}|${el.roughness}`,
+      build: () => roughGenerator.linearPath(el.points, {
+        ...roughOptions(el.roughness),
+        stroke,
+        strokeWidth: WB_STROKE_WIDTH[el.strokeWidth],
+      }),
+    });
+    return (
+      <g transform={transform(el)} opacity={el.opacity}>
+        <RoughPaths paths={drawableSVGPaths(drawable)} />
+      </g>
+    );
+  }
   const d = pointsToPath(el.points);
   return (
     <g transform={transform(el)} opacity={el.opacity}>
@@ -151,6 +258,33 @@ export const ArrowEl = memo(function ArrowEl({ el }: { el: WBArrow }) {
   const ay = last[1] - Math.sin(angle - Math.PI / 6) * headSize;
   const bx = last[0] - Math.cos(angle + Math.PI / 6) * headSize;
   const by = last[1] - Math.sin(angle + Math.PI / 6) * headSize;
+
+  if (el.roughness > 0) {
+    const drawable = roughCached({
+      el,
+      cacheKey: `arrow|${el.points.map((p) => p.join(',')).join(';')}|${el.strokeColor}|${el.strokeWidth}|${el.roughness}`,
+      build: () => roughGenerator.linearPath(el.points, {
+        ...roughOptions(el.roughness),
+        stroke,
+        strokeWidth: WB_STROKE_WIDTH[el.strokeWidth],
+      }),
+    });
+    return (
+      <g transform={transform(el)} opacity={el.opacity}>
+        <RoughPaths paths={drawableSVGPaths(drawable)} />
+        {el.endArrow !== 'none' && (
+          <polyline
+            points={`${ax},${ay} ${last[0]},${last[1]} ${bx},${by}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={WB_STROKE_WIDTH[el.strokeWidth]}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+      </g>
+    );
+  }
   return (
     <g transform={transform(el)} opacity={el.opacity}>
       <path d={pointsToPath(el.points)} fill="none" {...strokeAttrs(el)} strokeLinecap="round" strokeLinejoin="round" />
