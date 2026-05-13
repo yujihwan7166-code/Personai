@@ -126,11 +126,13 @@ function ensureBoardData(boardId: string): WBBoardData {
 
 function commitBoards(next: WBBoard[]): void {
   boardsCache = next;
+  invalidateBoardsDerived();
   saveJSON(K_BOARDS, next);
   boardsListeners.forEach((l) => l());
 }
 function commitFolders(next: WBFolder[]): void {
   foldersCache = next;
+  invalidateFoldersDerived();
   saveJSON(K_FOLDERS, next);
   foldersListeners.forEach((l) => l());
 }
@@ -150,9 +152,11 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
     if (e.key === K_BOARDS) {
       boardsCache = null;
+      invalidateBoardsDerived();
       boardsListeners.forEach((l) => l());
     } else if (e.key === K_FOLDERS) {
       foldersCache = null;
+      invalidateFoldersDerived();
       foldersListeners.forEach((l) => l());
     } else if (e.key === K_SETTINGS) {
       settingsCache = null;
@@ -179,11 +183,32 @@ export function newElementId(): string {
 
 // ──────────────────────────────────────────
 // Boards API
+//
+// useSyncExternalStore 는 getSnapshot 이 매 호출 같은 reference 를 반환해야 하므로
+// derived 결과(필터·정렬)는 캐시. 원본 cache 변경 시 함께 무효화.
+let boardsActiveDerived: WBBoard[] | null = null;
+let boardsTrashedDerived: WBBoard[] | null = null;
+let foldersSortedDerived: WBFolder[] | null = null;
+
+function invalidateBoardsDerived(): void {
+  boardsActiveDerived = null;
+  boardsTrashedDerived = null;
+}
+function invalidateFoldersDerived(): void {
+  foldersSortedDerived = null;
+}
+
 export function listBoards(): WBBoard[] {
-  return ensureBoards().filter((b) => !b.trashedAt);
+  if (boardsActiveDerived === null) {
+    boardsActiveDerived = ensureBoards().filter((b) => !b.trashedAt);
+  }
+  return boardsActiveDerived;
 }
 export function listTrashedBoards(): WBBoard[] {
-  return ensureBoards().filter((b) => b.trashedAt);
+  if (boardsTrashedDerived === null) {
+    boardsTrashedDerived = ensureBoards().filter((b) => b.trashedAt);
+  }
+  return boardsTrashedDerived;
 }
 export function getBoard(id: string): WBBoard | undefined {
   return ensureBoards().find((b) => b.id === id);
@@ -285,7 +310,10 @@ export function duplicateBoard(id: string): WBBoard | null {
 // ──────────────────────────────────────────
 // Folders API
 export function listFolders(): WBFolder[] {
-  return [...ensureFolders()].sort((a, b) => a.order - b.order);
+  if (foldersSortedDerived === null) {
+    foldersSortedDerived = [...ensureFolders()].sort((a, b) => a.order - b.order);
+  }
+  return foldersSortedDerived;
 }
 
 export function addFolder(name: string): WBFolder {
