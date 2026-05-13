@@ -5,6 +5,7 @@
  * Step 3 예정: 요소 렌더 + 도구 동작.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import '@/styles/wiki.css';   // wiki-warm-theme 토큰 (메모와 동일)
 import {
   MousePointer2,
   Hand,
