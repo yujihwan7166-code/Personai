@@ -572,6 +572,7 @@ function BoardCanvas({
   const [snapGuides, setSnapGuides] = useState<Guide[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchIndex, setSearchIndex] = useState(0);
 
   // 컨테이너 사이즈 추적
   useEffect(() => {
@@ -642,12 +643,19 @@ function BoardCanvas({
     pushSnapshot(board.id, [...elements, ...newOnes]);
   }, [board.id, elements, selection]);
 
+  // 화살표키 연속 이동을 1 트랜잭션으로 — 마지막 이동 후 200ms debounce 로 snapshot
+  const moveCommitTimerRef = useRef<number | null>(null);
   const moveSelected = useCallback((dx: number, dy: number) => {
     if (selection.size === 0) return;
     const next = elements.map((el) =>
       selection.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy, updatedAt: Date.now() } : el,
     );
     setElements(board.id, next);
+    if (moveCommitTimerRef.current) window.clearTimeout(moveCommitTimerRef.current);
+    moveCommitTimerRef.current = window.setTimeout(() => {
+      pushSnapshot(board.id, getBoardData(board.id).elements);
+      moveCommitTimerRef.current = null;
+    }, 250);
   }, [board.id, elements, selection]);
 
   // 그룹 / 그룹 해제 / 잠금 토글
@@ -708,19 +716,37 @@ function BoardCanvas({
   const changeZOrder = useCallback((mode: 'front' | 'back' | 'forward' | 'backward') => {
     if (selection.size === 0) return;
     const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
-    const minZ = sorted[0]?.zIndex ?? 0;
-    const maxZ = sorted[sorted.length - 1]?.zIndex ?? 0;
-    const next = elements.map((el) => {
-      if (!selection.has(el.id)) return el;
-      let z = el.zIndex;
-      if (mode === 'front') z = maxZ + 1;
-      else if (mode === 'back') z = minZ - 1;
-      else if (mode === 'forward') z = el.zIndex + 1.5;
-      else if (mode === 'backward') z = el.zIndex - 1.5;
-      return { ...el, zIndex: z, updatedAt: Date.now() };
-    });
-    // zIndex 정규화 (정수로)
-    const normalized = [...next].sort((a, b) => a.zIndex - b.zIndex).map((el, i) => ({ ...el, zIndex: i }));
+
+    let reordered: WBElement[];
+
+    if (mode === 'front') {
+      // 선택 모두 뒤로 모으고 끝에 붙임 (선택 내 상대 순서 보존)
+      const sel = sorted.filter((el) => selection.has(el.id));
+      const rest = sorted.filter((el) => !selection.has(el.id));
+      reordered = [...rest, ...sel];
+    } else if (mode === 'back') {
+      const sel = sorted.filter((el) => selection.has(el.id));
+      const rest = sorted.filter((el) => !selection.has(el.id));
+      reordered = [...sel, ...rest];
+    } else if (mode === 'forward') {
+      // 위쪽부터 — 선택된 요소를 위쪽 비선택 요소와 swap
+      reordered = [...sorted];
+      for (let i = reordered.length - 2; i >= 0; i--) {
+        if (selection.has(reordered[i].id) && !selection.has(reordered[i + 1].id)) {
+          [reordered[i], reordered[i + 1]] = [reordered[i + 1], reordered[i]];
+        }
+      }
+    } else {
+      // backward — 아래쪽부터 swap
+      reordered = [...sorted];
+      for (let i = 1; i < reordered.length; i++) {
+        if (selection.has(reordered[i].id) && !selection.has(reordered[i - 1].id)) {
+          [reordered[i], reordered[i - 1]] = [reordered[i - 1], reordered[i]];
+        }
+      }
+    }
+    // zIndex 정수 재부여
+    const normalized = reordered.map((el, i) => ({ ...el, zIndex: i, updatedAt: Date.now() }));
     setElements(board.id, normalized);
     pushSnapshot(board.id, normalized);
   }, [board.id, elements, selection]);
@@ -819,8 +845,9 @@ function BoardCanvas({
         if (k === 'c') { e.preventDefault(); copySelected(); return; }
         if (k === 'v') { e.preventDefault(); pasteClipboard(); return; }
         if (k === 'x') { e.preventDefault(); copySelected(); removeElements(board.id, [...selection]); setSelection(new Set()); pushSnapshot(board.id, elements.filter((el) => !selection.has(el.id))); return; }
-        if (e.key === ']') { e.preventDefault(); changeZOrder(e.shiftKey ? 'front' : 'forward'); return; }
-        if (e.key === '[') { e.preventDefault(); changeZOrder(e.shiftKey ? 'back' : 'backward'); return; }
+        // 스펙: Ctrl+] / [ = 맨 앞 / 맨 뒤 / Ctrl+Shift+] / [ = 한 칸 (단독 [ ]와 동일)
+        if (e.key === ']') { e.preventDefault(); changeZOrder(e.shiftKey ? 'forward' : 'front'); return; }
+        if (e.key === '[') { e.preventDefault(); changeZOrder(e.shiftKey ? 'backward' : 'back'); return; }
         return;
       }
       // 단독 [ ] (Ctrl 없이) — z-order 한 칸
@@ -1004,15 +1031,24 @@ function BoardCanvas({
           });
           return;
         }
-        // 단일 클릭 — 그룹 자동 확장
+        // 단일 클릭 — 그룹 자동 확장 (이미 선택돼있어도 그룹 멤버 항상 포함)
         const groupMembers = expandGroupSelection(hit.id);
-        const nextSelection = selection.has(hit.id) ? selection : groupMembers;
-        if (!selection.has(hit.id)) setSelection(nextSelection);
+        // 이미 그룹 전체가 선택돼 있으면 유지, 아니면 그룹으로 갈음
+        const allMembersSelected = [...groupMembers].every((id) => selection.has(id));
+        const nextSelection = allMembersSelected ? selection : groupMembers;
+        if (!allMembersSelected) setSelection(nextSelection);
+        // 잠긴 요소는 드래그 origin 에서 제외 → 안 움직임
         const origin = new Map<string, { x: number; y: number }>();
+        const dragIds: string[] = [];
         for (const el of elements) {
-          if (nextSelection.has(el.id)) origin.set(el.id, { x: el.x, y: el.y });
+          if (nextSelection.has(el.id) && !el.locked) {
+            origin.set(el.id, { x: el.x, y: el.y });
+            dragIds.push(el.id);
+          }
         }
-        setInteraction({ kind: 'dragging', ids: [...nextSelection], startWorld: wp, origin });
+        if (dragIds.length > 0) {
+          setInteraction({ kind: 'dragging', ids: dragIds, startWorld: wp, origin });
+        }
       } else {
         // 빈 영역 — marquee
         if (!e.shiftKey) setSelection(new Set());
@@ -1181,7 +1217,15 @@ function BoardCanvas({
       const rect = rectFromPoints(interaction.start, wp);
       const inRect = findElementsInRect(elements, rect);
       const next = new Set(interaction.baseSelection);
-      for (const el of inRect) next.add(el.id);
+      for (const el of inRect) {
+        // 그룹 멤버면 전체를 함께 (잠긴 멤버 포함 — 그룹 단위 선택)
+        if (el.groupIds.length > 0) {
+          const expanded = expandGroupSelection(el.id);
+          for (const id of expanded) next.add(id);
+        } else {
+          next.add(el.id);
+        }
+      }
       setSelection(next);
       return;
     }
@@ -1614,13 +1658,18 @@ function BoardCanvas({
             <SearchBar
               query={searchQuery}
               matchCount={searchMatches?.size ?? 0}
-              onChange={setSearchQuery}
-              onClose={() => { setSearchOpen(false); setSearchQuery(''); }}
-              onJump={() => {
+              currentIndex={searchIndex}
+              onChange={(v) => { setSearchQuery(v); setSearchIndex(0); }}
+              onClose={() => { setSearchOpen(false); setSearchQuery(''); setSearchIndex(0); }}
+              onJump={(dir) => {
                 if (!searchMatches || searchMatches.size === 0) return;
-                // 첫 매치 요소로 viewport 점프
-                const firstId = [...searchMatches][0];
-                const el = elements.find((x) => x.id === firstId);
+                const matchIds = [...searchMatches];
+                let next = searchIndex;
+                if (dir === 'next') next = (searchIndex + 1) % matchIds.length;
+                else if (dir === 'prev') next = (searchIndex - 1 + matchIds.length) % matchIds.length;
+                setSearchIndex(next);
+                const targetId = matchIds[next];
+                const el = elements.find((x) => x.id === targetId);
                 if (!el) return;
                 const cx = el.x + el.w / 2;
                 const cy = el.y + el.h / 2;
@@ -1629,7 +1678,7 @@ function BoardCanvas({
                   x: cx - size.w / 2 / viewport.zoom,
                   y: cy - size.h / 2 / viewport.zoom,
                 });
-                setSelection(new Set([firstId]));
+                setSelection(new Set([targetId]));
               }}
             />
           )}
@@ -2083,6 +2132,13 @@ function ToolFlyout({
       { key: 'normal', label: '보통', size: 4 },
       { key: 'thick', label: '굵음', size: 7 },
     ];
+    const colors: Array<{ key: 'ink' | 'red' | 'blue' | 'green' | 'amber'; hex: string }> = [
+      { key: 'ink',   hex: 'hsl(0 0% 15%)' },
+      { key: 'red',   hex: 'hsl(0 72% 51%)' },
+      { key: 'blue',  hex: 'hsl(217 91% 55%)' },
+      { key: 'green', hex: 'hsl(142 70% 45%)' },
+      { key: 'amber', hex: 'hsl(38 92% 50%)' },
+    ];
     return (
       <FloatingCard className="p-2 flex flex-col gap-1.5">
         <span className="text-[10px] font-medium text-muted-foreground px-1">펜 두께</span>
@@ -2093,7 +2149,7 @@ function ToolFlyout({
               <button
                 key={w.key}
                 type="button"
-                onClick={() => { setTool({ penWidth: w.key }); onClose(); }}
+                onClick={() => setTool({ penWidth: w.key })}
                 className={cn(
                   'w-9 h-9 rounded-md flex items-center justify-center transition-colors',
                   isActive ? 'bg-primary/12' : 'hover:bg-accent',
@@ -2105,6 +2161,26 @@ function ToolFlyout({
                   style={{ width: w.size, height: w.size }}
                 />
               </button>
+            );
+          })}
+        </div>
+        <span className="text-[10px] font-medium text-muted-foreground px-1 mt-1">펜 색</span>
+        <div className="flex gap-1">
+          {colors.map((c) => {
+            const isActive = settings.penColor === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => { setTool({ penColor: c.key }); onClose(); }}
+                className={cn(
+                  'w-7 h-7 rounded-full transition-transform border-2',
+                  isActive ? 'border-primary scale-110' : 'border-transparent hover:scale-110',
+                )}
+                style={{ background: c.hex }}
+                title={c.key}
+                aria-label={c.key}
+              />
             );
           })}
         </div>
@@ -2286,24 +2362,27 @@ function MiniMap({
 function SearchBar({
   query,
   matchCount,
+  currentIndex,
   onChange,
   onClose,
   onJump,
 }: {
   query: string;
   matchCount: number;
+  currentIndex: number;
   onChange: (v: string) => void;
   onClose: () => void;
-  onJump: () => void;
+  onJump: (dir: 'next' | 'prev') => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     ref.current?.focus();
     ref.current?.select();
   }, []);
+  const empty = query.trim().length > 0 && matchCount === 0;
   return (
     <div className="absolute left-1/2 -translate-x-1/2 top-4 z-30">
-      <FloatingCard className="flex items-center gap-1 px-2 h-9 min-w-[280px]">
+      <FloatingCard className={cn('flex items-center gap-1 px-2 h-9 min-w-[320px]', empty && 'ring-1 ring-destructive/40')}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-muted-foreground">
           <circle cx="11" cy="11" r="7"/>
           <line x1="16.5" y1="16.5" x2="21" y2="21"/>
@@ -2315,15 +2394,34 @@ function SearchBar({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             e.stopPropagation();
-            if (e.key === 'Enter') onJump();
+            if (e.key === 'Enter') onJump(e.shiftKey ? 'prev' : 'next');
             if (e.key === 'Escape') onClose();
           }}
           placeholder="텍스트·스티키·도형 검색…"
           className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
         />
-        {query && (
-          <span className="text-[11px] tabular-nums text-muted-foreground">{matchCount}개</span>
+        {query && matchCount > 0 && (
+          <span className="text-[11px] tabular-nums text-muted-foreground">{currentIndex + 1}/{matchCount}</span>
         )}
+        {empty && (
+          <span className="text-[11px] tabular-nums text-destructive">없음</span>
+        )}
+        <button
+          type="button"
+          onClick={() => onJump('prev')}
+          disabled={matchCount === 0}
+          className="w-6 h-6 rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-30 flex items-center justify-center"
+          aria-label="이전 매치"
+          title="이전 (Shift+Enter)"
+        >‹</button>
+        <button
+          type="button"
+          onClick={() => onJump('next')}
+          disabled={matchCount === 0}
+          className="w-6 h-6 rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-30 flex items-center justify-center"
+          aria-label="다음 매치"
+          title="다음 (Enter)"
+        >›</button>
         <button
           type="button"
           onClick={onClose}

@@ -276,6 +276,19 @@ export function restoreBoard(id: string): void {
 }
 
 export function purgeBoard(id: string): void {
+  // 이미지 element 들의 IDB 정리 (orphan 방지)
+  const data = ensureBoardData(id);
+  const imageIds = data.elements
+    .filter((el): el is Extract<WBElement, { type: 'image' }> => el.type === 'image')
+    .map((el) => el.imageId);
+  if (imageIds.length > 0) {
+    void import('@/lib/whiteboard/imageStore').then(({ removeWBImage, revokeImageObjectURL }) => {
+      for (const iid of imageIds) {
+        revokeImageObjectURL(iid);
+        void removeWBImage(iid).catch(() => { /* silent */ });
+      }
+    });
+  }
   const next = ensureBoards().filter((b) => b.id !== id);
   commitBoards(next);
   // 데이터도 영구 삭제
@@ -490,11 +503,25 @@ export function autoPurgeExpiredTrash(daysMax = 30): number {
   const all = ensureBoards();
   const toPurge = all.filter((b) => b.trashedAt && b.trashedAt < cutoff);
   if (toPurge.length === 0) return 0;
+  // 이미지 IDB orphan 정리
+  const imageIds: string[] = [];
   for (const b of toPurge) {
+    const data = ensureBoardData(b.id);
+    for (const el of data.elements) {
+      if (el.type === 'image') imageIds.push(el.imageId);
+    }
     boardDataCache.delete(b.id);
     if (typeof window !== 'undefined') {
       try { window.localStorage.removeItem(boardDataKey(b.id)); } catch { /* silent */ }
     }
+  }
+  if (imageIds.length > 0) {
+    void import('@/lib/whiteboard/imageStore').then(({ removeWBImage, revokeImageObjectURL }) => {
+      for (const iid of imageIds) {
+        revokeImageObjectURL(iid);
+        void removeWBImage(iid).catch(() => { /* silent */ });
+      }
+    });
   }
   const remaining = all.filter((b) => !(b.trashedAt && b.trashedAt < cutoff));
   commitBoards(remaining);
