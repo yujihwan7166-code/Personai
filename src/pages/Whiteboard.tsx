@@ -1257,11 +1257,22 @@ function BoardCanvas({
     }
 
     if (interaction.kind === 'resizing') {
-      const dx = wp.x - interaction.startWorld.x;
-      const dy = wp.y - interaction.startWorld.y;
       const id = interaction.ids[0];
       const org = interaction.origin.get(id);
       if (!org) return;
+      // 회전된 요소: dx/dy 를 요소 로컬 좌표계로 역회전 (handle 드래그 방향이 요소 축과 일치)
+      const elNow = elements.find((x) => x.id === id);
+      const angle = elNow?.angle ?? 0;
+      let dx = wp.x - interaction.startWorld.x;
+      let dy = wp.y - interaction.startWorld.y;
+      if (angle) {
+        const cos = Math.cos(-angle);
+        const sin = Math.sin(-angle);
+        const ldx = dx * cos - dy * sin;
+        const ldy = dx * sin + dy * cos;
+        dx = ldx;
+        dy = ldy;
+      }
       const { x, y, w, h } = org;
       const minSize = 10;
       const lockRatio = e.shiftKey;
