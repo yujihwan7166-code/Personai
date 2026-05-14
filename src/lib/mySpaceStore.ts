@@ -5,8 +5,6 @@
  * 좌측 드롭다운 컬럼 + 풀 페이지에서 공통 사용.
  */
 
-import type { CardType } from './serendipity/types';
-
 export type WidgetKind =
   | 'bookmark'
   | 'memo'
@@ -18,8 +16,7 @@ export type WidgetKind =
   | 'weather'
   | 'exchange'
   | 'calendar'
-  | 'expert'
-  | 'serendipity';
+  | 'expert';
 
 interface WidgetBase {
   id: string;
@@ -92,22 +89,6 @@ export interface ExpertShortcutWidget extends WidgetBase {
   emoji?: string;
 }
 
-export interface SerendipityWidget extends WidgetBase {
-  kind: 'serendipity';
-  /** 현재 노출 중인 카드 id. */
-  todayCardId?: string;
-  /** YYYY-MM-DD — 자정 롤오버 키. */
-  lastShownDate?: string;
-  /** 직전 카드의 type — 같은 type 연속 회피용. */
-  lastTypeId?: CardType;
-  /** 본 카드 id 누적 (자연 누적). */
-  seenIds?: string[];
-  /** 좋아요(컬렉션). */
-  likedIds?: string[];
-  /** 다시 안 보기. */
-  hiddenIds?: string[];
-}
-
 export type WidgetItem =
   | BookmarkWidget
   | MemoWidget
@@ -119,8 +100,7 @@ export type WidgetItem =
   | WeatherWidget
   | ExchangeWidget
   | CalendarWidget
-  | ExpertShortcutWidget
-  | SerendipityWidget;
+  | ExpertShortcutWidget;
 
 const STORAGE_KEY = 'personai.mySpace.v1';
 
@@ -130,7 +110,11 @@ export function loadWidgets(): WidgetItem[] {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as WidgetItem[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    // 'serendipity' 위젯은 제거됨 — 기존 저장 값이 있으면 조용히 필터링.
+    return (parsed as Array<{ kind?: string }>).filter(
+      (w): w is WidgetItem => w?.kind !== 'serendipity',
+    );
   } catch {
     return [];
   }
@@ -204,7 +188,6 @@ export function createDefaultWidget(kind: WidgetKind): WidgetItem {
     case 'exchange':  return { id, kind, from: 'USD', to: 'KRW' };
     case 'calendar':  return { id, kind };
     case 'expert':    return { id, kind, expertId: '', label: '전문가' };
-    case 'serendipity': return { id, kind };
   }
 }
 
@@ -220,10 +203,9 @@ export const WIDGET_META: Record<WidgetKind, { label: string; emoji: string; des
   exchange:  { label: '환율',       emoji: '💱', desc: '실시간 환율' },
   calendar:    { label: '달력',         emoji: '📅', desc: '이번 달' },
   expert:      { label: '전문가',       emoji: '⭐', desc: '바로 대화' },
-  serendipity: { label: '우연의 발견',  emoji: '🎲', desc: '매일 다른 글·명언·발견' },
 };
 
 export const WIDGET_ORDER: WidgetKind[] = [
   'bookmark','memo','checklist','quickvalue','calculator',
-  'worldclock','timer','weather','exchange','calendar','serendipity','expert',
+  'worldclock','timer','weather','exchange','calendar','expert',
 ];

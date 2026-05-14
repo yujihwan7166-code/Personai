@@ -209,7 +209,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'planner',     label: '통합 플래너',  desc: '캘린더·할일·습관·목표 한 화면에',     emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '정리' },
   { id: 'wiki',        label: '마이위키',     desc: '나만의 지식 베이스',                 emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '정리' },
   { id: 'briefing',    label: '데일리 브리핑', desc: 'AI 가 요약해주는 오늘',              emoji: '☕', tint: 'hsl(25 85% 55%)',  axis: '정리' },
-  { id: 'serendipity', label: '우연의 발견',  desc: '매일 다른 글·명언·발견',             emoji: '🎲', tint: 'hsl(160 55% 45%)', axis: '정리' },
+  { id: 'cloud',       label: '클라우드',     desc: '문서·시트·슬라이드 편집',             emoji: '☁️', tint: 'hsl(200 75% 55%)', axis: '정리' },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'memo',       label: '메모',          desc: '짧은 생각 즉시',                     emoji: '✏️', tint: 'hsl(45 80% 55%)',  axis: '기록' },
   { id: 'whiteboard', label: '화이트보드',    desc: '자유롭게 그리고 정리',                emoji: '🧩', tint: 'hsl(200 60% 55%)', axis: '기록' },
@@ -1597,7 +1597,7 @@ export function MainModeTabs({
                           key={item.id}
                           type="button"
                           onClick={() => {
-                            // v1 라우팅 = wiki / planner / memo / journal / meeting / serendipity. 다른 도구는 아직 no-op.
+                            // v1 라우팅 = wiki / planner / memo / journal / meeting / cloud. 다른 도구는 아직 no-op.
                             if (item.id === 'wiki') {
                               setOpen(false);
                               navigate('/wiki');
@@ -1614,9 +1614,9 @@ export function MainModeTabs({
                               // 녹음 노트 = 어시스턴트 voice-analysis 와 같은 데스티네이션
                               setOpen(false);
                               onSelectAssistantCard?.('voice-analysis');
-                            } else if (item.id === 'serendipity') {
+                            } else if (item.id === 'cloud') {
                               setOpen(false);
-                              navigate('/discover');
+                              navigate('/cloud');
                             } else if (item.id === 'briefing') {
                               setOpen(false);
                               // 데일리 브리핑 — 준비 중 (재설계 예정)

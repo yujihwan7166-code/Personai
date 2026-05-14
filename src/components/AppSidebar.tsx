@@ -16,7 +16,7 @@ import {
   FolderOpen, ChevronRight, Plus, X,
   LogOut, Shield, User, ExternalLink, Command as CommandIcon, LayoutGrid,
   CalendarDays, Sparkles, FileText, Network,
-  Star, Bookmark, Palette, Compass, Inbox,
+  Star, Bookmark, Palette, Cloud, Inbox,
 } from 'lucide-react';
 
 interface Props {
@@ -366,11 +366,11 @@ export function AppSidebar({
   const navigate = useNavigate();
 
   // 커스텀 nav 슬롯 — 8번째 자리에 사용자가 원하는 액션 핀.
-  type CustomSlotKey = 'favorites' | 'discover' | 'theme' | 'palette' | 'library' | 'inbox' | 'search';
+  type CustomSlotKey = 'favorites' | 'cloud' | 'theme' | 'palette' | 'library' | 'inbox' | 'search';
   const CUSTOM_SLOT_OPTIONS: Array<{ key: CustomSlotKey; label: string; icon: React.ComponentType<{ className?: string }>; }> = [
     { key: 'search',    label: '검색',    icon: Search },
     { key: 'favorites', label: '즐겨찾기', icon: Star },
-    { key: 'discover',  label: '탐색',    icon: Compass },
+    { key: 'cloud',     label: '클라우드', icon: Cloud },
     { key: 'inbox',     label: '인박스',  icon: Inbox },
     { key: 'palette',   label: '테마',    icon: Palette },
     { key: 'library',   label: '북마크',  icon: Bookmark },
@@ -1050,7 +1050,7 @@ export function AppSidebar({
                   try { localStorage.setItem('theme', isDark ? 'light' : 'dark'); } catch { /* noop */ }
                   break;
                 }
-                case 'discover': navigate('/discover'); break;
+                case 'cloud': navigate('/cloud'); break;
                 case 'favorites':
                 case 'inbox':
                 case 'palette':
