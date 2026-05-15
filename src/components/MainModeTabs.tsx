@@ -1619,10 +1619,9 @@ export function MainModeTabs({
                               navigate('/cloud');
                             } else if (item.id === 'briefing') {
                               setOpen(false);
-                              // 데일리 브리핑 — 준비 중 (재설계 예정)
-                              import('@/lib/notify').then(({ notify }) =>
-                                notify.info('데일리 브리핑', { description: '준비 중이에요.' }),
-                              );
+                              import('@/components/DailyBriefingMount').then(({ triggerDailyBriefing }) => {
+                                triggerDailyBriefing();
+                              });
                             } else if (item.id === 'whiteboard') {
                               setOpen(false);
                               navigate('/whiteboard');

@@ -615,6 +615,20 @@
     animation: drag-hint 0.45s ease;
   }
 
+  /* 데일리 브리핑 위젯 편집 모드 — iOS 위젯 jiggle */
+  @keyframes wb-jiggle-anim {
+    0%   { transform: rotate(-0.6deg); }
+    50%  { transform: rotate(0.6deg); }
+    100% { transform: rotate(-0.6deg); }
+  }
+  .wb-jiggle {
+    animation: wb-jiggle-anim 0.35s ease-in-out infinite;
+    transform-origin: center center;
+  }
+  /* 위젯마다 살짝 다른 phase 로 시작해서 동기 흔들림 방지 */
+  .wb-jiggle:nth-child(2n) { animation-delay: -0.18s; }
+  .wb-jiggle:nth-child(3n) { animation-delay: -0.09s; animation-duration: 0.4s; }
+
   /* Skeleton loading */
   @keyframes skeleton-pulse {
     0%, 100% { opacity: 0.4; }
