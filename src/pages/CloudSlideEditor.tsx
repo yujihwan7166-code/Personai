@@ -45,6 +45,8 @@ interface SlideShapeEl extends BaseEl {
 
 type SlideElement = SlideTextEl | SlideShapeEl;
 
+type ResizeDir = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+
 function isText(el: SlideElement): el is SlideTextEl {
   return el.type === 'text';
 }
@@ -286,6 +288,49 @@ export default function CloudSlideEditor() {
     const yPct = ((e.clientY - rect.top) / rect.height) * 100;
     addTextEl(Math.max(0, Math.min(95, xPct - 5)), Math.max(0, Math.min(90, yPct - 3)));
   }, [addTextEl]);
+
+  // ─── 리사이즈 (8방향) ───
+  const startResize = useCallback((e: React.PointerEvent, elId: string, el: SlideElement, dir: ResizeDir) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedElId(elId);
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const sx = el.xPct, sy = el.yPct, sw = el.wPct, sh = el.hPct;
+
+    const onMove = (ev: PointerEvent) => {
+      const dxPct = ((ev.clientX - startX) / rect.width) * 100;
+      const dyPct = ((ev.clientY - startY) / rect.height) * 100;
+      let xPct = sx, yPct = sy, wPct = sw, hPct = sh;
+
+      if (dir.includes('e')) wPct = Math.max(5, sw + dxPct);
+      if (dir.includes('w')) {
+        wPct = Math.max(5, sw - dxPct);
+        xPct = sx + (sw - wPct);
+      }
+      if (dir.includes('s')) hPct = Math.max(3, sh + dyPct);
+      if (dir.includes('n')) {
+        hPct = Math.max(3, sh - dyPct);
+        yPct = sy + (sh - hPct);
+      }
+
+      // 캔버스 경계 클램프
+      xPct = Math.max(0, xPct);
+      yPct = Math.max(0, yPct);
+      wPct = Math.min(100 - xPct, wPct);
+      hPct = Math.min(100 - yPct, hPct);
+
+      updateEl(elId, { xPct, yPct, wPct, hPct });
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [updateEl]);
 
   // ─── 드래그 이동 ───
   const startDrag = useCallback((e: React.PointerEvent, elId: string, el: SlideElement) => {
@@ -556,6 +601,7 @@ export default function CloudSlideEditor() {
                       selected={selectedElId === el.id}
                       onPointerDown={(e) => startDrag(e, el.id, el)}
                       onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
+                      onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
                     />
                   );
                 }
@@ -570,6 +616,7 @@ export default function CloudSlideEditor() {
                     onDoubleClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); setEditingElId(el.id); }}
                     onChange={(content) => updateEl(el.id, { content })}
                     onFinishEdit={() => setEditingElId(null)}
+                    onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
                   />
                 );
               })}
@@ -647,10 +694,11 @@ interface TextElViewProps {
   onDoubleClick: (e: React.MouseEvent) => void;
   onChange: (content: string) => void;
   onFinishEdit: () => void;
+  onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
 }
 
 function TextElView({
-  el, selected, editing, onPointerDown, onClick, onDoubleClick, onChange, onFinishEdit,
+  el, selected, editing, onPointerDown, onClick, onDoubleClick, onChange, onFinishEdit, onStartResize,
 }: TextElViewProps) {
   const editableRef = useRef<HTMLDivElement>(null);
 
@@ -711,6 +759,7 @@ function TextElView({
       >
         {el.content}
       </div>
+      {selected && !editing && <ResizeHandles onStart={onStartResize} />}
     </div>
   );
 }
@@ -759,16 +808,16 @@ interface ShapeElViewProps {
   selected: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
   onClick: (e: React.MouseEvent) => void;
+  onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
 }
 
-function ShapeElView({ el, selected, onPointerDown, onClick }: ShapeElViewProps) {
+function ShapeElView({ el, selected, onPointerDown, onClick, onStartResize }: ShapeElViewProps) {
   return (
     <div
       onPointerDown={onPointerDown}
       onClick={onClick}
       className={cn(
         'absolute cursor-move',
-        'rounded-sm',
         selected && 'outline outline-2 -outline-offset-1 outline-foreground/70',
         !selected && 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-foreground/30',
       )}
@@ -777,11 +826,50 @@ function ShapeElView({ el, selected, onPointerDown, onClick }: ShapeElViewProps)
         top: `${el.yPct}%`,
         width: `${el.wPct}%`,
         height: `${el.hPct}%`,
-        backgroundColor: el.fillColor,
-        border: el.strokeColor ? `${el.strokeWidth ?? 2}px solid ${el.strokeColor}` : undefined,
-        borderRadius: el.type === 'ellipse' ? '50%' : undefined,
       }}
-    />
+    >
+      <div
+        className="w-full h-full"
+        style={{
+          backgroundColor: el.fillColor,
+          border: el.strokeColor ? `${el.strokeWidth ?? 2}px solid ${el.strokeColor}` : undefined,
+          borderRadius: el.type === 'ellipse' ? '50%' : undefined,
+        }}
+      />
+      {selected && <ResizeHandles onStart={onStartResize} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 리사이즈 핸들 (8방향)
+// ─────────────────────────────────────────────
+
+const HANDLES: Array<{ dir: ResizeDir; style: React.CSSProperties; cursor: string }> = [
+  { dir: 'nw', style: { left: -5, top: -5 },                                              cursor: 'nwse-resize' },
+  { dir: 'n',  style: { left: '50%', top: -5, transform: 'translateX(-50%)' },           cursor: 'ns-resize'   },
+  { dir: 'ne', style: { right: -5, top: -5 },                                             cursor: 'nesw-resize' },
+  { dir: 'e',  style: { right: -5, top: '50%', transform: 'translateY(-50%)' },          cursor: 'ew-resize'   },
+  { dir: 'se', style: { right: -5, bottom: -5 },                                          cursor: 'nwse-resize' },
+  { dir: 's',  style: { left: '50%', bottom: -5, transform: 'translateX(-50%)' },        cursor: 'ns-resize'   },
+  { dir: 'sw', style: { left: -5, bottom: -5 },                                           cursor: 'nesw-resize' },
+  { dir: 'w',  style: { left: -5, top: '50%', transform: 'translateY(-50%)' },           cursor: 'ew-resize'   },
+];
+
+function ResizeHandles({ onStart }: { onStart: (e: React.PointerEvent, dir: ResizeDir) => void }) {
+  return (
+    <>
+      {HANDLES.map(({ dir, style, cursor }) => (
+        <div
+          key={dir}
+          onPointerDown={(e) => onStart(e, dir)}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute w-2.5 h-2.5 bg-white border border-foreground/80 rounded-sm hover:bg-foreground/10"
+          style={{ ...style, cursor }}
+          aria-label={`리사이즈 ${dir}`}
+        />
+      ))}
+    </>
   );
 }
 
