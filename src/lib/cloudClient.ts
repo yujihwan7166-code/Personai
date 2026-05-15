@@ -196,6 +196,19 @@ export async function setStarred(id: string, starred: boolean): Promise<void> {
   if (error) throw error;
 }
 
+/** 에디터에서 본문/제목 동시 저장 (자동저장용). */
+export async function updateFileBody(
+  id: string,
+  patch: { name?: string; meta?: Record<string, unknown> },
+): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if (patch.name !== undefined) payload.name = patch.name;
+  if (patch.meta !== undefined) payload.meta = patch.meta;
+  if (Object.keys(payload).length === 0) return;
+  const { error } = await cloudTable().update(payload).eq('id', id);
+  if (error) throw error;
+}
+
 // ─────────────────────────────────────────────
 // 삭제 (휴지통 → 영구)
 // ─────────────────────────────────────────────

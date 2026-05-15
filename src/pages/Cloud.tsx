@@ -16,7 +16,8 @@ import { confirmDialog } from '@/lib/confirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCloudNodes, type CloudListMode } from '@/hooks/useCloudNodes';
 import {
-  createFolder, setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
+  createFolder, createEmptyFile,
+  setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
   searchByName, fetchNode,
 } from '@/lib/cloudClient';
 import {
@@ -59,6 +60,34 @@ export default function Cloud() {
       description: 'Storage 셋업(청크 4) 후 파일 업로드·편집이 추가됩니다.',
     });
   }, []);
+
+  // ─── 새 문서 만들기 → 즉시 편집기 ───
+  const handleCreateDoc = useCallback(async () => {
+    if (!user) {
+      toast({ title: '로그인이 필요해요', description: '클라우드 사용은 로그인 후 가능합니다.' });
+      return;
+    }
+    try {
+      const node = await createEmptyFile(user.id, '제목 없음', 'doc', currentFolderId);
+      navigate(`/cloud/doc/${node.id}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '새 문서 만들기 실패', description: msg });
+    }
+  }, [user, currentFolderId, navigate]);
+
+  // ─── 파일 편집 진입 (파일 종류별 라우팅) ───
+  const handleOpenFile = useCallback((node: CloudNode) => {
+    if (node.kind !== 'file') return;
+    if (node.fileType === 'doc') {
+      navigate(`/cloud/doc/${node.id}`);
+    } else {
+      toast({
+        title: '곧 활성화돼요',
+        description: `${FILE_TYPE_LABEL[node.fileType ?? 'other']} 에디터는 다음 단계에서 추가됩니다.`,
+      });
+    }
+  }, [navigate]);
 
   // ─── 모드 전환 ───
   const switchMode = useCallback((m: CloudListMode) => {
@@ -375,7 +404,7 @@ export default function Cloud() {
                   icon={<FileText className="w-6 h-6" />}
                   label="문서"
                   color="hsl(200 75% 55%)"
-                  onClick={notReady}
+                  onClick={() => { void handleCreateDoc(); }}
                 />
                 <NewCard
                   icon={<FileSpreadsheet className="w-6 h-6" />}
@@ -535,6 +564,7 @@ export default function Cloud() {
               onMoveToTrash={() => void handleMoveToTrash(selectedNode)}
               onRestore={() => void handleRestore(selectedNode)}
               onPermanentDelete={() => void handlePermanentDelete(selectedNode)}
+              onOpenFile={() => handleOpenFile(selectedNode)}
               onNotReady={notReady}
             />
           )}
@@ -996,11 +1026,12 @@ interface PreviewPanelProps {
   onMoveToTrash: () => void;
   onRestore: () => void;
   onPermanentDelete: () => void;
+  onOpenFile: () => void;
   onNotReady: () => void;
 }
 
 function PreviewPanel({
-  node, listMode, onToggleStar, onRename, onMoveToTrash, onRestore, onPermanentDelete, onNotReady,
+  node, listMode, onToggleStar, onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile, onNotReady,
 }: PreviewPanelProps) {
   const isTrash = listMode === 'trash';
   return (
@@ -1028,7 +1059,12 @@ function PreviewPanel({
         {!isTrash ? (
           <>
             {node.kind === 'file' && (
-              <PreviewButton onClick={onNotReady} icon={<Eye className="w-4 h-4" />} label="편집" main />
+              <PreviewButton
+                onClick={node.fileType === 'doc' ? onOpenFile : onNotReady}
+                icon={<Eye className="w-4 h-4" />}
+                label="편집"
+                main
+              />
             )}
             <PreviewButton onClick={onToggleStar} icon={<Star className={cn('w-4 h-4', node.starred && 'fill-yellow-400 text-yellow-400')} />} label={node.starred ? '별표 해제' : '별표'} />
             <PreviewButton onClick={onRename} icon={<Pencil className="w-4 h-4" />} label="이름 변경" />
