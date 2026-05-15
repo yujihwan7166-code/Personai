@@ -1,5 +1,5 @@
 /**
- * 클라우드 노드 목록 hook — 현재 폴더 기준.
+ * 클라우드 노드 목록 hook — 모드별 (현재 폴더 / 별표 / 휴지통).
  *
  * 단순 useState + useEffect. React Query 는 캐시 필요해질 때(8단계+) 도입.
  * mutation 후 refresh() 호출로 즉시 반영.
@@ -7,8 +7,18 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchAliveChildren, fetchCounts } from '@/lib/cloudClient';
+import {
+  fetchAliveChildren, fetchStarred, fetchTrash, fetchCounts,
+} from '@/lib/cloudClient';
 import type { CloudNode } from '@/types/cloud';
+
+export type CloudListMode = 'folder' | 'starred' | 'trash';
+
+export interface UseCloudNodesArgs {
+  mode: CloudListMode;
+  /** mode === 'folder' 일 때만 사용. null = 루트. */
+  parentFolderId: string | null;
+}
 
 export interface UseCloudNodesResult {
   nodes: CloudNode[];
@@ -19,7 +29,7 @@ export interface UseCloudNodesResult {
   trashCount: number;
 }
 
-export function useCloudNodes(parentFolderId: string | null): UseCloudNodesResult {
+export function useCloudNodes({ mode, parentFolderId }: UseCloudNodesArgs): UseCloudNodesResult {
   const { user } = useAuth();
   const [nodes, setNodes] = useState<CloudNode[]>([]);
   const [starredCount, setStarredCount] = useState(0);
@@ -37,10 +47,11 @@ export function useCloudNodes(parentFolderId: string | null): UseCloudNodesResul
     setLoading(true);
     setError(null);
     try {
-      const [items, counts] = await Promise.all([
-        fetchAliveChildren(user.id, parentFolderId),
-        fetchCounts(user.id),
-      ]);
+      const fetcher =
+        mode === 'starred' ? fetchStarred(user.id)
+          : mode === 'trash' ? fetchTrash(user.id)
+            : fetchAliveChildren(user.id, parentFolderId);
+      const [items, counts] = await Promise.all([fetcher, fetchCounts(user.id)]);
       setNodes(items);
       setStarredCount(counts.starred);
       setTrashCount(counts.trash);
@@ -50,7 +61,7 @@ export function useCloudNodes(parentFolderId: string | null): UseCloudNodesResul
     } finally {
       setLoading(false);
     }
-  }, [user, parentFolderId]);
+  }, [user, mode, parentFolderId]);
 
   useEffect(() => {
     void refresh();

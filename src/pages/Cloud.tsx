@@ -1,20 +1,23 @@
 /** /cloud — 드라이브형 파일 관리 + 인플레이스 에디터.
- *  2-B-1: 메타데이터 CRUD 연결 (폴더 만들기·목록 표시, 별표/휴지통 카운트).
+ *  2-B-1: 메타데이터 CRUD 연결 (폴더/별표/휴지통 모드 + 별표 토글 + 이름변경 + 휴지통/복원/영구삭제).
  *  파일 binary 업로드/다운로드는 청크 4(Storage) 후 별도 단계.
  */
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Upload, Search, Settings, Eye,
   FileText, FileSpreadsheet, Presentation, Folder, FolderPlus,
-  Clock, Star, Share2, Trash2, ChevronRight,
+  Clock, Star, Share2, Trash2, ChevronRight, Pencil, RotateCcw, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { confirmDialog } from '@/lib/confirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCloudNodes } from '@/hooks/useCloudNodes';
-import { createFolder } from '@/lib/cloudClient';
+import { useCloudNodes, type CloudListMode } from '@/hooks/useCloudNodes';
+import {
+  createFolder, setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
+} from '@/lib/cloudClient';
 import {
   type CloudNode, FILE_TYPE_EMOJI, FILE_TYPE_LABEL, formatSize,
 } from '@/types/cloud';
@@ -28,14 +31,19 @@ export default function Cloud() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [listMode, setListMode] = useState<CloudListMode>('folder');
   const [trail, setTrail] = useState<BreadcrumbItem[]>([{ id: null, name: '내 파일' }]);
   const [showFolderInput, setShowFolderInput] = useState(false);
   const [folderNameInput, setFolderNameInput] = useState('');
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const currentFolderId = trail[trail.length - 1].id;
-  const { nodes, loading, error, refresh, starredCount, trashCount } = useCloudNodes(currentFolderId);
+  const { nodes, loading, error, refresh, starredCount, trashCount } = useCloudNodes({
+    mode: listMode,
+    parentFolderId: currentFolderId,
+  });
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
@@ -49,20 +57,33 @@ export default function Cloud() {
     });
   }, []);
 
+  // ─── 모드 전환 ───
+  const switchMode = useCallback((m: CloudListMode) => {
+    setListMode(m);
+    setSelectedId(null);
+    setEditingId(null);
+    if (m === 'folder') {
+      // 폴더 모드 진입 시 루트로 (사이드바 '내 파일' 클릭 효과)
+      setTrail([{ id: null, name: '내 파일' }]);
+    }
+  }, []);
+
+  // ─── 폴더 진입·breadcrumb ───
   const goInto = useCallback((node: CloudNode) => {
-    if (node.kind === 'folder') {
+    if (node.kind === 'folder' && listMode === 'folder') {
       setTrail((t) => [...t, { id: node.id, name: node.name }]);
       setSelectedId(null);
     } else {
       setSelectedId(node.id);
     }
-  }, []);
+  }, [listMode]);
 
   const goToTrailIndex = useCallback((idx: number) => {
     setTrail((t) => t.slice(0, idx + 1));
     setSelectedId(null);
   }, []);
 
+  // ─── 새 폴더 ───
   const openNewFolderInput = useCallback(() => {
     setShowFolderInput(true);
     setFolderNameInput('');
@@ -97,12 +118,121 @@ export default function Cloud() {
     }
   }, [folderNameInput, user, currentFolderId, refresh, cancelNewFolder]);
 
+  // ─── 별표 토글 ───
+  const handleToggleStar = useCallback(async (node: CloudNode) => {
+    try {
+      await setStarred(node.id, !node.starred);
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '별표 변경 실패', description: msg });
+    }
+  }, [refresh]);
+
+  // ─── 이름 변경 ───
+  const startRename = useCallback((id: string) => {
+    setEditingId(id);
+    setSelectedId(id);
+  }, []);
+
+  const submitRename = useCallback(async (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    setEditingId(null);
+    if (!trimmed) return;
+    const original = nodes.find((n) => n.id === id);
+    if (!original || original.name === trimmed) return;
+    try {
+      await renameNode(id, trimmed);
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '이름 변경 실패', description: msg });
+    }
+  }, [nodes, refresh]);
+
+  // ─── 휴지통으로 이동 ───
+  const handleMoveToTrash = useCallback(async (node: CloudNode) => {
+    try {
+      await moveToTrash(node.id);
+      await refresh();
+      setSelectedId(null);
+      toast({ title: '휴지통으로 이동했어요', description: node.name });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '삭제 실패', description: msg });
+    }
+  }, [refresh]);
+
+  // ─── 휴지통에서 복원 ───
+  const handleRestore = useCallback(async (node: CloudNode) => {
+    try {
+      await restoreFromTrash(node.id);
+      await refresh();
+      setSelectedId(null);
+      toast({ title: '복원했어요', description: node.name });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '복원 실패', description: msg });
+    }
+  }, [refresh]);
+
+  // ─── 영구 삭제 ───
+  const handlePermanentDelete = useCallback(async (node: CloudNode) => {
+    const ok = await confirmDialog({
+      title: '영구 삭제',
+      description: `"${node.name}"을 완전히 삭제할까요? 이 동작은 되돌릴 수 없습니다.`,
+      confirmLabel: '영구 삭제',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await permanentDelete(node.id);
+      await refresh();
+      setSelectedId(null);
+      toast({ title: '영구 삭제했어요', description: node.name });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '영구 삭제 실패', description: msg });
+    }
+  }, [refresh]);
+
+  // ─── 키보드: Delete = 휴지통, F2 = 이름변경, Esc = 선택해제 ───
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!selectedNode || editingId) return;
+      // input 안에서는 무시
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+
+      if (e.key === 'Delete') {
+        e.preventDefault();
+        if (listMode === 'trash') {
+          void handlePermanentDelete(selectedNode);
+        } else {
+          void handleMoveToTrash(selectedNode);
+        }
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        if (listMode !== 'trash') startRename(selectedNode.id);
+      } else if (e.key === 'Escape') {
+        setSelectedId(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedNode, editingId, listMode, handleMoveToTrash, handlePermanentDelete, startRename]);
+
   // 에러 토스트
   useEffect(() => {
     if (error) {
       toast({ title: '불러오기 실패', description: error });
     }
   }, [error]);
+
+  const modeTitle =
+    listMode === 'starred' ? '⭐ 별표'
+      : listMode === 'trash' ? '🗑 휴지통'
+        : null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -168,8 +298,8 @@ export default function Cloud() {
             icon={<Star className="w-4 h-4" />}
             label="별표"
             count={starredCount}
-            disabled
-            hint="별표 보기는 다음 단계에서"
+            active={listMode === 'starred'}
+            onClick={() => switchMode('starred')}
           />
           <SidebarItem
             icon={<Share2 className="w-4 h-4" />}
@@ -183,8 +313,8 @@ export default function Cloud() {
           <SidebarItem
             icon={<Folder className="w-4 h-4" />}
             label="내 파일"
-            active={currentFolderId === null}
-            onClick={() => goToTrailIndex(0)}
+            active={listMode === 'folder'}
+            onClick={() => switchMode('folder')}
           />
 
           <div className="my-3 border-t border-border" />
@@ -193,63 +323,69 @@ export default function Cloud() {
             icon={<Trash2 className="w-4 h-4" />}
             label="휴지통"
             count={trashCount}
-            disabled
-            hint="휴지통 보기는 다음 단계에서"
+            active={listMode === 'trash'}
+            onClick={() => switchMode('trash')}
           />
         </aside>
 
         <main className="flex-1 overflow-y-auto">
-          <section className="p-6 border-b border-border">
-            <h2 className="text-sm font-medium text-muted-foreground mb-3">
-              ✨ 새로 만들기
-            </h2>
-            <div className="grid grid-cols-4 gap-3 max-w-3xl">
-              <NewCard
-                icon={<FileText className="w-6 h-6" />}
-                label="문서"
-                color="hsl(200 75% 55%)"
-                onClick={notReady}
-              />
-              <NewCard
-                icon={<FileSpreadsheet className="w-6 h-6" />}
-                label="시트"
-                color="hsl(140 50% 50%)"
-                onClick={notReady}
-              />
-              <NewCard
-                icon={<Presentation className="w-6 h-6" />}
-                label="슬라이드"
-                color="hsl(25 85% 55%)"
-                onClick={notReady}
-              />
-              <NewCard
-                icon={<FolderPlus className="w-6 h-6" />}
-                label="폴더"
-                color="hsl(220 15% 50%)"
-                onClick={openNewFolderInput}
-              />
-            </div>
-          </section>
+          {listMode === 'folder' && (
+            <section className="p-6 border-b border-border">
+              <h2 className="text-sm font-medium text-muted-foreground mb-3">
+                ✨ 새로 만들기
+              </h2>
+              <div className="grid grid-cols-4 gap-3 max-w-3xl">
+                <NewCard
+                  icon={<FileText className="w-6 h-6" />}
+                  label="문서"
+                  color="hsl(200 75% 55%)"
+                  onClick={notReady}
+                />
+                <NewCard
+                  icon={<FileSpreadsheet className="w-6 h-6" />}
+                  label="시트"
+                  color="hsl(140 50% 50%)"
+                  onClick={notReady}
+                />
+                <NewCard
+                  icon={<Presentation className="w-6 h-6" />}
+                  label="슬라이드"
+                  color="hsl(25 85% 55%)"
+                  onClick={notReady}
+                />
+                <NewCard
+                  icon={<FolderPlus className="w-6 h-6" />}
+                  label="폴더"
+                  color="hsl(220 15% 50%)"
+                  onClick={openNewFolderInput}
+                />
+              </div>
+            </section>
+          )}
 
           <section className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-1 text-sm">
-                {trail.map((t, idx) => (
-                  <span key={`${t.id ?? 'root'}-${idx}`} className="flex items-center gap-1">
-                    {idx > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
-                    <button
-                      onClick={() => goToTrailIndex(idx)}
-                      className={cn(
-                        'px-1.5 py-0.5 rounded hover:bg-muted',
-                        idx === trail.length - 1 ? 'font-medium' : 'text-muted-foreground',
-                      )}
-                      type="button"
-                    >
-                      {idx === 0 && <Folder className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />}
-                      {t.name}
-                    </button>
-                  </span>
-                ))}
+                {modeTitle ? (
+                  <span className="font-medium">{modeTitle}</span>
+                ) : (
+                  trail.map((t, idx) => (
+                    <span key={`${t.id ?? 'root'}-${idx}`} className="flex items-center gap-1">
+                      {idx > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+                      <button
+                        onClick={() => goToTrailIndex(idx)}
+                        className={cn(
+                          'px-1.5 py-0.5 rounded hover:bg-muted',
+                          idx === trail.length - 1 ? 'font-medium' : 'text-muted-foreground',
+                        )}
+                        type="button"
+                      >
+                        {idx === 0 && <Folder className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />}
+                        {t.name}
+                      </button>
+                    </span>
+                  ))
+                )}
               </div>
               <div className="flex items-center gap-1 text-xs">
                 <button
@@ -281,7 +417,7 @@ export default function Cloud() {
               </div>
             </div>
 
-            {showFolderInput && (
+            {showFolderInput && listMode === 'folder' && (
               <div className="mb-3 flex items-center gap-2 px-3 py-2 border border-border rounded-md bg-muted/30">
                 <Folder className="w-4 h-4 text-muted-foreground" />
                 <input
@@ -310,16 +446,7 @@ export default function Cloud() {
             ) : loading ? (
               <div className="text-sm text-muted-foreground py-8 text-center">불러오는 중…</div>
             ) : nodes.length === 0 && !showFolderInput ? (
-              <div className="border-2 border-dashed border-border rounded-lg py-16 px-4 text-center">
-                <div className="text-5xl mb-3" aria-hidden>📂</div>
-                <div className="text-base font-medium mb-1">아직 파일이 없어요</div>
-                <div className="text-sm text-muted-foreground mb-4">
-                  위 카드를 누르거나 ⬆️ 파일을 끌어다 놓아보세요
-                </div>
-                <div className="text-xs text-muted-foreground/70">
-                  (파일 업로드·편집은 Storage 셋업 후 활성화됩니다)
-                </div>
-              </div>
+              <EmptyState mode={listMode} />
             ) : viewMode === 'list' ? (
               <ul className="divide-y divide-border">
                 {nodes.map((n) => (
@@ -327,7 +454,13 @@ export default function Cloud() {
                     key={n.id}
                     node={n}
                     selected={n.id === selectedId}
+                    editing={n.id === editingId}
+                    listMode={listMode}
                     onClick={() => goInto(n)}
+                    onDoubleClick={() => listMode !== 'trash' && startRename(n.id)}
+                    onSubmitRename={(newName) => void submitRename(n.id, newName)}
+                    onCancelRename={() => setEditingId(null)}
+                    onToggleStar={() => void handleToggleStar(n)}
                   />
                 ))}
               </ul>
@@ -339,6 +472,8 @@ export default function Cloud() {
                     node={n}
                     selected={n.id === selectedId}
                     onClick={() => goInto(n)}
+                    onDoubleClick={() => listMode !== 'trash' && startRename(n.id)}
+                    onToggleStar={() => void handleToggleStar(n)}
                   />
                 ))}
               </div>
@@ -356,7 +491,16 @@ export default function Cloud() {
               파일을 선택하면 여기에 미리보기가 표시됩니다.
             </div>
           ) : (
-            <PreviewPanel node={selectedNode} />
+            <PreviewPanel
+              node={selectedNode}
+              listMode={listMode}
+              onToggleStar={() => void handleToggleStar(selectedNode)}
+              onRename={() => startRename(selectedNode.id)}
+              onMoveToTrash={() => void handleMoveToTrash(selectedNode)}
+              onRestore={() => void handleRestore(selectedNode)}
+              onPermanentDelete={() => void handlePermanentDelete(selectedNode)}
+              onNotReady={notReady}
+            />
           )}
         </aside>
       </div>
@@ -365,7 +509,44 @@ export default function Cloud() {
 }
 
 // ─────────────────────────────────────────────
-// 서브 컴포넌트
+// 빈 상태
+// ─────────────────────────────────────────────
+
+function EmptyState({ mode }: { mode: CloudListMode }) {
+  if (mode === 'starred') {
+    return (
+      <div className="border-2 border-dashed border-border rounded-lg py-16 px-4 text-center">
+        <div className="text-5xl mb-3" aria-hidden>⭐</div>
+        <div className="text-base font-medium mb-1">아직 별표한 항목이 없어요</div>
+        <div className="text-sm text-muted-foreground">자주 쓰는 파일·폴더에 별표를 달면 여기서 모아 볼 수 있어요.</div>
+      </div>
+    );
+  }
+  if (mode === 'trash') {
+    return (
+      <div className="border-2 border-dashed border-border rounded-lg py-16 px-4 text-center">
+        <div className="text-5xl mb-3" aria-hidden>🗑</div>
+        <div className="text-base font-medium mb-1">휴지통이 비어있어요</div>
+        <div className="text-sm text-muted-foreground">삭제한 항목은 30일 동안 여기에 보관돼요.</div>
+      </div>
+    );
+  }
+  return (
+    <div className="border-2 border-dashed border-border rounded-lg py-16 px-4 text-center">
+      <div className="text-5xl mb-3" aria-hidden>📂</div>
+      <div className="text-base font-medium mb-1">아직 파일이 없어요</div>
+      <div className="text-sm text-muted-foreground mb-4">
+        위 카드를 누르거나 ⬆️ 파일을 끌어다 놓아보세요
+      </div>
+      <div className="text-xs text-muted-foreground/70">
+        (파일 업로드·편집은 Storage 셋업 후 활성화됩니다)
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 사이드바 아이템
 // ─────────────────────────────────────────────
 
 interface SidebarItemProps {
@@ -404,6 +585,10 @@ function SidebarItem({ icon, label, count, disabled, active, hint, onClick }: Si
   );
 }
 
+// ─────────────────────────────────────────────
+// 새로 만들기 카드
+// ─────────────────────────────────────────────
+
 interface NewCardProps {
   icon: React.ReactNode;
   label: string;
@@ -430,6 +615,10 @@ function NewCard({ icon, label, color, onClick }: NewCardProps) {
   );
 }
 
+// ─────────────────────────────────────────────
+// 노드 아이콘·시간
+// ─────────────────────────────────────────────
+
 function NodeIcon({ node }: { node: CloudNode }) {
   if (node.kind === 'folder') {
     return <Folder className="w-4 h-4 text-muted-foreground" />;
@@ -451,57 +640,195 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
+// ─────────────────────────────────────────────
+// 인라인 이름 편집 input
+// ─────────────────────────────────────────────
+
+function RenameInput({
+  initial, onSubmit, onCancel,
+}: { initial: string; onSubmit: (v: string) => void; onCancel: () => void }) {
+  const [value, setValue] = useState(initial);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  return (
+    <input
+      ref={inputRef}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onSubmit(value);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
+      onBlur={() => onSubmit(value)}
+      onClick={(e) => e.stopPropagation()}
+      className="flex-1 bg-transparent text-sm outline-none border-b border-foreground/30 px-1"
+    />
+  );
+}
+
+// ─────────────────────────────────────────────
+// 리스트 행
+// ─────────────────────────────────────────────
+
+interface NodeRowProps {
+  node: CloudNode;
+  selected: boolean;
+  editing: boolean;
+  listMode: CloudListMode;
+  onClick: () => void;
+  onDoubleClick: () => void;
+  onSubmitRename: (newName: string) => void;
+  onCancelRename: () => void;
+  onToggleStar: () => void;
+}
+
 function NodeRow({
-  node, selected, onClick,
-}: { node: CloudNode; selected: boolean; onClick: () => void }) {
+  node, selected, editing, listMode,
+  onClick, onDoubleClick, onSubmitRename, onCancelRename, onToggleStar,
+}: NodeRowProps) {
   return (
     <li>
-      <button
-        type="button"
-        onClick={onClick}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={editing ? undefined : onClick}
+        onDoubleClick={editing ? undefined : onDoubleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !editing) onClick();
+        }}
         className={cn(
-          'w-full flex items-center gap-3 px-3 py-2 text-left text-sm',
+          'group w-full flex items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer',
           'hover:bg-muted/50',
           selected && 'bg-muted',
         )}
       >
         <NodeIcon node={node} />
-        <span className="flex-1 truncate">{node.name}</span>
-        {node.starred && <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />}
+        {editing ? (
+          <RenameInput
+            initial={node.name}
+            onSubmit={onSubmitRename}
+            onCancel={onCancelRename}
+          />
+        ) : (
+          <span className="flex-1 truncate">{node.name}</span>
+        )}
+
+        {/* 별표 (호버 시 빈 별, 별표 시엔 항상 노출) */}
+        {listMode !== 'trash' && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
+            className={cn(
+              'p-1 rounded hover:bg-muted',
+              node.starred
+                ? 'opacity-100'
+                : 'opacity-0 group-hover:opacity-60 focus-visible:opacity-100',
+            )}
+            aria-label={node.starred ? '별표 해제' : '별표 추가'}
+          >
+            <Star
+              className={cn(
+                'w-3.5 h-3.5',
+                node.starred ? 'fill-yellow-400 text-yellow-400' : '',
+              )}
+            />
+          </button>
+        )}
+
         <span className="text-xs text-muted-foreground w-20 text-right truncate">
-          {relativeTime(node.updatedAt)}
+          {listMode === 'trash'
+            ? `${relativeTime(node.deletedAt ?? node.updatedAt)} 삭제`
+            : relativeTime(node.updatedAt)}
         </span>
         <span className="text-xs text-muted-foreground w-16 text-right hidden sm:inline">
           {node.kind === 'file' ? formatSize(node.sizeBytes) : ''}
         </span>
-      </button>
+      </div>
     </li>
   );
 }
 
+// ─────────────────────────────────────────────
+// 그리드 카드
+// ─────────────────────────────────────────────
+
+interface NodeCardProps {
+  node: CloudNode;
+  selected: boolean;
+  onClick: () => void;
+  onDoubleClick: () => void;
+  onToggleStar: () => void;
+}
+
 function NodeCard({
-  node, selected, onClick,
-}: { node: CloudNode; selected: boolean; onClick: () => void }) {
+  node, selected, onClick, onDoubleClick, onToggleStar,
+}: NodeCardProps) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      onKeyDown={(e) => { if (e.key === 'Enter') onClick(); }}
       className={cn(
-        'border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors text-left',
+        'group border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors text-left cursor-pointer relative',
         selected && 'border-foreground/50 bg-muted',
       )}
     >
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
+        className={cn(
+          'absolute top-2 right-2 p-1 rounded hover:bg-muted',
+          node.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-70',
+        )}
+        aria-label={node.starred ? '별표 해제' : '별표 추가'}
+      >
+        <Star
+          className={cn(
+            'w-3.5 h-3.5',
+            node.starred ? 'fill-yellow-400 text-yellow-400' : '',
+          )}
+        />
+      </button>
       <div className="flex items-center gap-2 mb-2">
         <NodeIcon node={node} />
-        {node.starred && <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400 ml-auto" />}
       </div>
-      <div className="text-sm truncate font-medium">{node.name}</div>
+      <div className="text-sm truncate font-medium pr-6">{node.name}</div>
       <div className="text-xs text-muted-foreground mt-1">{relativeTime(node.updatedAt)}</div>
-    </button>
+    </div>
   );
 }
 
-function PreviewPanel({ node }: { node: CloudNode }) {
+// ─────────────────────────────────────────────
+// 미리보기 패널
+// ─────────────────────────────────────────────
+
+interface PreviewPanelProps {
+  node: CloudNode;
+  listMode: CloudListMode;
+  onToggleStar: () => void;
+  onRename: () => void;
+  onMoveToTrash: () => void;
+  onRestore: () => void;
+  onPermanentDelete: () => void;
+  onNotReady: () => void;
+}
+
+function PreviewPanel({
+  node, listMode, onToggleStar, onRename, onMoveToTrash, onRestore, onPermanentDelete, onNotReady,
+}: PreviewPanelProps) {
+  const isTrash = listMode === 'trash';
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-2">
@@ -518,10 +845,56 @@ function PreviewPanel({ node }: { node: CloudNode }) {
         {node.kind === 'file' && node.sizeBytes != null && (
           <div>💾 {formatSize(node.sizeBytes)}</div>
         )}
+        {isTrash && node.deletedAt && (
+          <div>🗑 {new Date(node.deletedAt).toLocaleString('ko-KR')} 삭제</div>
+        )}
       </div>
-      <div className="pt-2 border-t border-border text-xs text-muted-foreground">
-        편집·다운로드·공유는 다음 단계에서 활성화됩니다.
+
+      <div className="pt-2 border-t border-border space-y-1.5">
+        {!isTrash ? (
+          <>
+            {node.kind === 'file' && (
+              <PreviewButton onClick={onNotReady} icon={<Eye className="w-4 h-4" />} label="편집" main />
+            )}
+            <PreviewButton onClick={onToggleStar} icon={<Star className={cn('w-4 h-4', node.starred && 'fill-yellow-400 text-yellow-400')} />} label={node.starred ? '별표 해제' : '별표'} />
+            <PreviewButton onClick={onRename} icon={<Pencil className="w-4 h-4" />} label="이름 변경" />
+            <PreviewButton onClick={onMoveToTrash} icon={<Trash2 className="w-4 h-4" />} label="휴지통으로" destructive />
+          </>
+        ) : (
+          <>
+            <PreviewButton onClick={onRestore} icon={<RotateCcw className="w-4 h-4" />} label="복원" main />
+            <PreviewButton onClick={onPermanentDelete} icon={<X className="w-4 h-4" />} label="영구 삭제" destructive />
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+interface PreviewButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  main?: boolean;
+  destructive?: boolean;
+}
+
+function PreviewButton({ icon, label, onClick, main, destructive }: PreviewButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors',
+        main
+          ? 'bg-foreground text-background hover:bg-foreground/90'
+          : destructive
+            ? 'text-destructive hover:bg-destructive/10'
+            : 'hover:bg-muted',
+      )}
+    >
+      <span>{icon}</span>
+      <span>{label}</span>
+    </button>
   );
 }
