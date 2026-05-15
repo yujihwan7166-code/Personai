@@ -131,17 +131,20 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
         <button
           type="button"
           onClick={() => setCityInputOpen(true)}
-          className="flex-1 text-left flex items-center gap-3 -mx-1 px-1 hover:bg-accent/40 rounded transition-colors"
+          className="flex-1 text-left flex items-center gap-2 mt-1 -mx-1 px-1 rounded transition-colors hover:bg-foreground/5"
           title="도시 변경"
         >
-          <span className="text-3xl" aria-hidden>{wmoLabel(result.data.code).emoji}</span>
-          <div className="min-w-0">
-            <div className="text-[20px] font-bold leading-none tabular-nums text-foreground">{result.data.temp}°</div>
-            <div className="text-[10.5px] text-muted-foreground mt-1 leading-tight">
+          <span className="text-[44px] leading-none" aria-hidden>{wmoLabel(result.data.code).emoji}</span>
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-[30px] font-extrabold leading-none tabular-nums text-foreground">
+              {result.data.temp}<span className="text-[18px] opacity-70">°</span>
+            </div>
+            <div className="text-[11px] text-foreground/80 mt-1 leading-tight font-medium">
               {result.data.description}
             </div>
-            <div className="text-[10.5px] text-muted-foreground tabular-nums leading-tight">
-              ↑{result.data.tempMax}° ↓{result.data.tempMin}°
+            <div className="text-[10.5px] text-muted-foreground tabular-nums leading-tight mt-0.5">
+              <span className="text-rose-500/85">↑{result.data.tempMax}°</span>{' '}
+              <span className="text-blue-500/85">↓{result.data.tempMin}°</span>
             </div>
           </div>
         </button>
@@ -665,8 +668,8 @@ function ExtHeader({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-foreground/65 shrink-0">{icon}</span>
-      <span className="text-[11px] font-semibold tracking-wide text-foreground/80 truncate flex-1">
+      <span className="text-foreground/70 shrink-0">{icon}</span>
+      <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-foreground/75 truncate flex-1">
         {title}
       </span>
       {stale && (
@@ -677,7 +680,7 @@ function ExtHeader({
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onRefresh(); }}
-        className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+        className="h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
         aria-label="새로고침"
         title="새로고침"
       >
@@ -687,7 +690,7 @@ function ExtHeader({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onConfig(); }}
-          className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+          className="h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
           aria-label="설정"
           title="설정"
         >

@@ -50,25 +50,44 @@ export interface WidgetMeta {
   soon?: boolean;
   /** 이미 추가됐을 때 동일 위젯 또 추가 가능? (시계 같은 건 1개만, 환율은 여러 통화별 — false 기본). */
   multiInstance?: boolean;
+  /** 위젯 카테고리 색 (Samsung One UI / iOS 위젯 스타일 컬러 액센트). */
+  tint: { hue: string; bg: string; border: string };
 }
+
+// 색 토큰 — 각 위젯이 정체성 가지도록.
+// bg / border 는 매우 옅게 (8% / 25%) — 사이트 cream 톤과 자연스럽게 섞임.
+const T = {
+  blue:    { hue: 'hsl(217 91% 55%)',  bg: 'hsl(217 91% 55% / 0.06)', border: 'hsl(217 91% 55% / 0.18)' },
+  green:   { hue: 'hsl(142 65% 42%)',  bg: 'hsl(142 65% 42% / 0.07)', border: 'hsl(142 65% 42% / 0.20)' },
+  violet:  { hue: 'hsl(265 65% 58%)',  bg: 'hsl(265 65% 58% / 0.07)', border: 'hsl(265 65% 58% / 0.20)' },
+  orange:  { hue: 'hsl(20 88% 55%)',   bg: 'hsl(20 88% 55% / 0.08)',  border: 'hsl(20 88% 55% / 0.22)'  },
+  pink:    { hue: 'hsl(335 78% 60%)',  bg: 'hsl(335 78% 60% / 0.07)', border: 'hsl(335 78% 60% / 0.20)' },
+  amber:   { hue: 'hsl(38 92% 50%)',   bg: 'hsl(38 92% 50% / 0.08)',  border: 'hsl(38 92% 50% / 0.22)'  },
+  red:     { hue: 'hsl(0 72% 55%)',    bg: 'hsl(0 72% 55% / 0.06)',   border: 'hsl(0 72% 55% / 0.20)'   },
+  slate:   { hue: 'hsl(220 12% 38%)',  bg: 'hsl(220 12% 38% / 0.05)', border: 'hsl(220 12% 38% / 0.18)' },
+  sky:     { hue: 'hsl(200 85% 55%)',  bg: 'hsl(200 85% 55% / 0.08)', border: 'hsl(200 85% 55% / 0.22)' },
+  ink:     { hue: 'hsl(220 15% 22%)',  bg: 'hsl(220 15% 22% / 0.04)', border: 'hsl(220 15% 22% / 0.15)' },
+  teal:    { hue: 'hsl(175 60% 40%)',  bg: 'hsl(175 60% 40% / 0.07)', border: 'hsl(175 60% 40% / 0.20)' },
+  purple:  { hue: 'hsl(285 70% 58%)',  bg: 'hsl(285 70% 58% / 0.07)', border: 'hsl(285 70% 58% / 0.20)' },
+};
 
 export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
   // 내 데이터
-  schedule:      { label: '오늘 일정',   emoji: '📅', defaultSize: 'M', allowedSizes: ['M', 'L'], group: '내 데이터' },
-  tasks:         { label: '오늘 할일',   emoji: '☑',  defaultSize: 'M', allowedSizes: ['M', 'L'], group: '내 데이터' },
-  calendar:      { label: '달력',        emoji: '🗓', defaultSize: 'L', allowedSizes: ['L'],      group: '내 데이터' },
-  habits:        { label: '오늘 습관',   emoji: '🔥', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '내 데이터' },
-  dday:          { label: '가까운 D-day', emoji: '⚑', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '내 데이터' },
-  pickFirst:     { label: '가장 먼저',   emoji: '✨', defaultSize: 'M', allowedSizes: ['M'],      group: '내 데이터' },
-  overdue:       { label: '어제 미완료', emoji: '⚠', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '내 데이터' },
-  recentJournal: { label: '최근 일기',   emoji: '📓', defaultSize: 'M', allowedSizes: ['M'],      group: '내 데이터' },
-  clock:         { label: '시계',        emoji: '🕒', defaultSize: 'S', allowedSizes: ['S'],      group: '내 데이터' },
+  schedule:      { label: '오늘 일정',     emoji: '📅', defaultSize: 'M', allowedSizes: ['M', 'L'], group: '내 데이터', tint: T.blue },
+  tasks:         { label: '오늘 할일',     emoji: '☑',  defaultSize: 'M', allowedSizes: ['M', 'L'], group: '내 데이터', tint: T.green },
+  calendar:      { label: '달력',          emoji: '🗓', defaultSize: 'L', allowedSizes: ['L'],      group: '내 데이터', tint: T.violet },
+  habits:        { label: '오늘 습관',     emoji: '🔥', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '내 데이터', tint: T.orange },
+  dday:          { label: '가까운 D-day',  emoji: '⚑', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '내 데이터', tint: T.pink },
+  pickFirst:     { label: '가장 먼저',     emoji: '✨', defaultSize: 'M', allowedSizes: ['M'],      group: '내 데이터', tint: T.amber },
+  overdue:       { label: '어제 미완료',   emoji: '⚠', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '내 데이터', tint: T.red },
+  recentJournal: { label: '최근 일기',     emoji: '📓', defaultSize: 'M', allowedSizes: ['M'],      group: '내 데이터', tint: T.teal },
+  clock:         { label: '시계',          emoji: '🕒', defaultSize: 'S', allowedSizes: ['S'],      group: '내 데이터', tint: T.slate },
   // 외부 정보
-  weather:       { label: '날씨',        emoji: '🌤', defaultSize: 'M', allowedSizes: ['M'],      group: '외부 정보' },
-  forex:         { label: '환율',        emoji: '💱', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '외부 정보' },
-  news:          { label: '뉴스',        emoji: '📰', defaultSize: 'M', allowedSizes: ['M', 'L'], group: '외부 정보' },
-  stock:         { label: '주식·코인',   emoji: '📈', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '외부 정보' },
-  heatmap:       { label: 'S&P 500 히트맵', emoji: '🟢', defaultSize: 'L', allowedSizes: ['L'],   group: '외부 정보' },
+  weather:       { label: '날씨',          emoji: '🌤', defaultSize: 'M', allowedSizes: ['M'],      group: '외부 정보', tint: T.sky },
+  forex:         { label: '환율',          emoji: '💱', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '외부 정보', tint: T.green },
+  news:          { label: '뉴스',          emoji: '📰', defaultSize: 'M', allowedSizes: ['M', 'L'], group: '외부 정보', tint: T.ink },
+  stock:         { label: '주식·코인',     emoji: '📈', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '외부 정보', tint: T.amber },
+  heatmap:       { label: 'S&P 500 히트맵', emoji: '🟢', defaultSize: 'L', allowedSizes: ['L'],     group: '외부 정보', tint: T.purple },
 };
 
 export const ALL_WIDGET_KINDS: WidgetKind[] = Object.keys(WIDGET_META) as WidgetKind[];

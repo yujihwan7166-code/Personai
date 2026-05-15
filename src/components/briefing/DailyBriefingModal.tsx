@@ -63,16 +63,34 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative w-full max-w-[1100px] flex flex-col bg-card border border-foreground/15 rounded-2xl shadow-2xl overflow-hidden"
-        style={{ height: 'min(680px, 92vh)' }}
+        className="relative w-full max-w-[1120px] flex flex-col bg-card border border-foreground/10 rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden"
+        style={{
+          height: 'min(700px, 92vh)',
+          // 모달 자체에 옅은 따뜻한 그라디언트 — 위쪽 살짝 밝게
+          backgroundImage: 'linear-gradient(180deg, hsl(40 35% 99%) 0%, hsl(var(--card)) 240px)',
+        }}
       >
-        {/* 헤더 */}
-        <div className="shrink-0 px-6 py-3.5 border-b border-foreground/12 flex items-center gap-3">
+        {/* 헤더 — 큰 인사말 + 날짜·진행 정보 */}
+        <div className="shrink-0 px-7 pt-5 pb-4 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[15.5px] font-semibold tracking-tight text-foreground leading-tight">
+            <h2 className="font-display text-[22px] sm:text-[24px] font-bold tracking-tight text-foreground leading-tight">
               {data.greeting}
             </h2>
-            <p className="text-[11.5px] text-muted-foreground mt-0.5">{data.date}</p>
+            <p className="text-[12.5px] text-muted-foreground mt-1 tabular-nums">
+              {data.date}
+              {data.timed.length > 0 && (
+                <>
+                  <span className="mx-1.5 text-foreground/25">·</span>
+                  <span>오늘 일정 {data.timed.length}건</span>
+                </>
+              )}
+              {data.inbox.length > 0 && (
+                <>
+                  <span className="mx-1.5 text-foreground/25">·</span>
+                  <span>할일 {data.inbox.length}개</span>
+                </>
+              )}
+            </p>
           </div>
           <button
             type="button"
@@ -80,8 +98,10 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             aria-label={editMode ? '편집 종료' : '편집'}
             title={editMode ? '편집 종료' : '위젯 편집'}
             className={cn(
-              'shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-md transition-colors',
-              editMode ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+              'shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-xl transition-all',
+              editMode
+                ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]'
+                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
             )}
           >
             <Settings className="h-4 w-4" />
@@ -90,14 +110,14 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* 본문 — 그리드 */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto px-7 pb-7 pt-1">
           {settings.widgets.length === 0 ? (
             <EmptyState onAdd={() => setPickerOpen(true)} />
           ) : (
@@ -113,20 +133,21 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
 
         {/* 편집 모드 안내 + autoShow 토글 */}
         {editMode && (
-          <div className="shrink-0 px-6 py-2.5 border-t border-foreground/12 flex items-center gap-3 bg-accent/30">
-            <span className="text-[11px] text-muted-foreground">
+          <div className="shrink-0 px-7 py-3 border-t border-foreground/8 flex items-center gap-3 bg-primary/4 backdrop-blur-sm">
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               위젯 드래그·삭제·크기 조정. Esc 로 종료
             </span>
             <button
               type="button"
               onClick={() => { if (window.confirm('default 위젯 구성으로 되돌릴까요?')) dailyBriefingStore.resetWidgets(); }}
-              className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+              className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
               title="기본값"
             >
               <RotateCcw className="h-3 w-3" />
               초기화
             </button>
-            <label className="ml-auto inline-flex items-center gap-1.5 text-[11.5px] text-foreground/85 cursor-pointer select-none">
+            <label className="ml-auto inline-flex items-center gap-2 text-[11.5px] text-foreground/85 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={settings.autoShow}
@@ -212,20 +233,33 @@ function WidgetCard({
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const span = sizeToSpan(widget.size);
+  const meta = WIDGET_META[widget.kind];
+  const isHero = widget.kind === 'pickFirst';   // hero 카드는 더 진한 그라디언트
 
   return (
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
       className={cn(
-        'relative rounded-xl bg-card border border-foreground/12 overflow-hidden transition-shadow',
-        'shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
-        'hover:shadow-[0_4px_14px_-8px_hsl(30_15%_8%/0.12)]',
-        editMode && 'wb-jiggle ring-1 ring-primary/25',
+        'relative rounded-2xl overflow-hidden transition-all',
+        'shadow-[0_1px_2px_hsl(30_15%_8%/0.03),_0_2px_8px_-4px_hsl(30_15%_8%/0.05)]',
+        'hover:shadow-[0_4px_14px_-6px_hsl(30_15%_8%/0.12),_0_2px_6px_-3px_hsl(30_15%_8%/0.08)]',
+        'hover:-translate-y-0.5',
+        editMode && 'wb-jiggle ring-2 ring-primary/30',
       )}
       style={{
         gridColumn: `${widget.col + 1} / span ${span.w}`,
         gridRow: `${widget.row + 1} / span ${span.h}`,
+        background: isHero
+          ? `linear-gradient(135deg, ${meta.tint.bg.replace('0.08', '0.18')}, ${meta.tint.bg.replace('0.08', '0.05')})`
+          : `linear-gradient(180deg, ${meta.tint.bg}, hsl(var(--card)) 60%)`,
+        borderTop: `2.5px solid ${meta.tint.border}`,
+        boxShadow: isHero
+          ? `0 4px 16px -6px ${meta.tint.hue}40, 0 2px 6px -2px hsl(30 15% 8% / 0.08)`
+          : undefined,
+        // 추가 border (top 제외 옅게)
+        outline: `1px solid hsl(var(--foreground) / 0.06)`,
+        outlineOffset: '-1px',
       }}
     >
       {renderWidget({ widget, data, onClose })}
@@ -361,22 +395,28 @@ function WidgetPicker({
                       }}
                       disabled={disabled}
                       className={cn(
-                        'relative p-3 rounded-lg border text-left transition-all',
+                        'relative p-3.5 rounded-xl text-left transition-all',
                         disabled
-                          ? 'border-foreground/8 bg-card/40 text-foreground/40 cursor-not-allowed'
-                          : 'border-foreground/12 hover:border-primary hover:bg-primary/5',
+                          ? 'border border-foreground/8 bg-card/40 text-foreground/40 cursor-not-allowed'
+                          : 'hover:-translate-y-0.5 hover:shadow-md',
                       )}
+                      style={!disabled ? {
+                        background: `linear-gradient(180deg, ${meta.tint.bg}, hsl(var(--card)) 70%)`,
+                        borderTop: `2px solid ${meta.tint.border}`,
+                        outline: '1px solid hsl(var(--foreground) / 0.06)',
+                        outlineOffset: '-1px',
+                      } : undefined}
                     >
-                      <div className="text-2xl mb-1">{meta.emoji}</div>
-                      <div className="text-[12px] font-medium text-foreground/90 truncate">{meta.label}</div>
-                      <div className="text-[10px] text-muted-foreground/75 mt-0.5">
+                      <div className="text-2xl mb-1.5">{meta.emoji}</div>
+                      <div className="text-[12.5px] font-semibold text-foreground/90 truncate">{meta.label}</div>
+                      <div className="text-[10px] text-muted-foreground/75 mt-0.5 font-medium tabular-nums">
                         {sizeLabel(meta.defaultSize)}
                       </div>
                       {already && (
-                        <span className="absolute top-2 right-2 text-[10px] text-primary">✓</span>
+                        <span className="absolute top-2 right-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">✓</span>
                       )}
                       {meta.soon && !already && (
-                        <span className="absolute top-2 right-2 text-[9px] uppercase tracking-wide text-muted-foreground/70">곧</span>
+                        <span className="absolute top-2 right-2 text-[9px] uppercase tracking-wide text-muted-foreground/70 font-semibold">곧</span>
                       )}
                     </button>
                   );

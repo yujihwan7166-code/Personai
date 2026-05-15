@@ -168,21 +168,19 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
               type="button"
               onClick={(e) => handleCellClick(e, cell.key)}
               className={cn(
-                'relative aspect-square text-[10.5px] rounded flex flex-col items-center justify-center transition-colors',
+                'relative aspect-square text-[10.5px] rounded-lg flex flex-col items-center justify-center transition-all',
                 cell.isToday
-                  ? 'bg-primary text-primary-foreground font-bold'
-                  : 'text-foreground/85 hover:bg-accent',
-                i % 7 === 0 && !cell.isToday && 'text-rose-500/85',
-                i % 7 === 6 && !cell.isToday && 'text-blue-500/85',
+                  ? 'bg-primary text-primary-foreground font-bold shadow-sm shadow-primary/30 scale-105'
+                  : 'text-foreground/85 font-medium hover:bg-foreground/5',
+                i % 7 === 0 && !cell.isToday && 'text-rose-500/90',
+                i % 7 === 6 && !cell.isToday && 'text-blue-500/90',
               )}
             >
-              <span>{cell.day}</span>
+              <span className="tabular-nums">{cell.day}</span>
               {mark && (
-                <span className={cn(
-                  'absolute bottom-0.5 inline-flex gap-0.5',
-                )}>
-                  {mark.events > 0 && <span className={cn('w-1 h-1 rounded-full', cell.isToday ? 'bg-white/80' : 'bg-primary')} />}
-                  {mark.tasks > 0 && <span className={cn('w-1 h-1 rounded-full', cell.isToday ? 'bg-white/60' : 'bg-amber-500')} />}
+                <span className="absolute bottom-1 inline-flex gap-0.5">
+                  {mark.events > 0 && <span className={cn('w-1 h-1 rounded-full', cell.isToday ? 'bg-white/90' : 'bg-primary/80')} />}
+                  {mark.tasks > 0 && <span className={cn('w-1 h-1 rounded-full', cell.isToday ? 'bg-white/60' : 'bg-amber-500/85')} />}
                 </span>
               )}
             </button>
@@ -263,13 +261,16 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 가장 먼저 (M)
+// 가장 먼저 (M) — 헤로 디자인
 export function PickFirstWidget({ data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   if (!data.pickFirst) {
     return (
-      <div className="w-full h-full p-3 flex flex-col">
-        <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" />
+      <div className="w-full h-full p-4 flex flex-col">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+          <span className="text-[10.5px] font-bold tracking-[0.08em] uppercase text-amber-700 dark:text-amber-400">가장 먼저</span>
+        </div>
         <EmptyText text="추천할 항목 없음" />
       </div>
     );
@@ -278,11 +279,21 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-3 flex flex-col bg-gradient-to-br from-primary/8 to-transparent"
+      className="w-full h-full text-left p-4 flex flex-col"
     >
-      <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5 text-primary" />} title="가장 먼저" count="" tint />
-      <div className="mt-1 text-[15px] font-bold text-foreground leading-tight line-clamp-2">{data.pickFirst.title}</div>
-      <div className="mt-auto text-[11px] text-muted-foreground">{data.pickFirst.reason}</div>
+      <div className="flex items-center gap-1.5">
+        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+        <span className="text-[10.5px] font-bold tracking-[0.08em] uppercase text-amber-700 dark:text-amber-400">가장 먼저</span>
+      </div>
+      <div className="mt-2 font-display text-[18px] font-bold text-foreground leading-tight line-clamp-2">
+        {data.pickFirst.title}
+      </div>
+      <div className="mt-auto pt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[9.5px] font-semibold uppercase tracking-wider">
+          {data.pickFirst.kind === 'event' ? '일정' : data.pickFirst.kind === 'habit' ? '습관' : '할일'}
+        </span>
+        <span className="truncate">{data.pickFirst.reason}</span>
+      </div>
     </button>
   );
 }
@@ -341,7 +352,7 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 시계 (S)
+// 시계 (S) — 큰 디지털, 중앙 정렬
 export function ClockWidget(_: WidgetProps) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -350,14 +361,17 @@ export function ClockWidget(_: WidgetProps) {
   }, []);
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
   const dateLabel = now.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
   return (
     <div className="w-full h-full p-3 flex flex-col items-center justify-center text-center">
-      <ClockIcon className="h-3 w-3 text-muted-foreground absolute top-2 left-2.5" />
-      <div className="text-[26px] font-bold tabular-nums tracking-tight text-foreground leading-none">
-        {hh}:{mm}
+      <div className="font-display text-[34px] font-extrabold tabular-nums tracking-tight text-foreground leading-none">
+        <span>{hh}</span>
+        <span className="opacity-50 mx-0.5">:</span>
+        <span>{mm}</span>
+        <span className="text-[16px] text-muted-foreground/70 align-top ml-1 font-bold tabular-nums">{ss}</span>
       </div>
-      <div className="mt-1.5 text-[10.5px] text-muted-foreground">{dateLabel}</div>
+      <div className="mt-2 text-[11px] text-muted-foreground font-medium">{dateLabel}</div>
     </div>
   );
 }
@@ -379,12 +393,15 @@ function WidgetHeader({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className={cn('shrink-0', tint ? 'text-primary' : 'text-foreground/65')}>{icon}</span>
-      <span className={cn('text-[11px] font-semibold tracking-wide truncate', tint ? 'text-primary' : 'text-foreground/80')}>
+      <span className={cn('shrink-0', tint ? 'text-primary' : 'text-foreground/70')}>{icon}</span>
+      <span className={cn(
+        'text-[10px] font-bold tracking-[0.08em] uppercase truncate',
+        tint ? 'text-primary' : 'text-foreground/75',
+      )}>
         {title}
       </span>
       {count !== '' && (
-        <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground font-medium shrink-0">
+        <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground font-semibold shrink-0">
           {count}
         </span>
       )}
