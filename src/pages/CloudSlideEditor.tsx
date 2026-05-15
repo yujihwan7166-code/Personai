@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
+  Square as SquareIcon, Circle as CircleIcon, Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -19,19 +20,37 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 const AUTOSAVE_DELAY_MS = 1000;
 
-interface SlideTextEl {
+interface BaseEl {
   id: string;
-  type: 'text';
   xPct: number;  // 0~100, 캔버스 폭 대비
   yPct: number;
   wPct: number;
   hPct: number;
+}
+
+interface SlideTextEl extends BaseEl {
+  type: 'text';
   content: string;
   fontSizeRem: number;
   bold?: boolean;
+  textColor?: string;
 }
 
-type SlideElement = SlideTextEl;
+interface SlideShapeEl extends BaseEl {
+  type: 'rect' | 'ellipse';
+  fillColor: string;     // CSS color
+  strokeColor?: string;  // 테두리 색
+  strokeWidth?: number;  // px (캔버스 픽셀 기준)
+}
+
+type SlideElement = SlideTextEl | SlideShapeEl;
+
+function isText(el: SlideElement): el is SlideTextEl {
+  return el.type === 'text';
+}
+function isShape(el: SlideElement): el is SlideShapeEl {
+  return el.type === 'rect' || el.type === 'ellipse';
+}
 
 interface Slide {
   id: string;
@@ -228,10 +247,24 @@ export default function CloudSlideEditor() {
     setEditingElId(el.id);
   }, [updateCurrentSlide]);
 
-  const updateEl = useCallback((elId: string, patch: Partial<SlideTextEl>) => {
+  const addShapeEl = useCallback((shape: 'rect' | 'ellipse') => {
+    const el: SlideShapeEl = {
+      id: newId('el'),
+      type: shape,
+      xPct: 25, yPct: 30,
+      wPct: 30, hPct: 25,
+      fillColor: shape === 'rect' ? 'hsl(200 75% 60%)' : 'hsl(25 85% 60%)',
+    };
+    updateCurrentSlide((s) => ({ ...s, elements: [...s.elements, el] }));
+    setSelectedElId(el.id);
+    setEditingElId(null);
+  }, [updateCurrentSlide]);
+
+  // 부분 patch (유니온 호환 위해 unknown 캐스트 — id 매칭 후 안전)
+  const updateEl = useCallback((elId: string, patch: Partial<SlideTextEl> | Partial<SlideShapeEl>) => {
     updateCurrentSlide((s) => ({
       ...s,
-      elements: s.elements.map((el) => (el.id === elId ? { ...el, ...patch } : el)),
+      elements: s.elements.map((el) => (el.id === elId ? ({ ...el, ...patch } as SlideElement) : el)),
     }));
   }, [updateCurrentSlide]);
 
@@ -255,7 +288,7 @@ export default function CloudSlideEditor() {
   }, [addTextEl]);
 
   // ─── 드래그 이동 ───
-  const startDrag = useCallback((e: React.PointerEvent, elId: string, el: SlideTextEl) => {
+  const startDrag = useCallback((e: React.PointerEvent, elId: string, el: SlideElement) => {
     if (editingElId === elId) return; // 편집 중엔 드래그 X
     e.preventDefault();
     e.stopPropagation();
@@ -396,8 +429,15 @@ export default function CloudSlideEditor() {
           <ToolBtn onClick={addSlide} title="새 슬라이드 (Ctrl+M)">
             <Plus className="w-4 h-4" /><span className="text-xs ml-1">슬라이드</span>
           </ToolBtn>
+          <Sep />
           <ToolBtn onClick={() => addTextEl()} title="텍스트 추가">
             <TypeIcon className="w-4 h-4" /><span className="text-xs ml-1">텍스트</span>
+          </ToolBtn>
+          <ToolBtn onClick={() => addShapeEl('rect')} title="사각형 추가">
+            <SquareIcon className="w-4 h-4" /><span className="text-xs ml-1">사각형</span>
+          </ToolBtn>
+          <ToolBtn onClick={() => addShapeEl('ellipse')} title="원 추가">
+            <CircleIcon className="w-4 h-4" /><span className="text-xs ml-1">원</span>
           </ToolBtn>
           <Sep />
           <ToolBtn onClick={duplicateSlide} title="이 슬라이드 복제">
@@ -412,6 +452,57 @@ export default function CloudSlideEditor() {
           <ToolBtn onClick={deleteSlide} disabled={slides.length <= 1} title="이 슬라이드 삭제" destructive>
             <Trash2 className="w-4 h-4" />
           </ToolBtn>
+
+          {/* 선택된 요소별 인스펙터 — 도형이면 색 picker, 텍스트면 글자색 */}
+          {selectedElId && (() => {
+            const el = currentSlide.elements.find((x) => x.id === selectedElId);
+            if (!el) return null;
+            if (isShape(el)) {
+              return (
+                <>
+                  <Sep />
+                  <ColorField
+                    label="채우기"
+                    value={el.fillColor}
+                    onChange={(v) => updateEl(el.id, { fillColor: v })}
+                  />
+                  <ColorField
+                    label="테두리"
+                    value={el.strokeColor ?? '#000000'}
+                    onChange={(v) => updateEl(el.id, { strokeColor: v, strokeWidth: el.strokeWidth ?? 2 })}
+                  />
+                  {el.strokeColor && (
+                    <ToolBtn
+                      onClick={() => updateEl(el.id, { strokeColor: undefined, strokeWidth: undefined })}
+                      title="테두리 제거"
+                    >
+                      <span className="text-xs">테두리 끄기</span>
+                    </ToolBtn>
+                  )}
+                </>
+              );
+            }
+            if (isText(el)) {
+              return (
+                <>
+                  <Sep />
+                  <ColorField
+                    label="글자색"
+                    value={el.textColor ?? '#222222'}
+                    onChange={(v) => updateEl(el.id, { textColor: v })}
+                  />
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { bold: !el.bold })}
+                    title="굵게"
+                  >
+                    <span className={cn('text-sm font-bold', el.bold && 'underline')}>B</span>
+                  </ToolBtn>
+                </>
+              );
+            }
+            return null;
+          })()}
+
           <div className="ml-auto text-xs text-muted-foreground">
             {currentIdx + 1} / {slides.length}
           </div>
@@ -456,19 +547,32 @@ export default function CloudSlideEditor() {
               onClick={() => { setSelectedElId(null); setEditingElId(null); }}
               onDoubleClick={handleCanvasDoubleClick}
             >
-              {currentSlide.elements.map((el) => (
-                <TextElView
-                  key={el.id}
-                  el={el}
-                  selected={selectedElId === el.id}
-                  editing={editingElId === el.id}
-                  onPointerDown={(e) => startDrag(e, el.id, el)}
-                  onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
-                  onDoubleClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); setEditingElId(el.id); }}
-                  onChange={(content) => updateEl(el.id, { content })}
-                  onFinishEdit={() => setEditingElId(null)}
-                />
-              ))}
+              {currentSlide.elements.map((el) => {
+                if (isShape(el)) {
+                  return (
+                    <ShapeElView
+                      key={el.id}
+                      el={el}
+                      selected={selectedElId === el.id}
+                      onPointerDown={(e) => startDrag(e, el.id, el)}
+                      onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
+                    />
+                  );
+                }
+                return (
+                  <TextElView
+                    key={el.id}
+                    el={el}
+                    selected={selectedElId === el.id}
+                    editing={editingElId === el.id}
+                    onPointerDown={(e) => startDrag(e, el.id, el)}
+                    onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
+                    onDoubleClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); setEditingElId(el.id); }}
+                    onChange={(content) => updateEl(el.id, { content })}
+                    onFinishEdit={() => setEditingElId(null)}
+                  />
+                );
+              })}
               {currentSlide.elements.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm pointer-events-none">
                   더블클릭으로 텍스트 추가 또는 도구바 [텍스트] 버튼
@@ -596,10 +700,14 @@ function TextElView({
           }
         }}
         className={cn(
-          'w-full h-full outline-none text-black/80 break-words overflow-hidden',
+          'w-full h-full outline-none break-words overflow-hidden',
           el.bold && 'font-semibold',
         )}
-        style={{ fontSize: `${el.fontSizeRem}rem`, lineHeight: 1.25 }}
+        style={{
+          fontSize: `${el.fontSizeRem}rem`,
+          lineHeight: 1.25,
+          color: el.textColor ?? 'rgba(0,0,0,0.8)',
+        }}
       >
         {el.content}
       </div>
@@ -640,6 +748,72 @@ function ToolBtn({ onClick, disabled, destructive, title, children }: ToolBtnPro
 
 function Sep() {
   return <div className="w-px h-5 bg-border mx-1 shrink-0" />;
+}
+
+// ─────────────────────────────────────────────
+// 도형 요소 (캔버스)
+// ─────────────────────────────────────────────
+
+interface ShapeElViewProps {
+  el: SlideShapeEl;
+  selected: boolean;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onClick: (e: React.MouseEvent) => void;
+}
+
+function ShapeElView({ el, selected, onPointerDown, onClick }: ShapeElViewProps) {
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onClick={onClick}
+      className={cn(
+        'absolute cursor-move',
+        'rounded-sm',
+        selected && 'outline outline-2 -outline-offset-1 outline-foreground/70',
+        !selected && 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-foreground/30',
+      )}
+      style={{
+        left: `${el.xPct}%`,
+        top: `${el.yPct}%`,
+        width: `${el.wPct}%`,
+        height: `${el.hPct}%`,
+        backgroundColor: el.fillColor,
+        border: el.strokeColor ? `${el.strokeWidth ?? 2}px solid ${el.strokeColor}` : undefined,
+        borderRadius: el.type === 'ellipse' ? '50%' : undefined,
+      }}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────
+// 색 필드 (도구바 내 인라인)
+// ─────────────────────────────────────────────
+
+function ColorField({
+  label, value, onChange,
+}: { label: string; value: string; onChange: (v: string) => void }) {
+  // CSS color → #RRGGBB (input[type=color] 호환)
+  const hex = useMemo(() => toHex(value), [value]);
+  return (
+    <label className="flex items-center gap-1 px-1.5 py-1 rounded hover:bg-muted cursor-pointer" title={label}>
+      <Palette className="w-3.5 h-3.5 text-muted-foreground" />
+      <span className="text-xs">{label}</span>
+      <input
+        type="color"
+        value={hex}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-5 h-5 rounded cursor-pointer border-none bg-transparent p-0"
+      />
+    </label>
+  );
+}
+
+function toHex(color: string): string {
+  if (!color) return '#000000';
+  if (color.startsWith('#') && (color.length === 7 || color.length === 4)) return color.length === 7 ? color : color;
+  // HSL/RGB 등은 변환 비용이 있으므로 대충 fallback. input[type=color] 가 무효한 값엔 '#000' 표시.
+  // 사용자가 변경 시 hex 로 다시 들어오므로 store 갱신됨.
+  return '#3b82f6';
 }
 
 function SaveStateBadge({ state }: { state: SaveState }) {
