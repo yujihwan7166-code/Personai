@@ -17,10 +17,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCloudNodes, type CloudListMode } from '@/hooks/useCloudNodes';
 import {
   createFolder, setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
+  searchByName, fetchNode,
 } from '@/lib/cloudClient';
 import {
   type CloudNode, FILE_TYPE_EMOJI, FILE_TYPE_LABEL, formatSize,
 } from '@/types/cloud';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface BreadcrumbItem {
   id: string | null; // null = 루트
@@ -38,6 +40,7 @@ export default function Cloud() {
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const currentFolderId = trail[trail.length - 1].id;
   const { nodes, loading, error, refresh, starredCount, trashCount } = useCloudNodes({
@@ -196,11 +199,43 @@ export default function Cloud() {
     }
   }, [refresh]);
 
-  // ─── 키보드: Delete = 휴지통, F2 = 이름변경, Esc = 선택해제 ───
+  // ─── 검색 결과 선택 (모달에서 클릭) ───
+  const handleSearchSelect = useCallback(async (node: CloudNode) => {
+    setSearchOpen(false);
+    setListMode('folder');
+    if (node.kind === 'folder') {
+      // 그 폴더로 점프. trail 은 단순화 (루트 + 그 폴더). 다중 단계 경로는 추후.
+      setTrail([{ id: null, name: '내 파일' }, { id: node.id, name: node.name }]);
+      setSelectedId(null);
+    } else {
+      // 파일이면 부모 폴더로 점프 + selectedId 설정
+      if (node.parentFolderId === null) {
+        setTrail([{ id: null, name: '내 파일' }]);
+      } else {
+        try {
+          const parent = await fetchNode(node.parentFolderId);
+          setTrail([
+            { id: null, name: '내 파일' },
+            ...(parent ? [{ id: parent.id, name: parent.name }] : []),
+          ]);
+        } catch {
+          setTrail([{ id: null, name: '내 파일' }]);
+        }
+      }
+      setSelectedId(node.id);
+    }
+  }, []);
+
+  // ─── 키보드: Delete / F2 / Esc / Ctrl·Cmd+K ───
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // 어디서든 동작: Ctrl/Cmd+K = 검색 모달
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+        return;
+      }
       if (!selectedNode || editingId) return;
-      // input 안에서는 무시
       const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
 
@@ -272,9 +307,10 @@ export default function Cloud() {
               업로드
             </button>
             <button
-              onClick={notReady}
+              onClick={() => setSearchOpen(true)}
               className="p-2 rounded hover:bg-muted"
               aria-label="검색"
+              title="검색 (Ctrl/⌘+K)"
               type="button"
             >
               <Search className="w-4 h-4" />
@@ -504,7 +540,145 @@ export default function Cloud() {
           )}
         </aside>
       </div>
+
+      <SearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelect={(n) => { void handleSearchSelect(n); }}
+      />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 검색 모달
+// ─────────────────────────────────────────────
+
+interface SearchModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (node: CloudNode) => void;
+}
+
+function SearchModal({ open, onClose, onSelect }: SearchModalProps) {
+  const { user } = useAuth();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<CloudNode[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // 모달 열릴 때 초기화 + focus
+  useEffect(() => {
+    if (open) {
+      setQuery('');
+      setResults([]);
+      setActiveIdx(0);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open]);
+
+  // 디바운스 검색
+  useEffect(() => {
+    if (!user) {
+      setResults([]);
+      return;
+    }
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const items = await searchByName(user.id, q);
+        setResults(items);
+        setActiveIdx(0);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [user, query]);
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(i + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const picked = results[activeIdx];
+      if (picked) onSelect(picked);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden">
+        <DialogTitle className="sr-only">검색</DialogTitle>
+        <DialogDescription className="sr-only">파일·폴더 이름 검색</DialogDescription>
+        <div className="border-b border-border p-3 flex items-center gap-2">
+          <Search className="w-4 h-4 text-muted-foreground" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="파일·폴더 이름 검색..."
+            className="flex-1 bg-transparent outline-none border-none text-sm"
+          />
+          <kbd className="text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5">Esc</kbd>
+        </div>
+        <div className="max-h-96 overflow-y-auto">
+          {!query.trim() ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              파일·폴더 이름을 입력해보세요.
+            </div>
+          ) : loading ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">검색 중…</div>
+          ) : results.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              결과가 없어요.
+            </div>
+          ) : (
+            <ul className="py-1">
+              {results.map((n, idx) => (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(n)}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 text-left text-sm',
+                      idx === activeIdx ? 'bg-muted' : '',
+                    )}
+                  >
+                    <NodeIcon node={n} />
+                    <span className="flex-1 truncate">{n.name}</span>
+                    {n.starred && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />}
+                    <span className="text-xs text-muted-foreground">{relativeTime(n.updatedAt)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground flex items-center justify-between">
+          <span>이름만 검색 · 본문 검색은 8단계</span>
+          <span className="flex items-center gap-2">
+            <kbd className="border border-border rounded px-1">↑↓</kbd> 이동
+            <kbd className="border border-border rounded px-1">↵</kbd> 선택
+          </span>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

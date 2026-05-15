@@ -83,6 +83,38 @@ export async function fetchRecent(ownerId: string, limit = 20): Promise<CloudNod
   return ((data ?? []) as CloudNodeRow[]).map(rowToCloudNode);
 }
 
+/** 단일 노드 조회. 검색 결과의 부모 폴더 가져오기 등에 사용. */
+export async function fetchNode(id: string): Promise<CloudNode | null> {
+  const { data, error } = await cloudTable()
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToCloudNode(data as CloudNodeRow) : null;
+}
+
+/** 이름 검색 (살아있는 파일·폴더만, ILIKE 부분 일치). */
+export async function searchByName(
+  ownerId: string,
+  query: string,
+  limit = 30,
+): Promise<CloudNode[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  // ILIKE 와일드카드 이스케이프 (% _ \)
+  const safe = trimmed.replace(/[\\%_]/g, (m) => `\\${m}`);
+  const { data, error } = await cloudTable()
+    .select('*')
+    .eq('owner_id', ownerId)
+    .is('deleted_at', null)
+    .ilike('name', `%${safe}%`)
+    .order('kind', { ascending: true })
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return ((data ?? []) as CloudNodeRow[]).map(rowToCloudNode);
+}
+
 /** 사이드바 카운트 (별표·휴지통). */
 export async function fetchCounts(ownerId: string): Promise<{ starred: number; trash: number }> {
   const [starredRes, trashRes] = await Promise.all([
