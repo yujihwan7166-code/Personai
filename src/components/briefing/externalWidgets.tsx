@@ -150,7 +150,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
         </button>
       )}
 
-      {coords && !cityInputOpen && !result?.data && loading && <CenterText text="불러오는 중…" />}
+      {coords && !cityInputOpen && !result?.data && loading && <WidgetSkeleton rows={2} />}
       {coords && !cityInputOpen && error && !result?.data && <CenterText text="가져오기 실패" error />}
     </div>
   );
@@ -228,7 +228,7 @@ export function ForexWidget({ widget }: WidgetProps) {
         />
       ) : (
         <>
-          {!result?.data && loading && <CenterText text="…" />}
+          {!result?.data && loading && <WidgetSkeleton rows={3} />}
           {error && !result?.data && <CenterText text="실패" error />}
           {result?.data && (
             <ul className="mt-1 space-y-0.5 flex-1 overflow-hidden">
@@ -343,7 +343,7 @@ export function NewsWidget({ widget }: WidgetProps) {
         />
       ) : (
         <>
-          {!result?.data && loading && <CenterText text="불러오는 중…" />}
+          {!result?.data && loading && <WidgetSkeleton rows={4} />}
           {error && !result?.data && <CenterText text="가져오기 실패" error />}
           {result?.data && result.data.length === 0 && <CenterText text="기사 없음" />}
           {result?.data && result.data.length > 0 && (
@@ -495,7 +495,7 @@ export function StockWidget({ widget }: WidgetProps) {
         />
       ) : (
         <>
-          {!result?.data && loading && <CenterText text="…" />}
+          {!result?.data && loading && <WidgetSkeleton rows={3} />}
           {error && !result?.data && <CenterText text="실패" error />}
           {result?.data && (
             <ul className="mt-1 space-y-0.5 flex-1 overflow-hidden">
@@ -708,6 +708,21 @@ function CenterText({ text, error }: { text: string; error?: boolean }) {
         'text-[10.5px] text-center px-2',
         error ? 'text-destructive' : 'text-muted-foreground/65 italic',
       )}>{text}</span>
+    </div>
+  );
+}
+
+/** 스켈레톤 — 위젯 로딩 시 표시. */
+export function WidgetSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="flex-1 mt-2 space-y-1.5">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          className="h-2.5 rounded skeleton-pulse bg-foreground/8"
+          style={{ width: `${75 - i * 12}%` }}
+        />
+      ))}
     </div>
   );
 }

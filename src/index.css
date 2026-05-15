@@ -625,9 +625,37 @@
     animation: wb-jiggle-anim 0.35s ease-in-out infinite;
     transform-origin: center center;
   }
-  /* 위젯마다 살짝 다른 phase 로 시작해서 동기 흔들림 방지 */
   .wb-jiggle:nth-child(2n) { animation-delay: -0.18s; }
   .wb-jiggle:nth-child(3n) { animation-delay: -0.09s; animation-duration: 0.4s; }
+
+  /* 데일리 브리핑 모달 entrance — scale + fade in */
+  @keyframes wb-modal-in {
+    0%   { opacity: 0; transform: scale(0.96) translateY(8px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .wb-modal-in {
+    animation: wb-modal-in 0.22s cubic-bezier(0.34, 1.36, 0.64, 1) forwards;
+  }
+  @keyframes wb-backdrop-in {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  .wb-backdrop-in {
+    animation: wb-backdrop-in 0.18s ease-out forwards;
+  }
+
+  /* 위젯 카드 stagger entrance — 그리드 채워질 때 위에서 살짝 부드럽게 */
+  @keyframes wb-widget-in {
+    0%   { opacity: 0; transform: translateY(8px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .wb-widget-card {
+    animation: wb-widget-in 0.32s ease-out backwards;
+  }
+  /* edit mode 시 jiggle 가 우선 — entrance animation은 jiggle 와 충돌하지 않도록 */
+  .wb-jiggle.wb-widget-card {
+    animation: wb-jiggle-anim 0.35s ease-in-out infinite;
+  }
 
   /* Skeleton loading */
   @keyframes skeleton-pulse {

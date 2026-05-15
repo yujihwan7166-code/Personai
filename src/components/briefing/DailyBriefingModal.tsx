@@ -10,14 +10,14 @@
  *
  * 사이트 톤: cream 카드 + hairline.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Settings, Plus, ChevronUp, ChevronDown, Trash2, Move, RotateCcw } from 'lucide-react';
+import { X, Settings, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildBriefingData } from '@/lib/buildBriefingData';
 import {
   GRID_COLS, GRID_ROWS, WIDGET_META, ALL_WIDGET_KINDS,
-  dailyBriefingStore, sizeToSpan, useBriefingSettings,
+  dailyBriefingStore, sizeToSpan, useBriefingSettings, canPlace,
   type PlacedWidget, type WidgetKind, type WidgetSize,
 } from '@/lib/dailyBriefingStore';
 import { renderWidget } from './widgets';
@@ -59,11 +59,11 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
       role="dialog"
       aria-modal="true"
       aria-label="데일리 브리핑"
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      className="wb-backdrop-in fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative w-full max-w-[1120px] flex flex-col bg-card border border-foreground/10 rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden"
+        className="wb-modal-in relative w-full max-w-[1120px] flex flex-col bg-card border border-foreground/10 rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden"
         style={{
           height: 'min(700px, 92vh)',
           // 모달 자체에 옅은 따뜻한 그라디언트 — 위쪽 살짝 밝게
@@ -184,35 +184,97 @@ function BriefingGrid({
   onAdd: () => void;
   onClose: () => void;
 }) {
-  // 셀 사이즈 — 황금비율 1100×680 컨테이너 - 본문 패딩 → 약 1050×580 / 6×4
-  // = cell ~ 170×140 (with gap 10)
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [hoverCell, setHoverCell] = useState<{ col: number; row: number; valid: boolean } | null>(null);
+
+  // 셀 좌표 계산 — 마우스 위치에서 col/row 산출
+  const computeCell = (clientX: number, clientY: number): { col: number; row: number } | null => {
+    const el = gridRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
+    const col = Math.floor((x / rect.width) * GRID_COLS);
+    const row = Math.floor((y / rect.height) * GRID_ROWS);
+    return { col: Math.max(0, Math.min(GRID_COLS - 1, col)), row: Math.max(0, Math.min(GRID_ROWS - 1, row)) };
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!dragId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const cell = computeCell(e.clientX, e.clientY);
+    if (!cell) return;
+    const dragWidget = widgets.find((w) => w.id === dragId);
+    if (!dragWidget) return;
+    const valid = canPlace(widgets, dragWidget.size, cell.col, cell.row, dragId);
+    setHoverCell({ ...cell, valid });
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!dragId || !hoverCell || !hoverCell.valid) { setDragId(null); setHoverCell(null); return; }
+    dailyBriefingStore.moveWidget(dragId, hoverCell.col, hoverCell.row);
+    setDragId(null);
+    setHoverCell(null);
+  };
+
   return (
     <div
+      ref={gridRef}
       className="relative w-full h-full grid gap-2.5"
       style={{
         gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
         gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
       }}
+      onDragOver={editMode ? handleDragOver : undefined}
+      onDrop={editMode ? handleDrop : undefined}
+      onDragEnd={() => { setDragId(null); setHoverCell(null); }}
     >
-      {widgets.map((w) => (
+      {widgets.map((w, idx) => (
         <WidgetCard
           key={w.id}
           widget={w}
           data={data}
           editMode={editMode}
+          isDragging={dragId === w.id}
+          onDragStart={() => setDragId(w.id)}
+          onDragEnd={() => { setDragId(null); setHoverCell(null); }}
           onClose={onClose}
+          /* 스태거 entrance — index 기반 살짝 지연 */
+          style={{ animationDelay: `${Math.min(idx * 30, 200)}ms` }}
         />
       ))}
-      {/* + 추가 버튼 — 편집 모드에서만 또는 빈 칸 있을 때 */}
+      {/* 드래그 hover preview cell */}
+      {editMode && dragId && hoverCell && (() => {
+        const dragWidget = widgets.find((w) => w.id === dragId);
+        if (!dragWidget) return null;
+        const span = sizeToSpan(dragWidget.size);
+        return (
+          <div
+            className={cn(
+              'pointer-events-none rounded-2xl border-2 border-dashed',
+              hoverCell.valid ? 'border-primary bg-primary/8' : 'border-destructive bg-destructive/8',
+            )}
+            style={{
+              gridColumn: `${hoverCell.col + 1} / span ${span.w}`,
+              gridRow: `${hoverCell.row + 1} / span ${span.h}`,
+            }}
+          />
+        );
+      })()}
+      {/* + 추가 버튼 — 편집 모드에서만 */}
       {editMode && (
         <button
           type="button"
           onClick={onAdd}
-          className="col-span-1 row-span-1 flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-foreground/25 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+          className="col-span-1 row-span-1 flex flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-foreground/20 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/4 transition-colors"
           style={{ gridColumn: 'span 1', gridRow: 'span 1' }}
         >
           <Plus className="h-5 w-5" />
-          <span className="text-[10.5px]">추가</span>
+          <span className="text-[10.5px] font-medium">추가</span>
         </button>
       )}
     </div>
@@ -223,31 +285,45 @@ function BriefingGrid({
 // 위젯 카드 — wrapper (jiggle, hover ⋯, position)
 
 function WidgetCard({
-  widget, data, editMode, onClose,
+  widget, data, editMode, isDragging, onDragStart, onDragEnd, onClose, style,
 }: {
   widget: PlacedWidget;
   data: ReturnType<typeof buildBriefingData>;
   editMode: boolean;
+  isDragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
   onClose: () => void;
+  style?: React.CSSProperties;
 }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const span = sizeToSpan(widget.size);
   const meta = WIDGET_META[widget.kind];
-  const isHero = widget.kind === 'pickFirst';   // hero 카드는 더 진한 그라디언트
+  const isHero = widget.kind === 'pickFirst';
 
   return (
     <div
+      draggable={editMode}
+      onDragStart={(e) => {
+        if (!editMode) return;
+        e.dataTransfer.effectAllowed = 'move';
+        // Firefox 요구 — setData 필수
+        e.dataTransfer.setData('text/plain', widget.id);
+        onDragStart?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
       className={cn(
-        'relative rounded-2xl overflow-hidden transition-all',
+        'wb-widget-card relative rounded-2xl overflow-hidden transition-all',
         'shadow-[0_1px_2px_hsl(30_15%_8%/0.03),_0_2px_8px_-4px_hsl(30_15%_8%/0.05)]',
-        'hover:shadow-[0_4px_14px_-6px_hsl(30_15%_8%/0.12),_0_2px_6px_-3px_hsl(30_15%_8%/0.08)]',
-        'hover:-translate-y-0.5',
-        editMode && 'wb-jiggle ring-2 ring-primary/30',
+        !editMode && 'hover:shadow-[0_4px_14px_-6px_hsl(30_15%_8%/0.12),_0_2px_6px_-3px_hsl(30_15%_8%/0.08)] hover:-translate-y-0.5',
+        editMode && 'wb-jiggle ring-2 ring-primary/30 cursor-grab',
+        editMode && isDragging && 'opacity-30 cursor-grabbing',
       )}
       style={{
+        ...style,
         gridColumn: `${widget.col + 1} / span ${span.w}`,
         gridRow: `${widget.row + 1} / span ${span.h}`,
         background: isHero
@@ -257,7 +333,6 @@ function WidgetCard({
         boxShadow: isHero
           ? `0 4px 16px -6px ${meta.tint.hue}40, 0 2px 6px -2px hsl(30 15% 8% / 0.08)`
           : undefined,
-        // 추가 border (top 제외 옅게)
         outline: `1px solid hsl(var(--foreground) / 0.06)`,
         outlineOffset: '-1px',
       }}
