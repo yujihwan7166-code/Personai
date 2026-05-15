@@ -63,12 +63,12 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
   overdue:       { label: '어제 미완료', emoji: '⚠', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '내 데이터' },
   recentJournal: { label: '최근 일기',   emoji: '📓', defaultSize: 'M', allowedSizes: ['M'],      group: '내 데이터' },
   clock:         { label: '시계',        emoji: '🕒', defaultSize: 'S', allowedSizes: ['S'],      group: '내 데이터' },
-  // 외부 정보 (Step 2)
-  weather:       { label: '날씨',        emoji: '🌤', defaultSize: 'M', allowedSizes: ['M'],      group: '외부 정보', soon: true },
-  forex:         { label: '환율',        emoji: '💱', defaultSize: 'S', allowedSizes: ['S'],      group: '외부 정보', soon: true },
-  news:          { label: '뉴스',        emoji: '📰', defaultSize: 'M', allowedSizes: ['M'],      group: '외부 정보', soon: true },
-  stock:         { label: '주식·코인',   emoji: '📈', defaultSize: 'S', allowedSizes: ['S'],      group: '외부 정보', soon: true },
-  heatmap:       { label: 'S&P 500 히트맵', emoji: '🟢', defaultSize: 'L', allowedSizes: ['L'],   group: '외부 정보', soon: true },
+  // 외부 정보
+  weather:       { label: '날씨',        emoji: '🌤', defaultSize: 'M', allowedSizes: ['M'],      group: '외부 정보' },
+  forex:         { label: '환율',        emoji: '💱', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '외부 정보' },
+  news:          { label: '뉴스',        emoji: '📰', defaultSize: 'M', allowedSizes: ['M', 'L'], group: '외부 정보' },
+  stock:         { label: '주식·코인',   emoji: '📈', defaultSize: 'S', allowedSizes: ['S', 'M'], group: '외부 정보' },
+  heatmap:       { label: 'S&P 500 히트맵', emoji: '🟢', defaultSize: 'L', allowedSizes: ['L'],   group: '외부 정보' },
 };
 
 export const ALL_WIDGET_KINDS: WidgetKind[] = Object.keys(WIDGET_META) as WidgetKind[];

@@ -362,27 +362,9 @@ export function ClockWidget(_: WidgetProps) {
   );
 }
 
-// ──────────────────────────────────────────
-// 외부 정보 placeholder (Step 2 까지 "준비 중")
-export function ComingSoonWidget({ widget }: WidgetProps) {
-  const meta = WIDGET_META_INLINE[widget.kind];
-  return (
-    <div className="w-full h-full p-3 flex flex-col items-center justify-center text-center opacity-60">
-      <div className="text-2xl mb-1">{meta.emoji}</div>
-      <div className="text-[12px] font-semibold text-foreground/75">{meta.label}</div>
-      <div className="text-[10px] text-muted-foreground mt-0.5">곧 추가</div>
-    </div>
-  );
-}
-
-// inline 의존 회피용 (widgets.tsx 가 store 의 WIDGET_META 를 또 import 안하도록)
-const WIDGET_META_INLINE: Record<string, { label: string; emoji: string }> = {
-  weather: { label: '날씨', emoji: '🌤' },
-  forex: { label: '환율', emoji: '💱' },
-  news: { label: '뉴스', emoji: '📰' },
-  stock: { label: '주식·코인', emoji: '📈' },
-  heatmap: { label: 'S&P 500', emoji: '🟢' },
-};
+import {
+  WeatherWidget, ForexWidget, NewsWidget, StockWidget, HeatmapWidget,
+} from './externalWidgets';
 
 // ──────────────────────────────────────────
 // 헬퍼
@@ -432,12 +414,12 @@ const WIDGET_COMPONENTS: Record<WidgetKind, (p: WidgetProps) => React.ReactEleme
   overdue: OverdueWidget,
   recentJournal: RecentJournalWidget,
   clock: ClockWidget,
-  // 외부 — placeholder
-  weather: ComingSoonWidget,
-  forex: ComingSoonWidget,
-  news: ComingSoonWidget,
-  stock: ComingSoonWidget,
-  heatmap: ComingSoonWidget,
+  // 외부 — Step 2 실제 구현
+  weather: WeatherWidget,
+  forex: ForexWidget,
+  news: NewsWidget,
+  stock: StockWidget,
+  heatmap: HeatmapWidget,
 };
 
 export function renderWidget(props: WidgetProps): React.ReactElement {
