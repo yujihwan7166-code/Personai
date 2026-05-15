@@ -76,11 +76,28 @@ export default function Cloud() {
     }
   }, [user, currentFolderId, navigate]);
 
+  // ─── 새 시트 만들기 → 즉시 편집기 ───
+  const handleCreateSheet = useCallback(async () => {
+    if (!user) {
+      toast({ title: '로그인이 필요해요', description: '클라우드 사용은 로그인 후 가능합니다.' });
+      return;
+    }
+    try {
+      const node = await createEmptyFile(user.id, '제목 없음 시트', 'sheet', currentFolderId);
+      navigate(`/cloud/sheet/${node.id}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '새 시트 만들기 실패', description: msg });
+    }
+  }, [user, currentFolderId, navigate]);
+
   // ─── 파일 편집 진입 (파일 종류별 라우팅) ───
   const handleOpenFile = useCallback((node: CloudNode) => {
     if (node.kind !== 'file') return;
     if (node.fileType === 'doc') {
       navigate(`/cloud/doc/${node.id}`);
+    } else if (node.fileType === 'sheet') {
+      navigate(`/cloud/sheet/${node.id}`);
     } else {
       toast({
         title: '곧 활성화돼요',
@@ -410,7 +427,7 @@ export default function Cloud() {
                   icon={<FileSpreadsheet className="w-6 h-6" />}
                   label="시트"
                   color="hsl(140 50% 50%)"
-                  onClick={notReady}
+                  onClick={() => { void handleCreateSheet(); }}
                 />
                 <NewCard
                   icon={<Presentation className="w-6 h-6" />}
@@ -1060,7 +1077,7 @@ function PreviewPanel({
           <>
             {node.kind === 'file' && (
               <PreviewButton
-                onClick={node.fileType === 'doc' ? onOpenFile : onNotReady}
+                onClick={(node.fileType === 'doc' || node.fileType === 'sheet') ? onOpenFile : onNotReady}
                 icon={<Eye className="w-4 h-4" />}
                 label="편집"
                 main

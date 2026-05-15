@@ -21,6 +21,7 @@ const Whiteboard = lazy(() => import("./pages/Whiteboard"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Cloud = lazy(() => import("./pages/Cloud"));
 const CloudDocEditor = lazy(() => import("./pages/CloudDocEditor"));
+const CloudSheetEditor = lazy(() => import("./pages/CloudSheetEditor"));
 
 function RouteFallback() {
   return <div className="min-h-screen bg-background" aria-hidden="true" />;
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/journal" element={<Journal />} />
               <Route path="/cloud" element={<Cloud />} />
               <Route path="/cloud/doc/:id" element={<CloudDocEditor />} />
+              <Route path="/cloud/sheet/:id" element={<CloudSheetEditor />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
