@@ -178,10 +178,10 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
 
         {/* 편집 모드 안내 + autoShow 토글 */}
         {editMode && (
-          <div className="shrink-0 px-7 py-3 border-t border-foreground/8 flex items-center gap-3 bg-primary/4 backdrop-blur-sm">
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="shrink-0 px-7 py-3 border-t border-foreground/8 flex items-center gap-3 bg-primary/5 backdrop-blur-sm">
+            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-foreground/75 font-medium">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              위젯 드래그·삭제·크기 조정. Esc 로 종료
+              위젯을 드래그해서 이동, ⋯ 로 크기·삭제, Esc 로 종료
             </span>
             <button
               type="button"

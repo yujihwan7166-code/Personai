@@ -43,7 +43,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<Calendar className="h-3.5 w-3.5" />} title="오늘 일정" count={data.timed.length} kind="schedule" />
       {items.length === 0 ? (
-        <EmptyText text="오늘은 비어있어요" hint="플래너에서 일정 추가 →" />
+        <EmptyText text="오늘은 비어있어요" hint="플래너에서 일정 추가 →" icon={<Calendar className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
           {/* 0-24h timeline */}
@@ -108,7 +108,7 @@ export function TasksWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<CheckSquare className="h-3.5 w-3.5" />} title="오늘 할일" count={data.inbox.length} kind="tasks" />
       {items.length === 0 ? (
-        <EmptyText text="할일이 없어요 ✨" hint="플래너에서 추가 →" />
+        <EmptyText text="할일이 없어요 ✨" hint="플래너에서 추가 →" icon={<CheckSquare className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
           {high > 0 && (
@@ -260,7 +260,7 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<Flame className="h-3.5 w-3.5" />} title="습관" count={`${done}/${total}`} kind="habits" />
       {total === 0 ? (
-        <EmptyText text="활성 습관 없음" hint="플래너 → 습관 →" />
+        <EmptyText text="활성 습관 없음" hint="플래너 → 습관 →" icon={<Flame className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
           {/* 진행률 bar */}
@@ -314,7 +314,7 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<Flag className="h-3.5 w-3.5" />} title="D-day" count={items.length} kind="dday" />
       {items.length === 0 ? (
-        <EmptyText text="가까운 일 없음" hint="플래너에서 추가 →" />
+        <EmptyText text="가까운 일 없음" hint="플래너에서 추가 →" icon={<Flag className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
           {/* hero — 가장 가까운 D-day */}
@@ -350,7 +350,7 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
     return (
       <div className="w-full h-full p-4 flex flex-col">
         <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" kind="pickFirst" />
-        <EmptyText text="추천할 항목 없음" hint="일정·할일 추가 →" />
+        <EmptyText text="추천할 항목 없음" hint="일정·할일 추가 →" icon={<Sparkles className="h-7 w-7" strokeWidth={1.5} />} />
       </div>
     );
   }
@@ -393,10 +393,12 @@ export function OverdueWidget({ widget, data, onClose }: WidgetProps) {
         kind="overdue"
       />
       {empty ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
-          <span className="text-[28px] leading-none" aria-hidden>✨</span>
-          <span className="text-[10.5px] text-foreground/75 font-medium mt-1">다 끝났어요</span>
-          <span className="text-[9.5px] text-muted-foreground/75">밀린 일 0</span>
+        <div className="flex-1 flex flex-col items-center justify-center gap-1">
+          <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center mb-1">
+            <span className="text-[18px] leading-none" aria-hidden>✓</span>
+          </div>
+          <span className="text-[11px] text-foreground/75 font-medium">다 끝났어요</span>
+          <span className="text-[9.5px] text-muted-foreground/70">밀린 일 0</span>
         </div>
       ) : (
         <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
@@ -428,7 +430,7 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<NotebookPen className="h-3.5 w-3.5" />} title="최근 일기" count="" kind="recentJournal" />
       {!entry ? (
-        <EmptyText text="아직 일기가 없어요" hint="오늘 한 줄 적어볼까요? →" />
+        <EmptyText text="아직 일기가 없어요" hint="오늘 한 줄 적어볼까요? →" icon={<NotebookPen className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <div className="mt-1.5 flex-1 flex gap-2 min-h-0">
           {/* 이미지 썸네일 */}
@@ -513,10 +515,21 @@ function WidgetHeader({
   );
 }
 
-function EmptyText({ text, hint }: { text: string; hint?: string }) {
+function EmptyText({
+  text, hint, icon,
+}: {
+  text: string;
+  hint?: string;
+  icon?: React.ReactNode;
+}) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-2 gap-0.5">
-      <span className="text-[11.5px] text-foreground/55 font-medium">{text}</span>
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-2 gap-1">
+      {icon && (
+        <div className="text-foreground/20 mb-1">
+          {icon}
+        </div>
+      )}
+      <span className="text-[11.5px] text-foreground/55 font-medium leading-tight">{text}</span>
       {hint && <span className="text-[10px] text-muted-foreground/70">{hint}</span>}
     </div>
   );
