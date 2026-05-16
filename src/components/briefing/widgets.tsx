@@ -114,8 +114,9 @@ export function TasksWidget({ data, onClose }: WidgetProps) {
       ) : (
         <>
           {high > 0 && (
-            <div className="mt-1 text-[9.5px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider">
-              ⚑ 우선 {high}개
+            <div className="mt-1 inline-flex items-center gap-1 text-[9.5px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider">
+              <Flag className="h-2.5 w-2.5 fill-current" />
+              우선 {high}개
             </div>
           )}
           <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
@@ -271,7 +272,8 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
             />
           </div>
           {atRisk > 0 && (
-            <div className="mt-1 text-[9.5px] text-rose-500 font-semibold uppercase tracking-wider">
+            <div className="mt-1 inline-flex items-center gap-1 text-[9.5px] text-rose-500 font-semibold uppercase tracking-wider">
+              <span className="inline-block w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
               {atRisk}개 streak 위험
             </div>
           )}
@@ -421,7 +423,10 @@ export function OverdueWidget({ widget, data, onClose }: WidgetProps) {
       ) : (
         <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
           {data.overdue.slice(0, limit).map((t) => (
-            <li key={t.id} className="text-[12px] text-foreground truncate leading-tight">• {t.title}</li>
+            <li key={t.id} className="flex items-baseline gap-1.5 text-[12px] leading-tight">
+              <span className="w-1 h-1 rounded-full bg-rose-500/70 shrink-0 mt-1.5" />
+              <span className="flex-1 truncate text-foreground">{t.title}</span>
+            </li>
           ))}
         </ul>
       )}
