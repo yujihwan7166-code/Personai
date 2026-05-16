@@ -46,6 +46,18 @@ type AllFormats = Record<string, CellFormats>;
 interface Merge { minR: number; maxR: number; minC: number; maxC: number }
 type AllMerges = Record<string, Merge[]>;
 
+interface Validation {
+  id: string;
+  range: { minR: number; maxR: number; minC: number; maxC: number };
+  kind: 'list';
+  items: string[]; // 허용 값 목록 (드롭다운으로 표시)
+}
+type AllValidations = Record<string, Validation[]>;
+
+function newValidationId(): string {
+  return `vd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
 type CondOp = '>' | '<' | '>=' | '<=' | '==' | '!=' | 'contains' | 'between' | 'empty' | 'nonempty';
 interface CondRule {
   id: string;
@@ -350,6 +362,8 @@ export default function CloudSheetEditor() {
   const [allMerges, setAllMerges] = useState<AllMerges>({ s_initial: [] });
   // 조건부 서식 — sheet 별 rule 목록
   const [allCondRules, setAllCondRules] = useState<AllCondRules>({ s_initial: [] });
+  // 데이터 검증 (드롭다운 목록) — sheet 별
+  const [allValidations, setAllValidations] = useState<AllValidations>({ s_initial: [] });
 
   // derived — 현재 시트의 cells/formats/merges/condRules
   const currentSheet = sheetsMeta[currentSheetIdx] ?? sheetsMeta[0];
@@ -358,6 +372,7 @@ export default function CloudSheetEditor() {
   const cellFormats = allFormats[currentSheetId] ?? {};
   const merges = allMerges[currentSheetId] ?? [];
   const condRules = allCondRules[currentSheetId] ?? [];
+  const validations = allValidations[currentSheetId] ?? [];
 
   // 병합 렌더링용 — top-left 위치 → 크기, 그 외 위치 → covered 표시
   const { mergeAtMap, coveredSet } = useMemo(() => {
@@ -411,6 +426,7 @@ export default function CloudSheetEditor() {
         const storedAllFormats = meta.allFormats as AllFormats | undefined;
         const storedAllMerges = meta.allMerges as AllMerges | undefined;
         const storedAllCondRules = meta.allCondRules as AllCondRules | undefined;
+        const storedAllValidations = meta.allValidations as AllValidations | undefined;
         const storedRowCount = typeof meta.rowCount === 'number' ? meta.rowCount : undefined;
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
@@ -425,6 +441,7 @@ export default function CloudSheetEditor() {
           setAllFormats(storedAllFormats ?? {});
           setAllMerges(mergesAll);
           if (storedAllCondRules) setAllCondRules(storedAllCondRules);
+          if (storedAllValidations) setAllValidations(storedAllValidations);
           // 데이터 기반 최소 그리드 크기 보장
           const { row: maxR, col: maxC } = maxRowColFromAll(cellsAll, mergesAll);
           const rc = Math.max(storedRowCount ?? DEFAULT_ROWS, maxR + 1, MIN_ROWS);
@@ -502,6 +519,7 @@ export default function CloudSheetEditor() {
     allFormats?: AllFormats;
     allMerges?: AllMerges;
     allCondRules?: AllCondRules;
+    allValidations?: AllValidations;
     currentSheetIdx?: number;
     rowCount?: number;
     colCount?: number;
@@ -517,6 +535,7 @@ export default function CloudSheetEditor() {
         allFormats: patch.allFormats ?? allFormats,
         allMerges: patch.allMerges ?? allMerges,
         allCondRules: patch.allCondRules ?? allCondRules,
+        allValidations: patch.allValidations ?? allValidations,
         currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
         rowCount: patch.rowCount ?? rowCount,
         colCount: patch.colCount ?? colCount,
@@ -528,7 +547,7 @@ export default function CloudSheetEditor() {
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
 
   useEffect(() => {
     return () => {
@@ -1130,6 +1149,49 @@ export default function CloudSheetEditor() {
   }, [condRules, cells, displayValues]);
 
   const [condModalOpen, setCondModalOpen] = useState(false);
+
+  // ─── 데이터 검증 (드롭다운) ───
+  const addValidation = useCallback((rule: Omit<Validation, 'id'>) => {
+    const id = newValidationId();
+    const next = [...validations, { ...rule, id }];
+    const nextAll: AllValidations = { ...allValidations, [currentSheetId]: next };
+    setAllValidations(nextAll);
+    queueSave({ allValidations: nextAll });
+  }, [validations, allValidations, currentSheetId, queueSave]);
+
+  const removeValidation = useCallback((id: string) => {
+    const next = validations.filter((v) => v.id !== id);
+    const nextAll: AllValidations = { ...allValidations, [currentSheetId]: next };
+    setAllValidations(nextAll);
+    queueSave({ allValidations: nextAll });
+  }, [validations, allValidations, currentSheetId, queueSave]);
+
+  /** ref → 허용 items (드롭다운 목록 표시용) — 나중 rule 우선 */
+  const validationItemsMap = useMemo<Map<string, string[]>>(() => {
+    const out = new Map<string, string[]>();
+    for (const v of validations) {
+      for (let r = v.range.minR; r <= v.range.maxR; r++) {
+        for (let c = v.range.minC; c <= v.range.maxC; c++) {
+          out.set(cellRef(r, c), v.items);
+        }
+      }
+    }
+    return out;
+  }, [validations]);
+
+  /** ref → 유효한지 (rule 있고 값이 items 에 없으면 false) */
+  const invalidRefSet = useMemo<Set<string>>(() => {
+    const out = new Set<string>();
+    for (const [ref, items] of validationItemsMap) {
+      const raw = cells[ref];
+      if (raw === undefined || raw === '') continue; // 빈 셀은 valid
+      const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
+      if (!items.includes(display) && !items.includes(raw)) out.add(ref);
+    }
+    return out;
+  }, [validationItemsMap, cells, displayValues]);
+
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
 
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
@@ -2071,6 +2133,10 @@ export default function CloudSheetEditor() {
                   <Palette className="w-4 h-4 mr-2" />
                   조건부 서식 ({condRules.length})
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setValidationModalOpen(true)}>
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  데이터 검증 / 드롭다운 ({validations.length})
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={toggleFreezeFirstRow}>
                   <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
@@ -2341,6 +2407,9 @@ export default function CloudSheetEditor() {
             freezeFirstRow={freezeFirstRow}
             freezeFirstCol={freezeFirstCol}
             condFormatMap={condFormatMap}
+            validationItemsMap={validationItemsMap}
+            invalidRefSet={invalidRefSet}
+            onCellValueChange={setCellValue}
             filterOn={filterOn}
             filters={filters}
             onFilterChange={setColFilter}
@@ -2512,6 +2581,15 @@ export default function CloudSheetEditor() {
         onRemove={removeCondRule}
       />
 
+      <ValidationModal
+        open={validationModalOpen}
+        onClose={() => setValidationModalOpen(false)}
+        currentRange={selBounds}
+        rules={validations}
+        onAdd={addValidation}
+        onRemove={removeValidation}
+      />
+
       {/* AI 결과 모달 */}
       <Dialog open={!!aiResult} onOpenChange={(v) => { if (!v) setAiResult(null); }}>
         <DialogContent className="max-w-2xl">
@@ -2578,6 +2656,12 @@ interface SheetGridProps {
   freezeFirstCol?: boolean;
   /** 조건부 서식 — cellFormats 위에 오버레이 */
   condFormatMap?: Map<string, { bgColor?: string; textColor?: string; bold?: boolean }>;
+  /** ref → 허용 items (드롭다운 셀) */
+  validationItemsMap?: Map<string, string[]>;
+  /** invalid 셀 ref 집합 (빨간 outline) */
+  invalidRefSet?: Set<string>;
+  /** 셀 값 직접 변경 (드롭다운 선택 시) */
+  onCellValueChange?: (ref: string, value: string) => void;
   /** 필터 활성 시 헤더 alphabet row 아래에 검색 input 행 렌더 */
   filterOn?: boolean;
   filters?: Record<number, string>;
@@ -2605,6 +2689,7 @@ function SheetGrid({
   matchedRefs, currentMatchRef,
   freezeFirstRow, freezeFirstCol,
   condFormatMap,
+  validationItemsMap, invalidRefSet, onCellValueChange,
   filterOn, filters, onFilterChange, visibleRowSet,
   fillPreview, fillCorner, onFillStart,
   editing, editingValue,
@@ -2706,6 +2791,8 @@ function SheetGrid({
                   && !fillPreview;
                 const isStickyRow = freezeFirstRow && rowIdx === 0;
                 const isStickyCol = freezeFirstCol && colIdx === 0;
+                const validationItems = validationItemsMap?.get(ref);
+                const isInvalid = !!invalidRefSet?.has(ref);
                 return (
                   <SheetCell
                     key={ref}
@@ -2721,6 +2808,9 @@ function SheetGrid({
                     isInFillPreview={isInFillPreview}
                     hasFillHandle={hasFillHandle}
                     onFillStart={onFillStart}
+                    validationItems={validationItems}
+                    isInvalid={isInvalid}
+                    onSelectValidationItem={onCellValueChange}
                     stickyTop={isStickyRow ? HEADER_H : undefined}
                     stickyLeft={isStickyCol ? ROW_HEADER_W : undefined}
                     rowSpan={span?.rows}
@@ -2761,6 +2851,9 @@ interface SheetCellProps {
   isInFillPreview?: boolean;
   hasFillHandle?: boolean;
   onFillStart?: (e: React.PointerEvent) => void;
+  validationItems?: string[];
+  isInvalid?: boolean;
+  onSelectValidationItem?: (ref: string, value: string) => void;
   stickyTop?: number;
   stickyLeft?: number;
   rowSpan?: number;
@@ -2778,6 +2871,7 @@ interface SheetCellProps {
 const SheetCell = React.memo(function SheetCell({
   cellRefStr, row, col, value, format, isFocus, isInRange,
   isMatch, isCurrentMatch, isInFillPreview, hasFillHandle, onFillStart,
+  validationItems, isInvalid, onSelectValidationItem,
   stickyTop, stickyLeft,
   rowSpan, colSpan, editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
@@ -2849,6 +2943,7 @@ const SheetCell = React.memo(function SheetCell({
         'min-w-[88px] max-w-[200px] truncate',
         isFocus && !editing && 'outline outline-2 -outline-offset-2 outline-foreground/70',
         isCurrentMatch && !isFocus && 'outline outline-2 -outline-offset-2 outline-amber-500',
+        isInvalid && 'outline outline-2 -outline-offset-2 outline-red-500',
       )}
       style={tdStyle}
     >
@@ -2876,9 +2971,71 @@ const SheetCell = React.memo(function SheetCell({
           title="드래그해서 채우기"
         />
       )}
+      {isFocus && validationItems && validationItems.length > 0 && !editing && (
+        <ValidationDropdown
+          items={validationItems}
+          currentValue={value}
+          onSelect={(v) => onSelectValidationItem?.(cellRefStr, v)}
+        />
+      )}
     </td>
   );
 });
+
+// ─────────────────────────────────────────────
+// 데이터 검증 드롭다운 (셀 안 우측에 ▼)
+// ─────────────────────────────────────────────
+
+function ValidationDropdown({
+  items, currentValue, onSelect,
+}: { items: string[]; currentValue: string; onSelect: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-5 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-l-sm z-10"
+        aria-label="허용 값 선택"
+        title="허용 값 목록"
+      >
+        <ChevronDown className="w-3 h-3" />
+      </button>
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+          />
+          <ul
+            className="absolute right-0 top-full mt-0.5 z-40 min-w-[120px] max-h-[200px] overflow-y-auto rounded border border-border bg-popover shadow-md py-1"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {items.map((it, i) => (
+              <li key={i}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect(it);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    'w-full text-left px-2 py-1 text-sm hover:bg-muted',
+                    it === currentValue && 'bg-muted font-medium',
+                  )}
+                >
+                  {it}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
 
 // ─────────────────────────────────────────────
 // 열 너비 드래그 핸들 (헤더 오른쪽 가장자리)
@@ -3641,6 +3798,117 @@ function CondFormatModal({ open, onClose, currentRange, rules, onAdd, onRemove }
                     type="button"
                     onClick={() => onRemove(r.id)}
                     className="ml-auto p-1 rounded hover:bg-muted text-destructive"
+                    aria-label="규칙 삭제"
+                    title="삭제"
+                  >
+                    <TrashIcon className="w-3 h-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-border">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm"
+          >
+            닫기
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 데이터 검증 모달 (드롭다운 목록 규칙 관리)
+// ─────────────────────────────────────────────
+
+interface ValidationModalProps {
+  open: boolean;
+  onClose: () => void;
+  currentRange: { minR: number; maxR: number; minC: number; maxC: number };
+  rules: Validation[];
+  onAdd: (rule: Omit<Validation, 'id'>) => void;
+  onRemove: (id: string) => void;
+}
+
+function ValidationModal({ open, onClose, currentRange, rules, onAdd, onRemove }: ValidationModalProps) {
+  const [itemsText, setItemsText] = useState('사과\n바나나\n포도');
+
+  const items = useMemo(
+    () => itemsText.split(/\n|,/).map((s) => s.trim()).filter((s) => s !== ''),
+    [itemsText],
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-xl">
+        <DialogTitle className="text-base flex items-center gap-2">
+          <ChevronDown className="w-4 h-4" />
+          데이터 검증 — {rangeLabel(currentRange)}
+        </DialogTitle>
+        <DialogDescription className="text-xs text-muted-foreground">
+          선택 범위 셀에 허용 값 목록 (드롭다운) 을 설정합니다. 목록에 없는 값은
+          빨간 outline 으로 표시됩니다.
+        </DialogDescription>
+
+        <div className="flex flex-col gap-2 text-sm">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">허용 값 (줄바꿈 또는 쉼표 구분)</span>
+            <textarea
+              value={itemsText}
+              onChange={(e) => setItemsText(e.target.value)}
+              rows={5}
+              className="px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40 text-sm font-mono"
+            />
+          </label>
+          <div className="text-xs text-muted-foreground">
+            {items.length}개 항목 미리보기: {items.slice(0, 5).join(' / ')}{items.length > 5 ? ' …' : ''}
+          </div>
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (items.length === 0) {
+                  toast({ title: '허용 값을 1개 이상 입력하세요' });
+                  return;
+                }
+                onAdd({ range: currentRange, kind: 'list', items });
+                toast({ title: `규칙 추가 (${items.length}개 항목)` });
+              }}
+              className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-foreground/90 text-sm"
+            >
+              규칙 추가
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-border">
+          <div className="text-xs font-medium text-muted-foreground mb-1.5">
+            기존 규칙 ({rules.length})
+          </div>
+          {rules.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-3 text-center">없음</div>
+          ) : (
+            <ul className="space-y-1 max-h-[200px] overflow-y-auto">
+              {rules.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex items-center gap-2 px-2 py-1 rounded border border-border text-xs"
+                >
+                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                  <span className="font-mono">{rangeLabel(r.range)}</span>
+                  <span className="text-muted-foreground truncate flex-1">
+                    {r.items.slice(0, 4).join(', ')}{r.items.length > 4 ? ` … (+${r.items.length - 4})` : ''}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(r.id)}
+                    className="p-1 rounded hover:bg-muted text-destructive"
                     aria-label="규칙 삭제"
                     title="삭제"
                   >
