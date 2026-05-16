@@ -9,7 +9,9 @@ import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
   Square as SquareIcon, Circle as CircleIcon, Palette,
+  ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
 } from 'lucide-react';
+import { toast as appToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,7 +45,13 @@ interface SlideShapeEl extends BaseEl {
   strokeWidth?: number;  // px (캔버스 픽셀 기준)
 }
 
-type SlideElement = SlideTextEl | SlideShapeEl;
+interface SlideImageEl extends BaseEl {
+  type: 'image';
+  src: string;   // data URL (base64) — 추후 IndexedDB blob ref 마이그레이션
+  alt?: string;
+}
+
+type SlideElement = SlideTextEl | SlideShapeEl | SlideImageEl;
 
 type ResizeDir = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
@@ -52,6 +60,9 @@ function isText(el: SlideElement): el is SlideTextEl {
 }
 function isShape(el: SlideElement): el is SlideShapeEl {
   return el.type === 'rect' || el.type === 'ellipse';
+}
+function isImage(el: SlideElement): el is SlideImageEl {
+  return el.type === 'image';
 }
 
 interface Slide {
@@ -260,6 +271,79 @@ export default function CloudSlideEditor() {
     updateCurrentSlide((s) => ({ ...s, elements: [...s.elements, el] }));
     setSelectedElId(el.id);
     setEditingElId(null);
+  }, [updateCurrentSlide]);
+
+  const addImageEl = useCallback((src: string) => {
+    const el: SlideImageEl = {
+      id: newId('el'),
+      type: 'image',
+      xPct: 20, yPct: 25,
+      wPct: 50, hPct: 50,
+      src,
+    };
+    updateCurrentSlide((s) => ({ ...s, elements: [...s.elements, el] }));
+    setSelectedElId(el.id);
+    setEditingElId(null);
+  }, [updateCurrentSlide]);
+
+  const pickAndAddImage = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        appToast({
+          title: '이미지가 큽니다',
+          description: '2MB 이하 권장 (localStorage 한계). 다음 단계 IndexedDB 활성화 후 큰 이미지도 처리됩니다.',
+        });
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const src = ev.target?.result;
+        if (typeof src === 'string') addImageEl(src);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }, [addImageEl]);
+
+  // ─── z-order ───
+  const moveElForward = useCallback((id: string) => {
+    updateCurrentSlide((s) => {
+      const i = s.elements.findIndex((e) => e.id === id);
+      if (i === -1 || i === s.elements.length - 1) return s;
+      const next = [...s.elements];
+      [next[i], next[i + 1]] = [next[i + 1], next[i]];
+      return { ...s, elements: next };
+    });
+  }, [updateCurrentSlide]);
+
+  const moveElBackward = useCallback((id: string) => {
+    updateCurrentSlide((s) => {
+      const i = s.elements.findIndex((e) => e.id === id);
+      if (i <= 0) return s;
+      const next = [...s.elements];
+      [next[i - 1], next[i]] = [next[i], next[i - 1]];
+      return { ...s, elements: next };
+    });
+  }, [updateCurrentSlide]);
+
+  const moveElToFront = useCallback((id: string) => {
+    updateCurrentSlide((s) => {
+      const target = s.elements.find((e) => e.id === id);
+      if (!target) return s;
+      return { ...s, elements: [...s.elements.filter((e) => e.id !== id), target] };
+    });
+  }, [updateCurrentSlide]);
+
+  const moveElToBack = useCallback((id: string) => {
+    updateCurrentSlide((s) => {
+      const target = s.elements.find((e) => e.id === id);
+      if (!target) return s;
+      return { ...s, elements: [target, ...s.elements.filter((e) => e.id !== id)] };
+    });
   }, [updateCurrentSlide]);
 
   // 부분 patch (유니온 호환 위해 unknown 캐스트 — id 매칭 후 안전)
@@ -484,6 +568,9 @@ export default function CloudSlideEditor() {
           <ToolBtn onClick={() => addShapeEl('ellipse')} title="원 추가">
             <CircleIcon className="w-4 h-4" /><span className="text-xs ml-1">원</span>
           </ToolBtn>
+          <ToolBtn onClick={pickAndAddImage} title="이미지 추가 (파일 선택)">
+            <ImagePlus className="w-4 h-4" /><span className="text-xs ml-1">이미지</span>
+          </ToolBtn>
           <Sep />
           <ToolBtn onClick={duplicateSlide} title="이 슬라이드 복제">
             <CopyIcon className="w-4 h-4" />
@@ -548,6 +635,25 @@ export default function CloudSlideEditor() {
             return null;
           })()}
 
+          {/* 선택된 요소가 있을 때 z-order 액션 */}
+          {selectedElId && (
+            <>
+              <Sep />
+              <ToolBtn onClick={() => moveElForward(selectedElId)} title="앞으로 (한 칸)">
+                <ChevronUp className="w-4 h-4" />
+              </ToolBtn>
+              <ToolBtn onClick={() => moveElBackward(selectedElId)} title="뒤로 (한 칸)">
+                <ChevronDown className="w-4 h-4" />
+              </ToolBtn>
+              <ToolBtn onClick={() => moveElToFront(selectedElId)} title="맨 앞으로">
+                <ArrowUpToLine className="w-4 h-4" />
+              </ToolBtn>
+              <ToolBtn onClick={() => moveElToBack(selectedElId)} title="맨 뒤로">
+                <ArrowDownToLine className="w-4 h-4" />
+              </ToolBtn>
+            </>
+          )}
+
           <div className="ml-auto text-xs text-muted-foreground">
             {currentIdx + 1} / {slides.length}
           </div>
@@ -596,6 +702,18 @@ export default function CloudSlideEditor() {
                 if (isShape(el)) {
                   return (
                     <ShapeElView
+                      key={el.id}
+                      el={el}
+                      selected={selectedElId === el.id}
+                      onPointerDown={(e) => startDrag(e, el.id, el)}
+                      onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
+                      onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
+                    />
+                  );
+                }
+                if (isImage(el)) {
+                  return (
+                    <ImageElView
                       key={el.id}
                       el={el}
                       selected={selectedElId === el.id}
@@ -835,6 +953,46 @@ function ShapeElView({ el, selected, onPointerDown, onClick, onStartResize }: Sh
           border: el.strokeColor ? `${el.strokeWidth ?? 2}px solid ${el.strokeColor}` : undefined,
           borderRadius: el.type === 'ellipse' ? '50%' : undefined,
         }}
+      />
+      {selected && <ResizeHandles onStart={onStartResize} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 이미지 요소 (캔버스)
+// ─────────────────────────────────────────────
+
+interface ImageElViewProps {
+  el: SlideImageEl;
+  selected: boolean;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onClick: (e: React.MouseEvent) => void;
+  onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
+}
+
+function ImageElView({ el, selected, onPointerDown, onClick, onStartResize }: ImageElViewProps) {
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onClick={onClick}
+      className={cn(
+        'absolute cursor-move overflow-hidden',
+        selected && 'outline outline-2 -outline-offset-1 outline-foreground/70',
+        !selected && 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-foreground/30',
+      )}
+      style={{
+        left: `${el.xPct}%`,
+        top: `${el.yPct}%`,
+        width: `${el.wPct}%`,
+        height: `${el.hPct}%`,
+      }}
+    >
+      <img
+        src={el.src}
+        alt={el.alt ?? ''}
+        className="w-full h-full object-contain select-none pointer-events-none"
+        draggable={false}
       />
       {selected && <ResizeHandles onStart={onStartResize} />}
     </div>
