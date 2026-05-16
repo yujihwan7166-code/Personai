@@ -9,7 +9,12 @@ import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
   Hash, Square as SquareIcon,
+  Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
 } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +25,17 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type Cells = Record<string, string>;
+
+interface SheetMeta {
+  id: string;
+  name: string;
+}
+type AllCells = Record<string, Cells>;
+type AllFormats = Record<string, CellFormats>;
+
+function newSheetId(): string {
+  return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
 
 type NumberFmt = 'currency-krw' | 'percent' | 'integer' | 'decimal2' | 'date';
 type BorderStyle = 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right';
@@ -100,11 +116,21 @@ export default function CloudSheetEditor() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [helpOpen, setHelpOpen] = useState(false);
 
-  const [cells, setCells] = useState<Cells>({});
-  const [cellFormats, setCellFormats] = useState<CellFormats>({});
+  // 다중 시트 — sheetsMeta 는 순서·이름, allCells/allFormats 는 시트별 데이터
+  const [sheetsMeta, setSheetsMeta] = useState<SheetMeta[]>([{ id: 's_initial', name: 'Sheet1' }]);
+  const [currentSheetIdx, setCurrentSheetIdx] = useState(0);
+  const [allCells, setAllCells] = useState<AllCells>({ s_initial: {} });
+  const [allFormats, setAllFormats] = useState<AllFormats>({ s_initial: {} });
+
   const [selected, setSelected] = useState<{ row: number; col: number }>({ row: 0, col: 0 });
   const [editing, setEditing] = useState<{ row: number; col: number } | null>(null);
   const [editingValue, setEditingValue] = useState('');
+
+  // derived — 현재 시트의 cells/formats
+  const currentSheet = sheetsMeta[currentSheetIdx] ?? sheetsMeta[0];
+  const currentSheetId = currentSheet?.id ?? 's_initial';
+  const cells = allCells[currentSheetId] ?? {};
+  const cellFormats = allFormats[currentSheetId] ?? {};
 
   // 수식 평가 캐시 (cells 변경 시만 재계산) — early return 이전 위치
   const displayValues = useMemo<Cells>(() => {
@@ -135,26 +161,41 @@ export default function CloudSheetEditor() {
           return;
         }
         setNode(n);
-        const meta = n.meta as Record<string, unknown> | null;
-        const stored = meta?.cells;
-        if (stored && typeof stored === 'object') {
-          // 안전 캐스트: { [ref]: string }
+        const meta = (n.meta ?? {}) as Record<string, unknown>;
+        const storedSheets = meta.sheets as Array<{ id: string; name: string }> | undefined;
+        const storedAllCells = meta.allCells as AllCells | undefined;
+        const storedAllFormats = meta.allFormats as AllFormats | undefined;
+        if (Array.isArray(storedSheets) && storedSheets.length > 0) {
+          // 다중 시트 형식 (현재 모델)
+          setSheetsMeta(storedSheets);
+          setAllCells(storedAllCells ?? {});
+          setAllFormats(storedAllFormats ?? {});
+          const idx = typeof meta.currentSheetIdx === 'number'
+            ? Math.max(0, Math.min(meta.currentSheetIdx, storedSheets.length - 1))
+            : 0;
+          setCurrentSheetIdx(idx);
+        } else {
+          // 단일 시트 옛 형식 → 마이그레이션 (cells/cellFormats 직접)
+          const stored = meta.cells;
           const safe: Cells = {};
-          for (const [k, v] of Object.entries(stored as Record<string, unknown>)) {
-            if (typeof v === 'string') safe[k] = v;
-            else if (v != null) safe[k] = String(v);
-          }
-          setCells(safe);
-        }
-        const storedFmt = meta?.cellFormats;
-        if (storedFmt && typeof storedFmt === 'object') {
-          const safeFmt: CellFormats = {};
-          for (const [k, v] of Object.entries(storedFmt as Record<string, unknown>)) {
-            if (v && typeof v === 'object') {
-              safeFmt[k] = v as CellFormat;
+          if (stored && typeof stored === 'object') {
+            for (const [k, v] of Object.entries(stored as Record<string, unknown>)) {
+              if (typeof v === 'string') safe[k] = v;
+              else if (v != null) safe[k] = String(v);
             }
           }
-          setCellFormats(safeFmt);
+          const storedFmt = meta.cellFormats;
+          const safeFmt: CellFormats = {};
+          if (storedFmt && typeof storedFmt === 'object') {
+            for (const [k, v] of Object.entries(storedFmt as Record<string, unknown>)) {
+              if (v && typeof v === 'object') safeFmt[k] = v as CellFormat;
+            }
+          }
+          const id = 's_initial';
+          setSheetsMeta([{ id, name: 'Sheet1' }]);
+          setAllCells({ [id]: safe });
+          setAllFormats({ [id]: safeFmt });
+          setCurrentSheetIdx(0);
         }
       } catch (e) {
         if (cancelled) return;
@@ -181,20 +222,25 @@ export default function CloudSheetEditor() {
     }
   }, [id]);
 
-  const queueSave = useCallback((patch: { cells?: Cells; cellFormats?: CellFormats }) => {
-    const baseMeta = (node?.meta ?? {}) as Record<string, unknown>;
+  const queueSave = useCallback((patch: {
+    sheets?: SheetMeta[];
+    allCells?: AllCells;
+    allFormats?: AllFormats;
+    currentSheetIdx?: number;
+  }) => {
     pendingRef.current = {
       ...pendingRef.current,
       meta: {
-        ...baseMeta,
-        cells: patch.cells ?? (baseMeta.cells as Cells | undefined) ?? cells,
-        cellFormats: patch.cellFormats ?? (baseMeta.cellFormats as CellFormats | undefined) ?? cellFormats,
+        sheets: patch.sheets ?? sheetsMeta,
+        allCells: patch.allCells ?? allCells,
+        allFormats: patch.allFormats ?? allFormats,
+        currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
       },
     };
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, node?.meta, cells, cellFormats]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, currentSheetIdx]);
 
   useEffect(() => {
     return () => {
@@ -203,43 +249,123 @@ export default function CloudSheetEditor() {
     };
   }, [flushSave]);
 
-  // ─── 셀 값 변경 ───
+  // ─── 셀 값 변경 (현재 시트) ───
   const setCellValue = useCallback((ref: string, value: string) => {
-    setCells((c) => {
-      const next = { ...c };
-      if (value === '') delete next[ref];
-      else next[ref] = value;
-      queueSave({ cells: next });
+    setAllCells((all) => {
+      const curCells = { ...(all[currentSheetId] ?? {}) };
+      if (value === '') delete curCells[ref];
+      else curCells[ref] = value;
+      const next: AllCells = { ...all, [currentSheetId]: curCells };
+      queueSave({ allCells: next });
       return next;
     });
-  }, [queueSave]);
+  }, [queueSave, currentSheetId]);
 
-  // ─── 셀 서식 변경 (현재 선택 셀) ───
+  // ─── 셀 서식 변경 (현재 시트의 선택 셀) ───
   const setCellFormat = useCallback((ref: string, patch: Partial<CellFormat>) => {
-    setCellFormats((f) => {
-      const cur = f[ref] ?? {};
+    setAllFormats((all) => {
+      const curFmts = { ...(all[currentSheetId] ?? {}) };
+      const cur = curFmts[ref] ?? {};
       const merged: CellFormat = { ...cur, ...patch };
-      // 빈 값은 제거 (저장 용량 ↓)
       for (const k of Object.keys(merged) as Array<keyof CellFormat>) {
         if (merged[k] === undefined || merged[k] === '') delete merged[k];
       }
-      const next = { ...f };
-      if (Object.keys(merged).length === 0) delete next[ref];
-      else next[ref] = merged;
-      queueSave({ cellFormats: next });
+      if (Object.keys(merged).length === 0) delete curFmts[ref];
+      else curFmts[ref] = merged;
+      const next: AllFormats = { ...all, [currentSheetId]: curFmts };
+      queueSave({ allFormats: next });
       return next;
     });
-  }, [queueSave]);
+  }, [queueSave, currentSheetId]);
 
   const clearCellFormat = useCallback((ref: string) => {
-    setCellFormats((f) => {
-      if (!(ref in f)) return f;
-      const next = { ...f };
-      delete next[ref];
-      queueSave({ cellFormats: next });
+    setAllFormats((all) => {
+      const curFmts = { ...(all[currentSheetId] ?? {}) };
+      if (!(ref in curFmts)) return all;
+      delete curFmts[ref];
+      const next: AllFormats = { ...all, [currentSheetId]: curFmts };
+      queueSave({ allFormats: next });
       return next;
     });
+  }, [queueSave, currentSheetId]);
+
+  // ─── 시트 관리 ───
+  const switchSheet = useCallback((idx: number) => {
+    setCurrentSheetIdx(idx);
+    setSelected({ row: 0, col: 0 });
+    setEditing(null);
+    setEditingValue('');
+    queueSave({ currentSheetIdx: idx });
   }, [queueSave]);
+
+  const addSheet = useCallback(() => {
+    const id = newSheetId();
+    const usedNames = new Set(sheetsMeta.map((s) => s.name));
+    let n = sheetsMeta.length + 1;
+    while (usedNames.has(`Sheet${n}`)) n++;
+    const newMeta: SheetMeta = { id, name: `Sheet${n}` };
+    const nextSheets = [...sheetsMeta, newMeta];
+    const nextCells: AllCells = { ...allCells, [id]: {} };
+    const nextFormats: AllFormats = { ...allFormats, [id]: {} };
+    setSheetsMeta(nextSheets);
+    setAllCells(nextCells);
+    setAllFormats(nextFormats);
+    setCurrentSheetIdx(nextSheets.length - 1);
+    setSelected({ row: 0, col: 0 });
+    queueSave({
+      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats,
+      currentSheetIdx: nextSheets.length - 1,
+    });
+  }, [sheetsMeta, allCells, allFormats, queueSave]);
+
+  const removeSheet = useCallback((idx: number) => {
+    if (sheetsMeta.length <= 1) {
+      toast({ title: '마지막 시트입니다', description: '최소 1개는 유지됩니다.' });
+      return;
+    }
+    const target = sheetsMeta[idx];
+    if (!target) return;
+    const nextSheets = sheetsMeta.filter((_, i) => i !== idx);
+    const nextCells: AllCells = { ...allCells };
+    const nextFormats: AllFormats = { ...allFormats };
+    delete nextCells[target.id];
+    delete nextFormats[target.id];
+    const newIdx = Math.max(0, Math.min(currentSheetIdx, nextSheets.length - 1));
+    setSheetsMeta(nextSheets);
+    setAllCells(nextCells);
+    setAllFormats(nextFormats);
+    setCurrentSheetIdx(newIdx);
+    queueSave({
+      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats,
+      currentSheetIdx: newIdx,
+    });
+  }, [sheetsMeta, allCells, allFormats, currentSheetIdx, queueSave]);
+
+  const renameSheet = useCallback((idx: number, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const nextSheets = sheetsMeta.map((s, i) => (i === idx ? { ...s, name: trimmed } : s));
+    setSheetsMeta(nextSheets);
+    queueSave({ sheets: nextSheets });
+  }, [sheetsMeta, queueSave]);
+
+  const duplicateSheet = useCallback((idx: number) => {
+    const src = sheetsMeta[idx];
+    if (!src) return;
+    const id = newSheetId();
+    const newMeta: SheetMeta = { id, name: `${src.name} 복사본` };
+    const nextSheets = [...sheetsMeta.slice(0, idx + 1), newMeta, ...sheetsMeta.slice(idx + 1)];
+    const nextCells: AllCells = { ...allCells, [id]: { ...(allCells[src.id] ?? {}) } };
+    const nextFormats: AllFormats = { ...allFormats, [id]: { ...(allFormats[src.id] ?? {}) } };
+    setSheetsMeta(nextSheets);
+    setAllCells(nextCells);
+    setAllFormats(nextFormats);
+    setCurrentSheetIdx(idx + 1);
+    queueSave({
+      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats,
+      currentSheetIdx: idx + 1,
+    });
+  }, [sheetsMeta, allCells, allFormats, queueSave]);
 
   // ─── 편집 시작/완료 ───
   const startEdit = useCallback((row: number, col: number, initialChar?: string) => {
@@ -548,6 +674,34 @@ export default function CloudSheetEditor() {
         />
       </main>
 
+      {/* 하단 시트 탭 */}
+      <footer className="border-t border-border bg-muted/20 flex items-center gap-1 px-3 py-1.5 overflow-x-auto text-sm">
+        {sheetsMeta.map((s, i) => (
+          <SheetTab
+            key={s.id}
+            name={s.name}
+            active={i === currentSheetIdx}
+            onClick={() => switchSheet(i)}
+            onRename={(n) => renameSheet(i, n)}
+            onDuplicate={() => duplicateSheet(i)}
+            onRemove={() => removeSheet(i)}
+            canRemove={sheetsMeta.length > 1}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={addSheet}
+          className="ml-1 p-1 rounded hover:bg-muted text-muted-foreground"
+          title="시트 추가"
+          aria-label="시트 추가"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {currentSheetIdx + 1} / {sheetsMeta.length}
+        </span>
+      </footer>
+
       <SheetHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
@@ -715,6 +869,107 @@ const SheetCell = React.memo(function SheetCell({
     </td>
   );
 });
+
+// ─────────────────────────────────────────────
+// 시트 탭
+// ─────────────────────────────────────────────
+
+interface SheetTabProps {
+  name: string;
+  active: boolean;
+  canRemove: boolean;
+  onClick: () => void;
+  onRename: (newName: string) => void;
+  onDuplicate: () => void;
+  onRemove: () => void;
+}
+
+function SheetTab({ name, active, canRemove, onClick, onRename, onDuplicate, onRemove }: SheetTabProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(name);
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 0);
+    }
+  }, [editing, name]);
+
+  const commit = () => {
+    const v = draft.trim();
+    setEditing(false);
+    if (v && v !== name) onRename(v);
+  };
+
+  return (
+    <div className="flex items-center group">
+      {editing ? (
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commit(); }
+            else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); }
+          }}
+          onBlur={commit}
+          className={cn(
+            'text-xs px-2 py-1 rounded-t border-l border-r border-t border-border bg-background outline-none',
+            'w-24',
+          )}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={onClick}
+          onDoubleClick={() => setEditing(true)}
+          className={cn(
+            'text-xs px-3 py-1 rounded-t border-l border-r border-t transition-colors',
+            active
+              ? 'border-border bg-background font-medium text-foreground'
+              : 'border-transparent text-muted-foreground hover:bg-muted',
+          )}
+        >
+          {name}
+        </button>
+      )}
+
+      {active && !editing && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="ml-0.5 p-0.5 rounded hover:bg-muted opacity-60 hover:opacity-100"
+              aria-label="시트 메뉴"
+            >
+              <MoreHorizontal className="w-3 h-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[140px]">
+            <DropdownMenuItem onSelect={() => setEditing(true)}>
+              <Pencil className="w-4 h-4 mr-2" /> 이름 변경
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onDuplicate}>
+              <CopyIcon className="w-4 h-4 mr-2" /> 복제
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={onRemove}
+              disabled={!canRemove}
+              className="text-destructive focus:text-destructive"
+            >
+              <TrashIcon className="w-4 h-4 mr-2" /> 삭제
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────
 // 색 picker (서식 도구바)
