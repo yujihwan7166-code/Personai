@@ -273,6 +273,9 @@ export default function CloudSheetEditor() {
   // freeze pane — 첫 행/A열 고정
   const [freezeFirstRow, setFreezeFirstRow] = useState(false);
   const [freezeFirstCol, setFreezeFirstCol] = useState(false);
+  // 필터 — col idx → substring 검색어 (대소문자 무시, 포함 매칭)
+  const [filterOn, setFilterOn] = useState(false);
+  const [filters, setFilters] = useState<Record<number, string>>({});
 
   const [selected, setSelected] = useState<{ row: number; col: number }>({ row: 0, col: 0 });
   const [rangeAnchor, setRangeAnchor] = useState<{ row: number; col: number } | null>(null);
@@ -1233,6 +1236,44 @@ export default function CloudSheetEditor() {
     });
   }, [queueSave]);
 
+  // 필터 — 토글 + 단일 col 검색어 갱신 + 모두 지우기
+  const toggleFilterOn = useCallback(() => {
+    setFilterOn((v) => {
+      if (v) setFilters({}); // 끄면 검색어도 초기화
+      return !v;
+    });
+  }, []);
+  const setColFilter = useCallback((col: number, q: string) => {
+    setFilters((prev) => {
+      const next = { ...prev };
+      if (q.trim() === '') delete next[col];
+      else next[col] = q;
+      return next;
+    });
+  }, []);
+  // 통과하는 row 집합 — 모든 활성 필터 col 에 substring 매칭하는 행만
+  const visibleRowSet = useMemo<Set<number> | null>(() => {
+    if (!filterOn) return null;
+    const active = Object.entries(filters)
+      .map(([c, q]) => ({ col: Number(c), q: q.toLowerCase().trim() }))
+      .filter((f) => f.q !== '');
+    if (active.length === 0) return null; // 필터 켜져있지만 검색어 0 → 전부 보이기
+    const out = new Set<number>();
+    for (let r = 0; r < rowCount; r++) {
+      let pass = true;
+      for (const f of active) {
+        const ref = cellRef(r, f.col);
+        const raw = cells[ref];
+        const display = raw === undefined
+          ? ''
+          : raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
+        if (!display.toLowerCase().includes(f.q)) { pass = false; break; }
+      }
+      if (pass) out.add(r);
+    }
+    return out;
+  }, [filterOn, filters, cells, displayValues, rowCount]);
+
   // ─── 행/열 개수 조정 ───
   const addRows = useCallback((n: number = ROW_ADD_CHUNK) => {
     const next = Math.min(MAX_ROWS, rowCount + n);
@@ -1947,6 +1988,12 @@ export default function CloudSheetEditor() {
                   </span>
                   첫 열 고정 (Freeze)
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={toggleFilterOn}>
+                  <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
+                    {filterOn ? '☑' : '☐'}
+                  </span>
+                  필터 {filterOn ? '끄기' : '켜기'}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={aiSummarizeAll} disabled={!!aiBusy}>
                   <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
@@ -2197,6 +2244,10 @@ export default function CloudSheetEditor() {
             currentMatchRef={searchMatches[searchCursor]}
             freezeFirstRow={freezeFirstRow}
             freezeFirstCol={freezeFirstCol}
+            filterOn={filterOn}
+            filters={filters}
+            onFilterChange={setColFilter}
+            visibleRowSet={visibleRowSet}
             fillPreview={fillPreview}
             fillCorner={{ row: selBounds.maxR, col: selBounds.maxC }}
             onFillStart={startFill}
@@ -2230,6 +2281,11 @@ export default function CloudSheetEditor() {
           </button>
           <span className="text-muted-foreground ml-2">
             {rowCount}행 × {colCount}열
+            {filterOn && visibleRowSet && (
+              <span className="ml-2 text-amber-700 dark:text-amber-300">
+                · 필터 적용: {visibleRowSet.size}행 표시
+              </span>
+            )}
             <span className="opacity-60"> · 헤더 우클릭 → 삽입/삭제 · 열 가장자리 드래그 → 너비</span>
           </span>
         </div>
@@ -2414,6 +2470,12 @@ interface SheetGridProps {
   freezeFirstRow?: boolean;
   /** 첫 열 고정 (sticky left, A열) */
   freezeFirstCol?: boolean;
+  /** 필터 활성 시 헤더 alphabet row 아래에 검색 input 행 렌더 */
+  filterOn?: boolean;
+  filters?: Record<number, string>;
+  onFilterChange?: (col: number, q: string) => void;
+  /** null 이면 모두 보기, Set 이면 그 안 row 만 표시 */
+  visibleRowSet?: Set<number> | null;
   /** fill 미리보기 영역 (드래그 중) */
   fillPreview?: SelBounds | null;
   /** fill handle: 어떤 (row, col) 에 핸들을 그릴지 — 보통 selBounds 의 maxR/maxC */
@@ -2434,6 +2496,7 @@ function SheetGrid({
   rowCount, colCount, colWidths, onColResize, onHeaderContextMenu,
   matchedRefs, currentMatchRef,
   freezeFirstRow, freezeFirstCol,
+  filterOn, filters, onFilterChange, visibleRowSet,
   fillPreview, fillCorner, onFillStart,
   editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
@@ -2468,8 +2531,31 @@ function SheetGrid({
             ))}
           </tr>
         </thead>
+        {filterOn && (
+          <thead>
+            <tr>
+              <th className="w-10 h-7 border border-border bg-amber-50 dark:bg-amber-950/30 sticky left-0 z-20" />
+              {cols.map((_, ci) => (
+                <th
+                  key={ci}
+                  className="border border-border bg-amber-50 dark:bg-amber-950/30 px-1 py-0.5"
+                  style={{ width: colWidths[ci] ?? DEFAULT_COL_WIDTH, minWidth: MIN_COL_WIDTH }}
+                >
+                  <input
+                    type="text"
+                    value={filters?.[ci] ?? ''}
+                    onChange={(e) => onFilterChange?.(ci, e.target.value)}
+                    placeholder="필터…"
+                    className="w-full px-1.5 py-0.5 text-xs rounded border border-border bg-background outline-none focus:border-foreground/40"
+                    aria-label={`${colLabel(ci)}열 필터`}
+                  />
+                </th>
+              ))}
+            </tr>
+          </thead>
+        )}
         <tbody>
-          {rows.map((rowIdx) => (
+          {rows.map((rowIdx) => visibleRowSet && !visibleRowSet.has(rowIdx) ? null : (
             <tr key={rowIdx}>
               <th
                 className="w-10 h-7 border border-border bg-muted/40 text-xs font-normal text-muted-foreground sticky left-0 z-10"
