@@ -26,7 +26,8 @@ const SLIDE_H_EMU = 6858000;  // 7.5인치 (16:9 wide는 6858000 또는 5143500)
 
 interface BaseEl { id: string; xPct: number; yPct: number; wPct: number; hPct: number; }
 interface SlideTextEl extends BaseEl { type: 'text'; content: string; fontSizeRem: number; bold?: boolean; textColor?: string; }
-interface SlideShapeEl extends BaseEl { type: 'rect' | 'ellipse'; fillColor: string; strokeColor?: string; strokeWidth?: number; }
+type ShapeType = 'rect' | 'ellipse' | 'triangle' | 'line' | 'arrow';
+interface SlideShapeEl extends BaseEl { type: ShapeType; fillColor: string; strokeColor?: string; strokeWidth?: number; }
 interface SlideImageEl extends BaseEl { type: 'image'; src: string; alt?: string; }
 type SlideElement = SlideTextEl | SlideShapeEl | SlideImageEl;
 interface Slide { id: string; elements: SlideElement[]; background?: string; }
@@ -150,7 +151,12 @@ function parseShape(sp: Record<string, unknown>): SlideElement | null {
     const fillSrgb = (spPr?.['a:solidFill'] as Record<string, unknown> | undefined)?.['a:srgbClr'] as Record<string, unknown> | undefined;
     const fillColor = typeof fillSrgb?.['@_val'] === 'string' ? `#${fillSrgb['@_val']}` : 'hsl(200 75% 60%)';
 
-    const type: 'rect' | 'ellipse' = (prst === 'ellipse' || prst === 'roundRect') ? 'ellipse' : 'rect';
+    let type: ShapeType = 'rect';
+    if (prst === 'ellipse' || prst === 'roundRect') type = 'ellipse';
+    else if (prst === 'triangle' || prst === 'rtTriangle') type = 'triangle';
+    else if (prst === 'line' || prst === 'straightConnector1') type = 'line';
+    else if (prst === 'rightArrow' || prst === 'straightArrow' || prst === 'leftRightArrow') type = 'arrow';
+
     return {
       id: newId('el'),
       type,
@@ -234,6 +240,30 @@ export function exportPptxFile(slides: Slide[], fileName: string): void {
           line: el.strokeColor
             ? { color: el.strokeColor.replace('#', ''), width: el.strokeWidth ?? 2 }
             : { color: 'FFFFFF', width: 0 },
+        });
+      } else if (el.type === 'triangle') {
+        slide.addShape(pres.ShapeType.triangle, {
+          x, y, w, h,
+          fill: { color: el.fillColor.replace('#', '').replace(/^hsl.*$/i, '34D399') },
+          line: el.strokeColor
+            ? { color: el.strokeColor.replace('#', ''), width: el.strokeWidth ?? 2 }
+            : { color: 'FFFFFF', width: 0 },
+        });
+      } else if (el.type === 'line') {
+        // 선: addShape(line) — 가로선, fill 없음
+        slide.addShape(pres.ShapeType.line, {
+          x, y, w, h,
+          line: {
+            color: (el.strokeColor ?? el.fillColor).replace('#', ''),
+            width: el.strokeWidth ?? 2,
+          },
+        });
+      } else if (el.type === 'arrow') {
+        // 오른쪽 화살표 도형
+        slide.addShape(pres.ShapeType.rightArrow, {
+          x, y, w, h,
+          fill: { color: (el.strokeColor ?? el.fillColor).replace('#', '').replace(/^hsl.*$/i, '222222') },
+          line: { color: (el.strokeColor ?? el.fillColor).replace('#', ''), width: el.strokeWidth ?? 2 },
         });
       } else if (el.type === 'image') {
         // src 는 data URL — pptxgenjs는 data: URL 직접 지원

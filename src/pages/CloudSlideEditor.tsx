@@ -8,7 +8,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
-  Square as SquareIcon, Circle as CircleIcon, Palette,
+  Square as SquareIcon, Circle as CircleIcon, Triangle as TriangleIcon,
+  Minus as LineIcon, ArrowRight as ArrowRightIcon, Shapes,
+  Palette,
   ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
   Play, ChevronLeft, ChevronRight as ChevronRightIcon,
   Sparkles,
@@ -50,9 +52,11 @@ interface SlideTextEl extends BaseEl {
   textColor?: string;
 }
 
+type ShapeType = 'rect' | 'ellipse' | 'triangle' | 'line' | 'arrow';
+
 interface SlideShapeEl extends BaseEl {
-  type: 'rect' | 'ellipse';
-  fillColor: string;     // CSS color
+  type: ShapeType;
+  fillColor: string;     // CSS color (line/arrow 는 stroke 만 사용)
   strokeColor?: string;  // 테두리 색
   strokeWidth?: number;  // px (캔버스 픽셀 기준)
 }
@@ -67,11 +71,95 @@ type SlideElement = SlideTextEl | SlideShapeEl | SlideImageEl;
 
 type ResizeDir = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
+/**
+ * 도형(SlideShapeEl) 렌더 — rect/ellipse 는 div, triangle/line/arrow 는 SVG.
+ * 부모는 absolute pos 컨테이너를 제공하고 ShapeRender 는 100%×100% 내부를 채움.
+ */
+function ShapeRender({ el }: { el: SlideShapeEl }): React.ReactElement {
+  const sw = el.strokeWidth ?? 2;
+  const stroke = el.strokeColor ?? 'transparent';
+  if (el.type === 'rect') {
+    return (
+      <div style={{
+        width: '100%', height: '100%',
+        backgroundColor: el.fillColor,
+        border: el.strokeColor ? `${sw}px solid ${stroke}` : undefined,
+      }} />
+    );
+  }
+  if (el.type === 'ellipse') {
+    return (
+      <div style={{
+        width: '100%', height: '100%',
+        backgroundColor: el.fillColor,
+        border: el.strokeColor ? `${sw}px solid ${stroke}` : undefined,
+        borderRadius: '50%',
+      }} />
+    );
+  }
+  // triangle / line / arrow — SVG (viewBox 100×100, preserveAspectRatio none)
+  return (
+    <svg
+      width="100%" height="100%"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      style={{ overflow: 'visible' }}
+    >
+      {el.type === 'triangle' && (
+        <polygon
+          points="50,0 100,100 0,100"
+          fill={el.fillColor}
+          stroke={el.strokeColor ?? 'none'}
+          strokeWidth={el.strokeColor ? sw : 0}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {el.type === 'line' && (
+        <line
+          x1="0" y1="50" x2="100" y2="50"
+          stroke={el.strokeColor ?? el.fillColor}
+          strokeWidth={sw}
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+        />
+      )}
+      {el.type === 'arrow' && (
+        <>
+          <defs>
+            <marker
+              id={`ah-${el.id}`}
+              viewBox="0 0 10 10"
+              refX="9" refY="5"
+              markerWidth="5" markerHeight="5"
+              orient="auto-start-reverse"
+              markerUnits="strokeWidth"
+            >
+              <path d="M0,0 L10,5 L0,10 z" fill={el.strokeColor ?? el.fillColor} />
+            </marker>
+          </defs>
+          <line
+            x1="0" y1="50" x2="100" y2="50"
+            stroke={el.strokeColor ?? el.fillColor}
+            strokeWidth={sw}
+            vectorEffect="non-scaling-stroke"
+            strokeLinecap="round"
+            markerEnd={`url(#ah-${el.id})`}
+          />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function isText(el: SlideElement): el is SlideTextEl {
   return el.type === 'text';
 }
 function isShape(el: SlideElement): el is SlideShapeEl {
-  return el.type === 'rect' || el.type === 'ellipse';
+  return el.type === 'rect' || el.type === 'ellipse'
+    || el.type === 'triangle' || el.type === 'line' || el.type === 'arrow';
+}
+function isLineLike(el: SlideElement): boolean {
+  return el.type === 'line' || el.type === 'arrow';
 }
 function isImage(el: SlideElement): el is SlideImageEl {
   return el.type === 'image';
@@ -274,13 +362,26 @@ export default function CloudSlideEditor() {
     setEditingElId(el.id);
   }, [updateCurrentSlide]);
 
-  const addShapeEl = useCallback((shape: 'rect' | 'ellipse') => {
+  const addShapeEl = useCallback((shape: ShapeType) => {
+    // line/arrow 는 가로로 길게, 나머지는 사각 형태
+    const sz = (shape === 'line' || shape === 'arrow')
+      ? { wPct: 40, hPct: 4 }
+      : { wPct: 30, hPct: 25 };
+    const defaultFill: Record<ShapeType, string> = {
+      rect:     'hsl(200 75% 60%)',
+      ellipse:  'hsl(25 85% 60%)',
+      triangle: 'hsl(150 65% 55%)',
+      line:     'transparent',
+      arrow:    'transparent',
+    };
     const el: SlideShapeEl = {
       id: newId('el'),
       type: shape,
       xPct: 25, yPct: 30,
-      wPct: 30, hPct: 25,
-      fillColor: shape === 'rect' ? 'hsl(200 75% 60%)' : 'hsl(25 85% 60%)',
+      wPct: sz.wPct, hPct: sz.hPct,
+      fillColor: defaultFill[shape],
+      strokeColor: (shape === 'line' || shape === 'arrow') ? '#222222' : undefined,
+      strokeWidth: (shape === 'line' || shape === 'arrow') ? 3 : undefined,
     };
     updateCurrentSlide((s) => ({ ...s, elements: [...s.elements, el] }));
     setSelectedElId(el.id);
@@ -702,10 +803,25 @@ export default function CloudSlideEditor() {
             img.style.height = '100%';
             img.style.objectFit = 'contain';
             child.appendChild(img);
-          } else {
+          } else if (el.type === 'rect') {
             child.style.background = el.fillColor;
             if (el.strokeColor) child.style.border = `${el.strokeWidth ?? 2}px solid ${el.strokeColor}`;
-            if (el.type === 'ellipse') child.style.borderRadius = '50%';
+          } else if (el.type === 'ellipse') {
+            child.style.background = el.fillColor;
+            if (el.strokeColor) child.style.border = `${el.strokeWidth ?? 2}px solid ${el.strokeColor}`;
+            child.style.borderRadius = '50%';
+          } else {
+            // triangle / line / arrow — SVG
+            const sw = el.strokeWidth ?? 2;
+            const stroke = el.strokeColor ?? el.fillColor;
+            if (el.type === 'triangle') {
+              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,0 100,100 0,100" fill="${el.fillColor}" stroke="${el.strokeColor ?? 'none'}" stroke-width="${el.strokeColor ? sw : 0}" vector-effect="non-scaling-stroke" /></svg>`;
+            } else if (el.type === 'line') {
+              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="0" y1="50" x2="100" y2="50" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" vector-effect="non-scaling-stroke" /></svg>`;
+            } else if (el.type === 'arrow') {
+              const ahId = `ah-${el.id}-pdf`;
+              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="overflow:visible"><defs><marker id="${ahId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0,0 L10,5 L0,10 z" fill="${stroke}" /></marker></defs><line x1="0" y1="50" x2="100" y2="50" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" vector-effect="non-scaling-stroke" marker-end="url(#${ahId})" /></svg>`;
+            }
           }
           slideEl.appendChild(child);
         }
@@ -924,6 +1040,29 @@ export default function CloudSlideEditor() {
           <ToolBtn onClick={() => addShapeEl('ellipse')} title="원 추가">
             <CircleIcon className="w-4 h-4" /><span className="text-xs ml-1">원</span>
           </ToolBtn>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="px-2 py-1 rounded hover:bg-muted text-sm flex items-center gap-1"
+                title="더 많은 도형"
+              >
+                <Shapes className="w-4 h-4" />
+                <span className="text-xs">+</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[140px]">
+              <DropdownMenuItem onSelect={() => addShapeEl('triangle')}>
+                <TriangleIcon className="w-4 h-4 mr-2" /> 삼각형
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => addShapeEl('line')}>
+                <LineIcon className="w-4 h-4 mr-2" /> 선
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => addShapeEl('arrow')}>
+                <ArrowRightIcon className="w-4 h-4 mr-2" /> 화살표
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <ToolBtn onClick={pickAndAddImage} title="이미지 추가 (파일 선택)">
             <ImagePlus className="w-4 h-4" /><span className="text-xs ml-1">이미지</span>
           </ToolBtn>
@@ -1183,15 +1322,9 @@ function PresentationOverlay({ slides, idx, onPrev, onNext, onClose }: Presentat
             );
           }
           return (
-            <div
-              key={el.id}
-              style={{
-                ...pos,
-                backgroundColor: el.fillColor,
-                border: el.strokeColor ? `${el.strokeWidth ?? 2}px solid ${el.strokeColor}` : undefined,
-                borderRadius: el.type === 'ellipse' ? '50%' : undefined,
-              }}
-            />
+            <div key={el.id} style={pos}>
+              <ShapeRender el={el} />
+            </div>
           );
         })}
       </div>
@@ -1427,14 +1560,7 @@ function ShapeElView({ el, selected, onPointerDown, onClick, onStartResize }: Sh
         height: `${el.hPct}%`,
       }}
     >
-      <div
-        className="w-full h-full"
-        style={{
-          backgroundColor: el.fillColor,
-          border: el.strokeColor ? `${el.strokeWidth ?? 2}px solid ${el.strokeColor}` : undefined,
-          borderRadius: el.type === 'ellipse' ? '50%' : undefined,
-        }}
-      />
+      <ShapeRender el={el} />
       {selected && <ResizeHandles onStart={onStartResize} />}
     </div>
   );
