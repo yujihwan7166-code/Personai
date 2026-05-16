@@ -671,6 +671,13 @@
 
   /* 카드 hover */
   .wb-widget-card { will-change: transform; transition: all 0.18s ease; }
+
+  /* 첫 사용자 hint tooltip */
+  @keyframes wb-fade-in {
+    0%   { opacity: 0; transform: translateY(-4px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in { animation: wb-fade-in 0.3s ease-out forwards; }
   .wb-widget-card:focus-visible {
     outline: 2px solid hsl(var(--primary)) !important;
     outline-offset: -1px !important;

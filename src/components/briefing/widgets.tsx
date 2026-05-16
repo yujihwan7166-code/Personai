@@ -353,14 +353,23 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-4 flex flex-col"
+      className="w-full h-full text-left p-4 flex flex-col relative overflow-hidden"
     >
+      {/* 우상단 미세 deco — radial amber glow */}
+      <span
+        aria-hidden
+        className="absolute -top-6 -right-6 w-24 h-24 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle at center, hsl(28 88% 52% / 0.20) 0%, transparent 70%)' }}
+      />
       <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" kind="pickFirst" />
-      <div className="mt-2 font-display text-[20px] font-bold text-foreground leading-tight line-clamp-2">
+      <div className="mt-2 font-display text-[20px] font-bold text-foreground leading-tight line-clamp-2 relative">
         {data.pickFirst.title}
       </div>
-      <div className="mt-auto pt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-foreground/8 text-foreground/70 text-[9.5px] font-semibold uppercase tracking-wider">
+      <div className="mt-auto pt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground relative">
+        <span
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9.5px] font-semibold uppercase tracking-wider"
+          style={{ background: 'hsl(28 88% 52% / 0.14)', color: 'hsl(28 88% 38%)' }}
+        >
           {data.pickFirst.kind === 'event' ? '일정' : data.pickFirst.kind === 'habit' ? '습관' : '할일'}
         </span>
         <span className="truncate">{data.pickFirst.reason}</span>

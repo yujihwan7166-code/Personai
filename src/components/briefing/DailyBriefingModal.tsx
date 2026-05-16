@@ -27,6 +27,8 @@ interface Props {
   onClose: () => void;
 }
 
+const HINT_SEEN_KEY = 'personai.daily-briefing.hint-seen';
+
 export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const settings = useBriefingSettings();
   // 종료 애니메이션 — open=false 가 되어도 잠시 mount 유지
@@ -35,6 +37,26 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const data = useMemo(() => (visible ? buildBriefingData() : null), [visible]);
   const [editMode, setEditMode] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [hintShown, setHintShown] = useState(false);
+
+  // 첫 사용자 hint — 모달 처음 열 때 ⚙ 안내 (5초 후 자동 사라짐)
+  useEffect(() => {
+    if (!visible || typeof window === 'undefined') return;
+    try {
+      if (window.localStorage.getItem(HINT_SEEN_KEY)) return;
+    } catch { /* silent */ }
+    const t1 = window.setTimeout(() => setHintShown(true), 400);
+    const t2 = window.setTimeout(() => {
+      setHintShown(false);
+      try { window.localStorage.setItem(HINT_SEEN_KEY, '1'); } catch { /* silent */ }
+    }, 5400);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, [visible]);
+
+  const dismissHint = () => {
+    setHintShown(false);
+    try { window.localStorage.setItem(HINT_SEEN_KEY, '1'); } catch { /* silent */ }
+  };
 
   useEffect(() => {
     if (open) {
@@ -137,20 +159,36 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
               </div>
             );
           })()}
-          <button
-            type="button"
-            onClick={() => setEditMode((v) => !v)}
-            aria-label={editMode ? '편집 종료' : '편집'}
-            title={editMode ? '편집 종료' : '위젯 편집'}
-            className={cn(
-              'shrink-0 h-10 w-10 inline-flex items-center justify-center rounded-xl transition-all',
-              editMode
-                ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]'
-                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { setEditMode((v) => !v); dismissHint(); }}
+              aria-label={editMode ? '편집 종료' : '편집'}
+              title={editMode ? '편집 종료' : '위젯 편집'}
+              className={cn(
+                'shrink-0 h-10 w-10 inline-flex items-center justify-center rounded-xl transition-all',
+                editMode
+                  ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
+                hintShown && !editMode && 'ring-2 ring-primary/40 ring-offset-2 ring-offset-card',
+              )}
+            >
+              <Settings className="h-[18px] w-[18px]" />
+            </button>
+            {/* 첫 사용자 hint tooltip */}
+            {hintShown && !editMode && (
+              <div className="absolute top-full right-0 mt-2 z-10 pointer-events-none animate-fade-in">
+                <div
+                  className="px-3 py-1.5 rounded-lg bg-foreground text-background text-[11px] font-medium whitespace-nowrap shadow-lg"
+                  onClick={dismissHint}
+                >
+                  여기서 위젯 편집 ↑
+                </div>
+                {/* 화살표 */}
+                <div className="absolute -top-1 right-3.5 w-2 h-2 bg-foreground rotate-45" />
+              </div>
             )}
-          >
-            <Settings className="h-[18px] w-[18px]" />
-          </button>
+          </div>
           <button
             type="button"
             onClick={onClose}
