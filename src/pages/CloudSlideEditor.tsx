@@ -13,7 +13,7 @@ import {
   Palette,
   ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
   Play, ChevronLeft, ChevronRight as ChevronRightIcon,
-  Sparkles,
+  Sparkles, Undo2, Redo2,
 } from 'lucide-react';
 import { toast as appToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -284,6 +284,86 @@ export default function CloudSlideEditor() {
       return next;
     });
   }, [queueSave, currentIdx]);
+
+  // ─── Undo / Redo (debounce snapshot) ───
+  interface SlideSnapshot { slides: Slide[]; currentIdx: number }
+  const [history, setHistory] = useState<SlideSnapshot[]>([]);
+  const [historyIdx, setHistoryIdx] = useState(-1);
+  const isApplyingHistoryRef = useRef(false);
+  const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!node) return;
+    if (isApplyingHistoryRef.current) {
+      isApplyingHistoryRef.current = false;
+      return;
+    }
+    if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+    snapshotTimerRef.current = setTimeout(() => {
+      setHistory((h) => {
+        const snap: SlideSnapshot = { slides, currentIdx };
+        if (historyIdx === -1) {
+          setHistoryIdx(0);
+          return [snap];
+        }
+        const last = h[historyIdx];
+        if (last && last.slides === snap.slides && last.currentIdx === snap.currentIdx) return h;
+        const next = h.slice(0, historyIdx + 1);
+        next.push(snap);
+        if (next.length > 100) next.shift();
+        setHistoryIdx(next.length - 1);
+        return next;
+      });
+    }, 500);
+    return () => {
+      if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+    };
+  }, [node, slides, currentIdx, historyIdx]);
+
+  const canUndo = historyIdx > 0;
+  const canRedo = historyIdx >= 0 && historyIdx < history.length - 1;
+
+  const applySnapshot = useCallback((snap: SlideSnapshot) => {
+    isApplyingHistoryRef.current = true;
+    setSlides(snap.slides);
+    setCurrentIdx(snap.currentIdx);
+    queueSave(snap.slides, snap.currentIdx);
+  }, [queueSave]);
+
+  const undo = useCallback(() => {
+    if (!canUndo) return;
+    const target = history[historyIdx - 1];
+    if (!target) return;
+    setHistoryIdx(historyIdx - 1);
+    applySnapshot(target);
+    setSelectedElId(null);
+    setEditingElId(null);
+  }, [canUndo, history, historyIdx, applySnapshot]);
+
+  const redo = useCallback(() => {
+    if (!canRedo) return;
+    const target = history[historyIdx + 1];
+    if (!target) return;
+    setHistoryIdx(historyIdx + 1);
+    applySnapshot(target);
+    setSelectedElId(null);
+    setEditingElId(null);
+  }, [canRedo, history, historyIdx, applySnapshot]);
+
+  // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo, redo]);
 
   const addSlide = useCallback(() => {
     updateSlides((prev) => {
@@ -978,6 +1058,26 @@ export default function CloudSlideEditor() {
             >
               <Play className="w-4 h-4" />
               발표
+            </button>
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className="p-2 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="되돌리기"
+              title="되돌리기 (Ctrl+Z)"
+            >
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className="p-2 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="다시 실행"
+              title="다시 실행 (Ctrl+Y / Ctrl+Shift+Z)"
+            >
+              <Redo2 className="w-4 h-4" />
             </button>
             <button
               type="button"
