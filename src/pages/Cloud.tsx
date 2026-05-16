@@ -9,6 +9,7 @@ import {
   ArrowLeft, Plus, Upload, Search, Settings, Eye,
   FileText, FileSpreadsheet, Presentation, Folder, FolderPlus,
   Clock, Star, Share2, Trash2, ChevronRight, Pencil, RotateCcw, X,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -24,6 +25,10 @@ import {
   type CloudNode, FILE_TYPE_EMOJI, FILE_TYPE_LABEL, formatSize,
 } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface BreadcrumbItem {
   id: string | null; // null = 루트
@@ -134,15 +139,28 @@ export default function Cloud() {
     }
   }, []);
 
-  // ─── 폴더 진입·breadcrumb ───
-  const goInto = useCallback((node: CloudNode) => {
+  // ─── 1회 클릭 = 선택 (미리보기만, 진입 X) ───
+  const handleNodeClick = useCallback((node: CloudNode) => {
+    setSelectedId(node.id);
+  }, []);
+
+  // ─── 더블클릭 = 진입 (폴더: 폴더 들어가기, 파일: 편집기) ───
+  const handleNodeDoubleClick = useCallback((node: CloudNode) => {
+    if (listMode === 'trash') return; // 휴지통은 더블클릭 X
     if (node.kind === 'folder' && listMode === 'folder') {
       setTrail((t) => [...t, { id: node.id, name: node.name }]);
       setSelectedId(null);
-    } else {
-      setSelectedId(node.id);
+    } else if (node.kind === 'file') {
+      // handleOpenFile 호출 — 아래에 정의됨 (forward ref via inline)
+      if (node.fileType === 'doc') navigate(`/cloud/doc/${node.id}`);
+      else if (node.fileType === 'sheet') navigate(`/cloud/sheet/${node.id}`);
+      else if (node.fileType === 'slide') navigate(`/cloud/slide/${node.id}`);
+      else toast({
+        title: '곧 활성화돼요',
+        description: `${FILE_TYPE_LABEL[node.fileType ?? 'other']} 에디터는 다음 단계에서 추가됩니다.`,
+      });
     }
-  }, [listMode]);
+  }, [listMode, navigate]);
 
   const goToTrailIndex = useCallback((idx: number) => {
     setTrail((t) => t.slice(0, idx + 1));
@@ -555,11 +573,16 @@ export default function Cloud() {
                     selected={n.id === selectedId}
                     editing={n.id === editingId}
                     listMode={listMode}
-                    onClick={() => goInto(n)}
-                    onDoubleClick={() => listMode !== 'trash' && startRename(n.id)}
+                    onClick={() => handleNodeClick(n)}
+                    onDoubleClick={() => handleNodeDoubleClick(n)}
                     onSubmitRename={(newName) => void submitRename(n.id, newName)}
                     onCancelRename={() => setEditingId(null)}
                     onToggleStar={() => void handleToggleStar(n)}
+                    onRename={() => startRename(n.id)}
+                    onMoveToTrash={() => void handleMoveToTrash(n)}
+                    onRestore={() => void handleRestore(n)}
+                    onPermanentDelete={() => void handlePermanentDelete(n)}
+                    onOpenFile={() => handleOpenFile(n)}
                   />
                 ))}
               </ul>
@@ -570,9 +593,15 @@ export default function Cloud() {
                     key={n.id}
                     node={n}
                     selected={n.id === selectedId}
-                    onClick={() => goInto(n)}
-                    onDoubleClick={() => listMode !== 'trash' && startRename(n.id)}
+                    listMode={listMode}
+                    onClick={() => handleNodeClick(n)}
+                    onDoubleClick={() => handleNodeDoubleClick(n)}
                     onToggleStar={() => void handleToggleStar(n)}
+                    onRename={() => startRename(n.id)}
+                    onMoveToTrash={() => void handleMoveToTrash(n)}
+                    onRestore={() => void handleRestore(n)}
+                    onPermanentDelete={() => void handlePermanentDelete(n)}
+                    onOpenFile={() => handleOpenFile(n)}
                   />
                 ))}
               </div>
@@ -588,19 +617,12 @@ export default function Cloud() {
           {!selectedNode ? (
             <div className="text-xs text-muted-foreground py-12 text-center">
               파일을 선택하면 여기에 미리보기가 표시됩니다.
+              <div className="mt-3 text-[11px] text-muted-foreground/70">
+                더블클릭 시 편집기로 진입
+              </div>
             </div>
           ) : (
-            <PreviewPanel
-              node={selectedNode}
-              listMode={listMode}
-              onToggleStar={() => void handleToggleStar(selectedNode)}
-              onRename={() => startRename(selectedNode.id)}
-              onMoveToTrash={() => void handleMoveToTrash(selectedNode)}
-              onRestore={() => void handleRestore(selectedNode)}
-              onPermanentDelete={() => void handlePermanentDelete(selectedNode)}
-              onOpenFile={() => handleOpenFile(selectedNode)}
-              onNotReady={notReady}
-            />
+            <PreviewPanel node={selectedNode} listMode={listMode} />
           )}
         </aside>
       </div>
@@ -928,11 +950,17 @@ interface NodeRowProps {
   onSubmitRename: (newName: string) => void;
   onCancelRename: () => void;
   onToggleStar: () => void;
+  onRename: () => void;
+  onMoveToTrash: () => void;
+  onRestore: () => void;
+  onPermanentDelete: () => void;
+  onOpenFile: () => void;
 }
 
 function NodeRow({
   node, selected, editing, listMode,
-  onClick, onDoubleClick, onSubmitRename, onCancelRename, onToggleStar,
+  onClick, onDoubleClick, onSubmitRename, onCancelRename,
+  onToggleStar, onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile,
 }: NodeRowProps) {
   return (
     <li>
@@ -961,7 +989,7 @@ function NodeRow({
           <span className="flex-1 truncate">{node.name}</span>
         )}
 
-        {/* 별표 (호버 시 빈 별, 별표 시엔 항상 노출) */}
+        {/* 별표 (호버 시 빈 별, 별표 시엔 항상 노출) — trash 모드에선 X */}
         {listMode !== 'trash' && (
           <button
             type="button"
@@ -991,6 +1019,18 @@ function NodeRow({
         <span className="text-xs text-muted-foreground w-16 text-right hidden sm:inline">
           {node.kind === 'file' ? formatSize(node.sizeBytes) : ''}
         </span>
+
+        {/* 호버 시 ⋯ 메뉴 */}
+        <NodeActionMenu
+          node={node}
+          listMode={listMode}
+          onToggleStar={onToggleStar}
+          onRename={onRename}
+          onMoveToTrash={onMoveToTrash}
+          onRestore={onRestore}
+          onPermanentDelete={onPermanentDelete}
+          onOpenFile={onOpenFile}
+        />
       </div>
     </li>
   );
@@ -1003,13 +1043,20 @@ function NodeRow({
 interface NodeCardProps {
   node: CloudNode;
   selected: boolean;
+  listMode: CloudListMode;
   onClick: () => void;
   onDoubleClick: () => void;
   onToggleStar: () => void;
+  onRename: () => void;
+  onMoveToTrash: () => void;
+  onRestore: () => void;
+  onPermanentDelete: () => void;
+  onOpenFile: () => void;
 }
 
 function NodeCard({
-  node, selected, onClick, onDoubleClick, onToggleStar,
+  node, selected, listMode, onClick, onDoubleClick, onToggleStar,
+  onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile,
 }: NodeCardProps) {
   return (
     <div
@@ -1023,28 +1070,117 @@ function NodeCard({
         selected && 'border-foreground/50 bg-muted',
       )}
     >
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
-        className={cn(
-          'absolute top-2 right-2 p-1 rounded hover:bg-muted',
-          node.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-70',
+      {/* 상단 우측: 별표 + ⋯ */}
+      <div className="absolute top-2 right-2 flex items-center gap-0.5">
+        {listMode !== 'trash' && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
+            className={cn(
+              'p-1 rounded hover:bg-muted',
+              node.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-70',
+            )}
+            aria-label={node.starred ? '별표 해제' : '별표 추가'}
+          >
+            <Star
+              className={cn(
+                'w-3.5 h-3.5',
+                node.starred ? 'fill-yellow-400 text-yellow-400' : '',
+              )}
+            />
+          </button>
         )}
-        aria-label={node.starred ? '별표 해제' : '별표 추가'}
-      >
-        <Star
-          className={cn(
-            'w-3.5 h-3.5',
-            node.starred ? 'fill-yellow-400 text-yellow-400' : '',
-          )}
+        <NodeActionMenu
+          node={node}
+          listMode={listMode}
+          onToggleStar={onToggleStar}
+          onRename={onRename}
+          onMoveToTrash={onMoveToTrash}
+          onRestore={onRestore}
+          onPermanentDelete={onPermanentDelete}
+          onOpenFile={onOpenFile}
         />
-      </button>
+      </div>
       <div className="flex items-center gap-2 mb-2">
         <NodeIcon node={node} />
       </div>
-      <div className="text-sm truncate font-medium pr-6">{node.name}</div>
+      <div className="text-sm truncate font-medium pr-12">{node.name}</div>
       <div className="text-xs text-muted-foreground mt-1">{relativeTime(node.updatedAt)}</div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 노드 액션 ⋯ 드롭다운 (호버 시 노출)
+// ─────────────────────────────────────────────
+
+interface NodeActionMenuProps {
+  node: CloudNode;
+  listMode: CloudListMode;
+  onToggleStar: () => void;
+  onRename: () => void;
+  onMoveToTrash: () => void;
+  onRestore: () => void;
+  onPermanentDelete: () => void;
+  onOpenFile: () => void;
+}
+
+function NodeActionMenu({
+  node, listMode, onToggleStar, onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile,
+}: NodeActionMenuProps) {
+  const isTrash = listMode === 'trash';
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-70 data-[state=open]:opacity-100 focus-visible:opacity-100"
+          aria-label="더 보기"
+        >
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        onClick={(e) => e.stopPropagation()}
+        className="min-w-[160px]"
+      >
+        {!isTrash ? (
+          <>
+            {node.kind === 'file' && (node.fileType === 'doc' || node.fileType === 'sheet' || node.fileType === 'slide') && (
+              <>
+                <DropdownMenuItem onSelect={onOpenFile}>
+                  <Eye className="w-4 h-4 mr-2" /> 편집
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem onSelect={onRename}>
+              <Pencil className="w-4 h-4 mr-2" /> 이름 변경
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onToggleStar}>
+              <Star className={cn('w-4 h-4 mr-2', node.starred && 'fill-yellow-400 text-yellow-400')} />
+              {node.starred ? '별표 해제' : '별표'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onMoveToTrash} className="text-destructive focus:text-destructive">
+              <Trash2 className="w-4 h-4 mr-2" /> 휴지통으로
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem onSelect={onRestore}>
+              <RotateCcw className="w-4 h-4 mr-2" /> 복원
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onPermanentDelete} className="text-destructive focus:text-destructive">
+              <X className="w-4 h-4 mr-2" /> 영구 삭제
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -1055,19 +1191,13 @@ function NodeCard({
 interface PreviewPanelProps {
   node: CloudNode;
   listMode: CloudListMode;
-  onToggleStar: () => void;
-  onRename: () => void;
-  onMoveToTrash: () => void;
-  onRestore: () => void;
-  onPermanentDelete: () => void;
-  onOpenFile: () => void;
-  onNotReady: () => void;
 }
 
-function PreviewPanel({
-  node, listMode, onToggleStar, onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile, onNotReady,
-}: PreviewPanelProps) {
+function PreviewPanel({ node, listMode }: PreviewPanelProps) {
   const isTrash = listMode === 'trash';
+  const isEditable = node.kind === 'file' && (
+    node.fileType === 'doc' || node.fileType === 'sheet' || node.fileType === 'slide'
+  );
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-2">
@@ -1078,7 +1208,11 @@ function PreviewPanel({
             {node.kind === 'folder' ? '폴더' : FILE_TYPE_LABEL[node.fileType ?? 'other']}
           </div>
         </div>
+        {node.starred && (
+          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 shrink-0" />
+        )}
       </div>
+
       <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border">
         <div>📅 {new Date(node.updatedAt).toLocaleString('ko-KR')} 수정</div>
         {node.kind === 'file' && node.sizeBytes != null && (
@@ -1089,60 +1223,15 @@ function PreviewPanel({
         )}
       </div>
 
-      <div className="pt-2 border-t border-border space-y-1.5">
-        {!isTrash ? (
-          <>
-            {node.kind === 'file' && (
-              <PreviewButton
-                onClick={
-                  (node.fileType === 'doc' || node.fileType === 'sheet' || node.fileType === 'slide')
-                    ? onOpenFile
-                    : onNotReady
-                }
-                icon={<Eye className="w-4 h-4" />}
-                label="편집"
-                main
-              />
-            )}
-            <PreviewButton onClick={onToggleStar} icon={<Star className={cn('w-4 h-4', node.starred && 'fill-yellow-400 text-yellow-400')} />} label={node.starred ? '별표 해제' : '별표'} />
-            <PreviewButton onClick={onRename} icon={<Pencil className="w-4 h-4" />} label="이름 변경" />
-            <PreviewButton onClick={onMoveToTrash} icon={<Trash2 className="w-4 h-4" />} label="휴지통으로" destructive />
-          </>
-        ) : (
-          <>
-            <PreviewButton onClick={onRestore} icon={<RotateCcw className="w-4 h-4" />} label="복원" main />
-            <PreviewButton onClick={onPermanentDelete} icon={<X className="w-4 h-4" />} label="영구 삭제" destructive />
-          </>
-        )}
+      <div className="pt-2 border-t border-border text-[11px] text-muted-foreground/70 leading-relaxed">
+        {isTrash
+          ? '⋯ 메뉴에서 복원 또는 영구 삭제'
+          : node.kind === 'folder'
+            ? '더블클릭으로 폴더 진입'
+            : isEditable
+              ? '더블클릭으로 편집 · ⋯ 메뉴로 별표·이름변경·삭제'
+              : '⋯ 메뉴에서 작업'}
       </div>
     </div>
-  );
-}
-
-interface PreviewButtonProps {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  main?: boolean;
-  destructive?: boolean;
-}
-
-function PreviewButton({ icon, label, onClick, main, destructive }: PreviewButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'w-full flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors',
-        main
-          ? 'bg-foreground text-background hover:bg-foreground/90'
-          : destructive
-            ? 'text-destructive hover:bg-destructive/10'
-            : 'hover:bg-muted',
-      )}
-    >
-      <span>{icon}</span>
-      <span>{label}</span>
-    </button>
   );
 }
