@@ -57,7 +57,7 @@ export async function importPptxFile(file: File): Promise<Slide[]> {
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
     removeNSPrefix: false,
-    isArray: (name) => ['p:sp', 'a:r', 'a:p'].includes(name),
+    isArray: (name) => ['p:sp', 'p:pic', 'a:r', 'a:p', 'Relationship'].includes(name),
   });
 
   const slides: Slide[] = [];
@@ -65,7 +65,24 @@ export async function importPptxFile(file: File): Promise<Slide[]> {
     const file = zip.file(f);
     if (!file) continue;
     const xml = await file.async('string');
-    slides.push(parseSlide(xml, parser));
+    // rels 파일에서 rId → 미디어 경로 매핑
+    const relsPath = f.replace(/^ppt\/slides\//, 'ppt/slides/_rels/').replace(/\.xml$/, '.xml.rels');
+    const relsFile = zip.file(relsPath);
+    const relsMap = new Map<string, string>();
+    if (relsFile) {
+      const relsXml = await relsFile.async('string');
+      try {
+        const parsed = parser.parse(relsXml) as Record<string, unknown>;
+        const root = parsed.Relationships as Record<string, unknown> | undefined;
+        const rels = root?.Relationship as Array<Record<string, unknown>> | undefined;
+        for (const r of rels ?? []) {
+          const id = r['@_Id'] as string | undefined;
+          const target = r['@_Target'] as string | undefined;
+          if (id && target) relsMap.set(id, target);
+        }
+      } catch { /* rels 파싱 실패 → 이미지 무시 */ }
+    }
+    slides.push(await parseSlide(xml, parser, relsMap, zip));
   }
   if (slides.length === 0) {
     // 빈 슬라이드 한 장이라도 반환
@@ -74,7 +91,12 @@ export async function importPptxFile(file: File): Promise<Slide[]> {
   return slides;
 }
 
-function parseSlide(xml: string, parser: XMLParser): Slide {
+async function parseSlide(
+  xml: string,
+  parser: XMLParser,
+  relsMap: Map<string, string>,
+  zip: JSZip,
+): Promise<Slide> {
   const elements: SlideElement[] = [];
   let background: string | undefined;
 
@@ -102,6 +124,15 @@ function parseSlide(xml: string, parser: XMLParser): Slide {
     if (shapes) {
       for (const sp of shapes) {
         const el = parseShape(sp);
+        if (el) elements.push(el);
+      }
+    }
+
+    // 이미지들 (p:pic)
+    const pics = spTree?.['p:pic'] as Array<Record<string, unknown>> | undefined;
+    if (pics) {
+      for (const pic of pics) {
+        const el = await parsePic(pic, relsMap, zip);
         if (el) elements.push(el);
       }
     }
@@ -166,6 +197,68 @@ function parseShape(sp: Record<string, unknown>): SlideElement | null {
   }
 
   return null;
+}
+
+/** p:pic → SlideImageEl (data URL) — rId 매핑으로 ZIP 내 미디어 추출 */
+async function parsePic(
+  pic: Record<string, unknown>,
+  relsMap: Map<string, string>,
+  zip: JSZip,
+): Promise<SlideImageEl | null> {
+  // 위치: p:spPr/a:xfrm
+  const spPr = pic['p:spPr'] as Record<string, unknown> | undefined;
+  const xfrm = spPr?.['a:xfrm'] as Record<string, unknown> | undefined;
+  const off = xfrm?.['a:off'] as Record<string, unknown> | undefined;
+  const ext = xfrm?.['a:ext'] as Record<string, unknown> | undefined;
+  const xEmu = Number(off?.['@_x'] ?? 0);
+  const yEmu = Number(off?.['@_y'] ?? 0);
+  const cxEmu = Number(ext?.['@_cx'] ?? SLIDE_W_EMU * 0.3);
+  const cyEmu = Number(ext?.['@_cy'] ?? SLIDE_H_EMU * 0.3);
+
+  // rId: p:blipFill/a:blip[@r:embed]
+  const blipFill = pic['p:blipFill'] as Record<string, unknown> | undefined;
+  const blip = blipFill?.['a:blip'] as Record<string, unknown> | undefined;
+  const rId = (blip?.['@_r:embed'] ?? blip?.['@_xmlns:r']) as string | undefined;
+  if (!rId) return null;
+  const target = relsMap.get(rId);
+  if (!target) return null;
+
+  // target 은 ../media/imageN.png 형태 — ppt/ 기준 절대 경로로
+  const absPath = target.startsWith('../')
+    ? `ppt/${target.slice(3)}`
+    : target.startsWith('/')
+      ? target.slice(1)
+      : `ppt/slides/${target}`;
+  const mediaFile = zip.file(absPath);
+  if (!mediaFile) return null;
+
+  // 이미지 → base64 → data URL
+  const u8 = await mediaFile.async('uint8array');
+  const ext2 = absPath.split('.').pop()?.toLowerCase() ?? 'png';
+  let mime = 'image/png';
+  if (ext2 === 'jpg' || ext2 === 'jpeg') mime = 'image/jpeg';
+  else if (ext2 === 'gif') mime = 'image/gif';
+  else if (ext2 === 'bmp') mime = 'image/bmp';
+  else if (ext2 === 'svg') mime = 'image/svg+xml';
+  else if (ext2 === 'webp') mime = 'image/webp';
+
+  // 큰 이미지(>3MB)는 거부 — base64 로 부풀면 12MB 가 됨
+  if (u8.byteLength > 3 * 1024 * 1024) return null;
+
+  let binary = '';
+  for (let i = 0; i < u8.byteLength; i++) binary += String.fromCharCode(u8[i]);
+  const base64 = btoa(binary);
+  const src = `data:${mime};base64,${base64}`;
+
+  return {
+    id: newId('el'),
+    type: 'image',
+    xPct: clamp01((xEmu / SLIDE_W_EMU) * 100),
+    yPct: clamp01((yEmu / SLIDE_H_EMU) * 100),
+    wPct: clamp01((cxEmu / SLIDE_W_EMU) * 100),
+    hPct: clamp01((cyEmu / SLIDE_H_EMU) * 100),
+    src,
+  };
 }
 
 function extractText(node: unknown): string {
