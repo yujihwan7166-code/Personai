@@ -1239,7 +1239,7 @@ export default function CloudSheetEditor() {
     );
   }
 
-  const selectedRef = cellRef(selected.row, selected.col);
+  // selectedRef 는 위에서 이미 선언됨 (TDZ 회피용 hoist)
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
