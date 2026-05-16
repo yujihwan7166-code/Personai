@@ -21,6 +21,7 @@ import {
   setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
   searchByName, fetchNode,
 } from '@/lib/cloudClient';
+import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndConvert';
 import {
   type CloudNode, FILE_TYPE_EMOJI, FILE_TYPE_LABEL, formatSize,
 } from '@/types/cloud';
@@ -65,6 +66,82 @@ export default function Cloud() {
       description: 'Storage 셋업(청크 4) 후 파일 업로드·편집이 추가됩니다.',
     });
   }, []);
+
+  // ─── 파일 업로드 → 자동 변환 → 편집기 진입 ───
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleUploadFiles = useCallback(async (files: FileList | File[]) => {
+    if (!user) {
+      toast({ title: '로그인이 필요해요' });
+      return;
+    }
+    const arr = Array.from(files);
+    if (arr.length === 0) return;
+    setUploadBusy(true);
+    try {
+      // 여러 파일이면 차례로 변환, 마지막 파일의 편집기로 이동
+      let lastRoute: string | null = null;
+      let successCount = 0;
+      for (const file of arr) {
+        try {
+          const result = await uploadAndConvert(file, {
+            ownerId: user.id,
+            parentFolderId: currentFolderId,
+          });
+          lastRoute = result.route;
+          successCount++;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          toast({ title: `${file.name} 업로드 실패`, description: msg });
+        }
+      }
+      await refresh();
+      if (successCount > 0) {
+        toast({
+          title: `${successCount}개 파일 업로드 완료`,
+          description: arr.length === 1 ? '편집기로 이동합니다.' : `현재 폴더에 추가됨.`,
+        });
+        // 파일 1개만 올렸으면 자동 편집기 이동
+        if (arr.length === 1 && lastRoute) {
+          navigate(lastRoute);
+        }
+      }
+    } finally {
+      setUploadBusy(false);
+    }
+  }, [user, currentFolderId, refresh, navigate]);
+
+  const handleUploadClick = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = ACCEPT_EXT_LIST;
+    input.onchange = () => {
+      if (input.files && input.files.length > 0) {
+        void handleUploadFiles(input.files);
+      }
+    };
+    input.click();
+  }, [handleUploadFiles]);
+
+  // 드래그&드롭
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  }, []);
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    // 자식 요소 이동 시 dragleave 무시
+    if (e.currentTarget === e.target) setDragOver(false);
+  }, []);
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) void handleUploadFiles(files);
+  }, [handleUploadFiles]);
 
   // ─── 새 문서 만들기 → 즉시 편집기 ───
   const handleCreateDoc = useCallback(async () => {
@@ -380,12 +457,14 @@ export default function Cloud() {
               새로 만들기
             </button>
             <button
-              onClick={notReady}
-              className="px-3 py-1.5 rounded text-sm hover:bg-muted flex items-center gap-1.5"
+              onClick={handleUploadClick}
+              disabled={uploadBusy}
+              className="px-3 py-1.5 rounded text-sm hover:bg-muted flex items-center gap-1.5 disabled:opacity-60"
               type="button"
+              title="파일 업로드 (.docx · .xlsx · .pptx · .md · .txt · .html · .csv)"
             >
               <Upload className="w-4 h-4" />
-              업로드
+              {uploadBusy ? '변환 중…' : '업로드'}
             </button>
             <button
               onClick={() => setSearchOpen(true)}
@@ -408,7 +487,31 @@ export default function Cloud() {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div
+        className={cn(
+          'flex-1 flex overflow-hidden relative',
+          dragOver && 'ring-2 ring-inset ring-foreground/30',
+        )}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        {/* 드래그 오버레이 */}
+        {dragOver && (
+          <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none">
+            <Upload className="w-12 h-12 text-foreground/70 mb-3" />
+            <div className="text-lg font-medium">파일을 놓으세요</div>
+            <div className="text-sm text-muted-foreground mt-1">
+              .docx · .xlsx · .pptx · .md · .txt · .html · .csv
+            </div>
+          </div>
+        )}
+        {uploadBusy && (
+          <div className="absolute top-4 right-4 z-40 px-3 py-2 rounded bg-background border border-border shadow text-xs flex items-center gap-2">
+            <Upload className="w-3 h-3 animate-pulse" />
+            파일 변환 중…
+          </div>
+        )}
         <aside className="w-56 shrink-0 border-r border-border bg-background overflow-y-auto p-3 text-sm hidden md:block">
           <SidebarItem icon={<Clock className="w-4 h-4" />} label="최근" disabled hint="다음 단계에서 활성화" />
           <SidebarItem

@@ -67,8 +67,14 @@ export default function CloudDocEditor() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialBody = useMemo(() => {
     if (!node?.meta) return null;
-    const body = (node.meta as Record<string, unknown>).body;
-    return body ?? null;
+    const meta = node.meta as Record<string, unknown>;
+    // 1순위: bodyHtml (업로드 변환 직후 — HTML)
+    // 2순위: bodyMarkdown (업로드 변환 직후 — markdown)
+    // 3순위: body (자체 포맷 ProseMirror JSON)
+    if (typeof meta.bodyHtml === 'string') return { type: 'html', value: meta.bodyHtml };
+    if (typeof meta.bodyMarkdown === 'string') return { type: 'markdown', value: meta.bodyMarkdown };
+    if (meta.body) return { type: 'json', value: meta.body };
+    return null;
   }, [node]);
 
   // 노드 로드
@@ -199,16 +205,25 @@ export default function CloudDocEditor() {
     },
   }, [node?.id]);
 
-  // 초기 본문 주입
+  // 초기 본문 주입 (bodyHtml / bodyMarkdown / body 우선순위)
   useEffect(() => {
     if (!editor || !node) return;
-    if (initialBody) {
-      try {
-        const content = typeof initialBody === 'string' ? JSON.parse(initialBody) : initialBody;
+    if (!initialBody) return;
+    try {
+      // HTML, markdown 둘 다 TipTap setContent 가 처리 (string 으로 주면 자동 인식)
+      // markdown 은 tiptap-markdown extension 이 알아서 변환
+      if (initialBody.type === 'html' || initialBody.type === 'markdown') {
+        editor.commands.setContent(initialBody.value as string, { emitUpdate: true });
+        // 첫 update 시 자동저장 큐에 들어가 meta.body (JSON) 로 저장됨
+        // bodyHtml / bodyMarkdown 키는 다음 save 에서 자연스럽게 사라짐
+      } else {
+        const content = typeof initialBody.value === 'string'
+          ? JSON.parse(initialBody.value)
+          : initialBody.value;
         editor.commands.setContent(content as object, { emitUpdate: false });
-      } catch {
-        editor.commands.setContent('', { emitUpdate: false });
       }
+    } catch {
+      editor.commands.setContent('', { emitUpdate: false });
     }
   }, [editor, node, initialBody]);
 
