@@ -118,7 +118,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
         }}
       >
         {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
-        <div className="shrink-0 px-7 pt-5 pb-4 flex items-start gap-3">
+        <div className="shrink-0 px-5 sm:px-7 pt-5 pb-4 flex items-start gap-2 sm:gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-[26px] sm:text-[30px] font-extrabold tracking-tight text-foreground leading-[1.1]">
               {data.greeting}
@@ -200,7 +200,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
         </div>
 
         {/* 본문 — 그리드 */}
-        <div className="wb-briefing-scroll flex-1 min-h-0 overflow-y-auto px-7 pb-7 pt-1">
+        <div className="wb-briefing-scroll flex-1 min-h-0 overflow-y-auto px-5 sm:px-7 pb-5 sm:pb-7 pt-1">
           {settings.widgets.length === 0 ? (
             <EmptyState onAdd={() => setPickerOpen(true)} />
           ) : (
@@ -216,7 +216,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
 
         {/* 편집 모드 안내 + autoShow 토글 */}
         {editMode && (
-          <div className="shrink-0 px-7 py-2.5 border-t border-foreground/8 flex items-center gap-4 bg-foreground/[0.02] backdrop-blur-sm">
+          <div className="shrink-0 px-5 sm:px-7 py-2.5 border-t border-foreground/8 flex items-center gap-3 sm:gap-4 bg-foreground/[0.02] backdrop-blur-sm">
             <div className="inline-flex items-center gap-1.5 text-[11.5px] text-foreground/85 font-semibold tracking-tight">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               편집 모드
