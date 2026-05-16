@@ -486,9 +486,9 @@ function WidgetActionMenu({
         ⋯
       </button>
       {open && (
-        <div className="absolute right-0 top-6 z-20 min-w-[140px] bg-card border border-foreground/15 rounded-md shadow-lg py-1 text-[11.5px]">
+        <div className="absolute right-0 top-6 z-20 min-w-[150px] bg-card border border-foreground/12 rounded-lg shadow-[0_8px_24px_-8px_hsl(30_30%_8%/0.25),_0_2px_6px_-2px_hsl(30_30%_8%/0.12)] py-1.5 text-[11.5px] overflow-hidden">
           {meta.allowedSizes.length > 1 && (
-            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">크기</div>
+            <div className="px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-muted-foreground/70 font-semibold">크기</div>
           )}
           {meta.allowedSizes.length > 1 && meta.allowedSizes.map((sz) => (
             <button
@@ -496,25 +496,43 @@ function WidgetActionMenu({
               type="button"
               onClick={(e) => { e.stopPropagation(); dailyBriefingStore.resizeWidget(widget.id, sz); onToggle(false); }}
               className={cn(
-                'w-full text-left px-2 py-1 hover:bg-accent flex items-center gap-1.5',
-                widget.size === sz && 'text-primary font-medium',
+                'w-full text-left px-2.5 py-1 hover:bg-foreground/5 flex items-center gap-2 transition-colors',
+                widget.size === sz && 'text-primary font-semibold',
               )}
             >
-              <span className="text-[10px] w-5 inline-block">{sizeLabel(sz)}</span>
-              {sz === widget.size && <span className="text-[9px]">✓</span>}
+              <SizeIcon size={sz} active={widget.size === sz} />
+              <span className="flex-1">{sizeLabel(sz)}</span>
+              {sz === widget.size && <span className="text-[10px]">✓</span>}
             </button>
           ))}
           {meta.allowedSizes.length > 1 && <div className="my-1 border-t border-foreground/8" />}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); dailyBriefingStore.removeWidget(widget.id); }}
-            className="w-full text-left px-2 py-1 hover:bg-rose-500/10 hover:text-rose-500 transition-colors flex items-center gap-1.5"
+            className="w-full text-left px-2.5 py-1.5 hover:bg-rose-500/10 hover:text-rose-500 transition-colors flex items-center gap-2"
           >
             <Trash2 className="h-3 w-3" />
             삭제
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** 크기 미니 아이콘 — S=1×1, M=2×1, L=2×2 비율로 시각 표현. */
+function SizeIcon({ size, active }: { size: WidgetSize; active?: boolean }) {
+  const w = size === 'S' ? 4 : 8;
+  const h = size === 'L' ? 8 : 4;
+  return (
+    <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+      <div
+        className={cn(
+          'rounded-[1.5px] border',
+          active ? 'bg-primary/85 border-primary' : 'border-foreground/35 bg-foreground/8',
+        )}
+        style={{ width: `${w}px`, height: `${h}px` }}
+      />
     </div>
   );
 }
