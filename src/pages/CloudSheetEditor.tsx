@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
+  Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -18,6 +19,15 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type Cells = Record<string, string>;
+
+interface CellFormat {
+  bold?: boolean;
+  italic?: boolean;
+  textColor?: string;
+  bgColor?: string;
+  align?: 'left' | 'center' | 'right';
+}
+type CellFormats = Record<string, CellFormat>;
 
 const ROWS = 50;
 const COLS = 26; // A~Z
@@ -40,6 +50,7 @@ export default function CloudSheetEditor() {
   const [helpOpen, setHelpOpen] = useState(false);
 
   const [cells, setCells] = useState<Cells>({});
+  const [cellFormats, setCellFormats] = useState<CellFormats>({});
   const [selected, setSelected] = useState<{ row: number; col: number }>({ row: 0, col: 0 });
   const [editing, setEditing] = useState<{ row: number; col: number } | null>(null);
   const [editingValue, setEditingValue] = useState('');
@@ -84,6 +95,16 @@ export default function CloudSheetEditor() {
           }
           setCells(safe);
         }
+        const storedFmt = meta?.cellFormats;
+        if (storedFmt && typeof storedFmt === 'object') {
+          const safeFmt: CellFormats = {};
+          for (const [k, v] of Object.entries(storedFmt as Record<string, unknown>)) {
+            if (v && typeof v === 'object') {
+              safeFmt[k] = v as CellFormat;
+            }
+          }
+          setCellFormats(safeFmt);
+        }
       } catch (e) {
         if (cancelled) return;
         setLoadError(e instanceof Error ? e.message : String(e));
@@ -109,15 +130,20 @@ export default function CloudSheetEditor() {
     }
   }, [id]);
 
-  const queueSave = useCallback((nextCells: Cells) => {
+  const queueSave = useCallback((patch: { cells?: Cells; cellFormats?: CellFormats }) => {
+    const baseMeta = (node?.meta ?? {}) as Record<string, unknown>;
     pendingRef.current = {
       ...pendingRef.current,
-      meta: { ...(node?.meta ?? {}), cells: nextCells },
+      meta: {
+        ...baseMeta,
+        cells: patch.cells ?? (baseMeta.cells as Cells | undefined) ?? cells,
+        cellFormats: patch.cellFormats ?? (baseMeta.cellFormats as CellFormats | undefined) ?? cellFormats,
+      },
     };
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, node?.meta]);
+  }, [flushSave, node?.meta, cells, cellFormats]);
 
   useEffect(() => {
     return () => {
@@ -132,7 +158,34 @@ export default function CloudSheetEditor() {
       const next = { ...c };
       if (value === '') delete next[ref];
       else next[ref] = value;
-      queueSave(next);
+      queueSave({ cells: next });
+      return next;
+    });
+  }, [queueSave]);
+
+  // ─── 셀 서식 변경 (현재 선택 셀) ───
+  const setCellFormat = useCallback((ref: string, patch: Partial<CellFormat>) => {
+    setCellFormats((f) => {
+      const cur = f[ref] ?? {};
+      const merged: CellFormat = { ...cur, ...patch };
+      // 빈 값은 제거 (저장 용량 ↓)
+      for (const k of Object.keys(merged) as Array<keyof CellFormat>) {
+        if (merged[k] === undefined || merged[k] === '') delete merged[k];
+      }
+      const next = { ...f };
+      if (Object.keys(merged).length === 0) delete next[ref];
+      else next[ref] = merged;
+      queueSave({ cellFormats: next });
+      return next;
+    });
+  }, [queueSave]);
+
+  const clearCellFormat = useCallback((ref: string) => {
+    setCellFormats((f) => {
+      if (!(ref in f)) return f;
+      const next = { ...f };
+      delete next[ref];
+      queueSave({ cellFormats: next });
       return next;
     });
   }, [queueSave]);
@@ -285,6 +338,92 @@ export default function CloudSheetEditor() {
           </div>
         </div>
 
+        {/* 서식 도구바 */}
+        <div className="border-t border-border bg-background flex items-center gap-0.5 px-3 py-1.5 overflow-x-auto text-sm">
+          {(() => {
+            const curFmt = cellFormats[selectedRef] ?? {};
+            return (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCellFormat(selectedRef, { bold: !curFmt.bold })}
+                  className={cn(
+                    'p-1.5 rounded transition-colors hover:bg-muted',
+                    curFmt.bold && 'bg-muted text-foreground',
+                  )}
+                  title="굵게"
+                  aria-pressed={!!curFmt.bold}
+                >
+                  <Bold className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCellFormat(selectedRef, { italic: !curFmt.italic })}
+                  className={cn(
+                    'p-1.5 rounded transition-colors hover:bg-muted',
+                    curFmt.italic && 'bg-muted text-foreground',
+                  )}
+                  title="기울임"
+                  aria-pressed={!!curFmt.italic}
+                >
+                  <Italic className="w-4 h-4" />
+                </button>
+                <div className="w-px h-5 bg-border mx-1" />
+
+                {/* 정렬 */}
+                <button
+                  type="button"
+                  onClick={() => setCellFormat(selectedRef, { align: 'left' })}
+                  className={cn('p-1.5 rounded hover:bg-muted', curFmt.align === 'left' && 'bg-muted')}
+                  title="왼쪽 정렬"
+                >
+                  <AlignLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCellFormat(selectedRef, { align: 'center' })}
+                  className={cn('p-1.5 rounded hover:bg-muted', curFmt.align === 'center' && 'bg-muted')}
+                  title="가운데 정렬"
+                >
+                  <AlignCenter className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCellFormat(selectedRef, { align: 'right' })}
+                  className={cn('p-1.5 rounded hover:bg-muted', curFmt.align === 'right' && 'bg-muted')}
+                  title="오른쪽 정렬"
+                >
+                  <AlignRight className="w-4 h-4" />
+                </button>
+                <div className="w-px h-5 bg-border mx-1" />
+
+                {/* 글자색 */}
+                <SheetColorBtn
+                  icon={<Palette className="w-3.5 h-3.5" />}
+                  value={curFmt.textColor ?? '#222222'}
+                  onChange={(c) => setCellFormat(selectedRef, { textColor: c })}
+                  title="글자색"
+                />
+                {/* 배경색 */}
+                <SheetColorBtn
+                  icon={<Highlighter className="w-3.5 h-3.5" />}
+                  value={curFmt.bgColor ?? '#fff59d'}
+                  onChange={(c) => setCellFormat(selectedRef, { bgColor: c })}
+                  title="배경색"
+                />
+                <button
+                  type="button"
+                  onClick={() => clearCellFormat(selectedRef)}
+                  className="p-1.5 rounded hover:bg-muted text-muted-foreground"
+                  title="서식 지우기"
+                >
+                  <Eraser className="w-4 h-4" />
+                </button>
+              </>
+            );
+          })()}
+        </div>
+
         {/* 수식 표시줄: 원본(raw, 수식 포함) 표시 */}
         <div className="border-t border-border bg-muted/20 flex items-center gap-2 px-3 py-1.5 text-xs">
           <span className="w-14 font-mono font-medium text-muted-foreground shrink-0">{selectedRef}</span>
@@ -304,6 +443,7 @@ export default function CloudSheetEditor() {
         <SheetGrid
           cells={cells}
           displayValues={displayValues}
+          cellFormats={cellFormats}
           selected={selected}
           editing={editing}
           editingValue={editingValue}
@@ -327,6 +467,7 @@ export default function CloudSheetEditor() {
 interface SheetGridProps {
   cells: Cells;
   displayValues: Cells;
+  cellFormats: CellFormats;
   selected: { row: number; col: number };
   editing: { row: number; col: number } | null;
   editingValue: string;
@@ -338,7 +479,7 @@ interface SheetGridProps {
 }
 
 function SheetGrid({
-  cells, displayValues, selected, editing, editingValue,
+  cells, displayValues, cellFormats, selected, editing, editingValue,
   onSelect, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
   const cols = useMemo(() => Array.from({ length: COLS }, (_, i) => colLabel(i)), []);
@@ -373,12 +514,14 @@ function SheetGrid({
                 const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
                 const isSelected = selected.row === rowIdx && selected.col === colIdx;
                 const isEditing = !!editing && editing.row === rowIdx && editing.col === colIdx;
+                const fmt = cellFormats[ref];
                 return (
                   <SheetCell
                     key={ref}
                     row={rowIdx}
                     col={colIdx}
                     value={display}
+                    format={fmt}
                     selected={isSelected}
                     editing={isEditing}
                     editingValue={editingValue}
@@ -406,6 +549,7 @@ interface SheetCellProps {
   row: number;
   col: number;
   value: string;
+  format?: CellFormat;
   selected: boolean;
   editing: boolean;
   editingValue: string;
@@ -417,7 +561,7 @@ interface SheetCellProps {
 }
 
 const SheetCell = React.memo(function SheetCell({
-  row, col, value, selected, editing, editingValue,
+  row, col, value, format, selected, editing, editingValue,
   onSelect, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetCellProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -435,6 +579,14 @@ const SheetCell = React.memo(function SheetCell({
     }
   }, [editing]);
 
+  const tdStyle: React.CSSProperties = {
+    padding: editing ? 0 : undefined,
+    backgroundColor: format?.bgColor,
+    color: format?.textColor,
+    fontWeight: format?.bold ? 600 : undefined,
+    fontStyle: format?.italic ? 'italic' : undefined,
+    textAlign: format?.align,
+  };
   return (
     <td
       onClick={() => onSelect(row, col)}
@@ -444,7 +596,7 @@ const SheetCell = React.memo(function SheetCell({
         'min-w-[88px] max-w-[200px] truncate',
         selected && !editing && 'outline outline-2 -outline-offset-2 outline-foreground/70',
       )}
-      style={{ padding: editing ? 0 : undefined }}
+      style={tdStyle}
     >
       {editing ? (
         <input
@@ -465,6 +617,36 @@ const SheetCell = React.memo(function SheetCell({
     </td>
   );
 });
+
+// ─────────────────────────────────────────────
+// 색 picker (서식 도구바)
+// ─────────────────────────────────────────────
+
+function SheetColorBtn({
+  icon, value, onChange, title,
+}: { icon: React.ReactNode; value: string; onChange: (c: string) => void; title?: string }) {
+  return (
+    <label
+      className="relative flex items-center gap-0.5 px-1.5 py-1.5 rounded hover:bg-muted cursor-pointer"
+      title={title}
+      aria-label={title}
+    >
+      {icon}
+      <span
+        className="block w-3 h-3 rounded-sm border border-border"
+        style={{ backgroundColor: value }}
+        aria-hidden
+      />
+      <input
+        type="color"
+        value={value.startsWith('#') && (value.length === 4 || value.length === 7) ? value : '#000000'}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 opacity-0 cursor-pointer"
+        aria-label={title}
+      />
+    </label>
+  );
+}
 
 // ─────────────────────────────────────────────
 // 저장 상태 뱃지
