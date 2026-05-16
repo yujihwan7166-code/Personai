@@ -10,7 +10,7 @@ import {
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
   Hash, Square as SquareIcon, Combine, Split,
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
-  Upload, Download, Sparkles,
+  Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -23,6 +23,11 @@ import { fetchNode, updateFileBody } from '@/lib/cloudClient';
 import { evalCell, idxToCol, colToIdx } from '@/lib/cloudSheet/formula';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
+import { buildChartData, flattenForPie, CHART_PALETTE, type SelRange } from '@/lib/cloudSheet/chart';
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell as RechartsCell,
+  XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -480,6 +485,18 @@ export default function CloudSheetEditor() {
     setSheetsMeta(nextSheets);
     queueSave({ sheets: nextSheets });
   }, [sheetsMeta, queueSave]);
+
+  // ─── 차트 모달 ───
+  const [chartOpen, setChartOpen] = useState(false);
+  const openChart = useCallback(() => {
+    const isSingle =
+      selBounds.minR === selBounds.maxR && selBounds.minC === selBounds.maxC;
+    if (isSingle) {
+      toast({ title: '먼저 2칸 이상 선택하세요', description: 'Shift+화살표 / 마우스 드래그' });
+      return;
+    }
+    setChartOpen(true);
+  }, [selBounds]);
 
   // ─── AI 액션 ───
   const [aiBusy, setAiBusy] = useState<string | null>(null);
@@ -1156,6 +1173,11 @@ export default function CloudSheetEditor() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[200px]">
+                <DropdownMenuItem onSelect={openChart}>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  차트 만들기 (선택 범위)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={aiSummarizeAll} disabled={!!aiBusy}>
                   <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
                   데이터 요약 (AI)
@@ -1505,6 +1527,13 @@ export default function CloudSheetEditor() {
       </footer>
 
       <SheetHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      <ChartModal
+        open={chartOpen}
+        onClose={() => setChartOpen(false)}
+        cells={cells}
+        range={selBounds}
+      />
 
       {/* AI 결과 모달 */}
       <Dialog open={!!aiResult} onOpenChange={(v) => { if (!v) setAiResult(null); }}>
@@ -2033,5 +2062,188 @@ function HelpRow({ keys, label }: { keys: string[]; label: string }) {
         ))}
       </span>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 차트 모달 (선택 범위 → 막대/선/원)
+// ─────────────────────────────────────────────
+
+type ChartType = 'bar' | 'line' | 'pie';
+
+interface ChartModalProps {
+  open: boolean;
+  onClose: () => void;
+  cells: Cells;
+  range: SelRange;
+}
+
+function ChartModal({ open, onClose, cells, range }: ChartModalProps) {
+  const [type, setType] = useState<ChartType>('bar');
+  const [orientation, setOrientation] = useState<'columns' | 'rows'>('columns');
+  const data = useMemo(
+    () => buildChartData(cells, range, orientation),
+    [cells, range, orientation],
+  );
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  // 모달 열릴 때 막대로 초기화
+  useEffect(() => { if (open) setType('bar'); }, [open]);
+
+  const handleDownloadPng = useCallback(async () => {
+    if (!chartRef.current) return;
+    try {
+      const html2canvasMod = await import('html2canvas');
+      const html2canvas = html2canvasMod.default;
+      const canvas = await html2canvas(chartRef.current, { backgroundColor: '#ffffff', scale: 2 });
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chart_${Date.now()}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast({ title: 'PNG 저장됨' });
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'PNG 저장 실패', description: msg });
+    }
+  }, []);
+
+  const hasData = data.rows.length > 0 && data.seriesKeys.length > 0;
+  const rangeLabel = useMemo(() => {
+    const a = `${idxToCol(range.minC)}${range.minR + 1}`;
+    const b = `${idxToCol(range.maxC)}${range.maxR + 1}`;
+    return `${a}:${b}`;
+  }, [range]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-3xl">
+        <DialogTitle className="text-base flex items-center gap-2">
+          <BarChart3 className="w-4 h-4" />
+          차트 만들기 — {rangeLabel}
+        </DialogTitle>
+        <DialogDescription className="text-xs text-muted-foreground">
+          첫 행·첫 열을 라벨로 사용합니다. 숫자가 아닌 셀은 0으로 처리됩니다.
+        </DialogDescription>
+
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="flex items-center gap-1 p-0.5 rounded border border-border bg-muted/40">
+            <ChartTypeBtn icon={<BarChart3 className="w-4 h-4" />} label="막대" active={type === 'bar'} onClick={() => setType('bar')} />
+            <ChartTypeBtn icon={<LineChartIcon className="w-4 h-4" />} label="선" active={type === 'line'} onClick={() => setType('line')} />
+            <ChartTypeBtn icon={<PieChartIcon className="w-4 h-4" />} label="원" active={type === 'pie'} onClick={() => setType('pie')} />
+          </div>
+          <div className="flex items-center gap-1 p-0.5 rounded border border-border bg-muted/40">
+            <ChartTypeBtn label="열별 시리즈" active={orientation === 'columns'} onClick={() => setOrientation('columns')} />
+            <ChartTypeBtn label="행별 시리즈" active={orientation === 'rows'} onClick={() => setOrientation('rows')} />
+          </div>
+        </div>
+
+        <div ref={chartRef} className="h-[380px] bg-white rounded border border-border p-3">
+          {!hasData ? (
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+              데이터 부족 — 2×2 이상 범위를 선택하세요.
+            </div>
+          ) : type === 'bar' ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.rows} margin={{ top: 10, right: 16, bottom: 8, left: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                {data.seriesKeys.map((k, i) => (
+                  <Bar key={k} dataKey={k} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          ) : type === 'line' ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.rows} margin={{ top: 10, right: 16, bottom: 8, left: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                {data.seriesKeys.map((k, i) => (
+                  <Line
+                    key={k}
+                    type="monotone"
+                    dataKey={k}
+                    stroke={CHART_PALETTE[i % CHART_PALETTE.length]}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Pie
+                  data={flattenForPie(data)}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={120}
+                  label
+                >
+                  {flattenForPie(data).map((_, i) => (
+                    <RechartsCell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+          <span>
+            {type === 'pie' && data.seriesKeys.length > 1
+              ? `원형은 첫 시리즈(${data.seriesKeys[0]})만 표시 — 막대/선 권장`
+              : `시리즈 ${data.seriesKeys.length}개 × 카테고리 ${data.rows.length}개`}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadPng}
+              disabled={!hasData}
+              className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm flex items-center gap-1 disabled:opacity-50"
+            >
+              <Download className="w-3.5 h-3.5" /> PNG 저장
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-foreground/90 text-sm"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ChartTypeBtn({
+  icon, label, active, onClick,
+}: { icon?: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'px-2 py-1 rounded text-xs flex items-center gap-1 transition-colors',
+        active ? 'bg-background text-foreground shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground',
+      )}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
