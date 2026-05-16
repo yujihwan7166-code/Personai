@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
-import { evalCell } from '@/lib/cloudSheet/formula';
+import { evalCell, idxToCol, colToIdx } from '@/lib/cloudSheet/formula';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
@@ -102,15 +102,56 @@ function borderStyleFor(b: BorderStyle | undefined): React.CSSProperties {
   }
 }
 
-const ROWS = 50;
-const COLS = 26; // A~Z
+const DEFAULT_ROWS = 50;
+const DEFAULT_COLS = 26; // A~Z
+const MIN_ROWS = 10;
+const MIN_COLS = 5;
+const MAX_ROWS = 2000;
+const MAX_COLS = 200; // AA, AB, ..., GR
+const ROW_ADD_CHUNK = 20;
+const COL_ADD_CHUNK = 5;
+const DEFAULT_COL_WIDTH = 88; // px
+const MIN_COL_WIDTH = 40;
+const MAX_COL_WIDTH = 600;
 const AUTOSAVE_DELAY_MS = 1000;
 
 function colLabel(col: number): string {
-  return String.fromCharCode(65 + col); // A~Z (v1은 26열 고정이라 단순)
+  return idxToCol(col); // A, B, ..., Z, AA, AB, ...
 }
 function cellRef(row: number, col: number): string {
   return `${colLabel(col)}${row + 1}`;
+}
+
+/** cells 의 최대 row / col 계산 (참조 → 좌표) */
+function maxRowColFromCells(cells: Cells): { row: number; col: number } {
+  let maxR = -1; let maxC = -1;
+  for (const ref of Object.keys(cells)) {
+    const m = ref.match(/^([A-Z]+)(\d+)$/);
+    if (!m) continue;
+    const c = colToIdx(m[1]);
+    const r = Number(m[2]) - 1;
+    if (r > maxR) maxR = r;
+    if (c > maxC) maxC = c;
+  }
+  return { row: maxR, col: maxC };
+}
+
+function maxRowColFromAll(
+  allCells: AllCells, allMerges: AllMerges,
+): { row: number; col: number } {
+  let maxR = -1; let maxC = -1;
+  for (const sheetId of Object.keys(allCells)) {
+    const { row, col } = maxRowColFromCells(allCells[sheetId] ?? {});
+    if (row > maxR) maxR = row;
+    if (col > maxC) maxC = col;
+  }
+  for (const sheetId of Object.keys(allMerges)) {
+    for (const m of allMerges[sheetId] ?? []) {
+      if (m.maxR > maxR) maxR = m.maxR;
+      if (m.maxC > maxC) maxC = m.maxC;
+    }
+  }
+  return { row: maxR, col: maxC };
 }
 
 export default function CloudSheetEditor() {
@@ -127,6 +168,12 @@ export default function CloudSheetEditor() {
   const [currentSheetIdx, setCurrentSheetIdx] = useState(0);
   const [allCells, setAllCells] = useState<AllCells>({ s_initial: {} });
   const [allFormats, setAllFormats] = useState<AllFormats>({ s_initial: {} });
+
+  // 행/열 개수 — 파일 단위 (모든 시트 공통) v1
+  const [rowCount, setRowCount] = useState(DEFAULT_ROWS);
+  const [colCount, setColCount] = useState(DEFAULT_COLS);
+  // 열 너비 — colIdx → px (없으면 DEFAULT_COL_WIDTH)
+  const [colWidths, setColWidths] = useState<Record<number, number>>({});
 
   const [selected, setSelected] = useState<{ row: number; col: number }>({ row: 0, col: 0 });
   const [rangeAnchor, setRangeAnchor] = useState<{ row: number; col: number } | null>(null);
@@ -212,12 +259,32 @@ export default function CloudSheetEditor() {
         const storedAllCells = meta.allCells as AllCells | undefined;
         const storedAllFormats = meta.allFormats as AllFormats | undefined;
         const storedAllMerges = meta.allMerges as AllMerges | undefined;
+        const storedRowCount = typeof meta.rowCount === 'number' ? meta.rowCount : undefined;
+        const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
+        const storedColWidths = meta.colWidths as Record<string, number> | undefined;
         if (Array.isArray(storedSheets) && storedSheets.length > 0) {
           // 다중 시트 형식 (현재 모델)
+          const cellsAll = storedAllCells ?? {};
+          const mergesAll = storedAllMerges ?? {};
           setSheetsMeta(storedSheets);
-          setAllCells(storedAllCells ?? {});
+          setAllCells(cellsAll);
           setAllFormats(storedAllFormats ?? {});
-          setAllMerges(storedAllMerges ?? {});
+          setAllMerges(mergesAll);
+          // 데이터 기반 최소 그리드 크기 보장
+          const { row: maxR, col: maxC } = maxRowColFromAll(cellsAll, mergesAll);
+          const rc = Math.max(storedRowCount ?? DEFAULT_ROWS, maxR + 1, MIN_ROWS);
+          const cc = Math.max(storedColCount ?? DEFAULT_COLS, maxC + 1, MIN_COLS);
+          setRowCount(Math.min(rc, MAX_ROWS));
+          setColCount(Math.min(cc, MAX_COLS));
+          // 열 너비 복원 (key 가 문자열로 저장돼있으므로 숫자로 변환)
+          if (storedColWidths && typeof storedColWidths === 'object') {
+            const out: Record<number, number> = {};
+            for (const [k, v] of Object.entries(storedColWidths)) {
+              const idx = Number(k);
+              if (Number.isFinite(idx) && typeof v === 'number') out[idx] = v;
+            }
+            setColWidths(out);
+          }
           const idx = typeof meta.currentSheetIdx === 'number'
             ? Math.max(0, Math.min(meta.currentSheetIdx, storedSheets.length - 1))
             : 0;
@@ -245,6 +312,9 @@ export default function CloudSheetEditor() {
           setAllFormats({ [id]: safeFmt });
           setAllMerges({ [id]: [] });
           setCurrentSheetIdx(0);
+          const { row: maxR, col: maxC } = maxRowColFromCells(safe);
+          setRowCount(Math.max(DEFAULT_ROWS, maxR + 1, MIN_ROWS));
+          setColCount(Math.max(DEFAULT_COLS, maxC + 1, MIN_COLS));
         }
       } catch (e) {
         if (cancelled) return;
@@ -277,6 +347,9 @@ export default function CloudSheetEditor() {
     allFormats?: AllFormats;
     allMerges?: AllMerges;
     currentSheetIdx?: number;
+    rowCount?: number;
+    colCount?: number;
+    colWidths?: Record<number, number>;
   }) => {
     pendingRef.current = {
       ...pendingRef.current,
@@ -286,12 +359,15 @@ export default function CloudSheetEditor() {
         allFormats: patch.allFormats ?? allFormats,
         allMerges: patch.allMerges ?? allMerges,
         currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
+        rowCount: patch.rowCount ?? rowCount,
+        colCount: patch.colCount ?? colCount,
+        colWidths: patch.colWidths ?? colWidths,
       },
     };
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, currentSheetIdx]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, currentSheetIdx, rowCount, colCount, colWidths]);
 
   useEffect(() => {
     return () => {
@@ -496,13 +572,20 @@ export default function CloudSheetEditor() {
         setAllFormats(newAllFormats);
         setAllMerges(newAllMerges);
         setCurrentSheetIdx(sheetsMeta.length); // 첫 새 시트로 전환
+        // 가져온 시트가 현재 그리드보다 크면 자동 확장
+        const { row: maxR, col: maxC } = maxRowColFromAll(newAllCells, newAllMerges);
+        const nextRowCount = Math.min(MAX_ROWS, Math.max(rowCount, maxR + 1));
+        const nextColCount = Math.min(MAX_COLS, Math.max(colCount, maxC + 1));
+        if (nextRowCount !== rowCount) setRowCount(nextRowCount);
+        if (nextColCount !== colCount) setColCount(nextColCount);
         queueSave({
           sheets: nextSheets, allCells: newAllCells, allFormats: newAllFormats, allMerges: newAllMerges,
           currentSheetIdx: sheetsMeta.length,
+          rowCount: nextRowCount, colCount: nextColCount,
         });
         toast({
           title: '가져오기 완료',
-          description: `${imported.length}개 시트가 추가됐어요. 셀 병합도 보존됐어요.`,
+          description: `${imported.length}개 시트 추가 · 그리드 ${nextRowCount}행 × ${nextColCount}열 (셀 병합 보존)`,
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -510,7 +593,7 @@ export default function CloudSheetEditor() {
       }
     };
     input.click();
-  }, [allCells, allFormats, allMerges, sheetsMeta, queueSave]);
+  }, [allCells, allFormats, allMerges, sheetsMeta, rowCount, colCount, queueSave]);
 
   // ─── PDF export: 현재 시트 그리드 ───
   const exportPdf = useCallback(async () => {
@@ -566,6 +649,260 @@ export default function CloudSheetEditor() {
       currentSheetIdx: idx + 1,
     });
   }, [sheetsMeta, allCells, allFormats, allMerges, queueSave]);
+
+  // ─── 행/열 개수 조정 ───
+  const addRows = useCallback((n: number = ROW_ADD_CHUNK) => {
+    const next = Math.min(MAX_ROWS, rowCount + n);
+    if (next === rowCount) {
+      toast({ title: `최대 ${MAX_ROWS}행까지 지원합니다` });
+      return;
+    }
+    setRowCount(next);
+    queueSave({ rowCount: next });
+  }, [rowCount, queueSave]);
+
+  const addCols = useCallback((n: number = COL_ADD_CHUNK) => {
+    const next = Math.min(MAX_COLS, colCount + n);
+    if (next === colCount) {
+      toast({ title: `최대 ${MAX_COLS}열까지 지원합니다` });
+      return;
+    }
+    setColCount(next);
+    queueSave({ colCount: next });
+  }, [colCount, queueSave]);
+
+  // ─── 행/열 삽입·삭제 (셀·서식·병합 좌표 이동) ───
+  const shiftCellsRow = useCallback((cur: Cells, atRow: number, delta: number): Cells => {
+    if (delta === 0) return cur;
+    const out: Cells = {};
+    for (const [ref, v] of Object.entries(cur)) {
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!m) { out[ref] = v; continue; }
+      const colStr = m[1];
+      const r = Number(m[2]) - 1;
+      if (delta < 0 && r === atRow) continue; // 삭제 대상 행
+      const nr = r >= atRow ? r + delta : r;
+      if (nr < 0) continue;
+      out[`${colStr}${nr + 1}`] = v;
+    }
+    return out;
+  }, []);
+
+  const shiftCellsCol = useCallback((cur: Cells, atCol: number, delta: number): Cells => {
+    if (delta === 0) return cur;
+    const out: Cells = {};
+    for (const [ref, v] of Object.entries(cur)) {
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!m) { out[ref] = v; continue; }
+      const c = colToIdx(m[1]);
+      const rowStr = m[2];
+      if (delta < 0 && c === atCol) continue;
+      const nc = c >= atCol ? c + delta : c;
+      if (nc < 0) continue;
+      out[`${idxToCol(nc)}${rowStr}`] = v;
+    }
+    return out;
+  }, []);
+
+  const shiftFormatsRow = useCallback((cur: CellFormats, atRow: number, delta: number): CellFormats => {
+    if (delta === 0) return cur;
+    const out: CellFormats = {};
+    for (const [ref, v] of Object.entries(cur)) {
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!m) { out[ref] = v; continue; }
+      const colStr = m[1];
+      const r = Number(m[2]) - 1;
+      if (delta < 0 && r === atRow) continue;
+      const nr = r >= atRow ? r + delta : r;
+      if (nr < 0) continue;
+      out[`${colStr}${nr + 1}`] = v;
+    }
+    return out;
+  }, []);
+
+  const shiftFormatsCol = useCallback((cur: CellFormats, atCol: number, delta: number): CellFormats => {
+    if (delta === 0) return cur;
+    const out: CellFormats = {};
+    for (const [ref, v] of Object.entries(cur)) {
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!m) { out[ref] = v; continue; }
+      const c = colToIdx(m[1]);
+      const rowStr = m[2];
+      if (delta < 0 && c === atCol) continue;
+      const nc = c >= atCol ? c + delta : c;
+      if (nc < 0) continue;
+      out[`${idxToCol(nc)}${rowStr}`] = v;
+    }
+    return out;
+  }, []);
+
+  const shiftMergesRow = useCallback((cur: Merge[], atRow: number, delta: number): Merge[] => {
+    if (delta === 0) return cur;
+    const out: Merge[] = [];
+    for (const m of cur) {
+      // 삭제 행에 완전 흡수되는 1행 병합은 제거
+      if (delta < 0 && m.minR === atRow && m.maxR === atRow) continue;
+      const adj = (r: number) => (r >= atRow ? r + delta : r);
+      const nMinR = adj(m.minR);
+      const nMaxR = adj(m.maxR);
+      if (nMaxR < nMinR) continue;
+      out.push({ ...m, minR: Math.max(0, nMinR), maxR: nMaxR });
+    }
+    return out;
+  }, []);
+
+  const shiftMergesCol = useCallback((cur: Merge[], atCol: number, delta: number): Merge[] => {
+    if (delta === 0) return cur;
+    const out: Merge[] = [];
+    for (const m of cur) {
+      if (delta < 0 && m.minC === atCol && m.maxC === atCol) continue;
+      const adj = (c: number) => (c >= atCol ? c + delta : c);
+      const nMinC = adj(m.minC);
+      const nMaxC = adj(m.maxC);
+      if (nMaxC < nMinC) continue;
+      out.push({ ...m, minC: Math.max(0, nMinC), maxC: nMaxC });
+    }
+    return out;
+  }, []);
+
+  const insertRow = useCallback((atRow: number) => {
+    const nextRowCount = Math.min(MAX_ROWS, rowCount + 1);
+    const nextCells: AllCells = { ...allCells };
+    const nextFormats: AllFormats = { ...allFormats };
+    const nextMerges: AllMerges = { ...allMerges };
+    for (const sid of Object.keys(allCells)) {
+      nextCells[sid] = shiftCellsRow(allCells[sid] ?? {}, atRow, +1);
+    }
+    for (const sid of Object.keys(allFormats)) {
+      nextFormats[sid] = shiftFormatsRow(allFormats[sid] ?? {}, atRow, +1);
+    }
+    for (const sid of Object.keys(allMerges)) {
+      nextMerges[sid] = shiftMergesRow(allMerges[sid] ?? [], atRow, +1);
+    }
+    setAllCells(nextCells);
+    setAllFormats(nextFormats);
+    setAllMerges(nextMerges);
+    setRowCount(nextRowCount);
+    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount });
+  }, [rowCount, allCells, allFormats, allMerges, shiftCellsRow, shiftFormatsRow, shiftMergesRow, queueSave]);
+
+  const insertCol = useCallback((atCol: number) => {
+    const nextColCount = Math.min(MAX_COLS, colCount + 1);
+    const nextCells: AllCells = { ...allCells };
+    const nextFormats: AllFormats = { ...allFormats };
+    const nextMerges: AllMerges = { ...allMerges };
+    for (const sid of Object.keys(allCells)) {
+      nextCells[sid] = shiftCellsCol(allCells[sid] ?? {}, atCol, +1);
+    }
+    for (const sid of Object.keys(allFormats)) {
+      nextFormats[sid] = shiftFormatsCol(allFormats[sid] ?? {}, atCol, +1);
+    }
+    for (const sid of Object.keys(allMerges)) {
+      nextMerges[sid] = shiftMergesCol(allMerges[sid] ?? [], atCol, +1);
+    }
+    setAllCells(nextCells);
+    setAllFormats(nextFormats);
+    setAllMerges(nextMerges);
+    setColCount(nextColCount);
+    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, colCount: nextColCount });
+  }, [colCount, allCells, allFormats, allMerges, shiftCellsCol, shiftFormatsCol, shiftMergesCol, queueSave]);
+
+  const deleteRow = useCallback((atRow: number) => {
+    if (rowCount <= MIN_ROWS) {
+      toast({ title: `최소 ${MIN_ROWS}행은 유지됩니다` });
+      return;
+    }
+    const nextRowCount = rowCount - 1;
+    const nextCells: AllCells = { ...allCells };
+    const nextFormats: AllFormats = { ...allFormats };
+    const nextMerges: AllMerges = { ...allMerges };
+    for (const sid of Object.keys(allCells)) {
+      nextCells[sid] = shiftCellsRow(allCells[sid] ?? {}, atRow, -1);
+    }
+    for (const sid of Object.keys(allFormats)) {
+      nextFormats[sid] = shiftFormatsRow(allFormats[sid] ?? {}, atRow, -1);
+    }
+    for (const sid of Object.keys(allMerges)) {
+      nextMerges[sid] = shiftMergesRow(allMerges[sid] ?? [], atRow, -1);
+    }
+    setAllCells(nextCells);
+    setAllFormats(nextFormats);
+    setAllMerges(nextMerges);
+    setRowCount(nextRowCount);
+    setSelected((s) => ({ ...s, row: Math.min(s.row, nextRowCount - 1) }));
+    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount });
+  }, [rowCount, allCells, allFormats, allMerges, shiftCellsRow, shiftFormatsRow, shiftMergesRow, queueSave]);
+
+  const deleteCol = useCallback((atCol: number) => {
+    if (colCount <= MIN_COLS) {
+      toast({ title: `최소 ${MIN_COLS}열은 유지됩니다` });
+      return;
+    }
+    const nextColCount = colCount - 1;
+    const nextCells: AllCells = { ...allCells };
+    const nextFormats: AllFormats = { ...allFormats };
+    const nextMerges: AllMerges = { ...allMerges };
+    for (const sid of Object.keys(allCells)) {
+      nextCells[sid] = shiftCellsCol(allCells[sid] ?? {}, atCol, -1);
+    }
+    for (const sid of Object.keys(allFormats)) {
+      nextFormats[sid] = shiftFormatsCol(allFormats[sid] ?? {}, atCol, -1);
+    }
+    for (const sid of Object.keys(allMerges)) {
+      nextMerges[sid] = shiftMergesCol(allMerges[sid] ?? [], atCol, -1);
+    }
+    // 열 너비도 shift
+    const nextWidths: Record<number, number> = {};
+    for (const [k, v] of Object.entries(colWidths)) {
+      const c = Number(k);
+      if (c === atCol) continue;
+      const nc = c > atCol ? c - 1 : c;
+      nextWidths[nc] = v;
+    }
+    setAllCells(nextCells);
+    setAllFormats(nextFormats);
+    setAllMerges(nextMerges);
+    setColCount(nextColCount);
+    setColWidths(nextWidths);
+    setSelected((s) => ({ ...s, col: Math.min(s.col, nextColCount - 1) }));
+    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, colCount: nextColCount, colWidths: nextWidths });
+  }, [colCount, allCells, allFormats, allMerges, colWidths, shiftCellsCol, shiftFormatsCol, shiftMergesCol, queueSave]);
+
+  // ─── 열 너비 변경 ───
+  const setColWidth = useCallback((colIdx: number, w: number) => {
+    const clamped = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, Math.round(w)));
+    setColWidths((prev) => {
+      if (prev[colIdx] === clamped) return prev;
+      const next = { ...prev, [colIdx]: clamped };
+      queueSave({ colWidths: next });
+      return next;
+    });
+  }, [queueSave]);
+
+  // ─── 헤더 컨텍스트 메뉴 ───
+  const [ctxMenu, setCtxMenu] = useState<
+    | { kind: 'row' | 'col'; idx: number; x: number; y: number }
+    | null
+  >(null);
+
+  const openHeaderContextMenu = useCallback(
+    (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => {
+      e.preventDefault();
+      setCtxMenu({ kind, idx, x: e.clientX, y: e.clientY });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('blur', close);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('blur', close);
+    };
+  }, [ctxMenu]);
 
   // ─── 셀 병합 ───
   const applyMerge = useCallback((kind: 'all' | 'horizontal' | 'vertical' | 'unmerge') => {
@@ -642,14 +979,14 @@ export default function CloudSheetEditor() {
       const ref = cellRef(cur.row, cur.col);
       setCellValue(ref, editingValue);
       if (moveDir === 'down') {
-        setSelected((s) => ({ ...s, row: Math.min(ROWS - 1, s.row + 1) }));
+        setSelected((s) => ({ ...s, row: Math.min(rowCount - 1, s.row + 1) }));
       } else if (moveDir === 'right') {
-        setSelected((s) => ({ ...s, col: Math.min(COLS - 1, s.col + 1) }));
+        setSelected((s) => ({ ...s, col: Math.min(colCount - 1, s.col + 1) }));
       }
       return null;
     });
     setEditingValue('');
-  }, [editingValue, setCellValue]);
+  }, [editingValue, setCellValue, rowCount, colCount]);
 
   const cancelEdit = useCallback(() => {
     setEditing(null);
@@ -676,15 +1013,15 @@ export default function CloudSheetEditor() {
           // 범위 확장: anchor 보존 (없으면 현재 selected 로 잡음), focus 만 이동
           setRangeAnchor((cur) => cur ?? { ...selected });
           setSelected((s) => ({
-            row: Math.max(0, Math.min(ROWS - 1, s.row + dr)),
-            col: Math.max(0, Math.min(COLS - 1, s.col + dc)),
+            row: Math.max(0, Math.min(rowCount - 1, s.row + dr)),
+            col: Math.max(0, Math.min(colCount - 1, s.col + dc)),
           }));
         } else {
           // 단일 셀로 리셋 + 이동
           setRangeAnchor(null);
           setSelected((s) => ({
-            row: Math.max(0, Math.min(ROWS - 1, s.row + dr)),
-            col: Math.max(0, Math.min(COLS - 1, s.col + dc)),
+            row: Math.max(0, Math.min(rowCount - 1, s.row + dr)),
+            col: Math.max(0, Math.min(colCount - 1, s.col + dc)),
           }));
         }
       };
@@ -716,7 +1053,7 @@ export default function CloudSheetEditor() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editing, selected, cells, startEdit, setCellValue, selBounds]);
+  }, [editing, selected, cells, startEdit, setCellValue, selBounds, rowCount, colCount]);
 
   // ─── 마우스 드래그 — 글로벌 pointerup 으로 종료 ───
   useEffect(() => {
@@ -1038,6 +1375,11 @@ export default function CloudSheetEditor() {
             hasRange={hasRange}
             mergeAtMap={mergeAtMap}
             coveredSet={coveredSet}
+            rowCount={rowCount}
+            colCount={colCount}
+            colWidths={colWidths}
+            onColResize={setColWidth}
+            onHeaderContextMenu={openHeaderContextMenu}
             editing={editing}
             editingValue={editingValue}
             onPointerDown={handleCellPointerDown}
@@ -1048,7 +1390,91 @@ export default function CloudSheetEditor() {
             onCancelEdit={cancelEdit}
           />
         </div>
+        {/* + 행/열 빠른 추가 버튼 */}
+        <div className="flex items-center gap-2 px-3 py-2 text-xs">
+          <button
+            type="button"
+            onClick={() => addRows(ROW_ADD_CHUNK)}
+            className="px-2 py-1 rounded border border-border hover:bg-muted flex items-center gap-1"
+            title={`행 +${ROW_ADD_CHUNK}`}
+          >
+            <Plus className="w-3.5 h-3.5" /> 행 +{ROW_ADD_CHUNK}
+          </button>
+          <button
+            type="button"
+            onClick={() => addCols(COL_ADD_CHUNK)}
+            className="px-2 py-1 rounded border border-border hover:bg-muted flex items-center gap-1"
+            title={`열 +${COL_ADD_CHUNK}`}
+          >
+            <Plus className="w-3.5 h-3.5" /> 열 +{COL_ADD_CHUNK}
+          </button>
+          <span className="text-muted-foreground ml-2">
+            {rowCount}행 × {colCount}열
+            <span className="opacity-60"> · 헤더 우클릭 → 삽입/삭제 · 열 가장자리 드래그 → 너비</span>
+          </span>
+        </div>
       </main>
+
+      {/* 헤더 컨텍스트 메뉴 — 우클릭 위치에 고정 */}
+      {ctxMenu && (
+        <div
+          className="fixed z-50 rounded border border-border bg-popover shadow-md text-sm min-w-[160px] py-1"
+          style={{ left: ctxMenu.x, top: ctxMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {ctxMenu.kind === 'row' ? (
+            <>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { insertRow(ctxMenu.idx); setCtxMenu(null); }}
+              >
+                위에 행 삽입
+              </button>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { insertRow(ctxMenu.idx + 1); setCtxMenu(null); }}
+              >
+                아래에 행 삽입
+              </button>
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive"
+                onClick={() => { deleteRow(ctxMenu.idx); setCtxMenu(null); }}
+              >
+                {ctxMenu.idx + 1}행 삭제
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { insertCol(ctxMenu.idx); setCtxMenu(null); }}
+              >
+                왼쪽에 열 삽입
+              </button>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { insertCol(ctxMenu.idx + 1); setCtxMenu(null); }}
+              >
+                오른쪽에 열 삽입
+              </button>
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive"
+                onClick={() => { deleteCol(ctxMenu.idx); setCtxMenu(null); }}
+              >
+                {idxToCol(ctxMenu.idx)}열 삭제
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* 하단 시트 탭 */}
       <footer className="border-t border-border bg-muted/20 flex items-center gap-1 px-3 py-1.5 overflow-x-auto text-sm">
@@ -1133,6 +1559,11 @@ interface SheetGridProps {
   hasRange: boolean;
   mergeAtMap: Map<string, { rows: number; cols: number }>;
   coveredSet: Set<string>;
+  rowCount: number;
+  colCount: number;
+  colWidths: Record<number, number>;
+  onColResize: (colIdx: number, newWidth: number) => void;
+  onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   editing: { row: number; col: number } | null;
   editingValue: string;
   onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
@@ -1145,24 +1576,33 @@ interface SheetGridProps {
 
 function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
+  rowCount, colCount, colWidths, onColResize, onHeaderContextMenu,
   editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
-  const cols = useMemo(() => Array.from({ length: COLS }, (_, i) => colLabel(i)), []);
-  const rows = useMemo(() => Array.from({ length: ROWS }, (_, i) => i), []);
+  const cols = useMemo(() => Array.from({ length: colCount }, (_, i) => colLabel(i)), [colCount]);
+  const rows = useMemo(() => Array.from({ length: rowCount }, (_, i) => i), [rowCount]);
 
   return (
     <div className="inline-block min-w-full">
-      <table className="border-collapse text-sm font-normal">
+      <table className="border-collapse text-sm font-normal" style={{ tableLayout: 'fixed' }}>
         <thead className="sticky top-0 z-10">
           <tr>
             <th className="w-10 h-7 border border-border bg-muted/40 sticky left-0 z-20"></th>
-            {cols.map((c) => (
+            {cols.map((c, i) => (
               <th
                 key={c}
-                className="border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground min-w-[88px]"
+                className="border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground relative group"
+                style={{ width: colWidths[i] ?? DEFAULT_COL_WIDTH, minWidth: MIN_COL_WIDTH }}
+                onContextMenu={(e) => onHeaderContextMenu?.('col', i, e)}
               >
                 {c}
+                {/* 드래그 핸들 (오른쪽 가장자리) */}
+                <ColResizeHandle
+                  colIdx={i}
+                  currentWidth={colWidths[i] ?? DEFAULT_COL_WIDTH}
+                  onResize={onColResize}
+                />
               </th>
             ))}
           </tr>
@@ -1170,7 +1610,10 @@ function SheetGrid({
         <tbody>
           {rows.map((rowIdx) => (
             <tr key={rowIdx}>
-              <th className="w-10 h-7 border border-border bg-muted/40 text-xs font-normal text-muted-foreground sticky left-0 z-10">
+              <th
+                className="w-10 h-7 border border-border bg-muted/40 text-xs font-normal text-muted-foreground sticky left-0 z-10"
+                onContextMenu={(e) => onHeaderContextMenu?.('row', rowIdx, e)}
+              >
                 {rowIdx + 1}
               </th>
               {cols.map((_, colIdx) => {
@@ -1312,6 +1755,50 @@ const SheetCell = React.memo(function SheetCell({
     </td>
   );
 });
+
+// ─────────────────────────────────────────────
+// 열 너비 드래그 핸들 (헤더 오른쪽 가장자리)
+// ─────────────────────────────────────────────
+
+function ColResizeHandle({
+  colIdx, currentWidth, onResize,
+}: { colIdx: number; currentWidth: number; onResize: (colIdx: number, w: number) => void }) {
+  const startXRef = useRef(0);
+  const startWRef = useRef(0);
+  const draggingRef = useRef(false);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startXRef.current = e.clientX;
+    startWRef.current = currentWidth;
+    draggingRef.current = true;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+
+    const onMove = (ev: PointerEvent) => {
+      if (!draggingRef.current) return;
+      const dx = ev.clientX - startXRef.current;
+      onResize(colIdx, startWRef.current + dx);
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [colIdx, currentWidth, onResize]);
+
+  return (
+    <span
+      className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize select-none group-hover:bg-foreground/10"
+      onPointerDown={onPointerDown}
+      onDoubleClick={(e) => { e.stopPropagation(); onResize(colIdx, DEFAULT_COL_WIDTH); }}
+      aria-label="열 너비 조정"
+      role="separator"
+    />
+  );
+}
 
 // ─────────────────────────────────────────────
 // 시트 탭
