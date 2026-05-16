@@ -23,6 +23,7 @@ import { fetchNode, updateFileBody } from '@/lib/cloudClient';
 import { evalCell } from '@/lib/cloudSheet/formula';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
+import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -146,6 +147,7 @@ export default function CloudSheetEditor() {
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // ─── 노드 로드 + 초기 cells 주입 ───
   useEffect(() => {
@@ -456,6 +458,22 @@ export default function CloudSheetEditor() {
     input.click();
   }, [allCells, allFormats, sheetsMeta, queueSave]);
 
+  // ─── PDF export: 현재 시트 그리드 ───
+  const exportPdf = useCallback(async () => {
+    if (!gridRef.current) return;
+    try {
+      const name = sanitizeFileName(node?.name ?? '시트');
+      await exportElementToPdf(gridRef.current, {
+        fileName: `${name} - ${currentSheet?.name ?? 'Sheet'}`,
+        orientation: 'l',  // 시트는 가로
+      });
+      toast({ title: 'PDF 다운로드 시작', description: `${name}.pdf` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'PDF 내보내기 실패', description: msg });
+    }
+  }, [node?.name, currentSheet?.name]);
+
   // ─── .xlsx export: 모든 시트 → 파일 다운로드 ───
   const exportXlsx = useCallback(() => {
     try {
@@ -659,6 +677,10 @@ export default function CloudSheetEditor() {
                   <Download className="w-4 h-4 mr-2" />
                   .xlsx 내보내기
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { void exportPdf(); }}>
+                  <Download className="w-4 h-4 mr-2" />
+                  PDF 내보내기 (현재 시트)
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -808,19 +830,21 @@ export default function CloudSheetEditor() {
       </header>
 
       <main className="flex-1 overflow-auto">
-        <SheetGrid
-          cells={cells}
-          displayValues={displayValues}
-          cellFormats={cellFormats}
-          selected={selected}
-          editing={editing}
-          editingValue={editingValue}
-          onSelect={(row, col) => setSelected({ row, col })}
-          onStartEdit={startEdit}
-          onChangeValue={setEditingValue}
-          onCommitEdit={commitEdit}
-          onCancelEdit={cancelEdit}
-        />
+        <div ref={gridRef}>
+          <SheetGrid
+            cells={cells}
+            displayValues={displayValues}
+            cellFormats={cellFormats}
+            selected={selected}
+            editing={editing}
+            editingValue={editingValue}
+            onSelect={(row, col) => setSelected({ row, col })}
+            onStartEdit={startEdit}
+            onChangeValue={setEditingValue}
+            onCommitEdit={commitEdit}
+            onCancelEdit={cancelEdit}
+          />
+        </div>
       </main>
 
       {/* 하단 시트 탭 */}

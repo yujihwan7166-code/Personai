@@ -42,6 +42,7 @@ import { fetchNode, updateFileBody } from '@/lib/cloudClient';
 import { importDocxFile, exportDocxFromJson } from '@/lib/cloudDoc/docx';
 import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
 import { aiSummarize, aiRewrite, aiTranslate, aiChangeTone, aiContinue } from '@/lib/cloudDoc/ai';
+import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -258,6 +259,20 @@ export default function CloudDocEditor() {
     }
   }, [editor, node]);
 
+  const exportPdf = useCallback(async () => {
+    if (!editor || !node) return;
+    try {
+      // ProseMirror 본문 DOM 직접 캡처
+      const dom = editor.view.dom as HTMLElement;
+      const name = sanitizeFileName(node.name);
+      await exportElementToPdf(dom, { fileName: name, orientation: 'p' });
+      toast({ title: 'PDF 다운로드 시작', description: `${name}.pdf` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'PDF 내보내기 실패', description: msg });
+    }
+  }, [editor, node]);
+
   const exportMarkdown = useCallback(() => {
     if (!editor || !node) return;
     try {
@@ -369,6 +384,9 @@ export default function CloudDocEditor() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={exportMarkdown}>
                   📤 .md 로 내보내기
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { void exportPdf(); }}>
+                  📤 PDF 로 내보내기
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

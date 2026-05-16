@@ -23,6 +23,7 @@ import {
   aiNextSlide, aiImproveSlide, aiOutlinePresentation,
   slideToText, slidesToOutline, parseAiSlideContent,
 } from '@/lib/cloudSlide/ai';
+import { exportElementsToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -657,6 +658,74 @@ export default function CloudSlideEditor() {
     }
   }, [slides, node]);
 
+  // ─── PDF export: 슬라이드별 페이지 ───
+  // 화면에 안 보이는 슬라이드도 캡처하려면 모든 슬라이드를 임시 렌더 후 캡처
+  const exportPdf = useCallback(async () => {
+    if (!node) return;
+    setAiBusy('PDF 생성');
+    try {
+      // 임시 컨테이너에 모든 슬라이드 렌더
+      const host = document.createElement('div');
+      host.style.position = 'fixed';
+      host.style.left = '-99999px';
+      host.style.top = '0';
+      host.style.width = '1280px';  // 16:9 캔버스 폭
+      document.body.appendChild(host);
+
+      const elements: HTMLElement[] = [];
+      for (const s of slides) {
+        const slideEl = document.createElement('div');
+        slideEl.style.width = '1280px';
+        slideEl.style.height = '720px';
+        slideEl.style.position = 'relative';
+        slideEl.style.background = s.background ?? '#ffffff';
+        slideEl.style.overflow = 'hidden';
+        for (const el of s.elements) {
+          const child = document.createElement('div');
+          child.style.position = 'absolute';
+          child.style.left = `${el.xPct}%`;
+          child.style.top = `${el.yPct}%`;
+          child.style.width = `${el.wPct}%`;
+          child.style.height = `${el.hPct}%`;
+          if (el.type === 'text') {
+            child.style.padding = '4px 8px';
+            child.style.fontSize = `${el.fontSizeRem * 16}px`;
+            child.style.fontWeight = el.bold ? '600' : '400';
+            child.style.color = el.textColor ?? 'rgba(0,0,0,0.85)';
+            child.style.lineHeight = '1.25';
+            child.style.whiteSpace = 'pre-wrap';
+            child.textContent = el.content;
+          } else if (el.type === 'image') {
+            const img = document.createElement('img');
+            img.src = el.src;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'contain';
+            child.appendChild(img);
+          } else {
+            child.style.background = el.fillColor;
+            if (el.strokeColor) child.style.border = `${el.strokeWidth ?? 2}px solid ${el.strokeColor}`;
+            if (el.type === 'ellipse') child.style.borderRadius = '50%';
+          }
+          slideEl.appendChild(child);
+        }
+        host.appendChild(slideEl);
+        elements.push(slideEl);
+      }
+
+      const name = sanitizeFileName(node.name);
+      await exportElementsToPdf(elements, { fileName: name, orientation: 'l' });
+      toast({ title: 'PDF 다운로드 시작', description: `${name}.pdf (${slides.length}장)` });
+
+      document.body.removeChild(host);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'PDF 내보내기 실패', description: msg });
+    } finally {
+      setAiBusy(null);
+    }
+  }, [node, slides]);
+
   // ─── 발표 모드 ───
   const startPresent = useCallback(() => {
     setPresentIdx(currentIdx);
@@ -831,6 +900,9 @@ export default function CloudSlideEditor() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={exportPptx}>
                   📤 .pptx 내보내기
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { void exportPdf(); }} disabled={!!aiBusy}>
+                  📤 PDF 내보내기 ({slides.length}장)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
