@@ -10,6 +10,7 @@ import {
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
   Hash, Square as SquareIcon,
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
+  Upload, Download,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -20,6 +21,7 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
 import { evalCell } from '@/lib/cloudSheet/formula';
+import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -349,6 +351,77 @@ export default function CloudSheetEditor() {
     queueSave({ sheets: nextSheets });
   }, [sheetsMeta, queueSave]);
 
+  // ─── .xlsx import: 파일 선택 → 모든 시트 우리 파일에 추가 ───
+  const importXlsx = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls,.csv';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const imported = await importXlsxFile(file);
+        if (!imported.length) {
+          toast({ title: '가져올 시트가 없어요', description: '빈 파일입니다.' });
+          return;
+        }
+        // 새 시트들로 추가 (현재 시트는 보존)
+        const newMetas: SheetMeta[] = [];
+        const newAllCells: AllCells = { ...allCells };
+        const newAllFormats: AllFormats = { ...allFormats };
+        for (const sheet of imported) {
+          const id = newSheetId();
+          // 중복 이름 회피
+          const usedNames = new Set([
+            ...sheetsMeta.map((s) => s.name),
+            ...newMetas.map((s) => s.name),
+          ]);
+          let name = sheet.name || 'Imported';
+          let n = 2;
+          while (usedNames.has(name)) {
+            name = `${sheet.name} (${n++})`;
+          }
+          newMetas.push({ id, name });
+          newAllCells[id] = sheet.cells;
+          newAllFormats[id] = {};
+        }
+        const nextSheets = [...sheetsMeta, ...newMetas];
+        setSheetsMeta(nextSheets);
+        setAllCells(newAllCells);
+        setAllFormats(newAllFormats);
+        setCurrentSheetIdx(sheetsMeta.length); // 첫 새 시트로 전환
+        queueSave({
+          sheets: nextSheets, allCells: newAllCells, allFormats: newAllFormats,
+          currentSheetIdx: sheetsMeta.length,
+        });
+        toast({
+          title: '가져오기 완료',
+          description: `${imported.length}개 시트가 추가됐어요. 서식은 다음 단계에서 보존됩니다.`,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        toast({ title: '가져오기 실패', description: msg });
+      }
+    };
+    input.click();
+  }, [allCells, allFormats, sheetsMeta, queueSave]);
+
+  // ─── .xlsx export: 모든 시트 → 파일 다운로드 ───
+  const exportXlsx = useCallback(() => {
+    try {
+      const exportSheets = sheetsMeta.map((s) => ({
+        name: s.name,
+        cells: allCells[s.id] ?? {},
+      }));
+      const fileName = (node?.name ?? '시트').replace(/[\\/:*?"<>|]/g, '_');
+      exportXlsxFile(exportSheets, fileName);
+      toast({ title: '내보내기 완료', description: `${fileName}.xlsx 다운로드 시작` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '내보내기 실패', description: msg });
+    }
+  }, [sheetsMeta, allCells, node?.name]);
+
   const duplicateSheet = useCallback((idx: number) => {
     const src = sheetsMeta[idx];
     if (!src) return;
@@ -503,15 +576,28 @@ export default function CloudSheetEditor() {
             >
               <Keyboard className="w-4 h-4" />
             </button>
-            <button
-              type="button"
-              onClick={() => toast({ title: '곧 활성화돼요', description: '다운로드·공유는 다음 단계입니다.' })}
-              className="p-2 rounded hover:bg-muted"
-              aria-label="더보기"
-              title="더보기"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-2 rounded hover:bg-muted"
+                  aria-label="더보기"
+                  title="더보기"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                <DropdownMenuItem onSelect={importXlsx}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  .xlsx 가져오기
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={exportXlsx}>
+                  <Download className="w-4 h-4 mr-2" />
+                  .xlsx 내보내기
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

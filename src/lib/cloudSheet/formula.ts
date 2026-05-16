@@ -29,7 +29,7 @@ const FUNC_ORDER = ['AVERAGE', 'AVG', 'SUM', 'MIN', 'MAX', 'COUNT', 'IF', 'ABS',
 // 셀 좌표 헬퍼
 // ─────────────────────────────────────────────
 
-function colToIdx(col: string): number {
+export function colToIdx(col: string): number {
   let n = 0;
   for (const ch of col.toUpperCase()) {
     n = n * 26 + (ch.charCodeAt(0) - 64);
@@ -37,7 +37,7 @@ function colToIdx(col: string): number {
   return n - 1;
 }
 
-function idxToCol(i: number): string {
+export function idxToCol(i: number): string {
   let s = '';
   let n = i;
   while (n >= 0) {
