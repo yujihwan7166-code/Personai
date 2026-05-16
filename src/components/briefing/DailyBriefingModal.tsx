@@ -456,10 +456,10 @@ function WidgetPicker({
   }
   return (
     <div
-      className="absolute inset-0 z-30 bg-black/30 backdrop-blur-sm flex items-center justify-center p-6"
+      className="wb-backdrop-in absolute inset-0 z-30 bg-black/30 backdrop-blur-sm flex items-center justify-center p-6"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-[760px] max-h-[88%] bg-card border border-foreground/15 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="wb-picker-in w-full max-w-[760px] max-h-[88%] bg-card border border-foreground/15 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center justify-between">
           <h3 className="text-[14px] font-semibold text-foreground">위젯 추가</h3>
           <button

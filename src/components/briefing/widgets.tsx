@@ -26,10 +26,15 @@ interface WidgetProps {
 }
 
 // ──────────────────────────────────────────
-// 오늘 일정 (M)
+// 오늘 일정 (M) — 가로 timeline + 리스트
 export function ScheduleWidget({ data, onClose }: WidgetProps) {
   const navigate = useNavigate();
-  const items = data.timed.slice(0, 4);
+  const items = data.timed.slice(0, 3);
+
+  // 0~24h 타임라인 — 현재 시간 + 일정 블록
+  const now = new Date();
+  const nowPct = ((now.getHours() * 60 + now.getMinutes()) / (24 * 60)) * 100;
+
   return (
     <button
       type="button"
@@ -40,16 +45,50 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
       {items.length === 0 ? (
         <EmptyText text="오늘은 비어있어요" hint="플래너에서 일정 추가 →" />
       ) : (
-        <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
-          {items.map((it, i) => (
-            <li key={i} className="flex items-baseline gap-2 text-[12.5px] leading-tight">
-              <span className="tabular-nums font-mono text-foreground/60 text-[11px] shrink-0 w-[44px]">{fmtTime(it.startAt)}</span>
-              <span className={cn('flex-1 min-w-0 truncate text-foreground', it.done && 'line-through text-muted-foreground')}>
-                {it.title}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* 0-24h timeline */}
+          <div className="relative mt-2 h-1.5 rounded-full bg-foreground/8 overflow-hidden">
+            {data.timed.map((it, i) => {
+              const start = new Date(it.startAt);
+              const startPct = ((start.getHours() * 60 + start.getMinutes()) / (24 * 60)) * 100;
+              const end = it.endAt ? new Date(it.endAt) : null;
+              const endPct = end ? ((end.getHours() * 60 + end.getMinutes()) / (24 * 60)) * 100 : startPct + 2;
+              const widthPct = Math.max(1.5, endPct - startPct);
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    'absolute top-0 h-full rounded-full',
+                    it.kind === 'event'
+                      ? 'bg-primary/85'
+                      : it.done ? 'bg-emerald-500/55' : 'bg-amber-500/85',
+                  )}
+                  style={{ left: `${startPct}%`, width: `${widthPct}%` }}
+                />
+              );
+            })}
+            {/* 현재 시간 marker */}
+            <div
+              className="absolute top-[-2px] bottom-[-2px] w-[2px] bg-foreground"
+              style={{ left: `${nowPct}%` }}
+              title={`지금 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`}
+            />
+          </div>
+          <div className="flex justify-between mt-0.5 text-[8.5px] text-muted-foreground/60 tabular-nums">
+            <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span>
+          </div>
+          {/* 리스트 — top 3 */}
+          <ul className="mt-1.5 space-y-0.5 flex-1 overflow-hidden">
+            {items.map((it, i) => (
+              <li key={i} className="flex items-baseline gap-2 text-[11.5px] leading-tight">
+                <span className="tabular-nums font-mono text-foreground/60 text-[10.5px] shrink-0 w-[40px]">{fmtTime(it.startAt)}</span>
+                <span className={cn('flex-1 min-w-0 truncate text-foreground', it.done && 'line-through text-muted-foreground')}>
+                  {it.title}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </button>
   );

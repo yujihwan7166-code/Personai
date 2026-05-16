@@ -644,6 +644,18 @@
     animation: wb-backdrop-in 0.18s ease-out forwards;
   }
 
+  /* picker overlay entrance — fade + scale */
+  @keyframes wb-picker-in {
+    0%   { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .wb-picker-in {
+    animation: wb-picker-in 0.18s cubic-bezier(0.34, 1.36, 0.64, 1) forwards;
+  }
+
+  /* 카드 hover 시 살짝 떠오름 + scale (translate 와 결합) */
+  .wb-widget-card { will-change: transform; }
+
   /* 위젯 카드 stagger entrance — 그리드 채워질 때 위에서 살짝 부드럽게 */
   @keyframes wb-widget-in {
     0%   { opacity: 0; transform: translateY(8px) scale(0.98); }
