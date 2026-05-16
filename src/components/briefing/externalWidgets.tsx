@@ -71,6 +71,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
   const [geoState, setGeoState] = useState<'idle' | 'requesting' | 'denied'>(coords ? 'idle' : 'idle');
   const [cityInputOpen, setCityInputOpen] = useState(false);
   const [cityInput, setCityInput] = useState('');
+  const [cityError, setCityError] = useState<string | null>(null);
 
   // 처음 마운트 — 좌표 없으면 geolocation 시도
   useEffect(() => {
@@ -92,12 +93,16 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
 
   const submitCity = async () => {
     if (!cityInput.trim()) return;
+    setCityError(null);
     const loc = await geocodeCity(cityInput);
     if (loc) {
       setCoords(loc);
       setCityInputOpen(false);
       setCityInput('');
+      setCityError(null);
       dailyBriefingStore.updateWidgetConfig(widget.id, { lat: loc.lat, lon: loc.lon, city: loc.city });
+    } else {
+      setCityError(`"${cityInput.trim()}" 못 찾았어요`);
     }
   };
 
@@ -116,7 +121,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
       {!coords && geoState === 'denied' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
           <span className="text-[11px] text-muted-foreground">위치 정보가 없어요</span>
-          <CityInput value={cityInput} onChange={setCityInput} onSubmit={submitCity} />
+          <CityInput value={cityInput} onChange={(v) => { setCityInput(v); setCityError(null); }} onSubmit={submitCity} error={cityError} />
         </div>
       )}
       {!coords && geoState === 'requesting' && <CenterText text="위치 확인 중…" />}
@@ -124,7 +129,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
       {/* 도시 변경 입력 */}
       {coords && cityInputOpen && (
         <div className="flex-1 flex items-center justify-center">
-          <CityInput value={cityInput} onChange={setCityInput} onSubmit={submitCity} onCancel={() => setCityInputOpen(false)} />
+          <CityInput value={cityInput} onChange={(v) => { setCityInput(v); setCityError(null); }} onSubmit={submitCity} onCancel={() => { setCityInputOpen(false); setCityError(null); }} error={cityError} />
         </div>
       )}
 
@@ -161,8 +166,8 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
   );
 }
 
-function CityInput({ value, onChange, onSubmit, onCancel }: {
-  value: string; onChange: (v: string) => void; onSubmit: () => void; onCancel?: () => void;
+function CityInput({ value, onChange, onSubmit, onCancel, error }: {
+  value: string; onChange: (v: string) => void; onSubmit: () => void; onCancel?: () => void; error?: string | null;
 }) {
   return (
     <div className="w-full px-2 flex flex-col gap-1.5">
@@ -176,8 +181,14 @@ function CityInput({ value, onChange, onSubmit, onCancel }: {
           if (e.key === 'Escape' && onCancel) onCancel();
         }}
         placeholder="도시 (예: 서울)"
-        className="w-full h-7 px-2 text-[11.5px] rounded border border-foreground/20 bg-background focus:outline-none focus:border-primary"
+        className={cn(
+          'w-full h-7 px-2 text-[11.5px] rounded border bg-background focus:outline-none transition-colors',
+          error ? 'border-rose-400/60 focus:border-rose-500' : 'border-foreground/20 focus:border-primary',
+        )}
       />
+      {error && (
+        <span className="text-[9.5px] text-rose-500 font-medium leading-tight px-0.5">{error}</span>
+      )}
       <div className="flex gap-1">
         <button
           type="button"

@@ -211,6 +211,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
         {cells.map((cell, i) => {
           if (!cell) return <div key={i} />;
           const mark = isThisMonth ? data.monthMarks[cell.key] : undefined;
+          const hasMark = mark && (mark.events > 0 || mark.tasks > 0);
           return (
             <button
               key={i}
@@ -220,7 +221,9 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
                 'relative aspect-square text-[11px] rounded-lg flex flex-col items-center justify-center transition-all',
                 cell.isToday
                   ? 'bg-primary text-primary-foreground font-bold shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]'
-                  : 'text-foreground/80 font-medium hover:bg-foreground/5',
+                  : hasMark
+                    ? 'text-foreground font-semibold hover:bg-foreground/5'
+                    : 'text-foreground/80 font-medium hover:bg-foreground/5',
                 i % 7 === 0 && !cell.isToday && 'text-rose-500/90',
                 i % 7 === 6 && !cell.isToday && 'text-blue-500/90',
               )}
@@ -314,9 +317,18 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
         <EmptyText text="가까운 일 없음" hint="플래너에서 추가 →" icon={<Flag className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
-          {/* hero — 가장 가까운 D-day */}
+          {/* hero — 가장 가까운 D-day (오늘=rose, 1-3일=amber) */}
           <div className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="font-display text-[20px] font-extrabold tabular-nums text-foreground leading-none">
+            <span
+              className={cn(
+                'font-display font-extrabold tabular-nums leading-none',
+                hero.daysLeft === 0
+                  ? 'text-[22px] text-rose-500'
+                  : hero.daysLeft <= 3
+                    ? 'text-[20px] text-amber-600'
+                    : 'text-[20px] text-foreground',
+              )}
+            >
               {hero.daysLeft === 0 ? 'D-DAY' : `D-${hero.daysLeft}`}
             </span>
             <span className="text-[11px] text-foreground/85 truncate flex-1">{hero.label}</span>
