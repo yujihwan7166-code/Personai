@@ -3056,6 +3056,8 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
           <div className="font-medium text-foreground">수식 (✅ 지원):</div>
           <div>=SUM(A1:A10) · =AVG / AVERAGE · =MIN / MAX / COUNT</div>
           <div>=IF(A1{'>'}5, "큼", "작음") · =ABS / ROUND</div>
+          <div>=SUMIF(A1:A10, "{'>'}5") · =COUNTIF(B1:B10, "사과")</div>
+          <div>=SUMIFS(C1:C10, A1:A10, "{'>'}5", B1:B10, "사과")</div>
           <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2</div>
           <div className="text-muted-foreground/70">에러: #CIRCULAR / #ERROR / #DIV/0!</div>
           <div className="pt-1">시트 탭 · 셀 서식 · .xlsx import/export 는 다음 단계.</div>

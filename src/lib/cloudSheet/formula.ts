@@ -7,6 +7,7 @@
  * - 셀 참조: A1, AA10
  * - 범위: A1:B5 (열·행 자동 정렬)
  * - 함수: SUM / AVG / AVERAGE / MIN / MAX / COUNT / IF / ABS / ROUND
+ *         SUMIF / COUNTIF / SUMIFS / COUNTIFS (criteria: 숫자/문자열/">5" 등)
  * - 문자열 리터럴: "..."
  * - 숫자
  *
@@ -23,7 +24,11 @@
 
 type Cells = Record<string, string>;
 
-const FUNC_ORDER = ['AVERAGE', 'AVG', 'SUM', 'MIN', 'MAX', 'COUNT', 'IF', 'ABS', 'ROUND'];
+// 긴 이름부터 → SUMIFS/COUNTIFS 가 SUMIF/COUNTIF 보다 먼저 매칭되도록
+const FUNC_ORDER = [
+  'AVERAGE', 'AVG', 'SUMIFS', 'COUNTIFS', 'SUMIF', 'COUNTIF',
+  'SUM', 'MIN', 'MAX', 'COUNT', 'IF', 'ABS', 'ROUND',
+];
 
 // ─────────────────────────────────────────────
 // 셀 좌표 헬퍼
@@ -100,15 +105,18 @@ function formatResult(v: unknown): string {
 function evalExpr(expr: string, cells: Cells, visiting: Set<string>): unknown {
   let work = expr;
 
-  // 1. 범위 (A1:B5) 평가 → 숫자 배열
+  // 1. 범위 (A1:B5) 평가 → 값 배열 (숫자/문자열 혼합 — SUMIF/COUNTIF 호환)
   work = work.replace(/([A-Z]+)(\d+):([A-Z]+)(\d+)/g, (_m, c1, r1, c2, r2) => {
     const refs = collectRange(c1 as string, Number(r1), c2 as string, Number(r2));
-    const values = refs.map((r) => {
+    const tokens = refs.map((r) => {
       const v = evalWithGuard(r, cells, visiting);
+      if (v.startsWith('#')) return '0';
       const n = Number(v);
-      return Number.isFinite(n) ? n : 0;
+      if (Number.isFinite(n) && v.trim() !== '') return String(n);
+      if (v === '') return '""';
+      return JSON.stringify(v);
     });
-    return `[${values.join(',')}]`;
+    return `[${tokens.join(',')}]`;
   });
 
   // 2. 단일 셀 참조 (A1) → 숫자 또는 문자열 리터럴
@@ -172,12 +180,120 @@ function evalExpr(expr: string, cells: Cells, visiting: Set<string>): unknown {
     return Math.round(Number(n) * p) / p;
   };
 
+  /** 단일 값이 엑셀식 criteria 매치하는지 */
+  const matchCriteria = (value: unknown, criteria: unknown): boolean => {
+    // criteria 가 숫자 → 같으면 매치
+    if (typeof criteria === 'number') {
+      const n = Number(value);
+      return Number.isFinite(n) && n === criteria;
+    }
+    if (typeof criteria !== 'string') return false;
+    // ">5" "<10" ">=3" "<=3" "<>2" "=4" 같은 비교 연산자
+    const opMatch = criteria.match(/^\s*(>=|<=|<>|>|<|=)\s*(.*)$/);
+    if (opMatch) {
+      const op = opMatch[1];
+      const rhsStr = opMatch[2].trim();
+      const rhsNum = Number(rhsStr);
+      const valStr = String(value);
+      // 숫자 비교 우선
+      if (Number.isFinite(rhsNum) && Number.isFinite(Number(value))) {
+        const v = Number(value);
+        switch (op) {
+          case '>': return v > rhsNum;
+          case '<': return v < rhsNum;
+          case '>=': return v >= rhsNum;
+          case '<=': return v <= rhsNum;
+          case '<>': return v !== rhsNum;
+          default: return v === rhsNum;
+        }
+      }
+      // 문자열 비교 (= 와 <> 만)
+      if (op === '=') return valStr === rhsStr;
+      if (op === '<>') return valStr !== rhsStr;
+      return false;
+    }
+    // 와일드카드: * (여러 문자) / ? (한 문자)
+    if (criteria.includes('*') || criteria.includes('?')) {
+      const pattern = criteria
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*/g, '.*')
+        .replace(/\?/g, '.');
+      return new RegExp(`^${pattern}$`, 'i').test(String(value));
+    }
+    // 단순 같음
+    return String(value) === criteria;
+  };
+
+  const __sumif = (range: unknown, criteria: unknown, sumRange?: unknown) => {
+    const arr = toArr(range);
+    const sumArr = sumRange !== undefined ? toArr(sumRange) : arr;
+    let total = 0;
+    for (let i = 0; i < arr.length; i++) {
+      if (matchCriteria(arr[i], criteria)) {
+        const n = Number(sumArr[i]);
+        if (Number.isFinite(n)) total += n;
+      }
+    }
+    return total;
+  };
+
+  const __countif = (range: unknown, criteria: unknown) => {
+    const arr = toArr(range);
+    let count = 0;
+    for (const v of arr) if (matchCriteria(v, criteria)) count++;
+    return count;
+  };
+
+  const __countifs = (...args: unknown[]) => {
+    // pairs: [range, criteria, range, criteria, ...]
+    if (args.length < 2 || args.length % 2 !== 0) return 0;
+    const pairs: Array<{ range: unknown[]; criteria: unknown }> = [];
+    for (let i = 0; i < args.length; i += 2) {
+      pairs.push({ range: toArr(args[i]), criteria: args[i + 1] });
+    }
+    const len = pairs[0].range.length;
+    let count = 0;
+    for (let i = 0; i < len; i++) {
+      let allMatch = true;
+      for (const p of pairs) {
+        if (!matchCriteria(p.range[i], p.criteria)) { allMatch = false; break; }
+      }
+      if (allMatch) count++;
+    }
+    return count;
+  };
+
+  const __sumifs = (sumRange: unknown, ...args: unknown[]) => {
+    if (args.length < 2 || args.length % 2 !== 0) return 0;
+    const sumArr = toArr(sumRange);
+    const pairs: Array<{ range: unknown[]; criteria: unknown }> = [];
+    for (let i = 0; i < args.length; i += 2) {
+      pairs.push({ range: toArr(args[i]), criteria: args[i + 1] });
+    }
+    let total = 0;
+    for (let i = 0; i < sumArr.length; i++) {
+      let allMatch = true;
+      for (const p of pairs) {
+        if (!matchCriteria(p.range[i], p.criteria)) { allMatch = false; break; }
+      }
+      if (allMatch) {
+        const n = Number(sumArr[i]);
+        if (Number.isFinite(n)) total += n;
+      }
+    }
+    return total;
+  };
+
   // 6. 평가 (new Function — 단일 사용자 환경 가정)
   const fn = new Function(
     '__sum', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
+    '__sumif', '__countif', '__sumifs', '__countifs',
     `"use strict"; return (${work});`,
   );
-  return fn(__sum, __avg, __average, __min, __max, __count, __if, __abs, __round);
+  return fn(
+    __sum, __avg, __average, __min, __max, __count, __if, __abs, __round,
+    __sumif, __countif, __sumifs, __countifs,
+  );
 }
 
 // ─────────────────────────────────────────────
