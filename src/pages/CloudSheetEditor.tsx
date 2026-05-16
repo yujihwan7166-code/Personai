@@ -11,6 +11,7 @@ import {
   Hash, Square as SquareIcon, Combine, Split,
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
   Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
+  Search as SearchIcon, ChevronUp, ChevronDown, Replace as ReplaceIcon,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -125,6 +126,10 @@ function colLabel(col: number): string {
 }
 function cellRef(row: number, col: number): string {
   return `${colLabel(col)}${row + 1}`;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** cells 의 최대 row / col 계산 (참조 → 좌표) */
@@ -595,6 +600,116 @@ export default function CloudSheetEditor() {
     },
     [hasRange, selBounds, cells, cellFormats, merges, allCells, allFormats, currentSheetId, queueSave],
   );
+
+  // ─── 검색/치환 (시트 내) ───
+  const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [searchCaseSensitive, setSearchCaseSensitive] = useState(false);
+  const [searchCursor, setSearchCursor] = useState(0);
+
+  // 매치된 셀 ref 목록 (현재 시트만)
+  const searchMatches = useMemo<string[]>(() => {
+    if (!searchQuery) return [];
+    const q = searchCaseSensitive ? searchQuery : searchQuery.toLowerCase();
+    const hits: string[] = [];
+    // 일관된 순서: row 우선, col 다음
+    for (let r = 0; r < rowCount; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const ref = cellRef(r, c);
+        const raw = cells[ref];
+        if (raw === undefined) continue;
+        const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
+        const hay = searchCaseSensitive ? display : display.toLowerCase();
+        if (hay.includes(q)) hits.push(ref);
+      }
+    }
+    return hits;
+  }, [searchQuery, searchCaseSensitive, cells, displayValues, rowCount, colCount]);
+
+  const searchMatchSet = useMemo(() => new Set(searchMatches), [searchMatches]);
+
+  // cursor 가 범위 벗어나면 0으로
+  useEffect(() => {
+    if (searchCursor >= searchMatches.length) setSearchCursor(0);
+  }, [searchMatches.length, searchCursor]);
+
+  // 현재 매치로 selected 이동 + scroll
+  const goToMatch = useCallback((idx: number) => {
+    if (searchMatches.length === 0) return;
+    const i = ((idx % searchMatches.length) + searchMatches.length) % searchMatches.length;
+    setSearchCursor(i);
+    const ref = searchMatches[i];
+    const m = ref.match(/^([A-Z]+)(\d+)$/);
+    if (!m) return;
+    setRangeAnchor(null);
+    setSelected({ row: Number(m[2]) - 1, col: colToIdx(m[1]) });
+    // 스크롤
+    setTimeout(() => {
+      const cell = gridRef.current?.querySelector(`[data-cell-ref="${ref}"]`) as HTMLElement | null;
+      cell?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    }, 0);
+  }, [searchMatches]);
+
+  const searchNext = useCallback(() => goToMatch(searchCursor + 1), [goToMatch, searchCursor]);
+  const searchPrev = useCallback(() => goToMatch(searchCursor - 1), [goToMatch, searchCursor]);
+
+  const replaceOneInSheet = useCallback(() => {
+    if (searchMatches.length === 0) return;
+    const ref = searchMatches[searchCursor];
+    const raw = cells[ref];
+    if (raw === undefined || raw.startsWith('=')) {
+      toast({ title: '수식 셀은 치환 X', description: '다음 매치로 넘어갑니다.' });
+      goToMatch(searchCursor + 1);
+      return;
+    }
+    const re = searchCaseSensitive
+      ? new RegExp(escapeRegex(searchQuery), 'g')
+      : new RegExp(escapeRegex(searchQuery), 'gi');
+    const next = raw.replace(re, replaceText);
+    setCellValue(ref, next);
+    // 새로 계산된 매치에서 같은 인덱스(다음 매치로 자연스럽게)
+  }, [searchMatches, searchCursor, cells, searchQuery, searchCaseSensitive, replaceText, setCellValue, goToMatch]);
+
+  const replaceAllInSheet = useCallback(() => {
+    if (searchMatches.length === 0) return;
+    const re = searchCaseSensitive
+      ? new RegExp(escapeRegex(searchQuery), 'g')
+      : new RegExp(escapeRegex(searchQuery), 'gi');
+    let count = 0;
+    const nextCells: Cells = { ...cells };
+    for (const ref of searchMatches) {
+      const raw = nextCells[ref];
+      if (raw === undefined || raw.startsWith('=')) continue;
+      const replaced = raw.replace(re, replaceText);
+      if (replaced !== raw) {
+        nextCells[ref] = replaced;
+        count++;
+      }
+    }
+    if (count === 0) {
+      toast({ title: '치환된 셀이 없어요', description: '(수식 셀은 제외됩니다)' });
+      return;
+    }
+    const nextAll: AllCells = { ...allCells, [currentSheetId]: nextCells };
+    setAllCells(nextAll);
+    queueSave({ allCells: nextAll });
+    toast({ title: `${count}개 셀 치환됨` });
+  }, [searchMatches, cells, searchQuery, searchCaseSensitive, replaceText, allCells, currentSheetId, queueSave]);
+
+  // 글로벌 Ctrl+F / Ctrl+H — 편집 중·input 안일 때도 받기
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (isMod && e.key.toLowerCase() === 'f') {
+        e.preventDefault(); setSearchOpen('find');
+      } else if (isMod && e.key.toLowerCase() === 'h') {
+        e.preventDefault(); setSearchOpen('replace');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
@@ -1496,6 +1611,27 @@ export default function CloudSheetEditor() {
         </div>
       </header>
 
+      {/* 검색·치환 패널 (Ctrl+F / Ctrl+H) — main 위쪽 */}
+      {searchOpen && (
+        <SheetSearchPanel
+          mode={searchOpen}
+          onModeChange={setSearchOpen}
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          replaceText={replaceText}
+          onReplaceTextChange={setReplaceText}
+          caseSensitive={searchCaseSensitive}
+          onCaseSensitiveChange={setSearchCaseSensitive}
+          matches={searchMatches.length}
+          cursor={searchCursor}
+          onNext={searchNext}
+          onPrev={searchPrev}
+          onReplaceOne={replaceOneInSheet}
+          onReplaceAll={replaceAllInSheet}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
+
       <main className="flex-1 overflow-auto">
         <div ref={gridRef}>
           <SheetGrid
@@ -1512,6 +1648,8 @@ export default function CloudSheetEditor() {
             colWidths={colWidths}
             onColResize={setColWidth}
             onHeaderContextMenu={openHeaderContextMenu}
+            matchedRefs={searchMatchSet}
+            currentMatchRef={searchMatches[searchCursor]}
             editing={editing}
             editingValue={editingValue}
             onPointerDown={handleCellPointerDown}
@@ -1720,6 +1858,8 @@ interface SheetGridProps {
   colWidths: Record<number, number>;
   onColResize: (colIdx: number, newWidth: number) => void;
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
+  matchedRefs?: Set<string>;
+  currentMatchRef?: string;
   editing: { row: number; col: number } | null;
   editingValue: string;
   onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
@@ -1733,6 +1873,7 @@ interface SheetGridProps {
 function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
   rowCount, colCount, colWidths, onColResize, onHeaderContextMenu,
+  matchedRefs, currentMatchRef,
   editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
@@ -1790,15 +1931,20 @@ function SheetGrid({
                   display = applyNumberFormat(display, fmt.numberFmt);
                 }
                 const span = mergeAtMap.get(key);
+                const isMatch = !!matchedRefs?.has(ref);
+                const isCurrentMatch = isMatch && currentMatchRef === ref;
                 return (
                   <SheetCell
                     key={ref}
+                    cellRefStr={ref}
                     row={rowIdx}
                     col={colIdx}
                     value={display}
                     format={fmt}
                     isFocus={isFocus}
                     isInRange={isInRange}
+                    isMatch={isMatch}
+                    isCurrentMatch={isCurrentMatch}
                     rowSpan={span?.rows}
                     colSpan={span?.cols}
                     editing={isEditing}
@@ -1825,12 +1971,15 @@ function SheetGrid({
 // ─────────────────────────────────────────────
 
 interface SheetCellProps {
+  cellRefStr: string;
   row: number;
   col: number;
   value: string;
   format?: CellFormat;
   isFocus: boolean;
   isInRange: boolean;
+  isMatch?: boolean;
+  isCurrentMatch?: boolean;
   rowSpan?: number;
   colSpan?: number;
   editing: boolean;
@@ -1844,7 +1993,8 @@ interface SheetCellProps {
 }
 
 const SheetCell = React.memo(function SheetCell({
-  row, col, value, format, isFocus, isInRange, rowSpan, colSpan, editing, editingValue,
+  cellRefStr, row, col, value, format, isFocus, isInRange,
+  isMatch, isCurrentMatch, rowSpan, colSpan, editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetCellProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1862,12 +2012,21 @@ const SheetCell = React.memo(function SheetCell({
     }
   }, [editing]);
 
-  // range 안 배경은 기존 bgColor 위에 살짝 덧입힘 (linear-gradient)
+  // range 안 배경 + 검색 매치 배경은 기존 bgColor 위에 살짝 덧입힘 (linear-gradient)
   let bg: string | undefined = format?.bgColor;
   if (isInRange && !isFocus) {
     bg = bg
       ? `linear-gradient(rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.15)), ${bg}`
       : 'rgba(59, 130, 246, 0.15)';
+  }
+  if (isMatch && !isFocus) {
+    // 노란 형광펜 톤
+    const matchLayer = isCurrentMatch
+      ? 'rgba(250, 204, 21, 0.55)'   // 현재: 진한 노랑
+      : 'rgba(250, 204, 21, 0.28)';  // 그 외: 옅은 노랑
+    bg = bg
+      ? `linear-gradient(${matchLayer}, ${matchLayer}), ${bg}`
+      : matchLayer;
   }
   const tdStyle: React.CSSProperties = {
     padding: editing ? 0 : undefined,
@@ -1880,6 +2039,7 @@ const SheetCell = React.memo(function SheetCell({
   };
   return (
     <td
+      data-cell-ref={cellRefStr}
       onPointerDown={(e) => onPointerDown(row, col, e)}
       onPointerEnter={() => onPointerEnter(row, col)}
       onDoubleClick={() => onStartEdit(row, col)}
@@ -1889,6 +2049,7 @@ const SheetCell = React.memo(function SheetCell({
         'border border-border h-7 px-2 align-middle relative cursor-cell select-none',
         'min-w-[88px] max-w-[200px] truncate',
         isFocus && !editing && 'outline outline-2 -outline-offset-2 outline-foreground/70',
+        isCurrentMatch && !isFocus && 'outline outline-2 -outline-offset-2 outline-amber-500',
       )}
       style={tdStyle}
     >
@@ -2354,6 +2515,119 @@ function ChartModal({ open, onClose, cells, range }: ChartModalProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 시트 검색·치환 패널 (Ctrl+F / Ctrl+H)
+// ─────────────────────────────────────────────
+
+interface SheetSearchPanelProps {
+  mode: 'find' | 'replace';
+  onModeChange: (m: 'find' | 'replace') => void;
+  query: string;
+  onQueryChange: (v: string) => void;
+  replaceText: string;
+  onReplaceTextChange: (v: string) => void;
+  caseSensitive: boolean;
+  onCaseSensitiveChange: (v: boolean) => void;
+  matches: number;
+  cursor: number;
+  onNext: () => void;
+  onPrev: () => void;
+  onReplaceOne: () => void;
+  onReplaceAll: () => void;
+  onClose: () => void;
+}
+
+function SheetSearchPanel({
+  mode, onModeChange, query, onQueryChange, replaceText, onReplaceTextChange,
+  caseSensitive, onCaseSensitiveChange, matches, cursor,
+  onNext, onPrev, onReplaceOne, onReplaceAll, onClose,
+}: SheetSearchPanelProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [mode]);
+
+  return (
+    <div className="border-b border-border bg-popover/95 backdrop-blur sticky top-0 z-20">
+      <div className="max-w-3xl mx-auto px-4 py-2 flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <SearchIcon className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) onPrev(); else onNext(); }
+              else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+              else if (e.key.toLowerCase() === 'h' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault(); onModeChange('replace');
+              } else if (e.key.toLowerCase() === 'f' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault(); onModeChange('find');
+              }
+            }}
+            placeholder="찾을 내용 (셀 값/수식 결과)"
+            className="flex-1 text-sm px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+          />
+          <span className="text-xs text-muted-foreground min-w-[48px] text-right tabular-nums">
+            {matches === 0 ? '0' : `${cursor + 1}/${matches}`}
+          </span>
+          <button type="button" onClick={onPrev} disabled={matches === 0}
+            className="p-1 rounded hover:bg-muted disabled:opacity-40" title="Shift+Enter">
+            <ChevronUp className="w-3.5 h-3.5" />
+          </button>
+          <button type="button" onClick={onNext} disabled={matches === 0}
+            className="p-1 rounded hover:bg-muted disabled:opacity-40" title="Enter">
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+          <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer select-none">
+            <input type="checkbox" checked={caseSensitive}
+              onChange={(e) => onCaseSensitiveChange(e.target.checked)} className="cursor-pointer" />
+            Aa
+          </label>
+          <button
+            type="button"
+            onClick={() => onModeChange(mode === 'find' ? 'replace' : 'find')}
+            className={cn('p-1 rounded hover:bg-muted', mode === 'replace' && 'bg-muted')}
+            title="Ctrl+H"
+            aria-label="치환 토글"
+          >
+            <ReplaceIcon className="w-3.5 h-3.5" />
+          </button>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-muted" title="Esc">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {mode === 'replace' && (
+          <div className="flex items-center gap-1.5">
+            <ReplaceIcon className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />
+            <input
+              type="text"
+              value={replaceText}
+              onChange={(e) => onReplaceTextChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); onReplaceOne(); }
+                else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+              }}
+              placeholder="바꿀 내용 (수식 셀은 보존)"
+              className="flex-1 text-sm px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+            />
+            <button type="button" onClick={onReplaceOne} disabled={matches === 0}
+              className="px-2 py-1 rounded border border-border hover:bg-muted text-xs disabled:opacity-40">
+              바꾸기
+            </button>
+            <button type="button" onClick={onReplaceAll} disabled={matches === 0}
+              className="px-2 py-1 rounded bg-foreground text-background hover:bg-foreground/90 text-xs disabled:opacity-40">
+              모두 바꾸기
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
