@@ -1429,6 +1429,95 @@ export default function CloudSheetEditor() {
     return () => window.removeEventListener('pointerup', onUp);
   }, [draggingRange]);
 
+  // ─── 자동 채우기 (Fill handle) ───
+  /** fillBounds: 채우기 영역 미리보기 — null 이면 idle */
+  const [fillTarget, setFillTarget] = useState<{ row: number; col: number } | null>(null);
+
+  /** 채우기 시작: source bounds = 현재 selBounds */
+  const startFill = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFillTarget({ row: selBounds.maxR, col: selBounds.maxC });
+  }, [selBounds]);
+
+  /** 마우스 이동 중 fill target 갱신 — gridRef 안 cell DOM 의 data-cell-ref 찾기 */
+  useEffect(() => {
+    if (!fillTarget) return;
+    const onMove = (ev: PointerEvent) => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const td = el?.closest('[data-cell-ref]') as HTMLElement | null;
+      const ref = td?.getAttribute('data-cell-ref');
+      if (!ref) return;
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!m) return;
+      const r = Number(m[2]) - 1;
+      const c = colToIdx(m[1]);
+      setFillTarget((cur) => (cur && cur.row === r && cur.col === c ? cur : { row: r, col: c }));
+    };
+    const onUp = () => {
+      const tgt = fillTarget;
+      setFillTarget(null);
+      if (!tgt) return;
+      // 채우기 영역 결정
+      const src = selBounds;
+      const fillR1 = Math.min(src.minR, tgt.row);
+      const fillR2 = Math.max(src.maxR, tgt.row);
+      const fillC1 = Math.min(src.minC, tgt.col);
+      const fillC2 = Math.max(src.maxC, tgt.col);
+      // 소스 영역과 일치하면 noop
+      if (fillR1 === src.minR && fillR2 === src.maxR
+          && fillC1 === src.minC && fillC2 === src.maxC) return;
+
+      // 채우기: 영역 안 (src 영역 제외) 셀에 src 패턴 cycle
+      const srcW = src.maxC - src.minC + 1;
+      const srcH = src.maxR - src.minR + 1;
+      const nextCells: Cells = { ...cells };
+      let changed = false;
+      for (let r = fillR1; r <= fillR2; r++) {
+        for (let c = fillC1; c <= fillC2; c++) {
+          // src 영역 안이면 그대로 두기
+          if (r >= src.minR && r <= src.maxR && c >= src.minC && c <= src.maxC) continue;
+          // src 안 어디서 가져올지 — cycle
+          const srcR = src.minR + ((r - src.minR) % srcH + srcH) % srcH;
+          const srcC = src.minC + ((c - src.minC) % srcW + srcW) % srcW;
+          const srcRef = cellRef(srcR, srcC);
+          const dstRef = cellRef(r, c);
+          const v = cells[srcRef];
+          if (v === undefined) {
+            if (dstRef in nextCells) { delete nextCells[dstRef]; changed = true; }
+          } else {
+            if (nextCells[dstRef] !== v) { nextCells[dstRef] = v; changed = true; }
+          }
+        }
+      }
+      if (changed) {
+        const nextAll: AllCells = { ...allCells, [currentSheetId]: nextCells };
+        setAllCells(nextAll);
+        queueSave({ allCells: nextAll });
+        // 채워진 영역을 새 선택 범위로
+        setRangeAnchor({ row: fillR1, col: fillC1 });
+        setSelected({ row: fillR2, col: fillC2 });
+      }
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [fillTarget, selBounds, cells, allCells, currentSheetId, queueSave]);
+
+  // 채우기 미리보기 영역 (drag 중)
+  const fillPreview = useMemo<SelBounds | null>(() => {
+    if (!fillTarget) return null;
+    return {
+      minR: Math.min(selBounds.minR, fillTarget.row),
+      maxR: Math.max(selBounds.maxR, fillTarget.row),
+      minC: Math.min(selBounds.minC, fillTarget.col),
+      maxC: Math.max(selBounds.maxC, fillTarget.col),
+    };
+  }, [fillTarget, selBounds]);
+
   // ─── 셀 마우스 핸들러 (SheetGrid 에 전달) ───
   const handleCellPointerDown = useCallback((row: number, col: number, e: React.PointerEvent) => {
     if (e.shiftKey) {
@@ -1774,6 +1863,9 @@ export default function CloudSheetEditor() {
             onHeaderContextMenu={openHeaderContextMenu}
             matchedRefs={searchMatchSet}
             currentMatchRef={searchMatches[searchCursor]}
+            fillPreview={fillPreview}
+            fillCorner={{ row: selBounds.maxR, col: selBounds.maxC }}
+            onFillStart={startFill}
             editing={editing}
             editingValue={editingValue}
             onPointerDown={handleCellPointerDown}
@@ -1984,6 +2076,11 @@ interface SheetGridProps {
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   matchedRefs?: Set<string>;
   currentMatchRef?: string;
+  /** fill 미리보기 영역 (드래그 중) */
+  fillPreview?: SelBounds | null;
+  /** fill handle: 어떤 (row, col) 에 핸들을 그릴지 — 보통 selBounds 의 maxR/maxC */
+  fillCorner?: { row: number; col: number };
+  onFillStart?: (e: React.PointerEvent) => void;
   editing: { row: number; col: number } | null;
   editingValue: string;
   onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
@@ -1998,6 +2095,7 @@ function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
   rowCount, colCount, colWidths, onColResize, onHeaderContextMenu,
   matchedRefs, currentMatchRef,
+  fillPreview, fillCorner, onFillStart,
   editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
@@ -2057,6 +2155,14 @@ function SheetGrid({
                 const span = mergeAtMap.get(key);
                 const isMatch = !!matchedRefs?.has(ref);
                 const isCurrentMatch = isMatch && currentMatchRef === ref;
+                const isInFillPreview = !!fillPreview
+                  && rowIdx >= fillPreview.minR && rowIdx <= fillPreview.maxR
+                  && colIdx >= fillPreview.minC && colIdx <= fillPreview.maxC
+                  && !(rowIdx >= selBounds.minR && rowIdx <= selBounds.maxR
+                       && colIdx >= selBounds.minC && colIdx <= selBounds.maxC);
+                const hasFillHandle = !!fillCorner
+                  && fillCorner.row === rowIdx && fillCorner.col === colIdx
+                  && !fillPreview;
                 return (
                   <SheetCell
                     key={ref}
@@ -2069,6 +2175,9 @@ function SheetGrid({
                     isInRange={isInRange}
                     isMatch={isMatch}
                     isCurrentMatch={isCurrentMatch}
+                    isInFillPreview={isInFillPreview}
+                    hasFillHandle={hasFillHandle}
+                    onFillStart={onFillStart}
                     rowSpan={span?.rows}
                     colSpan={span?.cols}
                     editing={isEditing}
@@ -2104,6 +2213,9 @@ interface SheetCellProps {
   isInRange: boolean;
   isMatch?: boolean;
   isCurrentMatch?: boolean;
+  isInFillPreview?: boolean;
+  hasFillHandle?: boolean;
+  onFillStart?: (e: React.PointerEvent) => void;
   rowSpan?: number;
   colSpan?: number;
   editing: boolean;
@@ -2118,7 +2230,8 @@ interface SheetCellProps {
 
 const SheetCell = React.memo(function SheetCell({
   cellRefStr, row, col, value, format, isFocus, isInRange,
-  isMatch, isCurrentMatch, rowSpan, colSpan, editing, editingValue,
+  isMatch, isCurrentMatch, isInFillPreview, hasFillHandle, onFillStart,
+  rowSpan, colSpan, editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetCellProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -2151,6 +2264,11 @@ const SheetCell = React.memo(function SheetCell({
     bg = bg
       ? `linear-gradient(${matchLayer}, ${matchLayer}), ${bg}`
       : matchLayer;
+  }
+  if (isInFillPreview) {
+    // fill 미리보기: 파란 점선 강조
+    const layer = 'rgba(59, 130, 246, 0.18)';
+    bg = bg ? `linear-gradient(${layer}, ${layer}), ${bg}` : layer;
   }
   const tdStyle: React.CSSProperties = {
     padding: editing ? 0 : undefined,
@@ -2192,6 +2310,14 @@ const SheetCell = React.memo(function SheetCell({
         />
       ) : (
         <span className="block truncate">{value}</span>
+      )}
+      {hasFillHandle && (
+        <span
+          onPointerDown={onFillStart}
+          className="absolute -right-1 -bottom-1 w-2.5 h-2.5 bg-foreground/80 hover:bg-foreground rounded-[1px] cursor-crosshair z-10"
+          aria-label="자동 채우기 핸들"
+          title="드래그해서 채우기"
+        />
       )}
     </td>
   );
