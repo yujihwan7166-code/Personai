@@ -86,13 +86,13 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
     >
       <div
         className={cn(
-          'relative w-full max-w-[1120px] flex flex-col bg-card border border-foreground/10 rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden',
+          'relative w-full max-w-[1120px] flex flex-col border border-foreground/10 rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden',
           closing ? 'wb-modal-out' : 'wb-modal-in',
         )}
         style={{
           height: 'min(700px, 92vh)',
-          // 모달 자체에 옅은 따뜻한 그라디언트 — 위쪽 살짝 밝게
-          backgroundImage: 'linear-gradient(180deg, hsl(40 35% 99%) 0%, hsl(var(--card)) 240px)',
+          // 모달 자체 — 따뜻한 cream 톤 (위쪽 살짝 더 밝게, Samsung 톤)
+          background: 'linear-gradient(180deg, hsl(40 30% 96%) 0%, hsl(40 22% 93%) 100%)',
         }}
       >
         {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
@@ -359,10 +359,10 @@ function WidgetCard({
       onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
       className={cn(
         'wb-widget-card relative rounded-2xl overflow-hidden transition-all',
-        // 평소 — 거의 보이지 않는 카드 (Notion/Mail 톤)
-        !editMode && 'bg-card/40 hover:bg-card hover:shadow-[0_8px_28px_-12px_hsl(30_15%_8%/0.18),_0_2px_8px_-4px_hsl(30_15%_8%/0.08)]',
-        !editMode && 'hover:-translate-y-0.5',
-        // 편집 모드 — 카드 boundary 명확
+        // 평소 — 부드러운 흰 카드 (Samsung 톤)
+        !editMode && 'bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_2px_8px_-4px_hsl(30_15%_8%/0.06)]',
+        !editMode && 'hover:shadow-[0_8px_28px_-12px_hsl(30_15%_8%/0.18),_0_3px_10px_-4px_hsl(30_15%_8%/0.10)] hover:-translate-y-0.5',
+        // 편집 모드 — boundary 명확 + ring
         editMode && 'wb-jiggle ring-2 ring-primary/30 cursor-grab bg-card shadow-md',
         editMode && isDragging && 'opacity-30 cursor-grabbing',
       )}
@@ -370,9 +370,9 @@ function WidgetCard({
         ...style,
         gridColumn: `${widget.col + 1} / span ${span.w}`,
         gridRow: `${widget.row + 1} / span ${span.h}`,
-        // hero (pickFirst) 만 살짝 색 ground — 다른 카드는 거의 투명
+        // hero (pickFirst) 만 옅은 amber ground — 다른 카드는 plain white
         background: isHero && !editMode
-          ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.10)').replace('hsl(', 'hsla(')}, ${meta.tint.hue.replace(')', ' / 0.02)').replace('hsl(', 'hsla(')})`
+          ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.10)').replace('hsl(', 'hsla(')}, hsl(var(--card)) 70%)`
           : undefined,
       }}
     >

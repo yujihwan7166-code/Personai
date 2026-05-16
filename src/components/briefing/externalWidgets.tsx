@@ -102,7 +102,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
   };
 
   return (
-    <div className="w-full h-full p-3 flex flex-col">
+    <div className="w-full h-full p-3.5 flex flex-col">
       <ExtHeader
         icon={<Cloud className="h-3.5 w-3.5" />}
         title={result?.data.city ?? coords?.city ?? '날씨'}
@@ -210,7 +210,7 @@ export function ForexWidget({ widget }: WidgetProps) {
   );
 
   return (
-    <div className="w-full h-full p-3 flex flex-col relative">
+    <div className="w-full h-full p-3.5 flex flex-col relative">
       <ExtHeader
         icon={<DollarSign className="h-3.5 w-3.5" />}
         title="환율"
@@ -333,7 +333,7 @@ export function NewsWidget({ widget }: WidgetProps) {
   );
 
   return (
-    <div className="w-full h-full p-3 flex flex-col">
+    <div className="w-full h-full p-3.5 flex flex-col">
       <ExtHeader
         icon={<Newspaper className="h-3.5 w-3.5" />}
         title="뉴스"
@@ -500,7 +500,7 @@ export function StockWidget({ widget }: WidgetProps) {
   );
 
   return (
-    <div className="w-full h-full p-3 flex flex-col">
+    <div className="w-full h-full p-3.5 flex flex-col">
       <ExtHeader
         icon={<TrendingUp className="h-3.5 w-3.5" />}
         title="코인"
@@ -666,7 +666,7 @@ export function HeatmapWidget(_p: WidgetProps) {
   }, []);
 
   return (
-    <div className="w-full h-full p-3 flex flex-col">
+    <div className="w-full h-full p-3.5 flex flex-col">
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-foreground/70">📊</span>
         <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-foreground/75">S&P 500 히트맵</span>

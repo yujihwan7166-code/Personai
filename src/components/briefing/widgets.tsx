@@ -39,7 +39,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-3 flex flex-col"
+      className="w-full h-full text-left p-3.5 flex flex-col"
     >
       <WidgetHeader icon={<Calendar className="h-3.5 w-3.5" />} title="오늘 일정" count={data.timed.length} kind="schedule" />
       {items.length === 0 ? (
@@ -104,7 +104,7 @@ export function TasksWidget({ data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-3 flex flex-col"
+      className="w-full h-full text-left p-3.5 flex flex-col"
     >
       <WidgetHeader icon={<CheckSquare className="h-3.5 w-3.5" />} title="오늘 할일" count={data.inbox.length} kind="tasks" />
       {items.length === 0 ? (
@@ -171,7 +171,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
   };
 
   return (
-    <div className="w-full h-full p-3 flex flex-col">
+    <div className="w-full h-full p-3.5 flex flex-col">
       {/* 헤더 */}
       <div className="flex items-center gap-1 mb-1.5">
         <button
@@ -256,7 +256,7 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-3 flex flex-col"
+      className="w-full h-full text-left p-3.5 flex flex-col"
     >
       <WidgetHeader icon={<Flame className="h-3.5 w-3.5" />} title="습관" count={`${done}/${total}`} kind="habits" />
       {total === 0 ? (
@@ -310,7 +310,7 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-3 flex flex-col"
+      className="w-full h-full text-left p-3.5 flex flex-col"
     >
       <WidgetHeader icon={<Flag className="h-3.5 w-3.5" />} title="D-day" count={items.length} kind="dday" />
       {items.length === 0 ? (
@@ -384,7 +384,7 @@ export function OverdueWidget({ widget, data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-3 flex flex-col"
+      className="w-full h-full text-left p-3.5 flex flex-col"
     >
       <WidgetHeader
         icon={<AlertTriangle className={cn('h-3.5 w-3.5', empty ? 'text-emerald-500' : 'text-rose-500')} />}
@@ -424,7 +424,7 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/journal'); }}
-      className="w-full h-full text-left p-3 flex flex-col"
+      className="w-full h-full text-left p-3.5 flex flex-col"
     >
       <WidgetHeader icon={<NotebookPen className="h-3.5 w-3.5" />} title="최근 일기" count="" kind="recentJournal" />
       {!entry ? (
