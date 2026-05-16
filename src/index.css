@@ -702,6 +702,16 @@
     animation: wb-pop-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
   }
 
+  /* ⋯ 메뉴 팝오버 — 작은 fade+scale */
+  @keyframes wb-menu-in {
+    0%   { opacity: 0; transform: scale(0.92) translateY(-2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .wb-menu-in {
+    animation: wb-menu-in 0.14s cubic-bezier(0.34, 1.36, 0.64, 1) forwards;
+    transform-origin: top right;
+  }
+
   /* 데일리 브리핑 스크롤바 — Samsung 톤 (얇고 옅음) */
   .wb-briefing-scroll {
     scrollbar-width: thin;

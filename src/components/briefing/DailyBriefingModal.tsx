@@ -495,7 +495,7 @@ function WidgetActionMenu({
         ⋯
       </button>
       {open && (
-        <div className="absolute right-0 top-6 z-20 min-w-[150px] bg-card border border-foreground/12 rounded-lg shadow-[0_8px_24px_-8px_hsl(30_30%_8%/0.25),_0_2px_6px_-2px_hsl(30_30%_8%/0.12)] py-1.5 text-[11.5px] overflow-hidden">
+        <div className="wb-menu-in absolute right-0 top-6 z-20 min-w-[150px] bg-card border border-foreground/12 rounded-lg shadow-[0_8px_24px_-8px_hsl(30_30%_8%/0.25),_0_2px_6px_-2px_hsl(30_30%_8%/0.12)] py-1.5 text-[11.5px] overflow-hidden">
           {meta.allowedSizes.length > 1 && (
             <div className="px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-muted-foreground/70 font-semibold">크기</div>
           )}
