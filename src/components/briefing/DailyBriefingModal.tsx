@@ -420,6 +420,14 @@ function WidgetCard({
       onDragEnd={() => onDragEnd?.()}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
+      /* 편집 모드에서 카드 본문 클릭 → 네비게이션 방지 (X·⋯ 만 동작) */
+      onClickCapture={(e) => {
+        if (!editMode) return;
+        const t = e.target as HTMLElement;
+        if (t.closest('[data-wb-edit-control]')) return;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       className={cn(
         'wb-widget-card relative rounded-2xl overflow-hidden transition-all',
         // 평소 — 부드러운 흰 카드 (Samsung 톤)
@@ -448,6 +456,7 @@ function WidgetCard({
       {editMode && (
         <button
           type="button"
+          data-wb-edit-control
           onClick={(e) => { e.stopPropagation(); dailyBriefingStore.removeWidget(widget.id); }}
           className="wb-pop-in absolute top-1.5 left-1.5 z-10 h-5 w-5 inline-flex items-center justify-center rounded-full bg-foreground/85 text-background hover:bg-rose-500 hover:scale-110 transition-all"
           aria-label="삭제"
@@ -459,7 +468,7 @@ function WidgetCard({
 
       {/* hover ⋯ 메뉴 — 평소·편집 모드 둘 다 */}
       {(hover || menuOpen) && (
-        <div className="absolute top-1.5 right-1.5 z-10">
+        <div data-wb-edit-control className="absolute top-1.5 right-1.5 z-10">
           <WidgetActionMenu
             widget={widget}
             open={menuOpen}
