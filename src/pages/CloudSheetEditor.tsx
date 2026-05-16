@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
+  Hash, Square as SquareIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -20,14 +21,64 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type Cells = Record<string, string>;
 
+type NumberFmt = 'currency-krw' | 'percent' | 'integer' | 'decimal2' | 'date';
+type BorderStyle = 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right';
+
 interface CellFormat {
   bold?: boolean;
   italic?: boolean;
   textColor?: string;
   bgColor?: string;
   align?: 'left' | 'center' | 'right';
+  numberFmt?: NumberFmt;
+  border?: BorderStyle;
 }
 type CellFormats = Record<string, CellFormat>;
+
+const NUMBER_FMT_OPTIONS: Array<{ value: '' | NumberFmt; label: string; example: string }> = [
+  { value: '',              label: '자동',     example: '' },
+  { value: 'integer',       label: '정수',     example: '1,234' },
+  { value: 'decimal2',      label: '소수 2자리', example: '1.23' },
+  { value: 'currency-krw',  label: '₩ 통화',   example: '₩1,234' },
+  { value: 'percent',       label: '%',        example: '12.3%' },
+  { value: 'date',          label: '날짜',     example: '2026-05-16' },
+];
+
+function applyNumberFormat(value: string, fmt: NumberFmt | undefined): string {
+  if (!fmt) return value;
+  const n = Number(value);
+  if (!Number.isFinite(n) || value === '') return value;
+  switch (fmt) {
+    case 'integer':       return Math.round(n).toLocaleString('ko-KR');
+    case 'decimal2':      return n.toFixed(2);
+    case 'currency-krw':  return `₩${n.toLocaleString('ko-KR')}`;
+    case 'percent':       return `${(n * 100).toFixed(1)}%`;
+    case 'date': {
+      // Excel serial(1900) vs ms timestamp 둘 다 시도
+      let d: Date | null = null;
+      if (n > 1e10) d = new Date(n);                 // ms timestamp
+      else if (n > 25569) d = new Date((n - 25569) * 86400 * 1000); // Excel serial
+      else d = new Date(n);                          // 그 외
+      if (isNaN(d.getTime())) return value;
+      return d.toLocaleDateString('ko-KR');
+    }
+    default: return value;
+  }
+}
+
+function borderStyleFor(b: BorderStyle | undefined): React.CSSProperties {
+  if (!b) return {};
+  const line = '1.5px solid hsl(var(--foreground))';
+  switch (b) {
+    case 'all':    return { boxShadow: `inset 0 0 0 1.5px hsl(var(--foreground))` };
+    case 'outer':  return { boxShadow: `inset 0 0 0 1.5px hsl(var(--foreground))` };
+    case 'top':    return { borderTop: line };
+    case 'bottom': return { borderBottom: line };
+    case 'left':   return { borderLeft: line };
+    case 'right':  return { borderRight: line };
+    default:       return {};
+  }
+}
 
 const ROWS = 50;
 const COLS = 26; // A~Z
@@ -411,6 +462,48 @@ export default function CloudSheetEditor() {
                   onChange={(c) => setCellFormat(selectedRef, { bgColor: c })}
                   title="배경색"
                 />
+                <div className="w-px h-5 bg-border mx-1" />
+
+                {/* 숫자 형식 */}
+                <Hash className="w-3.5 h-3.5 text-muted-foreground ml-1" aria-hidden />
+                <select
+                  value={curFmt.numberFmt ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value as '' | NumberFmt;
+                    setCellFormat(selectedRef, { numberFmt: v || undefined });
+                  }}
+                  className="text-xs px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer min-w-[88px]"
+                  title="숫자 형식"
+                  aria-label="숫자 형식"
+                >
+                  {NUMBER_FMT_OPTIONS.map((o) => (
+                    <option key={o.value || 'auto'} value={o.value}>
+                      {o.label}{o.example ? ` (${o.example})` : ''}
+                    </option>
+                  ))}
+                </select>
+
+                {/* 테두리 */}
+                <SquareIcon className="w-3.5 h-3.5 text-muted-foreground ml-1" aria-hidden />
+                <select
+                  value={curFmt.border ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value as '' | BorderStyle;
+                    setCellFormat(selectedRef, { border: v || undefined });
+                  }}
+                  className="text-xs px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer min-w-[74px]"
+                  title="테두리"
+                  aria-label="테두리"
+                >
+                  <option value="">없음</option>
+                  <option value="all">전체</option>
+                  <option value="top">위</option>
+                  <option value="bottom">아래</option>
+                  <option value="left">왼쪽</option>
+                  <option value="right">오른쪽</option>
+                </select>
+
+                <div className="w-px h-5 bg-border mx-1" />
                 <button
                   type="button"
                   onClick={() => clearCellFormat(selectedRef)}
@@ -511,10 +604,14 @@ function SheetGrid({
                 const ref = cellRef(rowIdx, colIdx);
                 const raw = cells[ref] ?? '';
                 // 표시값: 수식이면 평가 결과, 아니면 raw 그대로
-                const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
+                let display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
                 const isSelected = selected.row === rowIdx && selected.col === colIdx;
                 const isEditing = !!editing && editing.row === rowIdx && editing.col === colIdx;
                 const fmt = cellFormats[ref];
+                // 숫자 형식 적용 (편집 중이 아닐 때만, 에러 셀 제외)
+                if (fmt?.numberFmt && !isEditing && !display.startsWith('#')) {
+                  display = applyNumberFormat(display, fmt.numberFmt);
+                }
                 return (
                   <SheetCell
                     key={ref}
@@ -586,6 +683,7 @@ const SheetCell = React.memo(function SheetCell({
     fontWeight: format?.bold ? 600 : undefined,
     fontStyle: format?.italic ? 'italic' : undefined,
     textAlign: format?.align,
+    ...borderStyleFor(format?.border),
   };
   return (
     <td
