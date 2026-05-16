@@ -474,21 +474,22 @@ export default function CloudSheetEditor() {
     }
   }, [node?.name, currentSheet?.name]);
 
-  // ─── .xlsx export: 모든 시트 → 파일 다운로드 ───
-  const exportXlsx = useCallback(() => {
+  // ─── .xlsx export: 모든 시트 → 파일 다운로드 (서식 포함) ───
+  const exportXlsx = useCallback(async () => {
     try {
       const exportSheets = sheetsMeta.map((s) => ({
         name: s.name,
         cells: allCells[s.id] ?? {},
+        cellFormats: allFormats[s.id] ?? {},
       }));
       const fileName = (node?.name ?? '시트').replace(/[\\/:*?"<>|]/g, '_');
-      exportXlsxFile(exportSheets, fileName);
-      toast({ title: '내보내기 완료', description: `${fileName}.xlsx 다운로드 시작` });
+      await exportXlsxFile(exportSheets, fileName);
+      toast({ title: '내보내기 완료', description: `${fileName}.xlsx (서식 포함)` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '내보내기 실패', description: msg });
     }
-  }, [sheetsMeta, allCells, node?.name]);
+  }, [sheetsMeta, allCells, allFormats, node?.name]);
 
   const duplicateSheet = useCallback((idx: number) => {
     const src = sheetsMeta[idx];

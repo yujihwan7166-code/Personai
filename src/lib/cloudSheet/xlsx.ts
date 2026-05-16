@@ -1,25 +1,43 @@
 /**
- * 시트 ↔ .xlsx 호환 (SheetJS 활용).
+ * 시트 ↔ .xlsx 호환.
  *
- * v1: 값·수식 양방향. 서식(색·테두리·숫자형식)은 import만 보존 시도, export는 값/수식 우선.
- *     수식 함수명 변환: 우리 AVG ↔ 엑셀 AVERAGE
- * 한계:
- *   - 차트, 매크로, 피벗, 데이터 검증 등은 무시
- *   - 셀 병합·이미지·코멘트 v1에선 미반영
+ * Import: SheetJS (xlsx) — 값·수식 추출
+ * Export: ExcelJS — 셀 서식(글꼴·색·배경·정렬·숫자형식·테두리)까지 보존
+ *
+ * 함수명 변환: 엑셀 AVERAGE ↔ 우리 AVG
+ * 한계: 차트·매크로·피벗·데이터 검증 무시. 셀 병합·이미지·코멘트 v1 미반영.
  */
 
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { colToIdx, idxToCol } from './formula';
 
 type Cells = Record<string, string>;
+
+interface CellFormat {
+  bold?: boolean;
+  italic?: boolean;
+  textColor?: string;
+  bgColor?: string;
+  align?: 'left' | 'center' | 'right';
+  numberFmt?: 'currency-krw' | 'percent' | 'integer' | 'decimal2' | 'date';
+  border?: 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right';
+}
+type CellFormats = Record<string, CellFormat>;
 
 export interface ImportedSheet {
   name: string;
   cells: Cells;
 }
 
+export interface ExportSheetInput {
+  name: string;
+  cells: Cells;
+  cellFormats?: CellFormats;
+}
+
 // ─────────────────────────────────────────────
-// Import (.xlsx → 우리 형식)
+// Import (.xlsx → 우리 형식)  ← SheetJS 그대로 (안정성 검증)
 // ─────────────────────────────────────────────
 
 export async function importXlsxFile(file: File): Promise<ImportedSheet[]> {
@@ -32,10 +50,9 @@ function extractSheet(ws: XLSX.WorkSheet | undefined, name: string): ImportedShe
   const cells: Cells = {};
   if (!ws) return { name, cells };
   for (const key of Object.keys(ws)) {
-    if (key.startsWith('!')) continue; // !ref, !cols, !merges 등 메타
+    if (key.startsWith('!')) continue;
     const cell = ws[key] as XLSX.CellObject;
     if (cell.f) {
-      // 수식: 엑셀 함수 → 우리 함수명 (간단 매핑)
       cells[key] = '=' + normalizeFormula(cell.f);
     } else if (cell.v !== undefined && cell.v !== null) {
       cells[key] = String(cell.v);
@@ -45,67 +62,129 @@ function extractSheet(ws: XLSX.WorkSheet | undefined, name: string): ImportedShe
 }
 
 function normalizeFormula(f: string): string {
-  // 엑셀 AVERAGE → 우리 AVG (단축형 지원). 우리는 둘 다 받지만 일관성 위해 변환.
-  // 다른 함수는 그대로 (SUM/MIN/MAX/COUNT/IF/ABS/ROUND 다 동일 이름)
   return f.replace(/\bAVERAGE\b/gi, 'AVG');
 }
 
 // ─────────────────────────────────────────────
-// Export (우리 형식 → .xlsx 다운로드)
+// Export — ExcelJS (서식 포함)
 // ─────────────────────────────────────────────
 
-export interface ExportSheetInput {
-  name: string;
-  cells: Cells;
-}
+export async function exportXlsxFile(sheets: ExportSheetInput[], fileName: string): Promise<void> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'ancano cloud';
+  wb.created = new Date();
 
-export function exportXlsxFile(sheets: ExportSheetInput[], fileName: string): void {
-  const wb = XLSX.utils.book_new();
   for (const sheet of sheets) {
-    const ws = cellsToWorksheet(sheet.cells);
-    // 엑셀 시트 이름 제한: 31자, 일부 문자 금지 (\\ / ? * [ ])
     const safeName = sheet.name.replace(/[\\/?*[\]]/g, '_').slice(0, 31) || 'Sheet';
-    XLSX.utils.book_append_sheet(wb, ws, safeName);
-  }
-  // 빈 workbook 방지
-  if (wb.SheetNames.length === 0) {
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['']]), 'Sheet1');
-  }
-  const safeFile = fileName.endsWith('.xlsx') ? fileName : `${fileName}.xlsx`;
-  XLSX.writeFile(wb, safeFile);
-}
+    const ws = wb.addWorksheet(safeName);
 
-function cellsToWorksheet(cells: Cells): XLSX.WorkSheet {
-  const ws: XLSX.WorkSheet = {};
-  let maxRow = -1;
-  let maxCol = -1;
-  for (const [ref, raw] of Object.entries(cells)) {
-    const match = ref.match(/^([A-Z]+)(\d+)$/);
-    if (!match) continue;
-    const col = colToIdx(match[1]);
-    const row = Number(match[2]) - 1;
-    if (row > maxRow) maxRow = row;
-    if (col > maxCol) maxCol = col;
+    for (const [ref, raw] of Object.entries(sheet.cells)) {
+      const match = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!match) continue;
+      const col = colToIdx(match[1]) + 1;  // exceljs는 1-based
+      const row = Number(match[2]);
+      const cell = ws.getCell(row, col);
 
-    if (raw.startsWith('=')) {
-      // 수식: 우리 AVG → 엑셀 AVERAGE
-      const f = raw.slice(1).replace(/\bAVG\b/gi, 'AVERAGE');
-      ws[ref] = { t: 'n', f };
-    } else {
-      const n = Number(raw);
-      if (raw.trim() !== '' && Number.isFinite(n)) {
-        ws[ref] = { t: 'n', v: n };
-      } else if (raw === 'TRUE' || raw === 'FALSE') {
-        ws[ref] = { t: 'b', v: raw === 'TRUE' };
+      // 값/수식
+      if (raw.startsWith('=')) {
+        cell.value = {
+          formula: raw.slice(1).replace(/\bAVG\b/gi, 'AVERAGE'),
+          // result는 비워두면 excel이 열 때 자동 계산
+        };
       } else {
-        ws[ref] = { t: 's', v: raw };
+        const n = Number(raw);
+        if (raw.trim() !== '' && Number.isFinite(n)) {
+          cell.value = n;
+        } else if (raw === 'TRUE' || raw === 'FALSE') {
+          cell.value = raw === 'TRUE';
+        } else {
+          cell.value = raw;
+        }
       }
+
+      // 서식
+      const fmt = sheet.cellFormats?.[ref];
+      if (fmt) applyFormat(cell, fmt);
     }
+
+    // 열 자동 너비 (대략)
+    ws.columns.forEach((col) => { col.width = 15; });
   }
-  if (maxRow >= 0 && maxCol >= 0) {
-    ws['!ref'] = `A1:${idxToCol(maxCol)}${maxRow + 1}`;
-  } else {
-    ws['!ref'] = 'A1:A1';
+
+  if (wb.worksheets.length === 0) {
+    wb.addWorksheet('Sheet1');
   }
-  return ws;
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const safeFile = fileName.endsWith('.xlsx') ? fileName : `${fileName}.xlsx`;
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  triggerDownload(blob, safeFile);
 }
+
+function applyFormat(cell: ExcelJS.Cell, fmt: CellFormat): void {
+  // 글꼴 (B/I/색)
+  if (fmt.bold || fmt.italic || fmt.textColor) {
+    cell.font = {
+      bold: fmt.bold || undefined,
+      italic: fmt.italic || undefined,
+      color: fmt.textColor ? { argb: 'FF' + fmt.textColor.replace('#', '').toUpperCase() } : undefined,
+    };
+  }
+  // 배경색
+  if (fmt.bgColor) {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF' + fmt.bgColor.replace('#', '').toUpperCase() },
+    };
+  }
+  // 정렬
+  if (fmt.align) {
+    cell.alignment = { horizontal: fmt.align, vertical: 'middle' };
+  }
+  // 숫자 형식
+  if (fmt.numberFmt) {
+    cell.numFmt = numFmtFor(fmt.numberFmt);
+  }
+  // 테두리
+  if (fmt.border) {
+    cell.border = bordersFor(fmt.border);
+  }
+}
+
+function numFmtFor(fmt: NonNullable<CellFormat['numberFmt']>): string {
+  switch (fmt) {
+    case 'integer':       return '#,##0';
+    case 'decimal2':      return '0.00';
+    case 'currency-krw':  return '"₩"#,##0';
+    case 'percent':       return '0.0%';
+    case 'date':          return 'yyyy-mm-dd';
+    default:              return 'General';
+  }
+}
+
+function bordersFor(b: NonNullable<CellFormat['border']>): Partial<ExcelJS.Borders> {
+  const thin: ExcelJS.Border = { style: 'thin', color: { argb: 'FF222222' } };
+  if (b === 'all' || b === 'outer') {
+    return { top: thin, bottom: thin, left: thin, right: thin };
+  }
+  if (b === 'top')    return { top: thin };
+  if (b === 'bottom') return { bottom: thin };
+  if (b === 'left')   return { left: thin };
+  if (b === 'right')  return { right: thin };
+  return {};
+}
+
+function triggerDownload(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// idxToCol 이 import 만 되고 사용 안 되면 lint warning — 미래 호환을 위해 유지
+void idxToCol;
