@@ -270,6 +270,9 @@ export default function CloudSheetEditor() {
   const [colCount, setColCount] = useState(DEFAULT_COLS);
   // 열 너비 — colIdx → px (없으면 DEFAULT_COL_WIDTH)
   const [colWidths, setColWidths] = useState<Record<number, number>>({});
+  // freeze pane — 첫 행/A열 고정
+  const [freezeFirstRow, setFreezeFirstRow] = useState(false);
+  const [freezeFirstCol, setFreezeFirstCol] = useState(false);
 
   const [selected, setSelected] = useState<{ row: number; col: number }>({ row: 0, col: 0 });
   const [rangeAnchor, setRangeAnchor] = useState<{ row: number; col: number } | null>(null);
@@ -358,6 +361,8 @@ export default function CloudSheetEditor() {
         const storedRowCount = typeof meta.rowCount === 'number' ? meta.rowCount : undefined;
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
+        if (typeof meta.freezeFirstRow === 'boolean') setFreezeFirstRow(meta.freezeFirstRow);
+        if (typeof meta.freezeFirstCol === 'boolean') setFreezeFirstCol(meta.freezeFirstCol);
         if (Array.isArray(storedSheets) && storedSheets.length > 0) {
           // 다중 시트 형식 (현재 모델)
           const cellsAll = storedAllCells ?? {};
@@ -446,6 +451,8 @@ export default function CloudSheetEditor() {
     rowCount?: number;
     colCount?: number;
     colWidths?: Record<number, number>;
+    freezeFirstRow?: boolean;
+    freezeFirstCol?: boolean;
   }) => {
     pendingRef.current = {
       ...pendingRef.current,
@@ -458,12 +465,14 @@ export default function CloudSheetEditor() {
         rowCount: patch.rowCount ?? rowCount,
         colCount: patch.colCount ?? colCount,
         colWidths: patch.colWidths ?? colWidths,
+        freezeFirstRow: patch.freezeFirstRow ?? freezeFirstRow,
+        freezeFirstCol: patch.freezeFirstCol ?? freezeFirstCol,
       },
     };
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, currentSheetIdx, rowCount, colCount, colWidths]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
 
   useEffect(() => {
     return () => {
@@ -1208,6 +1217,22 @@ export default function CloudSheetEditor() {
     });
   }, [sheetsMeta, allCells, allFormats, allMerges, queueSave]);
 
+  // ─── Freeze pane 토글 ───
+  const toggleFreezeFirstRow = useCallback(() => {
+    setFreezeFirstRow((v) => {
+      const next = !v;
+      queueSave({ freezeFirstRow: next });
+      return next;
+    });
+  }, [queueSave]);
+  const toggleFreezeFirstCol = useCallback(() => {
+    setFreezeFirstCol((v) => {
+      const next = !v;
+      queueSave({ freezeFirstCol: next });
+      return next;
+    });
+  }, [queueSave]);
+
   // ─── 행/열 개수 조정 ───
   const addRows = useCallback((n: number = ROW_ADD_CHUNK) => {
     const next = Math.min(MAX_ROWS, rowCount + n);
@@ -1910,6 +1935,19 @@ export default function CloudSheetEditor() {
                   차트 만들기 (선택 범위)
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={toggleFreezeFirstRow}>
+                  <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
+                    {freezeFirstRow ? '☑' : '☐'}
+                  </span>
+                  첫 행 고정 (Freeze)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={toggleFreezeFirstCol}>
+                  <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
+                    {freezeFirstCol ? '☑' : '☐'}
+                  </span>
+                  첫 열 고정 (Freeze)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={aiSummarizeAll} disabled={!!aiBusy}>
                   <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
                   데이터 요약 (AI)
@@ -2157,6 +2195,8 @@ export default function CloudSheetEditor() {
             onHeaderContextMenu={openHeaderContextMenu}
             matchedRefs={searchMatchSet}
             currentMatchRef={searchMatches[searchCursor]}
+            freezeFirstRow={freezeFirstRow}
+            freezeFirstCol={freezeFirstCol}
             fillPreview={fillPreview}
             fillCorner={{ row: selBounds.maxR, col: selBounds.maxC }}
             onFillStart={startFill}
@@ -2370,6 +2410,10 @@ interface SheetGridProps {
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   matchedRefs?: Set<string>;
   currentMatchRef?: string;
+  /** 첫 행 고정 (sticky top) */
+  freezeFirstRow?: boolean;
+  /** 첫 열 고정 (sticky left, A열) */
+  freezeFirstCol?: boolean;
   /** fill 미리보기 영역 (드래그 중) */
   fillPreview?: SelBounds | null;
   /** fill handle: 어떤 (row, col) 에 핸들을 그릴지 — 보통 selBounds 의 maxR/maxC */
@@ -2389,10 +2433,14 @@ function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
   rowCount, colCount, colWidths, onColResize, onHeaderContextMenu,
   matchedRefs, currentMatchRef,
+  freezeFirstRow, freezeFirstCol,
   fillPreview, fillCorner, onFillStart,
   editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
+  // 행 헤더 너비 (40px) + 열 헤더 높이 (28px) 가 sticky 기준
+  const HEADER_H = 28; // thead row 높이 (h-7)
+  const ROW_HEADER_W = 40; // 첫 col (w-10)
   const cols = useMemo(() => Array.from({ length: colCount }, (_, i) => colLabel(i)), [colCount]);
   const rows = useMemo(() => Array.from({ length: rowCount }, (_, i) => i), [rowCount]);
 
@@ -2457,6 +2505,8 @@ function SheetGrid({
                 const hasFillHandle = !!fillCorner
                   && fillCorner.row === rowIdx && fillCorner.col === colIdx
                   && !fillPreview;
+                const isStickyRow = freezeFirstRow && rowIdx === 0;
+                const isStickyCol = freezeFirstCol && colIdx === 0;
                 return (
                   <SheetCell
                     key={ref}
@@ -2472,6 +2522,8 @@ function SheetGrid({
                     isInFillPreview={isInFillPreview}
                     hasFillHandle={hasFillHandle}
                     onFillStart={onFillStart}
+                    stickyTop={isStickyRow ? HEADER_H : undefined}
+                    stickyLeft={isStickyCol ? ROW_HEADER_W : undefined}
                     rowSpan={span?.rows}
                     colSpan={span?.cols}
                     editing={isEditing}
@@ -2510,6 +2562,8 @@ interface SheetCellProps {
   isInFillPreview?: boolean;
   hasFillHandle?: boolean;
   onFillStart?: (e: React.PointerEvent) => void;
+  stickyTop?: number;
+  stickyLeft?: number;
   rowSpan?: number;
   colSpan?: number;
   editing: boolean;
@@ -2525,6 +2579,7 @@ interface SheetCellProps {
 const SheetCell = React.memo(function SheetCell({
   cellRefStr, row, col, value, format, isFocus, isInRange,
   isMatch, isCurrentMatch, isInFillPreview, hasFillHandle, onFillStart,
+  stickyTop, stickyLeft,
   rowSpan, colSpan, editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetCellProps) {
@@ -2564,13 +2619,22 @@ const SheetCell = React.memo(function SheetCell({
     const layer = 'rgba(59, 130, 246, 0.18)';
     bg = bg ? `linear-gradient(${layer}, ${layer}), ${bg}` : layer;
   }
+  const isSticky = stickyTop !== undefined || stickyLeft !== undefined;
+  // sticky 면 배경이 투명이면 뒤가 비치므로 흰색을 깐다
+  const effectiveBg = isSticky && !bg ? 'hsl(var(--background))' : bg;
   const tdStyle: React.CSSProperties = {
     padding: editing ? 0 : undefined,
-    background: bg,
+    background: effectiveBg,
     color: format?.textColor,
     fontWeight: format?.bold ? 600 : undefined,
     fontStyle: format?.italic ? 'italic' : undefined,
     textAlign: format?.align,
+    position: isSticky ? 'sticky' : undefined,
+    top: stickyTop,
+    left: stickyLeft,
+    // 둘 다 sticky 면 가장 위 z-index (코너 셀)
+    zIndex: stickyTop !== undefined && stickyLeft !== undefined ? 5
+      : isSticky ? 4 : undefined,
     ...borderStyleFor(format?.border),
   };
   return (
