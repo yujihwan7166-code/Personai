@@ -12,7 +12,7 @@ import {
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
   Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
   Search as SearchIcon, ChevronUp, ChevronDown, Replace as ReplaceIcon,
-  Undo2, Redo2,
+  Undo2, Redo2, MessageSquare,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -53,6 +53,10 @@ interface Validation {
   items: string[]; // 허용 값 목록 (드롭다운으로 표시)
 }
 type AllValidations = Record<string, Validation[]>;
+
+// sheet 별 ref → 코멘트 텍스트
+type Comments = Record<string, string>;
+type AllComments = Record<string, Comments>;
 
 function newValidationId(): string {
   return `vd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -364,6 +368,8 @@ export default function CloudSheetEditor() {
   const [allCondRules, setAllCondRules] = useState<AllCondRules>({ s_initial: [] });
   // 데이터 검증 (드롭다운 목록) — sheet 별
   const [allValidations, setAllValidations] = useState<AllValidations>({ s_initial: [] });
+  // 셀 코멘트 — sheet 별 ref → text
+  const [allComments, setAllComments] = useState<AllComments>({ s_initial: {} });
 
   // derived — 현재 시트의 cells/formats/merges/condRules
   const currentSheet = sheetsMeta[currentSheetIdx] ?? sheetsMeta[0];
@@ -373,6 +379,7 @@ export default function CloudSheetEditor() {
   const merges = allMerges[currentSheetId] ?? [];
   const condRules = allCondRules[currentSheetId] ?? [];
   const validations = allValidations[currentSheetId] ?? [];
+  const comments = allComments[currentSheetId] ?? {};
 
   // 병합 렌더링용 — top-left 위치 → 크기, 그 외 위치 → covered 표시
   const { mergeAtMap, coveredSet } = useMemo(() => {
@@ -427,6 +434,7 @@ export default function CloudSheetEditor() {
         const storedAllMerges = meta.allMerges as AllMerges | undefined;
         const storedAllCondRules = meta.allCondRules as AllCondRules | undefined;
         const storedAllValidations = meta.allValidations as AllValidations | undefined;
+        const storedAllComments = meta.allComments as AllComments | undefined;
         const storedRowCount = typeof meta.rowCount === 'number' ? meta.rowCount : undefined;
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
@@ -442,6 +450,7 @@ export default function CloudSheetEditor() {
           setAllMerges(mergesAll);
           if (storedAllCondRules) setAllCondRules(storedAllCondRules);
           if (storedAllValidations) setAllValidations(storedAllValidations);
+          if (storedAllComments) setAllComments(storedAllComments);
           // 데이터 기반 최소 그리드 크기 보장
           const { row: maxR, col: maxC } = maxRowColFromAll(cellsAll, mergesAll);
           const rc = Math.max(storedRowCount ?? DEFAULT_ROWS, maxR + 1, MIN_ROWS);
@@ -520,6 +529,7 @@ export default function CloudSheetEditor() {
     allMerges?: AllMerges;
     allCondRules?: AllCondRules;
     allValidations?: AllValidations;
+    allComments?: AllComments;
     currentSheetIdx?: number;
     rowCount?: number;
     colCount?: number;
@@ -536,6 +546,7 @@ export default function CloudSheetEditor() {
         allMerges: patch.allMerges ?? allMerges,
         allCondRules: patch.allCondRules ?? allCondRules,
         allValidations: patch.allValidations ?? allValidations,
+        allComments: patch.allComments ?? allComments,
         currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
         rowCount: patch.rowCount ?? rowCount,
         colCount: patch.colCount ?? colCount,
@@ -547,7 +558,7 @@ export default function CloudSheetEditor() {
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
 
   useEffect(() => {
     return () => {
@@ -1192,6 +1203,27 @@ export default function CloudSheetEditor() {
   }, [validationItemsMap, cells, displayValues]);
 
   const [validationModalOpen, setValidationModalOpen] = useState(false);
+
+  // ─── 셀 코멘트 ───
+  const setCellComment = useCallback((ref: string, text: string) => {
+    setAllComments((all) => {
+      const cur = { ...(all[currentSheetId] ?? {}) };
+      const trimmed = text.trim();
+      if (trimmed === '') delete cur[ref];
+      else cur[ref] = trimmed;
+      const next: AllComments = { ...all, [currentSheetId]: cur };
+      queueSave({ allComments: next });
+      return next;
+    });
+  }, [currentSheetId, queueSave]);
+
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const commentRefSet = useMemo(() => new Set(Object.keys(comments)), [comments]);
+  const commentMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const [ref, text] of Object.entries(comments)) m.set(ref, text);
+    return m;
+  }, [comments]);
 
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
@@ -2339,6 +2371,20 @@ export default function CloudSheetEditor() {
                 <div className="w-px h-5 bg-border mx-1" />
                 <button
                   type="button"
+                  onClick={() => setCommentModalOpen(true)}
+                  className={cn(
+                    'p-1.5 rounded hover:bg-muted',
+                    comments[selectedRef] && 'bg-muted text-foreground',
+                  )}
+                  title={comments[selectedRef]
+                    ? `코멘트 편집: ${comments[selectedRef].slice(0, 40)}`
+                    : '코멘트 추가'}
+                  aria-label="셀 코멘트"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
                   onClick={() => clearCellFormat(selectedRef)}
                   className="p-1.5 rounded hover:bg-muted text-muted-foreground"
                   title="서식 지우기"
@@ -2410,6 +2456,7 @@ export default function CloudSheetEditor() {
             validationItemsMap={validationItemsMap}
             invalidRefSet={invalidRefSet}
             onCellValueChange={setCellValue}
+            commentMap={commentMap}
             filterOn={filterOn}
             filters={filters}
             onFilterChange={setColFilter}
@@ -2590,6 +2637,14 @@ export default function CloudSheetEditor() {
         onRemove={removeValidation}
       />
 
+      <CommentModal
+        open={commentModalOpen}
+        onClose={() => setCommentModalOpen(false)}
+        cellRefStr={selectedRef}
+        initialText={comments[selectedRef] ?? ''}
+        onSave={(text) => setCellComment(selectedRef, text)}
+      />
+
       {/* AI 결과 모달 */}
       <Dialog open={!!aiResult} onOpenChange={(v) => { if (!v) setAiResult(null); }}>
         <DialogContent className="max-w-2xl">
@@ -2662,6 +2717,8 @@ interface SheetGridProps {
   invalidRefSet?: Set<string>;
   /** 셀 값 직접 변경 (드롭다운 선택 시) */
   onCellValueChange?: (ref: string, value: string) => void;
+  /** ref → 코멘트 텍스트 — 빨간 삼각 + hover tooltip */
+  commentMap?: Map<string, string>;
   /** 필터 활성 시 헤더 alphabet row 아래에 검색 input 행 렌더 */
   filterOn?: boolean;
   filters?: Record<number, string>;
@@ -2690,6 +2747,7 @@ function SheetGrid({
   freezeFirstRow, freezeFirstCol,
   condFormatMap,
   validationItemsMap, invalidRefSet, onCellValueChange,
+  commentMap,
   filterOn, filters, onFilterChange, visibleRowSet,
   fillPreview, fillCorner, onFillStart,
   editing, editingValue,
@@ -2793,6 +2851,7 @@ function SheetGrid({
                 const isStickyCol = freezeFirstCol && colIdx === 0;
                 const validationItems = validationItemsMap?.get(ref);
                 const isInvalid = !!invalidRefSet?.has(ref);
+                const commentText = commentMap?.get(ref);
                 return (
                   <SheetCell
                     key={ref}
@@ -2811,6 +2870,7 @@ function SheetGrid({
                     validationItems={validationItems}
                     isInvalid={isInvalid}
                     onSelectValidationItem={onCellValueChange}
+                    commentText={commentText}
                     stickyTop={isStickyRow ? HEADER_H : undefined}
                     stickyLeft={isStickyCol ? ROW_HEADER_W : undefined}
                     rowSpan={span?.rows}
@@ -2854,6 +2914,7 @@ interface SheetCellProps {
   validationItems?: string[];
   isInvalid?: boolean;
   onSelectValidationItem?: (ref: string, value: string) => void;
+  commentText?: string;
   stickyTop?: number;
   stickyLeft?: number;
   rowSpan?: number;
@@ -2872,6 +2933,7 @@ const SheetCell = React.memo(function SheetCell({
   cellRefStr, row, col, value, format, isFocus, isInRange,
   isMatch, isCurrentMatch, isInFillPreview, hasFillHandle, onFillStart,
   validationItems, isInvalid, onSelectValidationItem,
+  commentText,
   stickyTop, stickyLeft,
   rowSpan, colSpan, editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
@@ -2938,6 +3000,7 @@ const SheetCell = React.memo(function SheetCell({
       onDoubleClick={() => onStartEdit(row, col)}
       rowSpan={rowSpan}
       colSpan={colSpan}
+      title={commentText}
       className={cn(
         'border border-border h-7 px-2 align-middle relative cursor-cell select-none',
         'min-w-[88px] max-w-[200px] truncate',
@@ -2969,6 +3032,17 @@ const SheetCell = React.memo(function SheetCell({
           className="absolute -right-1 -bottom-1 w-2.5 h-2.5 bg-foreground/80 hover:bg-foreground rounded-[1px] cursor-crosshair z-10"
           aria-label="자동 채우기 핸들"
           title="드래그해서 채우기"
+        />
+      )}
+      {commentText && (
+        <span
+          className="absolute top-0 right-0 pointer-events-none"
+          aria-hidden
+          style={{
+            width: 0, height: 0,
+            borderLeft: '6px solid transparent',
+            borderTop: '6px solid rgb(239 68 68)', // red-500
+          }}
         />
       )}
       {isFocus && validationItems && validationItems.length > 0 && !editing && (
@@ -3928,6 +4002,79 @@ function ValidationModal({ open, onClose, currentRange, rules, onAdd, onRemove }
           >
             닫기
           </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 셀 코멘트 모달
+// ─────────────────────────────────────────────
+
+interface CommentModalProps {
+  open: boolean;
+  onClose: () => void;
+  cellRefStr: string;
+  initialText: string;
+  onSave: (text: string) => void;
+}
+
+function CommentModal({ open, onClose, cellRefStr, initialText, onSave }: CommentModalProps) {
+  const [text, setText] = useState(initialText);
+  useEffect(() => { if (open) setText(initialText); }, [open, initialText]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogTitle className="text-base flex items-center gap-2">
+          <MessageSquare className="w-4 h-4" />
+          {cellRefStr} 셀 코멘트
+        </DialogTitle>
+        <DialogDescription className="text-xs text-muted-foreground">
+          이 셀에 메모를 남길 수 있어요. 셀 우상단에 빨간 삼각형이 표시되고,
+          마우스 hover 시 내용이 보입니다.
+        </DialogDescription>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={5}
+          placeholder="이 셀에 대한 메모…"
+          className="w-full px-2 py-1.5 rounded border border-border bg-background outline-none focus:border-foreground/40 text-sm"
+          autoFocus
+        />
+        <div className="flex justify-between items-center pt-2 border-t border-border">
+          {initialText && (
+            <button
+              type="button"
+              onClick={() => {
+                onSave('');
+                onClose();
+              }}
+              className="px-3 py-1.5 rounded text-destructive hover:bg-destructive/10 text-sm flex items-center gap-1"
+            >
+              <TrashIcon className="w-3.5 h-3.5" /> 삭제
+            </button>
+          )}
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSave(text);
+                onClose();
+              }}
+              className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-foreground/90 text-sm"
+            >
+              저장
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
