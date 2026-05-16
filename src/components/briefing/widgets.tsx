@@ -343,7 +343,7 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 가장 먼저 (M) — 헤로 디자인
+// 가장 먼저 (M) — 헤로 디자인 + sparkle 효과
 export function PickFirstWidget({ data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   if (!data.pickFirst) {
@@ -353,7 +353,7 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
           <Sparkles className="h-3.5 w-3.5 text-amber-500" />
           <span className="text-[10.5px] font-bold tracking-[0.08em] uppercase text-amber-700 dark:text-amber-400">가장 먼저</span>
         </div>
-        <EmptyText text="추천할 항목 없음" />
+        <EmptyText text="추천할 항목 없음" hint="일정·할일 추가 →" />
       </div>
     );
   }
@@ -361,17 +361,22 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-4 flex flex-col"
+      className="w-full h-full text-left p-4 flex flex-col relative"
     >
+      {/* 우상단 sparkle 장식 — 미세한 amber 점 */}
+      <span
+        aria-hidden
+        className="wb-sparkle absolute top-3 right-3 text-amber-500 text-[14px] leading-none pointer-events-none"
+      >✦</span>
       <div className="flex items-center gap-1.5">
-        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+        <Sparkles className="h-3.5 w-3.5 text-amber-500 wb-sparkle" />
         <span className="text-[10.5px] font-bold tracking-[0.08em] uppercase text-amber-700 dark:text-amber-400">가장 먼저</span>
       </div>
       <div className="mt-2 font-display text-[18px] font-bold text-foreground leading-tight line-clamp-2">
         {data.pickFirst.title}
       </div>
       <div className="mt-auto pt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[9.5px] font-semibold uppercase tracking-wider">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[9.5px] font-semibold uppercase tracking-wider">
           {data.pickFirst.kind === 'event' ? '일정' : data.pickFirst.kind === 'habit' ? '습관' : '할일'}
         </span>
         <span className="truncate">{data.pickFirst.reason}</span>

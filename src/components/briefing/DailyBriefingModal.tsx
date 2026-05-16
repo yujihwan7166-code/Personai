@@ -363,6 +363,7 @@ function WidgetCard({
         !editMode && 'hover:-translate-y-0.5',
         editMode && 'wb-jiggle ring-2 ring-primary/30 cursor-grab',
         editMode && isDragging && 'opacity-30 cursor-grabbing',
+        isHero && !editMode && 'wb-pickfirst-card',
       )}
       style={{
         ...style,
@@ -374,8 +375,9 @@ function WidgetCard({
         borderTop: `3px solid ${meta.tint.border}`,
         // hover 시 tint 글로우 — CSS var 로 동적
         ['--card-tint-hue' as string]: meta.tint.hue,
+        // isHero 는 CSS .wb-pickfirst-card 애니메이션이 box-shadow 담당 → inline 충돌 피함
         boxShadow: isHero
-          ? `0 6px 20px -8px ${meta.tint.hue}55, 0 2px 6px -2px hsl(30 15% 8% / 0.08)`
+          ? undefined
           : (hover ? `0 8px 22px -8px ${meta.tint.hue}40, 0 2px 6px -2px hsl(30 15% 8% / 0.08)` : undefined),
         outline: `1px solid hsl(var(--foreground) / 0.05)`,
         outlineOffset: '-1px',
