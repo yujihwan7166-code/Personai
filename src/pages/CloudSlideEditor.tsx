@@ -10,6 +10,7 @@ import {
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
   Square as SquareIcon, Circle as CircleIcon, Palette,
   ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
+  Play, ChevronLeft, ChevronRight as ChevronRightIcon,
 } from 'lucide-react';
 import { toast as appToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -101,6 +102,8 @@ export default function CloudSlideEditor() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedElId, setSelectedElId] = useState<string | null>(null);
   const [editingElId, setEditingElId] = useState<string | null>(null);
+  const [presenting, setPresenting] = useState(false);
+  const [presentIdx, setPresentIdx] = useState(0);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -447,9 +450,50 @@ export default function CloudSlideEditor() {
     window.addEventListener('pointerup', onUp);
   }, [editingElId, updateEl]);
 
+  // ─── 발표 모드 ───
+  const startPresent = useCallback(() => {
+    setPresentIdx(currentIdx);
+    setPresenting(true);
+    setSelectedElId(null);
+    setEditingElId(null);
+  }, [currentIdx]);
+
+  const stopPresent = useCallback(() => {
+    setCurrentIdx(presentIdx);  // 마지막으로 본 슬라이드로 에디터 복귀
+    setPresenting(false);
+  }, [presentIdx]);
+
   // ─── 키보드 ───
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // 발표 모드에선 다른 단축키
+      if (presenting) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          stopPresent();
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          setPresentIdx((i) => Math.min(slides.length - 1, i + 1));
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'Backspace') {
+          e.preventDefault();
+          setPresentIdx((i) => Math.max(0, i - 1));
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          setPresentIdx(0);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          setPresentIdx(slides.length - 1);
+        }
+        return;
+      }
+
+      // F5 = 발표 시작 (편집 모드 X 일 때)
+      if (e.key === 'F5' && !editingElId) {
+        e.preventDefault();
+        startPresent();
+        return;
+      }
+
       if (editingElId) return;
       const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
       const isEditable = (e.target as HTMLElement | null)?.isContentEditable;
@@ -481,7 +525,7 @@ export default function CloudSlideEditor() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editingElId, selectedElId, deleteEl, addSlide, slides.length]);
+  }, [editingElId, selectedElId, deleteEl, addSlide, slides.length, presenting, startPresent, stopPresent]);
 
   const close = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -534,6 +578,15 @@ export default function CloudSlideEditor() {
           <div className="ml-auto flex items-center gap-1">
             <button
               type="button"
+              onClick={startPresent}
+              className="px-3 py-1.5 rounded text-sm hover:bg-muted flex items-center gap-1.5"
+              title="발표 모드 (F5)"
+            >
+              <Play className="w-4 h-4" />
+              발표
+            </button>
+            <button
+              type="button"
               onClick={() => setHelpOpen(true)}
               className="p-2 rounded hover:bg-muted"
               aria-label="단축키 도움말"
@@ -543,7 +596,7 @@ export default function CloudSlideEditor() {
             </button>
             <button
               type="button"
-              onClick={() => toast({ title: '곧 활성화돼요', description: '발표 모드·다운로드는 다음 단계입니다.' })}
+              onClick={() => toast({ title: '곧 활성화돼요', description: '다운로드는 다음 단계입니다.' })}
               className="p-2 rounded hover:bg-muted"
               aria-label="더보기"
               title="더보기"
@@ -749,6 +802,131 @@ export default function CloudSlideEditor() {
       </div>
 
       <SlideHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {presenting && (
+        <PresentationOverlay
+          slides={slides}
+          idx={presentIdx}
+          onPrev={() => setPresentIdx((i) => Math.max(0, i - 1))}
+          onNext={() => setPresentIdx((i) => Math.min(slides.length - 1, i + 1))}
+          onClose={stopPresent}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 발표 모드 오버레이 (풀스크린)
+// ─────────────────────────────────────────────
+
+interface PresentationOverlayProps {
+  slides: Slide[];
+  idx: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}
+
+function PresentationOverlay({ slides, idx, onPrev, onNext, onClose }: PresentationOverlayProps) {
+  const slide = slides[idx];
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center select-none">
+      {/* 슬라이드 — 16:9 비율 최대 */}
+      <div
+        className="bg-white shadow-2xl relative overflow-hidden"
+        style={{
+          aspectRatio: '16 / 9',
+          width: 'min(95vw, calc(95vh * 16 / 9))',
+          background: slide?.background ?? '#fff',
+        }}
+      >
+        {slide?.elements.map((el) => {
+          const pos: React.CSSProperties = {
+            position: 'absolute',
+            left: `${el.xPct}%`,
+            top: `${el.yPct}%`,
+            width: `${el.wPct}%`,
+            height: `${el.hPct}%`,
+          };
+          if (el.type === 'text') {
+            return (
+              <div
+                key={el.id}
+                style={{
+                  ...pos,
+                  fontSize: `${el.fontSizeRem}rem`,
+                  fontWeight: el.bold ? 600 : 400,
+                  color: el.textColor ?? 'rgba(0,0,0,0.85)',
+                  padding: '4px 8px',
+                  lineHeight: 1.25,
+                }}
+                className="break-words overflow-hidden"
+              >
+                {el.content}
+              </div>
+            );
+          }
+          if (el.type === 'image') {
+            return (
+              <img
+                key={el.id}
+                src={el.src}
+                alt=""
+                style={pos}
+                className="object-contain pointer-events-none"
+                draggable={false}
+              />
+            );
+          }
+          return (
+            <div
+              key={el.id}
+              style={{
+                ...pos,
+                backgroundColor: el.fillColor,
+                border: el.strokeColor ? `${el.strokeWidth ?? 2}px solid ${el.strokeColor}` : undefined,
+                borderRadius: el.type === 'ellipse' ? '50%' : undefined,
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* 좌우 클릭 영역 (보이지 않음) */}
+      <button
+        type="button"
+        onClick={onPrev}
+        disabled={idx === 0}
+        className="absolute left-0 top-0 bottom-0 w-1/4 cursor-w-resize disabled:cursor-default group"
+        aria-label="이전 슬라이드"
+      >
+        <ChevronLeft className="w-8 h-8 text-white/0 group-hover:text-white/40 absolute left-4 top-1/2 -translate-y-1/2 transition-colors" />
+      </button>
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={idx === slides.length - 1}
+        className="absolute right-0 top-0 bottom-0 w-1/4 cursor-e-resize disabled:cursor-default group"
+        aria-label="다음 슬라이드"
+      >
+        <ChevronRightIcon className="w-8 h-8 text-white/0 group-hover:text-white/40 absolute right-4 top-1/2 -translate-y-1/2 transition-colors" />
+      </button>
+
+      {/* 하단 정보 + 닫기 */}
+      <div className="absolute bottom-3 left-0 right-0 flex items-center justify-between px-5 text-white/60 text-xs">
+        <span>← → 이동 · Esc 종료 · Home/End 처음/끝</span>
+        <span className="font-mono">{idx + 1} / {slides.length}</span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1.5 rounded hover:bg-white/10"
+          aria-label="발표 종료"
+          title="발표 종료 (Esc)"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -1107,6 +1285,18 @@ function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
               <HelpRow keys={['Ctrl', 'M']} label="새 슬라이드 추가" />
               <HelpRow keys={['↑', 'PageUp']} label="이전 슬라이드" />
               <HelpRow keys={['↓', 'PageDown']} label="다음 슬라이드" />
+              <HelpRow keys={['F5']} label="발표 모드 시작" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">발표 모드</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['→', 'Space', 'Enter']} label="다음 슬라이드" />
+              <HelpRow keys={['←', 'Backspace']} label="이전 슬라이드" />
+              <HelpRow keys={['Home', 'End']} label="처음 / 끝 슬라이드" />
+              <HelpRow keys={['Esc']} label="발표 종료" />
+              <HelpRow keys={['클릭']} label="화면 좌·우 영역 클릭으로도 이동" />
             </div>
           </section>
           <section>
