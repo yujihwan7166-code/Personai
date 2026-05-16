@@ -19,7 +19,7 @@ import { useCloudNodes, type CloudListMode } from '@/hooks/useCloudNodes';
 import {
   createFolder, createEmptyFile,
   setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
-  searchByName, fetchNode, fetchAllFolders,
+  searchByName, fetchNode, fetchAllFolders, moveNode,
 } from '@/lib/cloudClient';
 import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndConvert';
 import {
@@ -53,6 +53,9 @@ export default function Cloud() {
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
   // 우클릭 컨텍스트 메뉴
   const [ctxMenu, setCtxMenu] = useState<{ node: CloudNode; x: number; y: number } | null>(null);
+  // 드래그 중인 노드 + 호버 중인 drop target 폴더 id
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null | 'root'>(null); // 'root' = 루트 폴더
 
   const currentFolderId = trail[trail.length - 1].id;
   const { nodes, loading, error, refresh, starredCount, trashCount } = useCloudNodes({
@@ -119,6 +122,87 @@ export default function Cloud() {
       window.removeEventListener('scroll', close, true);
     };
   }, [ctxMenu]);
+
+  // ─── DnD 이동 ───
+  /** 폴더가 자기 자신·자손인지 검사 (사이클 방지) */
+  const isDescendantOf = useCallback((descendantId: string, ancestorId: string): boolean => {
+    if (descendantId === ancestorId) return true;
+    let cur = allFolders.find((f) => f.id === descendantId);
+    while (cur) {
+      if (cur.id === ancestorId) return true;
+      const pid = cur.parentFolderId;
+      if (pid == null) return false;
+      cur = allFolders.find((f) => f.id === pid);
+    }
+    return false;
+  }, [allFolders]);
+
+  const handleDragStart = useCallback((e: React.DragEvent, node: CloudNode) => {
+    if (node.deletedAt) { e.preventDefault(); return; }
+    setDraggingNodeId(node.id);
+    try { e.dataTransfer.setData('text/plain', node.id); } catch { /* noop */ }
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingNodeId(null);
+    setDropTargetId(null);
+  }, []);
+
+  /** drop 가능한지: 드래그 노드가 폴더면 자기 자신·자손으로 못 떨어짐 */
+  const canDropOn = useCallback((targetFolderId: string | null): boolean => {
+    if (!draggingNodeId) return false;
+    if (targetFolderId == null) return true; // root 는 항상 OK (현재 위치가 root 라도 noop)
+    const dragNode = nodes.find((n) => n.id === draggingNodeId)
+      ?? allFolders.find((n) => n.id === draggingNodeId);
+    if (!dragNode) return true; // 알 수 없으면 허용 (서버가 검증)
+    if (dragNode.kind === 'folder') {
+      return !isDescendantOf(targetFolderId, dragNode.id);
+    }
+    return true;
+  }, [draggingNodeId, nodes, allFolders, isDescendantOf]);
+
+  const handleDragOver = useCallback((e: React.DragEvent, targetFolderId: string | null) => {
+    if (!draggingNodeId) return;
+    if (!canDropOn(targetFolderId)) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetId(targetFolderId ?? 'root');
+  }, [draggingNodeId, canDropOn]);
+
+  const handleDragLeave = useCallback(() => {
+    setDropTargetId(null);
+  }, []);
+
+  const handleDrop = useCallback(async (
+    e: React.DragEvent,
+    targetFolderId: string | null,
+  ) => {
+    e.preventDefault();
+    const id = draggingNodeId ?? e.dataTransfer.getData('text/plain');
+    setDraggingNodeId(null);
+    setDropTargetId(null);
+    if (!id) return;
+    if (!canDropOn(targetFolderId)) {
+      toast({ title: '여기는 못 옮겨요', description: '자기 자신/자손 폴더로는 이동할 수 없어요.' });
+      return;
+    }
+    const node = nodes.find((n) => n.id === id) ?? allFolders.find((n) => n.id === id);
+    if (node && node.parentFolderId === targetFolderId) {
+      // 이미 그 폴더에 있으면 noop
+      return;
+    }
+    try {
+      await moveNode(id, targetFolderId);
+      await refresh();
+      toast({ title: '이동 완료' });
+    } catch (err) {
+      toast({ title: '이동 실패', description: err instanceof Error ? err.message : String(err) });
+    }
+  }, [draggingNodeId, canDropOn, nodes, allFolders, refresh]);
 
   // 트리 폴더 클릭 → 그 폴더로 이동 (folder 모드 + trail 재구성)
   const navigateToFolder = useCallback((folder: CloudNode) => {
@@ -609,16 +693,26 @@ export default function Cloud() {
 
           <div className="my-3 border-t border-border" />
 
-          <SidebarItem
-            icon={<Folder className="w-4 h-4" />}
-            label="내 파일"
-            active={listMode === 'folder' && currentFolderId === null}
-            onClick={() => {
-              setListMode('folder');
-              setTrail([{ id: null, name: '내 파일' }]);
-              setSelectedId(null);
-            }}
-          />
+          <div
+            onDragOver={(e) => handleDragOver(e, null)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => { void handleDrop(e, null); }}
+            className={cn(
+              'rounded',
+              dropTargetId === 'root' && 'ring-2 ring-inset ring-foreground/40 bg-foreground/5',
+            )}
+          >
+            <SidebarItem
+              icon={<Folder className="w-4 h-4" />}
+              label="내 파일"
+              active={listMode === 'folder' && currentFolderId === null}
+              onClick={() => {
+                setListMode('folder');
+                setTrail([{ id: null, name: '내 파일' }]);
+                setSelectedId(null);
+              }}
+            />
+          </div>
           {/* 폴더 트리 — 루트의 자식들부터 재귀 */}
           {(folderChildrenMap.get(null) ?? []).length > 0 && (
             <div className="ml-2 mt-1">
@@ -632,6 +726,10 @@ export default function Cloud() {
                   expanded={expandedFolderIds}
                   onToggle={toggleFolderExpand}
                   onNavigate={navigateToFolder}
+                  dropTargetId={dropTargetId}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e, fid) => { void handleDrop(e, fid); }}
                 />
               ))}
             </div>
@@ -787,6 +885,14 @@ export default function Cloud() {
                     onPermanentDelete={() => void handlePermanentDelete(n)}
                     onOpenFile={() => handleOpenFile(n)}
                     onContextMenu={handleContextMenu}
+                    draggable={listMode !== 'trash'}
+                    isDragging={draggingNodeId === n.id}
+                    isDropTarget={dropTargetId === n.id}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => { void handleDrop(e, n.id); }}
                   />
                 ))}
               </ul>
@@ -807,6 +913,14 @@ export default function Cloud() {
                     onPermanentDelete={() => void handlePermanentDelete(n)}
                     onOpenFile={() => handleOpenFile(n)}
                     onContextMenu={handleContextMenu}
+                    draggable={listMode !== 'trash'}
+                    isDragging={draggingNodeId === n.id}
+                    isDropTarget={dropTargetId === n.id}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => { void handleDrop(e, n.id); }}
                   />
                 ))}
               </div>
@@ -1133,20 +1247,31 @@ interface FolderTreeItemProps {
   expanded: Set<string>;
   onToggle: (id: string) => void;
   onNavigate: (folder: CloudNode) => void;
+  // DnD
+  dropTargetId?: string | null | 'root';
+  onDragOver?: (e: React.DragEvent, folderId: string | null) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent, folderId: string | null) => void;
 }
 
 function FolderTreeItem({
   folder, depth, currentFolderId, childrenMap, expanded, onToggle, onNavigate,
+  dropTargetId, onDragOver, onDragLeave, onDrop,
 }: FolderTreeItemProps) {
   const children = childrenMap.get(folder.id) ?? [];
   const isExpanded = expanded.has(folder.id);
   const isCurrent = currentFolderId === folder.id;
+  const isDropTarget = dropTargetId === folder.id;
   return (
     <div>
       <div
+        onDragOver={onDragOver ? (e) => onDragOver(e, folder.id) : undefined}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop ? (e) => onDrop(e, folder.id) : undefined}
         className={cn(
           'flex items-center gap-1 px-1.5 py-1 rounded text-xs',
           isCurrent ? 'bg-muted font-medium' : 'hover:bg-muted/60',
+          isDropTarget && 'ring-2 ring-inset ring-foreground/40 bg-foreground/5',
         )}
         style={{ paddingLeft: `${depth * 10 + 6}px` }}
       >
@@ -1183,6 +1308,10 @@ function FolderTreeItem({
               expanded={expanded}
               onToggle={onToggle}
               onNavigate={onNavigate}
+              dropTargetId={dropTargetId}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
             />
           ))}
         </div>
@@ -1302,6 +1431,15 @@ interface NodeRowProps {
   onPermanentDelete: () => void;
   onOpenFile: () => void;
   onContextMenu?: (e: React.MouseEvent, node: CloudNode) => void;
+  // DnD — drag 가능 + 폴더면 drop 대상
+  draggable?: boolean;
+  isDragging?: boolean;
+  isDropTarget?: boolean;
+  onDragStart?: (e: React.DragEvent, node: CloudNode) => void;
+  onDragEnd?: () => void;
+  onDragOver?: (e: React.DragEvent, folderId: string | null) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent, folderId: string | null) => void;
 }
 
 function NodeRow({
@@ -1309,12 +1447,22 @@ function NodeRow({
   onClick, onDoubleClick, onSubmitRename, onCancelRename,
   onToggleStar, onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile,
   onContextMenu,
+  draggable, isDragging, isDropTarget,
+  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
 }: NodeRowProps) {
+  const isFolder = node.kind === 'folder';
   return (
     <li>
       <div
         role="button"
         tabIndex={0}
+        draggable={draggable && !editing}
+        onDragStart={onDragStart && !editing ? (e) => onDragStart(e, node) : undefined}
+        onDragEnd={onDragEnd}
+        // 폴더 row 만 drop 대상
+        onDragOver={isFolder && onDragOver ? (e) => onDragOver(e, node.id) : undefined}
+        onDragLeave={isFolder ? onDragLeave : undefined}
+        onDrop={isFolder && onDrop ? (e) => onDrop(e, node.id) : undefined}
         onClick={editing ? undefined : onClick}
         onDoubleClick={editing ? undefined : onDoubleClick}
         onContextMenu={editing || !onContextMenu ? undefined : (e) => onContextMenu(e, node)}
@@ -1325,6 +1473,8 @@ function NodeRow({
           'group w-full flex items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer',
           'hover:bg-muted/50',
           selected && 'bg-muted',
+          isDragging && 'opacity-50',
+          isDropTarget && 'ring-2 ring-inset ring-foreground/40 bg-foreground/5',
         )}
       >
         <NodeIcon node={node} />
@@ -1402,16 +1552,33 @@ interface NodeCardProps {
   onPermanentDelete: () => void;
   onOpenFile: () => void;
   onContextMenu?: (e: React.MouseEvent, node: CloudNode) => void;
+  draggable?: boolean;
+  isDragging?: boolean;
+  isDropTarget?: boolean;
+  onDragStart?: (e: React.DragEvent, node: CloudNode) => void;
+  onDragEnd?: () => void;
+  onDragOver?: (e: React.DragEvent, folderId: string | null) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent, folderId: string | null) => void;
 }
 
 function NodeCard({
   node, selected, listMode, onClick, onDoubleClick, onToggleStar,
   onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile, onContextMenu,
+  draggable, isDragging, isDropTarget,
+  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
 }: NodeCardProps) {
+  const isFolder = node.kind === 'folder';
   return (
     <div
       role="button"
       tabIndex={0}
+      draggable={draggable}
+      onDragStart={onDragStart ? (e) => onDragStart(e, node) : undefined}
+      onDragEnd={onDragEnd}
+      onDragOver={isFolder && onDragOver ? (e) => onDragOver(e, node.id) : undefined}
+      onDragLeave={isFolder ? onDragLeave : undefined}
+      onDrop={isFolder && onDrop ? (e) => onDrop(e, node.id) : undefined}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, node) : undefined}
@@ -1419,6 +1586,8 @@ function NodeCard({
       className={cn(
         'group border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors text-left cursor-pointer relative',
         selected && 'border-foreground/50 bg-muted',
+        isDragging && 'opacity-50',
+        isDropTarget && 'ring-2 ring-foreground/40 bg-foreground/5',
       )}
     >
       {/* 상단 우측: 별표 + ⋯ */}
