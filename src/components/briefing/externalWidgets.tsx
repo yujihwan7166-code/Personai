@@ -695,9 +695,9 @@ function ExtHeader({
   onConfig?: () => void;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-foreground/70 shrink-0">{icon}</span>
-      <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-foreground/75 truncate flex-1">
+    <div className="flex items-center gap-2">
+      <span className="text-foreground/65 shrink-0">{icon}</span>
+      <span className="text-[12.5px] font-semibold tracking-tight text-foreground/85 truncate flex-1">
         {title}
       </span>
       {stale && (
@@ -708,7 +708,7 @@ function ExtHeader({
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onRefresh(); }}
-        className="h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
+        className="h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
         aria-label="새로고침"
         title="새로고침"
       >
@@ -718,7 +718,7 @@ function ExtHeader({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onConfig(); }}
-          className="h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
+          className="h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
           aria-label="설정"
           title="설정"
         >

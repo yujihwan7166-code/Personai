@@ -669,42 +669,13 @@
     animation: wb-backdrop-out 0.15s ease-in forwards;
   }
 
-  /* 카드 hover 시 살짝 떠오름 + scale (translate 와 결합) */
+  /* 카드 hover */
   .wb-widget-card { will-change: transform; }
   .wb-widget-card:focus-visible {
     outline: 2px solid hsl(var(--primary)) !important;
     outline-offset: -1px !important;
   }
-  /* 카드 안쪽 상단 광택 라인 — 미세한 입체감 */
-  .wb-widget-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.6), transparent);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  /* PickFirst sparkle — amber pulse 광선 */
-  @keyframes wb-sparkle {
-    0%, 100% { opacity: 0.45; transform: scale(1) rotate(0deg); }
-    50%      { opacity: 1; transform: scale(1.15) rotate(8deg); }
-  }
-  .wb-sparkle {
-    animation: wb-sparkle 2.4s ease-in-out infinite;
-    transform-origin: center;
-  }
-  /* PickFirst 카드 — 미세한 amber glow shimmer */
-  @keyframes wb-pickfirst-glow {
-    0%, 100% { box-shadow: 0 6px 20px -8px hsl(38 92% 50% / 0.55), 0 2px 6px -2px hsl(30 15% 8% / 0.08); }
-    50%      { box-shadow: 0 8px 26px -8px hsl(38 92% 50% / 0.75), 0 2px 6px -2px hsl(30 15% 8% / 0.08); }
-  }
-  .wb-pickfirst-card {
-    animation: wb-pickfirst-glow 3s ease-in-out infinite;
-  }
+  /* (광택 라인·sparkle·pickfirst pulse 제거 — Samsung 톤은 정적) */
 
   /* 데일리 브리핑 그리드 — 데스크탑 6×4, 모바일 1열 stack */
   .wb-briefing-grid {

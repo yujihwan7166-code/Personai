@@ -343,16 +343,13 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 가장 먼저 (M) — 헤로 디자인 + sparkle 효과
+// 가장 먼저 (M) — 정적 hero 톤
 export function PickFirstWidget({ data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   if (!data.pickFirst) {
     return (
       <div className="w-full h-full p-4 flex flex-col">
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-          <span className="text-[10.5px] font-bold tracking-[0.08em] uppercase text-amber-700 dark:text-amber-400">가장 먼저</span>
-        </div>
+        <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" />
         <EmptyText text="추천할 항목 없음" hint="일정·할일 추가 →" />
       </div>
     );
@@ -361,22 +358,14 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-4 flex flex-col relative"
+      className="w-full h-full text-left p-4 flex flex-col"
     >
-      {/* 우상단 sparkle 장식 — 미세한 amber 점 */}
-      <span
-        aria-hidden
-        className="wb-sparkle absolute top-3 right-3 text-amber-500 text-[14px] leading-none pointer-events-none"
-      >✦</span>
-      <div className="flex items-center gap-1.5">
-        <Sparkles className="h-3.5 w-3.5 text-amber-500 wb-sparkle" />
-        <span className="text-[10.5px] font-bold tracking-[0.08em] uppercase text-amber-700 dark:text-amber-400">가장 먼저</span>
-      </div>
-      <div className="mt-2 font-display text-[18px] font-bold text-foreground leading-tight line-clamp-2">
+      <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" />
+      <div className="mt-2 font-display text-[20px] font-bold text-foreground leading-tight line-clamp-2">
         {data.pickFirst.title}
       </div>
-      <div className="mt-auto pt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[9.5px] font-semibold uppercase tracking-wider">
+      <div className="mt-auto pt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-foreground/8 text-foreground/70 text-[9.5px] font-semibold uppercase tracking-wider">
           {data.pickFirst.kind === 'event' ? '일정' : data.pickFirst.kind === 'habit' ? '습관' : '할일'}
         </span>
         <span className="truncate">{data.pickFirst.reason}</span>
@@ -505,16 +494,16 @@ function WidgetHeader({
   tint?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className={cn('shrink-0', tint ? 'text-primary' : 'text-foreground/70')}>{icon}</span>
+    <div className="flex items-center gap-2">
+      <span className={cn('shrink-0', tint ? 'text-primary' : 'text-foreground/65')}>{icon}</span>
       <span className={cn(
-        'text-[10px] font-bold tracking-[0.08em] uppercase truncate',
-        tint ? 'text-primary' : 'text-foreground/75',
+        'text-[12.5px] font-semibold tracking-tight truncate',
+        tint ? 'text-primary' : 'text-foreground/85',
       )}>
         {title}
       </span>
       {count !== '' && (
-        <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground font-semibold shrink-0">
+        <span className="ml-auto text-[11px] tabular-nums text-muted-foreground font-medium shrink-0">
           {count}
         </span>
       )}

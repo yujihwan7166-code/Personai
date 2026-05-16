@@ -359,26 +359,19 @@ function WidgetCard({
       onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
       className={cn(
         'wb-widget-card relative rounded-2xl overflow-hidden transition-all',
-        'shadow-[0_1px_2px_hsl(30_15%_8%/0.03),_0_2px_8px_-4px_hsl(30_15%_8%/0.05)]',
-        !editMode && 'hover:-translate-y-0.5',
+        'shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_2px_8px_-4px_hsl(30_15%_8%/0.06)]',
+        !editMode && 'hover:-translate-y-0.5 hover:shadow-[0_8px_22px_-8px_hsl(30_15%_8%/0.18),_0_2px_6px_-2px_hsl(30_15%_8%/0.08)]',
         editMode && 'wb-jiggle ring-2 ring-primary/30 cursor-grab',
         editMode && isDragging && 'opacity-30 cursor-grabbing',
-        isHero && !editMode && 'wb-pickfirst-card',
       )}
       style={{
         ...style,
         gridColumn: `${widget.col + 1} / span ${span.w}`,
         gridRow: `${widget.row + 1} / span ${span.h}`,
         background: isHero
-          ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.22)').replace('hsl(', 'hsla(')}, ${meta.tint.hue.replace(')', ' / 0.08)').replace('hsl(', 'hsla(')})`
-          : `linear-gradient(180deg, ${meta.tint.bg}, ${meta.tint.hue.replace(')', ' / 0.03)').replace('hsl(', 'hsla(')} 100%)`,
-        borderTop: `3px solid ${meta.tint.border}`,
-        // hover 시 tint 글로우 — CSS var 로 동적
-        ['--card-tint-hue' as string]: meta.tint.hue,
-        // isHero 는 CSS .wb-pickfirst-card 애니메이션이 box-shadow 담당 → inline 충돌 피함
-        boxShadow: isHero
-          ? undefined
-          : (hover ? `0 8px 22px -8px ${meta.tint.hue}40, 0 2px 6px -2px hsl(30 15% 8% / 0.08)` : undefined),
+          ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.18)').replace('hsl(', 'hsla(')}, ${meta.tint.hue.replace(')', ' / 0.06)').replace('hsl(', 'hsla(')})`
+          : `linear-gradient(180deg, ${meta.tint.bg}, hsl(var(--card)) 100%)`,
+        borderTop: `2.5px solid ${meta.tint.border}`,
         outline: `1px solid hsl(var(--foreground) / 0.05)`,
         outlineOffset: '-1px',
       }}
