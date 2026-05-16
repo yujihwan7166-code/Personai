@@ -397,14 +397,26 @@ export default function CloudSheetEditor() {
     return { mergeAtMap: at, coveredSet: covered };
   }, [merges]);
 
-  // 수식 평가 캐시 (cells 변경 시만 재계산) — early return 이전 위치
-  const displayValues = useMemo<Cells>(() => {
-    const out: Cells = {};
-    for (const [ref, raw] of Object.entries(cells)) {
-      out[ref] = raw.startsWith('=') ? evalCell(ref, cells) : raw;
+  // ─── cross-sheet 평가 컨텍스트 ───
+  // sheetName → cells 매핑 (다른 시트의 셀을 'Sheet1!A1' 식으로 참조 가능)
+  const sheetsForEval = useMemo(() => {
+    const out: Record<string, typeof cells> = {};
+    for (const s of sheetsMeta) {
+      out[s.name] = allCells[s.id] ?? {};
     }
     return out;
-  }, [cells]);
+  }, [sheetsMeta, allCells]);
+  const currentSheetName = currentSheet?.name ?? 'Sheet1';
+
+  // 수식 평가 캐시 (cells / 다른 시트 변경 시 재계산)
+  const displayValues = useMemo<Cells>(() => {
+    const out: Cells = {};
+    const ctx = { currentName: currentSheetName, allSheets: sheetsForEval };
+    for (const [ref, raw] of Object.entries(cells)) {
+      out[ref] = raw.startsWith('=') ? evalCell(ref, cells, ctx) : raw;
+    }
+    return out;
+  }, [cells, sheetsForEval, currentSheetName]);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3555,6 +3567,7 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
           <div>=SUMIF(A1:A10, "{'>'}5") · =COUNTIF(B1:B10, "사과")</div>
           <div>=SUMIFS(C1:C10, A1:A10, "{'>'}5", B1:B10, "사과")</div>
           <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2</div>
+          <div>=Sheet2!A1 · =SUM(Data!B1:B10) — 다른 시트 참조</div>
           <div className="text-muted-foreground/70">에러: #CIRCULAR / #ERROR / #DIV/0!</div>
           <div className="pt-1">시트 탭 · 셀 서식 · .xlsx import/export 는 다음 단계.</div>
         </div>

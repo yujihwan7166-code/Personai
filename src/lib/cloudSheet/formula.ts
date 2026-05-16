@@ -70,19 +70,44 @@ function collectRange(c1: string, r1: number, c2: string, r2: number): string[] 
 // 평가
 // ─────────────────────────────────────────────
 
-/** 셀 평가 — 수식이면 결과, 아니면 raw 값. */
-export function evalCell(ref: string, cells: Cells): string {
-  return evalWithGuard(ref, cells, new Set());
+/**
+ * 평가 컨텍스트.
+ *  - currentName: 현재 평가 중인 시트 이름 (cross-sheet 참조 시 sheet prefix 가
+ *    없으면 이 sheet 에서 조회)
+ *  - allSheets: name → cells. 다른 시트 참조 시 lookup. 없으면 cross-sheet
+ *    참조는 모두 #REF! 처럼 0/빈 값 처리.
+ */
+export interface EvalContext {
+  currentName?: string;
+  allSheets?: Record<string, Cells>;
 }
 
-function evalWithGuard(ref: string, cells: Cells, visiting: Set<string>): string {
+/** 셀 평가 — 수식이면 결과, 아니면 raw 값. */
+export function evalCell(ref: string, cells: Cells, ctx?: EvalContext): string {
+  const sheetName = ctx?.currentName ?? '__default__';
+  const allSheets: Record<string, Cells> = ctx?.allSheets ?? { [sheetName]: cells };
+  // currentSheet 에 가장 권위 있는 cells 가 항상 들어가도록 보정
+  if (allSheets[sheetName] !== cells) {
+    allSheets[sheetName] = cells;
+  }
+  return evalWithGuard(sheetName, ref, allSheets, new Set());
+}
+
+function evalWithGuard(
+  sheetName: string,
+  ref: string,
+  allSheets: Record<string, Cells>,
+  visiting: Set<string>,
+): string {
+  const cells = allSheets[sheetName] ?? {};
   const raw = cells[ref] ?? '';
   if (!raw.startsWith('=')) return raw;
-  if (visiting.has(ref)) return '#CIRCULAR';
+  const key = `${sheetName}!${ref}`;
+  if (visiting.has(key)) return '#CIRCULAR';
   const next = new Set(visiting);
-  next.add(ref);
+  next.add(key);
   try {
-    const result = evalExpr(raw.slice(1), cells, next);
+    const result = evalExpr(raw.slice(1), sheetName, allSheets, next);
     return formatResult(result);
   } catch {
     return '#ERROR';
@@ -102,35 +127,51 @@ function formatResult(v: unknown): string {
   return String(v);
 }
 
-function evalExpr(expr: string, cells: Cells, visiting: Set<string>): unknown {
+function evalExpr(
+  expr: string,
+  currentSheet: string,
+  allSheets: Record<string, Cells>,
+  visiting: Set<string>,
+): unknown {
   let work = expr;
 
-  // 1. 범위 (A1:B5) 평가 → 값 배열 (숫자/문자열 혼합 — SUMIF/COUNTIF 호환)
-  work = work.replace(/([A-Z]+)(\d+):([A-Z]+)(\d+)/g, (_m, c1, r1, c2, r2) => {
-    const refs = collectRange(c1 as string, Number(r1), c2 as string, Number(r2));
-    const tokens = refs.map((r) => {
-      const v = evalWithGuard(r, cells, visiting);
+  // 1. 범위 (sheet 옵셔널 + A1:B5) — Sheet1!A1:B5 또는 A1:B5
+  work = work.replace(
+    /(?:('[^']+'|[A-Za-z]\w*)!)?([A-Z]+)(\d+):([A-Z]+)(\d+)/g,
+    (_m, sheetRaw, c1, r1, c2, r2) => {
+      const sheet = sheetRaw
+        ? String(sheetRaw).replace(/^'|'$/g, '')
+        : currentSheet;
+      const refs = collectRange(c1 as string, Number(r1), c2 as string, Number(r2));
+      const tokens = refs.map((r) => {
+        const v = evalWithGuard(sheet, r, allSheets, visiting);
+        if (v.startsWith('#')) return '0';
+        const n = Number(v);
+        if (Number.isFinite(n) && v.trim() !== '') return String(n);
+        if (v === '') return '""';
+        return JSON.stringify(v);
+      });
+      return `[${tokens.join(',')}]`;
+    },
+  );
+
+  // 2. 단일 셀 참조 — Sheet1!A1 또는 A1
+  //    함수 이름과 혼동 방지: lookbehind 로 알파벳·_ 뒤가 아닐 때만 매칭
+  work = work.replace(
+    /(?<![A-Za-z_0-9])(?:('[^']+'|[A-Za-z]\w*)!)?([A-Z]+)(\d+)\b/g,
+    (_m, sheetRaw, c, r) => {
+      const sheet = sheetRaw
+        ? String(sheetRaw).replace(/^'|'$/g, '')
+        : currentSheet;
+      const ref = `${c}${r}`;
+      const v = evalWithGuard(sheet, ref, allSheets, visiting);
       if (v.startsWith('#')) return '0';
       const n = Number(v);
       if (Number.isFinite(n) && v.trim() !== '') return String(n);
-      if (v === '') return '""';
+      if (v === '') return '0';
       return JSON.stringify(v);
-    });
-    return `[${tokens.join(',')}]`;
-  });
-
-  // 2. 단일 셀 참조 (A1) → 숫자 또는 문자열 리터럴
-  //    함수 이름과 혼동 방지: lookbehind 로 알파벳·_ 뒤가 아닐 때만 매칭
-  work = work.replace(/(?<![A-Za-z_])([A-Z]+)(\d+)\b/g, (_m, c, r) => {
-    const ref = `${c}${r}`;
-    const v = evalWithGuard(ref, cells, visiting);
-    if (v.startsWith('#')) return '0';  // 에러 셀은 0으로
-    const n = Number(v);
-    if (Number.isFinite(n) && v.trim() !== '') return String(n);
-    // 빈 셀이나 텍스트는 0 또는 JSON 문자열
-    if (v === '') return '0';
-    return JSON.stringify(v);
-  });
+    },
+  );
 
   // 3. 함수 이름 → __funcname (긴 이름부터 처리: AVERAGE 먼저)
   for (const fn of FUNC_ORDER) {
@@ -301,14 +342,17 @@ function evalExpr(expr: string, cells: Cells, visiting: Set<string>): unknown {
 // ─────────────────────────────────────────────
 
 /** 전체 셀 맵을 한 번에 평가한 displayValue 맵. */
-export function evalAllCells(cells: Cells, rows: number, cols: number): Cells {
+export function evalAllCells(
+  cells: Cells, rows: number, cols: number,
+  ctx?: EvalContext,
+): Cells {
   const out: Cells = {};
   for (let r = 1; r <= rows; r++) {
     for (let c = 0; c < cols; c++) {
       const ref = `${idxToCol(c)}${r}`;
       const raw = cells[ref];
       if (raw == null) continue;
-      out[ref] = raw.startsWith('=') ? evalCell(ref, cells) : raw;
+      out[ref] = raw.startsWith('=') ? evalCell(ref, cells, ctx) : raw;
     }
   }
   return out;
