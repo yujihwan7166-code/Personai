@@ -30,7 +30,7 @@ type ShapeType = 'rect' | 'ellipse' | 'triangle' | 'line' | 'arrow';
 interface SlideShapeEl extends BaseEl { type: ShapeType; fillColor: string; strokeColor?: string; strokeWidth?: number; }
 interface SlideImageEl extends BaseEl { type: 'image'; src: string; alt?: string; }
 type SlideElement = SlideTextEl | SlideShapeEl | SlideImageEl;
-interface Slide { id: string; elements: SlideElement[]; background?: string; }
+interface Slide { id: string; elements: SlideElement[]; background?: string; notes?: string; }
 
 function newId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -65,10 +65,11 @@ export async function importPptxFile(file: File): Promise<Slide[]> {
     const file = zip.file(f);
     if (!file) continue;
     const xml = await file.async('string');
-    // rels 파일에서 rId → 미디어 경로 매핑
+    // rels 파일에서 rId → 미디어 경로 매핑 (+ notesSlide 도 함께 추출)
     const relsPath = f.replace(/^ppt\/slides\//, 'ppt/slides/_rels/').replace(/\.xml$/, '.xml.rels');
     const relsFile = zip.file(relsPath);
     const relsMap = new Map<string, string>();
+    let notesRelTarget: string | undefined;
     if (relsFile) {
       const relsXml = await relsFile.async('string');
       try {
@@ -78,11 +79,28 @@ export async function importPptxFile(file: File): Promise<Slide[]> {
         for (const r of rels ?? []) {
           const id = r['@_Id'] as string | undefined;
           const target = r['@_Target'] as string | undefined;
+          const ttype = r['@_Type'] as string | undefined;
           if (id && target) relsMap.set(id, target);
+          if (target && ttype && ttype.includes('notesSlide')) notesRelTarget = target;
         }
-      } catch { /* rels 파싱 실패 → 이미지 무시 */ }
+      } catch { /* rels 파싱 실패 → 이미지·노트 무시 */ }
     }
-    slides.push(await parseSlide(xml, parser, relsMap, zip));
+    const slide = await parseSlide(xml, parser, relsMap, zip);
+    // 노트 파싱 (있으면)
+    if (notesRelTarget) {
+      const notesPath = notesRelTarget.startsWith('../')
+        ? `ppt/${notesRelTarget.slice(3)}`
+        : notesRelTarget;
+      const notesFile = zip.file(notesPath);
+      if (notesFile) {
+        try {
+          const notesXml = await notesFile.async('string');
+          const text = extractNotesText(notesXml, parser);
+          if (text) slide.notes = text;
+        } catch { /* 노트 파싱 실패 → skip */ }
+      }
+    }
+    slides.push(slide);
   }
   if (slides.length === 0) {
     // 빈 슬라이드 한 장이라도 반환
@@ -261,6 +279,33 @@ async function parsePic(
   };
 }
 
+/** notesSlideN.xml 에서 발표자 노트 텍스트 추출 — txBody 안 paragraphs 중 placeholder 'body' 만 골라냄 */
+function extractNotesText(xml: string, parser: XMLParser): string {
+  try {
+    const parsed = parser.parse(xml) as Record<string, unknown>;
+    const root = (parsed['p:notes'] ?? parsed.notes) as Record<string, unknown> | undefined;
+    const cSld = root?.['p:cSld'] as Record<string, unknown> | undefined;
+    const spTree = cSld?.['p:spTree'] as Record<string, unknown> | undefined;
+    const shapes = spTree?.['p:sp'] as Array<Record<string, unknown>> | undefined;
+    if (!shapes) return '';
+    const parts: string[] = [];
+    for (const sp of shapes) {
+      // 노트 본문 sp 만 (제목 sp 는 건너뜀) — phType='body' 또는 idx 가 없는 것
+      const nvSpPr = sp['p:nvSpPr'] as Record<string, unknown> | undefined;
+      const nvPr = nvSpPr?.['p:nvPr'] as Record<string, unknown> | undefined;
+      const ph = nvPr?.['p:ph'] as Record<string, unknown> | undefined;
+      const phType = ph?.['@_type'] as string | undefined;
+      if (phType && phType !== 'body') continue;
+      const txBody = sp['p:txBody'] as Record<string, unknown> | undefined;
+      if (!txBody) continue;
+      parts.push(extractText(txBody));
+    }
+    return parts.join('\n').trim();
+  } catch {
+    return '';
+  }
+}
+
 function extractText(node: unknown): string {
   if (!node || typeof node !== 'object') return '';
   const parts: string[] = [];
@@ -302,6 +347,9 @@ export function exportPptxFile(slides: Slide[], fileName: string): void {
     const slide = pres.addSlide();
     if (s.background) {
       slide.background = { color: s.background.replace('#', '') };
+    }
+    if (s.notes && s.notes.trim()) {
+      slide.addNotes(s.notes);
     }
     for (const el of s.elements) {
       const x = (el.xPct / 100) * W;
